@@ -32,6 +32,14 @@ import AsesorOperaciones from './pages/advisor/AsesorOperaciones';
 import AsesorComisiones from './pages/advisor/AsesorComisiones';
 import AsesorRanking from './pages/advisor/AsesorRanking';
 
+// Developer portal (Phase 5)
+import DesarrolladorDashboard from './pages/developer/DesarrolladorDashboard';
+import DesarrolladorInventario from './pages/developer/DesarrolladorInventario';
+import DesarrolladorDemanda from './pages/developer/DesarrolladorDemanda';
+import DesarrolladorReportes from './pages/developer/DesarrolladorReportes';
+import DesarrolladorPricing from './pages/developer/DesarrolladorPricing';
+import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -155,6 +163,12 @@ function AppRouter() {
       <Route path="/asesor/operaciones" element={<AdvisorRoute Page={AsesorOperaciones} />} />
       <Route path="/asesor/comisiones" element={<AdvisorRoute Page={AsesorComisiones} />} />
       <Route path="/asesor/ranking" element={<AdvisorRoute Page={AsesorRanking} />} />
+      <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
+      <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
+      <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
+      <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
+      <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
+      <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
       <Route path="*" element={<LandingPage />} />
     </Routes>
   );

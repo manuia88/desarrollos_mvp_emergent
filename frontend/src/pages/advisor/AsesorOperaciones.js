@@ -1,5 +1,6 @@
 // /asesor/operaciones — list + 6-step wizard + status transitions
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
@@ -27,6 +28,20 @@ export default function AsesorOperaciones({ user, onLogout }) {
   const [showNew, setShowNew] = useState(false);
   const [toast, setToast] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+  const [sp, setSp] = useSearchParams();
+
+  useEffect(() => {
+    const bid = sp.get('prefillBusq');
+    if (!bid) return;
+    api.getOpPrefill(bid).then(pf => {
+      setPrefill(pf);
+      setShowNew(true);
+      // Clean URL
+      sp.delete('prefillBusq');
+      setSp(sp, { replace: true });
+    }).catch(() => setToast({ kind: 'error', text: 'No se pudo cargar prefill' }));
+  }, [sp, setSp]);
 
   const load = async () => {
     setLoading(true);
@@ -88,9 +103,9 @@ export default function AsesorOperaciones({ user, onLogout }) {
           </Card>
         )}
 
-      <Drawer open={showNew} onClose={() => setShowNew(false)} title="Nueva operación · Wizard 6 pasos" width={620}>
-        <NewOpWizard contacts={contacts} devs={devs}
-          onDone={() => { setShowNew(false); setToast({ kind: 'success', text: 'Operación creada' }); load(); }}
+      <Drawer open={showNew} onClose={() => { setShowNew(false); setPrefill(null); }} title={prefill ? "Nueva operación · Pre-llenada desde búsqueda ganada" : "Nueva operación · Wizard 6 pasos"} width={640}>
+        <NewOpWizard contacts={contacts} devs={devs} prefill={prefill}
+          onDone={() => { setShowNew(false); setPrefill(null); setToast({ kind: 'success', text: 'Operación creada' }); load(); }}
           onError={t => setToast({ kind: 'error', text: t })} />
       </Drawer>
 
@@ -148,13 +163,20 @@ function Line({ k, v, bold }) {
   );
 }
 
-function NewOpWizard({ contacts, devs, onDone, onError }) {
-  const [step, setStep] = useState(1);
-  const [f, setF] = useState({
-    side: 'ambos', contacto_id: contacts[0]?.id || '', desarrollo_id: '', unidad_id: '',
-    valor_cierre: '', currency: 'MXN', comision_pct: 4.0, fecha_cierre: '',
-    declaracion_jurada: false, notas: '',
-  });
+function NewOpWizard({ contacts, devs, onDone, onError, prefill }) {
+  const [step, setStep] = useState(prefill ? 5 : 1);
+  const [f, setF] = useState(() => ({
+    side: prefill?.side || 'ambos',
+    contacto_id: prefill?.contacto_id || contacts[0]?.id || '',
+    desarrollo_id: prefill?.desarrollo_id || '',
+    unidad_id: prefill?.unidad_id || '',
+    valor_cierre: prefill?.valor_cierre || '',
+    currency: prefill?.currency || 'MXN',
+    comision_pct: prefill?.comision_pct || 4.0,
+    fecha_cierre: prefill?.fecha_cierre || '',
+    declaracion_jurada: false,
+    notas: prefill?.notas || '',
+  }));
   const [sub, setSub] = useState(false);
   const dev = devs.find(d => d.id === f.desarrollo_id);
 
@@ -192,6 +214,19 @@ function NewOpWizard({ contacts, devs, onDone, onError }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {prefill && step >= 4 && (
+        <Card data-testid="prefill-banner" style={{ background: 'linear-gradient(140deg, rgba(34,197,94,0.1), rgba(34,197,94,0.02))', border: '1px solid rgba(34,197,94,0.28)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <div>
+              <div className="eyebrow" style={{ color: '#86efac', marginBottom: 4 }}>PASOS 1-3 AUTO-LLENADOS</div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+                Side: <strong>{f.side}</strong> · Contacto: <strong>{contacts.find(c => c.id === f.contacto_id)?.first_name || '—'}</strong> · Desarrollo: <strong>{devs.find(d => d.id === f.desarrollo_id)?.name || '—'}</strong>
+              </div>
+            </div>
+            <button onClick={() => setStep(1)} data-testid="prefill-edit" className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>Editar</button>
+          </div>
+        </Card>
+      )}
       {/* Stepper */}
       <div style={{ display: 'flex', gap: 4 }}>
         {[1, 2, 3, 4, 5, 6].map(n => (

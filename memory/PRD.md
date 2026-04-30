@@ -91,12 +91,16 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 ---
 
 ## Testing
+- 2026-04-30 **Phase 5 Developer Portal MVP** + **Micro-iteration A&B**:
+  - Backend: 9+ endpoints curl-verificados (`/api/desarrollador/*`)
+  - Backend Claude D9 reportes: genera resumen ejecutivo real con Sonnet 4.5
+  - Frontend smoke screenshots: dashboard (15 devs, $589M booked, $947M pipeline), demanda (16 colonias heatmap + 10 top queries + funnel), pricing (27 sugerencias renderizadas)
 - 2026-04-30 **Iteración B + Fase 4 backbone** (iteration_3 + smoke tests)
   - Backend: manual curl verificó 8+ endpoints (dashboard, busquedas stage validation, comisiones, operaciones creation/status, briefing, role check superadmin)
-  - Frontend: smoke screenshot del `/asesor` dashboard renderiza correctamente (6 contactos / 3 búsquedas / 2 captaciones / 1 tarea vencida / 2 operaciones abiertas visibles).
+  - Frontend: smoke screenshot del `/asesor` dashboard
 - 2026-04-30 Iteración A (iteration_3.json): Backend 24/24 pytest + Frontend 100%.
 
-⚠️ **No se ejecutó testing_agent_v3_fork end-to-end** — se pospuso a la próxima iteración por decisión del usuario.
+⚠️ **No se ejecutó testing_agent_v3_fork end-to-end** — programado para próxima sesión cubriendo todos los flujos públicos + asesor + desarrollador.
 
 ---
 
@@ -118,34 +122,35 @@ Demo data CRM: `POST /api/asesor/_seed-demo` (idempotente).
 ## Backlog priorizado
 
 ### P0 — Antes del próximo release
-- [ ] **E2E testing con `testing_agent_v3_fork`** sobre todos los flujos del portal asesor + ficha desarrollo Iteración B
-- [ ] Poblar `full_name/brokerage/license_ampi` al primer login asesor (form onboarding)
-- [ ] Fix warnings ESLint residuales (imports no usados)
+- [ ] **E2E testing con `testing_agent_v3_fork`** — 3 personas: buyer (landing→ficha→paywall→login), advisor (login→argumentario→búsqueda ganada→prefill operación), developer admin (inventario→demanda→pricing approve→radar competidores)
+- [ ] Onboarding form post-OAuth Google (no solo email/password login)
+- [ ] Fix warnings ESLint residuales
 
-### P1 — Fase 4 extensiones
+### P1 — Phase 4 extensiones
 - [ ] Mifiel NOM-151 real (acuerdo comercial captación + escritura)
-- [ ] WhatsApp Business API real para briefing diario (hoy guarda en DB)
+- [ ] WhatsApp Business API real para briefing diario
 - [ ] Google Calendar OAuth bidireccional en tareas
-- [ ] Argumentario cache per-day en vez de per-week
 - [ ] Adjuntos/fotos captaciones (upload + AI classify)
 - [ ] Elevación de rol desde superadmin UI
 
-### P1 — Fase 5 Developer Portal
-- [ ] `/desarrollador/*` con inventory realtime, demand heatmap, reporte IA mensual, pricing AI, competitor radar
-- [ ] Extender `routes_developer.py` paralelo a `routes_advisor.py`
+### P1 — Phase 5 extensiones
+- [ ] Inventario: bulk Excel/CSV upload + drag reorder fotos + tour 360° upload
+- [ ] Pricing: A/B test, bundle pricing, calendario subidas programadas
+- [ ] Reportes: PDF branded developer + distribución email auto + link único trackeable
+- [ ] Demanda: mapa Mapbox real-time (hoy es lista) + export GeoJSON
+- [ ] Competidores: alertas push, histórico precios 12m, SEO/SEM presence
 
 ### P2 — Mejoras
 - [ ] Búsqueda semántica embeddings OpenAI en marketplace público
-- [ ] Paginación + infinite scroll marketplace
 - [ ] Comparador 3-way de desarrollos
 - [ ] Wrapped anual del asesor
 - [ ] Expansión Dubai / Miami
-- [ ] Public profile `/asesor/perfil/:slug` (LinkedIn-style) con endorsements
+- [ ] Public profile `/asesor/perfil/:slug` con endorsements
 
 ### Refactor (no blocker)
 - [ ] Split `server.py` en routers (auth/marketplace/developments/briefings/ai-search)
 - [ ] Split landing components grandes (ColoniasBento, Hero)
-- [ ] Extraer `asesor_admin` view de equipo (tasks.view_team)
+- [ ] Backend tests unit (pytest) por router
 
 ---
 

@@ -438,6 +438,40 @@ async def busqueda_matches(bid: str, request: Request):
     return out[:12]
 
 
+@router.get("/busquedas/{bid}/op-prefill")
+async def busqueda_op_prefill(bid: str, request: Request):
+    """Auto-prefill payload for the 6-step operación wizard when a búsqueda moves to 'ganada'."""
+    from datetime import timedelta as _td
+    user = await require_advisor(request)
+    db = get_db(request)
+    b = await db.asesor_busquedas.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0})
+    if not b:
+        raise HTTPException(404, "Búsqueda no encontrada")
+
+    # Top match as default development suggestion
+    top_dev_id = None
+    try:
+        resp = await busqueda_matches(bid, request)
+        if resp: top_dev_id = resp[0]["dev_id"]
+    except Exception:
+        pass
+
+    valor = b.get("precio_max") or b.get("precio_min") or 0
+    fecha_cierre = (_now() + _td(days=10)).strftime("%Y-%m-%d")
+    return {
+        "side": "ambos",
+        "contacto_id": b.get("contacto_id"),
+        "desarrollo_id": top_dev_id,
+        "unidad_id": None,
+        "valor_cierre": valor,
+        "currency": "MXN",
+        "comision_pct": 4.0,
+        "fecha_cierre": fecha_cierre,
+        "notas": f"Originada desde búsqueda {bid} (ganada)",
+        "source_busqueda_id": bid,
+    }
+
+
 # ─── Captaciones (Kanban) ─────────────────────────────────────────────────────
 @router.get("/captaciones")
 async def list_captaciones(request: Request):
@@ -805,6 +839,20 @@ async def seed_demo(request: Request):
     # Skip if already seeded
     if await db.asesor_contactos.count_documents({"owner_id": user.user_id, "seed": True}) > 0:
         return {"message": "Demo ya existente", "skipped": True}
+
+    # Ensure profile is populated
+    await db.asesor_profiles.update_one(
+        {"user_id": user.user_id},
+        {"$set": {
+            "full_name": user.name or "Asesor Demo",
+            "brokerage": "Pulppo Real Estate",
+            "license_ampi": "AMPI-CDMX-01234",
+            "colonias": ["polanco", "condesa", "roma-norte"],
+            "languages": ["es-MX", "en-US"],
+            "bio": "Especialista en preventa Polanco y Roma con 8 años de experiencia.",
+        }},
+        upsert=True,
+    )
 
     demo_contactos = [
         {"first_name": "Laura", "last_name": "Martínez", "phones": ["+525512345100"], "emails": ["laura.m@demo.mx"], "tipo": "comprador", "temperatura": "caliente", "tags": ["Polanco", "Premium"]},

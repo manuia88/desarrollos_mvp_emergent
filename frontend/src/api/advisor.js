@@ -59,6 +59,9 @@ export const getOperacion = (id) => j(`/api/asesor/operaciones/${id}`);
 // Comisiones
 export const getComisiones = () => j('/api/asesor/comisiones');
 
+// Operación prefill desde búsqueda ganada
+export const getOpPrefill = (bid) => j(`/api/asesor/busquedas/${bid}/op-prefill`);
+
 // Argumentario AI
 export const generateArgumentario = (b) => post('/api/asesor/argumentario', b);
 

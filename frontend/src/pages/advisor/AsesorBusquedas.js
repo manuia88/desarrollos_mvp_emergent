@@ -1,5 +1,6 @@
 // /asesor/busquedas — Kanban of búsquedas with hard stage validations + matches drawer
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
@@ -23,6 +24,8 @@ export default function AsesorBusquedas({ user, onLogout }) {
   const [dragging, setDragging] = useState(null);
   const [detail, setDetail] = useState(null);
   const [matches, setMatches] = useState(null);
+  const [ganadaPrompt, setGanadaPrompt] = useState(null); // { busqueda_id }
+  const nav = useNavigate();
 
   const load = async () => {
     setLoading(true);
@@ -44,6 +47,9 @@ export default function AsesorBusquedas({ user, onLogout }) {
     try {
       await api.moveBusqueda(id, stage);
       setToast({ kind: 'success', text: `Movido a ${stage}` });
+      if (stage === 'ganada') {
+        setGanadaPrompt({ busqueda_id: id });
+      }
     } catch (e) {
       setToast({ kind: 'error', text: e.body?.detail || 'Validación fallida' });
       load();
@@ -189,6 +195,44 @@ export default function AsesorBusquedas({ user, onLogout }) {
       </Drawer>
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
+
+      {ganadaPrompt && (
+        <div data-testid="ganada-modal" onClick={() => setGanadaPrompt(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: 480, maxWidth: '100%',
+            background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
+            border: '1px solid rgba(99,102,241,0.28)', borderRadius: 22,
+            padding: 28, boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+          }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.38)', borderRadius: 9999, marginBottom: 14 }}>
+              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="#86efac" strokeWidth={3}><polyline points="20 6 9 17 4 12"/></svg>
+              <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 10.5, color: '#86efac', letterSpacing: '0.12em', textTransform: 'uppercase' }}>BÚSQUEDA GANADA</span>
+            </div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)', letterSpacing: '-0.02em', margin: '0 0 10px', lineHeight: 1.15 }}>
+              Esta búsqueda cerró. ¿Crear operación ahora?
+            </h2>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)', lineHeight: 1.6, margin: '0 0 22px' }}>
+              Pre-llenamos el wizard con contacto, desarrollo top-match y valor estimado. Solo necesitas confirmar y completar comisión + notas.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button data-testid="ganada-later" onClick={() => setGanadaPrompt(null)}
+                className="btn btn-glass" style={{ flex: 1, justifyContent: 'center' }}>
+                Más tarde
+              </button>
+              <button data-testid="ganada-create-op"
+                onClick={() => { nav(`/asesor/operaciones?prefillBusq=${ganadaPrompt.busqueda_id}`); setGanadaPrompt(null); }}
+                className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }}>
+                Crear operación
+                <ArrowRight size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdvisorLayout>
   );
 }

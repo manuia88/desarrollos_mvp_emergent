@@ -44,6 +44,10 @@ app.state.db = db
 from routes_advisor import router as advisor_router
 app.include_router(advisor_router)
 
+# Wire developer portal router
+from routes_developer import router as developer_router
+app.include_router(developer_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()

@@ -1,7 +1,9 @@
-// AdvisorLayout — sidebar nav + role gate + header
-import React, { useEffect } from 'react';
+// AdvisorLayout — sidebar nav + role gate + header + onboarding gate
+import React, { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { Home, Database, BarChart, Clock, Route, TrendUp, Bookmark, Shield, LogOut, MapPin } from '../icons';
+import OnboardingGate from './OnboardingGate';
+import * as api from '../../api/advisor';
 
 const ROLES_OK = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -18,6 +20,13 @@ const NAV = [
 
 export default function AdvisorLayout({ user, onLogout, children }) {
   const loc = useLocation();
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !ROLES_OK.has(user.role)) { setProfileLoading(false); return; }
+    api.getProfile().then(p => setProfile(p)).catch(() => setProfile(null)).finally(() => setProfileLoading(false));
+  }, [user]);
 
   if (!user) {
     return <Navigate to="/?login=1" replace state={{ next: loc.pathname }} />;
@@ -38,6 +47,12 @@ export default function AdvisorLayout({ user, onLogout, children }) {
       </div>
     );
   }
+
+  const needsOnboarding = profile && (
+    !profile.full_name || profile.full_name.trim().length < 3 ||
+    !profile.brokerage || profile.brokerage.trim().length < 2 ||
+    !profile.colonias || profile.colonias.length === 0
+  );
 
   return (
     <div className="advisor-shell" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'grid', gridTemplateColumns: '240px 1fr' }}>
@@ -123,6 +138,10 @@ export default function AdvisorLayout({ user, onLogout, children }) {
           .advisor-shell > aside { position: relative !important; height: auto !important; }
         }
       `}</style>
+
+      {!profileLoading && needsOnboarding && (
+        <OnboardingGate profile={profile} onDone={() => api.getProfile().then(setProfile)} />
+      )}
     </div>
   );
 }
