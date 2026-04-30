@@ -38,6 +38,11 @@ app.add_middleware(
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
+app.state.db = db
+
+# Wire advisor portal router
+from routes_advisor import router as advisor_router
+app.include_router(advisor_router)
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:

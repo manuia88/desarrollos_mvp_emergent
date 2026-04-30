@@ -1,24 +1,37 @@
 # Test Credentials — DesarrollosMX
 
-## Auth
-- **Tipo**: Google OAuth (Emergent-managed)
-- **URL de login**: https://auth.emergentagent.com/?redirect=...
-- **No hay usuarios de prueba con contraseña** — el login es 100% OAuth con Google
+## Email/password test accounts
 
-## Roles disponibles (en schema)
+| Role | Email | Password | Portal |
+|------|-------|----------|--------|
+| superadmin | admin@desarrollosmx.com | Admin2026! | all |
+| advisor | asesor@demo.com | Asesor2026! | `/asesor/*` — CRM Pulppo+ |
+| developer_admin | developer@demo.com | Dev2026! | `/desarrollador/*` (Phase 5, pending) |
+
+Use `/api/auth/login` with JSON body `{email, password}` to get cookies, then call any `/api/*` endpoint with `credentials: include`.
+
+## Google OAuth (optional)
+- Tipo: Emergent-managed Google Auth
+- URL: https://auth.emergentagent.com/?redirect=...
+- Cualquier cuenta de Google → crea usuario con role `buyer` por defecto.
+- Upgrade de rol a `advisor` requiere actualización directa en MongoDB o endpoint admin (pendiente).
+
+## Roles disponibles
 | Role | Description |
 |------|-------------|
 | buyer | Comprador — acceso público + perfil |
-| advisor | Asesor inmobiliario certificado |
-| advisor_admin | Admin de agencia de asesores |
-| developer_admin | Admin de constructora/desarrolladora |
+| advisor | Asesor inmobiliario (Phase 4 CRM) |
+| asesor_admin | Admin de agencia de asesores |
+| developer_admin | Admin de constructora |
 | superadmin | Operaciones DMX |
 
-## Notas
-- Cualquier cuenta de Google puede iniciar sesión → crea usuario con role: buyer por defecto
-- Role upgrade debe hacerse directamente en MongoDB o vía endpoint admin (pendiente de implementar)
-- Single-session enforcement: nuevo login invalida sesión anterior del mismo usuario
+## Seed data público (no requiere login)
+- `GET /api/colonias` → 16 colonias CDMX
+- `GET /api/developments` → 15 desarrollos (10 developers)
 
-## Seed data (no requiere login)
-- GET /api/colonias → 3 colonias (Del Valle Centro, Condesa, Roma Norte)
-- GET /api/properties → 3 propiedades
+## Seed demo CRM (requiere login asesor)
+- `POST /api/asesor/_seed-demo` → crea 6 contactos, 3 búsquedas, 2 captaciones, 4 tareas, 2 operaciones.
+- Idempotente: re-ejecutar no duplica (chequea flag `seed: True`).
+
+## Single-session
+- Cada login invalida session_token anterior del mismo usuario (aplicado solo en flujo Google OAuth).

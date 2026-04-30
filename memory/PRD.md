@@ -1,136 +1,160 @@
 # DesarrollosMX (DMX) — PRD
 
 ## Identidad del producto
-**DesarrollosMX** — AI-native Spatial Decision Intelligence Platform para real estate residencial nuevo en LATAM. Marketplace público = desarrollos nuevos (preventa / en construcción / entrega inmediata / exclusiva). Individuales (segunda mano) viven en el portal asesor privado (Fase 4). Moonshot: $1–5B valuation en 3–5 años.
+**DesarrollosMX** — AI-native Spatial Decision Intelligence Platform para real estate residencial nuevo en LATAM. Marketplace público = desarrollos nuevos. Individuales (reventa) viven en el portal asesor privado (Fase 4 CRM Pulppo+). Moonshot: $1–5B valuation en 3–5 años.
 
 ---
 
 ## Stack técnico
 - **Backend**: FastAPI + Motor (Mongo) + emergentintegrations (Claude Sonnet 4.5)
 - **Frontend**: React 18 + Tailwind + CSS vars + react-i18next + Mapbox GL JS
-- **LLM**: Claude Sonnet 4.5 (briefings, AI search parser) + OpenAI embeddings (futuro)
-- **DB**: MongoDB con caches para briefings y AI search queries (por ISO week / 24h)
+- **DB**: MongoDB con caches weekly/24h
 - **Map**: Mapbox GL JS
+- **AI**: Claude Sonnet 4.5 (briefings, argumentarios, parser NLP)
 
 ---
 
 ## Design System (NON-NEGOTIABLE)
 - Navy `#06080F` + Cream `#F0EBE0` + Gradient `#6366F1→#EC4899`
 - Outfit (headings) + DM Sans (body)
-- Zero emoji · solo SVG
+- Zero emoji · solo SVG (lucide-style en `/components/icons/`)
 - Buttons border-radius 9999px
 - Motion ≤850ms, `once:true`, transforms Y-only
 
 ---
 
 ## Score system
-Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
-+ Plusvalía / Educación / Riesgo (comparator radar extension)
+Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)  
++ Plusvalía / Educación / Riesgo (extension comparador).
 
 ---
 
-## Arquitectura implementada (post Iteración A)
+## Arquitectura implementada
 
 ### Backend `/app/backend/`
-- `server.py` — 973 líneas (split a routers pendiente)
+- `server.py` — core: auth, public marketplace, Claude briefing/parser (973 líneas)
+- `routes_advisor.py` — **nuevo Fase 4**: CRUD contactos/búsquedas/captaciones/tareas/operaciones/comisiones + argumentario AI + briefing + leaderboard
 - `data_seed.py` — 16 colonias CDMX
-- `data_developments.py` — **10 developers + 15 developments + ~420 units**
-- Endpoints marketplace:
-  - `GET /api/colonias`, `/api/colonias/{id}`, `/api/colonias/{id}/propiedades`
-  - `GET /api/developments` con filtros `colonia` (multi), `min_price/max_price`, `min_sqm/max_sqm`, `beds`, `baths`, `parking`, `stage`, `amenity` (multi), `featured`, `sort` (recent|price_asc|price_desc|sqm_desc)
-  - `GET /api/developments/{id}` — detalle con units embebidas
-  - `GET /api/developments/{id}/units` con filtros `status`, `beds`, `baths`, `parking`
-  - `GET /api/developments/{id}/similar` — 3 similares
-  - `GET /api/developers/{id}` — perfil + proyectos activos
-  - `POST /api/developments/{id}/briefing` — Claude Sonnet 4.5 cached weekly
-  - `POST /api/properties/search-ai` — Claude parser NL→filtros JSON, cached 24h
-- Endpoints legacy (Fase 3 original, mantener hasta Iteración B):
-  - `GET /api/properties`, `/api/properties/{id}`, `/api/properties/{id}/similares`
-  - `POST /api/properties/{id}/briefing`
-- Auth: `POST /api/auth/session`, `GET /api/auth/me`, `POST /api/auth/logout`
+- `data_developments.py` — 10 developers + 15 developments + ~420 units
+
+Endpoints públicos (marketplace + ficha):
+- `GET /api/colonias`, `/api/colonias/{id}`, `/api/developments`, `/api/developments/{id}`, `/api/developments/{id}/units`, `/api/developments/{id}/similar`, `/api/developers/{id}`
+- `POST /api/developments/{id}/briefing`, `POST /api/properties/search-ai`
+- `POST /api/auth/{login,register,session,logout}`, `GET /api/auth/me`
+
+Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
+- `GET/PATCH /api/asesor/profile`
+- `GET /api/asesor/dashboard`
+- `GET/POST /api/asesor/contactos`, `GET /api/asesor/contactos/{id}`, `PATCH/DELETE` idem, `POST /api/asesor/contactos/{id}/timeline`
+- `GET/POST /api/asesor/busquedas`, `PATCH /api/asesor/busquedas/{id}/stage` (hard validations), `POST /visit`, `POST /offer`, `GET /matches` (motor 5 dim determinístico)
+- `GET/POST /api/asesor/captaciones`, `PATCH /stage`, `GET /{id}`
+- `GET/POST /api/asesor/tareas`, `PATCH /done` (+5 XP), `DELETE`
+- `GET/POST /api/asesor/operaciones`, `PATCH /status` (con transiciones válidas), `GET /{id}`. Al crear: código único 3-4-4, IVA 16%, split asesor 80% / DMX 20%, cierre otorga +250 XP + cierres_total.
+- `GET /api/asesor/comisiones` (forecast 6m, by_status, totales)
+- `POST /api/asesor/argumentario` (Claude Sonnet 4.5, cache semanal)
+- `POST /api/asesor/briefing/daily` (stub con datos reales del usuario)
+- `GET /api/asesor/leaderboard`
+- `GET /api/asesor/perfil-publico/{slug}`
+- `POST /api/asesor/_seed-demo` (6 contactos + 3 búsquedas + 2 captaciones + 4 tareas + 2 operaciones)
 
 ### Frontend `/app/frontend/src/`
-- `App.js` — rutas: `/`, `/marketplace`, `/propiedad/:id`, `/desarrollo/:id`, `/mapa`. **CustomCursor mounted at App root** (fix cross-route).
-- `pages/Marketplace.js` — **refactor completo**: 4-col grid, hero, sticky filter bar
-- `pages/DevelopmentDetail.js` — **stub** (iteración B completará 5 tabs + paywall)
-- `pages/PropertyDetail.js`, `pages/Mapa.js` — sin cambios
-- `components/marketplace/TopFilters.js` — horizontal pills + drawer
-- `components/marketplace/DevelopmentCard.js` — 480px compact card con stage band colored
-- `api/marketplace.js` — extendido con developments + AI search helpers
-- `i18n/locales/{es,en}.json` — nuevas keys `marketplace_v2.*`, `dev.*`, `detail.*`, `mapa.*`
+- `App.js` — rutas: `/`, `/marketplace`, `/propiedad/:id`, `/desarrollo/:id`, `/mapa`, `/asesor/*`.
+- `pages/DevelopmentDetail.js` — **completo Iteración B**: 5 tabs + sticky sidebar + paywall gating
+- `pages/Marketplace.js` — refactor completo Iteración A
+- `pages/advisor/*` — **nuevo Fase 4**:
+  - `AsesorDashboard.js` (widgets + briefing IA + perfil score)
+  - `AsesorContactos.js` (tabla + detalle drawer + argumentario Claude drawer)
+  - `AsesorBusquedas.js` (Kanban 6 columnas con DnD + validaciones duras + matches motor)
+  - `AsesorCaptaciones.js` (Kanban 6 columnas + gate de campos mínimos)
+  - `AsesorTareas.js` (3 columnas por scope + wizard 2 pasos)
+  - `AsesorOperaciones.js` (tabla + wizard 6 pasos + transiciones de estado)
+  - `AsesorComisiones.js` (stats + desglose + recientes)
+  - `AsesorRanking.js` (leaderboard Elo)
+- `components/advisor/AdvisorLayout.js` — sidebar nav + role gate
+- `components/advisor/primitives.js` — PageHeader, Card, Stat, Badge, Empty, Toast, Drawer
+- `components/dev/*` — Iteración B complete (DescriptionTab, PriceListTab, ProgressTab, AmenitiesTab, LocationTab, Sidebar, RegistrationModal, PhotoGallery, FloorPlan)
+- `i18n/locales/{es,en}.json` — keys dev.* (~80 nuevas) + gate.* expandidos
+- `api/advisor.js` — helpers consolidados del portal
 
 ---
 
-## Moats activos
-- **Briefing Claude (weekly cache)** — WhatsApp-shareable por desarrollo o propiedad.
-- **AI search parser (24h cache)** — queries NL convertidas a filtros estructurados visibles como chips.
-- **IE Score compuesto transparente** — receta pública.
-- **Cero comisión transaccional**.
+## Flujos clave (Fase 4)
+
+1. **Role gating**: `/asesor/*` redirige a `/` si no hay sesión; muestra 403 si rol ≠ advisor|asesor_admin|superadmin.
+2. **Kanban drag&drop**: optimistic UI + validación servidor:
+   - `busqueda → visitando` requiere `visits >= 1`
+   - `busqueda → ofertando/ganada` requiere `offers >= 1`
+3. **Argumentario IA**: POST `/api/asesor/argumentario` con `{contacto_id, desarrollo_id, objetivo}`. Cache semanal (MD5 key con ISO-week). Fallback text si Claude falla.
+4. **Operación split 80/20 transparente**: wizard 6 pasos visualiza cálculo en vivo (valor × pct = base, +IVA 16%, split asesor 80% / DMX 20%).
+5. **Matcher motor**: 5 dimensiones deterministas (precio 30% + zona 25% + amenidades 20% + recámaras 15% + urgencia 10%). Retorna top 12 con rationale chips.
 
 ---
 
 ## Testing
-- 2026-04-30 **Iteración A** (iteration_3.json): Backend 24/24 pytest · Frontend 100% (marketplace refactor, AI search, stub, cursor fix). Cero issues.
-- 2026-04-30 Fase 3 inicial (iteration_2.json): 26/26 pytest + 100% frontend.
-- 2026-04-30 Fase 2 refactor: Hero + Bento validados visualmente.
+- 2026-04-30 **Iteración B + Fase 4 backbone** (iteration_3 + smoke tests)
+  - Backend: manual curl verificó 8+ endpoints (dashboard, busquedas stage validation, comisiones, operaciones creation/status, briefing, role check superadmin)
+  - Frontend: smoke screenshot del `/asesor` dashboard renderiza correctamente (6 contactos / 3 búsquedas / 2 captaciones / 1 tarea vencida / 2 operaciones abiertas visibles).
+- 2026-04-30 Iteración A (iteration_3.json): Backend 24/24 pytest + Frontend 100%.
+
+⚠️ **No se ejecutó testing_agent_v3_fork end-to-end** — se pospuso a la próxima iteración por decisión del usuario.
+
+---
+
+## Credenciales de prueba (ver `/app/memory/test_credentials.md`)
+- `admin@desarrollosmx.com` / `Admin2026!` → superadmin
+- `asesor@demo.com` / `Asesor2026!` → advisor
+- `developer@demo.com` / `Dev2026!` → developer_admin
+
+Demo data CRM: `POST /api/asesor/_seed-demo` (idempotente).
 
 ---
 
 ## Variables de entorno
-- Backend: `MONGO_URL`, `DB_NAME`, `EMERGENT_LLM_KEY`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `MAPBOX_TOKEN`, `DMX_FALLBACK_WHATSAPP` (+525512345678)
+- Backend: `MONGO_URL`, `DB_NAME`, `EMERGENT_LLM_KEY`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `MAPBOX_TOKEN`, `DMX_FALLBACK_WHATSAPP`
 - Frontend: `REACT_APP_BACKEND_URL`, `REACT_APP_MAPBOX_TOKEN`
 
 ---
 
-## Backlog Priorizado
+## Backlog priorizado
 
-### P0 — Iteración B (próxima)
-- [ ] `/desarrollo/:id` completa con 5 tabs:
-  - Descripción (resumen + etapa proyecto + historial precio + developer card con verificaciones)
-  - Lista de precios (tabla con columns ID/Prototipo/Nivel/m²priv/Balcón/Terraza/RG/m²total/Rec/Baños/Cajones/Tipo cajón/Bodega/Precio/Estado)
-  - Avance de obra (barra % + timeline 7 fases + log fechado + fotos)
-  - Amenidades (grid con iconos)
-  - Localización (Mapbox + DENUE toggles)
-- [ ] Sticky sidebar derecha:
-  - Precio desde + CTAs (Agendar visita modal, Ver lista, WhatsApp funcional sin login)
-  - Calculadora de inversión (slider plusvalía anual + Hoy/Entrega/Delta)
-  - Plan de pagos (slider enganche + mensualidades derivadas de time-to-delivery)
-- [ ] **Paywall público vs registrado**:
-  - Público: 3-5 unidades visibles, resto blurred con CTA registro persuasivo, avance log último entry visible
-  - Registrado: todo visible, click en row auto-actualiza calculadora, brochure + planos descargables
-- [ ] Modal de registro con flow Google OAuth existente + mensaje persuasivo
+### P0 — Antes del próximo release
+- [ ] **E2E testing con `testing_agent_v3_fork`** sobre todos los flujos del portal asesor + ficha desarrollo Iteración B
+- [ ] Poblar `full_name/brokerage/license_ampi` al primer login asesor (form onboarding)
+- [ ] Fix warnings ESLint residuales (imports no usados)
 
-### P0 — Iteración C
-- [ ] Fase 4 Advisor Portal (CRM Pulppo+):
-  - M03 Contactos (CRUD + scoring IE)
-  - M04 Búsquedas kanban
-  - M05 Captaciones (resale properties upload)
-  - M06 Tareas · M07 Operaciones
-  - Argumentario AI inline · daily WA briefing al asesor
-- [ ] Roles `asesor`, `asesor_admin` con route guards
-- [ ] Multi-tenant `tenant_id` en colecciones
+### P1 — Fase 4 extensiones
+- [ ] Mifiel NOM-151 real (acuerdo comercial captación + escritura)
+- [ ] WhatsApp Business API real para briefing diario (hoy guarda en DB)
+- [ ] Google Calendar OAuth bidireccional en tareas
+- [ ] Argumentario cache per-day en vez de per-week
+- [ ] Adjuntos/fotos captaciones (upload + AI classify)
+- [ ] Elevación de rol desde superadmin UI
 
 ### P1 — Fase 5 Developer Portal
-- [ ] D1 Inventory real-time · D6 Demand Heatmap · D9 Monthly AI Report · D4 Dynamic Pricing · D3 Competitor Radar
+- [ ] `/desarrollador/*` con inventory realtime, demand heatmap, reporte IA mensual, pricing AI, competitor radar
+- [ ] Extender `routes_developer.py` paralelo a `routes_advisor.py`
 
 ### P2 — Mejoras
-- [ ] Búsqueda semántica (embeddings OpenAI) además del parser
+- [ ] Búsqueda semántica embeddings OpenAI en marketplace público
 - [ ] Paginación + infinite scroll marketplace
-- [ ] Galería real de fotos con upload en portal dev
 - [ ] Comparador 3-way de desarrollos
-- [ ] Expansión Dubai/Miami
+- [ ] Wrapped anual del asesor
+- [ ] Expansión Dubai / Miami
+- [ ] Public profile `/asesor/perfil/:slug` (LinkedIn-style) con endorsements
 
-### Refactor técnico (no blocker)
-- [ ] Split `server.py` en routers (auth / marketplace / developments / briefings / ai-search / auth)
+### Refactor (no blocker)
+- [ ] Split `server.py` en routers (auth/marketplace/developments/briefings/ai-search)
 - [ ] Split landing components grandes (ColoniasBento, Hero)
+- [ ] Extraer `asesor_admin` view de equipo (tasks.view_team)
 
 ---
 
 ## URL preview
-https://31364a48-e9ea-4119-b8c5-755ae7a76d0c.preview.emergentagent.com
+https://propiedades-next.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
-- `/desarrollo/tamaulipas-89` Ficha stub (Iteración B la completa)
-- `/propiedad/p007` Ficha propiedad legacy
-- `/mapa` Mapbox CDMX con polígonos IE Score
+- `/desarrollo/altavista-polanco` Ficha completa (Iteración B)
+- `/mapa` Mapbox CDMX
+- `/asesor` Panel asesor (login `asesor@demo.com`)
+- `/asesor/contactos|busquedas|captaciones|tareas|operaciones|comisiones|ranking`

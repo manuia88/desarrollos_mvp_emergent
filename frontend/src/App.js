@@ -22,6 +22,16 @@ import PropertyDetail from './pages/PropertyDetail';
 import DevelopmentDetail from './pages/DevelopmentDetail';
 import Mapa from './pages/Mapa';
 
+// Advisor portal (Phase 4 CRM Pulppo+)
+import AsesorDashboard from './pages/advisor/AsesorDashboard';
+import AsesorContactos from './pages/advisor/AsesorContactos';
+import AsesorBusquedas from './pages/advisor/AsesorBusquedas';
+import AsesorCaptaciones from './pages/advisor/AsesorCaptaciones';
+import AsesorTareas from './pages/advisor/AsesorTareas';
+import AsesorOperaciones from './pages/advisor/AsesorOperaciones';
+import AsesorComisiones from './pages/advisor/AsesorComisiones';
+import AsesorRanking from './pages/advisor/AsesorRanking';
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -136,6 +146,15 @@ function AppRouter() {
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
       <Route path="/mapa" element={<MapaRoute />} />
+      <Route path="/asesor" element={<AdvisorRoute Page={AsesorDashboard} />} />
+      <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />
+      <Route path="/asesor/contactos/:id" element={<AdvisorRoute Page={AsesorContactos} />} />
+      <Route path="/asesor/busquedas" element={<AdvisorRoute Page={AsesorBusquedas} />} />
+      <Route path="/asesor/captaciones" element={<AdvisorRoute Page={AsesorCaptaciones} />} />
+      <Route path="/asesor/tareas" element={<AdvisorRoute Page={AsesorTareas} />} />
+      <Route path="/asesor/operaciones" element={<AdvisorRoute Page={AsesorOperaciones} />} />
+      <Route path="/asesor/comisiones" element={<AdvisorRoute Page={AsesorComisiones} />} />
+      <Route path="/asesor/ranking" element={<AdvisorRoute Page={AsesorRanking} />} />
       <Route path="*" element={<LandingPage />} />
     </Routes>
   );
@@ -171,6 +190,12 @@ function DevelopmentDetailRoute() {
   const { user, logout } = useAuth();
   const onLogin = useHandleLogin();
   return <DevelopmentDetail user={user} onLogin={onLogin} onLogout={logout} />;
+}
+
+function AdvisorRoute({ Page }) {
+  const { user, logout, loading } = useAuth();
+  if (loading) return <div style={{ padding: 60, color: '#807e78', textAlign: 'center', fontFamily: 'DM Sans' }}>Cargando…</div>;
+  return <Page user={user} onLogout={logout} />;
 }
 
 // ─── Landing page ─────────────────────────────────────────────────────────────
