@@ -11,13 +11,24 @@ export default function AsesorDashboard({ user, onLogout }) {
   const [profile, setProfile] = useState(null);
   const [briefing, setBriefing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [d, p] = await Promise.all([api.getDashboard(), api.getProfile()]);
-      setData(d); setProfile(p); setBriefing(d.briefing);
+      setData(d); setProfile(p); setBriefing(d?.briefing || null);
+    } catch (e) {
+      // B3: unauthenticated → redirect home with login modal trigger
+      if (e?.status === 401) {
+        window.location.href = '/?login=1&next=/asesor';
+        return;
+      }
+      // B4: 403 is handled by AdvisorLayout; everything else → soft error
+      setLoadError(e?.message || 'No se pudo cargar el panel.');
+      setData(null);
     } finally { setLoading(false); }
   };
 
@@ -60,6 +71,19 @@ export default function AsesorDashboard({ user, onLogout }) {
 
       {loading ? (
         <div style={{ padding: 60, color: 'var(--cream-3)', fontFamily: 'DM Sans', textAlign: 'center' }}>Cargando panel…</div>
+      ) : loadError ? (
+        <div data-testid="dashboard-error" style={{ padding: 40, textAlign: 'center' }}>
+          <div className="eyebrow" style={{ marginBottom: 8, color: '#fca5a5' }}>ERROR</div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', marginBottom: 10 }}>
+            No pudimos cargar tu panel
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 16 }}>
+            {loadError}
+          </div>
+          <button onClick={load} className="btn btn-primary">Reintentar</button>
+        </div>
+      ) : !data ? (
+        <div style={{ padding: 60, color: 'var(--cream-3)', fontFamily: 'DM Sans', textAlign: 'center' }}>Sin datos.</div>
       ) : (
         <>
           {/* Counters */}

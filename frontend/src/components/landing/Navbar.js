@@ -1,25 +1,76 @@
-// Navbar — fixed top, 60px, glassmorphism, blur on scroll
+// Navbar — fixed top, 60px, glassmorphism, blur on scroll, with ES/EN toggle.
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin } from '../icons';
+import { MapPin, Globe } from '../icons';
+
+const LNG_KEY = 'dmx_lng';
 
 export default function Navbar({ onLogin, user, onLogout }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [lng, setLng] = useState(i18n.language || 'es');
 
   const NAV_LINKS = [
-    { key: 'colonias', label: t('nav.colonias'), href: '/mapa' },
+    { key: 'colonias', label: t('nav.colonias'), href: '/barrios' },
     { key: 'propiedades', label: t('nav.propiedades'), href: '/marketplace' },
-    { key: 'inteligencia', label: t('nav.inteligencia'), href: '/#inteligencia' },
-    { key: 'asesores', label: t('nav.asesores'), href: '/#faq' },
+    { key: 'inteligencia', label: t('nav.inteligencia'), href: '/inteligencia' },
+    { key: 'asesores', label: t('nav.asesores'), href: '/asesores' },
   ];
+
+  // Restore language from localStorage on first mount (B7)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LNG_KEY);
+      if (stored && stored !== i18n.language) {
+        i18n.changeLanguage(stored);
+        setLng(stored);
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const toggleLng = () => {
+    const next = lng === 'es' ? 'en' : 'es';
+    i18n.changeLanguage(next);
+    try { localStorage.setItem(LNG_KEY, next); } catch { /* ignore */ }
+    setLng(next);
+  };
+
+  const LngToggle = ({ fullWidth = false }) => (
+    <button
+      data-testid="nav-lng-toggle"
+      onClick={toggleLng}
+      aria-label={lng === 'es' ? 'Switch to English' : 'Cambiar a español'}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: fullWidth ? '10px 16px' : '5px 11px',
+        width: fullWidth ? '100%' : 'auto',
+        justifyContent: 'center',
+        background: 'transparent',
+        border: '1px solid var(--border)',
+        borderRadius: 9999,
+        color: 'var(--cream-2)',
+        fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
+        letterSpacing: '0.06em',
+        cursor: 'pointer',
+        transition: 'color 0.2s, border-color 0.2s, background 0.2s',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; }}
+      onMouseLeave={e => { e.currentTarget.style.color = 'var(--cream-2)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+    >
+      <Globe size={12} />
+      <span>{lng === 'es' ? 'ES' : 'EN'}</span>
+      <span style={{ color: 'var(--cream-3)', fontSize: 10 }}>·</span>
+      <span style={{ color: 'var(--cream-3)', fontWeight: 500 }}>{lng === 'es' ? 'EN' : 'ES'}</span>
+    </button>
+  );
 
   return (
     <>
@@ -80,6 +131,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="hidden-mobile">
+          <LngToggle />
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 13, color: 'var(--cream-2)', fontFamily: 'DM Sans' }}>
@@ -144,14 +196,15 @@ export default function Navbar({ onLogin, user, onLogout }) {
             </a>
           ))}
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <LngToggle fullWidth />
             {user ? (
               <button className="btn btn-glass" onClick={onLogout} style={{ width: '100%' }}>{t('nav.logout')}</button>
             ) : (
               <>
                 <button className="btn btn-ghost" onClick={onLogin} style={{ width: '100%' }}>{t('nav.login')}</button>
-                <button className="btn btn-primary" style={{ width: '100%' }}>
+                <a href="/mapa" className="btn btn-primary" style={{ width: '100%', textDecoration: 'none', justifyContent: 'center' }}>
                   <MapPin size={14} />{t('nav.explore')}
-                </button>
+                </a>
               </>
             )}
           </div>

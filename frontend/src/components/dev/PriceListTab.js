@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import FloorPlan from './FloorPlan';
 import { ArrowRight, MessageSquare, Sparkle } from '../icons';
 
-const PUBLIC_VISIBLE_COUNT = 4;
+const PUBLIC_VISIBLE_COUNT = 3;
 
 export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSelectUnit }) {
   const { t } = useTranslation();
@@ -194,14 +194,76 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
           )}
         </>
       ) : (
-        <PriceTable
-          units={filtered}
-          visibleCount={visibleCount}
-          isRegistered={isRegistered}
-          onRowClick={onRowClick}
-          selectedUnit={selectedUnit}
-          t={t}
-        />
+        <div style={{ position: 'relative' }}>
+          <PriceTable
+            units={filtered}
+            visibleCount={visibleCount}
+            isRegistered={isRegistered}
+            onRowClick={onRowClick}
+            selectedUnit={selectedUnit}
+            t={t}
+          />
+          {!isRegistered && filtered.length > visibleCount && (
+            <div
+              data-testid="paywall-overlay"
+              onClick={() => onGateOpen()}
+              style={{
+                position: 'absolute',
+                left: 0, right: 0,
+                top: `${56 + visibleCount * 42 + 10}px`,
+                bottom: 0,
+                background: 'linear-gradient(180deg, rgba(6,8,15,0.35) 0%, rgba(6,8,15,0.82) 45%, rgba(6,8,15,0.92) 100%)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                padding: '32px 20px',
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 14,
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+              }}>
+              <div
+                onClick={(e) => { e.stopPropagation(); onGateOpen(); }}
+                style={{
+                  textAlign: 'center',
+                  maxWidth: 380,
+                  padding: 22,
+                  background: 'rgba(14,18,32,0.92)',
+                  border: '1px solid rgba(99,102,241,0.36)',
+                  borderRadius: 16,
+                  backdropFilter: 'blur(10px)',
+                }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 10px',
+                  background: 'rgba(99,102,241,0.16)',
+                  border: '1px solid rgba(99,102,241,0.32)',
+                  borderRadius: 9999,
+                  marginBottom: 10,
+                }}>
+                  <Sparkle size={11} color="var(--indigo-3)" />
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-2)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+                    {filtered.length - visibleCount} unidades más
+                  </span>
+                </div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em', marginBottom: 6 }}>
+                  Regístrate para ver toda la lista de precios
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', lineHeight: 1.55, marginBottom: 14 }}>
+                  Precio por m², disponibilidad en vivo, reserva de unidad y contacto directo con el desarrollador.
+                </div>
+                <button
+                  data-testid="paywall-cta"
+                  className="btn btn-primary btn-sm"
+                  style={{ justifyContent: 'center' }}
+                  onClick={(e) => { e.stopPropagation(); onGateOpen(); }}
+                >
+                  Desbloquear lista completa <ArrowRight size={11} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

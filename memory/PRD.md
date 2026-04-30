@@ -118,6 +118,27 @@ Demo data CRM: `POST /api/asesor/_seed-demo` (idempotente).
 
 ---
 
+## 2026-04-30 — QA bug fixes (B1–B9)
+Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
+- **B1** AuthModal wired en "Entrar" (landing + todas las rutas). Google OAuth + email/password + switch a registro.
+- **B2** Role picker:
+  - Email register: selector Comprador / Asesor / Developer dentro del AuthModal (ya estaba, se conservó).
+  - Google OAuth: nuevo flag `onboarded` en `users`. Usuarios nuevos de OAuth `onboarded=False` → el hook del AuthProvider monta `<RolePicker/>` modal no-dismissible hasta que eligen.
+  - Nuevo endpoint `POST /api/auth/select-role` (solo acepta `onboarded is False`, idempotente).
+  - Usuarios existentes (onboarded=None o True) no ven el picker.
+- **B3** `AsesorDashboard.load()` envuelto en try/catch: 401 → redirect a `/?login=1&next=/asesor`; otros errores muestran bloque "Reintentar" en vez de crash.
+- **B4** Null-safe render en AsesorDashboard (`!data` → empty state limpio).
+- **B5** AdvisorRoute en App.js: fuerza redirect a `/?login=1&next=...` si no hay user (pattern mirror de `/desarrollador`).
+- **B7** Toggle ES/EN en Navbar (desktop + mobile sheet) + persistencia `localStorage.dmx_lng`.
+- **B8** PriceListTab: PUBLIC_VISIBLE_COUNT 4 → 3, + overlay CTA absoluto encima de las filas blur con "Regístrate para ver toda la lista".
+- **B9** Rutas diferenciadas:
+  - `/propiedades` → redirect a `/marketplace` (vía `<Navigate>`)
+  - `/barrios` → stub educativo "16 barrios de CDMX leídos por IE Score" + CTA mapa
+  - `/inteligencia` → moat narrativo "97 indicadores detrás de cada precio" (7 categorías)
+  - `/asesores` → landing B2B con 6 pilares + 4 steps + CTA "Crear mi cuenta de asesor" (abre AuthModal en `mode='register'`)
+
+---
+
 ## Variables de entorno
 - Backend: `MONGO_URL`, `DB_NAME`, `EMERGENT_LLM_KEY`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `MAPBOX_TOKEN`, `DMX_FALLBACK_WHATSAPP`
 - Frontend: `REACT_APP_BACKEND_URL`, `REACT_APP_MAPBOX_TOKEN`

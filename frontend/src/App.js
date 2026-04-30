@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 
 // Landing components
 import CustomCursor from './components/landing/CustomCursor';
@@ -15,12 +15,19 @@ import Stats from './components/landing/Stats';
 import Testimonials from './components/landing/Testimonials';
 import Faq from './components/landing/Faq';
 import CtaFooter from './components/landing/CtaFooter';
+import AuthModal from './components/landing/AuthModal';
+import RolePicker from './components/landing/RolePicker';
 
 // Marketplace pages
 import Marketplace from './pages/Marketplace';
 import PropertyDetail from './pages/PropertyDetail';
 import DevelopmentDetail from './pages/DevelopmentDetail';
 import Mapa from './pages/Mapa';
+
+// B9 stubs
+import Barrios from './pages/Barrios';
+import Inteligencia from './pages/Inteligencia';
+import AsesoresLanding from './pages/AsesoresLanding';
 
 // Advisor portal (Phase 4 CRM Pulppo+)
 import AsesorDashboard from './pages/advisor/AsesorDashboard';
@@ -50,6 +57,8 @@ export const useAuth = () => useContext(AuthContext);
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
 
   const checkAuth = useCallback(async () => {
     try {
@@ -78,9 +87,24 @@ function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const openAuth = useCallback((mode = 'login') => {
+    setAuthMode(mode);
+    setAuthOpen(true);
+  }, []);
+  const closeAuth = useCallback(() => setAuthOpen(false), []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, setUser, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, setUser, logout, checkAuth, openAuth, closeAuth, authOpen, authMode }}>
       {children}
+      <AuthModal
+        open={authOpen}
+        onClose={closeAuth}
+        onSuccess={(u) => { setUser(u); setAuthOpen(false); }}
+        mode={authMode}
+      />
+      {user && user.onboarded === false && (
+        <RolePicker user={user} onDone={(u) => setUser(u)} />
+      )}
     </AuthContext.Provider>
   );
 }
@@ -110,7 +134,6 @@ function AuthCallback() {
       .then(r => r.json())
       .then(data => {
         if (data.user) setUser(data.user);
-        // Clean URL and redirect to home
         window.history.replaceState({}, document.title, '/');
         navigate('/', { replace: true });
       })
@@ -143,7 +166,6 @@ function AuthCallback() {
 function AppRouter() {
   const location = useLocation();
 
-  // Detect session_id BEFORE normal routing (prevents race conditions)
   if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
   }
@@ -155,6 +177,13 @@ function AppRouter() {
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
       <Route path="/mapa" element={<MapaRoute />} />
+
+      {/* B9 differentiated routes */}
+      <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />
+      <Route path="/barrios" element={<Barrios />} />
+      <Route path="/inteligencia" element={<Inteligencia />} />
+      <Route path="/asesores" element={<AsesoresLanding />} />
+
       <Route path="/asesor" element={<AdvisorRoute Page={AsesorDashboard} />} />
       <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />
       <Route path="/asesor/contactos/:id" element={<AdvisorRoute Page={AsesorContactos} />} />
@@ -176,57 +205,64 @@ function AppRouter() {
   );
 }
 
-function useHandleLogin() {
-  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-  return () => {
-    const redirectUrl = window.location.origin + '/';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
-}
-
 function MarketplaceRoute() {
-  const { user, logout } = useAuth();
-  const onLogin = useHandleLogin();
-  return <Marketplace user={user} onLogin={onLogin} onLogout={logout} />;
+  const { user, logout, openAuth } = useAuth();
+  return <Marketplace user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
 function PropertyDetailRoute() {
-  const { user, logout } = useAuth();
-  const onLogin = useHandleLogin();
-  return <PropertyDetail user={user} onLogin={onLogin} onLogout={logout} />;
+  const { user, logout, openAuth } = useAuth();
+  return <PropertyDetail user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
 function MapaRoute() {
-  const { user, logout } = useAuth();
-  const onLogin = useHandleLogin();
-  return <Mapa user={user} onLogin={onLogin} onLogout={logout} />;
+  const { user, logout, openAuth } = useAuth();
+  return <Mapa user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
 function DevelopmentDetailRoute() {
-  const { user, logout } = useAuth();
-  const onLogin = useHandleLogin();
-  return <DevelopmentDetail user={user} onLogin={onLogin} onLogout={logout} />;
+  const { user, logout, openAuth } = useAuth();
+  return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
 }
 
 function AdvisorRoute({ Page }) {
-  const { user, logout, loading } = useAuth();
-  if (loading) return <div style={{ padding: 60, color: '#807e78', textAlign: 'center', fontFamily: 'DM Sans' }}>Cargando…</div>;
+  const { user, logout, loading, openAuth } = useAuth();
+  const location = useLocation();
+
+  // Auto-open login modal when user lands on a protected route without session
+  useEffect(() => {
+    if (!loading && !user) openAuth('login');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user]);
+
+  if (loading) {
+    return <div style={{ padding: 60, color: '#807e78', textAlign: 'center', fontFamily: 'DM Sans' }}>Cargando…</div>;
+  }
+  if (!user) {
+    // Redirect home (modal will auto-open above on next render)
+    return <Navigate to={`/?login=1&next=${encodeURIComponent(location.pathname)}`} replace />;
+  }
   return <Page user={user} onLogout={logout} />;
 }
 
 // ─── Landing page ─────────────────────────────────────────────────────────────
 function LandingPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, openAuth, loading } = useAuth();
+  const location = useLocation();
 
-  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-  const handleLogin = () => {
-    const redirectUrl = window.location.origin + '/';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
+  // Handle ?login=1 query to auto-open modal (B3/B5 redirect target)
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get('login') === '1' && !user) {
+      openAuth('login');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, location.search, user]);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <Navbar onLogin={handleLogin} user={user} onLogout={logout} />
+      <Navbar onLogin={() => openAuth('login')} user={user} onLogout={logout} />
       <main>
         <Hero />
         <SearchBar />

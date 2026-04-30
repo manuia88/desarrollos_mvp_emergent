@@ -82,6 +82,7 @@ class UserOut(BaseModel):
     picture: Optional[str] = None
     role: str
     tenant_id: Optional[str] = None
+    onboarded: Optional[bool] = None  # False = needs role-picker; None/True = done
 
 class LoginIn(BaseModel):
     email: str
@@ -95,6 +96,9 @@ class RegisterIn(BaseModel):
 
 class SessionCreate(BaseModel):
     session_id: str
+
+class SelectRoleIn(BaseModel):
+    role: str  # buyer | advisor | developer_admin
 
 # ─── Auth helpers ─────────────────────────────────────────────────────────────
 async def get_current_user(request: Request) -> Optional[UserOut]:
@@ -208,6 +212,7 @@ async def register(payload: RegisterIn, response: Response):
         "user_id": user_id, "email": payload.email,
         "name": payload.name, "password_hash": hash_password(payload.password),
         "role": payload.role, "tenant_id": None,
+        "onboarded": True,  # email signup explicitly chose a role
         "created_at": datetime.now(timezone.utc),
     })
     access  = create_access_token(user_id, payload.email)
@@ -252,7 +257,9 @@ async def create_session(payload: SessionCreate, response: Response):
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         await db.users.insert_one({
             "user_id": user_id, "email": email, "name": name, "picture": picture,
-            "role": "buyer", "tenant_id": None, "created_at": datetime.now(timezone.utc)
+            "role": "buyer", "tenant_id": None,
+            "onboarded": False,  # Google OAuth: role-picker required before first portal access
+            "created_at": datetime.now(timezone.utc)
         })
     await db.user_sessions.delete_many({"user_id": user_id})
     await db.user_sessions.insert_one({
@@ -269,6 +276,26 @@ async def get_me(request: Request):
     user = await get_current_user(request)
     if not user: raise HTTPException(401, "No autenticado")
     return user
+
+@app.post("/api/auth/select-role")
+async def select_role(payload: SelectRoleIn, request: Request):
+    """Post-OAuth role picker. Allowed only while user.onboarded == False."""
+    allowed = {"buyer", "advisor", "developer_admin"}
+    if payload.role not in allowed:
+        raise HTTPException(400, "Rol no válido")
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    # Strict: only users explicitly flagged onboarded=False may use this endpoint.
+    if not user_doc or user_doc.get("onboarded") is not False:
+        raise HTTPException(409, "Ya completaste la selección de rol")
+    await db.users.update_one(
+        {"user_id": user.user_id},
+        {"$set": {"role": payload.role, "onboarded": True}},
+    )
+    fresh = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "password_hash": 0})
+    return {"user": UserOut(**fresh)}
 
 @app.post("/api/auth/logout")
 async def logout(request: Request, response: Response):
