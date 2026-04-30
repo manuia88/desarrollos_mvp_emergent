@@ -1,136 +1,133 @@
 # DesarrollosMX (DMX) — PRD
 
 ## Identidad del producto
-**DesarrollosMX** — AI-native Spatial Decision Intelligence Platform para real estate residencial nuevo en LATAM.
-Combina CoStar (analytics) + marketplace + Salesforce CRM + Plaid/Stripe APIs.
-Moonshot: $1–5B valuation en 3–5 años.
+**DesarrollosMX** — AI-native Spatial Decision Intelligence Platform para real estate residencial nuevo en LATAM. Combina CoStar (analytics) + marketplace + Salesforce CRM + Plaid/Stripe APIs. Moonshot: $1–5B valuation en 3–5 años.
 
 ---
 
 ## Stack técnico
-- **Backend**: FastAPI (Python) + Motor (async MongoDB)
-- **Frontend**: React 18 + Tailwind + CSS Variables (design tokens) + **react-i18next** (es-MX first)
-- **Auth**: Google OAuth (Emergent-managed) + JWT, single-session enforcement
-- **LLM**: Claude Sonnet 4.5 + OpenAI text-embedding-3-small (Emergent LLM Key)
-- **DB**: MongoDB (motor async)
-- **Map**: Mapbox GL JS (Fase 3)
+- **Backend**: FastAPI (Python) + Motor (async MongoDB) + emergentintegrations (Claude Sonnet 4.5)
+- **Frontend**: React 18 + Tailwind + CSS vars + react-i18next + Mapbox GL JS
+- **Auth**: Google OAuth (Emergent) + JWT, single-session enforcement
+- **LLM**: Claude Sonnet 4.5 (reasoning, briefings) + OpenAI text-embedding-3-small (futuro)
+- **DB**: MongoDB
+- **Map**: Mapbox GL JS — token `pk.eyJ1IjoibWFudXJlYWxlc3RhdGUi...`
 
 ---
 
 ## Design System (NON-NEGOTIABLE)
 - Colors: Navy `#06080F` + Cream `#F0EBE0` + Gradient `#6366F1→#EC4899`
 - Fonts: Outfit (headings) + DM Sans (body)
-- Zero emoji — SVG icons only (lucide-style)
-- Buttons: always border-radius 9999px (pill)
-- Animations: ≤850ms, `once: true`, `prefers-reduced-motion` respected
-- Transforms: translateY only (never X/scale/rotate)
+- Zero emoji — SVG icons only
+- Buttons: border-radius 9999px
+- Animations: ≤850ms, `once:true`
+- Transforms: translateY only
 
 ---
 
-## Score system (labels creativos 2026-04-30)
-Reemplazan los acrónimos LIV/MOV/SEC/ECO:
-- **Vida** (Leaf icon) — habitabilidad, parques, ruido, amenidades
-- **Movilidad** (Route icon) — Metro, Metrobús, Ecobici, tiempos
-- **Seguridad** (Shield icon) — FGJ, C5, alumbrado
-- **Comercio** (Store icon) — DENUE densidad, restaurantes, servicios
+## Score system (creative 2026-04-30)
+- **Vida** (Leaf) — habitabilidad
+- **Movilidad** (Route) — transporte
+- **Seguridad** (Shield) — FGJ, C5
+- **Comercio** (Store) — DENUE
 
-Ejes extendidos del radar comparator: Movilidad, Seguridad, Comercio, Plusvalía, Educación, Riesgo.
+Ejes extendidos radar: Movilidad, Seguridad, Comercio, Plusvalía, Educación, Riesgo.
 
 ---
 
 ## Arquitectura implementada
 
-### Backend `/app/backend/server.py`
-- `GET /api/health`
-- `POST /api/auth/session` — exchange Emergent OAuth session_id
-- `GET /api/auth/me` — current user
-- `POST /api/auth/logout` — single-session invalidation
-- `GET /api/colonias` — 3 colonias seed (Del Valle, Condesa, Roma Norte)
-- `GET /api/colonias/{id}` — colonia detail
-- `GET /api/properties` — 3 properties seed
+### Backend `/app/backend/`
+- `server.py` — 700 líneas, TODO: dividir en routers en H2 2026
+- `data_seed.py` — **16 colonias** + **25 propiedades** en 16 barrios CDMX
+- Endpoints públicos:
+  - `GET /api/health`
+  - `GET /api/colonias` — 16 colonias completas
+  - `GET /api/colonias/{id}` — detalle
+  - `GET /api/colonias/{id}/propiedades` — propiedades del barrio
+  - `GET /api/properties` — con filtros `colonia` (multi), `min_price/max_price`, `min_sqm/max_sqm`, `beds`, `baths`, `parking`, `tipo`, `tag`, `amenity` (multi), `sort` (recent|price_asc|price_desc|sqm_desc)
+  - `GET /api/properties/{id}` — detalle
+  - `GET /api/properties/{id}/similares` — 3 similares por colonia+precio+m²
+  - `POST /api/properties/{id}/briefing` — **Claude Sonnet 4.5**, cached weekly por ISO week en `db.property_briefings`
+  - `POST /api/search/nlp` — búsqueda por lenguaje natural
+- Endpoints auth:
+  - `POST /api/auth/session`, `GET /api/auth/me`, `POST /api/auth/logout`
 
 ### Frontend `/app/frontend/src/`
-- `App.js` — BrowserRouter + AuthContext + AppRouter + AuthCallback
-- `i18n/index.js` + `locales/{es,en}.json` — full es-MX copy (refactored 2026-04-30)
-- `data/colonias.js` — 16 CDMX colonias compartidas (Polanco, Lomas, Roma N/S, Condesa, Juárez, Cuauhtémoc, Del Valle, Narvarte, Nápoles, Escandón, Anzures, Doctores, Coyoacán Centro, Pedregal, Santa Fe)
-- `components/icons/index.js` — SVG set ampliado: Leaf, Route, Shield, Store, Share, Bookmark, Sparkle, BarChart, Radio
-- `components/animations/{BlurText,FadeUp}.js`
-- `components/landing/*.js` — 12 secciones, todas con `useTranslation`
-- `hooks/useInView.js`
-
-### Landing sections (all i18n-wired)
-1. Navbar — glass + mobile sheet
-2. Hero — 250vh sticky, H1 "Antes de elegir una dirección, lee el mapa.", overlay Roma Norte con scores + iconos
-3. SearchBar — tabs, filter chips, select es/en
-4. LiveTicker — 14 barrios con precio m² + absorción
-5. ColoniasBento — 6 barrios diversos (Polanco, Roma Norte, Condesa, Del Valle, Juárez, Narvarte)
-6. ColoniaComparator — radar 6 ejes, picker de 8 barrios
-7. PropertyListings — 6 propiedades (Polanco, Roma Norte, Condesa, Juárez, Del Valle, Narvarte)
-8. IntelligenceEngine — panel Roma Norte, 6 bars animados
-9. Stats — 117 variables / 50+ fuentes / 16 barrios / 3.2s
-10. Testimonials — 8 quotes diversos (marquee doble)
-11. Faq — 7 Q&A i18n driven
-12. CtaFooter
+- `App.js` — 4 rutas: `/`, `/marketplace`, `/propiedad/:id`, `/mapa`
+- `data/colonias.js` — dataset compartido (16 barrios)
+- `i18n/locales/{es,en}.json` — copy completo es-MX/en
+- `pages/`:
+  - `Marketplace.js` — grid + filters sidebar + sort
+  - `PropertyDetail.js` — hero photo, meta, briefing, descripción, amenities, score breakdown, advisor CTA, mortgage calc, mini map, 3 similares
+  - `Mapa.js` — Mapbox GL con polígonos coloreados por IE Score, toggle heatmap, side panel al click
+- `components/marketplace/` — FiltersSidebar, PropertyCard
+- `components/property/` — MortgageCalculator, BriefingCard (Claude), ShareMenu, MiniMap
+- `components/landing/` — 12 secciones i18n-wired
+- `components/icons/index.js` — 26 SVG icons (Leaf, Route, Shield, Store, Sparkle, Radio, Bookmark, Share, etc.)
 
 ---
 
-## Testing Status
-- **2026-04-30 (Refactor Landing)**:
-  - Hero y ColoniasBento verificados visualmente vía screenshot tool
-  - Lint JS 100% limpio
-  - Frontend compila sin errores (solo deprecation warnings de webpack-dev-server)
-- **2026-04-26 (pre-refactor)**: Backend 9/9 tests · Frontend 13 secciones render OK
+## Moats activos (viral + data)
+- **30-sec briefing Claude** — por ficha, cached por (property_id, ISO week). Genera texto compartible por WhatsApp → acelera distribución orgánica. Costo ~$0.001 por briefing.
+- **IE Score compuesto transparente** — score auditable con receta publicada.
+- **Cero comisión transaccional** — ingresos por suscripción y APIs, elimina conflicto de interés.
 
 ---
 
-## Refactor del 2026-04-30 — resumen
-1. **react-i18next cableado** en `index.js`, todos los componentes usan `useTranslation`.
-2. **Copy fresca es-MX** — cero frases reutilizadas del prototipo anterior; "Conoce tu colonia antes de decidir" reemplazado por "Antes de elegir una dirección, lee el mapa."
-3. **Diversidad urbana** — 16 colonias CDMX unificadas en `data/colonias.js` (Miguel Hidalgo, Cuauhtémoc, Benito Juárez, Coyoacán, Álvaro Obregón, Cuajimalpa).
-4. **Score labels nuevos** — LIV/MOV/SEC/ECO → Vida/Movilidad/Seguridad/Comercio con iconos Leaf/Route/Shield/Store.
-5. **Zero emoji**, solo SVG. Zero transforms X/scale/rotate en la parte refactorizada.
+## Testing
+- **2026-04-30 Fase 3**: Backend 26/26 pytest, Frontend 100% (testing_agent_v3_fork iteration_2). Cero issues.
+- **2026-04-30 Fase 2 refactor**: Hero + Bento validados por screenshot, lint JS limpio.
+- **Test file**: `/app/backend/tests/test_api.py` (generated by testing agent).
+
+---
+
+## Variables de entorno
+- `MONGO_URL`, `DB_NAME`, `EMERGENT_LLM_KEY`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `MAPBOX_TOKEN`
+- Frontend: `REACT_APP_BACKEND_URL`, `REACT_APP_MAPBOX_TOKEN`
 
 ---
 
 ## Backlog Priorizado
 
-### P0 — Fase 3 (siguiente sprint — ya planeada con usuario)
-- [ ] Backend: `/api/properties` con filtros reales (colonia multi, precio range, m², rec, baños, parking, amenities, tipo)
-- [ ] Backend: `/api/properties/:id` (detalle) y `/api/colonias/:id/propiedades` (relacionadas)
-- [ ] Backend: seed de 20–30 propiedades diversas en 12–18 colonias CDMX
-- [ ] Frontend `/marketplace`: filtros sidebar + grid de property cards
-- [ ] Frontend `/propiedad/:id`: ficha con calc hipoteca, WhatsApp CTA, favorito localStorage, share menu, scores de colonia, 3 similares, mini Mapbox map
-- [ ] Frontend `/mapa`: Mapbox GL JS con polígonos de colonia coloreados por IE Score + heatmap toggle precio/m²
-- Token Mapbox: `pk.eyJ1IjoibWFudXJlYWxlc3RhdGUiLCJhIjoiY21tcDhtZG10MG0xaTJzcTI2c2o1cHc4aSJ9.NoXR8crDQ9IW1ra8J862NA` (pendiente agregar a backend/.env)
+### P0 — Próxima iteración
+- [ ] **Fase 4 Advisor Portal (CRM Pulppo+)**:
+  - M03 Contactos (CRUD + scoring IE)
+  - M04 Búsquedas kanban
+  - M05 Captaciones
+  - M06 Tareas
+  - M07 Operaciones
+  - Argumentario AI inline (Claude Sonnet 4.5 por contacto)
+  - Daily briefing WhatsApp al asesor
+- [ ] Roles `asesor`, `asesor_admin` con guard de rutas
+- [ ] Multi-tenant isolation a nivel DB (`tenant_id` en colecciones)
 
-### P1 — Fase 4–5
-- [ ] Portal Asesor (CRM Pulppo+): M03–M07, argumentario AI, kanban
-- [ ] Portal Desarrollador: inventario D1, demanda D6, reporte mensual AI D9
-- [ ] Multi-tenant aislamiento DB completo
+### P1 — Fase 5 Developer Portal
+- [ ] D1 Inventory real-time
+- [ ] D6 Demand Heatmap
+- [ ] D9 Monthly AI Report (Claude Sonnet 4.5)
+- [ ] D4 Dynamic Pricing AI
+- [ ] D3 Competitor Radar
 
-### P2 — Fase 6–8
-- [ ] IE Engine N0–N2: scores reales de DENUE, FGJ, GTFS, SEDUVI
-- [ ] DMX Studio v1: AI Director video
-- [ ] Búsqueda por lenguaje natural (Claude parser)
-- [ ] OpenAI embeddings para búsqueda semántica
-- [ ] Dubai/UAE expansion (en-US completo ya cableado)
+### P2 — Mejoras post-marketplace
+- [ ] Marketplace: búsqueda natural con Claude parser
+- [ ] Marketplace: paginación + infinite scroll
+- [ ] PropertyDetail: galería real de fotos (upload)
+- [ ] PropertyDetail: comparador 3-way
+- [ ] Mapa: cluster + filtros por alcaldía
+- [ ] IE Engine N0–N2: scores reales DENUE/FGJ/GTFS/SEDUVI
+- [ ] Dubai/UAE expansion
 
----
-
-## Usuarios objetivo
-1. Comprador (C) — CDMX/Dubai
-2. Asesor (A) — AMPI certificado
-3. Desarrolladora (D) — constructora
-4. Superadmin (S) — operaciones DMX
-
----
-
-## Variables de entorno
-- `MONGO_URL`, `DB_NAME`
-- `EMERGENT_LLM_KEY`
-- `MAPBOX_TOKEN` — pendiente agregar en Fase 3
+### Refactor técnico
+- [ ] Split `server.py` en routers (auth, marketplace, advisor, developer)
+- [ ] Extraer landing sections a archivos más chicos (ColoniasBento 400+ líneas)
 
 ---
 
 ## URL preview
 https://31364a48-e9ea-4119-b8c5-755ae7a76d0c.preview.emergentagent.com
+
+- `/` — Landing refactorizada
+- `/marketplace` — Grid + filtros
+- `/propiedad/p007` — Ficha con briefing Claude + calculadora + WhatsApp
+- `/mapa` — Mapbox CDMX con polígonos IE Score
