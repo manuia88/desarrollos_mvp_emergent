@@ -1,18 +1,33 @@
--e 
-# Environment and credential files
+# Environment and credential files (NEVER commit real values)
 .env
 .env.*
 *.env
+!.env.example
 credentials.json
 *.pem
 *.key
 .credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
+
+# Build artifacts
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+build/
+dist/
+.next/
+.cache/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Test reports (regenerated each run)
+test_reports/
+playwright-report/
+test-results/
+
+# Logs
+*.log
