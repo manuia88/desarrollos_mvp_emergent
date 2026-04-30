@@ -1,0 +1,100 @@
+{
+  "nav": {
+    "colonias": "Colonias",
+    "propiedades": "Propiedades",
+    "mapa": "Mapa",
+    "asesores": "Asesores",
+    "login": "Iniciar sesión",
+    "logout": "Salir",
+    "explore": "Explorar mapa",
+    "portal_asesor": "Portal Asesor",
+    "portal_dev": "Portal Desarrollador"
+  },
+  "hero": {
+    "badge": "IE v1 · CDMX · 18 colonias",
+    "badge_sub": "Inteligencia espacial aplicada",
+    "h1_1": "La ciudad que",
+    "h1_2": "no te mostraban.",
+    "sub": "Ciento diecisiete variables por colonia — incidencia delictiva, velocidad de absorción, riesgo sísmico, densidad de servicios — procesadas en tiempo real para que decidas con certeza, no con esperanza.",
+    "cta_primary": "Abrir el mapa",
+    "cta_secondary": "Ver análisis ejemplo",
+    "partners": "Integrado con las principales plataformas"
+  },
+  "search": {
+    "placeholder": "Colonia, alcaldía, precio o estilo de vida...",
+    "tab_buy": "Comprar",
+    "tab_rent": "Rentar",
+    "tab_invest": "Invertir",
+    "tab_dev": "Desarrolladores",
+    "submit": "Buscar"
+  },
+  "colonias": {
+    "eyebrow": "Radiografía urbana en tiempo real",
+    "h2": "Dieciocho colonias. Un criterio:",
+    "h2_grad": "los datos.",
+    "sub": "Desde Polanco hasta Doctores, cada tile muestra cuatro dimensiones de análisis calculadas desde fuentes oficiales — DENUE, FGJ, GTFS, SEDUVI. Cambia la dimensión y verás los indicadores que alimentan cada cifra.",
+    "see_all": "Ver las 18 colonias",
+    "dim_life": "Calidad de vida",
+    "dim_mob": "Movilidad",
+    "dim_sec": "Seguridad",
+    "dim_com": "Comercio"
+  },
+  "comparator": {
+    "eyebrow": "Comparador de colonias",
+    "h2": "Compara sin piedad.",
+    "h2_grad": "Decide con datos.",
+    "sub": "Coloca dos colonias frente a frente sobre seis ejes de decisión. Donde los polígonos se separan, ahí está la respuesta. Haz clic en cualquier eje para leer la explicación."
+  },
+  "properties": {
+    "eyebrow": "Propiedades con inteligencia",
+    "h2": "El precio lo ves en todos lados.",
+    "h2_grad": "El contexto, solo aquí.",
+    "sub": "Cada ficha incluye los scores de su colonia, la tendencia de precio de los últimos 24 meses y la proyección de plusvalía — sin saltar de pestaña.",
+    "see_more": "Ver más propiedades",
+    "see_card": "Ver ficha",
+    "plusvalia": "Plusvalía",
+    "asesor": "Asesor DMX"
+  },
+  "ie": {
+    "eyebrow": "Motor de decisión",
+    "h2": "Noventa y siete variables. Tres segundos.",
+    "h2_grad": "Una respuesta.",
+    "sub": "Otros portales agregan fotos. DMX cruza fuentes de datos que ningún portal analiza: Atlas de Riesgos, DENUE, GTFS, FGJ. El resultado: certeza de datos, no promesas de marketing.",
+    "feat1_title": "50+ fuentes de datos reales",
+    "feat1_desc": "DENUE, FGJ, GTFS, SEDUVI, Atlas de Riesgos. Actualizados semanalmente.",
+    "feat2_title": "Análisis en 3.2 segundos",
+    "feat2_desc": "97 variables procesadas por colonia. Sin esperar a ningún asesor.",
+    "feat3_title": "Cero conflicto de interés",
+    "feat3_desc": "DMX no cobra comisión por venta. La inteligencia es el producto.",
+    "full_report": "Ver reporte completo — 97 indicadores"
+  },
+  "cta": {
+    "eyebrow": "Comienza hoy",
+    "h2": "Comprar bien no es suerte.",
+    "h2_grad": "Es información.",
+    "sub": "El mapa de colonias más completo de la Ciudad de México. Los datos que determinan el precio de tu próxima decisión.",
+    "primary": "Explorar colonias",
+    "secondary": "Ver precios"
+  },
+  "footer": {
+    "privacy": "Aviso de privacidad",
+    "terms": "Términos de uso",
+    "advisors": "Para asesores",
+    "developers": "Para desarrolladores",
+    "copy": "© 2026 DesarrollosMX SA de CV. Todos los derechos reservados."
+  },
+  "advisor": {
+    "dashboard": "Dashboard",
+    "contacts": "Contactos",
+    "searches": "Búsquedas",
+    "captations": "Captaciones",
+    "tasks": "Tareas",
+    "operations": "Operaciones"
+  },
+  "developer": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventario",
+    "demand": "Demanda",
+    "report": "Reporte IA"
+  }
+}

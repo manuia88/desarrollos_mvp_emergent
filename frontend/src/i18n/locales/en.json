@@ -1,0 +1,100 @@
+{
+  "nav": {
+    "colonias": "Neighborhoods",
+    "propiedades": "Properties",
+    "mapa": "Map",
+    "asesores": "Advisors",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "explore": "Explore map",
+    "portal_asesor": "Advisor Portal",
+    "portal_dev": "Developer Portal"
+  },
+  "hero": {
+    "badge": "IE v1 · CDMX · 18 colonias",
+    "badge_sub": "Applied spatial intelligence",
+    "h1_1": "The city they",
+    "h1_2": "never showed you.",
+    "sub": "One hundred and seventeen variables per neighborhood — crime rates, absorption velocity, seismic risk, service density — processed in real time so you decide with certainty, not hope.",
+    "cta_primary": "Open the map",
+    "cta_secondary": "View sample analysis",
+    "partners": "Integrated with leading platforms"
+  },
+  "search": {
+    "placeholder": "Neighborhood, borough, price or lifestyle...",
+    "tab_buy": "Buy",
+    "tab_rent": "Rent",
+    "tab_invest": "Invest",
+    "tab_dev": "Developers",
+    "submit": "Search"
+  },
+  "colonias": {
+    "eyebrow": "Urban intelligence in real time",
+    "h2": "Eighteen neighborhoods. One standard:",
+    "h2_grad": "the data.",
+    "sub": "From Polanco to Doctores, each tile shows four analysis dimensions calculated from official sources — DENUE, FGJ, GTFS, SEDUVI. Switch dimensions to see the raw indicators behind each score.",
+    "see_all": "See all 18 neighborhoods",
+    "dim_life": "Quality of life",
+    "dim_mob": "Mobility",
+    "dim_sec": "Safety",
+    "dim_com": "Commerce"
+  },
+  "comparator": {
+    "eyebrow": "Neighborhood comparator",
+    "h2": "Compare without mercy.",
+    "h2_grad": "Decide with data.",
+    "sub": "Place two neighborhoods side by side across six decision axes. Where the polygons diverge, there is your answer. Click any axis to read the explanation."
+  },
+  "properties": {
+    "eyebrow": "Properties with intelligence",
+    "h2": "The price you see everywhere.",
+    "h2_grad": "The context, only here.",
+    "sub": "Each listing includes the neighborhood scores, 24-month price trend and projected appreciation — all in one card, no tab-switching.",
+    "see_more": "See more properties",
+    "see_card": "View listing",
+    "plusvalia": "Appreciation",
+    "asesor": "DMX Advisor"
+  },
+  "ie": {
+    "eyebrow": "Decision engine",
+    "h2": "Ninety-seven variables. Three seconds.",
+    "h2_grad": "One answer.",
+    "sub": "Other portals add photos. DMX cross-references data sources no portal analyzes: Risk Atlas, DENUE, GTFS, FGJ. The result: data certainty, not marketing promises.",
+    "feat1_title": "50+ real data sources",
+    "feat1_desc": "DENUE, FGJ, GTFS, SEDUVI, CDMX Risk Atlas. Updated weekly.",
+    "feat2_title": "Analysis in 3.2 seconds",
+    "feat2_desc": "97 variables processed per neighborhood. No advisor waiting.",
+    "feat3_title": "Zero conflict of interest",
+    "feat3_desc": "DMX does not earn sales commissions. Intelligence is the product.",
+    "full_report": "View full report — 97 indicators"
+  },
+  "cta": {
+    "eyebrow": "Start today",
+    "h2": "Buying well isn't luck.",
+    "h2_grad": "It's information.",
+    "sub": "The most complete neighborhood intelligence map in Mexico City. The data that determines the price of your next decision.",
+    "primary": "Explore neighborhoods",
+    "secondary": "View pricing"
+  },
+  "footer": {
+    "privacy": "Privacy policy",
+    "terms": "Terms of use",
+    "advisors": "For advisors",
+    "developers": "For developers",
+    "copy": "© 2026 DesarrollosMX SA de CV. All rights reserved."
+  },
+  "advisor": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "searches": "Searches",
+    "captations": "Captations",
+    "tasks": "Tasks",
+    "operations": "Operations"
+  },
+  "developer": {
+    "dashboard": "Dashboard",
+    "inventory": "Inventory",
+    "demand": "Demand",
+    "report": "AI Report"
+  }
+}
