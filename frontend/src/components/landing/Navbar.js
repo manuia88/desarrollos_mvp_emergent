@@ -9,10 +9,10 @@ export default function Navbar({ onLogin, user, onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const NAV_LINKS = [
-    { key: 'colonias', label: t('nav.colonias'), href: '#barrios' },
-    { key: 'propiedades', label: t('nav.propiedades'), href: '#propiedades' },
-    { key: 'inteligencia', label: t('nav.inteligencia'), href: '#inteligencia' },
-    { key: 'asesores', label: t('nav.asesores'), href: '#faq' },
+    { key: 'colonias', label: t('nav.colonias'), href: '/mapa' },
+    { key: 'propiedades', label: t('nav.propiedades'), href: '/marketplace' },
+    { key: 'inteligencia', label: t('nav.inteligencia'), href: '/#inteligencia' },
+    { key: 'asesores', label: t('nav.asesores'), href: '/#faq' },
   ];
 
   useEffect(() => {
@@ -94,10 +94,10 @@ export default function Navbar({ onLogin, user, onLogout }) {
               <button className="btn btn-ghost btn-sm" onClick={onLogin} data-testid="nav-login-btn">
                 {t('nav.login')}
               </button>
-              <button className="btn btn-primary btn-sm" data-testid="nav-cta-btn">
+              <a href="/mapa" className="btn btn-primary btn-sm" data-testid="nav-cta-btn" style={{ textDecoration: 'none' }}>
                 <MapPin size={12} />
                 {t('nav.explore')}
-              </button>
+              </a>
             </>
           )}
         </div>

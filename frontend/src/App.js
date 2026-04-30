@@ -16,6 +16,11 @@ import Testimonials from './components/landing/Testimonials';
 import Faq from './components/landing/Faq';
 import CtaFooter from './components/landing/CtaFooter';
 
+// Marketplace pages
+import Marketplace from './pages/Marketplace';
+import PropertyDetail from './pages/PropertyDetail';
+import Mapa from './pages/Mapa';
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -126,9 +131,38 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/marketplace" element={<MarketplaceRoute />} />
+      <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
+      <Route path="/mapa" element={<MapaRoute />} />
       <Route path="*" element={<LandingPage />} />
     </Routes>
   );
+}
+
+function useHandleLogin() {
+  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+  return () => {
+    const redirectUrl = window.location.origin + '/';
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+}
+
+function MarketplaceRoute() {
+  const { user, logout } = useAuth();
+  const onLogin = useHandleLogin();
+  return <Marketplace user={user} onLogin={onLogin} onLogout={logout} />;
+}
+
+function PropertyDetailRoute() {
+  const { user, logout } = useAuth();
+  const onLogin = useHandleLogin();
+  return <PropertyDetail user={user} onLogin={onLogin} onLogout={logout} />;
+}
+
+function MapaRoute() {
+  const { user, logout } = useAuth();
+  const onLogin = useHandleLogin();
+  return <Mapa user={user} onLogin={onLogin} onLogout={logout} />;
 }
 
 // ─── Landing page ─────────────────────────────────────────────────────────────

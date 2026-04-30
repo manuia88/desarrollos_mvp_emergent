@@ -4,16 +4,18 @@ import bcrypt
 import jwt as pyjwt
 import secrets
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, List
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request, Response, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, Response, Depends, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
 load_dotenv()
+
+from data_seed import COLONIAS as SEED_COLONIAS, COLONIAS_BY_ID, PROPERTIES as SEED_PROPERTIES
 
 MONGO_URL = os.environ.get("MONGO_URL")
 DB_NAME   = os.environ.get("DB_NAME")
@@ -261,185 +263,189 @@ async def logout(request: Request, response: Response):
     response.delete_cookie("refresh_token", path="/", samesite="none", secure=True)
     return {"message": "Sesión cerrada"}
 
-# ─── Colonias seed data ───────────────────────────────────────────────────────
-COLONIAS = [
-    {"id":"polanco", "name":"Polanco", "alcaldia":"Miguel Hidalgo",
-     "scores":{"Calidad de vida":88,"Movilidad":86,"Seguridad":79,"Comercio":95},
-     "price":95, "inventory":67, "mom":{"pct":"+4%","positive":True},
-     "trend":[84,85,86,87,88,89,90,91,92,92,93,93,94,94,95,95,94,95,95,96,95,95,95,95],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"14"},{"k":"Amenidades","v":"834"},{"k":"Ruido promedio","v":"54 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"2"},{"k":"Tiempo a Reforma","v":"12 min"},{"k":"Ecobici","v":"18 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"34"},{"k":"Cámaras C5","v":"42"},{"k":"Alumbrado","v":"98%"}],
-       "Comercio":[{"k":"Restaurantes","v":"687"},{"k":"Supermercados","v":"12"},{"k":"Vida nocturna","v":"Muy alta"}],
-     }},
-    {"id":"coyoacan", "name":"Coyoacán", "alcaldia":"Coyoacán",
-     "scores":{"Calidad de vida":91,"Movilidad":72,"Seguridad":78,"Comercio":83},
-     "price":72, "inventory":94, "mom":{"pct":"+5%","positive":True},
-     "trend":[62,63,64,64,65,65,66,66,67,68,68,69,70,70,71,71,71,72,72,72,72,72,72,72],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"18"},{"k":"Amenidades","v":"612"},{"k":"Ruido promedio","v":"50 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"1"},{"k":"Tiempo a Reforma","v":"38 min"},{"k":"Ecobici","v":"8 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"38"},{"k":"Cámaras C5","v":"29"},{"k":"Alumbrado","v":"92%"}],
-       "Comercio":[{"k":"Restaurantes","v":"445"},{"k":"Supermercados","v":"8"},{"k":"Vida nocturna","v":"Alta"}],
-     }},
-    {"id":"narvarte", "name":"Narvarte Poniente", "alcaldia":"Benito Juárez",
-     "scores":{"Calidad de vida":85,"Movilidad":89,"Seguridad":77,"Comercio":82},
-     "price":58, "inventory":178, "mom":{"pct":"+7%","positive":True},
-     "trend":[49,50,51,51,52,52,53,54,54,55,55,56,56,57,57,58,57,58,58,58,58,58,58,58],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"9"},{"k":"Amenidades","v":"478"},{"k":"Ruido promedio","v":"56 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"4"},{"k":"Tiempo a Reforma","v":"16 min"},{"k":"Ecobici","v":"16 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"44"},{"k":"Cámaras C5","v":"27"},{"k":"Alumbrado","v":"91%"}],
-       "Comercio":[{"k":"Restaurantes","v":"318"},{"k":"Supermercados","v":"7"},{"k":"Vida nocturna","v":"Moderada"}],
-     }},
-    {"id":"doctores", "name":"Doctores", "alcaldia":"Cuauhtémoc",
-     "scores":{"Calidad de vida":68,"Movilidad":87,"Seguridad":58,"Comercio":74},
-     "price":38, "inventory":234, "mom":{"pct":"+9%","positive":True},
-     "trend":[30,31,31,32,32,33,33,34,34,35,35,35,36,36,37,37,37,38,38,38,38,38,38,38],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"4"},{"k":"Amenidades","v":"287"},{"k":"Ruido promedio","v":"67 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"5"},{"k":"Tiempo a Reforma","v":"10 min"},{"k":"Ecobici","v":"12 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"72"},{"k":"Cámaras C5","v":"18"},{"k":"Alumbrado","v":"82%"}],
-       "Comercio":[{"k":"Restaurantes","v":"198"},{"k":"Supermercados","v":"5"},{"k":"Vida nocturna","v":"Baja"}],
-     }},
-    {"id":"escandon", "name":"Escandón", "alcaldia":"Cuauhtémoc",
-     "scores":{"Calidad de vida":82,"Movilidad":83,"Seguridad":70,"Comercio":88},
-     "price":61, "inventory":142, "mom":{"pct":"-1%","positive":False},
-     "trend":[57,58,59,59,60,60,61,61,62,62,62,62,62,62,62,62,62,62,62,61,61,61,61,61],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"7"},{"k":"Amenidades","v":"421"},{"k":"Ruido promedio","v":"61 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"3"},{"k":"Tiempo a Reforma","v":"20 min"},{"k":"Ecobici","v":"14 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"52"},{"k":"Cámaras C5","v":"22"},{"k":"Alumbrado","v":"88%"}],
-       "Comercio":[{"k":"Restaurantes","v":"512"},{"k":"Supermercados","v":"9"},{"k":"Vida nocturna","v":"Muy alta"}],
-     }},
-    {"id":"lindavista", "name":"Lindavista", "alcaldia":"Gustavo A. Madero",
-     "scores":{"Calidad de vida":76,"Movilidad":78,"Seguridad":69,"Comercio":71},
-     "price":42, "inventory":312, "mom":{"pct":"+3%","positive":True},
-     "trend":[36,37,37,38,38,39,39,40,40,40,41,41,41,41,42,42,42,42,42,42,42,42,42,42],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"6"},{"k":"Amenidades","v":"334"},{"k":"Ruido promedio","v":"59 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"3"},{"k":"Tiempo a Reforma","v":"28 min"},{"k":"Ecobici","v":"6 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"55"},{"k":"Cámaras C5","v":"16"},{"k":"Alumbrado","v":"85%"}],
-       "Comercio":[{"k":"Restaurantes","v":"234"},{"k":"Supermercados","v":"6"},{"k":"Vida nocturna","v":"Baja"}],
-     }},
-    {"id":"del-valle", "name":"Del Valle Centro", "alcaldia":"Benito Juárez",
-     "scores":{"Calidad de vida":87,"Movilidad":91,"Seguridad":74,"Comercio":82},
-     "price":58, "inventory":142, "mom":{"pct":"+6%","positive":True},
-     "trend":[52,53,54,54,55,56,56,55,56,57,58,58,58,58,58,58,57,58,58,59,58,58,58,58],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"8"},{"k":"Amenidades","v":"412"},{"k":"Ruido promedio","v":"58 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"3"},{"k":"Tiempo a Reforma","v":"22 min"},{"k":"Ecobici","v":"14 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"42"},{"k":"Cámaras C5","v":"28"},{"k":"Alumbrado","v":"94%"}],
-       "Comercio":[{"k":"Restaurantes","v":"312"},{"k":"Supermercados","v":"7"},{"k":"Vida nocturna","v":"Alta"}],
-     }},
-    {"id":"condesa", "name":"Condesa", "alcaldia":"Cuauhtémoc",
-     "scores":{"Calidad de vida":92,"Movilidad":88,"Seguridad":76,"Comercio":94},
-     "price":72, "inventory":89, "mom":{"pct":"+4%","positive":True},
-     "trend":[62,63,64,65,65,66,67,68,68,68,69,70,70,71,72,72,71,72,72,73,72,72,72,72],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"12"},{"k":"Amenidades","v":"681"},{"k":"Ruido promedio","v":"54 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"2"},{"k":"Tiempo a Reforma","v":"18 min"},{"k":"Ecobici","v":"22 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"38"},{"k":"Cámaras C5","v":"35"},{"k":"Alumbrado","v":"97%"}],
-       "Comercio":[{"k":"Restaurantes","v":"524"},{"k":"Supermercados","v":"9"},{"k":"Vida nocturna","v":"Muy alta"}],
-     }},
-    {"id":"roma-norte", "name":"Roma Norte", "alcaldia":"Cuauhtémoc",
-     "scores":{"Calidad de vida":90,"Movilidad":85,"Seguridad":72,"Comercio":91},
-     "price":68, "inventory":115, "mom":{"pct":"+8%","positive":True},
-     "trend":[56,57,58,59,60,61,62,62,63,64,64,65,66,66,67,67,67,68,68,68,68,68,68,68],
-     "facts":{
-       "Calidad de vida":[{"k":"Parques a 10 min","v":"9"},{"k":"Amenidades","v":"537"},{"k":"Ruido promedio","v":"56 dB"}],
-       "Movilidad":[{"k":"Estaciones Metro","v":"3"},{"k":"Tiempo a Reforma","v":"15 min"},{"k":"Ecobici","v":"18 cicloestaciones"}],
-       "Seguridad":[{"k":"Incidentes / 100k","v":"47"},{"k":"Cámaras C5","v":"31"},{"k":"Alumbrado","v":"91%"}],
-       "Comercio":[{"k":"Restaurantes","v":"489"},{"k":"Supermercados","v":"8"},{"k":"Vida nocturna","v":"Muy alta"}],
-     }},
-]
-
-PROPERTIES_SEED = [
-    {"id":"p001","title":"Departamento en Polanco","price":7200000,"price_display":"$7,200,000",
-     "ppm2":95,"appreciation":"+4.2%","beds":2,"baths":2,"parking":1,"sqm":76,
-     "colonia":"Polanco","alcaldia":"Miguel Hidalgo",
-     "scores":{"Calidad de vida":88,"Movilidad":86,"Seguridad":79},
-     "advisor":{"name":"Carlos Mendoza","initials":"CM"},"tag":"Preventa",
-     "mom":{"pct":"+4%","positive":True},"description":"Torre de lujo en corazón de Polanco. Acabados europeos, doble ventana, cocina integral y espacio para home office. Entrega Q3 2026.",
-     "amenities":["Gym","Roof garden","Alberca","Concierge","Pet friendly","Vigilancia 24h"],
-     "developer":"Ariel Desarrollos","start_date":"2025-03","delivery_date":"2026-09"},
-    {"id":"p002","title":"Penthouse en Condesa","price":11400000,"price_display":"$11,400,000",
-     "ppm2":72,"appreciation":"+4.1%","beds":3,"baths":3,"parking":2,"sqm":158,
-     "colonia":"Condesa","alcaldia":"Cuauhtémoc",
-     "scores":{"Calidad de vida":92,"Movilidad":88,"Seguridad":76},
-     "advisor":{"name":"Ana Gutiérrez","initials":"AG"},"tag":"Últimas unidades",
-     "mom":{"pct":"+4%","positive":True},"description":"Penthouse de 158 m² con terraza privada de 40 m², vista al Parque México. Sala de doble altura, cocina abierta y bodega.",
-     "amenities":["Alberca","Gym","Spa","Concierge","Bodega","Cine privado"],
-     "developer":"GIG Desarrollos","start_date":"2024-01","delivery_date":"2026-03"},
-    {"id":"p003","title":"Loft en Roma Norte","price":5780000,"price_display":"$5,780,000",
-     "ppm2":68,"appreciation":"+8.3%","beds":1,"baths":1,"parking":1,"sqm":85,
-     "colonia":"Roma Norte","alcaldia":"Cuauhtémoc",
-     "scores":{"Calidad de vida":90,"Movilidad":85,"Seguridad":72},
-     "advisor":{"name":"Miguel Torres","initials":"MT"},"tag":"Hot",
-     "mom":{"pct":"+8%","positive":True},"description":"Loft industrial-chic con dobles alturas (4.2m), plafones expuestos y ventanales que dan a la calle peatonal. Ideal inversión renta.",
-     "amenities":["Roof garden","Bicicletas","Pet friendly","Co-working","Gym"],
-     "developer":"Roma Housing","start_date":"2024-06","delivery_date":"2026-06"},
-    {"id":"p004","title":"Studio en Narvarte Poniente","price":3250000,"price_display":"$3,250,000",
-     "ppm2":58,"appreciation":"+7.1%","beds":1,"baths":1,"parking":1,"sqm":56,
-     "colonia":"Narvarte Poniente","alcaldia":"Benito Juárez",
-     "scores":{"Calidad de vida":85,"Movilidad":89,"Seguridad":77},
-     "advisor":{"name":"Sofia Ramos","initials":"SR"},"tag":"Accesible",
-     "mom":{"pct":"+7%","positive":True},"description":"Studio ultra-conectado a 5 min de 4 líneas de Metro. Acabados modernos y cocina equipada. Perfecto primer inmueble o inversión.",
-     "amenities":["Gym","Terraza","Bodega","Vigilancia"],
-     "developer":"Axis Inmobiliaria","start_date":"2025-01","delivery_date":"2026-12"},
-    {"id":"p005","title":"Departamento en Coyoacán","price":5400000,"price_display":"$5,400,000",
-     "ppm2":72,"appreciation":"+5.2%","beds":2,"baths":2,"parking":1,"sqm":75,
-     "colonia":"Coyoacán","alcaldia":"Coyoacán",
-     "scores":{"Calidad de vida":91,"Movilidad":72,"Seguridad":78},
-     "advisor":{"name":"Roberto Vega","initials":"RV"},"tag":"Entrega inmediata",
-     "mom":{"pct":"+5%","positive":True},"description":"Departamento jardín en edificio de solo 12 unidades. Diseño orgánico con madera y jardín privado de 30 m². Áreas comunes tipo spa.",
-     "amenities":["Jardín privado","Yoga deck","Mascotas","Bodega","Vigilancia"],
-     "developer":"Orígen Arquitectura","start_date":"2023-09","delivery_date":"2025-12"},
-    {"id":"p006","title":"Departamento en Escandón","price":4100000,"price_display":"$4,100,000",
-     "ppm2":61,"appreciation":"+2.8%","beds":2,"baths":1,"parking":1,"sqm":67,
-     "colonia":"Escandón","alcaldia":"Cuauhtémoc",
-     "scores":{"Calidad de vida":82,"Movilidad":83,"Seguridad":70},
-     "advisor":{"name":"Carlos Mendoza","initials":"CM"},"tag":"Preventa",
-     "mom":{"pct":"-1%","positive":False},"description":"Proyecto de 40 unidades en Escandón. Lobby curado, fachada de ladrillo artesanal y roof garden con vista a la ciudad.",
-     "amenities":["Roof garden","Gym","Bike parking","Cowork"],
-     "developer":"Quartier Desarrollos","start_date":"2025-04","delivery_date":"2027-01"},
-]
+# ─── Public marketplace endpoints ─────────────────────────────────────────────
+def _colonia_public(c: dict) -> dict:
+    """Return a colonia document safe for public API (keeps all fields, no _id)."""
+    return {k: v for k, v in c.items() if k != "_id"}
 
 @app.get("/api/colonias")
 async def get_colonias():
-    return COLONIAS
+    return [_colonia_public(c) for c in SEED_COLONIAS]
 
 @app.get("/api/colonias/{colonia_id}")
 async def get_colonia(colonia_id: str):
-    for c in COLONIAS:
-        if c["id"] == colonia_id: return c
-    raise HTTPException(404, "Colonia no encontrada")
+    c = COLONIAS_BY_ID.get(colonia_id)
+    if not c:
+        raise HTTPException(404, "Colonia no encontrada")
+    return _colonia_public(c)
+
+@app.get("/api/colonias/{colonia_id}/propiedades")
+async def get_colonia_propiedades(colonia_id: str):
+    if colonia_id not in COLONIAS_BY_ID:
+        raise HTTPException(404, "Colonia no encontrada")
+    return [p for p in SEED_PROPERTIES if p["colonia_id"] == colonia_id]
 
 @app.get("/api/properties")
 async def get_properties(
-    colonia: Optional[str] = None, min_price: Optional[int] = None,
-    max_price: Optional[int] = None, beds: Optional[int] = None,
-    tipo: Optional[str] = None, tag: Optional[str] = None,
+    colonia: Optional[List[str]] = Query(None),
+    min_price: Optional[int] = None,
+    max_price: Optional[int] = None,
+    min_sqm: Optional[int] = None,
+    max_sqm: Optional[int] = None,
+    beds: Optional[int] = None,
+    baths: Optional[int] = None,
+    parking: Optional[int] = None,
+    tipo: Optional[str] = None,
+    tag: Optional[str] = None,
+    amenity: Optional[List[str]] = Query(None),
+    sort: Optional[str] = "recent",
+    limit: int = 100,
 ):
-    results = list(PROPERTIES_SEED)
+    results = list(SEED_PROPERTIES)
     if colonia:
-        results = [p for p in results if colonia.lower() in p["colonia"].lower()]
-    if min_price:
+        cset = {c.lower() for c in colonia}
+        results = [p for p in results if p["colonia_id"].lower() in cset]
+    if min_price is not None:
         results = [p for p in results if p["price"] >= min_price]
-    if max_price:
+    if max_price is not None:
         results = [p for p in results if p["price"] <= max_price]
-    if beds:
-        results = [p for p in results if p["beds"] == beds]
+    if min_sqm is not None:
+        results = [p for p in results if p["sqm"] >= min_sqm]
+    if max_sqm is not None:
+        results = [p for p in results if p["sqm"] <= max_sqm]
+    if beds is not None:
+        results = [p for p in results if p["beds"] >= beds]
+    if baths is not None:
+        results = [p for p in results if p["baths"] >= baths]
+    if parking is not None:
+        results = [p for p in results if p["parking"] >= parking]
+    if tipo:
+        results = [p for p in results if p["tipo"] == tipo]
     if tag:
-        results = [p for p in results if tag.lower() in p["tag"].lower()]
-    return results
+        results = [p for p in results if p["tag"] == tag]
+    if amenity:
+        aset = set(amenity)
+        results = [p for p in results if aset.issubset(set(p.get("amenities", [])))]
+    # Sort
+    if sort == "price_asc":
+        results.sort(key=lambda p: p["price"])
+    elif sort == "price_desc":
+        results.sort(key=lambda p: -p["price"])
+    elif sort == "sqm_desc":
+        results.sort(key=lambda p: -p["sqm"])
+    return results[:limit]
 
 @app.get("/api/properties/{prop_id}")
 async def get_property(prop_id: str):
-    for p in PROPERTIES_SEED:
-        if p["id"] == prop_id: return p
+    for p in SEED_PROPERTIES:
+        if p["id"] == prop_id:
+            return p
     raise HTTPException(404, "Propiedad no encontrada")
+
+@app.get("/api/properties/{prop_id}/similares")
+async def get_property_similares(prop_id: str):
+    target = next((p for p in SEED_PROPERTIES if p["id"] == prop_id), None)
+    if not target:
+        raise HTTPException(404, "Propiedad no encontrada")
+    pool = [p for p in SEED_PROPERTIES if p["id"] != prop_id]
+
+    def score(p):
+        # Same colonia gets a big boost, then proximity in price and size
+        s = 0
+        if p["colonia_id"] == target["colonia_id"]:
+            s -= 100
+        s += abs(p["price"] - target["price"]) / 1_000_000  # MXN millions distance
+        s += abs(p["sqm"] - target["sqm"]) / 10
+        return s
+
+    pool.sort(key=score)
+    return pool[:3]
+
+# ─── Claude Sonnet 4.5 — 30-second colonia briefing ──────────────────────────
+def _iso_week_tag() -> str:
+    now = datetime.now(timezone.utc)
+    y, w, _ = now.isocalendar()
+    return f"{y}-W{w:02d}"
+
+BRIEFING_SYSTEM = (
+    "Eres el analista estrella de DesarrollosMX. Generas briefings contextuales sobre colonias de CDMX "
+    "para compradores que están a punto de tomar una decisión. Tu texto se comparte por WhatsApp, así que es "
+    "breve, concreto y accionable. Reglas estrictas: máximo 280 caracteres, un solo párrafo, sin emoji, sin "
+    "markdown, sin viñetas, sin saludos. Cierra con una recomendación clara (\"buen momento para entrar\", "
+    "\"mercado caliente, considera negociar\", \"vigila la seguridad\", etc.). Tono profesional y directo."
+)
+
+def _fallback_briefing(p: dict, c: dict) -> str:
+    mom = c.get("momentum", "+0%")
+    s = c.get("scores", {})
+    vida = s.get("vida", 0)
+    mov = s.get("movilidad", 0)
+    seg = s.get("seguridad", 0)
+    com = s.get("comercio", 0)
+    pm2 = c.get("price_m2", 0)
+    note = "buen momento para entrar" if c.get("momentum_positive") else "mercado templado, negocia"
+    return (
+        f"{c['name']} marca {mom} a 24 meses con precio m² de ${pm2}k. "
+        f"Vida {vida}, Movilidad {mov}, Seguridad {seg}, Comercio {com}. "
+        f"Para {p['sqm']} m² en {p['tipo']}, {note}."
+    )[:280]
+
+@app.post("/api/properties/{prop_id}/briefing")
+async def generate_property_briefing(prop_id: str):
+    """Generate (or return cached) 30-second colonia briefing for a property.
+    Cache key: (property_id, ISO week). Regenerates weekly."""
+    p = next((x for x in SEED_PROPERTIES if x["id"] == prop_id), None)
+    if not p:
+        raise HTTPException(404, "Propiedad no encontrada")
+    c = COLONIAS_BY_ID.get(p["colonia_id"])
+    if not c:
+        raise HTTPException(404, "Colonia no encontrada para la propiedad")
+
+    week = _iso_week_tag()
+    cache_key = f"{prop_id}__{week}"
+    cached = await db.property_briefings.find_one({"cache_key": cache_key}, {"_id": 0})
+    if cached and cached.get("text"):
+        return {"text": cached["text"], "cached": True, "week": week}
+
+    text = None
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        scores = c.get("scores", {})
+        prompt = (
+            f"Propiedad: {p['titulo']}, {p['sqm']} m², {p['beds']} rec, {p['baths']} baños, "
+            f"precio {p['price_display']} ({p['ppm2_display']}).\n"
+            f"Colonia: {c['name']} ({c['alcaldia']}). Precio m² zona ${c['price_m2']}k. "
+            f"Momentum 24m: {c.get('momentum', 'n/a')}.\n"
+            f"Scores DMX 0-100 -> Vida: {scores.get('vida', 0)}, Movilidad: {scores.get('movilidad', 0)}, "
+            f"Seguridad: {scores.get('seguridad', 0)}, Comercio: {scores.get('comercio', 0)}, "
+            f"Plusvalía: {scores.get('plusvalia', 0)}, Educación: {scores.get('educacion', 0)}, "
+            f"Riesgo: {scores.get('riesgo', 0)}.\n"
+            "Genera el briefing en un solo párrafo de máximo 280 caracteres en español MX."
+        )
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"brief_{prop_id}_{week}",
+            system_message=BRIEFING_SYSTEM,
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        raw = await chat.send_message(UserMessage(text=prompt))
+        text = (raw or "").strip().strip('"')
+        if len(text) > 290:
+            text = text[:277].rstrip() + "..."
+    except Exception:
+        text = None
+
+    if not text:
+        text = _fallback_briefing(p, c)
+
+    await db.property_briefings.update_one(
+        {"cache_key": cache_key},
+        {"$set": {
+            "cache_key": cache_key, "property_id": prop_id, "week": week,
+            "text": text, "created_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    return {"text": text, "cached": False, "week": week}
 
 # ─── NLP Search (Claude Sonnet) ───────────────────────────────────────────────
 class NLPSearchIn(BaseModel):
@@ -472,14 +478,14 @@ Responde en JSON estricto:
         m = re.search(r'\{.*\}', text, re.DOTALL)
         if m:
             result = json.loads(m.group())
-            matched = [p for p in PROPERTIES_SEED if p["id"] in result.get("matches", [])]
+            matched = [p for p in SEED_PROPERTIES if p["id"] in result.get("matches", [])]
             return {"properties": matched, "reasoning": result.get("reasoning", ""), "chips": result.get("chips", [])}
     except Exception as e:
         pass
     # Fallback: keyword search
     q = payload.query.lower()
-    results = [p for p in PROPERTIES_SEED if q in p["colonia"].lower() or q in p["title"].lower()]
-    return {"properties": results or PROPERTIES_SEED[:3], "reasoning": "Búsqueda por palabras clave", "chips": []}
+    results = [p for p in SEED_PROPERTIES if q in p["colonia"].lower() or q in p["titulo"].lower()]
+    return {"properties": results or SEED_PROPERTIES[:3], "reasoning": "Búsqueda por palabras clave", "chips": []}
 
 # ─── Advisor routes ────────────────────────────────────────────────────────────
 ADVISOR_ROLES = ["advisor", "advisor_admin", "superadmin"]
@@ -690,4 +696,4 @@ async def get_demand(request: Request):
 # ─── Health ────────────────────────────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
-    return {"status":"ok","service":"DesarrollosMX API v2","colonias":len(COLONIAS),"properties":len(PROPERTIES_SEED)}
+    return {"status":"ok","service":"DesarrollosMX API v2","colonias":len(SEED_COLONIAS),"properties":len(SEED_PROPERTIES)}
