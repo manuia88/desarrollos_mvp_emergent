@@ -2,86 +2,231 @@
   "nav": {
     "colonias": "Neighborhoods",
     "propiedades": "Properties",
-    "mapa": "Map",
+    "inteligencia": "Intelligence",
     "asesores": "Advisors",
     "login": "Sign in",
     "logout": "Sign out",
-    "explore": "Explore map",
+    "explore": "Open map",
     "portal_asesor": "Advisor Portal",
     "portal_dev": "Developer Portal"
   },
   "hero": {
-    "badge": "IE v1 · CDMX · 18 colonias",
-    "badge_sub": "Applied spatial intelligence",
-    "h1_1": "The city they",
-    "h1_2": "never showed you.",
-    "sub": "One hundred and seventeen variables per neighborhood — crime rates, absorption velocity, seismic risk, service density — processed in real time so you decide with certainty, not hope.",
-    "cta_primary": "Open the map",
-    "cta_secondary": "View sample analysis",
-    "partners": "Integrated with leading platforms"
+    "badge": "IE · CDMX · 16 neighborhoods",
+    "badge_sub": "Analytical reading of territory",
+    "h1_1": "Before you pick an address,",
+    "h1_2": "read the map.",
+    "h1_grad_word": "map.",
+    "sub": "We cross one hundred and seventeen variables per neighborhood — preconstruction absorption, georeferenced crime, seismic risk, service density — and deliver a verifiable portrait. Square meters stop being a blind figure.",
+    "cta_primary": "Open the city map",
+    "cta_secondary": "See a sample report",
+    "partners": "We operate alongside the platforms that move real estate",
+    "overlay_label": "Neighborhood profile",
+    "overlay_colonia": "Roma Norte",
+    "overlay_alcaldia": "Cuauhtémoc",
+    "overlay_cta": "Open full report",
+    "pill_updated": "Reading refreshed 4 hours ago"
   },
   "search": {
-    "placeholder": "Neighborhood, borough, price or lifestyle...",
+    "placeholder": "Neighborhood, borough or feature — e.g. \"Condesa with rooftop\"",
     "tab_buy": "Buy",
     "tab_rent": "Rent",
     "tab_invest": "Invest",
-    "tab_dev": "Developers",
-    "submit": "Search"
+    "tab_dev": "Developer",
+    "submit": "Query",
+    "type_label": "Type",
+    "type_options": {
+      "dept": "Apartment",
+      "casa": "House",
+      "ph": "Penthouse",
+      "loft": "Loft",
+      "local": "Retail",
+      "oficina": "Office",
+      "terreno": "Land"
+    },
+    "price_label": "MXN Range",
+    "price_options": {
+      "any": "Any budget",
+      "u3": "Up to $3M",
+      "3_6": "$3M — $6M",
+      "6_12": "$6M — $12M",
+      "12_25": "$12M — $25M",
+      "p25": "Over $25M"
+    },
+    "chips": {
+      "preventa": "Preconstruction",
+      "inmediata": "Move-in ready",
+      "estacionamiento": "Parking",
+      "pet": "Pet friendly",
+      "roof": "Rooftop",
+      "gym": "Gym",
+      "seguridad": "24/7 security",
+      "alberca": "Pool"
+    }
   },
-  "colonias": {
-    "eyebrow": "Urban intelligence in real time",
-    "h2": "Eighteen neighborhoods. One standard:",
-    "h2_grad": "the data.",
-    "sub": "From Polanco to Doctores, each tile shows four analysis dimensions calculated from official sources — DENUE, FGJ, GTFS, SEDUVI. Switch dimensions to see the raw indicators behind each score.",
-    "see_all": "See all 18 neighborhoods",
-    "dim_life": "Quality of life",
-    "dim_mob": "Mobility",
-    "dim_sec": "Safety",
-    "dim_com": "Commerce"
+  "ticker": {
+    "label": "Price per m² — live"
+  },
+  "bento": {
+    "eyebrow": "Neighborhoods under the lens",
+    "h2_1": "Sixteen neighborhoods.",
+    "h2_2": "One analytical lens.",
+    "h2_grad_word": "lens.",
+    "sub": "From Polanco to Doctores, each tile breaks down four dimensions — Livability, Mobility, Safety and Commerce — with the raw indicators behind each number. Switch layers and see the evidence.",
+    "see_all": "Tour all 16 neighborhoods",
+    "pm2_label": "Price/m²",
+    "inv_label": "Active inventory",
+    "trend_label": "Price m² — 24 months",
+    "layers": {
+      "vida": "Livability",
+      "movilidad": "Mobility",
+      "seguridad": "Safety",
+      "comercio": "Commerce"
+    },
+    "layer_caption": "DMX composite score · 0 to 100",
+    "help": "Computed with DENUE, C5, GTFS, SEDUVI and CDMX Risk Atlas data — no opaque estimates."
   },
   "comparator": {
     "eyebrow": "Neighborhood comparator",
-    "h2": "Compare without mercy.",
-    "h2_grad": "Decide with data.",
-    "sub": "Place two neighborhoods side by side across six decision axes. Where the polygons diverge, there is your answer. Click any axis to read the explanation."
+    "h2_1": "Two neighborhoods, six axes,",
+    "h2_2": "one truth.",
+    "h2_grad_word": "truth.",
+    "sub": "We project two neighborhoods across six decision axes. Where the polygons diverge, there is your argument. Tap any axis for what it measures.",
+    "axis_help": {
+      "Movilidad": "Access to Metro, Metrobús and Ecobici plus average rush-hour commute times.",
+      "Seguridad": "FGJ crime incidence, C5 camera coverage and street lighting coverage.",
+      "Comercio": "DENUE density — restaurants, groceries, services and nightlife per block.",
+      "Plusvalía": "24-month price/m² trend and preconstruction absorption velocity.",
+      "Educación": "Proximity to public and private schools, SEP rating and student/school ratio.",
+      "Riesgo": "CDMX Risk Atlas — seismic, subsidence, flooding. 100 means lowest risk."
+    },
+    "mini_price": "Price/m²",
+    "mini_mom": "24m absorption"
   },
-  "properties": {
-    "eyebrow": "Properties with intelligence",
-    "h2": "The price you see everywhere.",
-    "h2_grad": "The context, only here.",
-    "sub": "Each listing includes the neighborhood scores, 24-month price trend and projected appreciation — all in one card, no tab-switching.",
-    "see_more": "See more properties",
-    "see_card": "View listing",
-    "plusvalia": "Appreciation",
-    "asesor": "DMX Advisor"
+  "listings": {
+    "eyebrow": "Marketplace with context",
+    "h2_1": "Everyone publishes the price.",
+    "h2_2": "We explain the context.",
+    "h2_grad_word": "context.",
+    "sub": "Each listing carries its neighborhood scores, the 24-month price/m² curve and an appreciation estimator with confidence interval — no tab-switching required.",
+    "see_more": "See the full inventory",
+    "cta_detail": "Open listing",
+    "plusvalia": "Proj. appreciation",
+    "advisor_role": "DMX Advisor",
+    "tag": {
+      "preventa": "Preconstruction",
+      "inmediata": "Move-in ready",
+      "remate": "Opportunity",
+      "exclusiva": "DMX Exclusive",
+      "nuevo": "New to market"
+    }
   },
   "ie": {
-    "eyebrow": "Decision engine",
-    "h2": "Ninety-seven variables. Three seconds.",
-    "h2_grad": "One answer.",
-    "sub": "Other portals add photos. DMX cross-references data sources no portal analyzes: Risk Atlas, DENUE, GTFS, FGJ. The result: data certainty, not marketing promises.",
-    "feat1_title": "50+ real data sources",
-    "feat1_desc": "DENUE, FGJ, GTFS, SEDUVI, CDMX Risk Atlas. Updated weekly.",
-    "feat2_title": "Analysis in 3.2 seconds",
-    "feat2_desc": "97 variables processed per neighborhood. No advisor waiting.",
-    "feat3_title": "Zero conflict of interest",
-    "feat3_desc": "DMX does not earn sales commissions. Intelligence is the product.",
-    "full_report": "View full report — 97 indicators"
+    "eyebrow": "Intelligence engine",
+    "h2_1": "We are not a portal.",
+    "h2_2": "We are the decision layer.",
+    "h2_grad_word": "decision layer.",
+    "sub": "Other catalogs pile up photos. DMX crosses layers no portal processes — Risk Atlas, DENUE, GTFS, FGJ — and turns them into a number you can defend in front of your family or your investment committee.",
+    "panel_colonia": "Roma Norte",
+    "panel_subtitle": "DMX composite IE Score",
+    "features": {
+      "data": {
+        "title": "Fifty auditable data layers",
+        "desc": "DENUE, FGJ, GTFS, SEDUVI, Risk Atlas. Refreshed every Sunday with source checksum."
+      },
+      "speed": {
+        "title": "Neighborhood report in three seconds",
+        "desc": "Ninety-seven indicators processed in parallel. No waiting for an advisor to call you back."
+      },
+      "neutral": {
+        "title": "We do not earn sales commissions",
+        "desc": "DMX runs on subscription and APIs, not on closing your deal. The product is intelligence, not your signature."
+      }
+    },
+    "bars": {
+      "movilidad": "Mobility",
+      "seguridad": "Safety",
+      "comercio": "Commerce",
+      "plusvalia": "24m appreciation",
+      "educacion": "Education",
+      "riesgo": "Risk management"
+    },
+    "full_report": "Read all 97 indicators"
+  },
+  "stats": {
+    "updated": "Latest sync:",
+    "updated_colonia": "Escandón · 2 hours ago",
+    "items": {
+      "variables": "Variables per neighborhood",
+      "sources": "Official sources cross-referenced",
+      "colonias": "CDMX neighborhoods indexed",
+      "time": "Average analysis time"
+    }
+  },
+  "testimonials": {
+    "eyebrow": "Real voices",
+    "h2": "Decisions signed with data, not intuition.",
+    "items": [
+      { "quote": "I compared Polanco and Lomas in one afternoon. The radar showed me what no advisor had told me in three months.", "author": "Laura S.", "role": "First-time buyer · CDMX" },
+      { "quote": "Juárez's mobility score changed my entire investment thesis. I own two units there today.", "author": "Ricardo M.", "role": "Private investor" },
+      { "quote": "I open DMX in front of the client and the argument stands on its own in two clicks. Saves me three hours per meeting.", "author": "Ana G.", "role": "AMPI Advisor · Roma" },
+      { "quote": "My buyers ask for the IE Score before the price. That says more than any marketing metric.", "author": "Carlos V.", "role": "Master Broker" },
+      { "quote": "Narvarte scared me by reputation. The georeferenced crime report told a very different story.", "author": "Mariana L.", "role": "Buyer · Benito Juárez" },
+      { "quote": "Source transparency is what makes me share the report with my committee. No black box.", "author": "Alejandro F.", "role": "CFO · real estate firm" },
+      { "quote": "I deliver my client a 97-indicator brief signed by a platform. That is another level of advisory.", "author": "Sofía R.", "role": "Head of Development" },
+      { "quote": "I decided to rent in Cuauhtémoc based on commerce score and average noise. I did not miss.", "author": "Jorge P.", "role": "Architect · tenant" }
+    ]
+  },
+  "faq": {
+    "eyebrow": "Frequent questions",
+    "h2": "What people always ask before they trust us.",
+    "sub": "How we build the scores, where the data comes from and how we protect what you share.",
+    "advisor_btn": "Talk to a verified advisor",
+    "items": [
+      {
+        "q": "What separates DMX from a portal like Lamudi or Inmuebles24?",
+        "a": "A portal monetizes listings; DMX monetizes decisions. We process more than 97 variables per neighborhood from official sources (DENUE, FGJ, GTFS, SEDUVI, Risk Atlas) so you have an auditable reading before signing. We are not a catalog: we are the intelligence layer catalogs should rest on."
+      },
+      {
+        "q": "Where does the data come from and how often is it refreshed?",
+        "a": "All sources are public and official. The refresh is automated weekly, with checksums to detect schema drift. Each indicator ships with origin metadata and extraction date — you can click down to the source CSV."
+      },
+      {
+        "q": "What exactly do Livability, Mobility, Safety and Commerce measure?",
+        "a": "They are DMX's four composite 0–100 scores. Livability integrates parks, noise, amenities and air quality; Mobility adds Metro/Metrobús/Ecobici coverage and commute times; Safety crosses FGJ with C5 coverage and lighting; Commerce measures DENUE density per block. Each score publishes its recipe and weights."
+      },
+      {
+        "q": "If you do not charge sales commission, how do you sustain?",
+        "a": "Three lines: Advisor and Developer subscription, Premium Buyer for full-report listings, and B2B APIs for banks and FIBRAs. Zero transactional commission means zero conflict of interest when we show you an uncomfortable data point."
+      },
+      {
+        "q": "How many neighborhoods have full IE Score today?",
+        "a": "H1 2026 covers 16 high-activity residential neighborhoods in CDMX. H2 scales to the full 133 city neighborhoods and starts Monterrey and Guadalajara. Dubai and Miami enter in 2027."
+      },
+      {
+        "q": "Is projected appreciation a return promise?",
+        "a": "No. It is a statistical estimate with 24-month regression and explicit confidence bands. We publish historical RMSE per neighborhood so you can gauge how sharp our reading is before folding it into your thesis."
+      },
+      {
+        "q": "How do I confirm an advisor is really from DMX?",
+        "a": "Each advisor publishes AMPI license, transparent operations history and audited reputation score. You can reach them from any listing or neighborhood report — always under the DMX verification shield."
+      }
+    ]
   },
   "cta": {
     "eyebrow": "Start today",
-    "h2": "Buying well isn't luck.",
-    "h2_grad": "It's information.",
-    "sub": "The most complete neighborhood intelligence map in Mexico City. The data that determines the price of your next decision.",
-    "primary": "Explore neighborhoods",
-    "secondary": "View pricing"
+    "h2_1": "Buying well isn't luck.",
+    "h2_2": "It's information.",
+    "h2_grad_word": "information.",
+    "sub": "Open the most complete intelligence map of Mexico City and make a decision that survives a five-year audit.",
+    "primary": "Enter the map",
+    "secondary": "See plans"
   },
   "footer": {
     "privacy": "Privacy policy",
     "terms": "Terms of use",
     "advisors": "For advisors",
     "developers": "For developers",
-    "copy": "© 2026 DesarrollosMX SA de CV. All rights reserved."
+    "copy": "© 2026 DesarrollosMX SA de CV · Mexico City"
   },
   "advisor": {
     "dashboard": "Dashboard",

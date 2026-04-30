@@ -1,86 +1,107 @@
 // Hero — 250vh scroll track with sticky 100vh inner
-// Layers: grid bg / vignette / bottom fade / MapOverlay / content
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import BlurText from '../animations/BlurText';
 import FadeUp from '../animations/FadeUp';
-import { MapPin, Play } from '../icons';
+import { MapPin, Play, Leaf, Route, Shield, Store, TrendUp, Radio } from '../icons';
 
-const SCORE_PILLS = [
-  { label: 'DMX-LIV', value: '87' },
-  { label: 'Seguridad', value: '74' },
-  { label: 'Movilidad', value: '91' },
-  { label: 'Momentum', value: '+6%', green: true },
-  { label: 'Precio m²', value: '$58k' },
-];
+const PARTNERS = ["Christie's", "Sotheby's", 'Lamudi', 'Propiedades.com', 'Pulppo', 'Habimetro'];
 
-const PARTNERS = ['Christie\'s', 'Sotheby\'s', 'Lamudi', 'Propiedades.com', 'Pulppo', 'Habimetro'];
+function ScoreIcon({ k, color }) {
+  const size = 11;
+  if (k === 'vida') return <Leaf size={size} color={color} />;
+  if (k === 'movilidad') return <Route size={size} color={color} />;
+  if (k === 'seguridad') return <Shield size={size} color={color} />;
+  if (k === 'comercio') return <Store size={size} color={color} />;
+  return null;
+}
 
-// MapOverlay — floating glass card
-function MapOverlay() {
+function MapOverlay({ t }) {
+  const OVERLAY_SCORES = [
+    { k: 'vida', label: t('bento.layers.vida'), v: 90 },
+    { k: 'movilidad', label: t('bento.layers.movilidad'), v: 85 },
+    { k: 'seguridad', label: t('bento.layers.seguridad'), v: 72 },
+    { k: 'comercio', label: t('bento.layers.comercio'), v: 94 },
+  ];
+
   return (
     <div style={{
       position: 'absolute',
       right: '6%', top: '50%',
       transform: 'translateY(-50%)',
-      width: 300, 
+      width: 320,
       zIndex: 5,
       background: 'rgba(255,255,255,0.05)',
       border: '1px solid rgba(255,255,255,0.16)',
       backdropFilter: 'blur(24px)',
       WebkitBackdropFilter: 'blur(24px)',
-      borderRadius: 16,
+      borderRadius: 18,
       overflow: 'hidden',
       animation: 'breath 5s ease-in-out infinite',
     }}>
-      {/* SVG grid lines + ellipses */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.3 }} viewBox="0 0 300 240" preserveAspectRatio="none">
-        {/* grid */}
-        {[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i => (
-          <line key={`h${i}`} x1={0} y1={i*24} x2={300} y2={i*24} stroke="rgba(99,102,241,0.3)" strokeWidth={0.5} />
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.3 }} viewBox="0 0 320 260" preserveAspectRatio="none">
+        {[0,1,2,3,4,5,6,7,8,9,10].map(i => (
+          <line key={`h${i}`} x1={0} y1={i*26} x2={320} y2={i*26} stroke="rgba(99,102,241,0.3)" strokeWidth={0.5} />
         ))}
         {[0,1,2,3,4,5,6,7,8,9,10,11,12,13].map(i => (
-          <line key={`v${i}`} x1={i*24} y1={0} x2={i*24} y2={240} stroke="rgba(99,102,241,0.3)" strokeWidth={0.5} />
+          <line key={`v${i}`} x1={i*24} y1={0} x2={i*24} y2={260} stroke="rgba(99,102,241,0.3)" strokeWidth={0.5} />
         ))}
-        {/* ellipses */}
-        <ellipse cx={150} cy={120} rx={120} ry={80} fill="rgba(99,102,241,0.08)" />
-        <ellipse cx={150} cy={120} rx={80} ry={50} fill="rgba(236,72,153,0.06)" />
-        <ellipse cx={150} cy={120} rx={40} ry={25} fill="rgba(34,197,94,0.08)" />
-        {/* ping dots */}
-        <circle cx={150} cy={120} r={4} fill="#6366F1" />
-        <circle cx={200} cy={90} r={3} fill="#EC4899" />
-        <circle cx={100} cy={150} r={3} fill="#22C55E" />
+        <ellipse cx={160} cy={130} rx={130} ry={85} fill="rgba(99,102,241,0.08)" />
+        <ellipse cx={160} cy={130} rx={85} ry={52} fill="rgba(236,72,153,0.06)" />
+        <ellipse cx={160} cy={130} rx={42} ry={26} fill="rgba(34,197,94,0.08)" />
+        <circle cx={160} cy={130} r={4} fill="#6366F1" />
+        <circle cx={220} cy={95} r={3} fill="#EC4899" />
+        <circle cx={105} cy={165} r={3} fill="#22C55E" />
       </svg>
       <div style={{ position: 'relative', zIndex: 1, padding: '16px 20px' }}>
-        <div style={{ fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11, color: 'var(--cream-3)', marginBottom: 4, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-          Del Valle Centro
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11, color: 'var(--cream-3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            {t('hero.overlay_label')}
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--indigo-3)' }}>
+            <Radio size={10} />
+            <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--indigo-3)', fontWeight: 600 }}>LIVE</span>
+          </div>
         </div>
-        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', marginBottom: 12 }}>
-          Benito Juárez
+        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
+          {t('hero.overlay_colonia')}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          {[
-            { k: 'LIV', v: '87' }, { k: 'MOV', v: '91' }, { k: 'SEC', v: '74' },
-            { k: 'ECO', v: '82' }, { k: 'MOM', v: '+6%' }, { k: 'RSK', v: '71' },
-          ].map(({ k, v }) => (
-            <div key={k} style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 9.5, color: 'var(--indigo-3)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 2 }}>{k}</div>
-              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{v}</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginBottom: 14 }}>
+          {t('hero.overlay_alcaldia')}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {OVERLAY_SCORES.map(({ k, label, v }) => (
+            <div key={k} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 10px',
+              background: 'rgba(99,102,241,0.08)',
+              border: '1px solid rgba(99,102,241,0.18)',
+              borderRadius: 10,
+            }}>
+              <ScoreIcon k={k} color="var(--indigo-3)" />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', lineHeight: 1.2 }}>{label}</span>
+                <span style={{
+                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 16,
+                  background: 'var(--grad)', WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+                  lineHeight: 1.1,
+                }}>{v}</span>
+              </div>
             </div>
           ))}
         </div>
         <button style={{
-          marginTop: 12,
-          width: '100%',
+          marginTop: 12, width: '100%',
           background: 'rgba(99,102,241,0.12)',
           border: '1px solid rgba(99,102,241,0.24)',
           borderRadius: 9999,
           padding: '7px 12px',
           fontFamily: 'DM Sans', fontWeight: 500, fontSize: 12,
-          color: 'var(--indigo-3)',
-          cursor: 'pointer',
+          color: 'var(--indigo-3)', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
-          Ver análisis completo
+          {t('hero.overlay_cta')}
         </button>
       </div>
     </div>
@@ -88,11 +109,18 @@ function MapOverlay() {
 }
 
 export default function Hero() {
+  const { t } = useTranslation();
+
+  const SCORE_PILLS = [
+    { k: 'vida', label: t('bento.layers.vida'), value: '90' },
+    { k: 'movilidad', label: t('bento.layers.movilidad'), value: '85' },
+    { k: 'seguridad', label: t('bento.layers.seguridad'), value: '72' },
+    { k: 'comercio', label: t('bento.layers.comercio'), value: '94' },
+    { k: 'momentum', label: 'Absorción 24m', value: '+8%', green: true },
+  ];
+
   return (
-    <section
-      data-testid="hero-section"
-      style={{ height: '250vh', position: 'relative' }}
-    >
+    <section data-testid="hero-section" style={{ height: '250vh', position: 'relative' }}>
       <div style={{
         position: 'sticky', top: 0,
         height: '100vh',
@@ -100,25 +128,19 @@ export default function Hero() {
         display: 'flex',
         alignItems: 'center',
       }}>
-        {/* Layer z=0: animated grid background */}
         <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          {/* Large indigo radial */}
           <div style={{
-            position: 'absolute',
-            top: '-30%', left: '-10%',
+            position: 'absolute', top: '-30%', left: '-10%',
             width: '80%', height: '80%',
             background: 'radial-gradient(ellipse, rgba(99,102,241,0.18) 0%, transparent 65%)',
             pointerEvents: 'none',
           }} />
-          {/* Rose radial right */}
           <div style={{
-            position: 'absolute',
-            bottom: '-20%', right: '-5%',
+            position: 'absolute', bottom: '-20%', right: '-5%',
             width: '60%', height: '60%',
             background: 'radial-gradient(ellipse, rgba(236,72,153,0.10) 0%, transparent 65%)',
             pointerEvents: 'none',
           }} />
-          {/* Grid overlay */}
           <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.08 }} xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="hero-grid" width="48" height="48" patternUnits="userSpaceOnUse">
@@ -129,14 +151,12 @@ export default function Hero() {
           </svg>
         </div>
 
-        {/* Layer z=1: vignette */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 1,
           background: 'radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, rgba(6,8,15,0.7) 100%)',
           pointerEvents: 'none',
         }} />
 
-        {/* Layer z=2: bottom fade */}
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
           height: 180, zIndex: 2,
@@ -144,12 +164,10 @@ export default function Hero() {
           pointerEvents: 'none',
         }} />
 
-        {/* Layer z=5: MapOverlay — desktop only */}
         <div className="map-overlay-wrap" style={{ position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none' }}>
-          <MapOverlay />
+          <MapOverlay t={t} />
         </div>
 
-        {/* Layer z=10: Content */}
         <div style={{
           position: 'relative', zIndex: 10,
           maxWidth: 760,
@@ -157,7 +175,6 @@ export default function Hero() {
           marginTop: -60,
         }} className="hero-content">
 
-          {/* Eyebrow badge */}
           <FadeUp delay={0.1}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
               <div style={{
@@ -177,19 +194,18 @@ export default function Hero() {
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                 }}>
-                  IE v1 · CDMX
+                  {t('hero.badge')}
                 </div>
                 <span className="eyebrow" style={{ color: 'var(--cream-2)' }}>
-                  Inteligencia espacial para vivir mejor
+                  {t('hero.badge_sub')}
                 </span>
               </div>
             </div>
           </FadeUp>
 
-          {/* H1 BlurText */}
           <BlurText
             as="h1"
-            gradientWords={['antes']}
+            gradientWords={['mapa.']}
             style={{
               fontFamily: 'Outfit',
               fontWeight: 800,
@@ -200,10 +216,9 @@ export default function Hero() {
               textWrap: 'balance',
             }}
           >
-            Conoce tu colonia antes de decidir.
+            {`${t('hero.h1_1')} ${t('hero.h1_2')}`}
           </BlurText>
 
-          {/* Sub */}
           <FadeUp delay={0.9}>
             <p style={{
               fontFamily: 'DM Sans', fontWeight: 400, fontSize: 17,
@@ -213,36 +228,38 @@ export default function Hero() {
               marginBottom: 32,
               textWrap: 'pretty',
             }}>
-              DMX analiza más de 97 variables por zona — desde movilidad y seguridad hasta momentum de precio — para que compres, vendas o inviertas con certeza real.
+              {t('hero.sub')}
             </p>
           </FadeUp>
 
-          {/* CTA row */}
           <FadeUp delay={1.1}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 32 }}>
               <button className="btn btn-primary" data-testid="hero-explore-btn" style={{ padding: '12px 24px', fontSize: 14 }}>
                 <MapPin size={14} />
-                Explorar mapa
+                {t('hero.cta_primary')}
               </button>
               <button className="btn btn-glass" data-testid="hero-demo-btn" style={{ padding: '12px 24px', fontSize: 14 }}>
                 <Play size={14} />
-                Ver el demo
+                {t('hero.cta_secondary')}
               </button>
             </div>
           </FadeUp>
 
-          {/* Score pills row */}
           <FadeUp delay={1.4}>
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
               {SCORE_PILLS.map((p, i) => (
                 <React.Fragment key={p.label}>
                   <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
                     background: p.green ? 'rgba(34,197,94,0.10)' : 'rgba(99,102,241,0.10)',
                     border: `1px solid ${p.green ? 'rgba(34,197,94,0.24)' : 'rgba(99,102,241,0.24)'}`,
                     borderRadius: 9999,
                     padding: '3px 12px',
                   }}>
+                    {p.k !== 'momentum' && (
+                      <ScoreIcon k={p.k} color={p.green ? '#86efac' : 'var(--indigo-3)'} />
+                    )}
+                    {p.k === 'momentum' && <TrendUp size={11} color="#86efac" />}
                     <span style={{
                       fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11,
                       color: 'var(--cream-3)',
@@ -259,12 +276,11 @@ export default function Hero() {
               ))}
             </div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
-              Del Valle Centro · Benito Juárez · actualizado hace 6h
+              {t('hero.overlay_colonia')} · {t('hero.overlay_alcaldia')} · {t('hero.pill_updated')}
             </div>
           </FadeUp>
         </div>
 
-        {/* Partners row */}
         <div style={{
           position: 'absolute',
           bottom: 40, left: 0, right: 0,
@@ -273,7 +289,7 @@ export default function Hero() {
           display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
         }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>
-            Integrado con las principales plataformas
+            {t('hero.partners')}
           </span>
           {PARTNERS.map(p => (
             <span key={p} style={{

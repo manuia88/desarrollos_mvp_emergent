@@ -1,12 +1,19 @@
 // Navbar — fixed top, 60px, glassmorphism, blur on scroll
 import React, { useState, useEffect } from 'react';
-import { MapPin, Search } from '../icons';
-
-const NAV_LINKS = ['Colonias', 'Propiedades', 'Inteligencia', 'Asesores'];
+import { useTranslation } from 'react-i18next';
+import { MapPin } from '../icons';
 
 export default function Navbar({ onLogin, user, onLogout }) {
+  const { t } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const NAV_LINKS = [
+    { key: 'colonias', label: t('nav.colonias'), href: '#barrios' },
+    { key: 'propiedades', label: t('nav.propiedades'), href: '#propiedades' },
+    { key: 'inteligencia', label: t('nav.inteligencia'), href: '#inteligencia' },
+    { key: 'asesores', label: t('nav.asesores'), href: '#faq' },
+  ];
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -33,7 +40,6 @@ export default function Navbar({ onLogin, user, onLogout }) {
           transition: 'background 0.3s, backdrop-filter 0.3s',
         }}
       >
-        {/* Logo */}
         <a href="/" data-testid="nav-logo" style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 48, textDecoration: 'none' }}>
           <div style={{
             width: 28, height: 28,
@@ -51,13 +57,12 @@ export default function Navbar({ onLogin, user, onLogout }) {
           </span>
         </a>
 
-        {/* Nav center — desktop */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }} className="hidden-mobile">
           {NAV_LINKS.map(link => (
             <a
-              key={link}
-              href={`#${link.toLowerCase()}`}
-              data-testid={`nav-link-${link.toLowerCase()}`}
+              key={link.key}
+              href={link.href}
+              data-testid={`nav-link-${link.key}`}
               style={{
                 fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13.5,
                 color: 'var(--cream-3)',
@@ -69,12 +74,11 @@ export default function Navbar({ onLogin, user, onLogout }) {
               onMouseEnter={e => { e.target.style.color = 'var(--cream)'; e.target.style.background = 'rgba(255,255,255,0.05)'; }}
               onMouseLeave={e => { e.target.style.color = 'var(--cream-3)'; e.target.style.background = 'transparent'; }}
             >
-              {link}
+              {link.label}
             </a>
           ))}
         </div>
 
-        {/* Right CTA */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="hidden-mobile">
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -82,23 +86,22 @@ export default function Navbar({ onLogin, user, onLogout }) {
                 {user.name?.split(' ')[0]}
               </span>
               <button className="btn btn-glass btn-sm" onClick={onLogout} data-testid="nav-logout-btn">
-                Salir
+                {t('nav.logout')}
               </button>
             </div>
           ) : (
             <>
               <button className="btn btn-ghost btn-sm" onClick={onLogin} data-testid="nav-login-btn">
-                Iniciar sesión
+                {t('nav.login')}
               </button>
               <button className="btn btn-primary btn-sm" data-testid="nav-cta-btn">
                 <MapPin size={12} />
-                Explorar mapa
+                {t('nav.explore')}
               </button>
             </>
           )}
         </div>
 
-        {/* Mobile hamburger */}
         <button
           data-testid="nav-hamburger"
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -116,7 +119,6 @@ export default function Navbar({ onLogin, user, onLogout }) {
         </button>
       </nav>
 
-      {/* Mobile sheet */}
       {mobileOpen && (
         <div
           data-testid="nav-mobile-sheet"
@@ -130,7 +132,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
           onClick={() => setMobileOpen(false)}
         >
           {NAV_LINKS.map(link => (
-            <a key={link} href={`#${link.toLowerCase()}`}
+            <a key={link.key} href={link.href}
               style={{
                 fontFamily: 'Outfit', fontWeight: 700, fontSize: 28,
                 color: 'var(--cream)', padding: '14px 0',
@@ -138,17 +140,17 @@ export default function Navbar({ onLogin, user, onLogout }) {
                 textDecoration: 'none',
               }}
             >
-              {link}
+              {link.label}
             </a>
           ))}
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {user ? (
-              <button className="btn btn-glass" onClick={onLogout} style={{ width: '100%' }}>Cerrar sesión</button>
+              <button className="btn btn-glass" onClick={onLogout} style={{ width: '100%' }}>{t('nav.logout')}</button>
             ) : (
               <>
-                <button className="btn btn-ghost" onClick={onLogin} style={{ width: '100%' }}>Iniciar sesión</button>
+                <button className="btn btn-ghost" onClick={onLogin} style={{ width: '100%' }}>{t('nav.login')}</button>
                 <button className="btn btn-primary" style={{ width: '100%' }}>
-                  <MapPin size={14} />Explorar mapa
+                  <MapPin size={14} />{t('nav.explore')}
                 </button>
               </>
             )}

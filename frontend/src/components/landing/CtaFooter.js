@@ -1,20 +1,22 @@
 // CtaFooter — CTA section + footer bar
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
-import { MapPin, ArrowRight } from '../icons';
-
-const FOOTER_LINKS = [
-  'Aviso de privacidad',
-  'Términos de uso',
-  'Para asesores',
-  'Para desarrolladores',
-];
+import { MapPin } from '../icons';
 
 export default function CtaFooter() {
+  const { t } = useTranslation();
+
+  const FOOTER_LINKS = [
+    { key: 'privacy', label: t('footer.privacy') },
+    { key: 'terms', label: t('footer.terms') },
+    { key: 'advisors', label: t('footer.advisors') },
+    { key: 'developers', label: t('footer.developers') },
+  ];
+
   return (
     <>
-      {/* CTA section */}
       <section
         data-testid="cta-section"
         style={{
@@ -26,7 +28,6 @@ export default function CtaFooter() {
           textAlign: 'center',
         }}
       >
-        {/* Indigo glow */}
         <div style={{
           position: 'absolute', top: '-30%', left: '50%',
           transform: 'translateX(-50%)',
@@ -35,14 +36,14 @@ export default function CtaFooter() {
           pointerEvents: 'none',
         }} />
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, margin: '0 auto' }}>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 780, margin: '0 auto' }}>
           <FadeUp>
-            <div className="tag-pill" style={{ marginBottom: 20 }}>Comienza hoy</div>
+            <div className="tag-pill" style={{ marginBottom: 20 }}>{t('cta.eyebrow')}</div>
           </FadeUp>
 
           <BlurText
             as="h2"
-            gradientWords={['datos.']}
+            gradientWords={['información.']}
             style={{
               fontFamily: 'Outfit', fontWeight: 800, fontStyle: 'italic',
               fontSize: 'clamp(38px, 5.5vw, 68px)',
@@ -51,7 +52,7 @@ export default function CtaFooter() {
               justifyContent: 'center',
             }}
           >
-            Tu próximo hogar empieza con datos.
+            {`${t('cta.h2_1')} ${t('cta.h2_2')}`}
           </BlurText>
 
           <FadeUp delay={0.3}>
@@ -59,25 +60,23 @@ export default function CtaFooter() {
               fontFamily: 'DM Sans', fontSize: 17, color: 'var(--cream-2)',
               lineHeight: 1.65, marginBottom: 36, textWrap: 'pretty',
             }}>
-              Accede al mapa de inteligencia más completo de la Ciudad de México y toma decisiones que duran décadas.
+              {t('cta.sub')}
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
               <button className="btn btn-primary" data-testid="cta-explore-btn" style={{ padding: '13px 28px', fontSize: 15 }}>
                 <MapPin size={15} />
-                Explorar colonias
+                {t('cta.primary')}
               </button>
               <button className="btn btn-glass" data-testid="cta-prices-btn" style={{ padding: '13px 28px', fontSize: 15 }}>
-                Ver precios
+                {t('cta.secondary')}
               </button>
             </div>
           </FadeUp>
         </div>
       </section>
 
-      {/* Footer */}
       <footer data-testid="footer" style={{ background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
-        {/* Gradient line */}
         <div style={{ height: 1, background: 'var(--grad)', opacity: 0.5 }} />
 
         <div style={{
@@ -86,7 +85,6 @@ export default function CtaFooter() {
           padding: '20px 32px',
           gap: 24,
         }} className="footer-bar">
-          {/* Mini logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
               width: 22, height: 22,
@@ -100,13 +98,12 @@ export default function CtaFooter() {
             </span>
           </div>
 
-          {/* Links */}
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
             {FOOTER_LINKS.map(link => (
               <a
-                key={link}
+                key={link.key}
                 href="#"
-                data-testid={`footer-link-${link.toLowerCase().replace(/\s+/g, '-')}`}
+                data-testid={`footer-link-${link.key}`}
                 style={{
                   fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)',
                   textDecoration: 'none',
@@ -115,15 +112,14 @@ export default function CtaFooter() {
                 onMouseEnter={e => e.target.style.color = 'var(--cream)'}
                 onMouseLeave={e => e.target.style.color = 'var(--cream-3)'}
               >
-                {link}
+                {link.label}
               </a>
             ))}
           </div>
 
-          {/* Copyright */}
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
-              © 2026 DesarrollosMX SA de CV. Todos los derechos reservados.
+              {t('footer.copy')}
             </span>
           </div>
         </div>

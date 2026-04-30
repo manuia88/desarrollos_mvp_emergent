@@ -97,3 +97,30 @@ export const Globe = icon(
 export const LogOut = icon(
   <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></>
 );
+export const Leaf = icon(
+  <><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" /><path d="M2 21c0-3 1.85-5.36 5.08-6" /></>
+);
+export const Route = icon(
+  <><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" /><circle cx="18" cy="5" r="3" /></>
+);
+export const Shield = icon(
+  <><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></>
+);
+export const Store = icon(
+  <><path d="M4 9h16" /><path d="M4 21V9" /><path d="M20 21V9" /><path d="m3.5 9 1.5-5h14l1.5 5" /><path d="M10 21v-7h4v7" /></>
+);
+export const Share = icon(
+  <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></>
+);
+export const Bookmark = icon(
+  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+);
+export const Sparkle = icon(
+  <><path d="M9.94 14.06 3 21l6.94-6.94a1 1 0 0 0 0-1.41L3 5.77l6.94 6.94a1 1 0 0 0 1.41 0Z" transform="translate(2 -1)" /><path d="M18 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" /></>
+);
+export const BarChart = icon(
+  <><line x1="12" x2="12" y1="20" y2="10" /><line x1="18" x2="18" y1="20" y2="4" /><line x1="6" x2="6" y1="20" y2="16" /></>
+);
+export const Radio = icon(
+  <><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" /><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" /><circle cx="12" cy="12" r="2" /><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" /><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" /></>
+);

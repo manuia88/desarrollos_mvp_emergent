@@ -1,45 +1,18 @@
-// ColoniaComparator — Radar Battle
-// Layout: 220px left / 1fr radar / 220px right
-// SVG radar with 6 axes, 5 rings, 2 data polygons
-import React, { useState, useRef, useEffect } from 'react';
+// ColoniaComparator — Radar battle, 8 colonias in picker, 6 axes
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
+import { COLONIAS_BY_KEY } from '../../data/colonias';
 
-const COLONIAS_DATA = {
-  'del-valle': {
-    name: 'Del Valle Centro', alcaldia: 'Benito Juárez', initials: 'DV',
-    color: '#6366F1',
-    priceM2: '$58k', momentum: '+6%',
-    scores: { Movilidad: 91, Seguridad: 74, Comercio: 82, Momentum: 80, Educación: 77, Riesgo: 71 },
-  },
-  'condesa': {
-    name: 'Condesa', alcaldia: 'Cuauhtémoc', initials: 'CO',
-    color: '#EC4899',
-    priceM2: '$72k', momentum: '+4%',
-    scores: { Movilidad: 88, Seguridad: 76, Comercio: 94, Momentum: 74, Educación: 82, Riesgo: 78 },
-  },
-  'roma-norte': {
-    name: 'Roma Norte', alcaldia: 'Cuauhtémoc', initials: 'RN',
-    color: '#22C55E',
-    priceM2: '$68k', momentum: '+8%',
-    scores: { Movilidad: 85, Seguridad: 72, Comercio: 91, Momentum: 88, Educación: 79, Riesgo: 74 },
-  },
-  'narvarte': {
-    name: 'Narvarte Poniente', alcaldia: 'Benito Juárez', initials: 'NA',
-    color: '#F59E0B',
-    priceM2: '$55k', momentum: '+7%',
-    scores: { Movilidad: 87, Seguridad: 78, Comercio: 76, Momentum: 84, Educación: 81, Riesgo: 75 },
-  },
-};
+// Picker pool: 8 diverse colonias
+const PICKER_KEYS = ['polanco', 'lomas-chapultepec', 'roma-norte', 'condesa', 'juarez', 'del-valle-centro', 'narvarte', 'coyoacan-centro'];
 
-const AXES = ['Movilidad', 'Seguridad', 'Comercio', 'Momentum', 'Educación', 'Riesgo'];
-const AXIS_HELP = {
-  Movilidad: 'Acceso a Metro, Metrobús, Ecobici y tiempos de traslado promedio.',
-  Seguridad: 'Incidencia delictiva FGJ, cobertura C5, alumbrado público.',
-  Comercio:  'Densidad DENUE: restaurantes, abasto, servicios, vida nocturna.',
-  Momentum:  'Tendencia de precio m² últimos 24 meses y volumen transaccional.',
-  Educación: 'Escuelas públicas y privadas, rating SEP, ratio estudiantes/plantel.',
-  Riesgo:    'Atlas de Riesgos CDMX: sísmico, hundimiento, encharcamiento. (Alto = mejor)',
+// Axes mapped to composite scores from data
+const AXES = ['Movilidad', 'Seguridad', 'Comercio', 'Plusvalía', 'Educación', 'Riesgo'];
+const AXIS_TO_KEY = {
+  'Movilidad': 'movilidad', 'Seguridad': 'seguridad', 'Comercio': 'comercio',
+  'Plusvalía': 'plusvalia', 'Educación': 'educacion', 'Riesgo': 'riesgo',
 };
 
 const CX = 170, CY = 170, R_MAX = 118;
@@ -51,18 +24,16 @@ function getPoint(axisIdx, val) {
   return { x: CX + r * Math.cos(angle), y: CY + r * Math.sin(angle) };
 }
 
-function radarPath(scores) {
-  const pts = AXES.map((ax, i) => getPoint(i, scores[ax] || 0));
+function radarPath(colonia) {
+  const pts = AXES.map((ax, i) => getPoint(i, colonia.scores[AXIS_TO_KEY[ax]] || 0));
   return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') + ' Z';
 }
 
-function SidePanel({ coloniaKey, setColoniaKey, side }) {
-  const c = COLONIAS_DATA[coloniaKey];
-  const keys = Object.keys(COLONIAS_DATA);
+function SidePanel({ coloniaKey, setColoniaKey, side, t }) {
+  const c = COLONIAS_BY_KEY[coloniaKey];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      {/* Avatar */}
       <div style={{
         width: 88, height: 88, borderRadius: 9999,
         background: `radial-gradient(circle, ${c.color}40 0%, ${c.color}10 100%)`,
@@ -74,9 +45,8 @@ function SidePanel({ coloniaKey, setColoniaKey, side }) {
         </span>
       </div>
 
-      {/* Name */}
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', marginBottom: 2 }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', marginBottom: 2, letterSpacing: '-0.02em' }}>
           {c.name}
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
@@ -84,9 +54,11 @@ function SidePanel({ coloniaKey, setColoniaKey, side }) {
         </div>
       </div>
 
-      {/* Mini stats */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
-        {[{ k: 'Precio m²', v: c.priceM2 }, { k: 'Momentum', v: c.momentum }].map(({ k, v }) => (
+        {[
+          { k: t('comparator.mini_price'), v: c.priceM2 },
+          { k: t('comparator.mini_mom'), v: c.momentum },
+        ].map(({ k, v }) => (
           <div key={k} style={{
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid var(--border)',
@@ -100,44 +72,48 @@ function SidePanel({ coloniaKey, setColoniaKey, side }) {
         ))}
       </div>
 
-      {/* Picker */}
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {keys.map(k => (
-          <button
-            key={k}
-            data-testid={`comparator-pick-${side}-${k}`}
-            onClick={() => setColoniaKey(k)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '7px 10px',
-              borderRadius: 9999,
-              border: `1px solid ${k === coloniaKey ? COLONIAS_DATA[k].color + '60' : 'var(--border)'}`,
-              background: k === coloniaKey ? COLONIAS_DATA[k].color + '15' : 'transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            <div style={{ width: 8, height: 8, borderRadius: 9999, background: COLONIAS_DATA[k].color, flexShrink: 0 }} />
-            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
-              {COLONIAS_DATA[k].name.split(' ')[0]}
-            </span>
-          </button>
-        ))}
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
+        {PICKER_KEYS.map(k => {
+          const col = COLONIAS_BY_KEY[k];
+          const active = k === coloniaKey;
+          return (
+            <button
+              key={k}
+              data-testid={`comparator-pick-${side}-${k}`}
+              onClick={() => setColoniaKey(k)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '7px 10px',
+                borderRadius: 9999,
+                border: `1px solid ${active ? col.color + '60' : 'var(--border)'}`,
+                background: active ? col.color + '15' : 'transparent',
+                cursor: 'pointer',
+                transition: 'background 0.2s, border-color 0.2s',
+              }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: 9999, background: col.color, flexShrink: 0 }} />
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', textAlign: 'left' }}>
+                {col.name}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 export default function ColoniaComparator() {
-  const [leftKey, setLeftKey] = useState('del-valle');
-  const [rightKey, setRightKey] = useState('condesa');
+  const { t } = useTranslation();
+  const [leftKey, setLeftKey] = useState('polanco');
+  const [rightKey, setRightKey] = useState('roma-norte');
   const [activeAxis, setActiveAxis] = useState(null);
 
-  const left = COLONIAS_DATA[leftKey];
-  const right = COLONIAS_DATA[rightKey];
+  const left = COLONIAS_BY_KEY[leftKey];
+  const right = COLONIAS_BY_KEY[rightKey];
 
-  const leftPath = radarPath(left.scores);
-  const rightPath = radarPath(right.scores);
+  const leftPath = radarPath(left);
+  const rightPath = radarPath(right);
 
   return (
     <section data-testid="colonia-comparator" id="comparador" style={{
@@ -147,12 +123,12 @@ export default function ColoniaComparator() {
       borderBottom: '1px solid var(--border)',
     }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        {/* Header */}
         <FadeUp>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div className="tag-pill" style={{ marginBottom: 16 }}>Comparador de colonias</div>
+            <div className="tag-pill" style={{ marginBottom: 16 }}>{t('comparator.eyebrow')}</div>
             <BlurText
               as="h2"
+              gradientWords={['verdad.']}
               style={{
                 fontFamily: 'Outfit', fontWeight: 800,
                 fontSize: 'clamp(32px, 4.5vw, 54px)',
@@ -161,24 +137,23 @@ export default function ColoniaComparator() {
                 justifyContent: 'center',
               }}
             >
-              Compara dos colonias cara a cara.
+              {`${t('comparator.h2_1')} ${t('comparator.h2_2')}`}
             </BlurText>
             <p style={{
-              maxWidth: 560, margin: '0 auto',
+              maxWidth: 620, margin: '0 auto',
               fontFamily: 'DM Sans', fontSize: 16, color: 'var(--cream-2)',
               lineHeight: 1.65,
             }}>
-              Elige dos colonias y DMX las proyecta sobre seis dimensiones de decisión. Los polígonos superpuestos te muestran al instante dónde gana cada una.
+              {t('comparator.sub')}
             </p>
           </div>
         </FadeUp>
 
-        {/* Battle layout */}
         <div
           data-testid="comparator-battle"
           style={{
             display: 'grid',
-            gridTemplateColumns: '220px 1fr 220px',
+            gridTemplateColumns: '240px 1fr 240px',
             gap: 32,
             padding: 32,
             background: 'rgba(255,255,255,0.02)',
@@ -188,17 +163,10 @@ export default function ColoniaComparator() {
           }}
           className="comparator-grid"
         >
-          {/* Left panel */}
-          <SidePanel coloniaKey={leftKey} setColoniaKey={setLeftKey} side="left" />
+          <SidePanel coloniaKey={leftKey} setColoniaKey={setLeftKey} side="left" t={t} />
 
-          {/* Radar center */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <svg
-              viewBox="0 0 340 340"
-              style={{ width: '100%', maxWidth: 340, height: 340 }}
-              data-testid="radar-svg"
-            >
-              {/* Rings */}
+            <svg viewBox="0 0 340 340" style={{ width: '100%', maxWidth: 340, height: 340 }} data-testid="radar-svg">
               {Array.from({ length: N_RINGS }).map((_, ri) => {
                 const r = ((ri + 1) / N_RINGS) * R_MAX;
                 const ringPts = AXES.map((_, ai) => {
@@ -206,56 +174,25 @@ export default function ColoniaComparator() {
                   return `${(CX + r * Math.cos(angle)).toFixed(1)},${(CY + r * Math.sin(angle)).toFixed(1)}`;
                 });
                 return (
-                  <polygon
-                    key={ri}
-                    points={ringPts.join(' ')}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.06)"
-                    strokeWidth="1"
-                  />
+                  <polygon key={ri} points={ringPts.join(' ')} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
                 );
               })}
 
-              {/* Spokes */}
               {AXES.map((ax, ai) => {
                 const angle = (ai / AXES.length) * 2 * Math.PI - Math.PI / 2;
                 const ex = CX + R_MAX * Math.cos(angle);
                 const ey = CY + R_MAX * Math.sin(angle);
-                return (
-                  <line key={ax} x1={CX} y1={CY} x2={ex} y2={ey}
-                    stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-                );
+                return <line key={ax} x1={CX} y1={CY} x2={ex} y2={ey} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
               })}
 
-              {/* Left polygon */}
-              <path
-                d={leftPath}
-                fill={`${left.color}28`}
-                stroke={left.color}
-                strokeWidth="1.6"
-                style={{
-                  transition: 'd 0.8s cubic-bezier(0.22,1,0.36,1)',
-                  mixBlendMode: 'plus-lighter',
-                  filter: `drop-shadow(0 0 6px ${left.color}60)`,
-                }}
-              />
-              {/* Right polygon */}
-              <path
-                d={rightPath}
-                fill={`${right.color}28`}
-                stroke={right.color}
-                strokeWidth="1.6"
-                style={{
-                  transition: 'd 0.8s cubic-bezier(0.22,1,0.36,1)',
-                  mixBlendMode: 'plus-lighter',
-                  filter: `drop-shadow(0 0 6px ${right.color}60)`,
-                }}
-              />
+              <path d={leftPath} fill={`${left.color}28`} stroke={left.color} strokeWidth="1.6"
+                style={{ transition: 'd 0.8s cubic-bezier(0.22,1,0.36,1)', mixBlendMode: 'plus-lighter', filter: `drop-shadow(0 0 6px ${left.color}60)` }} />
+              <path d={rightPath} fill={`${right.color}28`} stroke={right.color} strokeWidth="1.6"
+                style={{ transition: 'd 0.8s cubic-bezier(0.22,1,0.36,1)', mixBlendMode: 'plus-lighter', filter: `drop-shadow(0 0 6px ${right.color}60)` }} />
 
-              {/* Vertex dots */}
               {AXES.map((ax, ai) => {
-                const lp = getPoint(ai, left.scores[ax] || 0);
-                const rp = getPoint(ai, right.scores[ax] || 0);
+                const lp = getPoint(ai, left.scores[AXIS_TO_KEY[ax]] || 0);
+                const rp = getPoint(ai, right.scores[AXIS_TO_KEY[ax]] || 0);
                 return (
                   <g key={ax}>
                     <circle cx={lp.x} cy={lp.y} r={3} fill={left.color} />
@@ -264,10 +201,8 @@ export default function ColoniaComparator() {
                 );
               })}
 
-              {/* Center dot */}
               <circle cx={CX} cy={CY} r={2} fill="rgba(255,255,255,0.3)" />
 
-              {/* Axis labels */}
               {AXES.map((ax, ai) => {
                 const angle = (ai / AXES.length) * 2 * Math.PI - Math.PI / 2;
                 const r = R_MAX + 22;
@@ -292,7 +227,6 @@ export default function ColoniaComparator() {
               })}
             </svg>
 
-            {/* Axis pills */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
               {AXES.map(ax => (
                 <button
@@ -307,7 +241,7 @@ export default function ColoniaComparator() {
                     color: activeAxis === ax ? '#fff' : 'var(--cream-3)',
                     fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11,
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
+                    transition: 'background 0.2s, color 0.2s',
                   }}
                 >
                   {ax}
@@ -315,7 +249,6 @@ export default function ColoniaComparator() {
               ))}
             </div>
 
-            {/* Axis help text */}
             {activeAxis && (
               <div style={{
                 maxWidth: 320,
@@ -329,22 +262,19 @@ export default function ColoniaComparator() {
                   {activeAxis}
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-                  {AXIS_HELP[activeAxis]}
+                  {t(`comparator.axis_help.${activeAxis}`)}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Right panel */}
-          <SidePanel coloniaKey={rightKey} setColoniaKey={setRightKey} side="right" />
+          <SidePanel coloniaKey={rightKey} setColoniaKey={setRightKey} side="right" t={t} />
         </div>
       </div>
 
       <style>{`
         @media (max-width: 768px) {
-          .comparator-grid {
-            grid-template-columns: 1fr !important;
-          }
+          .comparator-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </section>

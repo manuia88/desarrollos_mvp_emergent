@@ -1,36 +1,19 @@
 // IntelligenceEngine — 2-col layout, 6 animated bars, features
-import React, { useRef, useEffect, useState } from 'react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
 import useInView from '../../hooks/useInView';
 import { Database, Clock, Lock, ArrowRight } from '../icons';
+import { COLONIAS_BY_KEY } from '../../data/colonias';
 
-const FEATURES = [
-  {
-    Icon: Database,
-    title: '50+ fuentes de datos reales',
-    desc: 'DENUE, FGJ, GTFS, SEDUVI, Atlas de Riesgos. Actualizados semanalmente.',
-  },
-  {
-    Icon: Clock,
-    title: 'Análisis en 3.2 segundos',
-    desc: '97 variables procesadas por colonia. Sin esperar a ningún asesor.',
-  },
-  {
-    Icon: Lock,
-    title: 'Cero conflicto de interés',
-    desc: 'DMX no cobra comisión por venta. La inteligencia es el producto.',
-  },
+const PANEL_KEY = 'roma-norte';
+const FEATURE_KEYS = [
+  { k: 'data', Icon: Database },
+  { k: 'speed', Icon: Clock },
+  { k: 'neutral', Icon: Lock },
 ];
-
-const SCORE_BARS = [
-  { label: 'Movilidad', value: 91 },
-  { label: 'Seguridad', value: 74 },
-  { label: 'Comercio', value: 82 },
-  { label: 'Plusvalía', value: 87 },
-  { label: 'Educación', value: 77 },
-  { label: 'Riesgo', value: 71 },
-];
+const BAR_KEYS = ['movilidad', 'seguridad', 'comercio', 'plusvalia', 'educacion', 'riesgo'];
 
 function ScoreBar({ label, value, delay, active }) {
   return (
@@ -62,7 +45,11 @@ function ScoreBar({ label, value, delay, active }) {
 }
 
 export default function IntelligenceEngine() {
+  const { t } = useTranslation();
   const [ref, inView] = useInView({ once: true, amount: 0.3 });
+  const panelColonia = COLONIAS_BY_KEY[PANEL_KEY];
+  // Composite IE Score — arithmetic mean of 6 scores rounded
+  const composite = Math.round(BAR_KEYS.reduce((s, k) => s + panelColonia.scores[k], 0) / BAR_KEYS.length);
 
   return (
     <section
@@ -76,18 +63,14 @@ export default function IntelligenceEngine() {
       }}
     >
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <div
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}
-          className="ie-grid"
-        >
-          {/* Col left */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }} className="ie-grid">
           <div>
             <FadeUp>
-              <div className="tag-pill" style={{ marginBottom: 16 }}>Intelligence Engine</div>
+              <div className="tag-pill" style={{ marginBottom: 16 }}>{t('ie.eyebrow')}</div>
             </FadeUp>
             <BlurText
               as="h2"
-              gradientWords={['decisión.']}
+              gradientWords={['decisión.', 'layer.']}
               style={{
                 fontFamily: 'Outfit', fontWeight: 800,
                 fontSize: 'clamp(32px, 4.5vw, 54px)',
@@ -95,21 +78,20 @@ export default function IntelligenceEngine() {
                 marginBottom: 16,
               }}
             >
-              No es un portal. Es una plataforma de decisión.
+              {`${t('ie.h2_1')} ${t('ie.h2_2')}`}
             </BlurText>
             <FadeUp delay={0.2}>
               <p style={{
                 fontFamily: 'DM Sans', fontSize: 16, color: 'var(--cream-2)',
                 lineHeight: 1.65, marginBottom: 40, textWrap: 'pretty',
               }}>
-                Mientras otros muestran fotos, DMX procesa datos reales de 50+ fuentes públicas para darte certeza antes de firmar.
+                {t('ie.sub')}
               </p>
             </FadeUp>
 
-            {/* Feature rows */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              {FEATURES.map(({ Icon, title, desc }, i) => (
-                <FadeUp key={title} delay={0.1 * (i + 1)}>
+              {FEATURE_KEYS.map(({ k, Icon }, i) => (
+                <FadeUp key={k} delay={0.1 * (i + 1)}>
                   <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                     <div style={{
                       width: 40, height: 40, flexShrink: 0,
@@ -122,10 +104,10 @@ export default function IntelligenceEngine() {
                     </div>
                     <div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>
-                        {title}
+                        {t(`ie.features.${k}.title`)}
                       </div>
                       <div style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3)', lineHeight: 1.5 }}>
-                        {desc}
+                        {t(`ie.features.${k}.desc`)}
                       </div>
                     </div>
                   </div>
@@ -134,7 +116,6 @@ export default function IntelligenceEngine() {
             </div>
           </div>
 
-          {/* Col right — Score panel */}
           <FadeUp delay={0.3}>
             <div
               ref={ref}
@@ -145,10 +126,9 @@ export default function IntelligenceEngine() {
                 padding: '28px 28px 24px',
               }}
             >
-              {/* Header */}
               <div style={{ marginBottom: 6 }}>
                 <div style={{ fontFamily: 'DM Sans', fontWeight: 500, fontSize: 12, color: 'var(--cream-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-                  Del Valle Centro
+                  {panelColonia.name}
                 </div>
                 <div style={{
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 56,
@@ -157,38 +137,40 @@ export default function IntelligenceEngine() {
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                   marginBottom: 4,
                 }}>
-                  87
+                  {composite}
                 </div>
-                <span className="score-pill">IE Score · DMX</span>
+                <span className="score-pill">{t('ie.panel_subtitle')}</span>
               </div>
 
-              {/* Bars */}
               <div style={{ marginTop: 24 }}>
-                {SCORE_BARS.map((bar, i) => (
-                  <ScoreBar key={bar.label} {...bar} delay={i * 100} active={inView} />
+                {BAR_KEYS.map((k, i) => (
+                  <ScoreBar
+                    key={k}
+                    label={t(`ie.bars.${k}`)}
+                    value={panelColonia.scores[k]}
+                    delay={i * 100}
+                    active={inView}
+                  />
                 ))}
               </div>
 
-              {/* CTA */}
               <button
                 data-testid="ie-full-report-btn"
                 style={{
-                  marginTop: 20,
-                  width: '100%',
+                  marginTop: 20, width: '100%',
                   background: 'rgba(99,102,241,0.10)',
                   border: '1px solid rgba(99,102,241,0.24)',
                   borderRadius: 9999,
                   padding: '11px 16px',
                   fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
-                  color: 'var(--indigo-3)',
-                  cursor: 'pointer',
+                  color: 'var(--indigo-3)', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   transition: 'background 0.2s',
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.18)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.10)'}
               >
-                Ver reporte completo — 97 indicadores <ArrowRight size={13} color="var(--indigo-3)" />
+                {t('ie.full_report')} <ArrowRight size={13} color="var(--indigo-3)" />
               </button>
             </div>
           </FadeUp>
@@ -201,5 +183,3 @@ export default function IntelligenceEngine() {
     </section>
   );
 }
-
-// end

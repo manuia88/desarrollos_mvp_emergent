@@ -1,115 +1,21 @@
-// ColoniasBento — Vinyl Tiles grid, 3 cols desktop
-// Each tile: alcaldía label, name, momentum pill, score big, layer switcher, facts, sparkline, footer
+// ColoniasBento — 6 diverse CDMX colonias with Vida/Movilidad/Seguridad/Comercio layers
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useInView from '../../hooks/useInView';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
-import { ArrowRight } from '../icons';
+import { ArrowRight, Leaf, Route, Shield, Store } from '../icons';
+import { COLONIAS, LAYER_FACTS } from '../../data/colonias';
 
-const COLONIAS = [
-  {
-    id: 'del-valle-centro',
-    name: 'Del Valle Centro',
-    alcaldia: 'Benito Juárez',
-    scores: { LIV: 87, MOV: 91, SEC: 74, ECO: 82 },
-    price: '$58k', inventory: '142 unidades',
-    mom: { pct: '+6%', positive: true },
-    trend: [52,53,54,54,55,56,56,55,56,57,58,58,58,58,58,58,57,58,58,59,58,58,58,58],
-    facts: {
-      LIV: [
-        { k: 'Parques a 10 min', v: '8' },
-        { k: 'Amenidades', v: '412' },
-        { k: 'Ruido promedio', v: '58 dB' },
-      ],
-      MOV: [
-        { k: 'Estaciones Metro', v: '3' },
-        { k: 'Ecobici', v: '14 cicloestaciones' },
-        { k: 'Tiempo a Reforma', v: '22 min' },
-      ],
-      SEC: [
-        { k: 'Incidentes / 100k hab', v: '42' },
-        { k: 'Cobertura C5', v: '28 cámaras' },
-        { k: 'Alumbrado público', v: '94%' },
-      ],
-      ECO: [
-        { k: 'Restaurantes y cafés', v: '312' },
-        { k: 'Supermercados', v: '7' },
-        { k: 'Vida nocturna', v: 'Alta' },
-      ],
-    },
-  },
-  {
-    id: 'condesa',
-    name: 'Condesa',
-    alcaldia: 'Cuauhtémoc',
-    scores: { LIV: 92, MOV: 88, SEC: 76, ECO: 94 },
-    price: '$72k', inventory: '89 unidades',
-    mom: { pct: '+4%', positive: true },
-    trend: [62,63,64,65,65,66,67,68,68,68,69,70,70,71,72,72,71,72,72,73,72,72,72,72],
-    facts: {
-      LIV: [
-        { k: 'Parques a 10 min', v: '12' },
-        { k: 'Amenidades', v: '681' },
-        { k: 'Ruido promedio', v: '54 dB' },
-      ],
-      MOV: [
-        { k: 'Estaciones Metro', v: '2' },
-        { k: 'Ecobici', v: '22 cicloestaciones' },
-        { k: 'Tiempo a Reforma', v: '18 min' },
-      ],
-      SEC: [
-        { k: 'Incidentes / 100k hab', v: '38' },
-        { k: 'Cobertura C5', v: '35 cámaras' },
-        { k: 'Alumbrado público', v: '97%' },
-      ],
-      ECO: [
-        { k: 'Restaurantes y cafés', v: '524' },
-        { k: 'Supermercados', v: '9' },
-        { k: 'Vida nocturna', v: 'Muy alta' },
-      ],
-    },
-  },
-  {
-    id: 'roma-norte',
-    name: 'Roma Norte',
-    alcaldia: 'Cuauhtémoc',
-    scores: { LIV: 90, MOV: 85, SEC: 72, ECO: 91 },
-    price: '$68k', inventory: '115 unidades',
-    mom: { pct: '+8%', positive: true },
-    trend: [56,57,58,59,60,61,62,62,63,64,64,65,66,66,67,67,67,68,68,68,68,68,68,68],
-    facts: {
-      LIV: [
-        { k: 'Parques a 10 min', v: '9' },
-        { k: 'Amenidades', v: '537' },
-        { k: 'Ruido promedio', v: '56 dB' },
-      ],
-      MOV: [
-        { k: 'Estaciones Metro', v: '3' },
-        { k: 'Ecobici', v: '18 cicloestaciones' },
-        { k: 'Tiempo a Reforma', v: '15 min' },
-      ],
-      SEC: [
-        { k: 'Incidentes / 100k hab', v: '47' },
-        { k: 'Cobertura C5', v: '31 cámaras' },
-        { k: 'Alumbrado público', v: '91%' },
-      ],
-      ECO: [
-        { k: 'Restaurantes y cafés', v: '489' },
-        { k: 'Supermercados', v: '8' },
-        { k: 'Vida nocturna', v: 'Muy alta' },
-      ],
-    },
-  },
-];
-
-const LAYERS = ['LIV', 'MOV', 'SEC', 'ECO'];
-const LAYER_LABELS = { LIV: 'Calidad de vida', MOV: 'Movilidad', SEC: 'Seguridad', ECO: 'Comercio' };
+// Pick 6 diverse colonias for the bento grid
+const FEATURED_KEYS = ['polanco', 'roma-norte', 'condesa', 'del-valle-centro', 'juarez', 'narvarte'];
+const LAYERS = ['vida', 'movilidad', 'seguridad', 'comercio'];
+const LAYER_ICON = { vida: Leaf, movilidad: Route, seguridad: Shield, comercio: Store };
 
 function Sparkline({ trend }) {
   if (!trend || trend.length === 0) return null;
   const w = 200, h = 48;
-  const min = Math.min(...trend);
-  const max = Math.max(...trend);
+  const min = Math.min(...trend), max = Math.max(...trend);
   const range = max - min || 1;
   const pts = trend.map((v, i) => {
     const x = (i / (trend.length - 1)) * w;
@@ -138,16 +44,18 @@ function Sparkline({ trend }) {
 }
 
 function ColoniaCard({ colonia, index }) {
-  const [layer, setLayer] = useState('LIV');
+  const { t } = useTranslation();
+  const [layer, setLayer] = useState('vida');
   const [ref, inView] = useInView({ once: true, amount: 0.2 });
 
   const score = colonia.scores[layer];
+  const facts = LAYER_FACTS[layer](colonia);
 
   return (
     <div
       ref={ref}
       className="card breath"
-      data-testid={`colonia-card-${colonia.id}`}
+      data-testid={`colonia-card-${colonia.key}`}
       style={{
         minHeight: 580,
         display: 'flex', flexDirection: 'column',
@@ -155,22 +63,18 @@ function ColoniaCard({ colonia, index }) {
         transform: inView ? 'translateY(0)' : 'translateY(30px)',
         filter: inView ? 'blur(0)' : 'blur(6px)',
         transition: 'opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1), filter 0.7s',
-        transitionDelay: `${index * 0.1}s`,
+        transitionDelay: `${index * 0.08}s`,
       }}
     >
-      {/* Top hero */}
       <div style={{ padding: '22px 22px 16px', position: 'relative' }}>
-        {/* Momentum pill top-right */}
         <div style={{ position: 'absolute', top: 18, right: 18 }}>
-          <span className={colonia.mom.positive ? 'mom-pill mom-up' : 'mom-pill mom-dn'}>
-            {colonia.mom.pct}
+          <span className={colonia.momentumPositive ? 'mom-pill mom-up' : 'mom-pill mom-dn'}>
+            {colonia.momentum}
           </span>
         </div>
 
-        {/* Alcaldía */}
         <div className="eyebrow" style={{ marginBottom: 6 }}>{colonia.alcaldia}</div>
 
-        {/* Name */}
         <div style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,
           color: 'var(--cream)', marginBottom: 16,
@@ -179,7 +83,6 @@ function ColoniaCard({ colonia, index }) {
           {colonia.name}
         </div>
 
-        {/* Score big */}
         <div style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 68,
           lineHeight: 0.9, letterSpacing: '-0.045em',
@@ -190,10 +93,9 @@ function ColoniaCard({ colonia, index }) {
           {score}
         </div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-          {LAYER_LABELS[layer]} · Score DMX
+          {t(`bento.layers.${layer}`)} · {t('bento.layer_caption')}
         </div>
 
-        {/* Help box */}
         <div style={{
           marginTop: 12,
           padding: '8px 12px',
@@ -202,43 +104,46 @@ function ColoniaCard({ colonia, index }) {
           borderRadius: 10,
         }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
-            Score calculado con 97+ variables de DENUE, C5, GTFS, SEDUVI
+            {t('bento.help')}
           </span>
         </div>
       </div>
 
-      {/* Layer switcher */}
       <div style={{
         display: 'flex', gap: 4,
         padding: '0 16px',
         marginBottom: 16,
       }}>
-        {LAYERS.map(l => (
-          <button
-            key={l}
-            data-testid={`layer-${colonia.id}-${l}`}
-            onClick={() => setLayer(l)}
-            style={{
-              flex: 1,
-              padding: '5px 0',
-              borderRadius: 9999,
-              border: `1px solid ${layer === l ? 'var(--indigo)' : 'var(--border)'}`,
-              background: layer === l ? 'var(--grad)' : 'transparent',
-              color: layer === l ? '#fff' : 'var(--cream-3)',
-              fontFamily: 'Outfit', fontWeight: 700, fontSize: 10.5,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            {l}
-          </button>
-        ))}
+        {LAYERS.map(l => {
+          const Icon = LAYER_ICON[l];
+          const active = layer === l;
+          return (
+            <button
+              key={l}
+              data-testid={`layer-${colonia.key}-${l}`}
+              onClick={() => setLayer(l)}
+              style={{
+                flex: 1,
+                padding: '6px 4px',
+                borderRadius: 9999,
+                border: `1px solid ${active ? 'var(--indigo)' : 'var(--border)'}`,
+                background: active ? 'var(--grad)' : 'transparent',
+                color: active ? '#fff' : 'var(--cream-3)',
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              }}
+            >
+              <Icon size={11} color="currentColor" />
+              <span>{t(`bento.layers.${l}`)}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Facts */}
       <div style={{ padding: '0 20px', marginBottom: 16, flex: 1 }}>
-        {(colonia.facts[layer] || []).map(({ k, v }) => (
+        {facts.map(({ k, v }) => (
           <div key={k} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '8px 0',
@@ -250,9 +155,8 @@ function ColoniaCard({ colonia, index }) {
         ))}
       </div>
 
-      {/* Sparkline / Lifeline */}
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>Precio m² — 24 meses</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>{t('bento.trend_label')}</div>
         <Sparkline trend={colonia.trend} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
           <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10, color: 'var(--cream-3)' }}>
@@ -264,7 +168,6 @@ function ColoniaCard({ colonia, index }) {
         </div>
       </div>
 
-      {/* Footer */}
       <div style={{
         padding: '14px 20px',
         borderTop: '1px solid var(--border)',
@@ -272,16 +175,16 @@ function ColoniaCard({ colonia, index }) {
       }}>
         <div style={{ display: 'flex', gap: 20 }}>
           <div>
-            <div className="eyebrow" style={{ fontSize: 9 }}>Precio m²</div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{colonia.price}</div>
+            <div className="eyebrow" style={{ fontSize: 9 }}>{t('bento.pm2_label')}</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{colonia.priceM2}</div>
           </div>
           <div>
-            <div className="eyebrow" style={{ fontSize: 9 }}>Inventario</div>
+            <div className="eyebrow" style={{ fontSize: 9 }}>{t('bento.inv_label')}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{colonia.inventory}</div>
           </div>
         </div>
         <button
-          data-testid={`colonia-card-btn-${colonia.id}`}
+          data-testid={`colonia-card-btn-${colonia.key}`}
           style={{
             width: 36, height: 36,
             borderRadius: 9999,
@@ -289,7 +192,7 @@ function ColoniaCard({ colonia, index }) {
             border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'transform 0.2s, filter 0.2s',
+            transition: 'transform 0.2s',
           }}
           onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
@@ -302,16 +205,18 @@ function ColoniaCard({ colonia, index }) {
 }
 
 export default function ColoniasBento() {
+  const { t } = useTranslation();
+  const featured = FEATURED_KEYS.map(k => COLONIAS.find(c => c.key === k)).filter(Boolean);
+
   return (
-    <section data-testid="colonias-bento" id="colonias" style={{ padding: '80px 32px', background: 'var(--bg)' }}>
+    <section data-testid="colonias-bento" id="barrios" style={{ padding: '80px 32px', background: 'var(--bg)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* Section header */}
         <FadeUp>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div className="tag-pill" style={{ marginBottom: 16 }}>Inteligencia por colonia</div>
+            <div className="tag-pill" style={{ marginBottom: 16 }}>{t('bento.eyebrow')}</div>
             <BlurText
               as="h2"
-              gradientWords={['mes.']}
+              gradientWords={['analítico.']}
               style={{
                 fontFamily: 'Outfit', fontWeight: 800,
                 fontSize: 'clamp(32px, 4.5vw, 54px)',
@@ -320,30 +225,28 @@ export default function ColoniasBento() {
                 justifyContent: 'center',
               }}
             >
-              Las colonias más activas este mes.
+              {`${t('bento.h2_1')} ${t('bento.h2_2')}`}
             </BlurText>
             <p style={{
-              maxWidth: 640, margin: '0 auto',
+              maxWidth: 680, margin: '0 auto',
               fontFamily: 'DM Sans', fontSize: 16, color: 'var(--cream-2)',
               lineHeight: 1.65, textWrap: 'pretty',
             }}>
-              Cada colonia tiene 4 scores compuestos — LIV, MOV, SEC, ECO — calculados desde más de 97 variables de fuentes oficiales (DENUE, C5, GTFS, SEDUVI). Cambia la capa en cada tarjeta y verás los datos duros que alimentan el score.
+              {t('bento.sub')}
             </p>
           </div>
         </FadeUp>
 
-        {/* Bento grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 24,
         }} className="colonias-grid">
-          {COLONIAS.map((c, i) => (
-            <ColoniaCard key={c.id} colonia={c} index={i} />
+          {featured.map((c, i) => (
+            <ColoniaCard key={c.key} colonia={c} index={i} />
           ))}
         </div>
 
-        {/* See all link */}
         <FadeUp delay={0.4} style={{ textAlign: 'center', marginTop: 32 }}>
           <a
             href="#"
@@ -355,7 +258,7 @@ export default function ColoniasBento() {
               display: 'inline-flex', alignItems: 'center', gap: 6,
             }}
           >
-            Ver las 18 colonias <ArrowRight size={14} color="var(--indigo-3)" />
+            {t('bento.see_all')} <ArrowRight size={14} color="var(--indigo-3)" />
           </a>
         </FadeUp>
       </div>

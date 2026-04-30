@@ -1,13 +1,7 @@
 // Stats — 4-col count-up, radial glow inner
 import React, { useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useInView from '../../hooks/useInView';
-
-const STATS = [
-  { value: 97, suffix: '+', label: 'Variables por colonia' },
-  { value: 50, suffix: '+', label: 'Fuentes de datos reales' },
-  { value: 18, suffix: '', label: 'Colonias CDMX indexadas' },
-  { value: 3.2, suffix: 's', label: 'Tiempo de análisis' },
-];
 
 function CountUp({ target, suffix, active }) {
   const [display, setDisplay] = useState(0);
@@ -22,7 +16,6 @@ function CountUp({ target, suffix, active }) {
     const tick = () => {
       const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
-      // easeOut
       const eased = 1 - Math.pow(1 - progress, 3);
       const cur = eased * target;
       setDisplay(isFloat ? +cur.toFixed(1) : Math.round(cur));
@@ -36,7 +29,15 @@ function CountUp({ target, suffix, active }) {
 }
 
 export default function Stats() {
+  const { t } = useTranslation();
   const [ref, inView] = useInView({ once: true, amount: 0.4 });
+
+  const STATS = [
+    { value: 117, suffix: '', labelKey: 'variables' },
+    { value: 50, suffix: '+', labelKey: 'sources' },
+    { value: 16, suffix: '', labelKey: 'colonias' },
+    { value: 3.2, suffix: 's', labelKey: 'time' },
+  ];
 
   return (
     <section data-testid="stats-section" style={{ padding: '60px 32px', background: 'var(--bg)' }}>
@@ -51,7 +52,6 @@ export default function Stats() {
             position: 'relative',
           }}
         >
-          {/* Inner radial glow */}
           <div style={{
             position: 'absolute', top: '-30%', left: '50%',
             transform: 'translateX(-50%)',
@@ -60,15 +60,14 @@ export default function Stats() {
             pointerEvents: 'none',
           }} />
 
-          {/* Stats grid */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             position: 'relative',
           }} className="stats-grid">
-            {STATS.map(({ value, suffix, label }, i) => (
+            {STATS.map(({ value, suffix, labelKey }, i) => (
               <div
-                key={label}
+                key={labelKey}
                 data-testid={`stat-${i}`}
                 style={{
                   padding: '40px 32px',
@@ -85,22 +84,21 @@ export default function Stats() {
                 }}>
                   <CountUp target={value} suffix={suffix} active={inView} />
                 </div>
-                <div className="eyebrow">{label}</div>
+                <div className="eyebrow">{t(`stats.items.${labelKey}`)}</div>
               </div>
             ))}
           </div>
 
-          {/* Footer */}
           <div style={{
             borderTop: '1px solid var(--border)',
             padding: '14px 32px',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-              Actualización más reciente:
+              {t('stats.updated')}
             </span>
             <span className="score-pill" style={{ fontSize: 11 }}>
-              Benito Juárez · hace 6 horas
+              {t('stats.updated_colonia')}
             </span>
           </div>
         </div>

@@ -1,90 +1,235 @@
 {
   "nav": {
-    "colonias": "Colonias",
+    "colonias": "Barrios",
     "propiedades": "Propiedades",
-    "mapa": "Mapa",
+    "inteligencia": "Inteligencia",
     "asesores": "Asesores",
-    "login": "Iniciar sesión",
-    "logout": "Salir",
-    "explore": "Explorar mapa",
+    "login": "Entrar",
+    "logout": "Cerrar sesión",
+    "explore": "Abrir mapa",
     "portal_asesor": "Portal Asesor",
     "portal_dev": "Portal Desarrollador"
   },
   "hero": {
-    "badge": "IE v1 · CDMX · 18 colonias",
-    "badge_sub": "Inteligencia espacial aplicada",
-    "h1_1": "La ciudad que",
-    "h1_2": "no te mostraban.",
-    "sub": "Ciento diecisiete variables por colonia — incidencia delictiva, velocidad de absorción, riesgo sísmico, densidad de servicios — procesadas en tiempo real para que decidas con certeza, no con esperanza.",
-    "cta_primary": "Abrir el mapa",
-    "cta_secondary": "Ver análisis ejemplo",
-    "partners": "Integrado con las principales plataformas"
+    "badge": "IE · CDMX · 16 barrios",
+    "badge_sub": "Lectura analítica del territorio",
+    "h1_1": "Antes de elegir una dirección,",
+    "h1_2": "lee el mapa.",
+    "h1_grad_word": "mapa.",
+    "sub": "Cruzamos ciento diecisiete variables por barrio — absorción de preventa, delito georreferenciado, riesgo sísmico, densidad de servicios — y te entregamos un retrato verificable. Así el metro cuadrado deja de ser una cifra a ciegas.",
+    "cta_primary": "Abrir el mapa de la ciudad",
+    "cta_secondary": "Mirar un reporte ejemplo",
+    "partners": "Operamos junto a plataformas que mueven el real estate",
+    "overlay_label": "Perfil del barrio",
+    "overlay_colonia": "Roma Norte",
+    "overlay_alcaldia": "Cuauhtémoc",
+    "overlay_cta": "Abrir reporte completo",
+    "pill_updated": "Lectura actualizada hace 4 horas"
   },
   "search": {
-    "placeholder": "Colonia, alcaldía, precio o estilo de vida...",
+    "placeholder": "Barrio, alcaldía o característica — p. ej. \"Condesa con azotea\"",
     "tab_buy": "Comprar",
     "tab_rent": "Rentar",
     "tab_invest": "Invertir",
-    "tab_dev": "Desarrolladores",
-    "submit": "Buscar"
+    "tab_dev": "Desarrollador",
+    "submit": "Consultar",
+    "type_label": "Tipología",
+    "type_options": {
+      "dept": "Departamento",
+      "casa": "Casa",
+      "ph": "Penthouse",
+      "loft": "Loft",
+      "local": "Local comercial",
+      "oficina": "Oficina",
+      "terreno": "Terreno"
+    },
+    "price_label": "Rango MXN",
+    "price_options": {
+      "any": "Cualquier presupuesto",
+      "u3": "Hasta $3M",
+      "3_6": "$3M — $6M",
+      "6_12": "$6M — $12M",
+      "12_25": "$12M — $25M",
+      "p25": "Más de $25M"
+    },
+    "chips": {
+      "preventa": "Preventa",
+      "inmediata": "Entrega inmediata",
+      "estacionamiento": "Con estacionamiento",
+      "pet": "Pet friendly",
+      "roof": "Roof garden",
+      "gym": "Gimnasio",
+      "seguridad": "Seguridad 24/7",
+      "alberca": "Alberca"
+    }
   },
-  "colonias": {
-    "eyebrow": "Radiografía urbana en tiempo real",
-    "h2": "Dieciocho colonias. Un criterio:",
-    "h2_grad": "los datos.",
-    "sub": "Desde Polanco hasta Doctores, cada tile muestra cuatro dimensiones de análisis calculadas desde fuentes oficiales — DENUE, FGJ, GTFS, SEDUVI. Cambia la dimensión y verás los indicadores que alimentan cada cifra.",
-    "see_all": "Ver las 18 colonias",
-    "dim_life": "Calidad de vida",
-    "dim_mob": "Movilidad",
-    "dim_sec": "Seguridad",
-    "dim_com": "Comercio"
+  "ticker": {
+    "label": "Precio m² — en vivo"
+  },
+  "bento": {
+    "eyebrow": "Barrios bajo el lente",
+    "h2_1": "Dieciséis barrios.",
+    "h2_2": "Un mismo lente analítico.",
+    "h2_grad_word": "analítico.",
+    "sub": "De Polanco a Doctores, cada tile desglosa cuatro dimensiones — Vida, Movilidad, Seguridad y Comercio — con los indicadores duros detrás de cada cifra. Cambia la capa y mira la evidencia.",
+    "see_all": "Recorrer los 16 barrios",
+    "pm2_label": "Precio m²",
+    "inv_label": "Inventario activo",
+    "trend_label": "Precio m² — 24 meses",
+    "layers": {
+      "vida": "Vida",
+      "movilidad": "Movilidad",
+      "seguridad": "Seguridad",
+      "comercio": "Comercio"
+    },
+    "layer_caption": "Score compuesto DMX · 0 a 100",
+    "help": "Calculado con datos de DENUE, C5, GTFS, SEDUVI y Atlas de Riesgos — sin estimaciones opacas."
   },
   "comparator": {
-    "eyebrow": "Comparador de colonias",
-    "h2": "Compara sin piedad.",
-    "h2_grad": "Decide con datos.",
-    "sub": "Coloca dos colonias frente a frente sobre seis ejes de decisión. Donde los polígonos se separan, ahí está la respuesta. Haz clic en cualquier eje para leer la explicación."
+    "eyebrow": "Comparador de barrios",
+    "h2_1": "Dos barrios, seis ejes,",
+    "h2_2": "una sola verdad.",
+    "h2_grad_word": "verdad.",
+    "sub": "Proyectamos dos barrios sobre seis ejes de decisión. Donde los polígonos se separan, ahí está el argumento. Toca cualquier eje y te explicamos qué mide.",
+    "axis_help": {
+      "Movilidad": "Acceso a Metro, Metrobús y Ecobici más tiempos de traslado promedio en hora pico.",
+      "Seguridad": "Incidencia delictiva FGJ, cobertura de cámaras C5 y cobertura de alumbrado público.",
+      "Comercio": "Densidad DENUE — restaurantes, abasto, servicios y vida nocturna por manzana.",
+      "Plusvalía": "Tendencia de precio m² 24 meses y velocidad de absorción de preventa.",
+      "Educación": "Cercanía a escuelas públicas y privadas, rating SEP y ratio estudiantes por plantel.",
+      "Riesgo": "Atlas de Riesgos CDMX — sísmico, hundimiento, encharcamiento. 100 significa menor riesgo."
+    },
+    "mini_price": "Precio m²",
+    "mini_mom": "Absorción 24m"
   },
-  "properties": {
-    "eyebrow": "Propiedades con inteligencia",
-    "h2": "El precio lo ves en todos lados.",
-    "h2_grad": "El contexto, solo aquí.",
-    "sub": "Cada ficha incluye los scores de su colonia, la tendencia de precio de los últimos 24 meses y la proyección de plusvalía — sin saltar de pestaña.",
-    "see_more": "Ver más propiedades",
-    "see_card": "Ver ficha",
-    "plusvalia": "Plusvalía",
-    "asesor": "Asesor DMX"
+  "listings": {
+    "eyebrow": "Marketplace con contexto",
+    "h2_1": "El precio lo publican todos.",
+    "h2_2": "El contexto lo explicamos nosotros.",
+    "h2_grad_word": "nosotros.",
+    "sub": "Cada ficha trae los scores de su barrio, la curva de precio m² a 24 meses y un estimador de plusvalía con intervalo de confianza — sin cambiar de pestaña.",
+    "see_more": "Ver el inventario completo",
+    "cta_detail": "Abrir ficha",
+    "plusvalia": "Plusvalía proy.",
+    "advisor_role": "Asesor DMX",
+    "tag": {
+      "preventa": "Preventa",
+      "inmediata": "Entrega inmediata",
+      "remate": "Oportunidad",
+      "exclusiva": "Exclusiva DMX",
+      "nuevo": "Nuevo en mercado"
+    }
   },
   "ie": {
-    "eyebrow": "Motor de decisión",
-    "h2": "Noventa y siete variables. Tres segundos.",
-    "h2_grad": "Una respuesta.",
-    "sub": "Otros portales agregan fotos. DMX cruza fuentes de datos que ningún portal analiza: Atlas de Riesgos, DENUE, GTFS, FGJ. El resultado: certeza de datos, no promesas de marketing.",
-    "feat1_title": "50+ fuentes de datos reales",
-    "feat1_desc": "DENUE, FGJ, GTFS, SEDUVI, Atlas de Riesgos. Actualizados semanalmente.",
-    "feat2_title": "Análisis en 3.2 segundos",
-    "feat2_desc": "97 variables procesadas por colonia. Sin esperar a ningún asesor.",
-    "feat3_title": "Cero conflicto de interés",
-    "feat3_desc": "DMX no cobra comisión por venta. La inteligencia es el producto.",
-    "full_report": "Ver reporte completo — 97 indicadores"
+    "eyebrow": "Motor de inteligencia",
+    "h2_1": "No somos un portal.",
+    "h2_2": "Somos la capa de decisión.",
+    "h2_grad_word": "decisión.",
+    "sub": "Otros catálogos acumulan fotos. DMX cruza capas que ningún portal procesa — Atlas de Riesgos, DENUE, GTFS, FGJ — y las traduce en una cifra que puedes defender frente a tu familia o tu comité de inversión.",
+    "panel_colonia": "Roma Norte",
+    "panel_subtitle": "IE Score compuesto · DMX",
+    "features": {
+      "data": {
+        "title": "Cincuenta capas de datos auditables",
+        "desc": "DENUE, FGJ, GTFS, SEDUVI, Atlas de Riesgos. Refrescadas cada domingo con checksum de origen."
+      },
+      "speed": {
+        "title": "Reporte de barrio en tres segundos",
+        "desc": "Noventa y siete indicadores procesados en paralelo. No tienes que esperar a que te regrese la llamada un asesor."
+      },
+      "neutral": {
+        "title": "No cobramos comisión de venta",
+        "desc": "DMX vive de suscripción y APIs, no de cerrar una operación. El producto es la inteligencia, no tu firma."
+      }
+    },
+    "bars": {
+      "movilidad": "Movilidad",
+      "seguridad": "Seguridad",
+      "comercio": "Comercio",
+      "plusvalia": "Plusvalía 24m",
+      "educacion": "Educación",
+      "riesgo": "Gestión de riesgo"
+    },
+    "full_report": "Leer los 97 indicadores"
+  },
+  "stats": {
+    "updated": "Última lectura sincronizada:",
+    "updated_colonia": "Escandón · hace 2 horas",
+    "items": {
+      "variables": "Variables por barrio",
+      "sources": "Fuentes oficiales cruzadas",
+      "colonias": "Barrios CDMX indexados",
+      "time": "Tiempo promedio de análisis"
+    }
+  },
+  "testimonials": {
+    "eyebrow": "Voces reales",
+    "h2": "Decisiones firmadas con datos, no con intuición.",
+    "items": [
+      { "quote": "Comparé Polanco y Lomas en una tarde. El radar me mostró lo que ningún asesor me había dicho en tres meses.", "author": "Laura S.", "role": "Compradora primeriza · CDMX" },
+      { "quote": "El score de movilidad de Juárez cambió mi tesis de inversión completa. Hoy tengo dos unidades ahí.", "author": "Ricardo M.", "role": "Inversionista particular" },
+      { "quote": "Abro DMX frente al cliente y en dos clics el argumento se sostiene solo. Ahorro al menos tres horas por cita.", "author": "Ana G.", "role": "Asesora AMPI · Roma" },
+      { "quote": "Mis compradores ya preguntan por el IE Score antes que por el precio. Eso dice más que cualquier métrica de marketing.", "author": "Carlos V.", "role": "Master Broker" },
+      { "quote": "Narvarte me daba miedo por reputación. El reporte de delito georreferenciado me mostró una historia muy distinta.", "author": "Mariana L.", "role": "Compradora · Benito Juárez" },
+      { "quote": "La transparencia de las fuentes es lo que me hace compartir el reporte con mi comité. No hay caja negra.", "author": "Alejandro F.", "role": "CFO · firma de real estate" },
+      { "quote": "Entrego a mi cliente una ficha con 97 indicadores firmada por una plataforma. Eso es otro nivel de asesoría.", "author": "Sofía R.", "role": "Dirección de Desarrollo" },
+      { "quote": "Decidí rentar en Cuauhtémoc viendo el score de comercio y el ruido promedio. No me equivoqué.", "author": "Jorge P.", "role": "Arquitecto · inquilino" }
+    ]
+  },
+  "faq": {
+    "eyebrow": "Dudas frecuentes",
+    "h2": "Lo que siempre preguntan antes de confiar.",
+    "sub": "Cómo armamos los scores, de dónde vienen los datos y cómo cuidamos lo que nos compartes.",
+    "advisor_btn": "Hablar con un asesor verificado",
+    "items": [
+      {
+        "q": "¿Qué separa a DMX de un portal como Lamudi o Inmuebles24?",
+        "a": "Un portal monetiza listados; DMX monetiza decisiones. Procesamos más de 97 variables por barrio desde fuentes oficiales (DENUE, FGJ, GTFS, SEDUVI, Atlas de Riesgos) para que tengas una lectura auditable antes de firmar. No somos catálogo: somos la capa de inteligencia sobre la que los catálogos deberían descansar."
+      },
+      {
+        "q": "¿De dónde salen los datos y cada cuánto se refrescan?",
+        "a": "Todas las fuentes son públicas y oficiales. El refresco es semanal automatizado, con checksum para detectar cambios de esquema. Cada indicador lleva metadatos de origen y fecha de extracción — puedes clicar hasta el CSV fuente."
+      },
+      {
+        "q": "¿Qué miden exactamente Vida, Movilidad, Seguridad y Comercio?",
+        "a": "Son los cuatro scores compuestos 0–100 de DMX. Vida integra parques, ruido, amenidades y calidad del aire; Movilidad suma cobertura de Metro/Metrobús/Ecobici y tiempos; Seguridad cruza FGJ con cobertura C5 y alumbrado; Comercio mide densidad DENUE por manzana. Cada score publica su receta y pesos."
+      },
+      {
+        "q": "Si no cobran comisión por venta, ¿cómo se sostienen?",
+        "a": "Tres líneas: suscripción Asesor y Desarrolladora, Comprador Premium para fichas con reporte completo, y APIs B2B para bancos y FIBRAs. Cero comisión transaccional significa cero conflicto de interés al momento de mostrarte un dato incómodo."
+      },
+      {
+        "q": "¿Cuántos barrios tienen IE Score completo hoy?",
+        "a": "H1 2026 cubrimos 16 barrios de alta actividad residencial en CDMX. H2 escalamos a los 133 barrios completos de la ciudad e iniciamos Monterrey y Guadalajara. Dubai y Miami entran en 2027."
+      },
+      {
+        "q": "¿La plusvalía proyectada es una promesa de retorno?",
+        "a": "No. Es una estimación estadística con regresión a 24 meses y bandas de confianza explícitas. Publicamos RMSE histórico por barrio para que puedas medir qué tan afilada es nuestra lectura antes de incorporarla a tu tesis."
+      },
+      {
+        "q": "¿Cómo confirmo que un asesor es realmente de DMX?",
+        "a": "Cada asesor publica su cédula AMPI, historial transparente de operaciones y score de reputación auditado. Puedes contactarlo desde la ficha de propiedad o desde cualquier reporte de barrio — siempre bajo el escudo de verificación DMX."
+      }
+    ]
   },
   "cta": {
-    "eyebrow": "Comienza hoy",
-    "h2": "Comprar bien no es suerte.",
-    "h2_grad": "Es información.",
-    "sub": "El mapa de colonias más completo de la Ciudad de México. Los datos que determinan el precio de tu próxima decisión.",
-    "primary": "Explorar colonias",
-    "secondary": "Ver precios"
+    "eyebrow": "Empieza hoy",
+    "h2_1": "Comprar bien no es suerte.",
+    "h2_2": "Es información.",
+    "h2_grad_word": "información.",
+    "sub": "Abre el mapa de inteligencia más completo de la Ciudad de México y toma una decisión que aguante revisión en cinco años.",
+    "primary": "Entrar al mapa",
+    "secondary": "Ver planes"
   },
   "footer": {
     "privacy": "Aviso de privacidad",
     "terms": "Términos de uso",
     "advisors": "Para asesores",
-    "developers": "Para desarrolladores",
-    "copy": "© 2026 DesarrollosMX SA de CV. Todos los derechos reservados."
+    "developers": "Para desarrolladoras",
+    "copy": "© 2026 DesarrollosMX SA de CV · Ciudad de México"
   },
   "advisor": {
-    "dashboard": "Dashboard",
+    "dashboard": "Panel",
     "contacts": "Contactos",
     "searches": "Búsquedas",
     "captations": "Captaciones",
@@ -92,7 +237,7 @@
     "operations": "Operaciones"
   },
   "developer": {
-    "dashboard": "Dashboard",
+    "dashboard": "Panel",
     "inventory": "Inventario",
     "demand": "Demanda",
     "report": "Reporte IA"
