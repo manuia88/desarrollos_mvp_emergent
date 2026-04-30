@@ -1,0 +1,25 @@
+{
+  "summary": "Iteration A (DEVELOPMENTS refactor) fully validated. Backend 24/24 pytest pass. Frontend /marketplace renders 15 dev cards in 4-col grid with stage-colored header bands (green preventa / amber en_construccion / blue entrega_inmediata / purple exclusiva), address+name+DESDE price+4 meta cards+developer footer, share+heart. Hero 'Todos los estrenos de CDMX, con la inteligencia que ningún portal tiene.' renders. AI search with Claude Sonnet 4.5 parsed 'depa 2 rec en Roma Norte máximo 8 millones con terraza' into {colonia: roma-norte, beds: 2, max_price: 8000000, amenity: roof}, green chip bar rendered, grid narrowed to 1, clear button resets. Second identical POST returns cached:true. Filter pills (Ubicación/Tipo/Precio/Recámaras/Más filtros) all open correctly — Ubicación has 16 loc-{id} buttons (Polanco narrows to 1, badge shows count=1, toggle resets to 15), Precio has 5 price-{u3|u6|u12|u25|p25} buttons, Recámaras has 4 beds-{1-4} buttons, Más filtros drawer has min/max sqm inputs, baths/parking +N buttons, amenity chips (gym/roof/alberca), apply/reset/close all wired. Sort dropdown present. Results count 'mkp-results-count' live-updates. Favorite click persists to localStorage key dmx.favorites as JSON array. /desarrollo/tamaulipas-89 stub renders: breadcrumb back, stage badge EN CONSTRUCCIÓN, H1, address, Próximamente card, description, 4-card Resumen (rec/baños/cajones/m²), sticky sidebar with DESDE $6,500,000 MXN + Entrega 2026-08 + '16 de 23 unidades' + Lumbre Desarrollos + 'Volver al marketplace' CTA. Custom cursor bug fix confirmed: cursor-dot exists on /, /marketplace, /desarrollo/:id, and /mapa (moved to App root). No raw i18n keys leaked, zero emojis, design system respected. Unsplash image 401s are expected in headless env — SVG fallback renders correctly inside each card.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_developments.py",
+    "/app/test_reports/pytest/pytest_iter3.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py now 973 lines — previous suggestion to split into routers (marketplace, developments, developers, briefing, ai-search, auth) still stands; getting unwieldy",
+    "Briefing and AI-search endpoints both cache via Mongo with ISO week / query hash — consistent caching pattern",
+    "DevelopmentCard shows SVG fallback when Unsplash returns 401 — good defensive UX",
+    "contact_phone correctly falls back to DMX_FALLBACK_WHATSAPP env var",
+    "Units endpoint beds filter is '>= N' (min beds) consistent with 1+/2+/3+/4+ UI buttons — documented for next testing agent"
+  ],
+  "updated_files": ["/app/backend/tests/test_developments.py"],
+  "success_rate": {"backend": "100% (24/24 pytest pass)", "frontend": "100% — marketplace refactor, AI search, dev detail stub, cursor fix all pass"},
+  "test_credentials": "Not used — public flow",
+  "seed_data_creation": "None — 10 developers / 15 developments / ~420 units seeded via /app/backend/data_developments.py (in-process)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app && export REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL frontend/.env|cut -d= -f2) && python -m pytest backend/tests/test_developments.py -v. Key data-testid locators verified: ai-search-input, ai-search-submit, ai-filters-chip, ai-clear, filter-location/type/price/beds/more, more-filters-drawer, more-min-sqm, more-max-sqm, more-baths-{1..3}, more-parking-{1..3}, more-amenity-{gym|roof|alberca}, more-apply/reset/close, mkp-results-count, dev-card-{id}, fav-btn-{id}, share-btn-{id}, dev-detail-title, cursor-dot, loc-{colonia_id}, price-{u3|u6|u12|u25|p25}, beds-{1..4}. Iteration B will ship full /desarrollo/:id ficha with 5 tabs + paywall — add regression tests for stub breadcrumb + sticky sidebar to avoid regression. Unsplash 401s in headless environments are expected — SVG fallback handles it. Units beds filter is '>= N' min, not exact.",
+  "rca_of_issues": "No issues"
+}

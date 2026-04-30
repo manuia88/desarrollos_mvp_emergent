@@ -19,6 +19,7 @@ import CtaFooter from './components/landing/CtaFooter';
 // Marketplace pages
 import Marketplace from './pages/Marketplace';
 import PropertyDetail from './pages/PropertyDetail';
+import DevelopmentDetail from './pages/DevelopmentDetail';
 import Mapa from './pages/Mapa';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -133,6 +134,7 @@ function AppRouter() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
+      <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
       <Route path="/mapa" element={<MapaRoute />} />
       <Route path="*" element={<LandingPage />} />
     </Routes>
@@ -165,6 +167,12 @@ function MapaRoute() {
   return <Mapa user={user} onLogin={onLogin} onLogout={logout} />;
 }
 
+function DevelopmentDetailRoute() {
+  const { user, logout } = useAuth();
+  const onLogin = useHandleLogin();
+  return <DevelopmentDetail user={user} onLogin={onLogin} onLogout={logout} />;
+}
+
 // ─── Landing page ─────────────────────────────────────────────────────────────
 function LandingPage() {
   const { user, logout } = useAuth();
@@ -177,7 +185,6 @@ function LandingPage() {
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <CustomCursor />
       <Navbar onLogin={handleLogin} user={user} onLogout={logout} />
       <main>
         <Hero />
@@ -201,6 +208,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <CustomCursor />
         <AppRouter />
       </AuthProvider>
     </BrowserRouter>

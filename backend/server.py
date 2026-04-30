@@ -16,6 +16,10 @@ from pydantic import BaseModel
 load_dotenv()
 
 from data_seed import COLONIAS as SEED_COLONIAS, COLONIAS_BY_ID, PROPERTIES as SEED_PROPERTIES
+from data_developments import (
+    DEVELOPMENTS, DEVELOPMENTS_BY_ID, ALL_UNITS,
+    DEVELOPERS, DEVELOPERS_BY_ID,
+)
 
 MONGO_URL = os.environ.get("MONGO_URL")
 DB_NAME   = os.environ.get("DB_NAME")
@@ -450,6 +454,275 @@ async def generate_property_briefing(prop_id: str):
 # ─── NLP Search (Claude Sonnet) ───────────────────────────────────────────────
 class NLPSearchIn(BaseModel):
     query: str
+
+# ─── Developments marketplace (Iteration A) ──────────────────────────────────
+DMX_FALLBACK_WHATSAPP = os.environ.get("DMX_FALLBACK_WHATSAPP", "+525512345678")
+
+
+def _dev_public(d: dict, include_units: bool = False) -> dict:
+    """Strip heavy fields for list endpoints; keep everything for detail."""
+    out = {k: v for k, v in d.items() if k != "_id" and (include_units or k != "units")}
+    if not include_units:
+        out["units_sample"] = d.get("units", [])[:0]  # no units in list view
+    # Enrich with developer summary
+    dev = DEVELOPERS_BY_ID.get(d["developer_id"])
+    if dev:
+        out["developer"] = {
+            "id": dev["id"], "name": dev["name"], "founded_year": dev["founded_year"],
+            "projects_delivered": dev["projects_delivered"], "logo_hue": dev.get("logo_hue", 231),
+        }
+    out["contact_phone"] = d.get("contact_phone") or DMX_FALLBACK_WHATSAPP
+    return out
+
+
+@app.get("/api/developments")
+async def list_developments(
+    colonia: Optional[List[str]] = Query(None),
+    min_price: Optional[int] = None,
+    max_price: Optional[int] = None,
+    min_sqm: Optional[int] = None,
+    max_sqm: Optional[int] = None,
+    beds: Optional[int] = None,
+    baths: Optional[int] = None,
+    parking: Optional[int] = None,
+    stage: Optional[str] = None,
+    amenity: Optional[List[str]] = Query(None),
+    featured: Optional[bool] = None,
+    sort: Optional[str] = "recent",
+    limit: int = 100,
+):
+    results = list(DEVELOPMENTS)
+    if colonia:
+        cset = {c.lower() for c in colonia}
+        results = [d for d in results if d["colonia_id"].lower() in cset]
+    if min_price is not None:
+        results = [d for d in results if d["price_to"] >= min_price]
+    if max_price is not None:
+        results = [d for d in results if d["price_from"] <= max_price]
+    if min_sqm is not None:
+        results = [d for d in results if d["m2_range"][1] >= min_sqm]
+    if max_sqm is not None:
+        results = [d for d in results if d["m2_range"][0] <= max_sqm]
+    if beds is not None:
+        results = [d for d in results if d["bedrooms_range"][1] >= beds]
+    if baths is not None:
+        results = [d for d in results if d["bathrooms_range"][1] >= baths]
+    if parking is not None:
+        results = [d for d in results if d["parking_range"][1] >= parking]
+    if stage:
+        results = [d for d in results if d["stage"] == stage]
+    if amenity:
+        aset = set(amenity)
+        results = [d for d in results if aset.issubset(set(d.get("amenities", [])))]
+    if featured is not None:
+        results = [d for d in results if d["featured"] == featured]
+    if sort == "price_asc":
+        results.sort(key=lambda d: d["price_from"])
+    elif sort == "price_desc":
+        results.sort(key=lambda d: -d["price_from"])
+    elif sort == "sqm_desc":
+        results.sort(key=lambda d: -d["m2_range"][1])
+    return [_dev_public(d) for d in results[:limit]]
+
+
+@app.get("/api/developments/{dev_id}")
+async def get_development(dev_id: str):
+    d = DEVELOPMENTS_BY_ID.get(dev_id)
+    if not d:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    return _dev_public(d, include_units=True)
+
+
+@app.get("/api/developments/{dev_id}/units")
+async def list_dev_units(
+    dev_id: str,
+    status: Optional[str] = None,
+    beds: Optional[int] = None,
+    baths: Optional[int] = None,
+    parking: Optional[int] = None,
+):
+    d = DEVELOPMENTS_BY_ID.get(dev_id)
+    if not d:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    units = list(d.get("units", []))
+    if status:
+        units = [u for u in units if u["status"] == status]
+    if beds is not None:
+        units = [u for u in units if u["bedrooms"] >= beds]
+    if baths is not None:
+        units = [u for u in units if u["bathrooms"] >= baths]
+    if parking is not None:
+        units = [u for u in units if u["parking_spots"] >= parking]
+    return units
+
+
+@app.get("/api/developments/{dev_id}/similar")
+async def get_similar_developments(dev_id: str):
+    target = DEVELOPMENTS_BY_ID.get(dev_id)
+    if not target:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    pool = [d for d in DEVELOPMENTS if d["id"] != dev_id]
+
+    def score(d):
+        s = 0
+        if d["colonia_id"] == target["colonia_id"]:
+            s -= 100
+        s += abs(d["price_from"] - target["price_from"]) / 1_000_000
+        return s
+
+    pool.sort(key=score)
+    return [_dev_public(p) for p in pool[:3]]
+
+
+@app.get("/api/developers/{developer_id}")
+async def get_developer(developer_id: str):
+    d = DEVELOPERS_BY_ID.get(developer_id)
+    if not d:
+        raise HTTPException(404, "Desarrolladora no encontrada")
+    # Enrich with their current developments
+    their_devs = [
+        {"id": x["id"], "name": x["name"], "stage": x["stage"], "units_total": x["units_total"]}
+        for x in DEVELOPMENTS if x["developer_id"] == developer_id
+    ]
+    return {**d, "current_developments": their_devs}
+
+
+@app.post("/api/developments/{dev_id}/briefing")
+async def generate_dev_briefing(dev_id: str):
+    d = DEVELOPMENTS_BY_ID.get(dev_id)
+    if not d:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    c = COLONIAS_BY_ID.get(d["colonia_id"])
+
+    week = _iso_week_tag()
+    cache_key = f"dev_{dev_id}__{week}"
+    cached = await db.property_briefings.find_one({"cache_key": cache_key}, {"_id": 0})
+    if cached and cached.get("text"):
+        return {"text": cached["text"], "cached": True, "week": week}
+
+    text = None
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        scores = c.get("scores", {})
+        stage_label = {
+            "preventa": "Preventa",
+            "en_construccion": "En construcción",
+            "entrega_inmediata": "Entrega inmediata",
+            "exclusiva": "Exclusiva",
+        }.get(d["stage"], d["stage"])
+        prompt = (
+            f"Desarrollo: {d['name']} en {c['name']}, {c['alcaldia']}.\n"
+            f"Etapa: {stage_label}. Entrega estimada: {d['delivery_estimate']}.\n"
+            f"Precio desde {d['price_from_display']} hasta {d['price_to_display']}. "
+            f"Precio m² barrio: ${c['price_m2']}k. Momentum 24m: {c.get('momentum')}.\n"
+            f"Rango: {d['bedrooms_range'][0]}-{d['bedrooms_range'][1]} rec, "
+            f"{d['m2_range'][0]}-{d['m2_range'][1]} m². {d['units_total']} unidades, "
+            f"{d['units_available']} disponibles.\n"
+            f"Scores DMX 0-100 -> Vida: {scores.get('vida', 0)}, Movilidad: {scores.get('movilidad', 0)}, "
+            f"Seguridad: {scores.get('seguridad', 0)}, Comercio: {scores.get('comercio', 0)}.\n"
+            "Genera un briefing en un solo párrafo de máximo 280 caracteres en español MX."
+        )
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"devbrief_{dev_id}_{week}",
+            system_message=BRIEFING_SYSTEM,
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        raw = await chat.send_message(UserMessage(text=prompt))
+        text = (raw or "").strip().strip('"')
+        if len(text) > 290:
+            text = text[:277].rstrip() + "..."
+    except Exception:
+        text = None
+
+    if not text:
+        text = (
+            f"{d['name']} en {c['name']} arranca en {d['price_from_display']} con scores "
+            f"Vida {scores.get('vida', 0)}, Movilidad {scores.get('movilidad', 0)}, "
+            f"Seguridad {scores.get('seguridad', 0)}. {d['units_available']} de {d['units_total']} "
+            f"unidades disponibles. {'Momento ideal de preventa' if d['stage'] == 'preventa' else 'Entrega pronta'}."
+        )[:280]
+
+    await db.property_briefings.update_one(
+        {"cache_key": cache_key},
+        {"$set": {"cache_key": cache_key, "text": text, "week": week, "created_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return {"text": text, "cached": False, "week": week}
+
+
+class AISearchIn(BaseModel):
+    query: str
+
+
+AI_SEARCH_SYSTEM = (
+    "Eres el parser de búsqueda natural de DesarrollosMX para CDMX. Recibes una frase del usuario "
+    "y devuelves ESTRICTAMENTE un objeto JSON con los filtros detectables. Schema permitido:\n"
+    "{\n"
+    '  "colonia": [string],  // ids válidos: polanco, lomas-chapultepec, roma-norte, roma-sur, condesa, juarez, cuauhtemoc, del-valle-centro, narvarte, napoles, escandon, anzures, doctores, coyoacan-centro, pedregal, santa-fe\n'
+    '  "min_price": number,  // MXN\n'
+    '  "max_price": number,  // MXN\n'
+    '  "min_sqm": number,\n'
+    '  "max_sqm": number,\n'
+    '  "beds": number,\n'
+    '  "baths": number,\n'
+    '  "parking": number,\n'
+    '  "stage": string,  // preventa | en_construccion | entrega_inmediata | exclusiva\n'
+    '  "amenity": [string]  // gym, roof, alberca, concierge, pet, seguridad, estacionamiento, spa, cowork, bicicletas, business_center, salon_eventos, jardines, area_pets, sky_lounge, cava\n'
+    "}\n"
+    "Reglas: omite claves sin evidencia, no inventes, no agregues texto fuera del JSON. Si escriben 'roma' asume 'roma-norte'. Si mencionan 'terraza' devuelve amenity=['roof']. Si escriben 'a estrenar' o 'nuevo' -> stage='entrega_inmediata'. Precios en millones MXN por defecto (5M = 5000000). 'Bajo 5 millones' = max_price=5000000."
+)
+
+
+@app.post("/api/properties/search-ai")
+async def ai_search_parser(payload: AISearchIn):
+    import json as _json
+    q = (payload.query or "").strip()
+    if not q:
+        return {"filters": {}, "query": q, "cached": False}
+
+    # Cache by exact query for 24h
+    cache_key = q.lower()[:500]
+    cached = await db.ai_search_cache.find_one({"cache_key": cache_key}, {"_id": 0})
+    if cached:
+        ts = cached.get("created_at")
+        if ts is not None and ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        if ts and (datetime.now(timezone.utc) - ts).total_seconds() < 86400:
+            return {"filters": cached.get("filters", {}), "query": q, "cached": True}
+
+    parsed = {}
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"aisrch_{hash(cache_key) & 0xffffffff}",
+            system_message=AI_SEARCH_SYSTEM,
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        raw = await chat.send_message(UserMessage(text=q))
+        txt = (raw or "").strip()
+        # Strip markdown fences if any
+        if txt.startswith("```"):
+            txt = txt.strip("`")
+            if txt.lower().startswith("json"):
+                txt = txt[4:].lstrip()
+        # Find first { and last } to extract JSON
+        s, e = txt.find("{"), txt.rfind("}")
+        if s >= 0 and e > s:
+            parsed = _json.loads(txt[s:e+1])
+    except Exception:
+        parsed = {}
+
+    # Sanitize: keep only known keys
+    allowed = {"colonia", "min_price", "max_price", "min_sqm", "max_sqm", "beds", "baths", "parking", "stage", "amenity"}
+    filters = {k: v for k, v in parsed.items() if k in allowed and v not in (None, "", [], {})}
+
+    await db.ai_search_cache.update_one(
+        {"cache_key": cache_key},
+        {"$set": {"cache_key": cache_key, "filters": filters, "query": q, "created_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return {"filters": filters, "query": q, "cached": False}
+
 
 @app.post("/api/search/nlp")
 async def nlp_search(payload: NLPSearchIn):

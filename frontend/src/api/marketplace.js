@@ -1,6 +1,66 @@
 // API helpers for marketplace
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// ─── Developments (new public marketplace model) ──────────────────────────────
+export async function fetchDevelopments(filters = {}) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) continue;
+    if (Array.isArray(v)) v.forEach(x => qs.append(k, x));
+    else qs.append(k, v);
+  }
+  const r = await fetch(`${API}/api/developments?${qs.toString()}`);
+  if (!r.ok) throw new Error('developments fetch failed');
+  return r.json();
+}
+
+export async function fetchDevelopment(id) {
+  const r = await fetch(`${API}/api/developments/${id}`);
+  if (!r.ok) throw new Error('development fetch failed');
+  return r.json();
+}
+
+export async function fetchDevelopmentUnits(id, filters = {}) {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v === undefined || v === null || v === '') continue;
+    qs.append(k, v);
+  }
+  const r = await fetch(`${API}/api/developments/${id}/units?${qs.toString()}`);
+  if (!r.ok) return [];
+  return r.json();
+}
+
+export async function fetchSimilarDevelopments(id) {
+  const r = await fetch(`${API}/api/developments/${id}/similar`);
+  if (!r.ok) return [];
+  return r.json();
+}
+
+export async function fetchDeveloper(id) {
+  const r = await fetch(`${API}/api/developers/${id}`);
+  if (!r.ok) throw new Error('developer fetch failed');
+  return r.json();
+}
+
+export async function fetchDevBriefing(id) {
+  const r = await fetch(`${API}/api/developments/${id}/briefing`, { method: 'POST' });
+  if (!r.ok) throw new Error('briefing failed');
+  return r.json();
+}
+
+export async function aiSearchParse(query) {
+  const r = await fetch(`${API}/api/properties/search-ai`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  });
+  if (!r.ok) return { filters: {}, query };
+  return r.json();
+}
+
+// ─── Colonias / legacy Phase 3 properties (kept for existing detail page) ────
+
 export async function fetchColonias() {
   const r = await fetch(`${API}/api/colonias`);
   if (!r.ok) throw new Error('colonias fetch failed');
