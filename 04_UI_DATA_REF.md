@@ -1,6 +1,8 @@
 # DMX — UI Reference + User Flows + "Breath" Components
 
 > Referencias UI inspiradoras + 3 flows usuario clave + componente canónico "breath".
+>
+> **Para spec exhaustiva del design system (tokens, tipografía, buttons, cards, componentes detallados, copy completo) ver `05_DESIGN_SYSTEM.md`** — ese doc gana ante cualquier conflicto.
 
 ## 1. UI Reference principal — propiedades.com style
 

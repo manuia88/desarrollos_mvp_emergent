@@ -63,11 +63,13 @@ Adicional H1: **APIs B2B + Public Widgets embebibles** (banco/FIBRA/fintech embe
 
 ## 7. Diseño
 
-**Único requerimiento obligatorio**: cards con efecto **"breath"** — gradient pulsante respiratorio sutil que sube/baja intensidad en ciclos lentos (3-5s). Da sensación orgánica/viva al producto.
+**Spec exhaustiva en `05_DESIGN_SYSTEM.md`** — design tokens + tipografía + buttons + cards + componentes detallados + copy completo.
 
-**Resto del estilo, paleta, tipografía, spacing, animaciones, layout — emergent.sh decide la mejor opción**. Decisiones de diseño NO son del founder.
+Resumen visual core: navy oscuro `#06080F` + cream cálido `#F0EBE0` + gradient único `#6366F1 → #EC4899` + tipografía editorial Outfit/DM Sans + cards hover translateY + animaciones blur+fade+stagger ≤850ms + cero emoji + cero ruido visual.
 
-Único principio adicional: **AI insights deben ser visualmente distinguibles** del resto del contenido (algún tratamiento visual que indique "esto lo dice la IA" — gradient distinto, badge, ícono, etc.). Define emergent.
+Construir DMX significa transmitir con la UI que **esto es decisión basada en datos, no marketing inmobiliario tradicional**.
+
+**Adicional — efecto "breath"**: cards principales pueden tener gradient pulsante respiratorio sutil (3-5s) sobre el gradient base. Respeta `prefers-reduced-motion`.
 
 ## 8. Roadmap
 
@@ -147,4 +149,7 @@ Adicional H1: **APIs B2B + Public Widgets embebibles** (banco/FIBRA/fintech embe
 
 - `02_FEATURES.md` — catálogo completo 762 features (D Developer + A Asesor + C Cliente + S Studio + extras)
 - `03_INTELLIGENCE.md` — IE Engine: 118-125 scores + 18 fuentes datos + game-changers + moats
-- `04_UI_DATA_REF.md` — UI ref propiedades.com + 3 flows usuario + componentes "breath"
+- `04_UI_DATA_REF.md` — UI ref propiedades.com (mapa heatmap) + 3 flows usuario
+- `05_DESIGN_SYSTEM.md` — design system canon: tokens + tipografía + buttons + cards + componentes detallados + copy completo
+
+**Orden de lectura recomendado**: 01 → 05 (design system, leer ANTES de construir UI) → 02 (features) → 03 (intelligence) → 04 (UI flows).
