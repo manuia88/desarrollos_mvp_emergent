@@ -48,6 +48,10 @@ app.include_router(advisor_router)
 from routes_developer import router as developer_router
 app.include_router(developer_router)
 
+# Wire Studio router (Phase 6 Wave 1)
+from routes_studio import router as studio_router
+app.include_router(studio_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()

@@ -91,7 +91,12 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 ---
 
 ## Testing
-- 2026-04-30 **Phase 5 Developer Portal MVP** + **Micro-iteration A&B**:
+- 2026-04-30 **Phase 6 Wave 1 — DMX Studio**:
+  - Backend `routes_studio.py`: video stub (Claude script + storyboard), ads engine (Claude copies + gpt-image-1 hero images lazy-loaded). Adapter pattern via `STUDIO_VIDEO_ENGINE` / `STUDIO_ADS_ENGINE` env vars.
+  - Verified: video script generation (3-scene storyboard + voice + music); ads batch (10 unlocked + 90 locked) with real Claude copies and 1 gpt-image-1 hero per ángulo.
+  - Frontend Studio dashboard + 2 wizards + batch detail drawer screenshot-verified with real generated content in es-MX.
+- 2026-04-30 **OAuth profile_completed flag**: explicit boolean replaces derived check; PATCH /profile auto-flips on min fields satisfied.
+- 2026-04-30 **Phase 5 Developer Portal MVP**:
   - Backend: 9+ endpoints curl-verificados (`/api/desarrollador/*`)
   - Backend Claude D9 reportes: genera resumen ejecutivo real con Sonnet 4.5
   - Frontend smoke screenshots: dashboard (15 devs, $589M booked, $947M pipeline), demanda (16 colonias heatmap + 10 top queries + funnel), pricing (27 sugerencias renderizadas)
