@@ -71,7 +71,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                     <div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em' }}>{dev.name}</div>
                       <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
-                        {dev.colonia} · entrega {dev.delivery_estimate} · obra {dev.construction_progress}%
+                        {dev.colonia} · entrega {dev.delivery_estimate} · obra {dev.construction_progress?.percentage ?? 0}%
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
