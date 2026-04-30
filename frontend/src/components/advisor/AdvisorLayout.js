@@ -48,11 +48,7 @@ export default function AdvisorLayout({ user, onLogout, children }) {
     );
   }
 
-  const needsOnboarding = profile && (
-    !profile.full_name || profile.full_name.trim().length < 3 ||
-    !profile.brokerage || profile.brokerage.trim().length < 2 ||
-    !profile.colonias || profile.colonias.length === 0
-  );
+  const needsOnboarding = profile && profile.profile_completed === false;
 
   return (
     <div className="advisor-shell" style={{ minHeight: '100vh', background: 'var(--bg)', display: 'grid', gridTemplateColumns: '240px 1fr' }}>

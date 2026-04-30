@@ -161,7 +161,7 @@ async def get_profile(request: Request):
     db = get_db(request)
     prof = await db.asesor_profiles.find_one({"user_id": user.user_id}, {"_id": 0})
     if not prof:
-        # first time → bootstrap empty profile
+        # first time → bootstrap empty profile (NOT marked complete — onboarding gate must run)
         prof = {
             "user_id": user.user_id,
             "full_name": user.name,
@@ -176,11 +176,18 @@ async def get_profile(request: Request):
             "xp": 0,
             "streak": 0,
             "badges": [],
+            "profile_completed": False,
+            "auth_provider": getattr(user, "auth_provider", "email"),
             "public_slug": (user.name or "asesor").lower().replace(" ", "-")[:40] + "-" + user.user_id[-4:],
             "created_at": _now(),
         }
         await db.asesor_profiles.insert_one(prof)
         prof.pop("_id", None)
+    # Backfill flag for older profiles
+    if "profile_completed" not in prof:
+        complete = bool(prof.get("full_name") and prof.get("brokerage") and (prof.get("colonias") or []))
+        prof["profile_completed"] = complete
+        await db.asesor_profiles.update_one({"user_id": user.user_id}, {"$set": {"profile_completed": complete}})
     return prof
 
 
@@ -191,6 +198,15 @@ async def patch_profile(payload: AsesorProfilePatch, request: Request):
     patch = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not patch:
         raise HTTPException(400, "Sin cambios")
+    # Auto-set profile_completed if minimum fields satisfied
+    existing = await db.asesor_profiles.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    merged = {**existing, **patch}
+    merged["profile_completed"] = bool(
+        merged.get("full_name") and len(merged.get("full_name", "").strip()) >= 3
+        and merged.get("brokerage") and len(merged.get("brokerage", "").strip()) >= 2
+        and (merged.get("colonias") or [])
+    )
+    patch["profile_completed"] = merged["profile_completed"]
     await db.asesor_profiles.update_one({"user_id": user.user_id}, {"$set": patch}, upsert=True)
     prof = await db.asesor_profiles.find_one({"user_id": user.user_id}, {"_id": 0})
     return prof
@@ -850,6 +866,7 @@ async def seed_demo(request: Request):
             "colonias": ["polanco", "condesa", "roma-norte"],
             "languages": ["es-MX", "en-US"],
             "bio": "Especialista en preventa Polanco y Roma con 8 años de experiencia.",
+            "profile_completed": True,
         }},
         upsert=True,
     )
