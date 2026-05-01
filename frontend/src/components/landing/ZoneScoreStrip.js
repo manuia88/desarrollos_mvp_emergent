@@ -46,6 +46,19 @@ const CODE_LABELS = {
   IE_COL_PLUSVALIA_HIST: 'Plusvalía',
   IE_COL_LIQUIDEZ: 'Liquidez',
   IE_COL_DEMANDA_NETA: 'Demanda neta',
+  // ─── Proyecto (12 · Phase B3) ────────────────────────────────────────
+  IE_PROY_SCORE_VS_COLONIA: 'Score vs colonia',
+  IE_PROY_SCORE_VS_CIUDAD: 'Score vs ciudad',
+  IE_PROY_PRECIO_VS_MERCADO: 'Precio vs mercado',
+  IE_PROY_AMENIDADES: 'Amenidades',
+  IE_PROY_LISTING_HEALTH: 'Listing health',
+  IE_PROY_BADGE_TOP: 'Top colonia',
+  IE_PROY_ABSORCION_VELOCIDAD: 'Absorción',
+  IE_PROY_PRESALES_RATIO: 'Preventa',
+  IE_PROY_MARCA_TRUST: 'Marca trust',
+  IE_PROY_DEVELOPER_TRUST: 'Dev trust',
+  IE_PROY_DEVELOPER_DELIVERY_HIST: 'Delivery histórico',
+  IE_PROY_COMPETITION_PRESSURE: 'Presión competencia',
 };
 
 const ScorePill = ({ score, onClick }) => {
@@ -81,14 +94,17 @@ const ScorePill = ({ score, onClick }) => {
   );
 };
 
-export default function ZoneScoreStrip({ zoneId, limit = 8, onScoreClick, title = null }) {
+export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, onScoreClick, title = null }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
     if (!zoneId) return;
-    api.getZoneCoverage(zoneId).then(setData).catch(e => setErr(e.message));
-  }, [zoneId]);
+    const loader = scope === 'proyecto'
+      ? api.getDevelopmentScores(zoneId)
+      : api.getZoneCoverage(zoneId);
+    loader.then(setData).catch(e => setErr(e.message));
+  }, [zoneId, scope]);
 
   if (err) {
     return (

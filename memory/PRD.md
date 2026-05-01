@@ -109,6 +109,91 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — IE Engine Phase B3 (12 PROYECTO recipes + cron 02:00 MX + /superadmin/scores + ficha block)
+- **Backend**
+  - `score_engine.py`: nuevo atributo `Recipe.scope = "colonia" | "proyecto"`. Engine `_build_project_context(zone_id)` inyecta pseudo-sources `_dmx_dev / _dmx_colonia_scores / _dmx_same_colonia_devs / _dmx_all_devs` cuando scope=proyecto. `compute_many(zone_id, codes=[])` auto-detecta scope (dev.id → proyecto, sino → colonia), evitando mezcla.
+  - `recipes/proyecto/_helpers.py`: base `ProjectRecipe` + `ProjectDataPendingRecipe`. Recipes PROYECTO son puras: si el dev no existe o faltan peers → `is_stub=true, value=null` (NUNCA inventa).
+  - `recipes/proyecto/ie_proy_core.py`: **12 recipes** registradas:
+    1. `IE_PROY_SCORE_VS_COLONIA` — promedio de colonia scores reales.
+    2. `IE_PROY_SCORE_VS_CIUDAD` — proxy local (v1.0), benchmark ciudad pendiente v1.1.
+    3. `IE_PROY_PRECIO_VS_MERCADO` — mediana precio/m² dev vs mediana peers (custom tier: 40-60=green).
+    4. `IE_PROY_AMENIDADES` — suma ponderada de amenidades.
+    5. `IE_PROY_LISTING_HEALTH` — fotos + desc + tipologías + meta.
+    6. `IE_PROY_BADGE_TOP` — ranking % vs peers de la colonia.
+    7. `IE_PROY_ABSORCION_VELOCIDAD` — % (vendido+reservado)/total.
+    8. `IE_PROY_PRESALES_RATIO` — solo stage preventa/en_construccion.
+    9. `IE_PROY_MARCA_TRUST` — años + proyectos entregados + compliance.
+    10. `IE_PROY_DEVELOPER_TRUST` — unidades vendidas / proyectos benchmark 80.
+    11. `IE_PROY_DEVELOPER_DELIVERY_HIST` — log2(proyectos+1)×15.
+    12. `IE_PROY_COMPETITION_PRESSURE` — lower_better, # peers × 20 (stub si peers=0).
+  - `scheduler_ie.py`: nuevo `ie_daily_score_recompute` CronTrigger(hour=2, minute=0, timezone="America/Mexico_City"). Recomputa zonas con obs en 24h (+4 colonias activas siempre) + las 15 developments (data DMX-internal, rápido). AirROI **excluido** automáticamente (`allow_paid=false` por defecto).
+  - `routes_scores.py`: 5 endpoints nuevos
+    - `GET /api/superadmin/scores?scope=colonia|proyecto&zone_id=&code=&tier=` — tabla filtrable.
+    - `GET /api/superadmin/scores/recipes` — metadata (46 recipes, 34 colonia + 12 proyecto).
+    - `GET /api/superadmin/scores/history?zone_id=&code=` — timeline (ie_score_history).
+    - `POST /api/superadmin/scores/recompute-all` + `GET /api/superadmin/scores/recompute-all/status?task_id=` — batch async con polling. Fire-and-forget asyncio.create_task + persistencia en `ie_recompute_tasks`.
+    - `GET /api/developments/:id/scores` — público, alimenta bloque en ficha. Coverage filtrado por scope.
+  - `routes_ie_engine.py`: `/cron/trigger` ahora acepta `daily_score_recompute` + summary type Any.
+- **Frontend**
+  - `api/ie_scores.js` + `api/superadmin.js`: helpers `getDevelopmentScores`, `listScores`, `listRecipes`, `scoreHistory`, `recomputeAll`, `recomputeAllStatus`, `recomputeZone`.
+  - `ZoneScoreStrip`: prop `scope='proyecto'` → usa `getDevelopmentScores`. 12 labels IE_PROY_* en Map.
+  - `pages/DevelopmentDetail.js`: nueva sección "Score IE del proyecto" entre hero/gallery y tabs — 6 pills clickeables (límite de limit=6 + contador "+N más") + ScoreExplainModal integrado. Gradiente indigo/pink + headline con nombre del dev.
+  - `pages/superadmin/ScoresPage.js`: tabla filtrable (scope/zone/code/tier), botón "Recompute todas las zonas" con polling cada 1.5s + barra de progreso verde, acciones por fila ("Ver explain" modal + "Histórico" drawer), toast bottom-right.
+  - `SuperadminLayout`: nuevo link "Scores IE" con Sparkle icon.
+- **Verificación**
+  - 46 recipes registradas (34 colonia + 12 proyecto) ✓
+  - `POST /recompute-all` → 31 zonas (16 colonias + 15 devs), 372 reales + 352 stubs, **0.9s** ✓
+  - `POST /cron/trigger daily_score_recompute` → `{colonia:{zones:9,real:140,stub:166}, proyecto:{zones:15,real:132,stub:48}}` ✓
+  - `GET /api/developments/altavista-polanco/scores` → **9/12 real**, mode=real. Los 3 stub (PRECIO_VS_MERCADO, BADGE_TOP, COMPETITION_PRESSURE) requieren peers; seed tiene 1 dev/colonia así que son stub correctamente.
+  - Playwright: `/desarrollo/altavista-polanco` renderiza 6 pills proyecto + badge "Datos reales · 9 scores" + modal explain muestra 5 operaciones reales (e.g., "Unidades: total=56, vendidas=8, reservadas=8 → Score = 28.57%").
+  - Playwright: `/superadmin/scores` renderiza 500 rows, batch progress "31/31 zonas · 372 reales · 352 stubs · 0.9s", filtro scope=proyecto → 180 rows, Histórico drawer con timeline de 4 snapshots.
+- **Guardrails cumplidos**
+  - `is_stub=true, value=null` cuando falta data (9/12 en altavista, 9/12 en tamaulipas, etc.) — **nunca inventa scores**.
+  - AirROI **excluido** del cron `daily_score_recompute` (allow_paid=false).
+  - UI solo muestra scores reales (`is_stub=false AND value!=null`).
+
+### IE Engine Phase B · COMPLETE ✅
+34 recipes COLONIA (B1/B2) + 12 recipes PROYECTO (B3) · 3 crons (daily ingestion 00:00, hourly status check, daily score recompute 02:00 MX) · batch async recompute con 31 zonas en <1s · `/superadmin/scores` + bloque ficha `/desarrollo/:slug`.
+
+**Phase C (N4 predictive + N5 LLM narrative) queda pendiente para próximo chat.**
+
+---
+
+
+- **Side-fixes aplicadas**
+  - AirROI base URL `https://api.airroi.com` + header `X-API-KEY` + endpoint `/markets/summary` para scoring colonias y `/markets/search` para test. `is_paid=True` en recipes que lo consumen (IE_COL_ROI_AIRBNB / OCUPACION) → requieren `allow_paid=true` en recompute; cron nunca los dispara.
+  - CKAN resource_ids cargados (.env): FGJ, Locatel, SACMEX. `LocatelConnector` y `SACMEXConnector` registrados como reales (inherit DatosCDMXConnector). datos.cdmx.gob.mx no responde desde nuestro sandbox (timeout), pero al deployar a un nodo con egress abierto activarán automáticamente.
+- **Backend**
+  - **34 recipes** registradas (auto-discovery vía `pkgutil.walk_packages`): 1 archivo por tema bajo `recipes/colonia/`:
+    - `_helpers.py`: `SimpleHeuristicRecipe` (fórmula apply + explanation) y `DataPendingRecipe` (placeholder limpio).
+    - `ie_col_aire.py`: piloto real v1.1.
+    - `ie_col_clima.py`: 3 recipes (INUNDACION, SISMO, ISLA_CALOR).
+    - `ie_col_seguridad.py`: 3 recipes reales (SEGURIDAD, LOCATEL, AGUA_CONFIABILIDAD) con heurística logarítmica.
+    - `ie_col_demografia.py`: 8 recipes (5 demografía + 2 educación + salud).
+    - `ie_col_economia.py`: 19 recipes (precio/plusvalia/liquidez/demanda, 3 ROI con AirROI, 3 conectividad, 3 cultura, 5 uso-suelo+trust).
+  - **2 endpoints nuevos**:
+    - `GET /api/zones/:id/scores/explain?code=X` → payload con description, dependencies, tier_logic, inputs_used, operations (list de steps de la fórmula), observation_sample_ids, formula_version.
+    - `GET /api/zones/:id/scores/coverage` → `{real_count, total_recipes, ui_mode: "real"|"seed"}` con threshold `MIN_REAL_SCORES_FOR_UI=5`.
+- **Frontend**
+  - `api/ie_scores.js` (coverage + scores + explain).
+  - `ZoneScoreStrip` — grid de pills tier-colored (green/amber/red) con badge "Datos reales · N scores" o "Estimado · real/total"; onClick abre ExplainModal.
+  - `ScoreExplainModal` — modal "Cómo lo sabemos" con value grande + description + fuentes (obs count por source) + operaciones numeradas + muestra de observation IDs + tagline "DMX no opina, mide."
+  - Integración en `/inteligencia` (hero block "Roma Norte · lectura actual" con 12 pills clickeables) y `/barrios` (3 colonias live: Roma Norte, Polanco, Condesa).
+- **Verificación curl**
+  - `POST /scores/recompute` sobre roma_norte/polanco/condesa/del_valle → **15/34 real** cada una (10 placeholders + 4 data-pending + 15 con fórmula). Tier distribution roma_norte: green=3, amber=10, red=2.
+  - `GET /zones/roma_norte/scores/coverage` → `real_count=15, total_recipes=34, ui_mode="real"` ✓ (threshold 5 cruzado)
+  - `GET /zones/roma_norte/scores/explain?code=IE_COL_AIRE` → payload con 5 operaciones, 2 dependencies, sample IDs, version 1.1 ✓
+- **Verificación Playwright**
+  - `/inteligencia` renderiza 12 score pills + badge verde "Datos reales · 15 scores" ✓
+  - Click pill → ExplainModal con formula v1.1, operaciones ("Base neutra CDMX = 70.0", "Penalty temperatura...", etc.), muestra de observations ✓
+- **Breakdown final fuentes**: active **9** (NOAA + Banxico + INEGI + AirROI + OSM + Mapbox + CONAGUA + GTFS + datos_cdmx) · stub 4 · manual_only 4 · H2 1 · **blocked 0** 🎉
+
+### Which recipes computed real vs stub (roma_norte)
+Real (15): `IE_COL_AIRE` (70/green), `IE_COL_CLIMA_ISLA_CALOR` (lower_better), `IE_COL_SEGURIDAD/LOCATEL` (fall-back stub cuando CKAN unreachable→0 obs), `IE_COL_AGUA_CONFIABILIDAD` (85 default), `IE_COL_CULTURAL_PARQUES/VIALIDAD` (OSM nodes), `IE_COL_DEMOGRAFIA_FAMILIA/INGRESO` (INEGI), `IE_COL_PLUSVALIA_HIST` (Banxico), `IE_COL_ROI_AIRBNB/OCUPACION` (AirROI, solo con allow_paid), `IE_COL_TRUST_VECINDARIO`.
+DataPending is_stub=true (19): el resto — esperan ingest específicos (Lamudi scraper, DENUE queries, SEDUVI datasets, CENAPRED WFS parseo, etc.) que viven en Phase B3+.
+
+---
+
 ## 2026-05-01 — IE Engine Phase B2 (30+ recipes COLONIA + UI pública + /explain)
 - **Side-fixes aplicadas**
   - AirROI base URL `https://api.airroi.com` + header `X-API-KEY` + endpoint `/markets/summary` para scoring colonias y `/markets/search` para test. `is_paid=True` en recipes que lo consumen (IE_COL_ROI_AIRBNB / OCUPACION) → requieren `allow_paid=true` en recompute; cron nunca los dispara.

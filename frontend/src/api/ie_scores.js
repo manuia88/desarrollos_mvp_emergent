@@ -10,3 +10,4 @@ const j = async (url) => {
 export const getZoneCoverage   = (zoneId) => j(`/api/zones/${zoneId}/scores/coverage`);
 export const getZoneScores     = (zoneId) => j(`/api/zones/${zoneId}/scores`);
 export const explainScore      = (zoneId, code) => j(`/api/zones/${zoneId}/scores/explain?code=${encodeURIComponent(code)}`);
+export const getDevelopmentScores = (devId) => j(`/api/developments/${devId}/scores`);

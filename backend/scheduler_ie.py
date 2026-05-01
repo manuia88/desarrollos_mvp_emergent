@@ -151,6 +151,64 @@ async def run_hourly_status_check(db):
     return results
 
 
+# ─── Job: daily score recompute (Phase B3, 02:00 MX) ─────────────────────────
+async def run_daily_score_recompute(db):
+    """Recomputes IE scores for zones with new observations in the last 24h.
+    Also recomputes project scores for all developments (data is DMX-internal, fast).
+    AirROI-backed recipes are SKIPPED automatically (is_paid=True without allow_paid)."""
+    from score_engine import ScoreEngine, all_recipes
+    from datetime import timedelta
+
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    zones_with_new_obs = await db.ie_raw_observations.distinct("zone_id", {
+        "fetched_at": {"$gte": since}, "is_stub": False,
+    })
+    # distinct(None) is allowed; filter them out to avoid computing for global obs
+    colonia_zones = [z for z in zones_with_new_obs if z]
+
+    # Always include the 4 active colonia zones even if no new obs today (keeps coverage fresh)
+    for z in ["roma_norte", "polanco", "condesa", "del_valle"]:
+        if z not in colonia_zones:
+            colonia_zones.append(z)
+
+    # All developments — cheap because recipes work on in-memory DMX data
+    try:
+        from data_developments import DEVELOPMENTS_BY_ID
+        proyecto_zones = list(DEVELOPMENTS_BY_ID.keys())
+    except ImportError:
+        proyecto_zones = []
+
+    _emit("daily_score_recompute_start", colonia=len(colonia_zones), proyecto=len(proyecto_zones))
+    engine = ScoreEngine(db)
+
+    col_codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == "colonia"]
+    proy_codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == "proyecto"]
+
+    stats = {"colonia": {"zones": 0, "real": 0, "stub": 0},
+             "proyecto": {"zones": 0, "real": 0, "stub": 0}}
+
+    for z in colonia_zones:
+        try:
+            results = await engine.compute_many(z, col_codes, allow_paid=False)
+            stats["colonia"]["zones"] += 1
+            stats["colonia"]["real"] += sum(1 for r in results if not r.is_stub and r.value is not None)
+            stats["colonia"]["stub"] += sum(1 for r in results if r.is_stub)
+        except Exception as e:  # noqa: BLE001
+            _emit("daily_score_recompute_zone_error", zone=z, scope="colonia", error=str(e))
+
+    for z in proyecto_zones:
+        try:
+            results = await engine.compute_many(z, proy_codes, allow_paid=False)
+            stats["proyecto"]["zones"] += 1
+            stats["proyecto"]["real"] += sum(1 for r in results if not r.is_stub and r.value is not None)
+            stats["proyecto"]["stub"] += sum(1 for r in results if r.is_stub)
+        except Exception as e:  # noqa: BLE001
+            _emit("daily_score_recompute_zone_error", zone=z, scope="proyecto", error=str(e))
+
+    _emit("daily_score_recompute_done", stats=stats)
+    return stats
+
+
 # ─── Scheduler boot/teardown ────────────────────────────────────────────────
 _scheduler: Optional[AsyncIOScheduler] = None
 
@@ -174,8 +232,13 @@ def start_scheduler(db):
         args=[db], id="ie_hourly_status", replace_existing=True,
         misfire_grace_time=600,
     )
+    _scheduler.add_job(
+        run_daily_score_recompute, CronTrigger(hour=2, minute=0, timezone=TZ),
+        args=[db], id="ie_daily_score_recompute", replace_existing=True,
+        misfire_grace_time=3600,
+    )
     _scheduler.start()
-    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status"])
+    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute"])
     return _scheduler
 
 
@@ -193,4 +256,6 @@ async def trigger_now(db, job: str):
         return await run_daily_ingestion(db)
     if job == "hourly_status":
         return await run_hourly_status_check(db)
+    if job == "daily_score_recompute":
+        return await run_daily_score_recompute(db)
     raise ValueError(f"Unknown cron job: {job}")

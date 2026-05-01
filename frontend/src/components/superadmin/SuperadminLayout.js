@@ -8,6 +8,7 @@ const ROLES_OK = new Set(['superadmin']);
 const NAV = [
   { k: 'dashboard',     to: '/superadmin',              label: 'Panel',          Icon: BarChart, end: true },
   { k: 'data_sources',  to: '/superadmin/data-sources', label: 'Fuentes de datos', Icon: Database },
+  { k: 'scores',        to: '/superadmin/scores',       label: 'Scores IE',      Icon: Sparkle },
 ];
 
 export default function SuperadminLayout({ user, onLogout, children }) {

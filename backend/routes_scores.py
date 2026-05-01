@@ -8,8 +8,10 @@ Endpoints:
 """
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -91,6 +93,7 @@ async def list_scores(
     zone_id: Optional[str] = Query(None),
     code: Optional[str] = Query(None),
     tier: Optional[str] = Query(None),
+    scope: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
 ):
     await _require_superadmin(request)
@@ -99,8 +102,47 @@ async def list_scores(
     if zone_id: q["zone_id"] = zone_id
     if code: q["code"] = code
     if tier: q["tier"] = tier
+    if scope:
+        codes_in_scope = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == scope]
+        q["code"] = {"$in": codes_in_scope} if "code" not in q else q["code"]
     docs = await db.ie_scores.find(q, {"_id": 0}).sort("computed_at", -1).limit(limit).to_list(length=limit)
     return [ScoreOut(**d) for d in docs]
+
+
+@sa_router.get("/scores/recipes")
+async def list_recipes_meta(request: Request):
+    """Metadata of every registered recipe — used by /superadmin/scores filter dropdowns."""
+    await _require_superadmin(request)
+    out = []
+    for code, r in all_recipes().items():
+        out.append({
+            "code": code,
+            "scope": getattr(r, "scope", "colonia"),
+            "version": r.version,
+            "tier_logic": r.tier_logic,
+            "description": r.description,
+            "is_paid": r.is_paid,
+            "dependencies": r.dependencies,
+        })
+    return {"recipes": out, "total": len(out)}
+
+
+@sa_router.get("/scores/history")
+async def score_history(
+    request: Request,
+    zone_id: str = Query(...),
+    code: str = Query(...),
+    limit: int = Query(30, ge=1, le=200),
+):
+    """Timeline (ie_score_history) for a zone/code pair. Most recent first."""
+    await _require_superadmin(request)
+    db = request.app.state.db
+    docs = await db.ie_score_history.find(
+        {"zone_id": zone_id, "code": code}, {"_id": 0},
+    ).sort("archived_at", -1).limit(limit).to_list(length=limit)
+    # Include current
+    current = await db.ie_scores.find_one({"zone_id": zone_id, "code": code}, {"_id": 0})
+    return {"current": current, "history": docs}
 
 
 # ─── Public: zone scores ─────────────────────────────────────────────────────
@@ -128,19 +170,33 @@ class ZoneCoverageOut(BaseModel):
 
 @pub_router.get("/zones/{zone_id}/scores/coverage", response_model=ZoneCoverageOut)
 async def zone_coverage(zone_id: str, request: Request):
-    """Tells the UI whether to show real scores or fall back to seed with 'estimado' badge."""
+    """Tells the UI whether to show real scores or fall back to seed with 'estimado' badge.
+    Counts only recipes with matching scope (colonia vs proyecto) to avoid diluting coverage."""
     db = request.app.state.db
+    # Detect scope: if zone_id matches a development.id → scope=proyecto, else colonia
+    try:
+        from data_developments import DEVELOPMENTS_BY_ID
+        scope = "proyecto" if zone_id in DEVELOPMENTS_BY_ID else "colonia"
+    except ImportError:
+        scope = "colonia"
+
     real_docs = await db.ie_scores.find(
         {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
         {"_id": 0},
     ).to_list(length=200)
-    total = len(all_recipes())
+    total = sum(1 for r in all_recipes().values() if getattr(r, "scope", "colonia") == scope)
     mode = "real" if len(real_docs) >= MIN_REAL_SCORES_FOR_UI else "seed"
     return ZoneCoverageOut(
         zone_id=zone_id, real_count=len(real_docs),
         total_recipes=total, ui_mode=mode,
         scores=[ScoreOut(**d) for d in real_docs],
     )
+
+
+@pub_router.get("/developments/{dev_id}/scores", response_model=ZoneCoverageOut)
+async def public_development_scores(dev_id: str, request: Request):
+    """Public endpoint — alimenta el bloque 'Score IE del proyecto' en /desarrollo/:slug."""
+    return await zone_coverage(dev_id, request)
 
 
 class ScoreExplainOut(BaseModel):
@@ -183,6 +239,8 @@ async def explain_score(zone_id: str, code: str, request: Request):
     from score_engine import ScoreEngine
     engine = ScoreEngine(db)
     obs_by_source = await engine._fetch_obs(recipe.dependencies, zone_id)
+    if getattr(recipe, "scope", "colonia") == "proyecto":
+        obs_by_source.update(await engine._build_project_context(zone_id))
     operations: List[str]
     # Only SimpleHeuristicRecipe instances have explanation(); Recipe base doesn't
     explain_fn = getattr(recipe, "explanation", None)
@@ -333,3 +391,125 @@ async def seed_historic_from_upload(payload: SeedHistoricRequest, request: Reque
         rows_parsed=rows_parsed, observations_inserted=len(observations),
         format_detected={"encoding": enc, "separator": sep},
     )
+
+
+# ─── Async batch recompute (Phase B3) ────────────────────────────────────────
+class RecomputeAllRequest(BaseModel):
+    allow_paid: bool = False            # si true, incluye recipes AirROI (paga)
+    include_colonia: bool = True
+    include_proyecto: bool = True
+    codes: List[str] = Field(default_factory=list)  # opcional: restringir a ciertos codes
+
+
+async def _recompute_batch_runner(db, task_id: str, plan: List[Dict[str, Any]], allow_paid: bool, codes_filter: List[str]):
+    """Background task — recomputes every (zone, scope) pair in the plan."""
+    started = datetime.now(timezone.utc)
+    engine = ScoreEngine(db)
+    total = len(plan)
+    processed = 0
+    real_count = 0
+    stub_count = 0
+    errors: List[str] = []
+
+    for item in plan:
+        zone_id = item["zone_id"]
+        scope = item["scope"]
+        # codes for this scope
+        codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == scope]
+        if codes_filter:
+            codes = [c for c in codes if c in codes_filter]
+        try:
+            results = await engine.compute_many(zone_id, codes, allow_paid=allow_paid)
+            real_count += sum(1 for r in results if not r.is_stub and r.value is not None)
+            stub_count += sum(1 for r in results if r.is_stub)
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"{zone_id}: {e}")
+
+        processed += 1
+        await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
+            "processed": processed,
+            "real_count": real_count,
+            "stub_count": stub_count,
+            "last_zone": zone_id,
+            "updated_at": datetime.now(timezone.utc),
+        }})
+
+    finished = datetime.now(timezone.utc)
+    await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
+        "status": "done" if not errors else ("done_with_errors" if processed > 0 else "failed"),
+        "finished_at": finished,
+        "duration_ms": int((finished - started).total_seconds() * 1000),
+        "errors": errors[-50:],
+        "real_count": real_count,
+        "stub_count": stub_count,
+        "processed": processed,
+    }})
+
+
+@sa_router.post("/scores/recompute-all")
+async def recompute_all(payload: RecomputeAllRequest, request: Request):
+    """Kickoff async batch recompute across all 16 colonias + 15 developments.
+    Returns a task_id to poll /scores/recompute-all/status."""
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+
+    # Build zone plan
+    plan: List[Dict[str, Any]] = []
+    if payload.include_colonia:
+        try:
+            from data_seed import COLONIAS
+            for c in COLONIAS:
+                plan.append({"zone_id": c["id"].replace("-", "_"), "scope": "colonia"})
+        except ImportError:
+            pass
+    if payload.include_proyecto:
+        try:
+            from data_developments import DEVELOPMENTS_BY_ID
+            for d in DEVELOPMENTS_BY_ID.values():
+                plan.append({"zone_id": d["id"], "scope": "proyecto"})
+        except ImportError:
+            pass
+
+    task_id = f"task_{uuid.uuid4().hex[:16]}"
+    now = datetime.now(timezone.utc)
+    await db.ie_recompute_tasks.insert_one({
+        "id": task_id,
+        "status": "running",
+        "scope_filter": {
+            "include_colonia": payload.include_colonia,
+            "include_proyecto": payload.include_proyecto,
+            "allow_paid": payload.allow_paid,
+            "codes": payload.codes,
+        },
+        "total": len(plan),
+        "processed": 0,
+        "real_count": 0,
+        "stub_count": 0,
+        "errors": [],
+        "started_at": now,
+        "finished_at": None,
+        "updated_at": now,
+        "triggered_by": user.user_id,
+    })
+
+    # Fire-and-forget
+    asyncio.create_task(_recompute_batch_runner(db, task_id, plan, payload.allow_paid, payload.codes))
+
+    from routes_ie_engine import audit
+    await audit(user.user_id, "ie_scores_recompute_all", None, {"task_id": task_id, "total": len(plan)})
+    return {"task_id": task_id, "total": len(plan), "status": "running"}
+
+
+@sa_router.get("/scores/recompute-all/status")
+async def recompute_all_status(request: Request, task_id: Optional[str] = Query(None)):
+    """If task_id is given → returns that task. Else → returns most recent task."""
+    await _require_superadmin(request)
+    db = request.app.state.db
+    if task_id:
+        doc = await db.ie_recompute_tasks.find_one({"id": task_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(404, f"Task {task_id} no existe")
+        return doc
+    doc = await db.ie_recompute_tasks.find_one({}, {"_id": 0}, sort=[("started_at", -1)])
+    return doc or {"status": "idle", "message": "No hay tasks previas."}
+

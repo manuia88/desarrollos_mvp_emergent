@@ -38,3 +38,22 @@ export const triggerCron    = (job) => j('/api/superadmin/cron/trigger', {
 export const getUpload      = (id) => j(`/api/superadmin/uploads/${id}`);
 export const reprocessUpload = (id) => j(`/api/superadmin/uploads/${id}/process`, { method: 'POST' });
 export const downloadUploadUrl = (id) => `${API}/api/superadmin/uploads/${id}/download`;
+
+// Phase B3 — scores admin
+export const listScores = (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([_, v]) => v != null && v !== '')).toString();
+  return j(`/api/superadmin/scores${qs ? `?${qs}` : ''}`);
+};
+export const listRecipes = () => j('/api/superadmin/scores/recipes');
+export const scoreHistory = (zoneId, code) => j(`/api/superadmin/scores/history?zone_id=${encodeURIComponent(zoneId)}&code=${encodeURIComponent(code)}`);
+export const recomputeAll = (body = {}) => j('/api/superadmin/scores/recompute-all', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ allow_paid: false, include_colonia: true, include_proyecto: true, ...body }),
+});
+export const recomputeAllStatus = (taskId) => j(`/api/superadmin/scores/recompute-all/status${taskId ? `?task_id=${taskId}` : ''}`);
+export const recomputeZone = (zoneId, codes = [], allowPaid = false) => j('/api/superadmin/scores/recompute', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ zone_id: zoneId, codes, allow_paid: allowPaid }),
+});

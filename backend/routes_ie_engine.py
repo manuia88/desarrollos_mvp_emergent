@@ -714,7 +714,7 @@ class CronTriggerIn(BaseModel):
 class CronTriggerOut(BaseModel):
     job: str
     triggered_at: datetime
-    summary: List[Dict[str, Any]]
+    summary: Any  # list for ingestion/status, dict for daily_score_recompute
 
 
 @router.post("/cron/trigger", response_model=CronTriggerOut)
@@ -722,8 +722,8 @@ async def trigger_cron(payload: CronTriggerIn, request: Request):
     """Force-run a cron job from the UI (manual tick). Useful while the daily cron has not fired yet."""
     user = await _require_superadmin(request)
     db = request.app.state.db
-    if payload.job not in ("daily_ingestion", "hourly_status"):
-        raise HTTPException(400, "Job desconocido. Usa 'daily_ingestion' o 'hourly_status'.")
+    if payload.job not in ("daily_ingestion", "hourly_status", "daily_score_recompute"):
+        raise HTTPException(400, "Job desconocido. Usa 'daily_ingestion', 'hourly_status' o 'daily_score_recompute'.")
     summary = await trigger_now(db, payload.job)
     await audit(user.user_id, "ie_cron_trigger", payload.job, {"results": summary})
-    return CronTriggerOut(job=payload.job, triggered_at=datetime.now(timezone.utc), summary=summary or [])
+    return CronTriggerOut(job=payload.job, triggered_at=datetime.now(timezone.utc), summary=summary if summary is not None else [])

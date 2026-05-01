@@ -13,6 +13,8 @@ import AmenitiesTab from '../components/dev/AmenitiesTab';
 import LocationTab from '../components/dev/LocationTab';
 import Sidebar from '../components/dev/Sidebar';
 import RegistrationModal from '../components/dev/RegistrationModal';
+import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
+import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 
 const STAGE_COLORS = {
   preventa: '#10B981',
@@ -29,6 +31,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateContext, setGateContext] = useState(null);
+  const [explain, setExplain] = useState(null); // { zoneId, code } | null
 
   useEffect(() => {
     fetchDevelopment(id).then(setDev).catch(() => setDev(null));
@@ -119,6 +122,36 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
           <PhotoGallery dev={dev} />
 
+          {/* Score IE del proyecto — nueva sección entre hero y tabs (Phase B3) */}
+          <section data-testid="dev-ie-scores" style={{
+            marginTop: 28, padding: '22px 24px',
+            background: 'linear-gradient(180deg, rgba(99,102,241,0.06), rgba(236,72,153,0.03))',
+            border: '1px solid var(--border)',
+            borderRadius: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 6 }}>
+              <div>
+                <div className="eyebrow" style={{ margin: 0, letterSpacing: '0.14em' }}>Score IE del proyecto</div>
+                <h2 style={{
+                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 'clamp(20px, 2.6vw, 28px)',
+                  letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 0',
+                }}>
+                  Cómo mide DMX a <span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{dev.name}</span>
+                </h2>
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', maxWidth: 360, lineHeight: 1.45 }}>
+                12 indicadores cruzan inventario DMX, track record del developer y comparativa de mercado. <strong style={{ color: 'var(--cream)' }}>DMX no opina, mide.</strong>
+              </div>
+            </div>
+            <ZoneScoreStrip
+              zoneId={dev.id}
+              scope="proyecto"
+              limit={6}
+              title=" "
+              onScoreClick={s => setExplain({ zoneId: dev.id, code: s.code })}
+            />
+          </section>
+
           {/* Layout */}
           <div className="dev-grid" style={{
             display: 'grid', gridTemplateColumns: '1fr 380px', gap: 32,
@@ -179,6 +212,13 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         onClose={() => setGateOpen(false)}
         onLogin={onLogin}
         context={gateContext}
+      />
+
+      <ScoreExplainModal
+        open={!!explain}
+        zoneId={explain?.zoneId}
+        code={explain?.code}
+        onClose={() => setExplain(null)}
       />
 
       <style>{`

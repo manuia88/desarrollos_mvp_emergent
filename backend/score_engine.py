@@ -47,6 +47,7 @@ class Recipe:
     description: str = ""
     min_observations: int = 1                  # min raw observations required to compute non-stub
     is_paid: bool = False                      # True → requires allow_paid=True (e.g. AirROI)
+    scope: str = "colonia"                    # "colonia" | "proyecto"
 
     def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
         raise NotImplementedError
@@ -136,6 +137,30 @@ class ScoreEngine:
             out.setdefault(d["source_id"], []).append(d)
         return out
 
+    async def _build_project_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """For project recipes: inject DMX-internal data (dev doc, colonia scores, all devs)
+        under pseudo source_ids so recipes can stay pure and declarative."""
+        try:
+            from data_developments import DEVELOPMENTS_BY_ID
+        except ImportError:
+            return {}
+        dev = DEVELOPMENTS_BY_ID.get(zone_id)
+        if not dev:
+            return {}
+        colonia_zone = (dev.get("colonia_id") or "").replace("-", "_")
+        colonia_docs = await self.db.ie_scores.find(
+            {"zone_id": colonia_zone, "is_stub": False, "value": {"$ne": None}},
+            {"_id": 0},
+        ).to_list(length=100) if colonia_zone else []
+        # all devs in the same colonia (competition / market comparables)
+        same_colonia = [d for d in DEVELOPMENTS_BY_ID.values() if d.get("colonia_id") == dev.get("colonia_id") and d["id"] != dev["id"]]
+        return {
+            "_dmx_dev": [{"payload": dev, "is_stub": False}],
+            "_dmx_colonia_scores": [{"payload": d, "is_stub": False} for d in colonia_docs],
+            "_dmx_same_colonia_devs": [{"payload": d, "is_stub": False} for d in same_colonia],
+            "_dmx_all_devs": [{"payload": d, "is_stub": False} for d in DEVELOPMENTS_BY_ID.values()],
+        }
+
     async def compute_one(self, zone_id: str, code: str, allow_paid: bool = False) -> ScoreResult:
         recipe = get_recipe(code)
         if not recipe:
@@ -146,6 +171,8 @@ class ScoreEngine:
             return recipe._stub_result(zone_id, reason="paid recipe skipped")
 
         obs = await self._fetch_obs(recipe.dependencies, zone_id)
+        if recipe.scope == "proyecto":
+            obs.update(await self._build_project_context(zone_id))
         try:
             result = recipe.compute(zone_id, obs)
         except Exception as e:  # noqa: BLE001 — recipes must be pure; catch defensively
@@ -156,7 +183,17 @@ class ScoreEngine:
         return result
 
     async def compute_many(self, zone_id: str, codes: List[str], allow_paid: bool = False) -> List[ScoreResult]:
-        codes = codes or list(all_recipes().keys())
+        """If codes=[], auto-scope by zone_id:
+           - zone_id matches a development.id → only proyecto recipes
+           - otherwise → only colonia recipes
+        Explicit `codes` override scoping."""
+        if not codes:
+            try:
+                from data_developments import DEVELOPMENTS_BY_ID
+                target_scope = "proyecto" if zone_id in DEVELOPMENTS_BY_ID else "colonia"
+            except ImportError:
+                target_scope = "colonia"
+            codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == target_scope]
         results: List[ScoreResult] = []
         for code in codes:
             results.append(await self.compute_one(zone_id, code, allow_paid=allow_paid))
