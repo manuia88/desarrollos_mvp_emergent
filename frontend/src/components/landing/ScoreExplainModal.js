@@ -86,6 +86,48 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
               </div>
             </div>
 
+            {/* Predictive metadata (N4 Phase C1) */}
+            {data.layer === 'predictive' && (
+              <div data-testid="explain-predictive" style={{
+                padding: 14, marginBottom: 14,
+                background: 'linear-gradient(180deg, rgba(236,72,153,0.06), rgba(99,102,241,0.04))',
+                border: '1px solid rgba(236,72,153,0.24)',
+                borderRadius: 14,
+              }}>
+                <div className="eyebrow" style={{ marginBottom: 8 }}>
+                  MODELO PREDICTIVO · N4
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-2)' }}>
+                  <div>
+                    <div style={{ color: 'var(--cream-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Modelo</div>
+                    <strong style={{ color: 'var(--cream)' }}>{data.model_version || '—'}</strong>
+                  </div>
+                  {data.confidence_interval && (
+                    <div>
+                      <div style={{ color: 'var(--cream-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
+                        IC {data.confidence_interval.percentile}%
+                      </div>
+                      <strong style={{ color: 'var(--cream)' }}>
+                        [{data.confidence_interval.low} · {data.confidence_interval.high}]
+                      </strong>
+                    </div>
+                  )}
+                  {data.training_window_days != null && (
+                    <div>
+                      <div style={{ color: 'var(--cream-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Ventana</div>
+                      <strong style={{ color: 'var(--cream)' }}>{data.training_window_days} días</strong>
+                    </div>
+                  )}
+                  {data.residual_std != null && (
+                    <div>
+                      <div style={{ color: 'var(--cream-3)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Error estándar</div>
+                      <strong style={{ color: 'var(--cream)' }}>σ = {data.residual_std}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Dependencies */}
             <div style={{ marginBottom: 14 }}>
               <div className="eyebrow" style={{ marginBottom: 6 }}>FUENTES</div>

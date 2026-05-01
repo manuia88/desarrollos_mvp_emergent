@@ -59,10 +59,32 @@ const CODE_LABELS = {
   IE_PROY_DEVELOPER_TRUST: 'Dev trust',
   IE_PROY_DEVELOPER_DELIVERY_HIST: 'Delivery histórico',
   IE_PROY_COMPETITION_PRESSURE: 'Presión competencia',
+  // ─── N4 Predictive (Phase C1) ────────────────────────────────────────
+  IE_COL_PLUSVALIA_PROYECTADA: 'Plusvalía 5y proyectada',
+  IE_PROY_DAYS_TO_SELLOUT: 'Días a sellout',
+  IE_PROY_ROI_BUYER: 'ROI comprador 5y',
+};
+
+// Predictive scores render in native units, not 0-100. Define per-code formatter.
+const PRED_FORMATTERS = {
+  IE_COL_PLUSVALIA_PROYECTADA: (v, ci) => ({
+    main: `${v.toFixed(1)}%`,
+    sub: ci ? `±${((ci.high - ci.low) / 2).toFixed(1)}% IC${ci.percentile}` : 'anual',
+  }),
+  IE_PROY_DAYS_TO_SELLOUT: (v, ci) => ({
+    main: `${Math.round(v)}d`,
+    sub: ci ? `IC${ci.percentile} [${Math.round(ci.low)}–${Math.round(ci.high)}d]` : 'estimado',
+  }),
+  IE_PROY_ROI_BUYER: (v, ci) => ({
+    main: `${v > 0 ? '+' : ''}${v.toFixed(0)}%`,
+    sub: ci ? `IC${ci.percentile} [${ci.low.toFixed(0)}%–${ci.high.toFixed(0)}%]` : '5 años',
+  }),
 };
 
 const ScorePill = ({ score, onClick }) => {
   const tone = TIER_TONES[score.tier] || TIER_TONES.unknown;
+  const fmt = PRED_FORMATTERS[score.code];
+  const pred = fmt && score.value != null ? fmt(score.value, score.confidence_interval) : null;
   return (
     <button
       data-testid={`score-pill-${score.code}`}
@@ -83,11 +105,11 @@ const ScorePill = ({ score, onClick }) => {
         {CODE_LABELS[score.code] || score.code}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: tone.fg, letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {score.value != null ? score.value.toFixed(0) : '—'}
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: pred ? 20 : 22, color: tone.fg, letterSpacing: '-0.02em', lineHeight: 1 }}>
+          {pred ? pred.main : (score.value != null ? score.value.toFixed(0) : '—')}
         </span>
         <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {tone.label}
+          {pred ? pred.sub : tone.label}
         </span>
       </div>
     </button>
@@ -167,7 +189,9 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {data.scores.slice(0, limit).map(s => (
+          {[...data.scores]
+            .sort((a, b) => (b.model_version ? 1 : 0) - (a.model_version ? 1 : 0))
+            .slice(0, limit).map(s => (
             <ScorePill key={s.code} score={s} onClick={onScoreClick} />
           ))}
           {data.scores.length > limit && (

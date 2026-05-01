@@ -156,7 +156,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
             <ZoneScoreStrip
               zoneId={dev.id}
               scope="proyecto"
-              limit={6}
+              limit={8}
               title=" "
               onScoreClick={s => setExplain({ zoneId: dev.id, code: s.code })}
             />

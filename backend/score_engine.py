@@ -36,6 +36,11 @@ class ScoreResult:
     inputs_used: Dict[str, int] = field(default_factory=dict)  # source_id → obs count
     formula_version: str = "1.0"
     computed_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    # ─── Phase C / N4 Predictive extensions (optional for N1-N2) ───────────
+    model_version: Optional[str] = None
+    confidence_interval: Optional[Dict[str, float]] = None  # {low, high, percentile}
+    training_window_days: Optional[int] = None
+    residual_std: Optional[float] = None
 
 
 class Recipe:
@@ -48,6 +53,7 @@ class Recipe:
     min_observations: int = 1                  # min raw observations required to compute non-stub
     is_paid: bool = False                      # True → requires allow_paid=True (e.g. AirROI)
     scope: str = "colonia"                    # "colonia" | "proyecto"
+    layer: str = "descriptive"                # "descriptive" (N1-N2) | "predictive" (N4) | "narrative" (N5)
 
     def compute(self, zone_id: str, obs_by_source: Dict[str, List[Dict[str, Any]]]) -> ScoreResult:
         raise NotImplementedError
@@ -152,13 +158,30 @@ class ScoreEngine:
             {"zone_id": colonia_zone, "is_stub": False, "value": {"$ne": None}},
             {"_id": 0},
         ).to_list(length=100) if colonia_zone else []
+        # own project scores (for predictive recipes that depend on own N1-N2)
+        own_proj_scores = await self.db.ie_scores.find(
+            {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
+            {"_id": 0},
+        ).to_list(length=100)
         # all devs in the same colonia (competition / market comparables)
         same_colonia = [d for d in DEVELOPMENTS_BY_ID.values() if d.get("colonia_id") == dev.get("colonia_id") and d["id"] != dev["id"]]
         return {
             "_dmx_dev": [{"payload": dev, "is_stub": False}],
             "_dmx_colonia_scores": [{"payload": d, "is_stub": False} for d in colonia_docs],
+            "_dmx_own_proj_scores": [{"payload": d, "is_stub": False} for d in own_proj_scores],
             "_dmx_same_colonia_devs": [{"payload": d, "is_stub": False} for d in same_colonia],
             "_dmx_all_devs": [{"payload": d, "is_stub": False} for d in DEVELOPMENTS_BY_ID.values()],
+        }
+
+    async def _build_colonia_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """For predictive colonia recipes: inject the colonia's own IE scores (N1-N2)
+        so N4 regressions can consume them as direct features."""
+        own_scores = await self.db.ie_scores.find(
+            {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
+            {"_id": 0},
+        ).to_list(length=100)
+        return {
+            "_dmx_own_colonia_scores": [{"payload": d, "is_stub": False} for d in own_scores],
         }
 
     async def compute_one(self, zone_id: str, code: str, allow_paid: bool = False) -> ScoreResult:
@@ -173,6 +196,9 @@ class ScoreEngine:
         obs = await self._fetch_obs(recipe.dependencies, zone_id)
         if recipe.scope == "proyecto":
             obs.update(await self._build_project_context(zone_id))
+        elif getattr(recipe, "layer", "descriptive") == "predictive":
+            # predictive colonia recipes need the colonia's own N1-N2 scores
+            obs.update(await self._build_colonia_context(zone_id))
         try:
             result = recipe.compute(zone_id, obs)
         except Exception as e:  # noqa: BLE001 — recipes must be pure; catch defensively
@@ -212,6 +238,15 @@ class ScoreEngine:
             "formula_version": r.formula_version,
             "computed_at": r.computed_at,
         }
+        # Phase C / N4 predictive extras — only persisted if set
+        if r.model_version is not None:
+            doc["model_version"] = r.model_version
+        if r.confidence_interval is not None:
+            doc["confidence_interval"] = r.confidence_interval
+        if r.training_window_days is not None:
+            doc["training_window_days"] = r.training_window_days
+        if r.residual_std is not None:
+            doc["residual_std"] = r.residual_std
         await self.db.ie_scores.update_one(
             {"zone_id": r.zone_id, "code": r.code},
             {"$set": doc},

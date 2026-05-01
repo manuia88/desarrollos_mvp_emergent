@@ -126,6 +126,55 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Chunk 2 · Sub-chunk C1 · IE Engine Phase C N4 Predictive
+- **Base** `PredictiveRecipe` (`backend/recipes/predictive/_helpers.py`) extiende `Recipe` con `layer="predictive"`, `model_version`, `confidence_interval {low, high, percentile}`, `training_window_days`, `residual_std`. Pure + deterministic + versioned.
+- **3 recipes N4 nuevas**:
+  - `IE_COL_PLUSVALIA_PROYECTADA` (scope=colonia · model `lin_reg_v1` · IC 80%) — regresión lineal sobre `IE_COL_PLUSVALIA_HIST` + 5 features demográficas INEGI. Coeficientes β fijos (deterministas). Degrada a stub si falta PLUSVALIA_HIST o <2 features demográficas.
+  - `IE_PROY_DAYS_TO_SELLOUT` (proyecto · `absorp_linreg_v1` · IC 70%) — velocidad = absorbidas/ramp-up por stage × listing_health factor (0.7–1.3). Tier lower_better (<180=green, 180-365=amber, >365=red).
+  - `IE_PROY_ROI_BUYER` (proyecto · `compound_v1` · IC 80%) — compuesto 5 años: (1+plusvalía)^5 + renta_5y − tx_costs 10% − opp_cost CETES 8.5%×5. IC heredada del IC de `IE_COL_PLUSVALIA_PROYECTADA`. Tier: ≥40%=green, 15-40%=amber, <15%=red.
+- **Engine extensions**
+  - `ScoreEngine._build_colonia_context()` inyecta `_dmx_own_colonia_scores` para que N4 colonia consuman scores propios N1-N2 sin requerir SQL extra.
+  - `_build_project_context()` enriquecido con `_dmx_own_proj_scores`.
+  - `_persist()` ahora guarda 4 campos extra opcionales (`model_version`, `confidence_interval`, `training_window_days`, `residual_std`) cuando están presentes.
+- **Endpoints**
+  - `POST /api/superadmin/scores/recompute-all` nuevo flag `layer: "all"|"descriptive"|"predictive"`. Cuando `all` ejecuta **2-pass**: descriptive primero para que N4 tenga scores N1-N2 disponibles; predictive después.
+  - `GET /api/zones/:id/scores/explain` ahora devuelve: `layer`, `model_version`, `confidence_interval`, `training_window_days`, `residual_std`, `prediction_date`.
+- **Frontend**
+  - `ZoneScoreStrip`: labels IE_COL_PLUSVALIA_PROYECTADA / IE_PROY_DAYS_TO_SELLOUT / IE_PROY_ROI_BUYER. Nuevo `PRED_FORMATTERS` renderiza en unidades nativas (`3.2%`, `1147d`, `-43%`) con sub-text IC. Sort automático sube predictivos al top. Limit 8 en ficha (antes 6) — garantiza los 3 N4 visibles + 5 N1-N2.
+  - `ScoreExplainModal`: nuevo bloque "MODELO PREDICTIVO · N4" (solo si `data.layer === 'predictive'`) con 4 campos: Modelo / IC % / Ventana / Error estándar.
+
+### Verificación C1
+- `POST /recompute-all {layer:"all"}` → task procesa **68 pares** (34 zonas × 2 pasadas) en 2.1s.
+- **Cobertura N4 = 52/52 reales, 0 stubs**:
+  - IE_COL_PLUSVALIA_PROYECTADA: 16/16 colonias
+  - IE_PROY_DAYS_TO_SELLOUT: 18/18 developments
+  - IE_PROY_ROI_BUYER: 18/18 developments
+- Roma Norte `IE_COL_PLUSVALIA_PROYECTADA` → `value=3.21%, IC[2.19, 4.23], conf=high, window=1095d`.
+- Altavista Polanco `IE_PROY_DAYS_TO_SELLOUT` → `1147.5d (tier red), IC 70% [745–1549]`.
+- Altavista Polanco `IE_PROY_ROI_BUYER` → `-43.25% (tier red), IC 80% [-48.93, -37.35]` — auditable: plusvalía esperada (3.21%×5≈17%) < CETES acumulado 50% − tx 10%. Fórmula fiel.
+- Playwright ficha `/desarrollo/altavista-polanco`: 8 pills con **DAYS_TO_SELLOUT y ROI_BUYER primero**, modal explain muestra bloque "MODELO PREDICTIVO · N4" con `compound_v1`, IC, ventana, σ.
+
+**IE Engine layers: N1-N2 (46 desc) + N4 (3 pred) · 49 total.** Phase C1 done, pending C2 LLM narrative.
+
+---
+
+
+- **Backend** · `GET /api/developments/:id/rank` → `{rank, total, badge_tier, colonia}`. Ordena peers por `IE_PROY_BADGE_TOP.value`, devuelve `null` si total==1 (no overshare). Tiers: `top` (rank 1 con score real), `high` (top 30%), `mid` (resto), `null` (sin peers o sin score).
+- **Frontend** · `DevelopmentCard` con overlay `IERankPill` bottom-left sobre la foto:
+  - `top`  → pill gradient navy→indigo→pink "1º EN POLANCO" con Sparkle icon.
+  - `high` → pill verde "TOP 30% EN {colonia}".
+  - `null` / `mid` → **nada** (evita ruido visual en cards sin peers).
+  - Hover → lift −2px + tooltip "Basado en IE Score · click para ver detalles".
+  - Link destino ahora `desarrollo/:id#ie-scores` → scroll automático al bloque Score IE.
+- **DevelopmentDetail** · section id="ie-scores" + `useEffect` que hace `scrollIntoView({behavior:'smooth'})` si el hash matchea.
+- **Verificación**
+  - `curl /api/developments/altavista-polanco/rank` → `{rank:1, total:2, badge_tier:"top"}` ✓
+  - `curl /api/developments/polanco-moderno/rank` → `{rank:2, total:2, badge_tier:"mid"}` ✓ (sin pill)
+  - `curl /api/developments/juarez-boutique/rank` → `{rank:1, total:1, badge_tier:null}` ✓
+  - Playwright `/marketplace` → 18 cards, **3 top pills**, 0 high pills (con solo 2 peers por colonia, top 30% = rank 1 exacto).
+
+---
+
 ## 2026-05-01 — Chunk 1-bis · Badge "1º / Nº en su colonia" en marketplace
 - **Backend** · `GET /api/developments/:id/rank` → `{rank, total, badge_tier, colonia}`. Ordena peers por `IE_PROY_BADGE_TOP.value`, devuelve `null` si total==1 (no overshare). Tiers: `top` (rank 1 con score real), `high` (top 30%), `mid` (resto), `null` (sin peers o sin score).
 - **Frontend** · `DevelopmentCard` con overlay `IERankPill` bottom-left sobre la foto:

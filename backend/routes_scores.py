@@ -48,6 +48,11 @@ class ScoreOut(BaseModel):
     inputs_used: Dict[str, int] = Field(default_factory=dict)
     formula_version: str = "1.0"
     computed_at: datetime
+    # Phase C / N4 extras
+    model_version: Optional[str] = None
+    confidence_interval: Optional[Dict[str, float]] = None
+    training_window_days: Optional[int] = None
+    residual_std: Optional[float] = None
 
 
 class RecomputeResult(BaseModel):
@@ -213,6 +218,13 @@ class ScoreExplainOut(BaseModel):
     inputs_used: Dict[str, int]
     operations: List[str]
     observation_sample_ids: List[str] = Field(default_factory=list)
+    # Phase C / N4 extras
+    layer: str = "descriptive"
+    model_version: Optional[str] = None
+    confidence_interval: Optional[Dict[str, float]] = None
+    training_window_days: Optional[int] = None
+    residual_std: Optional[float] = None
+    prediction_date: Optional[datetime] = None
 
 
 @pub_router.get("/zones/{zone_id}/scores/explain", response_model=ScoreExplainOut)
@@ -241,6 +253,8 @@ async def explain_score(zone_id: str, code: str, request: Request):
     obs_by_source = await engine._fetch_obs(recipe.dependencies, zone_id)
     if getattr(recipe, "scope", "colonia") == "proyecto":
         obs_by_source.update(await engine._build_project_context(zone_id))
+    if getattr(recipe, "layer", "descriptive") == "predictive" and getattr(recipe, "scope", "colonia") == "colonia":
+        obs_by_source.update(await engine._build_colonia_context(zone_id))
     operations: List[str]
     # Only SimpleHeuristicRecipe instances have explanation(); Recipe base doesn't
     explain_fn = getattr(recipe, "explanation", None)
@@ -267,6 +281,12 @@ async def explain_score(zone_id: str, code: str, request: Request):
         dependencies=recipe.dependencies, tier_logic=recipe.tier_logic,
         inputs_used=doc.get("inputs_used", {}),
         operations=operations, observation_sample_ids=sample_ids,
+        layer=getattr(recipe, "layer", "descriptive"),
+        model_version=doc.get("model_version"),
+        confidence_interval=doc.get("confidence_interval"),
+        training_window_days=doc.get("training_window_days"),
+        residual_std=doc.get("residual_std"),
+        prediction_date=doc.get("computed_at") if getattr(recipe, "layer", "descriptive") == "predictive" else None,
     )
 
 
@@ -399,40 +419,56 @@ class RecomputeAllRequest(BaseModel):
     include_colonia: bool = True
     include_proyecto: bool = True
     codes: List[str] = Field(default_factory=list)  # opcional: restringir a ciertos codes
+    layer: str = "all"                  # "all" | "descriptive" | "predictive"
 
 
-async def _recompute_batch_runner(db, task_id: str, plan: List[Dict[str, Any]], allow_paid: bool, codes_filter: List[str]):
-    """Background task — recomputes every (zone, scope) pair in the plan."""
+async def _recompute_batch_runner(db, task_id: str, plan: List[Dict[str, Any]], allow_paid: bool, codes_filter: List[str], layer_filter: str = "all"):
+    """Background task — recomputes every (zone, scope) pair in the plan.
+    layer_filter: all | descriptive | predictive — restricts to a layer to save cycles.
+
+    IMPORTANT: For layer='all' we run a 2-pass strategy:
+      Pass 1 → descriptive (N1-N2) on all zones. Persists to ie_scores.
+      Pass 2 → predictive (N4) on all zones, now with N1-N2 stored and available
+               as '_dmx_own_colonia_scores' / '_dmx_own_proj_scores' context.
+    """
     started = datetime.now(timezone.utc)
     engine = ScoreEngine(db)
-    total = len(plan)
     processed = 0
     real_count = 0
     stub_count = 0
     errors: List[str] = []
 
-    for item in plan:
-        zone_id = item["zone_id"]
-        scope = item["scope"]
-        # codes for this scope
-        codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == scope]
-        if codes_filter:
-            codes = [c for c in codes if c in codes_filter]
-        try:
-            results = await engine.compute_many(zone_id, codes, allow_paid=allow_paid)
-            real_count += sum(1 for r in results if not r.is_stub and r.value is not None)
-            stub_count += sum(1 for r in results if r.is_stub)
-        except Exception as e:  # noqa: BLE001
-            errors.append(f"{zone_id}: {e}")
+    if layer_filter == "all":
+        layers_to_run = ["descriptive", "predictive"]
+    else:
+        layers_to_run = [layer_filter]
 
-        processed += 1
-        await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
-            "processed": processed,
-            "real_count": real_count,
-            "stub_count": stub_count,
-            "last_zone": zone_id,
-            "updated_at": datetime.now(timezone.utc),
-        }})
+    for layer in layers_to_run:
+        for item in plan:
+            zone_id = item["zone_id"]
+            scope = item["scope"]
+            codes = [c for c, r in all_recipes().items()
+                     if getattr(r, "scope", "colonia") == scope
+                     and getattr(r, "layer", "descriptive") == layer]
+            if codes_filter:
+                codes = [c for c in codes if c in codes_filter]
+            if not codes:
+                continue
+            try:
+                results = await engine.compute_many(zone_id, codes, allow_paid=allow_paid)
+                real_count += sum(1 for r in results if not r.is_stub and r.value is not None)
+                stub_count += sum(1 for r in results if r.is_stub)
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"{zone_id} [{layer}]: {e}")
+
+            processed += 1
+            await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
+                "processed": processed,
+                "real_count": real_count,
+                "stub_count": stub_count,
+                "last_zone": f"{zone_id} ({layer})",
+                "updated_at": datetime.now(timezone.utc),
+            }})
 
     finished = datetime.now(timezone.utc)
     await db.ie_recompute_tasks.update_one({"id": task_id}, {"$set": {
@@ -493,7 +529,7 @@ async def recompute_all(payload: RecomputeAllRequest, request: Request):
     })
 
     # Fire-and-forget
-    asyncio.create_task(_recompute_batch_runner(db, task_id, plan, payload.allow_paid, payload.codes))
+    asyncio.create_task(_recompute_batch_runner(db, task_id, plan, payload.allow_paid, payload.codes, payload.layer))
 
     from routes_ie_engine import audit
     await audit(user.user_id, "ie_scores_recompute_all", None, {"task_id": task_id, "total": len(plan)})
