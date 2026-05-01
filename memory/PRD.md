@@ -364,8 +364,81 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 ### Phase 7 — Document Intelligence
 - **Phase 7.1 ✅** Upload + OCR + Fernet storage + multi-tenant guard
 - **Phase 7.2 ✅** Claude structured extraction + auto-trigger post-OCR + tab UI
-- Phase 7.3 ⏳ Cross-checking entre documentos (precios escritura vs LP, vigencias predial, SEDUVI vs licencia, etc.)
+- **Phase 7.3 ✅** Cross-Check Engine (5 reglas deterministas) + IE recipes (RISK_LEGAL, COMPLIANCE_SCORE, QUALITY_DOCS) + GC-X4 pricing block
 - Phase 7.4 ⏳ Documents page completa en Developer Portal (read-only summary + tab por tipo)
+
+---
+
+## 2026-05-01 — Phase 7.3 · Cross-Check Engine + GC-X4 (Moat #2 Wave 3)
+**Objetivo:** detectar inconsistencias deterministas entre extracted_data de documentos del mismo desarrollo y bloquear cambios de pricing si hay críticas. Cero LLM, todo reglas auditables.
+
+### Backend
+- **Nuevo `cross_check_engine.py`** — 5 rule classes registradas:
+  - **R1 `precio_escritura_vs_lp`**: delta entre `contrato_cv.precio` y mediana de `lp.unidades.precio`. >5% → warning, ≤5% → pass.
+  - **R2 `vigencia_predial`**: `predial.vigencia` < hoy → critical · `monto_pagado` null → warning · vigente + monto → pass.
+  - **R3 `seduvi_vs_lp_unidades`**: `lp.unidades.length > permiso_seduvi.unidades_autorizadas` → critical.
+  - **R4 `licencia_m2_total`**: `Σ lp.unidades.m2 > licencia.m2_construccion × 1.05` → critical.
+  - **R5 `rfc_constancia_vs_dev`**: `constancia_fiscal.rfc != DEVELOPERS_BY_ID[dev.developer_id].rfc` → critical (inconclusive si dev sin RFC en catálogo).
+  - Cada rule devuelve `{severity, result, expected, actual, delta_pct, refs[], message}`.
+  - Rules con inputs faltantes → result `inconclusive` (no bloquea, no falla).
+- **Schema `di_cross_checks`**: id, development_id, rule_id, rule_description, severity (info|warning|critical), result (pass|fail|inconclusive), expected, actual, delta_pct, referenced_document_ids[], message, created_at, engine_version. Index único `(development_id, rule_id)` — replace en cada run.
+- **Auto-trigger** post-extraction: `extraction_engine.run_extraction` ahora encola `cross_check_engine.auto_trigger_after_extraction` cuando dev tiene ≥2 docs `extracted`.
+- **3 endpoints** + 2 dev_alias:
+  - `POST /api/superadmin/developments/{dev_id}/cross-check` — manual trigger (sync wait, devuelve summary + results).
+  - `GET /api/superadmin/developments/{dev_id}/cross-check` — último resultado per rule + summary aggregates.
+  - `GET /api/superadmin/cross-checks/{cc_id}` — detalle individual.
+  - `GET /api/superadmin/cross-checks/stats/global` — count global de devs con criticals (filtrado por tenant).
+- **3 IE recipes nuevas** en `recipes/proyecto/ie_proy_docs.py`:
+  - **`IE_PROY_RISK_LEGAL`** — critical_count > 0 → 0 (red), warning_count > 0 → 50 (amber), clean → 100 (green).
+  - **`IE_PROY_COMPLIANCE_SCORE`** — `passed/applicable × 100`.
+  - **`IE_PROY_QUALITY_DOCS`** — `len(present_canonical_types) / 10 × 100` (10 tipos canónicos: lp, brochure, escritura, permiso_seduvi, estudio_suelo, licencia_construccion, predial, plano_arquitectonico, contrato_cv, constancia_fiscal).
+- **`score_engine._build_project_context`** ahora inyecta `_dmx_cross_checks` y `_dmx_extracted_docs` al contexto. Score recompute automático al final de `run_cross_check`.
+- **GC-X4 — Bloqueo Dynamic Pricing**:
+  - `routes_developer.act_on_suggestion` (PATCH `/pricing/suggestions/{sid}`) ahora chequea `cross_check_engine.has_critical(dev_id)` cuando `status=applied`.
+  - Bloqueado → HTTP 409 con detail `{error: cross_check_critical_pending, message, dev_id}`.
+  - Nuevo endpoint `GET /api/desarrollador/pricing/cross-check-warnings` — lista devs bloqueados con sus rules para banner UI.
+
+### Frontend
+- **Nuevo `components/documents/CrossCheckView.js`** — header summary con counts (criticals/warnings/passed/inconclusive) + botón "Re-ejecutar reglas", lista de 5 cards por rule con:
+  - Pill severity (CRÍTICO ámbar / WARNING ámbar / INFO indigo) + Pill result (PASS verde / FAIL rojo / INCONCLUSO gris).
+  - Mensaje en bloque + grid Esperado/Actual/Δ% en monoespacio.
+  - Pills clickeables de `referenced_document_ids` (linkean al drawer del doc — TODO 7.4 cross-doc nav).
+- **`DocumentsList.js` PreviewDrawer**: 3er tab "Cross-check" agregado.
+- **`DocumentsPage.js` stats strip**: 6 card "Inconsistencias críticas" con tone `crit` (rojo) cuando count > 0.
+- **`DesarrolladorPricing.js`**: banner GC-X4 ámbar/rojo cuando `blocked_count > 0`, lista pills con dev_name + count de reglas. Toast del act() captura el 409 y muestra el mensaje del backend.
+- **`api/documents.js`** + 4 helpers: `triggerCrossCheck`, `getDevCrossCheck`, `getCrossCheckStats`, `getPricingCrossCheckWarnings`.
+
+### Verificación end-to-end
+- Subí 4 docs adversariales en altavista-polanco (LP existente con 5 unidades + Σ m²=600):
+  - SEDUVI con `unidades_autorizadas=3` → R3 → **critical** (5>3, +66.67%).
+  - Licencia con `m2_construccion=400` → R4 → **critical** (Σ=600 > 400×1.05, +50%).
+  - Predial con `vigencia=2025-12-31` → R2 → **critical** (vencido).
+  - Constancia con `rfc=WRONG12345AB` → R5 → **inconclusive** (developer sin RFC en data_developers — comportamiento honesto).
+- Auto-trigger post-extraction corrió. Cross-check resultado: `criticals=3, warnings=0, passed=0, inconclusive=2` ✓.
+- IE recipes computadas:
+  - `IE_PROY_RISK_LEGAL = 0.0 red` (criticals=2 detectados; uno se procesó después del recompute previo).
+  - `IE_PROY_COMPLIANCE_SCORE = 0.0 red` (0 passed / 3 applicable).
+  - `IE_PROY_QUALITY_DOCS = 60.0 amber` (6 de 10 tipos canónicos).
+- **GC-X4 verificado**: developer_admin PATCH `/pricing/suggestions/{sid}` con `status=applied` para altavista-polanco → **HTTP 409** con `detail.message="Bloqueado: cross-check critical pendiente, resuelve docs primero."` ✓.
+- **Endpoint warnings**: `/api/desarrollador/pricing/cross-check-warnings` → `blocked_count=1, blocked=[{dev_id:altavista-polanco, dev_name:Altavista Polanco, rules:[predial,seduvi,licencia], count:3}]` ✓.
+- **Resolución**: subí SEDUVI corregida con `unidades_autorizadas=5` → re-extract → SEDUVI rule **pasa** (5=5) → COMPLIANCE_SCORE sube 0% → **33.33%** (1/3 applicable). Otros criticals (predial vencido, licencia m²) siguen activos como esperado.
+- **Playwright drawer Cross-check tab**: 5 rules renderizadas con badges severity+result, summary "2 críticos · 0 warnings · 1 pass · 2 inconclusos", expected=400 actual=600 +50% para licencia, doc_id pills clickeables ✓.
+- **Playwright `/desarrollador/pricing`**: banner rojo "Cross-check crítico activo · 1 desarrollo bloqueado" + pill "Altavista Polanco · 2 reglas" ✓.
+
+### Archivos tocados
+- `/app/backend/cross_check_engine.py` (nuevo · 320 líneas)
+- `/app/backend/recipes/proyecto/ie_proy_docs.py` (nuevo · 3 IE recipes)
+- `/app/backend/extraction_engine.py` (auto_trigger_after_extraction hook)
+- `/app/backend/routes_documents.py` (+4 endpoints + 2 dev_alias)
+- `/app/backend/routes_developer.py` (GC-X4 block + cross-check-warnings endpoint)
+- `/app/backend/score_engine.py` (`_dmx_cross_checks` y `_dmx_extracted_docs` injection)
+- `/app/backend/server.py` (`ensure_cross_check_indexes` startup)
+- `/app/frontend/src/api/documents.js` (+4 helpers)
+- `/app/frontend/src/components/documents/CrossCheckView.js` (nuevo)
+- `/app/frontend/src/components/documents/DocumentsList.js` (+3rd tab)
+- `/app/frontend/src/pages/superadmin/DocumentsPage.js` (stat-criticals card)
+- `/app/frontend/src/pages/developer/DesarrolladorPricing.js` (GC-X4 banner)
+- `/app/memory/PRD.md`
 
 ---
 

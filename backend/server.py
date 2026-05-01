@@ -239,6 +239,9 @@ async def startup():
     # Phase 7.2 — Extraction indexes
     from extraction_engine import ensure_extraction_indexes
     await ensure_extraction_indexes(db)
+    # Phase 7.3 — Cross-check indexes
+    from cross_check_engine import ensure_cross_check_indexes
+    await ensure_cross_check_indexes(db)
     # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
     start_scheduler(db)
 

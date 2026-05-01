@@ -368,6 +368,19 @@ async def act_on_suggestion(sid: str, payload: PricingAction, request: Request):
     db = get_db(request)
     if payload.status not in ("approved", "rejected", "applied"):
         raise HTTPException(400, "status inválido")
+
+    # GC-X4 — block apply if cross-check critical active on the dev
+    if payload.status == "applied":
+        sug = await db.developer_pricing_suggestions.find_one({"id": sid, "owner_id": user.user_id})
+        if sug and sug.get("dev_id"):
+            from cross_check_engine import has_critical
+            if await has_critical(db, sug["dev_id"]):
+                raise HTTPException(409, {
+                    "error": "cross_check_critical_pending",
+                    "message": "Bloqueado: cross-check critical pendiente, resuelve docs primero.",
+                    "dev_id": sug["dev_id"],
+                })
+
     r = await db.developer_pricing_suggestions.update_one(
         {"id": sid, "owner_id": user.user_id},
         {"$set": {"status": payload.status, "note": payload.note or "", "actioned_at": _now()}},
@@ -378,6 +391,32 @@ async def act_on_suggestion(sid: str, payload: PricingAction, request: Request):
         "ref": sid, "ts": _now(),
     })
     return {"ok": True, "status": payload.status}
+
+
+# GC-X4 helper endpoint — surface dev-level cross-check warnings to /desarrollador/pricing UI
+@router.get("/pricing/cross-check-warnings")
+async def pricing_cross_check_warnings(request: Request):
+    user = await require_dev_admin(request)
+    db = get_db(request)
+    dev_ids = _user_dev_ids(user)
+    pipe = [
+        {"$match": {"development_id": {"$in": dev_ids}, "severity": "critical", "result": "fail"}},
+        {"$group": {"_id": "$development_id", "rules": {"$push": "$rule_id"}, "count": {"$sum": 1}}},
+    ]
+    rows = [r async for r in db.di_cross_checks.aggregate(pipe)]
+    from data_developments import DEVELOPMENTS_BY_ID
+    return {
+        "blocked_count": len(rows),
+        "blocked": [
+            {
+                "dev_id": r["_id"],
+                "dev_name": (DEVELOPMENTS_BY_ID.get(r["_id"], {}) or {}).get("name", r["_id"]),
+                "rules": r["rules"],
+                "count": int(r["count"]),
+            }
+            for r in rows
+        ],
+    }
 
 
 # ─── D3: Competitor Radar ─────────────────────────────────────────────────────

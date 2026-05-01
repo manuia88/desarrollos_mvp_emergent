@@ -165,12 +165,24 @@ class ScoreEngine:
         ).to_list(length=100)
         # all devs in the same colonia (competition / market comparables)
         same_colonia = [d for d in DEVELOPMENTS_BY_ID.values() if d.get("colonia_id") == dev.get("colonia_id") and d["id"] != dev["id"]]
+        # cross-check results (Phase 7.3)
+        cc_docs = await self.db.di_cross_checks.find(
+            {"development_id": zone_id},
+            {"_id": 0},
+        ).to_list(length=50)
+        # extracted docs count for QUALITY_DOCS recipe
+        extracted_docs = await self.db.di_documents.find(
+            {"development_id": zone_id, "status": "extracted"},
+            {"_id": 0, "doc_type": 1, "id": 1},
+        ).to_list(length=200)
         return {
             "_dmx_dev": [{"payload": dev, "is_stub": False}],
             "_dmx_colonia_scores": [{"payload": d, "is_stub": False} for d in colonia_docs],
             "_dmx_own_proj_scores": [{"payload": d, "is_stub": False} for d in own_proj_scores],
             "_dmx_same_colonia_devs": [{"payload": d, "is_stub": False} for d in same_colonia],
             "_dmx_all_devs": [{"payload": d, "is_stub": False} for d in DEVELOPMENTS_BY_ID.values()],
+            "_dmx_cross_checks": [{"payload": d, "is_stub": False} for d in cc_docs],
+            "_dmx_extracted_docs": [{"payload": d, "is_stub": False} for d in extracted_docs],
         }
 
     async def _build_colonia_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:

@@ -11,7 +11,7 @@ export default function DocumentsPage({ user, onLogout }) {
   const [developments, setDevelopments] = useState([]);
   const [activeDevId, setActiveDevId] = useState(null);
   const [search, setSearch] = useState('');
-  const [stats, setStats] = useState({ total: 0, byStatus: {}, byType: {} });
+  const [stats, setStats] = useState({ total: 0, byStatus: {}, byType: {}, criticalDevs: 0 });
 
   useEffect(() => {
     fetch(`${API}/api/developments`).then(r => r.json()).then(d => {
@@ -29,8 +29,13 @@ export default function DocumentsPage({ user, onLogout }) {
           byStatus[x.status] = (byStatus[x.status] || 0) + 1;
           byType[x.doc_type] = (byType[x.doc_type] || 0) + 1;
         });
-        setStats({ total: docs.length, byStatus, byType });
+        setStats(prev => ({ ...prev, total: docs.length, byStatus, byType }));
       })
+      .catch(() => {});
+    // Phase 7.3 cross-check global stats
+    fetch(`${API}/api/superadmin/cross-checks/stats/global`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setStats(prev => ({ ...prev, criticalDevs: d.developments_with_critical || 0 })))
       .catch(() => {});
     /* eslint-disable-next-line */
   }, []);
@@ -131,16 +136,17 @@ export default function DocumentsPage({ user, onLogout }) {
   );
 }
 
-function Stat({ label, value, tone = 'neutral' }) {
+function Stat({ label, value, tone = 'neutral', testid }) {
   const tones = {
     neutral: { fg: 'var(--cream)', bg: '#0D1118' },
     ok:      { fg: '#86efac',      bg: 'rgba(34,197,94,0.06)' },
     info:    { fg: '#a5b4fc',      bg: 'rgba(99,102,241,0.06)' },
     warn:    { fg: '#fca5a5',      bg: 'rgba(239,68,68,0.06)' },
+    crit:    { fg: '#fca5a5',      bg: 'rgba(239,68,68,0.14)' },
   };
   const t = tones[tone] || tones.neutral;
   return (
-    <div style={{
+    <div data-testid={testid} style={{
       padding: '14px 16px', background: t.bg, border: '1px solid var(--border)', borderRadius: 12,
     }}>
       <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>

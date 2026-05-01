@@ -64,3 +64,14 @@ export const getExtraction = (docId, scope = 'superadmin') =>
 
 export const bulkExtract = (devId, scope = 'superadmin') =>
   j(`${base(scope)}/developments/${encodeURIComponent(devId)}/documents/bulk-extract`, { method: 'POST' });
+
+// ─── Phase 7.3 — Cross-Check ───────────────────────────────────────────────
+export const triggerCrossCheck = (devId, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/cross-check`, { method: 'POST' });
+
+export const getDevCrossCheck = (devId, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/cross-check`);
+
+export const getCrossCheckStats = () => j('/api/superadmin/cross-checks/stats/global');
+
+export const getPricingCrossCheckWarnings = () => j('/api/desarrollador/pricing/cross-check-warnings');

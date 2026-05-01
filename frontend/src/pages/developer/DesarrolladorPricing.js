@@ -3,17 +3,23 @@ import React, { useEffect, useState } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
-import { Sparkle } from '../../components/icons';
+import * as docsApi from '../../api/documents';
+import { Sparkle, AlertTriangle } from '../../components/icons';
 
 export default function DesarrolladorPricing({ user, onLogout }) {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('pending');
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [warnings, setWarnings] = useState({ blocked_count: 0, blocked: [] });
 
   const load = async () => {
     setLoading(true);
     try { setItems(await api.listPricing()); } finally { setLoading(false); }
+    // GC-X4 — fetch cross-check warnings
+    docsApi.getPricingCrossCheckWarnings()
+      .then(setWarnings)
+      .catch(() => {});
   };
   useEffect(() => { load(); }, []);
 
@@ -22,7 +28,12 @@ export default function DesarrolladorPricing({ user, onLogout }) {
       await api.actPricing(sid, { status });
       setToast({ kind: 'success', text: `Sugerencia ${status}` });
       load();
-    } catch { setToast({ kind: 'error', text: 'Error' }); }
+    } catch (e) {
+      // GC-X4 surfaces 409 from backend
+      const msg = e?.body?.detail?.message || e?.body?.detail || 'Error';
+      setToast({ kind: 'error', text: msg });
+      load();
+    }
   };
 
   const filtered = items.filter(x => filter === 'all' || x.status === filter);
@@ -40,6 +51,33 @@ export default function DesarrolladorPricing({ user, onLogout }) {
         title="Sugerencias de precio"
         sub="Razonamiento explícito por unidad. Triggers automáticos por demanda y tiempo en mercado. Aprobación manual del director comercial antes de aplicar."
       />
+
+      {warnings.blocked_count > 0 && (
+        <div data-testid="pricing-cc-banner" style={{
+          padding: 14, marginBottom: 14, borderRadius: 12,
+          background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)',
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+        }}>
+          <AlertTriangle size={16} color="#fca5a5" />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 4 }}>
+              Cross-check crítico activo · {warnings.blocked_count} desarrollo{warnings.blocked_count === 1 ? '' : 's'} bloqueado{warnings.blocked_count === 1 ? '' : 's'}
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
+              Resuelve las inconsistencias críticas de los siguientes desarrollos antes de aplicar cambios de precio:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {warnings.blocked.map(b => (
+                <span key={b.dev_id} data-testid={`pricing-cc-blocked-${b.dev_id}`} style={{
+                  padding: '4px 12px', borderRadius: 9999,
+                  background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.32)',
+                  color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
+                }}>{b.dev_name} · {b.count} regla{b.count === 1 ? '' : 's'}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
         {[

@@ -5,6 +5,7 @@ import * as docsApi from '../../api/documents';
 import { FileText, Upload, Download, Trash, RotateCcw, Check, AlertTriangle, Clock, X, Sparkle } from '../icons';
 import UploadDocumentModal from './UploadDocumentModal';
 import ExtractionView from './ExtractionView';
+import CrossCheckView from './CrossCheckView';
 
 const STATUS_TONE = {
   pending:             { bg: 'rgba(99,102,241,0.12)', fg: '#c7d2fe', label: 'En cola',           Icon: Clock },
@@ -129,6 +130,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
               {[
                 { k: 'ocr', label: 'Texto OCR' },
                 { k: 'extraction', label: 'Datos extraídos' },
+                { k: 'crosscheck', label: 'Cross-check' },
               ].map(t => (
                 <button key={t.k} data-testid={`doc-tab-${t.k}`} onClick={() => setTab(t.k)} style={{
                   padding: '9px 14px', background: 'transparent', border: 'none',
@@ -164,6 +166,10 @@ function PreviewDrawer({ doc, scope, onClose }) {
             {tab === 'extraction' && (
               <ExtractionView docId={doc.id} docType={data.doc_type} scope={scope}
                 onTriggered={() => docsApi.getDocument(doc.id, scope).then(r => setData(r.document))} />
+            )}
+
+            {tab === 'crosscheck' && (
+              <CrossCheckView devId={doc.development_id} scope={scope} />
             )}
           </>
         )}

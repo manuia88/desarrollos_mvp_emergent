@@ -36,6 +36,9 @@ from document_intelligence import (
 from extraction_engine import (
     run_extraction, get_latest_extraction, EXTRACTION_PROMPT_VERSION,
 )
+from cross_check_engine import (
+    run_cross_check, get_dev_cross_check, sanitize as sanitize_cross_check, ENGINE_VERSION as CC_ENGINE_VERSION,
+)
 
 log = logging.getLogger("dmx.di.routes")
 
@@ -425,6 +428,56 @@ async def bulk_extract(dev_id: str, request: Request):
     }
 
 
+# ─── Phase 7.3 — Cross-Check ──────────────────────────────────────────────────
+@router.post("/api/superadmin/developments/{dev_id}/cross-check")
+async def trigger_cross_check(dev_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+    db = _get_db(request)
+    res = await run_cross_check(db, dev_id)
+    return res
+
+
+@router.get("/api/superadmin/developments/{dev_id}/cross-check")
+async def get_cross_check(dev_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+    db = _get_db(request)
+    return {**(await get_dev_cross_check(db, dev_id)), "engine_version": CC_ENGINE_VERSION}
+
+
+@router.get("/api/superadmin/cross-checks/{cc_id}")
+async def get_single_cross_check(cc_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    db = _get_db(request)
+    doc = await db.di_cross_checks.find_one({"id": cc_id})
+    if not doc:
+        raise HTTPException(404, "Cross-check no encontrado")
+    _check_dev_access(user, doc.get("development_id"))
+    return sanitize_cross_check(doc)
+
+
+@router.get("/api/superadmin/cross-checks/stats/global")
+async def cross_check_stats(request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    db = _get_db(request)
+    pipe = [
+        {"$match": {"severity": "critical", "result": "fail"}},
+        {"$group": {"_id": "$development_id", "n": {"$sum": 1}}},
+    ]
+    crit_devs = [r async for r in db.di_cross_checks.aggregate(pipe)]
+    return {
+        "developments_with_critical": len(crit_devs),
+        "total_critical_rules": sum(int(r["n"]) for r in crit_devs),
+    }
+
+
 # ─── Developer-portal aliases (multi-tenant guard kicks in via _check_dev_access) ──
 dev_alias = APIRouter(tags=["document_intelligence_dev"])
 
@@ -496,3 +549,14 @@ async def dev_get_extraction(doc_id: str, request: Request):
 @dev_alias.post("/api/desarrollador/developments/{dev_id}/documents/bulk-extract")
 async def dev_bulk_extract(dev_id: str, request: Request):
     return await bulk_extract(dev_id, request)
+
+
+# Phase 7.3 dev aliases
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/cross-check")
+async def dev_trigger_cross_check(dev_id: str, request: Request):
+    return await trigger_cross_check(dev_id, request)
+
+
+@dev_alias.get("/api/desarrollador/developments/{dev_id}/cross-check")
+async def dev_get_cross_check(dev_id: str, request: Request):
+    return await get_cross_check(dev_id, request)
