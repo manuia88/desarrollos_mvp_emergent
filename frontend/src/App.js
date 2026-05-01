@@ -48,6 +48,10 @@ import DesarrolladorReportes from './pages/developer/DesarrolladorReportes';
 import DesarrolladorPricing from './pages/developer/DesarrolladorPricing';
 import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
 
+// Superadmin (IE Engine Phase A)
+import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
+import DataSourcesPage from './pages/superadmin/DataSourcesPage';
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -200,6 +204,11 @@ function AppRouter() {
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
       <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
+
+      {/* Superadmin — IE Engine Phase A */}
+      <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />
+      <Route path="/superadmin/data-sources" element={<AdvisorRoute Page={DataSourcesPage} />} />
+
       <Route path="*" element={<LandingPage />} />
     </Routes>
   );

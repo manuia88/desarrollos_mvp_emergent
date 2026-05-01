@@ -48,6 +48,10 @@ app.include_router(advisor_router)
 from routes_developer import router as developer_router
 app.include_router(developer_router)
 
+# Wire IE Engine (Phase A) router
+from routes_ie_engine import router as ie_engine_router, seed_ie_engine
+app.include_router(ie_engine_router)
+
 # Wire Studio router (Phase 6 Wave 1)
 from routes_studio import router as studio_router
 app.include_router(studio_router)
@@ -199,6 +203,9 @@ async def startup():
             "tenant_id": "constructora_ariel",
             "created_at": datetime.now(timezone.utc),
         })
+
+    # IE Engine — Phase A seed (idempotent: 18 fuentes)
+    await seed_ie_engine(db)
 
 # ─── Auth routes ──────────────────────────────────────────────────────────────
 @app.post("/api/auth/register")

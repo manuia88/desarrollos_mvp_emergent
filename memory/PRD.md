@@ -109,6 +109,26 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — IE Engine Phase A1 (read-only foundation)
+**Moat #1 backbone — sin cálculo de scores aún, Phase B viene después.**
+- Backend
+  - 4 nuevas collections Mongo: `ie_data_sources`, `ie_raw_observations`, `ie_ingestion_jobs`, `ie_manual_uploads` con índices compuestos.
+  - `data_ie_sources.py`: 18 fuentes seed (4 api_key + 4 ckan + 3 keyless + 1 wms_wfs + 4 manual + 1 external_paid + 1 h2).
+  - `routes_ie_engine.py`: Fernet credential cipher (`IE_FERNET_KEY` opcional, fallback derivation desde JWT_SECRET en dev) + 6 endpoints read-only role-gated `superadmin`.
+  - Seed idempotente al startup: refresca campos descriptivos, jamás sobrescribe credentials/last_sync.
+  - `.env.example` ampliado con bloque IE Engine completo.
+- Frontend
+  - `/superadmin` + `/superadmin/data-sources` con `SuperadminLayout` (mirror del DeveloperLayout).
+  - Tabla de 18 fuentes con badges status, filter pills, 5 stat cards, secciones "Últimos jobs" + "Últimos uploads" con empty states.
+  - Botones de acción Conectar/Probar/Subir disabled greyed con tooltip "Disponible en Fase A2/A3".
+- Verificación
+  - 18 fuentes seedeadas correctas (4 active, 1 stub, 4 manual_only, 1 h2, 8 blocked sin keys).
+  - 401 unauth ✓, 403 advisor ✓, 404 unknown ✓.
+  - Screenshot superadmin → /superadmin/data-sources renderiza tabla con 18 filas.
+- Status fuentes (sin keys cargadas): blocked = NOAA, INEGI, Banxico, AirROI, FGJ, SACMEX, Locatel, datos_cdmx (ckan_resource necesita resource_id) | active = Mapbox + OSM + CONAGUA SMN + GTFS (keyless) | stub = CENAPRED | manual_only = Catastro, DGIS, Atlas Riesgos, INEGI Shapefiles | h2 = Reelly.
+
+---
+
 ## Credenciales de prueba (ver `/app/memory/test_credentials.md`)
 - `admin@desarrollosmx.com` / `Admin2026!` → superadmin
 - `asesor@demo.com` / `Asesor2026!` → advisor
