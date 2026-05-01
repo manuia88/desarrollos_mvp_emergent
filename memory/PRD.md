@@ -477,6 +477,14 @@ Hasta entonces el feature corre en stub honesto (UI muestra mensaje claro, watch
 - WhatsApp Business real (whatsapp-web.js QR) · C11.
 - Refactor `server.py` (esperando prompt usuario).
 
+### Bonus (2026-05-01) — Native Google Docs export
+- Watcher ahora soporta **4 mimetypes nativos** además de binarios con md5: Google Docs · Sheets · Slides · Drawings.
+- Cada uno se exporta automáticamente a **PDF** vía `files().export_media(mimeType=application/pdf)` para mantener uniformidad con el pipeline OCR/Claude existente (Sheets a PDF preserva tablas visualmente, OCR las lee fine).
+- **Revision tag** para nativos: `native::{modifiedTime}` (no tienen md5Checksum). Detecta cambios via timestamp.
+- `_ensure_filename_extension` añade `.pdf` cuando el nombre no lo trae (Google Docs en Drive tienen nombre sin extensión).
+- Audit ahora reporta `exported_native` count y `skipped_unsupported` (forms, shortcuts).
+- `source_metadata` incluye `is_native_export: true` + `drive_mime` para auditoría.
+
 ---
 
 

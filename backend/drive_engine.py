@@ -208,6 +208,39 @@ def _download_file_sync(conn: Dict[str, Any], file_id: str) -> bytes:
     return buf.getvalue()
 
 
+# Google nativos → export mime + extension. All target PDF para que el pipeline
+# OCR/Claude existing maneje uniforme (xlsx no es allowed_ext).
+NATIVE_EXPORT_MAP: Dict[str, Tuple[str, str]] = {
+    "application/vnd.google-apps.document":     ("application/pdf", "pdf"),
+    "application/vnd.google-apps.spreadsheet":  ("application/pdf", "pdf"),
+    "application/vnd.google-apps.presentation": ("application/pdf", "pdf"),
+    "application/vnd.google-apps.drawing":      ("application/pdf", "pdf"),
+}
+
+
+def _export_native_doc_sync(conn: Dict[str, Any], file_id: str, native_mime: str) -> Tuple[bytes, str]:
+    """Returns (bytes, target_extension). Raises if mime unsupported."""
+    from googleapiclient.http import MediaIoBaseDownload
+    target_mime, ext = NATIVE_EXPORT_MAP[native_mime]
+    svc = _drive_service(conn)
+    request = svc.files().export_media(fileId=file_id, mimeType=target_mime)
+    buf = io.BytesIO()
+    downloader = MediaIoBaseDownload(buf, request)
+    done = False
+    while not done:
+        _status, done = downloader.next_chunk()
+    return buf.getvalue(), ext
+
+
+def _ensure_filename_extension(name: str, ext: str) -> str:
+    """Append .{ext} if name doesn't already end with that extension."""
+    if not name:
+        return f"untitled.{ext}"
+    if name.lower().endswith(f".{ext.lower()}"):
+        return name
+    return f"{name}.{ext}"
+
+
 def _refresh_and_persist_token_sync(conn: Dict[str, Any]) -> Dict[str, Any]:
     """Returns updated conn fields {google_oauth_token_enc, expires_at}."""
     creds = _build_credentials(conn)
@@ -249,31 +282,61 @@ async def _sync_one_connection(db, conn: Dict[str, Any]) -> Dict[str, Any]:
         return audit
 
     audit["scanned"] = len(files)
+    audit["skipped_unsupported"] = 0
+    audit["exported_native"] = 0
     revisions: Dict[str, str] = dict(conn.get("last_revision_id") or {})
 
     for f in files:
         fid = f["id"]
         name = f.get("name") or "unnamed"
+        mime = f.get("mimeType") or ""
         md5 = f.get("md5Checksum")
-        if not md5:
-            # Google Docs/Sheets etc don't have md5; skip (export not implemented in stub)
+        modified_time = f.get("modifiedTime")
+        is_native = mime in NATIVE_EXPORT_MAP
+
+        # Compute revision tag: md5 for binary files, modifiedTime for Google natives.
+        if md5:
+            rev_tag = md5
+        elif is_native and modified_time:
+            rev_tag = f"native::{modified_time}"
+        else:
+            # Unsupported: no md5 and not a known native (e.g., shortcut, form)
+            audit["skipped_unsupported"] += 1
             continue
+
         prev = revisions.get(fid)
         is_new = prev is None
-        is_changed = (prev is not None and prev != md5)
+        is_changed = (prev is not None and prev != rev_tag)
         if not (is_new or is_changed):
             continue
+
         try:
-            data = await asyncio.to_thread(_download_file_sync, conn, fid)
-            doc_type = detect_doc_type(name)
+            if is_native:
+                data, ext = await asyncio.to_thread(_export_native_doc_sync, conn, fid, mime)
+                final_name = _ensure_filename_extension(name, ext)
+                audit["exported_native"] += 1
+            else:
+                data = await asyncio.to_thread(_download_file_sync, conn, fid)
+                final_name = name
+
+            doc_type = detect_doc_type(final_name)
             user_id = conn.get("user_id") or "drive-watcher"
             res = await _ingest_document_bytes(
                 db, dev_id,
                 user_id=user_id, user_name="Drive Watcher", user_role="system",
-                filename=name, data=data, doc_type=doc_type,
-                upload_notes=f"Auto-imported from Google Drive folder '{conn.get('folder_name','')}'",
+                filename=final_name, data=data, doc_type=doc_type,
+                upload_notes=f"Auto-imported from Google Drive folder '{conn.get('folder_name','')}'" + (" (native exported)" if is_native else ""),
                 source="drive_watcher",
-                source_metadata={"drive_file_id": fid, "drive_md5": md5, "drive_modified_time": f.get("modifiedTime"), "folder_id": conn["folder_id"], "folder_name": conn.get("folder_name", ""), "is_revision": is_changed},
+                source_metadata={
+                    "drive_file_id": fid,
+                    "drive_md5": md5,
+                    "drive_mime": mime,
+                    "drive_modified_time": modified_time,
+                    "is_native_export": is_native,
+                    "folder_id": conn["folder_id"],
+                    "folder_name": conn.get("folder_name", ""),
+                    "is_revision": is_changed,
+                },
                 schedule_ocr=True,
             )
             if res["action"] == "created":
@@ -281,10 +344,10 @@ async def _sync_one_connection(db, conn: Dict[str, Any]) -> Dict[str, Any]:
                     audit["updated"] += 1
                 else:
                     audit["new"] += 1
-                revisions[fid] = md5
+                revisions[fid] = rev_tag
             elif res["action"] == "duplicate":
-                # Same md5 already ingested — just track revision so we don't retry
-                revisions[fid] = md5
+                # Same content already ingested — track revision so we don't retry
+                revisions[fid] = rev_tag
         except Exception as e:
             log.exception(f"[drive] ingest failed file={fid} name={name}: {e}")
             audit["errors"].append(f"{name}: {type(e).__name__}: {str(e)[:120]}")
