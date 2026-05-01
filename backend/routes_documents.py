@@ -33,6 +33,9 @@ from document_intelligence import (
     write_encrypted_file, read_encrypted_file, sha256_bytes, detect_mime,
     run_ocr_for_document, sanitize_document, utcnow,
 )
+from extraction_engine import (
+    run_extraction, get_latest_extraction, EXTRACTION_PROMPT_VERSION,
+)
 
 log = logging.getLogger("dmx.di.routes")
 
@@ -341,6 +344,87 @@ async def delete_document(doc_id: str, request: Request):
     return {"ok": True, "id": doc_id}
 
 
+# ─── Phase 7.2 — Structured Extraction ────────────────────────────────────────
+@router.post("/api/superadmin/documents/{doc_id}/extract")
+async def extract_document(doc_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    db = _get_db(request)
+    doc = await db.di_documents.find_one({"id": doc_id})
+    if not doc:
+        raise HTTPException(404, "Documento no encontrado")
+    _check_dev_access(user, doc["development_id"])
+
+    if doc.get("status") not in ("ocr_done", "extracted", "extraction_pending", "extraction_failed"):
+        raise HTTPException(400, f"El documento debe estar en OCR listo o extracted antes de extraer (status actual: {doc.get('status')})")
+
+    # Run extraction (sync wait — typically <30s)
+    res = await run_extraction(db, doc_id, force=True)
+    if not res.get("ok"):
+        return {"ok": False, "error": res.get("error")}
+    return {
+        "ok": True,
+        "extraction_id": res.get("extraction_id"),
+        "cost_usd": res.get("cost_usd"),
+        "doc_type": doc.get("doc_type"),
+    }
+
+
+@router.get("/api/superadmin/documents/{doc_id}/extraction")
+async def get_extraction(doc_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    db = _get_db(request)
+    doc = await db.di_documents.find_one({"id": doc_id})
+    if not doc:
+        raise HTTPException(404, "Documento no encontrado")
+    _check_dev_access(user, doc["development_id"])
+
+    extr = await get_latest_extraction(db, doc_id)
+    return {
+        "document_id": doc_id,
+        "doc_type": doc.get("doc_type"),
+        "status": doc.get("status"),
+        "extraction_error": doc.get("extraction_error"),
+        "extraction": extr,
+        "schema_version": EXTRACTION_PROMPT_VERSION,
+    }
+
+
+@router.post("/api/superadmin/developments/{dev_id}/documents/bulk-extract")
+async def bulk_extract(dev_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+
+    db = _get_db(request)
+    cursor = db.di_documents.find({
+        "development_id": dev_id,
+        "status": {"$in": ["ocr_done", "extraction_failed"]},
+    }).limit(100)
+
+    docs = [d async for d in cursor]
+    results = []
+    for d in docs:
+        try:
+            r = await run_extraction(db, d["id"], force=True)
+            results.append({"id": d["id"], "ok": r.get("ok"), "error": r.get("error"), "cost_usd": r.get("cost_usd")})
+        except Exception as e:
+            results.append({"id": d["id"], "ok": False, "error": f"{type(e).__name__}: {e}"})
+
+    success = sum(1 for r in results if r["ok"])
+    total_cost = round(sum(r.get("cost_usd") or 0 for r in results), 6)
+    return {
+        "development_id": dev_id,
+        "total": len(results),
+        "success": success,
+        "failed": len(results) - success,
+        "total_cost_usd": total_cost,
+        "results": results,
+    }
+
+
 # ─── Developer-portal aliases (multi-tenant guard kicks in via _check_dev_access) ──
 dev_alias = APIRouter(tags=["document_intelligence_dev"])
 
@@ -396,3 +480,19 @@ async def dev_list_all(request: Request,
                        status: Optional[str] = Query(None),
                        limit: int = Query(200, ge=1, le=1000)):
     return await list_all_documents(request, doc_type=doc_type, status=status, limit=limit)
+
+
+# Phase 7.2 dev aliases
+@dev_alias.post("/api/desarrollador/documents/{doc_id}/extract")
+async def dev_extract(doc_id: str, request: Request):
+    return await extract_document(doc_id, request)
+
+
+@dev_alias.get("/api/desarrollador/documents/{doc_id}/extraction")
+async def dev_get_extraction(doc_id: str, request: Request):
+    return await get_extraction(doc_id, request)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/documents/bulk-extract")
+async def dev_bulk_extract(dev_id: str, request: Request):
+    return await bulk_extract(dev_id, request)

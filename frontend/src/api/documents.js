@@ -1,4 +1,4 @@
-// Document Intelligence API helpers — Phase 7.1
+// Document Intelligence API helpers — Phase 7.1 + 7.2
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const j = async (url, opts = {}) => {
@@ -54,3 +54,13 @@ export const uploadDocument = async (devId, { file, doc_type, upload_notes, peri
   if (!r.ok) throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
   return body;
 };
+
+// ─── Phase 7.2 — Extraction ────────────────────────────────────────────────
+export const triggerExtraction = (docId, scope = 'superadmin') =>
+  j(`${base(scope)}/documents/${encodeURIComponent(docId)}/extract`, { method: 'POST' });
+
+export const getExtraction = (docId, scope = 'superadmin') =>
+  j(`${base(scope)}/documents/${encodeURIComponent(docId)}/extraction`);
+
+export const bulkExtract = (devId, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/documents/bulk-extract`, { method: 'POST' });

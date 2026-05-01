@@ -2,14 +2,18 @@
 // Used by both Superadmin DocumentsPage (per-dev tab) and Developer Portal widget.
 import React, { useEffect, useState } from 'react';
 import * as docsApi from '../../api/documents';
-import { FileText, Upload, Download, Trash, RotateCcw, Check, AlertTriangle, Clock, X } from '../icons';
+import { FileText, Upload, Download, Trash, RotateCcw, Check, AlertTriangle, Clock, X, Sparkle } from '../icons';
 import UploadDocumentModal from './UploadDocumentModal';
+import ExtractionView from './ExtractionView';
 
 const STATUS_TONE = {
-  pending:     { bg: 'rgba(99,102,241,0.12)', fg: '#c7d2fe', label: 'En cola',      Icon: Clock },
-  ocr_running: { bg: 'rgba(99,102,241,0.18)', fg: '#a5b4fc', label: 'Procesando',   Icon: Clock },
-  ocr_done:    { bg: 'rgba(34,197,94,0.12)',  fg: '#86efac', label: 'OCR listo',    Icon: Check },
-  ocr_failed:  { bg: 'rgba(239,68,68,0.14)',  fg: '#fca5a5', label: 'OCR falló',    Icon: AlertTriangle },
+  pending:             { bg: 'rgba(99,102,241,0.12)', fg: '#c7d2fe', label: 'En cola',           Icon: Clock },
+  ocr_running:         { bg: 'rgba(99,102,241,0.18)', fg: '#a5b4fc', label: 'Procesando',        Icon: Clock },
+  ocr_done:            { bg: 'rgba(34,197,94,0.12)',  fg: '#86efac', label: 'OCR listo',         Icon: Check },
+  ocr_failed:          { bg: 'rgba(239,68,68,0.14)',  fg: '#fca5a5', label: 'OCR falló',         Icon: AlertTriangle },
+  extraction_pending:  { bg: 'rgba(236,72,153,0.14)', fg: '#fbcfe8', label: 'Extrayendo…',       Icon: Sparkle },
+  extracted:           { bg: 'rgba(34,197,94,0.18)',  fg: '#86efac', label: 'Datos extraídos',   Icon: Sparkle },
+  extraction_failed:   { bg: 'rgba(245,158,11,0.14)', fg: '#fcd34d', label: 'Extracción falló',  Icon: AlertTriangle },
 };
 
 const fmtDate = (s) => s ? new Date(s).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -39,9 +43,10 @@ function StatusPill({ status }) {
 function PreviewDrawer({ doc, scope, onClose }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
+  const [tab, setTab] = useState('ocr');
   useEffect(() => {
     if (!doc) return;
-    setData(null); setErr(null);
+    setData(null); setErr(null); setTab('ocr');
     docsApi.getDocument(doc.id, scope).then(r => setData(r.document)).catch(e => setErr(e.message));
   }, [doc, scope]);
   if (!doc) return null;
@@ -52,7 +57,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
       display: 'flex', justifyContent: 'flex-end',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: 580, maxWidth: '100%', height: '100vh',
+        width: 620, maxWidth: '100%', height: '100vh',
         background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
         borderLeft: '1px solid var(--border)', padding: 26, overflowY: 'auto',
       }}>
@@ -119,23 +124,47 @@ function PreviewDrawer({ doc, scope, onClose }) {
               </div>
             )}
 
-            {data.ocr_error && (
-              <div style={{ padding: 12, marginBottom: 14, borderRadius: 10, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12 }}>
-                <strong>Error OCR:</strong> {data.ocr_error}
-              </div>
+            {/* Tabs */}
+            <div data-testid="doc-tabs" style={{ display: 'flex', gap: 4, marginBottom: 12, borderBottom: '1px solid var(--border)' }}>
+              {[
+                { k: 'ocr', label: 'Texto OCR' },
+                { k: 'extraction', label: 'Datos extraídos' },
+              ].map(t => (
+                <button key={t.k} data-testid={`doc-tab-${t.k}`} onClick={() => setTab(t.k)} style={{
+                  padding: '9px 14px', background: 'transparent', border: 'none',
+                  borderBottom: `2px solid ${tab === t.k ? '#6366F1' : 'transparent'}`,
+                  color: tab === t.k ? 'var(--cream)' : 'var(--cream-3)',
+                  fontFamily: 'DM Sans', fontWeight: tab === t.k ? 600 : 500, fontSize: 12.5,
+                  cursor: 'pointer', marginBottom: -1,
+                }}>{t.label}</button>
+              ))}
+            </div>
+
+            {tab === 'ocr' && (
+              <>
+                {data.ocr_error && (
+                  <div style={{ padding: 12, marginBottom: 14, borderRadius: 10, background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12 }}>
+                    <strong>Error OCR:</strong> {data.ocr_error}
+                  </div>
+                )}
+                <div className="eyebrow" style={{ marginBottom: 6 }}>
+                  Texto OCR (vista previa{data.ocr_preview_truncated ? ' · truncado a 1500 chars' : ''})
+                </div>
+                <pre data-testid="doc-preview-ocr" style={{
+                  padding: 14, background: '#0A0D16', border: '1px solid var(--border)', borderRadius: 10,
+                  color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 11.5,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 360, overflowY: 'auto',
+                  lineHeight: 1.55,
+                }}>
+                  {data.ocr_preview || '— Sin texto OCR aún —'}
+                </pre>
+              </>
             )}
 
-            <div className="eyebrow" style={{ marginBottom: 6 }}>
-              Texto OCR (vista previa{data.ocr_preview_truncated ? ' · truncado a 1500 chars' : ''})
-            </div>
-            <pre data-testid="doc-preview-ocr" style={{
-              padding: 14, background: '#0A0D16', border: '1px solid var(--border)', borderRadius: 10,
-              color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 11.5,
-              whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 360, overflowY: 'auto',
-              lineHeight: 1.55,
-            }}>
-              {data.ocr_preview || '— Sin texto OCR aún —'}
-            </pre>
+            {tab === 'extraction' && (
+              <ExtractionView docId={doc.id} docType={data.doc_type} scope={scope}
+                onTriggered={() => docsApi.getDocument(doc.id, scope).then(r => setData(r.document))} />
+            )}
           </>
         )}
       </div>

@@ -87,7 +87,8 @@ DI_DOC_TYPE_LABELS_ES = {
     "otro": "Otro",
 }
 
-DI_STATUS = {"pending", "ocr_running", "ocr_done", "ocr_failed"}
+DI_STATUS = {"pending", "ocr_running", "ocr_done", "ocr_failed",
+             "extraction_pending", "extracted", "extraction_failed"}
 
 
 # ─── Fernet cipher (REUSE IE_FERNET_KEY) ──────────────────────────────────────
@@ -381,6 +382,14 @@ async def run_ocr_for_document(db, doc_id: str) -> None:
 
     await docs.update_one({"id": doc_id}, {"$set": update})
     log.info(f"di.ocr done id={doc_id} status={update['status']} pages={update.get('ocr_pages_count')}")
+
+    # Phase 7.2 — auto-trigger structured extraction on OCR success
+    if update.get("status") == "ocr_done":
+        try:
+            from extraction_engine import auto_trigger_after_ocr
+            asyncio.create_task(auto_trigger_after_ocr(db, doc_id))
+        except Exception as e:
+            log.warning(f"di.auto_trigger_after_ocr scheduling failed: {e}")
 
 
 # ─── Sanitize for API responses ───────────────────────────────────────────────

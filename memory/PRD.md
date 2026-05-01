@@ -363,9 +363,69 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ### Phase 7 — Document Intelligence
 - **Phase 7.1 ✅** Upload + OCR + Fernet storage + multi-tenant guard
-- Phase 7.2 ⏳ Claude structured extraction por doc_type (templates específicos)
+- **Phase 7.2 ✅** Claude structured extraction + auto-trigger post-OCR + tab UI
 - Phase 7.3 ⏳ Cross-checking entre documentos (precios escritura vs LP, vigencias predial, SEDUVI vs licencia, etc.)
 - Phase 7.4 ⏳ Documents page completa en Developer Portal (read-only summary + tab por tipo)
+
+---
+
+## 2026-05-01 — Phase 7.2 · Claude Structured Extraction (Moat #2 Wave 2)
+**Objetivo:** transformar `ocr_text` en datos estructurados auditables por `doc_type`. Base para 7.3 cross-checking.
+
+### Backend
+- **Nuevo `recipes/extraction/__init__.py`** — 11 templates (1 por doc_type):
+  - `lp` (lista de precios), `brochure`, `escritura`, `permiso_seduvi`, `estudio_suelo`, `licencia_construccion`, `predial`, `plano_arquitectonico`, `contrato_cv`, `constancia_fiscal`, `otro`.
+  - Cada template: `{schema, description, hints}`. `validate_extraction_keys(doc_type, data)` chequea llaves requeridas (extras permitidas).
+- **Nuevo `extraction_engine.py`** — Claude Sonnet 4.5 vía `emergentintegrations`:
+  - Modelo `claude-sonnet-4-5-20250929`, temperature **0.0** primer intento, **0.1** retry; max ≤ 60K chars OCR; up to **2 retries** post inicial (3 intentos total) con back-off cuadrático.
+  - System prompt absolutista: "SOLO JSON válido · null si no encuentras · cero invención · mantén llaves del schema · números MXN sin símbolos · fechas ISO".
+  - Strip ` ```json ` markdown fences automático antes de parse.
+  - **Cifrado Fernet** del `extracted_data` JSON usando `IE_FERNET_KEY` (campo `extracted_data_enc`). Decifrado on-demand en API.
+  - **Budget cap $5/sesión** compartido con `narrative_engine` (rolling 1h sumando `ie_narratives.cost_usd` + `di_extractions.cost_usd`). 402-equiv → marca `extraction_failed` con `extraction_error="budget_cap_reached"`.
+  - **Auto-trigger** post-OCR: `document_intelligence.run_ocr_for_document` ahora encola `auto_trigger_after_ocr` cuando `status=ocr_done`.
+- **3 endpoints** en `routes_documents.py` (+ 3 alias `/api/desarrollador/*`):
+  - `POST /api/superadmin/documents/{doc_id}/extract` — manual trigger (sync wait, devuelve `{ok, extraction_id, cost_usd, doc_type}`).
+  - `GET /api/superadmin/documents/{doc_id}/extraction` — devuelve último extraction (descifrado + metadata).
+  - `POST /api/superadmin/developments/{dev_id}/documents/bulk-extract` — encola hasta 100 docs en `ocr_done | extraction_failed`, devuelve summary `{total, success, failed, total_cost_usd, results[]}`.
+- **DI_STATUS** ahora incluye 3 estados nuevos: `extraction_pending`, `extracted`, `extraction_failed`.
+- **Schema `di_extractions`**: id, document_id, doc_type, schema_version, ok (bool), extracted_data_enc (Fernet), model, temperature, input_tokens, output_tokens, cost_usd, generated_at, error?, raw_response (5K chars en caso de falla para auditoría).
+
+### Frontend
+- **`api/documents.js`** + 3 helpers: `triggerExtraction`, `getExtraction`, `bulkExtract`.
+- **Nuevo `components/documents/ExtractionView.js`**:
+  - **Renderer especializado para `lp`**: tabla con 7 columnas (Tipo, Recámaras, Baños, m², Planta, Status, Precio MXN format `es-MX`), KV pairs Vigencia + Fecha emisión, pills de Esquemas de pago.
+  - **Renderer genérico** para los otros 10 tipos: grid 2-col de KV pairs auto-detectando moneda (`/precio|monto|anticipo/`), arrays como pills, monoespacio para campos `no_*`, `rfc`, `cuenta`.
+  - JSON crudo expandible en `<pre>` mono.
+  - Footer con Modelo + Schema version + Generado + Tokens (in/out) + Costo + botón "Re-extraer".
+  - Estados: pending, failed (con `extraction_error` mostrado + botón "Reintentar"), no-extraction-yet (botón "Ejecutar extracción ahora").
+- **`DocumentsList.js` PreviewDrawer ampliado**:
+  - Tabs (`Texto OCR` / `Datos extraídos`) con borde inferior animado.
+  - Drawer width 580 → **620px** para acomodar tabla LP.
+  - Status pills extendidas con 3 nuevos tonos (`extraction_pending` rosa, `extracted` verde+Sparkle, `extraction_failed` ámbar).
+
+### Verificación end-to-end (curl + Playwright)
+- **Manual extract** sobre escritura existente (di_39ef3af1670a41) → `cost=$0.0018`, 53 output tokens, `extracted_data.predio_referencia="Lote 12 Manzana 5 Polanco"`, **resto de campos correctamente `null`** (cero invención sobre un OCR de 52 chars). ✓
+- **Auto-trigger LP nueva**: subí `lp_test.pdf` con tabulador de 5 unidades + 3 esquemas + 2 fechas → auto-extraction en background → `extracted` en ~12s. Claude extrajo:
+  - 5 unidades con precios MXN como números (`12500000`, `12800000`, etc.), recámaras, m², plantas, statuses (`DISPONIBLE`/`VENDIDO`/`APARTADO`).
+  - `banos: null` correctamente en todas (no estaban en OCR).
+  - `esquemas_pago = ["Contado 5% descuento", "Hipotecario", "30-70 enganche"]`.
+  - `vigencia="2026-12-31"`, `fecha="2026-05-01"` (ISO normalizadas desde texto natural). Costo: $0.0053.
+- **bulk-extract**: con 1 doc en `ocr_done` → `total=1, success=1, failed=0, total_cost_usd=0.0053` ✓.
+- **Multi-tenant**: developer_admin extract via `/api/desarrollador/documents/:id/extract` → 200 ✓ · buyer → 401 ✓.
+- **Playwright drawer LP** — tab "Datos extraídos" muestra: tabla de 5 unidades en MXN, 3 pills de esquemas, vigencia/fecha, JSON crudo, footer Claude.
+- **Playwright drawer escritura** — GenericRenderer con `predio_referencia` poblado, resto de campos `—`, footer con tokens y costo.
+- **Status pill extendido** — pill verde+Sparkle "DATOS EXTRAÍDOS" en lugar de "OCR LISTO" ✓.
+
+### Archivos tocados
+- `/app/backend/recipes/extraction/__init__.py` (nuevo · 11 templates)
+- `/app/backend/extraction_engine.py` (nuevo · 270 líneas)
+- `/app/backend/routes_documents.py` (+3 endpoints + 3 dev_alias)
+- `/app/backend/document_intelligence.py` (auto-trigger hook + STATUS extendido)
+- `/app/backend/server.py` (`ensure_extraction_indexes` en startup)
+- `/app/frontend/src/api/documents.js` (+3 helpers)
+- `/app/frontend/src/components/documents/ExtractionView.js` (nuevo)
+- `/app/frontend/src/components/documents/DocumentsList.js` (tabs + status pills)
+- `/app/memory/PRD.md`
 
 ---
 

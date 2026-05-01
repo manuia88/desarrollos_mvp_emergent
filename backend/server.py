@@ -236,6 +236,9 @@ async def startup():
     discover_recipes()
     # Phase 7.1 — Document Intelligence indexes
     await ensure_di_indexes(db)
+    # Phase 7.2 — Extraction indexes
+    from extraction_engine import ensure_extraction_indexes
+    await ensure_extraction_indexes(db)
     # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
     start_scheduler(db)
 
