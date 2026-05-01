@@ -58,6 +58,7 @@ import ScoresPage from './pages/superadmin/ScoresPage';
 import DocumentsPage from './pages/superadmin/DocumentsPage';
 import SuperadminDrivePage from './pages/superadmin/SuperadminDrivePage';
 import SuperadminObservabilityPage from './pages/superadmin/SuperadminObservabilityPage';
+import AuditLogPage from './pages/superadmin/AuditLogPage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -264,6 +265,7 @@ function AppRouter() {
       <Route path="/superadmin/documents" element={<AdvisorRoute Page={DocumentsPage} />} />
       <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
+      <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
 
       <Route path="*" element={<LandingPage />} />
     </Routes>

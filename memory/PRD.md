@@ -461,6 +461,70 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 ---
 
 
+## 2026-05-01 — Phase F0.1 · Audit Log Global Mutations
+**Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
+
+### Backend (`audit_log.py` · nuevo · ~220 líneas)
+- **`log_mutation(db, actor, action, entity_type, entity_id, before, after, request)`** — fire-and-forget async Mongo insert (`asyncio.create_task`). Nunca levanta excepción. Calcula `diff_keys` automáticamente. Extrae `ip` + `user_agent` + `route` del objeto `Request`.
+- **`ensure_audit_log_indexes`** — 4 índices: `(actor.tenant_id, ts desc)`, `(entity_type, entity_id, ts desc)`, `(actor.user_id, ts desc)`, `(ts desc)`.
+- **`_scope_filter(user)`** — multi-tenant query guard:
+  - `superadmin` → sin filtro (ve todo).
+  - `developer_admin / inmobiliaria_admin / asesor_admin` → filtra por `actor.org_id == user.tenant_id`.
+  - `advisor / asesor` → filtra por `actor.user_id == user.user_id`.
+
+### Schema `audit_log`
+`{id, ts, actor:{user_id,role,org_id,tenant_id,name}, action: create|update|delete|revert, entity_type, entity_id, before:{}, after:{}, diff_keys:[], ip, user_agent, route, request_id}`
+
+### 3 Endpoints
+- `GET /api/audit/log?entity_type=&actor_user_id=&action=&from=&to=&page=&limit=` → lista paginada (filtra por scope del rol).
+- `GET /api/audit/log/entity/{entity_type}/{entity_id}` → trail completo de ese entity.
+- `GET /api/audit/log/stats` → counts 24h por action + top entity_types.
+
+### Wiring en 8 rutas críticas
+| Ruta | Archivo | action |
+|------|---------|--------|
+| `update_op_status` (kanban) | routes_advisor.py | update + ML emit |
+| `create_operacion` | routes_advisor.py | create |
+| `patch_contacto` | routes_advisor.py | update |
+| `delete_contacto` | routes_advisor.py | delete |
+| `patch_unit_status` | routes_developer.py | update + ML emit |
+| `upload_document` | routes_documents.py | create |
+| `sync_apply` | routes_documents.py | update |
+| `sync_revert` | routes_documents.py | revert + ML emit |
+
+### Frontend (`AuditLogPage.js` · 340 líneas · nuevo)
+- Tabla filtrable: fecha · actor (name+role badge) · acción badge (color-coded) · entity_type · campos diff pills · IP.
+- Filtros: entity_type select · action select · actor_user_id text · date range from/to.
+- Paginación con ChevronLeft/ChevronRight.
+- **Drawer** lateral 600px: meta-grid (actor/rol/tenant/fecha/ip/ruta) + diff_keys pills + JSON diff before/after con resaltado rojo/verde por campo modificado.
+- Stats strip 24h: total + breakdown por acción.
+- Nav link "Audit Log" en SuperadminLayout + ruta `/superadmin/audit-log` en App.js.
+
+### Verificación curl
+- ✅ Kanban move `propuesta → oferta_aceptada` → `audit_log` entry: `{action:update, entity_type:operacion, diff_keys:['status'], before:{status:propuesta}, after:{status:oferta_aceptada}, ip:real}`.
+- ✅ `GET /api/audit/log/stats` → `{total_24h:3, by_action:{update:3}, top_entities:[{operacion,contacto,unit}]}`.
+- ✅ `GET /api/audit/log/entity/operacion/op_xxx` → trail count: 1.
+- ✅ **Multi-tenant guard**: dev_admin (constructora_ariel) ve 1 record (sólo su unit update). Superadmin ve todos (3 records). Prueba "org A no ve logs de org B" ✅.
+- ✅ **MongoDB indexes**: 4 índices creados (`actor.tenant_id_1_ts_-1`, `entity_type_1_entity_id_1_ts_-1`, `actor.user_id_1_ts_-1`, `ts_-1`).
+- ✅ Backend startup limpio (0 errores, 0 excepciones).
+
+### Archivos tocados
+- `/app/backend/audit_log.py` (nuevo · 220 líneas)
+- `/app/backend/server.py` (+audit_router mount + ensure_audit_log_indexes en startup)
+- `/app/backend/routes_advisor.py` (+log_mutation en update_op_status + create_operacion + patch_contacto + delete_contacto)
+- `/app/backend/routes_developer.py` (+log_mutation en patch_unit_status)
+- `/app/backend/routes_documents.py` (+log_mutation en upload_document + sync_apply + sync_revert)
+- `/app/frontend/src/api/audit.js` (nuevo · fetchAuditLog + fetchEntityTrail + fetchAuditStats)
+- `/app/frontend/src/pages/superadmin/AuditLogPage.js` (nuevo · 340 líneas)
+- `/app/frontend/src/components/superadmin/SuperadminLayout.js` (+nav Audit Log + ClipboardList icon)
+- `/app/frontend/src/components/icons/index.js` (+ClipboardList icon)
+- `/app/frontend/src/App.js` (+route /superadmin/audit-log)
+- `/app/memory/PRD.md`
+
+---
+
+
+
 ## 2026-05-01 — Phase 7.9 (complement) + 7.11 upgrade · Status histórico + Drive Webhooks
 Cierre de Phase 7 al 100% con 2 mejoras complementarias.
 
@@ -640,7 +704,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://propiedades-next.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://latam-desarrollos.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -1596,7 +1660,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://propiedades-next.preview.emergentagent.com
+https://latam-desarrollos.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales

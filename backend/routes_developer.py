@@ -178,6 +178,17 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
         )
     except Exception as e:
         import logging; logging.getLogger("dmx").warning(f"units_history record failed: {e}")
+    # F0.1 — Audit log (critical mutation + ML emit)
+    try:
+        from audit_log import log_mutation
+        from observability import emit_ml_event
+        await log_mutation(db, user, "update", "unit", payload.unit_id,
+                           before={"status": old_status, "dev_id": payload.dev_id},
+                           after={"status": payload.status, "dev_id": payload.dev_id, "reason": payload.reason},
+                           request=request)
+        await emit_ml_event(db, "mutation_logged", user.user_id, getattr(user, "tenant_id", None), user.role,
+                            context={"entity_type": "unit", "action": "update"}, ai_decision={}, user_action={})
+    except Exception: pass
     return {"ok": True, "status": payload.status}
 
 

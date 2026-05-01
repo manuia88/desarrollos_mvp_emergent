@@ -256,6 +256,13 @@ async def upload_document(
     )
     if res["action"] == "duplicate":
         raise HTTPException(409, f"Documento duplicado (sha256 ya existe en este desarrollo): id={res['document']['id']}")
+    # F0.1 — Audit log
+    try:
+        from audit_log import log_mutation
+        await log_mutation(_get_db(request), user, "create", "document", res["document"]["id"],
+                           before=None, after={"dev_id": dev_id, "doc_type": doc_type, "filename": file.filename},
+                           request=request)
+    except Exception: pass
     return {"document": res["document"]}
 
 
@@ -559,7 +566,17 @@ async def sync_apply(dev_id: str, request: Request):
     _check_dev_access(user, dev_id)
     _dev_exists(dev_id)
     db = _get_db(request)
-    return await sync_apply_changes(db, dev_id, applied_by=f"{user.role}:{user.user_id}")
+    result = await sync_apply_changes(db, dev_id, applied_by=f"{user.role}:{user.user_id}")
+    # F0.1 — Audit log auto-sync mapper
+    try:
+        from audit_log import log_mutation
+        applied_count = result.get("applied", 0) if isinstance(result, dict) else 0
+        await log_mutation(db, user, "update", "sync_overlay", dev_id,
+                           before={"dev_id": dev_id, "pending": True},
+                           after={"dev_id": dev_id, "applied": applied_count},
+                           request=request)
+    except Exception: pass
+    return result
 
 
 @router.post("/api/superadmin/developments/{dev_id}/auto-sync")
@@ -575,7 +592,19 @@ async def sync_revert(dev_id: str, audit_id: str, request: Request):
     _check_dev_access(user, dev_id)
     _dev_exists(dev_id)
     db = _get_db(request)
-    return await sync_revert_audit(db, dev_id, audit_id, applied_by=f"{user.role}:{user.user_id}")
+    result = await sync_revert_audit(db, dev_id, audit_id, applied_by=f"{user.role}:{user.user_id}")
+    # F0.1 — Audit log (revert critical)
+    try:
+        from audit_log import log_mutation
+        from observability import emit_ml_event
+        await log_mutation(db, user, "revert", "sync_overlay", audit_id,
+                           before={"dev_id": dev_id, "audit_id": audit_id},
+                           after={"reverted_by": user.user_id, "dev_id": dev_id},
+                           request=request)
+        await emit_ml_event(db, "mutation_logged", user.user_id, getattr(user, "tenant_id", None), user.role,
+                            context={"entity_type": "sync_overlay", "action": "revert"}, ai_decision={}, user_action={})
+    except Exception: pass
+    return result
 
 
 @router.get("/api/superadmin/developments/{dev_id}/sync-audit")

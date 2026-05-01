@@ -116,6 +116,10 @@ app.include_router(uh_dev_alias)
 from observability import router as obs_router, ensure_ml_indexes as ensure_ml_indexes_fn
 app.include_router(obs_router)
 
+# Phase F0.1 — Audit Log
+from audit_log import router as audit_router, ensure_audit_log_indexes
+app.include_router(audit_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -313,6 +317,8 @@ async def startup():
     await ensure_units_history_indexes(db)
     # Phase F0.11 — ML training events indexes
     await ensure_ml_indexes_fn(db)
+    # Phase F0.1 — Audit log indexes
+    await ensure_audit_log_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o
