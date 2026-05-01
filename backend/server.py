@@ -636,6 +636,55 @@ async def get_similar_developments(dev_id: str):
     return [_dev_public(p) for p in pool[:3]]
 
 
+@app.get("/api/developments/{dev_id}/rank")
+async def get_development_rank(dev_id: str, request: Request):
+    """Rank del desarrollo dentro de su colonia según IE_PROY_BADGE_TOP (Phase B3 chunk 1-bis).
+
+    badge_tier:
+      - "top"  → rank 1 (y al menos 2 devs en la colonia)
+      - "high" → rank en top 30%
+      - "mid"  → rango medio
+      - null   → sin peers (total==1) para evitar overshare
+    """
+    target = DEVELOPMENTS_BY_ID.get(dev_id)
+    if not target:
+        raise HTTPException(404, "Desarrollo no encontrado")
+
+    peers = [d for d in DEVELOPMENTS if d["colonia_id"] == target["colonia_id"]]
+    total = len(peers)
+    if total <= 1:
+        return {"rank": 1, "total": total, "badge_tier": None, "colonia": target["colonia"]}
+
+    db = request.app.state.db
+    peer_ids = [d["id"] for d in peers]
+    score_docs = await db.ie_scores.find(
+        {"zone_id": {"$in": peer_ids}, "code": "IE_PROY_BADGE_TOP", "is_stub": False, "value": {"$ne": None}},
+        {"_id": 0, "zone_id": 1, "value": 1},
+    ).to_list(length=50)
+    score_by_id = {d["zone_id"]: d["value"] for d in score_docs}
+
+    # Sort peers by BADGE_TOP desc; devs without score fall to the end
+    ranked = sorted(peer_ids, key=lambda i: score_by_id.get(i, -1), reverse=True)
+    try:
+        rank = ranked.index(dev_id) + 1
+    except ValueError:
+        rank = total
+
+    # Only award "top" if this dev actually has a real score (avoid false 1º for missing data)
+    has_real_score = dev_id in score_by_id
+    pct = rank / total
+    if rank == 1 and has_real_score:
+        badge_tier = "top"
+    elif pct <= 0.30 and has_real_score:
+        badge_tier = "high"
+    elif has_real_score:
+        badge_tier = "mid"
+    else:
+        badge_tier = None
+
+    return {"rank": rank, "total": total, "badge_tier": badge_tier, "colonia": target["colonia"]}
+
+
 @app.get("/api/developers/{developer_id}")
 async def get_developer(developer_id: str):
     d = DEVELOPERS_BY_ID.get(developer_id)

@@ -37,6 +37,16 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     fetchDevelopment(id).then(setDev).catch(() => setDev(null));
   }, [id]);
 
+  // Scroll to #ie-scores anchor when navigated from marketplace badge click
+  useEffect(() => {
+    if (!dev || window.location.hash !== '#ie-scores') return;
+    const t = setTimeout(() => {
+      const el = document.getElementById('ie-scores');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [dev]);
+
   const openGate = (ctx) => {
     setGateContext(ctx || null);
     setGateOpen(true);
@@ -123,7 +133,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           <PhotoGallery dev={dev} />
 
           {/* Score IE del proyecto — nueva sección entre hero y tabs (Phase B3) */}
-          <section data-testid="dev-ie-scores" style={{
+          <section id="ie-scores" data-testid="dev-ie-scores" style={{
             marginTop: 28, padding: '22px 24px',
             background: 'linear-gradient(180deg, rgba(99,102,241,0.06), rgba(236,72,153,0.03))',
             border: '1px solid var(--border)',

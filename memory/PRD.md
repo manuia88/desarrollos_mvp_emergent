@@ -126,6 +126,23 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Chunk 1-bis · Badge "1º / Nº en su colonia" en marketplace
+- **Backend** · `GET /api/developments/:id/rank` → `{rank, total, badge_tier, colonia}`. Ordena peers por `IE_PROY_BADGE_TOP.value`, devuelve `null` si total==1 (no overshare). Tiers: `top` (rank 1 con score real), `high` (top 30%), `mid` (resto), `null` (sin peers o sin score).
+- **Frontend** · `DevelopmentCard` con overlay `IERankPill` bottom-left sobre la foto:
+  - `top`  → pill gradient navy→indigo→pink "1º EN POLANCO" con Sparkle icon.
+  - `high` → pill verde "TOP 30% EN {colonia}".
+  - `null` / `mid` → **nada** (evita ruido visual en cards sin peers).
+  - Hover → lift −2px + tooltip "Basado en IE Score · click para ver detalles".
+  - Link destino ahora `desarrollo/:id#ie-scores` → scroll automático al bloque Score IE.
+- **DevelopmentDetail** · section id="ie-scores" + `useEffect` que hace `scrollIntoView({behavior:'smooth'})` si el hash matchea.
+- **Verificación**
+  - `curl /api/developments/altavista-polanco/rank` → `{rank:1, total:2, badge_tier:"top"}` ✓
+  - `curl /api/developments/polanco-moderno/rank` → `{rank:2, total:2, badge_tier:"mid"}` ✓ (sin pill)
+  - `curl /api/developments/juarez-boutique/rank` → `{rank:1, total:1, badge_tier:null}` ✓
+  - Playwright `/marketplace` → 18 cards, **3 top pills**, 0 high pills (con solo 2 peers por colonia, top 30% = rank 1 exacto).
+
+---
+
 ## 2026-05-01 — IE Engine Phase B3 (12 PROYECTO recipes + cron 02:00 MX + /superadmin/scores + ficha block)
 - **Backend**
   - `score_engine.py`: nuevo atributo `Recipe.scope = "colonia" | "proyecto"`. Engine `_build_project_context(zone_id)` inyecta pseudo-sources `_dmx_dev / _dmx_colonia_scores / _dmx_same_colonia_devs / _dmx_all_devs` cuando scope=proyecto. `compute_many(zone_id, codes=[])` auto-detecta scope (dev.id → proyecto, sino → colonia), evitando mezcla.

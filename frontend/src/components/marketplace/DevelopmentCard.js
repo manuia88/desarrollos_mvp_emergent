@@ -1,10 +1,12 @@
 // DevelopmentCard — compact marketplace card (EasyBroker-inspired composition)
 // Height target ~480px desktop, 4-col grid friendly
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight } from '../icons';
+import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight, Sparkle } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 // Stage → header band + text color
 const STAGE_COLORS = {
@@ -33,14 +35,72 @@ function Fallback({ hue = 231, seed = 0 }) {
   );
 }
 
+function IERankPill({ rank }) {
+  const [hover, setHover] = useState(false);
+  const t = rank.badge_tier;
+  const tone = t === 'top'
+    ? { bg: 'linear-gradient(92deg, #06080F 0%, #6366F1 50%, #EC4899 100%)', fg: '#fff', border: 'rgba(236,72,153,0.55)', label: `1º en ${rank.colonia}` }
+    : t === 'high'
+    ? { bg: 'rgba(34,197,94,0.18)', fg: '#86efac', border: 'rgba(34,197,94,0.45)', label: `Top 30% en ${rank.colonia}` }
+    : null;
+  if (!tone) return null;
+  return (
+    <div
+      data-testid={`ie-rank-pill-${rank.badge_tier}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: 'absolute', left: 12, bottom: 12, zIndex: 3,
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '5px 12px', borderRadius: 9999,
+        background: tone.bg, color: tone.fg,
+        border: `1px solid ${tone.border}`,
+        fontFamily: 'Outfit', fontWeight: 700, fontSize: 10.5,
+        letterSpacing: '0.1em', textTransform: 'uppercase',
+        boxShadow: t === 'top' ? '0 4px 18px rgba(99,102,241,0.42)' : '0 2px 10px rgba(0,0,0,0.35)',
+        transition: 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 380ms',
+        transform: hover ? 'translateY(-2px)' : 'translateY(0)',
+        pointerEvents: 'auto',
+      }}
+    >
+      <Sparkle size={10} color={tone.fg} />
+      <span>{tone.label}</span>
+      {hover && (
+        <span style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+          padding: '6px 10px', borderRadius: 10,
+          background: 'rgba(6,8,15,0.95)',
+          border: '1px solid rgba(240,235,224,0.14)',
+          color: 'var(--cream-2)',
+          fontFamily: 'DM Sans', fontWeight: 500, fontSize: 10.5,
+          letterSpacing: '0.02em', textTransform: 'none',
+          whiteSpace: 'nowrap', zIndex: 4,
+        }}>
+          Basado en IE Score · click para ver detalles
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function DevelopmentCard({ dev, index = 0 }) {
   const { t } = useTranslation();
   const [slide, setSlide] = useState(0);
   const [saved, setSaved] = useState(() => isFavorite(dev.id));
   const [imgError, setImgError] = useState({});
+  const [rank, setRank] = useState(null);
   const photos = dev.photos || [];
   const hue = dev.developer?.logo_hue || 231;
   const stageCfg = STAGE_COLORS[dev.stage] || STAGE_COLORS.preventa;
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/api/developments/${dev.id}/rank`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive && d) setRank(d); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [dev.id]);
 
   const onToggleFav = (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -61,7 +121,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
 
   return (
     <Link
-      to={`/desarrollo/${dev.id}`}
+      to={`/desarrollo/${dev.id}${rank?.badge_tier ? '#ie-scores' : ''}`}
       className="card"
       data-testid={`dev-card-${dev.id}`}
       style={{
@@ -84,7 +144,8 @@ export default function DevelopmentCard({ dev, index = 0 }) {
 
       {/* Photo area */}
       <div style={{ position: 'relative', height: 198, overflow: 'hidden', background: '#0A0D16' }}>
-        {showFallback ? (
+        {/* IE rank badge (Phase B3 chunk 1-bis) — bottom-left overlay */}
+        {rank?.badge_tier && <IERankPill rank={rank} />}        {showFallback ? (
           <Fallback hue={hue} seed={index} />
         ) : (
           <img
