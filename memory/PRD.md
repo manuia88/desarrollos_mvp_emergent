@@ -158,6 +158,77 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Chunk 2 · Sub-chunk C2 · IE Engine Phase C N5 LLM Narrative
+- **Backend** — nuevo módulo `narrative_engine.py`:
+  - Cache 7 días en collection `ie_narratives` con índices (scope,entity_id,prompt_version), (generated_at), (expires_at).
+  - Invalida cache si algún score N1-N4 drifta ≥5 puntos absolutos (`_scores_changed` compara `scores_snapshot`).
+  - Cap budget LLM **$5 USD/sesión** (1h rolling window). Degrada a cache stale si se alcanza.
+  - Emergent LLM Key · **Claude Sonnet 4.5** (`claude-sonnet-4-5-20250929`) · temperature implícito de la lib · hard cap 400 chars post-truncation.
+  - Dos prompts distintos (`SYSTEM_PROMPT_COLONIA` + `SYSTEM_PROMPT_PROYECTO`). El de proyecto incluye **regla explícita anti-fearmongering** para ROI rojo: "encuadra como 'proyecto de plusvalía patrimonial a largo plazo' con caveat honesto sobre liquidez vs CETES. Tono educativo, no transaccional."
+  - Endpoints:
+    - `GET /api/zones/:id/narrative` — público.
+    - `GET /api/developments/:slug/narrative` — público.
+    - `POST /api/superadmin/narratives/regenerate?id=&scope=` — force regen.
+    - `POST /api/superadmin/narratives/batch-generate?scope=all|colonia|development` — pre-calentar cache.
+    - `GET /api/superadmin/narratives/budget` — uso y cap.
+- **Frontend**
+  - Nuevo componente `NarrativeBlock.js` con props `{scope, entityId, compact, showFooter}`. Footer renderiza modelo + prompt_version + fecha + badge `CACHE` si cache hit.
+  - `/inteligencia` hero: `NarrativeBlock` de Roma Norte debajo del `ZoneScoreStrip`.
+  - `/desarrollo/:slug`: nueva section "Narrativa AI · N5" entre Score IE y tabs.
+  - `/barrios`: `NarrativeBlock compact showFooter={false}` entre el nombre de la colonia y el strip.
+
+### Verificación C2 (reporte completo)
+- **Generación batch**: 16 colonias + 18 developments = **34 narrativas reales · 0 errores**.
+- **Costo Claude total**: **$0.1073 USD** (bien debajo del cap $5). Cada narrativa ≈ $0.003.
+- **Cache funcional**: 2 calls consecutivos devuelven misma `generated_at` (`2026-05-01T04:02:42.874`).
+- **Ejemplo Roma Norte (colonia verde)**:
+  > "Roma Norte concentra el ingreso más alto de CDMX (IE_COL_DEMOGRAFIA_INGRESO 100.0) y perfil familiar consolidado (IE_COL_DEMOGRAFIA_FAMILIA 76.3). Calidad del aire favorable (IE_COL_AIRE 70.0). La isla de calor es severa (IE_COL_CLIMA_ISLA_CALOR 65.0, tier red) y plusvalía histórica nula (0.0), sugiriendo mercado maduro sin expansión reciente. Proyección de plusvalía modesta (3.21). DMX no opin…"
+- **Ejemplo Altavista Polanco (ROI tier red → encuadre educativo verificado)**:
+  > "Altavista Polanco combina desarrollador confiable (Quattro Capital: 96.89% cumplimiento histórico, 100.0 confianza) con amenidades nivel 100.0 y presión competitiva baja (20.0). **Caveat honesto: ROI comprador -43.25% sugiere que esto es patrimonio a largo plazo, no especulación**. Velocidad de absorción lenta (28.57%) indica paciencia requerida. Polanco sigue siendo Polanco: ingreso 100.0. DMX no…"
+  → Cita score específico, NO usa alarmismo, encuadra educativamente, respeta regla del system prompt.
+- **Playwright /inteligencia**: hero muestra narrativa con footer "Claude sonnet-4 · prompt v1.0 · 1 may 2026 · CACHE" ✓.
+- **Cero hallucination**: todos los números citados coinciden con los scores reales persistidos en `ie_scores`.
+
+### IE Engine layers finales
+- N1-N2 (descriptive) · 46 recipes
+- N4 (predictive) · 3 recipes
+- N5 (narrative) · 34 narrativas cacheadas (16 colonias + 18 devs)
+- **Phase C · COMPLETE ✅**
+
+---
+
+
+- **Base** `PredictiveRecipe` (`backend/recipes/predictive/_helpers.py`) extiende `Recipe` con `layer="predictive"`, `model_version`, `confidence_interval {low, high, percentile}`, `training_window_days`, `residual_std`. Pure + deterministic + versioned.
+- **3 recipes N4 nuevas**:
+  - `IE_COL_PLUSVALIA_PROYECTADA` (scope=colonia · model `lin_reg_v1` · IC 80%) — regresión lineal sobre `IE_COL_PLUSVALIA_HIST` + 5 features demográficas INEGI. Coeficientes β fijos (deterministas). Degrada a stub si falta PLUSVALIA_HIST o <2 features demográficas.
+  - `IE_PROY_DAYS_TO_SELLOUT` (proyecto · `absorp_linreg_v1` · IC 70%) — velocidad = absorbidas/ramp-up por stage × listing_health factor (0.7–1.3). Tier lower_better (<180=green, 180-365=amber, >365=red).
+  - `IE_PROY_ROI_BUYER` (proyecto · `compound_v1` · IC 80%) — compuesto 5 años: (1+plusvalía)^5 + renta_5y − tx_costs 10% − opp_cost CETES 8.5%×5. IC heredada del IC de `IE_COL_PLUSVALIA_PROYECTADA`. Tier: ≥40%=green, 15-40%=amber, <15%=red.
+- **Engine extensions**
+  - `ScoreEngine._build_colonia_context()` inyecta `_dmx_own_colonia_scores` para que N4 colonia consuman scores propios N1-N2 sin requerir SQL extra.
+  - `_build_project_context()` enriquecido con `_dmx_own_proj_scores`.
+  - `_persist()` ahora guarda 4 campos extra opcionales (`model_version`, `confidence_interval`, `training_window_days`, `residual_std`) cuando están presentes.
+- **Endpoints**
+  - `POST /api/superadmin/scores/recompute-all` nuevo flag `layer: "all"|"descriptive"|"predictive"`. Cuando `all` ejecuta **2-pass**: descriptive primero para que N4 tenga scores N1-N2 disponibles; predictive después.
+  - `GET /api/zones/:id/scores/explain` ahora devuelve: `layer`, `model_version`, `confidence_interval`, `training_window_days`, `residual_std`, `prediction_date`.
+- **Frontend**
+  - `ZoneScoreStrip`: labels IE_COL_PLUSVALIA_PROYECTADA / IE_PROY_DAYS_TO_SELLOUT / IE_PROY_ROI_BUYER. Nuevo `PRED_FORMATTERS` renderiza en unidades nativas (`3.2%`, `1147d`, `-43%`) con sub-text IC. Sort automático sube predictivos al top. Limit 8 en ficha (antes 6) — garantiza los 3 N4 visibles + 5 N1-N2.
+  - `ScoreExplainModal`: nuevo bloque "MODELO PREDICTIVO · N4" (solo si `data.layer === 'predictive'`) con 4 campos: Modelo / IC % / Ventana / Error estándar.
+
+### Verificación C1
+- `POST /recompute-all {layer:"all"}` → task procesa **68 pares** (34 zonas × 2 pasadas) en 2.1s.
+- **Cobertura N4 = 52/52 reales, 0 stubs**:
+  - IE_COL_PLUSVALIA_PROYECTADA: 16/16 colonias
+  - IE_PROY_DAYS_TO_SELLOUT: 18/18 developments
+  - IE_PROY_ROI_BUYER: 18/18 developments
+- Roma Norte `IE_COL_PLUSVALIA_PROYECTADA` → `value=3.21%, IC[2.19, 4.23], conf=high, window=1095d`.
+- Altavista Polanco `IE_PROY_DAYS_TO_SELLOUT` → `1147.5d (tier red), IC 70% [745–1549]`.
+- Altavista Polanco `IE_PROY_ROI_BUYER` → `-43.25% (tier red), IC 80% [-48.93, -37.35]` — auditable: plusvalía esperada (3.21%×5≈17%) < CETES acumulado 50% − tx 10%. Fórmula fiel.
+- Playwright ficha `/desarrollo/altavista-polanco`: 8 pills con **DAYS_TO_SELLOUT y ROI_BUYER primero**, modal explain muestra bloque "MODELO PREDICTIVO · N4" con `compound_v1`, IC, ventana, σ.
+
+**IE Engine layers: N1-N2 (46 desc) + N4 (3 pred) · 49 total.** Phase C1 done, pending C2 LLM narrative.
+
+---
+
 
 - **Backend** · `GET /api/developments/:id/rank` → `{rank, total, badge_tier, colonia}`. Ordena peers por `IE_PROY_BADGE_TOP.value`, devuelve `null` si total==1 (no overshare). Tiers: `top` (rank 1 con score real), `high` (top 30%), `mid` (resto), `null` (sin peers o sin score).
 - **Frontend** · `DevelopmentCard` con overlay `IERankPill` bottom-left sobre la foto:

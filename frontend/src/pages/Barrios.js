@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/landing/Navbar';
 import CtaFooter from '../components/landing/CtaFooter';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
+import NarrativeBlock from '../components/landing/NarrativeBlock';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import { MapPin, Leaf, Route, Shield, Store, ArrowRight } from '../components/icons';
 import { useAuth } from '../App';
@@ -143,6 +144,9 @@ export default function Barrios() {
               }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 2, textTransform: 'capitalize' }}>
                   {z.replace('_', ' ')}
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <NarrativeBlock scope="colonia" entityId={z} compact showFooter={false} />
                 </div>
                 <ZoneScoreStrip
                   zoneId={z}

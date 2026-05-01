@@ -15,6 +15,7 @@ import Sidebar from '../components/dev/Sidebar';
 import RegistrationModal from '../components/dev/RegistrationModal';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
+import NarrativeBlock from '../components/landing/NarrativeBlock';
 
 const STAGE_COLORS = {
   preventa: '#10B981',
@@ -160,6 +161,11 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               title=" "
               onScoreClick={s => setExplain({ zoneId: dev.id, code: s.code })}
             />
+          </section>
+
+          {/* Narrativa AI — N5 (Phase C2) */}
+          <section data-testid="dev-narrative-section" style={{ marginTop: 20 }}>
+            <NarrativeBlock scope="development" entityId={dev.id} />
           </section>
 
           {/* Layout */}

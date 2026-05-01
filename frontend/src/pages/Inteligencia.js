@@ -4,6 +4,7 @@ import Navbar from '../components/landing/Navbar';
 import CtaFooter from '../components/landing/CtaFooter';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
+import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { Sparkle, Database, BarChart, Route, Shield, Leaf, Store, ArrowRight } from '../components/icons';
 import { useAuth } from '../App';
 
@@ -73,6 +74,9 @@ export default function Inteligencia() {
             onScoreClick={s => setExplainCode(s.code)}
             title=""
           />
+          <div style={{ marginTop: 16 }}>
+            <NarrativeBlock scope="colonia" entityId="roma_norte" />
+          </div>
         </div>
 
         <div style={{
