@@ -109,6 +109,27 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — IE Engine Phase A3 (manual upload + CSV preview + audit screenshot)
+- Backend
+  - `uploads_ie.py`: 200 MB cap + extension allowlist + sha256 dedupe + auto-detect encoding (UTF-8 / Latin-1 / Windows-1252 vía `chardet`) + auto-detect separador (`,` `;` `\t` `|` vía `csv.Sniffer`). Soporte CSV / TSV / JSON / GeoJSON / ZIP / PDF / XLSX en metadata; parse activo solo CSV+JSON (otros guardados para audit).
+  - 3 nuevos endpoints en `routes_ie_engine.py`: `POST /:id/upload` (multipart con file + screenshot + notes + period), `POST /uploads/:id/process` (re-parse), `GET /uploads/:id`.
+  - Auto-procesa archivos ≤10MB inline; archivos grandes quedan en estado `uploaded` para que el operador dispare `/process` cuando quiera.
+  - Storage local en `IE_UPLOAD_DIR=/app/backend/uploads/ie_engine` (gitignored).
+- Frontend
+  - `UploadModal`: dropzone drag&drop + textarea notas + fechas período + warning de audit + auto-screenshot vía `html-to-image` (PNG 1.5x pixel ratio) + preview live (CSV table 5 rows con headers, JSON pretty, ZIP entries list).
+  - Pills de meta: encoding (verde si UTF-8, ámbar si Latin-1) + separator + kind/count.
+  - Botón "Subir" en tabla de fuentes ahora activo para todas las que `supports_manual_upload=true` (15/18 fuentes).
+- Verificación
+  - curl: Latin-1 + `;` separator → "Ñuño" decoded correctamente, 5 rows ingested ✓
+  - sha256 dedupe → 409 ✓
+  - UTF-8 + `,` auto-detected ✓
+  - Bad ext rejected → 400 ✓
+  - manual_upload sobre fuente que no lo soporta → 400 ✓ (catastro_cdmx admite, todas las manual_only sí)
+  - Playwright: dropzone → CSV demo → submit → screenshot PNG 19.6 KB persistido en disco ✓ + 3 records ingested ✓
+- Doc rotación Fernet en `/app/IE_FERNET_ROTATION.md` (de A2).
+
+---
+
 ## 2026-05-01 — IE Engine Phase A2 (connectors + connect modal + test/sync)
 - Backend
   - `connectors_ie.py`: BaseConnector + 4 implementaciones reales (NOAA, datos_cdmx, FGJ_CDMX, OSM Overpass) + StubConnector fallback para los otros 13. Patrón: nunca crashea — degrada a `is_stub=true` con observaciones sintéticas si no hay creds o falla la red.

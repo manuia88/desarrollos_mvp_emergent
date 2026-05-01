@@ -124,11 +124,11 @@ export default function SuperadminDashboard({ user, onLogout }) {
         background: 'rgba(255,255,255,0.02)',
         border: '1px solid var(--border)', borderRadius: 16,
       }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>FASE A · LECTURA SOLAMENTE</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>FASE A3 · WIRE-UP + MANUAL UPLOAD</div>
         <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.6 }}>
-          Esta es la fundación del IE Engine. Los botones de "Conectar", "Probar", "Sincronizar" y "Subir archivo"
-          están desactivados — se activan en las fases A2 (conectores + sync) y A3 (upload manual). Los cron jobs
-          y el cálculo real de scores llegan en A4 y Fase B.
+          Conectar / Probar / Sync / Subir están activos. Los cron jobs automáticos
+          (daily 00:00 MX + hourly status) y los 9 conectores reales restantes llegan en A4.
+          El cálculo real de scores N1-N2 se hace en Fase B.
         </div>
       </div>
     </SuperadminLayout>

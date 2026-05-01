@@ -94,3 +94,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# IE Engine — manual upload storage (operator-uploaded source data)
+backend/uploads/
+uploads/ie_engine/

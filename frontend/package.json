@@ -9,6 +9,7 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "html-to-image": "^1.11.13",
     "i18next": "^26.0.8",
     "lucide-react": "^0.263.1",
     "mapbox-gl": "^3.23.0",

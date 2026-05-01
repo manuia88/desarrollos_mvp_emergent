@@ -19,11 +19,15 @@ from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 
 from cryptography.fernet import Fernet, InvalidToken
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File, Form
 from pydantic import BaseModel, Field
 
 from data_ie_sources import IE_DATA_SOURCES_SEED, initial_status_for
 from connectors_ie import get_connector, connector_kind, new_job_id
+from uploads_ie import (
+    MAX_UPLOAD_BYTES, ALLOWED_EXTS, is_allowed,
+    sha256_bytes, build_preview, parse_manual_upload, upload_dir,
+)
 
 
 router = APIRouter(prefix="/api/superadmin")
@@ -490,3 +494,174 @@ async def sync_source_route(source_id: str, request: Request):
     await audit(user.user_id, "ie_sync", source_id, {"job_id": job_id, "records": n, "is_stub": is_stub})
     return SyncResult(job_id=job_id, status=job_status, records_ingested=n,
                       is_stub=is_stub, duration_ms=duration_ms)
+
+
+
+# ─── Phase A3 — manual uploads ───────────────────────────────────────────────
+class UploadOut(BaseModel):
+    upload: ManualUploadOut
+    preview: Dict[str, Any]
+
+
+class PreviewRequest(BaseModel):
+    pass  # body unused; kept for symmetry
+
+
+def _safe_filename(name: str) -> str:
+    base = os.path.basename(name or "upload.bin")
+    # Replace path-traversal characters; keep extension.
+    cleaned = "".join(c if c.isalnum() or c in "._-" else "_" for c in base)
+    return cleaned[:180] or "upload.bin"
+
+
+async def _persist_observations_from_upload(db, source_id: str, upload_id: str, storage_path: str, original_name: str) -> int:
+    """Parse the file via uploads_ie.parse_manual_upload and insert observations."""
+    obs, err = parse_manual_upload(source_id, storage_path, original_name)
+    if err:
+        return 0
+    if not obs:
+        return 0
+    for o in obs:
+        o["upload_id"] = upload_id
+    await db.ie_raw_observations.insert_many(obs)
+    return len(obs)
+
+
+@router.post("/data-sources/{source_id}/upload", response_model=UploadOut)
+async def upload_for_source(
+    source_id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    notes: Optional[str] = Form(None),
+    period_start: Optional[str] = Form(None),
+    period_end: Optional[str] = Form(None),
+    screenshot: Optional[UploadFile] = File(None),
+):
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+    src = await _load_source_or_404(db, source_id)
+    if not src.get("supports_manual_upload"):
+        raise HTTPException(400, "Esta fuente no admite upload manual.")
+
+    # Validate filename + mime + ext early
+    raw_name = file.filename or "upload.bin"
+    if not is_allowed(raw_name, file.content_type or ""):
+        raise HTTPException(400, f"Tipo de archivo no permitido. Extensiones aceptadas: {sorted(ALLOWED_EXTS)}")
+
+    data = await file.read()
+    if len(data) == 0:
+        raise HTTPException(400, "Archivo vacío.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"Archivo excede el límite de {MAX_UPLOAD_BYTES // 1024 // 1024} MB.")
+
+    file_hash = sha256_bytes(data)
+    existing = await db.ie_manual_uploads.find_one({"file_hash": file_hash}, {"_id": 0})
+    if existing:
+        raise HTTPException(409, f"Este archivo ya fue subido (upload_id={existing['id']}).")
+
+    upload_id = f"upl_{file_hash[:16]}"
+    safe = _safe_filename(raw_name)
+    target = upload_dir() / f"{upload_id}__{safe}"
+    target.write_bytes(data)
+
+    # Optional screenshot (PNG/JPEG bytes from html-to-image)
+    screenshot_path: Optional[str] = None
+    if screenshot is not None:
+        shot_bytes = await screenshot.read()
+        if shot_bytes:
+            shot_target = upload_dir() / f"{upload_id}__screenshot.png"
+            shot_target.write_bytes(shot_bytes)
+            screenshot_path = str(shot_target)
+
+    # Period parsing — accept ISO dates, ignore on parse failure
+    def _parse_iso(s: Optional[str]) -> Optional[datetime]:
+        if not s:
+            return None
+        try:
+            return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    now = datetime.now(timezone.utc)
+    upload_doc = {
+        "id": upload_id,
+        "source_id": source_id,
+        "uploader_user_id": user.user_id,
+        "filename": raw_name,
+        "file_size_bytes": len(data),
+        "mime_type": file.content_type or "application/octet-stream",
+        "file_hash": file_hash,
+        "storage_path": str(target),
+        "screenshot_path": screenshot_path,
+        "upload_notes": notes,
+        "period_start": _parse_iso(period_start),
+        "period_end": _parse_iso(period_end),
+        "status": "uploaded",
+        "records_extracted": None,
+        "superseded_by": None,
+        "created_at": now,
+        "processed_at": None,
+    }
+    await db.ie_manual_uploads.insert_one(upload_doc)
+
+    # Build preview before parse so the modal shows live feedback
+    preview = build_preview(raw_name, data)
+
+    # Auto-process small files inline (≤10 MB). Bigger ones stay as "uploaded";
+    # the operator can hit /process explicitly.
+    if len(data) <= 10 * 1024 * 1024:
+        await db.ie_manual_uploads.update_one({"id": upload_id}, {"$set": {"status": "processing"}})
+        n = await _persist_observations_from_upload(db, source_id, upload_id, str(target), raw_name)
+        await db.ie_manual_uploads.update_one({"id": upload_id}, {"$set": {
+            "status": "ingested" if n > 0 else "uploaded",
+            "records_extracted": n,
+            "processed_at": datetime.now(timezone.utc),
+        }})
+        if n > 0:
+            await db.ie_data_sources.update_one({"id": source_id}, {"$set": {
+                "last_sync": datetime.now(timezone.utc),
+                "last_status": "ok",
+                "updated_at": datetime.now(timezone.utc),
+            }, "$inc": {"records_total": n}})
+
+    fresh = await db.ie_manual_uploads.find_one({"id": upload_id}, {"_id": 0})
+    await audit(user.user_id, "ie_manual_upload", source_id, {
+        "upload_id": upload_id, "size": len(data), "records": fresh.get("records_extracted"),
+    })
+    return UploadOut(upload=ManualUploadOut(**fresh), preview=preview)
+
+
+@router.post("/uploads/{upload_id}/process", response_model=ManualUploadOut)
+async def reprocess_upload(upload_id: str, request: Request):
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+    upl = await db.ie_manual_uploads.find_one({"id": upload_id}, {"_id": 0})
+    if not upl:
+        raise HTTPException(404, "Upload no encontrado")
+
+    # Wipe previous observations from this upload before re-processing
+    await db.ie_raw_observations.delete_many({"upload_id": upload_id})
+    await db.ie_manual_uploads.update_one({"id": upload_id}, {"$set": {"status": "processing"}})
+
+    n = await _persist_observations_from_upload(
+        db, upl["source_id"], upload_id, upl["storage_path"], upl["filename"]
+    )
+    await db.ie_manual_uploads.update_one({"id": upload_id}, {"$set": {
+        "status": "ingested" if n > 0 else "failed",
+        "records_extracted": n,
+        "processed_at": datetime.now(timezone.utc),
+    }})
+
+    await audit(user.user_id, "ie_upload_reprocess", upl["source_id"], {"upload_id": upload_id, "records": n})
+    fresh = await db.ie_manual_uploads.find_one({"id": upload_id}, {"_id": 0})
+    return ManualUploadOut(**fresh)
+
+
+@router.get("/uploads/{upload_id}", response_model=ManualUploadOut)
+async def get_upload(upload_id: str, request: Request):
+    await _require_superadmin(request)
+    db = request.app.state.db
+    upl = await db.ie_manual_uploads.find_one({"id": upload_id}, {"_id": 0})
+    if not upl:
+        raise HTTPException(404, "Upload no encontrado")
+    return ManualUploadOut(**upl)

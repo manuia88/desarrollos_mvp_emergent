@@ -1,7 +1,8 @@
-// /superadmin/data-sources — IE Engine wire-up + manual upload admin (Phase A2: connect + test + sync).
+// /superadmin/data-sources — IE Engine wire-up + manual upload admin (Phase A3: connect + test + sync + upload).
 import React, { useEffect, useState, useMemo } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import ConnectModal from '../../components/superadmin/ConnectModal';
+import UploadModal from '../../components/superadmin/UploadModal';
 import * as api from '../../api/superadmin';
 import { Database, Sparkle, Bookmark, Shield, Clock } from '../../components/icons';
 
@@ -95,6 +96,7 @@ export default function DataSourcesPage({ user, onLogout }) {
   const [err, setErr] = useState(null);
   const [filter, setFilter] = useState('todas');
   const [connecting, setConnecting] = useState(null); // source object or null
+  const [uploading, setUploading] = useState(null);   // source object or null
   const [actionBusy, setActionBusy] = useState({}); // { [id]: 'test'|'sync' }
   const [toast, setToast] = useState(null); // { msg, tone }
 
@@ -296,9 +298,10 @@ export default function DataSourcesPage({ user, onLogout }) {
                             </button>
                           )}
                           {s.supports_manual_upload && (
-                            <button data-testid={`sa-act-upload-${s.id}`} disabled className="btn btn-ghost btn-sm"
-                              style={{ fontSize: 11, padding: '4px 10px', opacity: 0.45, cursor: 'not-allowed' }}
-                              title="Disponible en Fase A3">
+                            <button data-testid={`sa-act-upload-${s.id}`}
+                              onClick={() => setUploading(s)}
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: 11, padding: '4px 10px' }}>
                               Subir
                             </button>
                           )}
@@ -382,6 +385,19 @@ export default function DataSourcesPage({ user, onLogout }) {
         source={connecting}
         onClose={() => setConnecting(null)}
         onSaved={() => load()}
+      />
+
+      <UploadModal
+        open={!!uploading}
+        source={uploading}
+        onClose={() => setUploading(null)}
+        onUploaded={(data) => {
+          showToast(
+            `${uploading?.name || 'Upload'} · ${data.upload.records_extracted ?? 0} records (${data.upload.status})`,
+            data.upload.status === 'ingested' ? 'ok' : 'bad',
+          );
+          load();
+        }}
       />
 
       {toast && (
