@@ -93,6 +93,10 @@ from rag_engine import (
 app.include_router(rag_public_router)
 app.include_router(rag_admin_router)
 
+# Phase D2 — Caya prep stub
+from caya_engine import router as caya_router
+app.include_router(caya_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -270,6 +274,9 @@ async def startup():
     except Exception as e:
         import logging
         logging.warning(f"rag corpus preload failed: {e}")
+    # Phase D2 — Caya indexes
+    from caya_engine import ensure_caya_indexes
+    await ensure_caya_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

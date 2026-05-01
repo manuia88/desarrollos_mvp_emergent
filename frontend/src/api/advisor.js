@@ -64,6 +64,7 @@ export const getOpPrefill = (bid) => j(`/api/asesor/busquedas/${bid}/op-prefill`
 
 // Argumentario AI
 export const generateArgumentario = (b) => post('/api/asesor/argumentario', b);
+export const generateArgumentarioRag = (b) => post('/api/asesor/argumentario-rag', b);
 
 // Briefing
 export const generateBriefing = () => post('/api/asesor/briefing/daily');

@@ -373,6 +373,79 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Phase D2 · Bot RAG Integration (3 surfaces)
+**Objetivo:** conectar D1 semantic search a 3 superficies de bot — argumentario asesor, briefing IE upgrade, y Caya prep stub. Cada output cita chunks del corpus con `chunk_id` clickable. Cero invención: si un chunk no se encuentra, Claude lo dice explícito.
+
+### 1. Argumentario RAG inline (M03+ Contactos drawer)
+- **Backend** `routes_advisor.py` nuevo endpoint `POST /api/asesor/argumentario-rag` `{contact_id, development_id?, force?}`:
+  - Cache 24h por `(advisor, contact, dev|none)` md5. `force=true` para regenerar.
+  - Budget cap compartido `$5/sesión` (rolling 1h) con narrative_engine.
+  - RAG retrieve top-5 chunks: si `development_id` provisto → `scope=development, entity_id=dev_id`; si no → query libre.
+  - Claude Sonnet 4.5 con system prompt absolutista: "cada afirmación cuantitativa DEBE estar respaldada por un chunk del CONTEXTO RAG. Si no encuentras data sobre algo, di explícito 'no tengo data sobre X'".
+  - Output JSON: `{hook, paragraphs[2-3], call_to_action, whatsapp_text(≤700), citations[]: [{chunk_id, label, source_type, source_id}]}` + paragraphs con refs inline `[1]` `[2]` que mapean a citations.
+  - Persiste en `asesor_argumentarios_rag` + log en `ie_narratives` para tracking de budget compartido.
+- **Frontend** `AsesorContactos.js` `ArgumentarioForm` reescrito completo:
+  - Selector de desarrollo opcional (incluye opción "Sin desarrollo específico").
+  - Hook H4 + paragraphs con `[1]` `[2]` pills inline clickables (hover → tooltip con `chunk_id` + `source_type` + `label` + snippet 200 chars).
+  - Footer "Fuentes citadas" con pill por citation (label + source_type).
+  - 3 botones: Copiar texto / Copiar WhatsApp / Enviar por WhatsApp (`wa.me/?text=`).
+  - Header: cache vs nuevo · count citas · model · cost.
+- **Helper** `api/advisor.js` + `generateArgumentarioRag`.
+
+### 2. Briefing IE upgrade (citations data-backed)
+- **Backend** `briefing_engine.py`:
+  - `PROMPT_VERSION` bumpeado `v1.0 → v2.0` (invalida caches viejas automáticamente).
+  - SYSTEM_PROMPT extendido con regla: "Cada bullet de headline_pros o caveat puede incluir `citation_chunk_id` referenciando un documento RAG. `citations[]` array con `{chunk_id, label}`."
+  - Pre-Claude: `semantic_search(scope=development, entity_id=dev_id, top_k=3)` injectado en user_prompt como sección "DOCUMENTOS VERIFICADOS RAG".
+  - Persiste `citations[]` + `rag_chunks_used[]` en `ie_advisor_briefings`.
+- **Frontend** `BriefingIEModal.js`:
+  - `ScoreBullet` ahora acepta `citations` prop. Si bullet tiene `citation_chunk_id` que matchee → muestra mini-pill morada `DOC` con tooltip nativo.
+  - Nueva sección "Documentos verificados citados" con pills morados (label + source_type) bajo CTA.
+  - Header: `prompt v2.0 · RAG`.
+
+### 3. Caya prep stub (chatbot infraestructura)
+- **Backend** `caya_engine.py` nuevo módulo · `POST /api/caya/query` `{query, session_id?, channel: web|whatsapp}`:
+  - Pipeline: persiste session + user msg → semantic_search top-5 → Claude conversacional con system prompt es-MX honest + RAG context → persist assistant msg.
+  - **System prompt regla**: "Solo respondes con datos del CONTEXTO RAG. Si no encuentras data sobre algo, di 'No tengo información verificada sobre eso. Te conecto con un asesor humano'."
+  - **Lead-score heurístico** (placeholder C11): keywords high (comprar, presupuesto, agendar, urgente) +15 · medium (zonas, tipos) +5. Score ≥70 → `hand_off_recommended=true`.
+  - Hand_off también si Claude lo determina.
+  - Endpoint `GET /api/caya/sessions/:id/history` para multi-turn.
+  - Collections: `caya_sessions`, `caya_messages` (con role, content, citations, lead_score, hand_off, channel, cost_usd).
+
+### Verificación end-to-end
+- **Argumentario RAG** sobre contacto Alejandro + altavista-polanco:
+  - hook: "Alejandro, encontré una oportunidad de inversión en preventa que por ubicación y números puede calzar con tu perfil de yield."
+  - 3 paragraphs con refs inline `[1]` (cita scores reales: "torre boutique de 34 niveles sobre Moliere, a dos cuadras de Parque Lincoln") y precio LP real ($12,500,000 MXN por 85 m²).
+  - 4 citations: dev_card + di_document(LP) + extraction(unidades 101/201) + permiso_seduvi.
+  - Cost $0.0126 USD. **Cache hit verificado**: 2da call → `cache_hit=true`, cost mismo, hook idéntico ✓.
+- **Briefing IE upgrade** altavista-polanco con `force=true`:
+  - `prompt_version=v2.0` ✓ · 5 headline_pros · 2 citations (dev_card + LP doc) · 3 rag_chunks_used · cost $0.0199 ✓.
+  - Hook: "Ana, Altavista Polanco combina la solidez de Quattro (96.89% entrega histórica) con amenidades premi…" — cita score real verificable.
+- **Caya** 4 queries de stress test:
+  - Q "casa familiar Polanco con amenidades" → top_results: polanco-moderno (0.61), altavista-polanco (0.60), coyoacan-reserve (0.56). 2 citations. hand_off=true (Claude detectó intención específica). cost $0.006.
+  - Q alta intención "presupuesto 15M, agendar visita" → `lead_score=75` → hand_off=true · "Con tu presupuesto de 15M tienes opciones disponibles. En Altavista Polanco hay unidades desde 12.5M (85m², 2 rec)..." (precio real citado) ✓.
+  - Q multi-turn: 1ra "depto Roma Norte" → 2da en mismo session_id "qué precios manejan?" → history endpoint devuelve 4 msgs en orden ✓.
+  - **Q anti-invención** "tienen propiedades en Mérida Yucatán?" → "No tengo información verificada sobre propiedades en Mérida, Yucatán. Actualmente cuento con datos de desarrollos en CDMX. Te conecto con un asesor humano". hand_off=true. **Regla "cero invención" honrada** ✓.
+
+### Archivos tocados
+- `/app/backend/caya_engine.py` (nuevo · 220 líneas)
+- `/app/backend/routes_advisor.py` (+endpoint argumentario-rag · +180 líneas)
+- `/app/backend/briefing_engine.py` (PROMPT_VERSION v2.0 · SYSTEM_PROMPT extendido · `_build_user_prompt` con rag_chunks · `get_or_generate_briefing` con RAG fetch + citations persist)
+- `/app/backend/server.py` (+caya_router + ensure_caya_indexes startup)
+- `/app/frontend/src/api/advisor.js` (+generateArgumentarioRag)
+- `/app/frontend/src/pages/advisor/AsesorContactos.js` (`ArgumentarioForm` reescrito con citations + paragraphs)
+- `/app/frontend/src/components/advisor/BriefingIEModal.js` (`ScoreBullet` con citation pill DOC + sección "Documentos verificados citados")
+- `/app/memory/PRD.md`
+
+### D2 closed ✅ · D2 backlog (próxima fase Caya C11)
+- Auto-reindex hook después de cada doc/extraction upload (ahora reindex es manual).
+- WhatsApp Business real wiring (whatsapp-web.js QR).
+- UI conversacional Caya (web widget + WhatsApp inbound).
+- NLP intent classifier real (reemplaza heurística keyword-based de `_estimate_lead_score`).
+
+---
+
+
 ## 2026-05-01 — Phase D1 · Vector embeddings + Semantic Search (RAG base)
 **Objetivo:** capa RAG sobre todo el corpus DMX (devs, colonias, OCR, extractions, narrativas, scores) para búsqueda semántica pública. Base para D2 (argumentario/briefing IE con citations data-backed).
 

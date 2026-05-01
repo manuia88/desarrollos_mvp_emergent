@@ -32,7 +32,7 @@ from narrative_engine import (
     _fetch_scores_map,
 )
 
-PROMPT_VERSION = "v1.0"
+PROMPT_VERSION = "v2.0"
 CACHE_TTL_HOURS = 24
 
 SCORE_LABEL_ES = {
@@ -76,15 +76,17 @@ SYSTEM_PROMPT = """Eres analista DMX que genera pitches de venta data-backed par
 Tono profesional, claro, en es-MX. 
 
 REGLAS INMUTABLES:
-- NUNCA inventes datos. Solo cita scores que estén en el input.
+- NUNCA inventes datos. Solo cita scores y documentos que estén en el input.
 - Si un score es rojo/ámbar, encuadra honesto. NO fearmongering.
 - Si IE_PROY_ROI_BUYER es tier=red, encuadra como "patrimonial a largo plazo" + caveat sobre liquidez vs CETES. Tono educativo, NO transaccional.
 - Cita scores específicos con sus values (ej. "ABSORCION 58%" no "buena absorción").
+- Cuando el input incluye DOCUMENTOS VERIFICADOS RAG, puedes citarlos en el campo `citations` con el `chunk_id`. Cada bullet de headline_pros o honest_caveat puede incluir opcionalmente `citation_chunk_id` referenciando el documento.
 - CTA debe sugerir siguiente paso concreto (visita, comparativa, llamada).
 - whatsapp_text: ≤800 chars, plain text, sin markdown, SIN emojis (ni ✅ ni ⚠️ ni ninguno), legible en móvil, cita 2-3 scores clave y CTA. Usa "+" para pros y "-" para caveats si necesitas separadores.
-- Output: EXCLUSIVAMENTE JSON válido con exactamente las keys: hook, headline_pros, honest_caveats, call_to_action, whatsapp_text, context_hint.
-- headline_pros: 4-6 items con estructura {score_code, score_value, score_label_es, narrative (1 frase concreta)}
-- honest_caveats: 2 items con la misma estructura
+- Output: EXCLUSIVAMENTE JSON válido con exactamente las keys: hook, headline_pros, honest_caveats, call_to_action, whatsapp_text, context_hint, citations.
+- headline_pros: 4-6 items con estructura {score_code, score_value, score_label_es, narrative (1 frase concreta), citation_chunk_id (opcional)}
+- honest_caveats: 2 items con la misma estructura (citation_chunk_id opcional)
+- citations: array de {chunk_id, label} para cada documento RAG citado. Vacío [] si no usaste ninguno.
 - Idioma: español México (es-MX).
 """
 
@@ -98,6 +100,7 @@ def _build_user_prompt(
     narrative_proj: Optional[str],
     lead: Optional[Dict[str, Any]],
     contact: Optional[Dict[str, Any]],
+    rag_chunks: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     lines = [f"Genera briefing para asesor {asesor_name} sobre desarrollo {dev_name} en {colonia}.", ""]
     lines.append("SCORES PROYECTO REALES:")
@@ -118,6 +121,12 @@ def _build_user_prompt(
         lines.append("NARRATIVA AI EXISTENTE (referencia, NO copies textual):")
         lines.append(f"  {narrative_proj}")
         lines.append("")
+    if rag_chunks:
+        lines.append("DOCUMENTOS VERIFICADOS RAG (cita por chunk_id si los usas):")
+        for c in rag_chunks:
+            snip = (c.get("snippet") or "")[:280].replace("\n", " ")
+            lines.append(f"  - chunk_id={c.get('chunk_id')} · type={c.get('source_type')} · {c.get('title','')} → {snip}")
+        lines.append("")
     if lead:
         lines.append("LEAD PROFILE:")
         for k, v in lead.items():
@@ -128,7 +137,7 @@ def _build_user_prompt(
         for k, v in contact.items():
             lines.append(f"  - {k}: {v}")
         lines.append("")
-    lines.append("Genera JSON válido con: hook, headline_pros (4-6), honest_caveats (2), call_to_action, whatsapp_text (≤800 chars plain), context_hint (frase corta si hay lead/contacto, null si no).")
+    lines.append("Genera JSON válido con: hook, headline_pros (4-6, cada uno con citation_chunk_id opcional), honest_caveats (2), call_to_action, whatsapp_text (≤800 chars plain), context_hint, citations (array de {chunk_id,label} de los chunks RAG citados).")
     return "\n".join(lines)
 
 
@@ -244,10 +253,24 @@ async def get_or_generate_briefing(
     )
     narrative_proj = narrative_doc["narrative_text"] if narrative_doc else None
 
+    # Phase D2: RAG retrieve top-3 chunks scoped al desarrollo
+    rag_chunks: List[Dict[str, Any]] = []
+    try:
+        from rag_engine import semantic_search
+        rag_query = f"argumentario venta desarrollo {dev.get('name','')} en {dev.get('colonia','')} amenidades precio escritura permisos"
+        rag_res = await semantic_search(
+            db, rag_query, top_k=3,
+            scope="development", entity_id=development_id,
+        )
+        rag_chunks = rag_res.get("results", []) or []
+    except Exception as e:
+        import logging; logging.getLogger("dmx.briefing").warning(f"RAG fetch failed: {e}")
+
     user_prompt = _build_user_prompt(
         dev_name=dev.get("name"), colonia=dev.get("colonia", ""),
         asesor_name=advisor_name, proj_scores=proj_scores, col_scores=col_scores,
         narrative_proj=narrative_proj, lead=lead, contact=contact,
+        rag_chunks=rag_chunks,
     )
     session_key = f"briefing_{advisor_user_id}_{development_id}_{lead_id or contact_id or 'none'}_{int(now.timestamp())}"
     out = await _generate_briefing(SYSTEM_PROMPT, user_prompt, session_key)
@@ -277,6 +300,8 @@ async def get_or_generate_briefing(
         "call_to_action": out["parsed"].get("call_to_action", ""),
         "whatsapp_text": wpt,
         "context_hint": out["parsed"].get("context_hint"),
+        "citations": out["parsed"].get("citations", []) or [],
+        "rag_chunks_used": [{"chunk_id": c.get("chunk_id"), "source_type": c.get("source_type"), "title": c.get("title"), "metadata": c.get("metadata", {})} for c in rag_chunks],
         "prompt_version": PROMPT_VERSION,
         "scores_snapshot": _build_snapshot(all_snapshot_scores),
         "generated_at": now,

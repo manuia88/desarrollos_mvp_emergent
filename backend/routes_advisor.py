@@ -777,6 +777,189 @@ Escribe un mensaje de WhatsApp de 2-3 párrafos cortos, tono profesional-cercano
     return result
 
 
+# ─── Argumentario RAG (Phase D2 · Bot RAG integration) ────────────────────────
+class ArgumentarioRagIn(BaseModel):
+    contact_id: str
+    development_id: Optional[str] = None
+    force: bool = False
+
+
+_ARG_RAG_SYS = """Eres un asesor inmobiliario mexicano (es-MX) que genera argumentarios de venta data-backed para contactos específicos.
+
+REGLAS INMUTABLES:
+- NUNCA inventes datos. Solo cita scores, documentos y datos que estén en el input (CONTEXTO RAG).
+- Cada afirmación cuantitativa DEBE estar respaldada por un chunk del CONTEXTO RAG. Si no encuentras data sobre algo, di explícito "no tengo data sobre X".
+- Cita los chunks con su chunk_id en el campo `citations`.
+- Cada párrafo puede incluir referencias inline tipo "[1]" o "[2]" que correspondan al index del array citations.
+- Tono profesional-cercano mexicano. Sin emojis. Sin frases marketing vacío.
+- Output: SOLO JSON válido (sin markdown) con keys: hook, paragraphs (array de 2-3 strings), call_to_action, whatsapp_text (≤700 chars plain), citations (array de {chunk_id, label, source_type, source_id}).
+"""
+
+
+@router.post("/argumentario-rag")
+async def generate_argumentario_rag(payload: ArgumentarioRagIn, request: Request):
+    user = await require_advisor(request)
+    db = get_db(request)
+
+    contact = await db.asesor_contactos.find_one(
+        {"id": payload.contact_id, "owner_id": user.user_id}, {"_id": 0}
+    )
+    if not contact:
+        raise HTTPException(404, "Contacto no encontrado")
+
+    dev = None
+    if payload.development_id:
+        from data_developments import DEVELOPMENTS_BY_ID
+        dev = DEVELOPMENTS_BY_ID.get(payload.development_id)
+        if not dev:
+            raise HTTPException(404, "Desarrollo no encontrado")
+
+    # Cache 24h por (advisor, contact, dev|none)
+    cache_key = hashlib.md5(
+        f"rag|{user.user_id}|{payload.contact_id}|{payload.development_id or 'none'}|v1.0".encode()
+    ).hexdigest()
+    if not payload.force:
+        cached = await db.asesor_argumentarios_rag.find_one(
+            {"cache_key": cache_key}, {"_id": 0},
+        )
+        if cached and cached.get("expires_at"):
+            exp = cached["expires_at"]
+            if isinstance(exp, datetime) and exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp > _now():
+                # Serialize datetimes for JSON
+                for k in ("generated_at", "expires_at"):
+                    v = cached.get(k)
+                    if isinstance(v, datetime):
+                        cached[k] = v.isoformat()
+                return {**cached, "cache_hit": True}
+
+    # Budget cap shared con narrative_engine ($5/sesión, 1h rolling)
+    from narrative_engine import _session_budget_used, SESSION_BUDGET_CAP_USD
+    used = await _session_budget_used(db)
+    if used >= SESSION_BUDGET_CAP_USD:
+        raise HTTPException(429, f"Cap LLM alcanzado ({used:.2f}/${SESSION_BUDGET_CAP_USD}). Reintenta en 1h.")
+
+    # RAG retrieve top-5
+    from rag_engine import semantic_search
+    interest_hint = " ".join((contact.get("tags") or [])[:5])
+    if dev:
+        rag_q = f"argumentario venta {dev.get('name','')} {dev.get('colonia','')} {interest_hint}"
+        rag_res = await semantic_search(db, rag_q, top_k=5, scope="development", entity_id=payload.development_id)
+    else:
+        rag_q = f"propiedades CDMX {interest_hint} contacto {contact.get('tipo','')} {contact.get('temperatura','')}"
+        rag_res = await semantic_search(db, rag_q, top_k=5)
+    chunks = rag_res.get("results", []) or []
+
+    # Claude prompt
+    contact_block = (
+        f"CONTACTO:\n"
+        f"  - Nombre: {contact.get('first_name','')} {contact.get('last_name','')}\n"
+        f"  - Tipo: {contact.get('tipo','?')}\n"
+        f"  - Temperatura: {contact.get('temperatura','?')}\n"
+        f"  - Tags: {', '.join(contact.get('tags', []))}\n"
+        f"  - Notas: {(contact.get('notas') or '')[:300]}\n"
+    )
+    dev_block = ""
+    if dev:
+        dev_block = (
+            f"\nDESARROLLO:\n"
+            f"  - Nombre: {dev.get('name','')}\n"
+            f"  - Colonia: {dev.get('colonia','')}, {dev.get('alcaldia','')}\n"
+            f"  - Etapa: {dev.get('stage','')}\n"
+            f"  - Precio desde: ${dev.get('price_from',0):,} MXN\n"
+            f"  - Amenidades: {', '.join(dev.get('amenities',[])[:6])}\n"
+        )
+    rag_lines = ["\nCONTEXTO RAG (cita estos chunks por chunk_id):"]
+    for i, c in enumerate(chunks, 1):
+        snip = (c.get("snippet") or "")[:280].replace("\n", " ")
+        rag_lines.append(
+            f"  [{i}] chunk_id={c.get('chunk_id')} · type={c.get('source_type')} · {c.get('title','')} → {snip}"
+        )
+    user_prompt = (
+        f"Genera un argumentario de venta para {contact.get('first_name','')} "
+        f"({contact.get('temperatura','')}, {contact.get('tipo','')}). "
+        + ("Foco en el desarrollo " + dev["name"] + ". " if dev else "Sin desarrollo específico aún. ")
+        + "Output JSON.\n\n"
+        + contact_block + dev_block + "\n".join(rag_lines)
+    )
+
+    # Claude call
+    import json as _json
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        chat = LlmChat(
+            api_key=os.environ.get("EMERGENT_LLM_KEY"),
+            session_id=f"argrag_{cache_key}",
+            system_message=_ARG_RAG_SYS,
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+        raw = await chat.send_message(UserMessage(text=user_prompt))
+        text = (raw or "").strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+        try:
+            parsed = _json.loads(text)
+        except Exception:
+            start = text.find("{"); end = text.rfind("}")
+            parsed = _json.loads(text[start:end+1])
+    except Exception as e:
+        raise HTTPException(502, f"Claude error: {type(e).__name__}: {e}")
+
+    # Defensive: ensure citations[] field
+    citations = parsed.get("citations") or []
+    if not isinstance(citations, list):
+        citations = []
+
+    # Cost approximation
+    in_tokens = (len(user_prompt) + len(_ARG_RAG_SYS)) // 4
+    out_tokens = len(text) // 4
+    cost = (in_tokens / 1000.0) * 0.003 + (out_tokens / 1000.0) * 0.015
+
+    now = _now()
+    result = {
+        "id": uuid.uuid4().hex,
+        "cache_key": cache_key,
+        "advisor_user_id": user.user_id,
+        "contact_id": payload.contact_id,
+        "development_id": payload.development_id,
+        "hook": parsed.get("hook", ""),
+        "paragraphs": parsed.get("paragraphs", []) or [],
+        "call_to_action": parsed.get("call_to_action", ""),
+        "whatsapp_text": (parsed.get("whatsapp_text") or "")[:700],
+        "citations": citations,
+        "rag_chunks_used": [
+            {"chunk_id": c.get("chunk_id"), "source_type": c.get("source_type"),
+             "title": c.get("title"), "snippet": (c.get("snippet") or "")[:200],
+             "metadata": c.get("metadata", {})} for c in chunks
+        ],
+        "prompt_version": "v1.0",
+        "model": "claude-sonnet-4-5-20250929",
+        "input_tokens": in_tokens,
+        "output_tokens": out_tokens,
+        "cost_usd": round(cost, 6),
+        "generated_at": now,
+        "expires_at": now + timedelta(hours=24),
+    }
+    # Persist (also log into ie_narratives for budget tracking)
+    await db.asesor_argumentarios_rag.insert_one(dict(result))
+    await db.ie_narratives.insert_one({
+        "id": uuid.uuid4().hex, "scope": "argumentario_rag", "entity_id": result["id"],
+        "narrative_text": result["hook"], "prompt_version": "v1.0",
+        "scores_snapshot": {}, "generated_at": now,
+        "expires_at": result["expires_at"], "model": result["model"],
+        "input_tokens": in_tokens, "output_tokens": out_tokens, "cost_usd": result["cost_usd"],
+    })
+    out = {k: v for k, v in result.items() if k != "_id"}
+    out["generated_at"] = out["generated_at"].isoformat()
+    out["expires_at"] = out["expires_at"].isoformat()
+    return {**out, "cache_hit": False}
+
+
 # ─── Briefing diario (stub, regenerates on demand) ────────────────────────────
 @router.post("/briefing/daily")
 async def daily_briefing(request: Request):

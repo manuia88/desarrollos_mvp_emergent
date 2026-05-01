@@ -15,8 +15,9 @@ function Section({ label, children, eyebrow = false, style = {} }) {
   );
 }
 
-function ScoreBullet({ item, onClickScore }) {
-  const { score_code, score_value, score_label_es, narrative } = item || {};
+function ScoreBullet({ item, onClickScore, citations = [] }) {
+  const { score_code, score_value, score_label_es, narrative, citation_chunk_id } = item || {};
+  const cite = citation_chunk_id ? citations.find(c => c.chunk_id === citation_chunk_id) : null;
   return (
     <li style={{ marginBottom: 8, lineHeight: 1.5 }}>
       <button
@@ -35,6 +36,21 @@ function ScoreBullet({ item, onClickScore }) {
         {score_label_es || score_code} · {score_value}
       </button>
       <span style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-2)' }}>{narrative}</span>
+      {cite && (
+        <span
+          title={`${cite.source_type || 'doc'} · ${cite.label || cite.chunk_id}`}
+          data-testid={`briefing-citation-${cite.chunk_id}`}
+          style={{
+            display: 'inline-block', marginLeft: 6, padding: '1px 7px',
+            borderRadius: 9999, background: 'rgba(168,85,247,0.18)',
+            border: '1px solid rgba(168,85,247,0.32)', color: '#e9d5ff',
+            fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700,
+            cursor: 'help', verticalAlign: 'super',
+          }}
+        >
+          DOC
+        </span>
+      )}
     </li>
   );
 }
@@ -150,7 +166,7 @@ export default function BriefingIEModal({ open, development, leadId = null, cont
               letterSpacing: '-0.02em', color: 'var(--cream)', margin: '4px 0 2px',
             }}>{development?.name || 'Proyecto'}</h2>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-              Claude Sonnet 4.5 · prompt v1.0{doc?.cache_hit ? ' · cache' : ''}{doc?.cost_usd ? ` · $${doc.cost_usd.toFixed(4)}` : ''}
+              Claude Sonnet 4.5 · prompt {doc?.prompt_version || 'v2.0'} · RAG{doc?.cache_hit ? ' · cache' : ''}{doc?.cost_usd ? ` · $${doc.cost_usd.toFixed(4)}` : ''}
             </div>
           </div>
           <button data-testid="briefing-close" onClick={onClose} style={{
@@ -197,7 +213,7 @@ export default function BriefingIEModal({ open, development, leadId = null, cont
             <Section label="Razones data-backed">
               <ul data-testid="briefing-pros" style={{ paddingLeft: 0, listStyle: 'none', margin: 0 }}>
                 {(doc.headline_pros || []).map((p, i) => (
-                  <ScoreBullet key={i} item={p} onClickScore={setExplainCode} />
+                  <ScoreBullet key={i} item={p} onClickScore={setExplainCode} citations={doc.citations || []} />
                 ))}
               </ul>
             </Section>
@@ -205,7 +221,7 @@ export default function BriefingIEModal({ open, development, leadId = null, cont
             <Section label="Caveats honestos">
               <ul data-testid="briefing-caveats" style={{ paddingLeft: 0, listStyle: 'none', margin: 0 }}>
                 {(doc.honest_caveats || []).map((c, i) => (
-                  <ScoreBullet key={i} item={c} onClickScore={setExplainCode} />
+                  <ScoreBullet key={i} item={c} onClickScore={setExplainCode} citations={doc.citations || []} />
                 ))}
               </ul>
             </Section>
@@ -213,6 +229,22 @@ export default function BriefingIEModal({ open, development, leadId = null, cont
             <Section label="Próximo paso">
               <p data-testid="briefing-cta" style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream)', lineHeight: 1.55, margin: 0 }}>{doc.call_to_action}</p>
             </Section>
+
+            {(doc.citations || []).length > 0 && (
+              <Section label="Documentos verificados citados" eyebrow={true}>
+                <div data-testid="briefing-citations" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {(doc.citations || []).map((c, i) => (
+                    <span key={i} data-testid={`briefing-cite-${i}`} style={{
+                      padding: '4px 10px', borderRadius: 9999,
+                      background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.28)',
+                      color: '#e9d5ff', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500,
+                    }}>
+                      {c.label || c.chunk_id} · <span style={{ opacity: 0.7, fontFamily: 'DM Mono' }}>{c.source_type || 'rag'}</span>
+                    </span>
+                  ))}
+                </div>
+              </Section>
+            )}
 
             {/* Actions row */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18, marginBottom: 12 }}>

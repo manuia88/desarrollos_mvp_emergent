@@ -273,52 +273,156 @@ function ContactDetail({ contact, devs, onOpenArg, onReload, onNote }) {
 
 function ArgumentarioForm({ contact, devs, onDone }) {
   const [devId, setDevId] = useState(devs[0]?.id || '');
-  const [objetivo, setObjetivo] = useState('agendar_visita');
   const [out, setOut] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [hoverCitation, setHoverCitation] = useState(null);
 
   const run = async () => {
-    if (!devId) return;
     setLoading(true);
     try {
-      const r = await api.generateArgumentario({ contacto_id: contact.id, desarrollo_id: devId, objetivo });
+      const r = await api.generateArgumentarioRag({
+        contact_id: contact.id,
+        development_id: devId || null,
+        force: false,
+      });
       setOut(r); onDone();
+    } catch (e) {
+      setOut({ error: e.message || String(e) });
     } finally { setLoading(false); }
   };
 
-  const copy = () => { navigator.clipboard.writeText(out.text); };
+  // Inject [n] citation pills inside paragraph text
+  const renderPara = (txt, idx) => {
+    if (!txt) return null;
+    const parts = String(txt).split(/(\[\d+\])/g);
+    return (
+      <p key={idx} style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', lineHeight: 1.7, margin: '0 0 10px' }}>
+        {parts.map((p, i) => {
+          const m = p.match(/^\[(\d+)\]$/);
+          if (!m) return <span key={i}>{p}</span>;
+          const cidx = parseInt(m[1], 10) - 1;
+          const cite = (out.citations || [])[cidx] || (out.rag_chunks_used || [])[cidx];
+          return (
+            <span
+              key={i}
+              data-testid={`arg-citation-${cidx}`}
+              onMouseEnter={() => setHoverCitation(cidx)}
+              onMouseLeave={() => setHoverCitation(null)}
+              style={{
+                display: 'inline-block',
+                padding: '1px 7px', margin: '0 2px',
+                borderRadius: 9999,
+                background: 'rgba(99,102,241,0.18)',
+                color: '#c7d2fe',
+                fontSize: 10.5, fontFamily: 'DM Mono, monospace', fontWeight: 700,
+                cursor: cite ? 'help' : 'default',
+                border: '1px solid rgba(99,102,241,0.32)',
+                position: 'relative', verticalAlign: 'super',
+              }}
+            >
+              [{m[1]}]
+              {hoverCitation === cidx && cite && (
+                <span style={{
+                  position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
+                  width: 320, padding: 10, zIndex: 60,
+                  background: '#0A0D16', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 12,
+                  fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', lineHeight: 1.45,
+                  boxShadow: '0 12px 36px rgba(0,0,0,0.4)', textAlign: 'left',
+                  whiteSpace: 'normal', textTransform: 'none', letterSpacing: 'normal',
+                }}>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: 9, color: '#a5b4fc', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {cite.source_type || 'cita'} · {cite.chunk_id}
+                  </div>
+                  <div style={{ fontWeight: 600, color: 'var(--cream)' }}>{cite.label || cite.title || ''}</div>
+                  {cite.snippet && <div style={{ marginTop: 4, color: 'var(--cream-3)' }}>{(cite.snippet || '').slice(0, 200)}…</div>}
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </p>
+    );
+  };
+
+  const fullText = out && !out.error ? [
+    out.hook,
+    ...(out.paragraphs || []),
+    out.call_to_action,
+  ].filter(Boolean).join('\n\n') : '';
+
+  const copyAll = () => { navigator.clipboard.writeText(fullText); };
+  const copyWa = () => { navigator.clipboard.writeText(out.whatsapp_text || fullText); };
   const waPhone = (contact.phones?.[0] || '').replace(/\D/g, '');
-  const waUrl = waPhone && out ? `https://wa.me/${waPhone}?text=${encodeURIComponent(out.text)}` : null;
+  const waUrl = waPhone && out && out.whatsapp_text
+    ? `https://wa.me/${waPhone}?text=${encodeURIComponent(out.whatsapp_text)}`
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <label>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Desarrollo</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+          Desarrollo (opcional · si vacío: argumentario libre)
+        </div>
         <select data-testid="arg-dev" value={devId} onChange={e => setDevId(e.target.value)} className="asr-select" style={{ width: '100%' }}>
+          <option value="">— Sin desarrollo específico —</option>
           {devs.map(d => <option key={d.id} value={d.id}>{d.name} · {d.colonia}</option>)}
         </select>
       </label>
-      <label>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Objetivo</div>
-        <select data-testid="arg-obj" value={objetivo} onChange={e => setObjetivo(e.target.value)} className="asr-select" style={{ width: '100%' }}>
-          <option value="agendar_visita">Agendar visita</option>
-          <option value="enviar_info">Enviar información</option>
-          <option value="reactivar">Reactivar lead frío</option>
-          <option value="negociar">Negociar precio</option>
-        </select>
-      </label>
-      <button onClick={run} disabled={loading || !devId} data-testid="arg-run" className="btn btn-primary" style={{ justifyContent: 'center', opacity: (loading || !devId) ? 0.6 : 1 }}>
+      <button onClick={run} disabled={loading} data-testid="arg-run" className="btn btn-primary" style={{ justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
         <Sparkle size={12} />
-        {loading ? 'Generando con Claude…' : 'Generar mensaje'}
+        {loading ? 'Generando con RAG + Claude…' : 'Generar argumentario data-backed'}
       </button>
-      {out && (
+
+      {out && out.error && (
+        <Card style={{ borderColor: 'rgba(239,68,68,0.4)' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fca5a5' }}>Error: {out.error}</div>
+        </Card>
+      )}
+
+      {out && !out.error && (
         <Card>
-          <div className="eyebrow" style={{ marginBottom: 10 }}>Mensaje generado</div>
-          <pre data-testid="arg-output" style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', lineHeight: 1.65, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-            {out.text}
-          </pre>
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-            <button onClick={copy} className="btn btn-glass btn-sm">Copiar</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div className="eyebrow">
+              Argumentario · {out.cache_hit ? 'caché' : 'nuevo'} · {out.citations?.length || 0} citas
+            </div>
+            <div style={{ fontFamily: 'DM Mono', fontSize: 9.5, color: 'var(--cream-3)' }}>
+              {out.model?.split('-').slice(0, 3).join('-')} · ${out.cost_usd?.toFixed(4) || '0.0000'}
+            </div>
+          </div>
+
+          <h4 data-testid="arg-hook" style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: '0 0 12px', letterSpacing: '-0.018em' }}>
+            {out.hook}
+          </h4>
+
+          <div data-testid="arg-output">
+            {(out.paragraphs || []).map((p, i) => renderPara(p, i))}
+            {out.call_to_action && (
+              <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--indigo-3)', lineHeight: 1.6, margin: '12px 0 0', fontStyle: 'italic' }}>
+                {out.call_to_action}
+              </p>
+            )}
+          </div>
+
+          {(out.citations || []).length > 0 && (
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Fuentes citadas</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(out.citations || []).map((c, i) => (
+                  <span key={i} data-testid={`arg-source-${i}`} style={{
+                    padding: '4px 10px', borderRadius: 9999,
+                    background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)',
+                    color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500,
+                  }}>
+                    [{i + 1}] {c.label || c.title || c.chunk_id} · <span style={{ opacity: 0.7 }}>{c.source_type}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            <button onClick={copyAll} data-testid="arg-copy" className="btn btn-glass btn-sm">Copiar texto</button>
+            <button onClick={copyWa} data-testid="arg-copy-wa" className="btn btn-glass btn-sm">Copiar WhatsApp</button>
             {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">Enviar por WhatsApp</a>}
           </div>
         </Card>
