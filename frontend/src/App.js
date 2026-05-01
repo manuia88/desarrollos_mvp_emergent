@@ -69,6 +69,15 @@ function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  const navigate = useNavigate();
+
+  // Role → home portal map
+  const portalForRole = (role) => {
+    if (role === 'superadmin') return '/superadmin';
+    if (role === 'advisor' || role === 'asesor_admin') return '/asesor';
+    if (role === 'developer_admin' || role === 'developer_member') return '/desarrollador';
+    return '/marketplace';
+  };
 
   const checkAuth = useCallback(async () => {
     try {
@@ -109,7 +118,23 @@ function AuthProvider({ children }) {
       <AuthModal
         open={authOpen}
         onClose={closeAuth}
-        onSuccess={(u) => { setUser(u); setAuthOpen(false); }}
+        onSuccess={(u) => {
+          setUser(u);
+          setAuthOpen(false);
+          // Phase: redirect to role-specific portal after login.
+          // If URL has ?next=... (set by AdvisorRoute on protected redirect), honour it.
+          const params = new URLSearchParams(window.location.search);
+          const next = params.get('next');
+          const dest = next || portalForRole(u?.role);
+          // Avoid redirect if already inside that portal subtree (preserve deep links).
+          const here = window.location.pathname;
+          const portalRoot = dest.split('/')[1] || '';
+          if (portalRoot && !here.startsWith(`/${portalRoot}`)) {
+            navigate(dest, { replace: !!next });
+          } else if (here === '/' && portalRoot) {
+            navigate(dest, { replace: !!next });
+          }
+        }}
         mode={authMode}
       />
       {user && user.onboarded === false && (
@@ -124,6 +149,14 @@ function AuthCallback() {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const hasProcessed = useRef(false);
+
+  // Role → home portal map (mirror of AuthProvider.portalForRole)
+  const portalForRole = (role) => {
+    if (role === 'superadmin') return '/superadmin';
+    if (role === 'advisor' || role === 'asesor_admin') return '/asesor';
+    if (role === 'developer_admin' || role === 'developer_member') return '/desarrollador';
+    return '/marketplace';
+  };
 
   useEffect(() => {
     if (hasProcessed.current) return;
@@ -145,7 +178,8 @@ function AuthCallback() {
       .then(data => {
         if (data.user) setUser(data.user);
         window.history.replaceState({}, document.title, '/');
-        navigate('/', { replace: true });
+        const dest = data.user ? portalForRole(data.user.role) : '/';
+        navigate(dest, { replace: true });
       })
       .catch(() => navigate('/'));
   }, [navigate, setUser]);
