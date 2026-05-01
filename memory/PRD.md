@@ -109,7 +109,30 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
-## 2026-05-01 — IE Engine Phase A1 (read-only foundation)
+## 2026-05-01 — IE Engine Phase A2 (connectors + connect modal + test/sync)
+- Backend
+  - `connectors_ie.py`: BaseConnector + 4 implementaciones reales (NOAA, datos_cdmx, FGJ_CDMX, OSM Overpass) + StubConnector fallback para los otros 13. Patrón: nunca crashea — degrada a `is_stub=true` con observaciones sintéticas si no hay creds o falla la red.
+  - 3 nuevos endpoints en `routes_ie_engine.py`: `PATCH /:id` (merge cifrado de credentials + run_test opcional), `POST /:id/test`, `POST /:id/sync` (crea ingestion_job, inserta en ie_raw_observations, transiciona status según resultado).
+  - `IE_FERNET_KEY` ahora generada e independiente del JWT_SECRET en `backend/.env`. Doc rotación en `/app/IE_FERNET_ROTATION.md`.
+- Frontend
+  - `ConnectModal` dinámico por access_mode (api_key / ckan_resource / wms_wfs / keyless_url), con masked preview de credenciales existentes y fallback env hint.
+  - Botones Conectar/Probar/Sync activos en la tabla con loading state y toasts de éxito/error.
+  - Botón Subir sigue disabled (Phase A3).
+- Verificación curl
+  - PATCH NOAA con bogus key → status `blocked` → `stub`, `last_status=error`, summary masked correctamente.
+  - Test OSM (con User-Agent) → 200 ok.
+  - Sync OSM → 1 record real (`is_stub:false`, ingresa a `ie_raw_observations`).
+  - Sync NOAA sin key → 5 records mock.
+  - Sync mapbox stub → 4 records mock.
+  - Sync catastro_cdmx (manual_upload) → 400 correcto.
+- Verificación Playwright
+  - Login → /superadmin/data-sources → Conectar NOAA → modal renderiza → submit bogus key → error UI ✅
+  - Sync OSM → toast "1 records en 486ms" ✅
+  - Stats actualizan: Activas 4→3 (NOAA degradó), Stub 1→4 ✅
+
+---
+
+## 2026-04-30 — IE Engine Phase A1 (read-only foundation)
 **Moat #1 backbone — sin cálculo de scores aún, Phase B viene después.**
 - Backend
   - 4 nuevas collections Mongo: `ie_data_sources`, `ie_raw_observations`, `ie_ingestion_jobs`, `ie_manual_uploads` con índices compuestos.

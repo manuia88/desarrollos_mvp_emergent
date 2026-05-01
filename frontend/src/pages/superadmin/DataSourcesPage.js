@@ -1,6 +1,7 @@
-// /superadmin/data-sources — IE Engine wire-up + manual upload admin (Phase A: read-only).
+// /superadmin/data-sources — IE Engine wire-up + manual upload admin (Phase A2: connect + test + sync).
 import React, { useEffect, useState, useMemo } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
+import ConnectModal from '../../components/superadmin/ConnectModal';
 import * as api from '../../api/superadmin';
 import { Database, Sparkle, Bookmark, Shield, Clock } from '../../components/icons';
 
@@ -93,6 +94,14 @@ export default function DataSourcesPage({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [filter, setFilter] = useState('todas');
+  const [connecting, setConnecting] = useState(null); // source object or null
+  const [actionBusy, setActionBusy] = useState({}); // { [id]: 'test'|'sync' }
+  const [toast, setToast] = useState(null); // { msg, tone }
+
+  const showToast = (msg, tone = 'ok') => {
+    setToast({ msg, tone });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -112,6 +121,35 @@ export default function DataSourcesPage({ user, onLogout }) {
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const handleTest = async (s) => {
+    setActionBusy(b => ({ ...b, [s.id]: 'test' }));
+    try {
+      const res = await api.testConnection(s.id);
+      showToast(`${s.name} · ${res.ok ? 'OK' : 'falló'} — ${res.message}`, res.ok ? 'ok' : 'bad');
+      await load();
+    } catch (e) {
+      showToast(`Error: ${e.message}`, 'bad');
+    } finally {
+      setActionBusy(b => { const c = { ...b }; delete c[s.id]; return c; });
+    }
+  };
+
+  const handleSync = async (s) => {
+    setActionBusy(b => ({ ...b, [s.id]: 'sync' }));
+    try {
+      const res = await api.syncSource(s.id);
+      showToast(
+        `${s.name} · ${res.records_ingested} records${res.is_stub ? ' (stub)' : ''} en ${res.duration_ms}ms`,
+        res.status === 'ok' ? 'ok' : 'bad',
+      );
+      await load();
+    } catch (e) {
+      showToast(`Error sync: ${e.message}`, 'bad');
+    } finally {
+      setActionBusy(b => { const c = { ...b }; delete c[s.id]; return c; });
+    }
+  };
 
   const filtered = useMemo(() => {
     if (filter === 'todas') return sources;
@@ -204,7 +242,7 @@ export default function DataSourcesPage({ user, onLogout }) {
               </thead>
               <tbody>
                 {filtered.map(s => {
-                  const canConnect = ['api_key', 'ckan_resource', 'wms_wfs'].includes(s.access_mode);
+                  const canConnect = ['api_key', 'ckan_resource', 'wms_wfs', 'keyless_url'].includes(s.access_mode);
                   const canTest = s.access_mode !== 'manual_upload';
                   return (
                     <tr key={s.id} data-testid={`sa-row-${s.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -232,17 +270,29 @@ export default function DataSourcesPage({ user, onLogout }) {
                       <td style={{ padding: '12px 14px' }}>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {canConnect && (
-                            <button data-testid={`sa-act-connect-${s.id}`} disabled className="btn btn-ghost btn-sm"
-                              style={{ fontSize: 11, padding: '4px 10px', opacity: 0.45, cursor: 'not-allowed' }}
-                              title="Disponible en Fase A2">
+                            <button data-testid={`sa-act-connect-${s.id}`}
+                              onClick={() => setConnecting(s)}
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: 11, padding: '4px 10px' }}>
                               Conectar
                             </button>
                           )}
                           {canTest && (
-                            <button data-testid={`sa-act-test-${s.id}`} disabled className="btn btn-ghost btn-sm"
-                              style={{ fontSize: 11, padding: '4px 10px', opacity: 0.45, cursor: 'not-allowed' }}
-                              title="Disponible en Fase A2">
-                              Probar
+                            <button data-testid={`sa-act-test-${s.id}`}
+                              onClick={() => handleTest(s)}
+                              disabled={!!actionBusy[s.id]}
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: 11, padding: '4px 10px', opacity: actionBusy[s.id] ? 0.5 : 1 }}>
+                              {actionBusy[s.id] === 'test' ? '…' : 'Probar'}
+                            </button>
+                          )}
+                          {canTest && (
+                            <button data-testid={`sa-act-sync-${s.id}`}
+                              onClick={() => handleSync(s)}
+                              disabled={!!actionBusy[s.id]}
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: 11, padding: '4px 10px', opacity: actionBusy[s.id] ? 0.5 : 1 }}>
+                              {actionBusy[s.id] === 'sync' ? '…' : 'Sync'}
                             </button>
                           )}
                           {s.supports_manual_upload && (
@@ -326,6 +376,28 @@ export default function DataSourcesPage({ user, onLogout }) {
       )}
 
       <style>{`@media (max-width: 900px) { .sa-2col { grid-template-columns: 1fr !important; } }`}</style>
+
+      <ConnectModal
+        open={!!connecting}
+        source={connecting}
+        onClose={() => setConnecting(null)}
+        onSaved={() => load()}
+      />
+
+      {toast && (
+        <div data-testid="sa-toast" style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 700,
+          padding: '12px 18px', borderRadius: 12,
+          background: toast.tone === 'ok' ? 'rgba(34,197,94,0.16)' : 'rgba(239,68,68,0.16)',
+          border: `1px solid ${toast.tone === 'ok' ? 'rgba(34,197,94,0.32)' : 'rgba(239,68,68,0.32)'}`,
+          color: toast.tone === 'ok' ? '#86efac' : '#fca5a5',
+          fontFamily: 'DM Sans', fontSize: 13, fontWeight: 500,
+          backdropFilter: 'blur(20px)',
+          maxWidth: 420, boxShadow: '0 14px 40px rgba(0,0,0,0.5)',
+        }}>
+          {toast.msg}
+        </div>
+      )}
     </SuperadminLayout>
   );
 }

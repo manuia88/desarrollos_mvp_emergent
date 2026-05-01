@@ -23,6 +23,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel, Field
 
 from data_ie_sources import IE_DATA_SOURCES_SEED, initial_status_for
+from connectors_ie import get_connector, connector_kind, new_job_id
 
 
 router = APIRouter(prefix="/api/superadmin")
@@ -143,6 +144,25 @@ class DataSourcesStats(BaseModel):
     recent_syncs: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+class CredentialsPatch(BaseModel):
+    credentials: Dict[str, str] = Field(default_factory=dict)
+    run_test: bool = False
+
+
+class TestConnectionResult(BaseModel):
+    ok: bool
+    message: str
+    kind: str  # "real" | "stub"
+
+
+class SyncResult(BaseModel):
+    job_id: str
+    status: str
+    records_ingested: int
+    is_stub: bool
+    duration_ms: int
+
+
 # ─── Seed + indexes ──────────────────────────────────────────────────────────
 async def seed_ie_engine(db) -> None:
     """Idempotent: insert the 18 sources, refresh descriptive fields, never overwrite credentials/last_sync."""
@@ -197,6 +217,11 @@ async def _require_superadmin(request: Request):
     if user.role not in SUPERADMIN_ROLES:
         raise HTTPException(403, "Acceso restringido a superadmin")
     return user
+
+
+async def audit(user_id: str, action: str, resource: str, data: Optional[Dict[str, Any]] = None):
+    from server import audit as _audit
+    await _audit(user_id, action, resource, data or {})
 
 
 def _shape_data_source(doc: Dict[str, Any]) -> DataSourceOut:
@@ -303,3 +328,165 @@ async def list_recent_uploads(request: Request, limit: int = Query(20, ge=1, le=
     cursor = db.ie_manual_uploads.find({}, {"_id": 0}).sort("created_at", -1).limit(limit)
     docs = await cursor.to_list(length=limit)
     return [ManualUploadOut(**d) for d in docs]
+
+
+# ─── Phase A2 — credentials + test + sync ────────────────────────────────────
+async def _load_source_or_404(db, source_id: str) -> Dict[str, Any]:
+    doc = await db.ie_data_sources.find_one({"id": source_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Fuente no encontrada")
+    return doc
+
+
+def _post_test_status(source_doc: Dict[str, Any], creds: Dict[str, str], ok: bool) -> str:
+    """Compute next status after a connection test or sync."""
+    mode = source_doc.get("access_mode")
+    if mode == "manual_upload":
+        return "manual_only"
+    if source_doc.get("status") == "h2":
+        return "h2"
+    if ok:
+        return "active"
+    if mode in ("api_key", "ckan_resource"):
+        # If creds present but failed → stub; if absent → blocked
+        env_map = source_doc.get("credentials_env", {}) or {}
+        cred_keys = source_doc.get("credentials_keys", []) or list(env_map.keys())
+        any_set = any(creds.get(k) for k in cred_keys) or any(os.environ.get(v) for v in env_map.values())
+        return "stub" if any_set else "blocked"
+    return "stub"
+
+
+@router.patch("/data-sources/{source_id}", response_model=DataSourceOut)
+async def update_credentials(source_id: str, payload: CredentialsPatch, request: Request):
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+    src = await _load_source_or_404(db, source_id)
+    if src.get("access_mode") == "manual_upload":
+        raise HTTPException(400, "Las fuentes manual_upload no requieren credenciales.")
+
+    # Merge with existing credentials so partial updates don't wipe other keys.
+    current = decrypt_credentials(src.get("credentials"))
+    merged = {**current, **{k: v for k, v in payload.credentials.items() if v is not None}}
+    encrypted = encrypt_credentials(merged)
+
+    update_doc: Dict[str, Any] = {
+        "credentials": encrypted,
+        "updated_at": datetime.now(timezone.utc),
+    }
+
+    if payload.run_test:
+        connector = get_connector(src, merged)
+        ok, msg = await connector.test_connection()
+        update_doc["last_status"] = "ok" if ok else "error"
+        if not ok:
+            err_log = (src.get("error_log") or []) + [{
+                "ts": datetime.now(timezone.utc),
+                "scope": "test_connection",
+                "message": msg,
+            }]
+            update_doc["error_log"] = err_log[-10:]
+        # Refresh status (active vs stub vs blocked) after test
+        update_doc["status"] = _post_test_status(src, merged, ok)
+    else:
+        # No test: status reflects "creds provided but never validated"
+        if src.get("status") in ("blocked", "h2"):
+            update_doc["status"] = "stub"
+
+    await db.ie_data_sources.update_one({"id": source_id}, {"$set": update_doc})
+    fresh = await db.ie_data_sources.find_one({"id": source_id}, {"_id": 0})
+    await audit(user.user_id, "ie_credentials_update", source_id,
+                {"keys": list(payload.credentials.keys()), "tested": payload.run_test})
+    return _shape_data_source(fresh)
+
+
+@router.post("/data-sources/{source_id}/test", response_model=TestConnectionResult)
+async def test_connection_route(source_id: str, request: Request):
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+    src = await _load_source_or_404(db, source_id)
+    if src.get("access_mode") == "manual_upload":
+        return TestConnectionResult(ok=False, message="Fuente manual: no requiere conexión.", kind="stub")
+
+    creds = decrypt_credentials(src.get("credentials"))
+    connector = get_connector(src, creds)
+    ok, msg = await connector.test_connection()
+
+    update_doc: Dict[str, Any] = {
+        "last_status": "ok" if ok else "error",
+        "updated_at": datetime.now(timezone.utc),
+    }
+    if not ok:
+        err_log = (src.get("error_log") or []) + [{
+            "ts": datetime.now(timezone.utc),
+            "scope": "test_connection",
+            "message": msg,
+        }]
+        update_doc["error_log"] = err_log[-10:]
+    update_doc["status"] = _post_test_status(src, creds, ok)
+    await db.ie_data_sources.update_one({"id": source_id}, {"$set": update_doc})
+    await audit(user.user_id, "ie_test_connection", source_id, {"ok": ok})
+
+    return TestConnectionResult(ok=ok, message=msg, kind=connector_kind(source_id))
+
+
+@router.post("/data-sources/{source_id}/sync", response_model=SyncResult)
+async def sync_source_route(source_id: str, request: Request):
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+    src = await _load_source_or_404(db, source_id)
+    if src.get("access_mode") == "manual_upload":
+        raise HTTPException(400, "Las fuentes manual_upload no se sincronizan vía API — sube un archivo.")
+
+    creds = decrypt_credentials(src.get("credentials"))
+    connector = get_connector(src, creds)
+
+    job_id = new_job_id()
+    started = datetime.now(timezone.utc)
+    await db.ie_ingestion_jobs.insert_one({
+        "id": job_id, "source_id": source_id, "trigger": "manual",
+        "status": "running", "started_at": started, "finished_at": None,
+        "records_ingested": 0, "error_message": None,
+    })
+
+    error_msg: Optional[str] = None
+    obs: List[Dict[str, Any]] = []
+    try:
+        obs = await connector.fetch()
+    except Exception as e:  # noqa: BLE001 — connector contract says no raise but be defensive
+        error_msg = f"Connector exception: {e}"
+        obs = []
+
+    is_stub = bool(obs) and all(o.get("is_stub") for o in obs)
+    n = len(obs)
+
+    if obs:
+        # Tag every observation with the job id for audit.
+        for o in obs:
+            o["job_id"] = job_id
+        await db.ie_raw_observations.insert_many(obs)
+
+    finished = datetime.now(timezone.utc)
+    duration_ms = int((finished - started).total_seconds() * 1000)
+    job_status = "ok" if (n > 0 and not error_msg) else "error" if error_msg else "ok"
+
+    await db.ie_ingestion_jobs.update_one({"id": job_id}, {"$set": {
+        "status": job_status,
+        "finished_at": finished,
+        "records_ingested": n,
+        "error_message": error_msg,
+    }})
+
+    next_status = _post_test_status(src, creds, n > 0 and not error_msg)
+    if is_stub and next_status == "active":
+        next_status = "stub"  # mock data → keep marked as stub so dashboard reflects reality
+    await db.ie_data_sources.update_one({"id": source_id}, {"$set": {
+        "last_sync": finished,
+        "last_status": "ok" if (n > 0 and not error_msg) else "error",
+        "status": next_status,
+        "records_total": (src.get("records_total", 0) + n),
+        "updated_at": finished,
+    }})
+
+    await audit(user.user_id, "ie_sync", source_id, {"job_id": job_id, "records": n, "is_stub": is_stub})
+    return SyncResult(job_id=job_id, status=job_status, records_ingested=n,
+                      is_stub=is_stub, duration_ms=duration_ms)

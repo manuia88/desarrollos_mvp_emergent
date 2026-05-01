@@ -19,3 +19,12 @@ export const listIngestionJobs     = (params = {}) => {
 };
 export const listSourceUploads     = (id) => j(`/api/superadmin/data-sources/${id}/uploads`);
 export const listRecentUploads     = ()   => j('/api/superadmin/uploads/recent');
+
+// Phase A2 mutations
+export const updateCredentials = (id, body) => j(`/api/superadmin/data-sources/${id}`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+});
+export const testConnection = (id) => j(`/api/superadmin/data-sources/${id}/test`, { method: 'POST' });
+export const syncSource     = (id) => j(`/api/superadmin/data-sources/${id}/sync`, { method: 'POST' });
