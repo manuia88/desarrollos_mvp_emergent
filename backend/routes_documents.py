@@ -126,6 +126,91 @@ def _dev_exists(dev_id: str) -> dict:
     return dev
 
 
+# ─── Internal helper reusable by Drive watcher (Phase 7.11) ───────────────────
+async def _ingest_document_bytes(
+    db,
+    dev_id: str,
+    *,
+    user_id: str,
+    user_name: str,
+    user_role: str,
+    filename: str,
+    data: bytes,
+    doc_type: str,
+    upload_notes: Optional[str] = None,
+    period_relevant_start: Optional[datetime] = None,
+    period_relevant_end: Optional[datetime] = None,
+    source: str = "manual",
+    source_metadata: Optional[Dict[str, Any]] = None,
+    schedule_ocr: bool = True,
+) -> Dict[str, Any]:
+    """Common ingestion pipeline. Returns {action, document}.
+    action is 'created', 'duplicate' or 'updated' (rev-update path).
+    """
+    if doc_type not in DI_DOC_TYPES:
+        raise HTTPException(400, f"doc_type inválido. Permitidos: {sorted(DI_DOC_TYPES)}")
+    name = (filename or "").strip()
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    if ext not in DI_ALLOWED_EXT:
+        raise HTTPException(400, f"Extensión no permitida ({ext or 'sin extensión'}). Acepta: {sorted(DI_ALLOWED_EXT)}")
+    if not data:
+        raise HTTPException(400, "Archivo vacío")
+    if len(data) > DI_MAX_FILE_BYTES:
+        raise HTTPException(413, f"Archivo excede {DI_MAX_FILE_BYTES // 1024 // 1024} MB")
+
+    file_hash = sha256_bytes(data)
+    existing = await db.di_documents.find_one({"development_id": dev_id, "file_hash": file_hash})
+    if existing:
+        return {"action": "duplicate", "document": sanitize_document(existing)}
+
+    dev = await db.developments.find_one({"id": dev_id}, {"_id": 0, "developer_id": 1})
+    if not dev:
+        # Fall back to seed lookup
+        from data_developments import DEVELOPMENTS_BY_ID
+        dev = DEVELOPMENTS_BY_ID.get(dev_id) or {}
+
+    mime = detect_mime(name, data)
+    doc_id = f"di_{uuid.uuid4().hex[:14]}"
+    storage_path = await asyncio.to_thread(write_encrypted_file, doc_id, data)
+
+    doc = {
+        "id": doc_id,
+        "development_id": dev_id,
+        "developer_id": dev.get("developer_id"),
+        "uploader_user_id": user_id,
+        "uploader_name": user_name,
+        "uploader_role": user_role,
+        "filename": name,
+        "file_size_bytes": len(data),
+        "mime_type": mime,
+        "file_hash": file_hash,
+        "storage_path": storage_path,
+        "doc_type": doc_type,
+        "status": "pending",
+        "ocr_text_enc": None,
+        "ocr_text_chars": 0,
+        "ocr_pages_count": 0,
+        "ocr_confidence": None,
+        "ocr_engine": None,
+        "ocr_error": None,
+        "upload_notes": upload_notes,
+        "period_relevant_start": period_relevant_start,
+        "period_relevant_end": period_relevant_end,
+        "source": source,
+        "source_metadata": source_metadata or {},
+        "created_at": utcnow(),
+        "processed_at": None,
+        "expires_at": None,
+    }
+    await db.di_documents.insert_one(doc)
+
+    if schedule_ocr:
+        asyncio.create_task(run_ocr_for_document(db, doc_id))
+
+    out = await db.di_documents.find_one({"id": doc_id})
+    return {"action": "created", "document": sanitize_document(out)}
+
+
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 @router.get("/api/superadmin/document-types", response_model=DocumentTypesOut)
 async def list_doc_types(request: Request):
@@ -146,36 +231,7 @@ async def upload_document(
     user = await _get_user(request)
     _require_dev_or_superadmin(user)
     _check_dev_access(user, dev_id)
-    dev = _dev_exists(dev_id)
-
-    if doc_type not in DI_DOC_TYPES:
-        raise HTTPException(400, f"doc_type inválido. Permitidos: {sorted(DI_DOC_TYPES)}")
-
-    # Validate extension
-    name = (file.filename or "").strip()
-    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
-    if ext not in DI_ALLOWED_EXT:
-        raise HTTPException(400, f"Extensión no permitida ({ext or 'sin extensión'}). Acepta: {sorted(DI_ALLOWED_EXT)}")
-
-    # Read & size check
-    data = await file.read()
-    if not data:
-        raise HTTPException(400, "Archivo vacío")
-    if len(data) > DI_MAX_FILE_BYTES:
-        raise HTTPException(413, f"Archivo excede {DI_MAX_FILE_BYTES // 1024 // 1024} MB")
-
-    file_hash = sha256_bytes(data)
-    db = _get_db(request)
-
-    # Dedupe per (development_id, file_hash)
-    existing = await db.di_documents.find_one({"development_id": dev_id, "file_hash": file_hash})
-    if existing:
-        raise HTTPException(409, f"Documento duplicado (sha256 ya existe en este desarrollo): id={existing['id']}")
-
-    mime = detect_mime(name, data)
-
-    doc_id = f"di_{uuid.uuid4().hex[:14]}"
-    storage_path = await asyncio.to_thread(write_encrypted_file, doc_id, data)
+    _dev_exists(dev_id)
 
     def _parse_dt(v: Optional[str]):
         if not v:
@@ -185,40 +241,22 @@ async def upload_document(
         except Exception:
             return None
 
-    doc = {
-        "id": doc_id,
-        "development_id": dev_id,
-        "developer_id": dev.get("developer_id"),
-        "uploader_user_id": user.user_id,
-        "uploader_name": user.name,
-        "uploader_role": user.role,
-        "filename": name,
-        "file_size_bytes": len(data),
-        "mime_type": mime,
-        "file_hash": file_hash,
-        "storage_path": storage_path,
-        "doc_type": doc_type,
-        "status": "pending",
-        "ocr_text_enc": None,
-        "ocr_text_chars": 0,
-        "ocr_pages_count": 0,
-        "ocr_confidence": None,
-        "ocr_engine": None,
-        "ocr_error": None,
-        "upload_notes": upload_notes,
-        "period_relevant_start": _parse_dt(period_relevant_start),
-        "period_relevant_end": _parse_dt(period_relevant_end),
-        "created_at": utcnow(),
-        "processed_at": None,
-        "expires_at": None,
-    }
-    await db.di_documents.insert_one(doc)
-
-    # Schedule async OCR
-    asyncio.create_task(run_ocr_for_document(db, doc_id))
-
-    out = await db.di_documents.find_one({"id": doc_id})
-    return {"document": sanitize_document(out)}
+    data = await file.read()
+    res = await _ingest_document_bytes(
+        _get_db(request),
+        dev_id,
+        user_id=user.user_id, user_name=user.name, user_role=user.role,
+        filename=file.filename or "",
+        data=data,
+        doc_type=doc_type,
+        upload_notes=upload_notes,
+        period_relevant_start=_parse_dt(period_relevant_start),
+        period_relevant_end=_parse_dt(period_relevant_end),
+        source="manual",
+    )
+    if res["action"] == "duplicate":
+        raise HTTPException(409, f"Documento duplicado (sha256 ya existe en este desarrollo): id={res['document']['id']}")
+    return {"document": res["document"]}
 
 
 @router.get("/api/superadmin/developments/{dev_id}/documents")

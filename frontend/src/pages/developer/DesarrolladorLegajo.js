@@ -9,6 +9,7 @@ import DocumentsList from '../../components/documents/DocumentsList';
 import AssetGallery from '../../components/documents/AssetGallery';
 import { ComplianceDotStrip } from '../../components/marketplace/ComplianceBadge';
 import { FileText, Camera, Map, AlertTriangle, ArrowRight, Sparkle } from '../../components/icons';
+import DriveConnect from '../../components/documents/DriveConnect';
 import * as docsApi from '../../api/documents';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -115,6 +116,9 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
           Repositorio único de documentos legales, comerciales, fotos, planos y avance del desarrollo. Cada upload alimenta automáticamente la ficha pública del marketplace.
         </p>
         <ComplianceDotStrip devId={slug} />
+        <div style={{ marginTop: 14 }}>
+          <DriveConnect devId={slug} role="developer_admin" />
+        </div>
       </div>
 
       {/* Tabs */}

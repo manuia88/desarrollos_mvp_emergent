@@ -373,6 +373,113 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Phase 7.11 · Drive Watch Service
+**Objetivo:** Google Drive OAuth per-tenant + cron 6h watcher que detecta cambios via md5Checksum y dispara automáticamente el pipeline 7.1 (upload encrypted) → 7.2 (Claude extraction) → 7.5 (auto-sync marketplace).
+
+### Backend (`drive_engine.py` · 480 líneas · nuevo)
+- **OAuth flow** vía `google-auth-oauthlib==1.2.2` con `scope=drive.readonly`, `access_type=offline`, `prompt=consent` para garantizar refresh_token.
+- **State CSRF + Fernet**: state token cifrado con `IE_FERNET_KEY` que payload incluye `{dev_id, user_id, ts}` → previene ataques CSRF + binding del callback al desarrollo correcto.
+- **Tokens cifrados Fernet**: access_token y refresh_token nunca persisten en plain text → `google_oauth_token_enc`, `refresh_token_enc` (reuse cipher de DI).
+- **Auto-refresh**: `_build_credentials` detecta `creds.expired` y llama `creds.refresh(GoogleRequest())` automáticamente; persiste `expires_at` actualizado.
+- **Watcher cron 6h** vía APScheduler (registrado en `scheduler_ie.start_scheduler` como `drive_watcher` job · `CronTrigger(hour="*/6", minute=15)`).
+- **md5Checksum diff**: por dev, lee `last_revision_id: {file_id: md5}` persistido. Para cada file:
+  - `is_new = file_id not in revisions` → ingest.
+  - `is_changed = revisions[file_id] != current_md5` → ingest (nueva revisión).
+  - else → skip.
+- **Doc-type heurística** por filename keywords (12 patrones validados con tests):
+  `lista|precios|tabulador → lp · brochure → brochure · escritura → escritura · seduvi|uso suelo → permiso_seduvi · estudio|suelo|mecanica → estudio_suelo · licencia|construccion → licencia_construccion · predial → predial · plano → plano_arquitectonico · contrato → contrato_cv · constancia|fiscal → constancia_fiscal · default → otro` (developer puede re-categorizar via UI 7.4).
+- **Refactored `routes_documents.py`** extrajo `_ingest_document_bytes()` reusable (manual upload + drive watcher comparten pipeline). Agrega campos `source ('manual'|'drive_watcher')` y `source_metadata{drive_file_id, drive_md5, folder_id, folder_name, is_revision}` a `di_documents`.
+- **Stub honesto** cuando `GOOGLE_OAUTH_CLIENT_ID/SECRET` missing → `oauth-url` retorna `{ok:false, configured:false, message}` y `run_drive_watcher_once` retorna `{ok:false, reason:'google_oauth_keys_missing'}`.
+
+### 8 endpoints (+ 6 dev_alias multi-tenant)
+- `GET /api/superadmin/drive/oauth-url?development_id=` → URL Google OAuth con state Fernet.
+- `GET /api/auth/google/drive-callback?code=&state=` → exchange tokens + persist + redirect a `/desarrollador/desarrollos/:dev/legajo?drive=connected&picker=1`.
+- `GET /api/superadmin/drive/{dev_id}/folders` → list root folders user-owned (picker).
+- `POST /api/superadmin/drive/{dev_id}/folder` `{folder_id, folder_name}` → set folder.
+- `GET /api/superadmin/drive/{dev_id}/status` → `{configured, connection: {folder_id, last_sync_at, status, last_audit, ...}}`.
+- `POST /api/superadmin/drive/{dev_id}/sync-now` → trigger `_sync_one_connection` manual.
+- `POST /api/superadmin/drive/{dev_id}/disconnect` → revoke token Google + delete doc.
+- `GET /api/superadmin/drive/connections` → list todas conexiones (solo superadmin).
+- 6 dev_aliases bajo `/api/desarrollador/drive/*` con multi-tenant guard via `routes_documents._allowed_dev_ids` (mismo TENANT_DEV_MAP).
+
+### Schema `dev_drive_connections`
+```
+id, development_id (unique), user_id,
+google_oauth_token_enc, refresh_token_enc, scopes[], expires_at,
+folder_id, folder_name,
+last_sync_at, last_revision_id: {file_id: md5},
+status: connected|error|disconnected, last_audit, last_error, error_log[],
+created_at, updated_at
+```
+
+### Frontend (`drive.js` API · `DriveConnect.js` 270 líneas · `SuperadminDrivePage.js` 160 líneas · 4 nuevos icons)
+- **`api/drive.js`**: 7 helpers, `_basePath(role)` toggle entre `/api/superadmin/drive` y `/api/desarrollador/drive`.
+- **`<DriveConnect devId role>`** (Legajo header):
+  - Stub state: pill ámbar "Drive: configura GOOGLE_OAUTH_CLIENT_ID en .env".
+  - Disconnected: botón gradient "Conectar Google Drive".
+  - Authenticated sin folder: pill indigo "Autenticado · selecciona carpeta" + botón "Elegir carpeta".
+  - Connected con folder: pill verde "Drive conectado · sync hace Xh" + folder name + 3 botones (Sincronizar ahora · Cambiar carpeta · audit · disconnect ×).
+  - Folder picker modal: lista folders root con click-to-pick + auto-trigger sync inicial.
+  - Audit modal: `JSON.stringify(last_audit)` para debug visible.
+  - Toast bottom-right (success/warn/error) con resumen `Drive sync: N archivos · X nuevos · Y actualizados · Z errores`.
+  - Auto-open picker después del callback (`?drive=connected&picker=1` querystring → URL searchParams).
+- **`/superadmin/drive`** nueva página con tabla 6-col (Desarrollo · Carpeta · Estado · Sync · Audit · Acciones) + sidebar nav link "Drive Watch" con `Cloud` icon.
+- **Wired en**: `DesarrolladorLegajo.js` header (debajo de ComplianceDotStrip) + `App.js` route + `SuperadminLayout.js` nav.
+
+### Verificación
+- **HTTP gates** (8 endpoints superadmin + 4 dev_aliases): todos correctos.
+  - oauth-url/status/connections con superadmin → 200 ✓
+  - sync-now/disconnect sin connection → 404 ✓
+  - callback sin code/state → 400 ✓
+  - dev_alias sobre own dev (Quattro) → 200 ✓
+  - dev_alias sobre foreign dev (Origen) → 403 ✓ (multi-tenant guard activo)
+  - superadmin/connections con developer → 403 ✓
+  - anon → 401 ✓
+- **Stub honesto sin OAuth keys**:
+  - oauth-url → `{ok:false, configured:false, message:"Configura GOOGLE_OAUTH_CLIENT_ID y GOOGLE_OAUTH_CLIENT_SECRET en .env del backend"}` ✓
+  - `run_drive_watcher_once` → `{ok:false, reason:'google_oauth_keys_missing', synced:0}` ✓
+- **Doc-type heuristics** (13 cases): 100% pass ✓.
+- **Fernet roundtrip** + state CSRF token (encrypt/decrypt + bad state rejected) ✓.
+- **APScheduler** `drive_watcher` job en startup logs ✓.
+
+### Archivos tocados
+- `/app/backend/drive_engine.py` (nuevo · 480 líneas)
+- `/app/backend/routes_documents.py` (extrajo `_ingest_document_bytes` reusable)
+- `/app/backend/scheduler_ie.py` (+ drive_watcher cron 6h)
+- `/app/backend/server.py` (+drive_router + dev_alias + ensure_drive_indexes)
+- `/app/backend/.env` (+3 placeholders GOOGLE_OAUTH_*)
+- `/app/backend/requirements.txt` (NO modificado — deps via pip directo, ya compatibles)
+- `/app/frontend/src/api/drive.js` (nuevo · 50 líneas)
+- `/app/frontend/src/components/documents/DriveConnect.js` (nuevo · 270 líneas)
+- `/app/frontend/src/pages/superadmin/SuperadminDrivePage.js` (nuevo · 160 líneas)
+- `/app/frontend/src/components/icons/index.js` (+4 icons: Cloud, RefreshCw, Folder, CheckCircle)
+- `/app/frontend/src/components/superadmin/SuperadminLayout.js` (+nav link Drive Watch)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (DriveConnect en header)
+- `/app/frontend/src/App.js` (+route /superadmin/drive)
+- `/app/memory/PRD.md`
+
+### Activación pendiente del usuario
+Para activar el feature real, agregar a `/app/backend/.env`:
+```
+GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
+GOOGLE_OAUTH_REDIRECT_URI=https://propiedades-next.preview.emergentagent.com/api/auth/google/drive-callback
+```
+Y en Google Cloud Console:
+1. Habilitar Google Drive API.
+2. OAuth consent screen → External → scope `drive.readonly`.
+3. Credenciales OAuth Web → redirect URI = el mismo de `.env` arriba.
+
+Hasta entonces el feature corre en stub honesto (UI muestra mensaje claro, watcher no-op).
+
+### Pending
+- Phase 7.10 — Avance de obra timeline.
+- WhatsApp Business real (whatsapp-web.js QR) · C11.
+- Refactor `server.py` (esperando prompt usuario).
+
+---
+
+
 ## 2026-05-01 — Side-task · Caya Bubble (marketplace público)
 **Objetivo:** mini-burbuja chat persistente bottom-right en `/marketplace` y `/desarrollo/:slug`, anonymous (sin auth), reuse `POST /api/caya/query` del D2.
 

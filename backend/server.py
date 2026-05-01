@@ -97,6 +97,11 @@ app.include_router(rag_admin_router)
 from caya_engine import router as caya_router
 app.include_router(caya_router)
 
+# Phase 7.11 — Drive Watch Service
+from drive_engine import router as drive_router, dev_alias as drive_dev_alias, ensure_drive_indexes
+app.include_router(drive_router)
+app.include_router(drive_dev_alias)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -277,6 +282,8 @@ async def startup():
     # Phase D2 — Caya indexes
     from caya_engine import ensure_caya_indexes
     await ensure_caya_indexes(db)
+    # Phase 7.11 — Drive connection indexes
+    await ensure_drive_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

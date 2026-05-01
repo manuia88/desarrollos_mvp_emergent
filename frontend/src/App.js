@@ -56,6 +56,7 @@ import DataSourcesPage from './pages/superadmin/DataSourcesPage';
 import DataSourceDetailPage from './pages/superadmin/DataSourceDetailPage';
 import ScoresPage from './pages/superadmin/ScoresPage';
 import DocumentsPage from './pages/superadmin/DocumentsPage';
+import SuperadminDrivePage from './pages/superadmin/SuperadminDrivePage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -218,6 +219,7 @@ function AppRouter() {
       <Route path="/superadmin/data-sources/:id" element={<AdvisorRoute Page={DataSourceDetailPage} />} />
       <Route path="/superadmin/scores" element={<AdvisorRoute Page={ScoresPage} />} />
       <Route path="/superadmin/documents" element={<AdvisorRoute Page={DocumentsPage} />} />
+      <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
 
       <Route path="*" element={<LandingPage />} />
     </Routes>

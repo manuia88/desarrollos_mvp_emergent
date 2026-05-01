@@ -244,8 +244,15 @@ def start_scheduler(db):
         args=[db], id="ie_daily_score_recompute", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # Phase 7.11 — Drive watcher every 6h
+    from drive_engine import run_drive_watcher_once
+    _scheduler.add_job(
+        run_drive_watcher_once, CronTrigger(hour="*/6", minute=15, timezone=TZ),
+        args=[db], id="drive_watcher", replace_existing=True,
+        misfire_grace_time=1800,
+    )
     _scheduler.start()
-    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute"])
+    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute", "drive_watcher"])
     return _scheduler
 
 
