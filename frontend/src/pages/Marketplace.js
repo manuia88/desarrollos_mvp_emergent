@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Navbar from '../components/landing/Navbar';
 import TopFilters from '../components/marketplace/TopFilters';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
+import CayaBubble from '../components/landing/CayaBubble';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
 
 export default function Marketplace({ user, onLogin, onLogout }) {
@@ -123,6 +124,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         @media (max-width: 900px) { .dev-grid { grid-template-columns: repeat(2, 1fr) !important; } }
         @media (max-width: 560px) { .dev-grid { grid-template-columns: 1fr !important; } }
       `}</style>
+      <CayaBubble />
     </div>
   );
 }

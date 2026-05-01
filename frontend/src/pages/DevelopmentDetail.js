@@ -18,6 +18,7 @@ import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
+import CayaBubble from '../components/landing/CayaBubble';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -301,6 +302,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           .dev-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
+      <CayaBubble />
     </div>
   );
 }

@@ -373,6 +373,51 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Side-task · Caya Bubble (marketplace público)
+**Objetivo:** mini-burbuja chat persistente bottom-right en `/marketplace` y `/desarrollo/:slug`, anonymous (sin auth), reuse `POST /api/caya/query` del D2.
+
+### Frontend (`CayaBubble.js` · 270 líneas · nuevo)
+- **Burbuja flotante** 60×60 bottom-right z-9998, gradient navy→pink (`var(--grad)`), hover scale 1.08. Click → expande panel.
+- **Panel** 380×540 (responsive: full-bleed en <480px), animation `caya-pop` 220ms.
+  - Header: avatar Caya gradient + label "ASISTENTE DMX · BETA" + close button.
+  - Messages list scrollable: user (right, indigo bg), assistant (left, glass bg).
+  - Empty state con 3 sugerencias clickables: "Casa familiar Polanco bajo 15M", "Mejor calidad de aire en CDMX", "Desarrollos en preventa con amenidades".
+  - Por mensaje assistant: text + `CitationPill[]` (clicks navegan a `/desarrollo/:slug` para `dev::*` chunks o `/barrios` para `col::*`).
+  - **Hand_off banner** ámbar cuando `hand_off_recommended=true`: AlertTriangle + label + 2 CTAs (WhatsApp `wa.me/?text=...` y "Ver asesores" → `/asesores`).
+  - Input rounded-full + send button gradient.
+  - Footer "Beta · Powered by DMX RAG" + clear history button.
+- **Session anonymous**: localStorage key `dmx.caya.session_id` (formato `caya_anon_<rand>_<ts>`). Persiste cross-page + cross-refresh.
+- **History persisten** en localStorage `dmx.caya.history.v1` (cap 30 mensajes). Sobrevive refresh.
+- **Deep-link**: `?caya=open` abre panel automáticamente (útil para shared links).
+- **Mobile responsive**: media query <480px → panel full-width con padding 8px.
+
+### Wiring
+- `Marketplace.js` → `<CayaBubble />` montado al final.
+- `DevelopmentDetail.js` → `<CayaBubble />` montado al final (cross-page session).
+
+### Verificación visual
+- Burbuja gradient pink-purple visible bottom-right en `/marketplace` ✓
+- `?caya=open` → panel completo renderiza con empty state, sugerencias, input, footer ✓
+- Estructura de pills + hand_off banner reusa contrato de Caya endpoint del D2 (verificado en D2 con 4 queries de stress).
+
+### Backend
+- Reusa `POST /api/caya/query` (D2 — sin cambios).
+- Anonymous accepted: endpoint no requiere auth.
+
+### Archivos tocados
+- `/app/frontend/src/components/landing/CayaBubble.js` (nuevo · 270 líneas)
+- `/app/frontend/src/pages/Marketplace.js` (import + mount)
+- `/app/frontend/src/pages/DevelopmentDetail.js` (import + mount)
+- `/app/memory/PRD.md`
+
+### Side-task closed ✅ · Pendiente C11
+- Caya conversational UI completa con threads sidebar.
+- WhatsApp Business real wiring (`whatsapp-web.js` QR).
+- NLP intent classifier real (reemplaza heurística keyword `_estimate_lead_score`).
+
+---
+
+
 ## 2026-05-01 — Phase D2 · Bot RAG Integration (3 surfaces)
 **Objetivo:** conectar D1 semantic search a 3 superficies de bot — argumentario asesor, briefing IE upgrade, y Caya prep stub. Cada output cita chunks del corpus con `chunk_id` clickable. Cero invención: si un chunk no se encuentra, Claude lo dice explícito.
 
