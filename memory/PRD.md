@@ -364,8 +364,76 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 ### Phase 7 — Document Intelligence
 - **Phase 7.1 ✅** Upload + OCR + Fernet storage + multi-tenant guard
 - **Phase 7.2 ✅** Claude structured extraction + auto-trigger post-OCR + tab UI
-- **Phase 7.3 ✅** Cross-Check Engine (5 reglas deterministas) + IE recipes (RISK_LEGAL, COMPLIANCE_SCORE, QUALITY_DOCS) + GC-X4 pricing block
-- Phase 7.4 ⏳ Documents page completa en Developer Portal (read-only summary + tab por tipo)
+- **Phase 7.3 ✅** Cross-Check Engine (5 reglas deterministas) + IE recipes + GC-X4 pricing block
+- **Phase 7.5 ✅** Auto-Sync Extracted → Marketplace (overlay store + audit + revert + locks + pause)
+- Phase 7.4 ⏳ Documents page completa en Developer Portal (read-only summary)
+
+---
+
+## 2026-05-01 — Phase 7.5 · Auto-Sync Extracted → Marketplace (Moat #2 Wave 4)
+**Objetivo:** transformar `extracted_data` (Phase 7.2) + cross-check pass (Phase 7.3) en updates al marketplace público, con overlay reversible y bloqueos por developer. Cierra el loop **upload → OCR → extract → cross-check → publish**.
+
+### Backend
+- **Nuevo `auto_sync_engine.py`** (350 líneas):
+  - 8 mappers per doc_type:
+    - `lp` → `{price_from, price_to, unit_types_count}` + `units_overlay[]` (5 unidades upserted con tipo, recámaras, baños, m², planta, precio, status, source_doc_id).
+    - `brochure` → `{description (locked-aware), amenities (merge dedup), search_keywords, hero_text}`.
+    - `escritura` → `{legal_clauses_summary[], legal_verified=true, notario, no_escritura}`.
+    - `plano_arquitectonico` → `floorplan_assets[]` (acumulador).
+    - `permiso_seduvi` → `{unidades_autorizadas, uso_suelo, altura_max, seduvi_no_oficio, seduvi_vigencia}`.
+    - `licencia_construccion` → `{m2_construccion_autorizados, licencia_no, licencia_vigencia, licencia_niveles}`.
+    - `predial` → `predial_private` (solo dev+superadmin, jamás expuesto al marketplace).
+    - `constancia_fiscal` → `fiscal_private` (idem privado).
+  - 3 funciones core: `compute_changes` (dry-run), `apply_changes` (con audit log), `revert_audit` (encadena nuevo registro).
+  - **Pause auto-aplicación** si `IE_PROY_RISK_LEGAL.tier=red` (preview disponible, apply manual SÍ permitido para superadmin pero auto NO ejecuta).
+  - **Locked fields** por developer (set-based) — auto-sync los respeta y los marca como skipped en el resultado.
+  - Auto-trigger post-extraction y post-cross-check.
+- **Schema Mongo `dev_overlays`**: `{development_id, fields: {...synced fields}, units_overlay: [...], locked_fields: [], audit: [{audit_id, field, old, new, source_doc_id, source_doc_type, applied_at, applied_by, can_revert, kind}], last_auto_sync_at, auto_sync_paused_reason}`. Index único en `development_id`.
+- **`_dev_public` y `list_dev_units`** (en `server.py`) ahora hacen lazy-merge del overlay sobre seed (in-memory cache + `invalidate_dev_overlay_cache` al apply/revert + preload completo en startup). Campos `predial_private` y `fiscal_private` JAMÁS se exponen al marketplace.
+- **7 endpoints superadmin** + **6 dev_alias multi-tenant**:
+  - `GET /api/superadmin/developments/{id}/sync-preview` — diffs + units_diff + paused state + locked_fields.
+  - `POST /api/superadmin/developments/{id}/sync-apply` — apply + audit log + cache invalidate. Devuelve `{ok, applied[], skipped[], applied_count, skipped_count}`.
+  - `POST /api/superadmin/developments/{id}/auto-sync` — alias to apply (manual full run).
+  - `POST /api/superadmin/developments/{id}/sync-revert/{audit_id}` — revert audit, encadena nuevo registro.
+  - `GET /api/superadmin/developments/{id}/sync-audit` — historial cronológico.
+  - `POST /api/superadmin/developments/{id}/sync-lock-field` — bloquea/desbloquea field para auto-sync.
+  - `GET /api/superadmin/sync/pending-summary` — summary global per-tenant (count + items con synced_field_count, locked_fields, auto_sync_paused_reason).
+
+### Frontend
+- **Nuevo `components/documents/SyncPreview.js`** (~340 líneas):
+  - Header con botón gradient "Aplicar N cambio(s)" + last_auto_sync_at + locked count.
+  - Banner ámbar cuando paused (IE_PROY_RISK_LEGAL=red) — muestra razón, permite apply manual.
+  - 3 sub-tabs: **Preview** (cards con diff actual→propuesto en grid 2-col rojo/verde + pill source_doc_type + badge BLOQUEADO/PRIVADO + botón Bloquear/Desbloquear inline), **Historial** (cronológico con badge `apply`/`revert` y botón Revertir por row revertable), **Bloqueos** (lista + botón desbloquear).
+  - Toast feedback verde/rojo.
+- **`DocumentsList.js` PreviewDrawer**: 4to tab "Sync Marketplace" agregado.
+- **`DesarrolladorDashboard.js`**: card nueva "AUTO-SYNC · DOCUMENT INTELLIGENCE" con icon Sparkle, count de campos sincronizados, count de pausados (ámbar), pills clickeables a `/desarrollador/inventario?dev=...` por development_id.
+- **`api/documents.js`** + 6 helpers: `getSyncPreview`, `applySync`, `revertSync`, `getSyncAudit`, `lockSyncField`, `getSyncPending`.
+
+### Verificación end-to-end
+- **Sync preview altavista-polanco**: 15 diffs detectados desde 5 doc_types (lp, escritura, permiso_seduvi, licencia_construccion, constancia_fiscal). units_diff: 0 → 5. paused=true porque IE_PROY_RISK_LEGAL=red ✓.
+- **Sync apply**: 16 audit entries creados (15 fields + units_overlay), `last_auto_sync_at` populado ✓.
+- **Marketplace público**: `/api/developments/altavista-polanco` ahora devuelve:
+  - `price_from=12500000` (de seed 14.5M → real LP MIN)
+  - `price_to=35000000` (de seed 28.9M → real LP MAX, penthouse)
+  - `units count: 5` (LP overlay reemplaza seed 8)
+  - `_overlay_synced_fields=[altura_max, legal_verified, licencia_niveles, licencia_no, licencia_vigencia, m2_construccion_autorizados, price_from, price_to, seduvi_no_oficio, seduvi_vigencia, unidades_autorizadas, unit_types_count, uso_suelo]` (13 campos públicos sincronizados — `predial_private` y `fiscal_private` correctamente NO expuestos).
+- **Revert price_from audit_id** → marketplace vuelve a `price_from=14500000` (seed) inmediatamente. `audit.kind=revert` registrado, `can_revert=false` en el original ✓.
+- **Lock `description`** → `locked_fields=["description"]`. Próximo auto-sync skipea ese field (verified via `apply_changes` returning skipped[]) ✓.
+- **Multi-tenant**: dev_admin (constructora_ariel) sync-preview altavista-polanco (quattro=tenant) → 200 ✓; juarez-boutique (origen=foreign) → 403 ✓; buyer 401 ✓.
+- **Playwright drawer Sync tab**: 4to tab visible, banner "Auto-aplicación pausada" ámbar correcto, sub-tabs Preview (1+) · Historial (17) · Bloqueos (1), card price_from con grid actual 14,500,000 → propuesto 12,500,000, card units_overlay con count 5→5 ✓.
+- **Playwright `/desarrollador` dashboard**: card "AUTO-SYNC · DOCUMENT INTELLIGENCE" con "14 campos sincronizados en 1 desarrollo" + pill `altavista-polanco · 14 campos` ✓.
+
+### Archivos tocados
+- `/app/backend/auto_sync_engine.py` (nuevo · 350 líneas)
+- `/app/backend/server.py` (`_dev_public` overlay merge + cache + `_apply_overlay` + preload startup)
+- `/app/backend/extraction_engine.py` (auto_sync auto_trigger hook)
+- `/app/backend/cross_check_engine.py` (auto_sync auto_trigger after IE recompute)
+- `/app/backend/routes_documents.py` (+7 endpoints + 6 dev_alias)
+- `/app/frontend/src/api/documents.js` (+6 helpers)
+- `/app/frontend/src/components/documents/SyncPreview.js` (nuevo)
+- `/app/frontend/src/components/documents/DocumentsList.js` (+4to tab)
+- `/app/frontend/src/pages/developer/DesarrolladorDashboard.js` (Auto-Sync widget)
+- `/app/memory/PRD.md`
 
 ---
 

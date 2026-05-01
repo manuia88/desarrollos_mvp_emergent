@@ -6,6 +6,7 @@ import { FileText, Upload, Download, Trash, RotateCcw, Check, AlertTriangle, Clo
 import UploadDocumentModal from './UploadDocumentModal';
 import ExtractionView from './ExtractionView';
 import CrossCheckView from './CrossCheckView';
+import SyncPreview from './SyncPreview';
 
 const STATUS_TONE = {
   pending:             { bg: 'rgba(99,102,241,0.12)', fg: '#c7d2fe', label: 'En cola',           Icon: Clock },
@@ -131,6 +132,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
                 { k: 'ocr', label: 'Texto OCR' },
                 { k: 'extraction', label: 'Datos extraídos' },
                 { k: 'crosscheck', label: 'Cross-check' },
+                { k: 'sync', label: 'Sync Marketplace' },
               ].map(t => (
                 <button key={t.k} data-testid={`doc-tab-${t.k}`} onClick={() => setTab(t.k)} style={{
                   padding: '9px 14px', background: 'transparent', border: 'none',
@@ -170,6 +172,10 @@ function PreviewDrawer({ doc, scope, onClose }) {
 
             {tab === 'crosscheck' && (
               <CrossCheckView devId={doc.development_id} scope={scope} />
+            )}
+
+            {tab === 'sync' && (
+              <SyncPreview devId={doc.development_id} scope={scope} />
             )}
           </>
         )}

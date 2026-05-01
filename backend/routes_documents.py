@@ -22,7 +22,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Query
 from fastapi.responses import StreamingResponse
@@ -38,6 +38,14 @@ from extraction_engine import (
 )
 from cross_check_engine import (
     run_cross_check, get_dev_cross_check, sanitize as sanitize_cross_check, ENGINE_VERSION as CC_ENGINE_VERSION,
+)
+from auto_sync_engine import (
+    apply_changes as sync_apply_changes,
+    compute_changes as sync_compute_changes,
+    revert_audit as sync_revert_audit,
+    get_audit as sync_get_audit,
+    set_field_lock as sync_set_field_lock,
+    get_overlay as sync_get_overlay,
 )
 
 log = logging.getLogger("dmx.di.routes")
@@ -478,6 +486,99 @@ async def cross_check_stats(request: Request):
     }
 
 
+# ─── Phase 7.5 — Auto-Sync ────────────────────────────────────────────────────
+class FieldLockBody(BaseModel):
+    field: str
+    locked: bool
+
+
+@router.get("/api/superadmin/developments/{dev_id}/sync-preview")
+async def sync_preview(dev_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+    db = _get_db(request)
+    overlay = await sync_get_overlay(db, dev_id)
+    changes = await sync_compute_changes(db, dev_id)
+    return {
+        **changes,
+        "locked_fields": overlay.get("locked_fields") or [],
+        "last_auto_sync_at": overlay.get("last_auto_sync_at").isoformat() if overlay.get("last_auto_sync_at") else None,
+    }
+
+
+@router.post("/api/superadmin/developments/{dev_id}/sync-apply")
+async def sync_apply(dev_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+    db = _get_db(request)
+    return await sync_apply_changes(db, dev_id, applied_by=f"{user.role}:{user.user_id}")
+
+
+@router.post("/api/superadmin/developments/{dev_id}/auto-sync")
+async def sync_full_run(dev_id: str, request: Request):
+    """Trigger manual full run: applies all pending diffs."""
+    return await sync_apply(dev_id, request)
+
+
+@router.post("/api/superadmin/developments/{dev_id}/sync-revert/{audit_id}")
+async def sync_revert(dev_id: str, audit_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+    db = _get_db(request)
+    return await sync_revert_audit(db, dev_id, audit_id, applied_by=f"{user.role}:{user.user_id}")
+
+
+@router.get("/api/superadmin/developments/{dev_id}/sync-audit")
+async def sync_audit(dev_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+    db = _get_db(request)
+    audit = await sync_get_audit(db, dev_id)
+    return {"development_id": dev_id, "audit": audit, "count": len(audit)}
+
+
+@router.post("/api/superadmin/developments/{dev_id}/sync-lock-field")
+async def sync_lock_field(dev_id: str, body: FieldLockBody, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+    db = _get_db(request)
+    return await sync_set_field_lock(db, dev_id, body.field, body.locked)
+
+
+@router.get("/api/superadmin/sync/pending-summary")
+async def sync_pending_summary(request: Request):
+    """Per-tenant summary: devs with pending review queue."""
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    db = _get_db(request)
+    allowed = _allowed_dev_ids(user)
+    pending: List[Dict[str, Any]] = []
+    cursor = db.dev_overlays.find({}, {"_id": 0})
+    async for o in cursor:
+        dev_id = o.get("development_id")
+        if allowed != "*" and dev_id not in (allowed or []):
+            continue
+        pending.append({
+            "development_id": dev_id,
+            "last_auto_sync_at": o.get("last_auto_sync_at").isoformat() if o.get("last_auto_sync_at") else None,
+            "synced_field_count": len((o.get("fields") or {}).keys()),
+            "audit_count": len(o.get("audit") or []),
+            "locked_fields": o.get("locked_fields") or [],
+            "auto_sync_paused_reason": o.get("auto_sync_paused_reason"),
+        })
+    return {"count": len(pending), "items": pending}
+
+
 # ─── Developer-portal aliases (multi-tenant guard kicks in via _check_dev_access) ──
 dev_alias = APIRouter(tags=["document_intelligence_dev"])
 
@@ -560,3 +661,34 @@ async def dev_trigger_cross_check(dev_id: str, request: Request):
 @dev_alias.get("/api/desarrollador/developments/{dev_id}/cross-check")
 async def dev_get_cross_check(dev_id: str, request: Request):
     return await get_cross_check(dev_id, request)
+
+
+# Phase 7.5 dev aliases (auto-sync)
+@dev_alias.get("/api/desarrollador/developments/{dev_id}/sync-preview")
+async def dev_sync_preview(dev_id: str, request: Request):
+    return await sync_preview(dev_id, request)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/sync-apply")
+async def dev_sync_apply(dev_id: str, request: Request):
+    return await sync_apply(dev_id, request)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/sync-revert/{audit_id}")
+async def dev_sync_revert(dev_id: str, audit_id: str, request: Request):
+    return await sync_revert(dev_id, audit_id, request)
+
+
+@dev_alias.get("/api/desarrollador/developments/{dev_id}/sync-audit")
+async def dev_sync_audit(dev_id: str, request: Request):
+    return await sync_audit(dev_id, request)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/sync-lock-field")
+async def dev_sync_lock(dev_id: str, body: FieldLockBody, request: Request):
+    return await sync_lock_field(dev_id, body, request)
+
+
+@dev_alias.get("/api/desarrollador/sync/pending-summary")
+async def dev_sync_pending(request: Request):
+    return await sync_pending_summary(request)

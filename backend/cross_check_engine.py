@@ -399,6 +399,13 @@ async def run_cross_check(db, dev_id: str) -> Dict[str, Any]:
     except Exception as e:
         log.warning(f"cross_check IE recompute failed: {e}")
 
+    # Phase 7.5 — auto-sync (pause if RISK_LEGAL=red; auto-apply if clean)
+    try:
+        from auto_sync_engine import auto_trigger_after_extraction
+        await auto_trigger_after_extraction(db, dev_id)
+    except Exception as e:
+        log.warning(f"auto_sync auto_trigger failed: {e}")
+
     return {"ok": True, "summary": summary, "results": persisted}
 
 

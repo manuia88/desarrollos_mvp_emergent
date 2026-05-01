@@ -75,3 +75,26 @@ export const getDevCrossCheck = (devId, scope = 'superadmin') =>
 export const getCrossCheckStats = () => j('/api/superadmin/cross-checks/stats/global');
 
 export const getPricingCrossCheckWarnings = () => j('/api/desarrollador/pricing/cross-check-warnings');
+
+// ─── Phase 7.5 — Auto-Sync ─────────────────────────────────────────────────
+export const getSyncPreview = (devId, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/sync-preview`);
+
+export const applySync = (devId, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/sync-apply`, { method: 'POST' });
+
+export const revertSync = (devId, auditId, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/sync-revert/${encodeURIComponent(auditId)}`, { method: 'POST' });
+
+export const getSyncAudit = (devId, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/sync-audit`);
+
+export const lockSyncField = (devId, field, locked, scope = 'superadmin') =>
+  j(`${base(scope)}/developments/${encodeURIComponent(devId)}/sync-lock-field`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ field, locked }),
+  });
+
+export const getSyncPending = (scope = 'superadmin') =>
+  j(`${base(scope)}/sync/pending-summary`);

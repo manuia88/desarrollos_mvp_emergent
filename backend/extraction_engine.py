@@ -282,10 +282,17 @@ async def run_extraction(db, doc_id: str, *, force: bool = False) -> Dict[str, A
 
     # Phase 7.3 — auto-trigger cross-check (if dev has ≥2 extracted docs)
     try:
-        from cross_check_engine import auto_trigger_after_extraction
-        await auto_trigger_after_extraction(db, doc.get("development_id"))
+        from cross_check_engine import auto_trigger_after_extraction as cc_auto
+        await cc_auto(db, doc.get("development_id"))
     except Exception as e:
         log.warning(f"di.cross_check auto_trigger failed: {e}")
+
+    # Phase 7.5 — auto-sync (always run after each extraction; pauses internally if RISK_LEGAL=red)
+    try:
+        from auto_sync_engine import auto_trigger_after_extraction as sync_auto
+        await sync_auto(db, doc.get("development_id"))
+    except Exception as e:
+        log.warning(f"di.auto_sync auto_trigger failed: {e}")
 
     return {"ok": True, "extraction_id": extr_id, "data": parsed, "cost_usd": last_call.get("cost_usd", 0.0)}
 

@@ -242,6 +242,14 @@ async def startup():
     # Phase 7.3 — Cross-check indexes
     from cross_check_engine import ensure_cross_check_indexes
     await ensure_cross_check_indexes(db)
+    # Phase 7.5 — Auto-Sync overlay indexes + preload cache
+    from auto_sync_engine import ensure_indexes as ensure_sync_indexes
+    await ensure_sync_indexes(db)
+    try:
+        async for o in db.dev_overlays.find({}, {"_id": 0}):
+            _dev_overlay_cache[o["development_id"]] = o
+    except Exception as e:
+        logging.warning(f"dev_overlays preload failed: {e}")
     # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
     start_scheduler(db)
 
@@ -549,8 +557,57 @@ class NLPSearchIn(BaseModel):
 DMX_FALLBACK_WHATSAPP = os.environ.get("DMX_FALLBACK_WHATSAPP", "+525512345678")
 
 
+# ─── Phase 7.5 — dev overlay cache (auto_sync) ───────────────────────────────
+_dev_overlay_cache: dict = {}
+
+
+def invalidate_dev_overlay_cache(dev_id: str = None):
+    if dev_id:
+        _dev_overlay_cache.pop(dev_id, None)
+    else:
+        _dev_overlay_cache.clear()
+
+
+async def _ensure_overlay_loaded(dev_id: str):
+    if dev_id in _dev_overlay_cache:
+        return _dev_overlay_cache[dev_id]
+    db = app.state.db if hasattr(app, "state") and hasattr(app.state, "db") else None
+    if db is None:
+        return {}
+    try:
+        o = await db.dev_overlays.find_one({"development_id": dev_id}, {"_id": 0}) or {}
+    except Exception:
+        o = {}
+    _dev_overlay_cache[dev_id] = o
+    return o
+
+
+def _apply_overlay(d: dict) -> dict:
+    overlay = _dev_overlay_cache.get(d["id"]) or {}
+    fields = overlay.get("fields") or {}
+    units_overlay = overlay.get("units_overlay") or []
+    if not fields and not units_overlay:
+        return d
+    out = dict(d)
+    PRIVATE = {"predial_private", "fiscal_private"}
+    for k, v in fields.items():
+        if k in PRIVATE:
+            continue
+        out[k] = v
+    if units_overlay:
+        out["units"] = units_overlay
+    out["_overlay_synced_fields"] = sorted(
+        k for k in fields.keys() if k not in PRIVATE
+    )
+    if overlay.get("last_auto_sync_at"):
+        ts = overlay["last_auto_sync_at"]
+        out["last_auto_sync_at"] = ts.isoformat() if hasattr(ts, "isoformat") else ts
+    return out
+
+
 def _dev_public(d: dict, include_units: bool = False) -> dict:
     """Strip heavy fields for list endpoints; keep everything for detail."""
+    d = _apply_overlay(d)
     out = {k: v for k, v in d.items() if k != "_id" and (include_units or k != "units")}
     if not include_units:
         out["units_sample"] = d.get("units", [])[:0]  # no units in list view
@@ -620,6 +677,7 @@ async def get_development(dev_id: str):
     d = DEVELOPMENTS_BY_ID.get(dev_id)
     if not d:
         raise HTTPException(404, "Desarrollo no encontrado")
+    await _ensure_overlay_loaded(dev_id)
     return _dev_public(d, include_units=True)
 
 
@@ -634,15 +692,17 @@ async def list_dev_units(
     d = DEVELOPMENTS_BY_ID.get(dev_id)
     if not d:
         raise HTTPException(404, "Desarrollo no encontrado")
+    await _ensure_overlay_loaded(dev_id)
+    d = _apply_overlay(d)
     units = list(d.get("units", []))
     if status:
-        units = [u for u in units if u["status"] == status]
+        units = [u for u in units if u.get("status") == status]
     if beds is not None:
-        units = [u for u in units if u["bedrooms"] >= beds]
+        units = [u for u in units if (u.get("bedrooms") or 0) >= beds]
     if baths is not None:
-        units = [u for u in units if u["bathrooms"] >= baths]
+        units = [u for u in units if (u.get("bathrooms") or 0) >= baths]
     if parking is not None:
-        units = [u for u in units if u["parking_spots"] >= parking]
+        units = [u for u in units if (u.get("parking_spots") or 0) >= parking]
     return units
 
 
