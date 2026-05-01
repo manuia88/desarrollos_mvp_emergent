@@ -44,7 +44,24 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const isAdvisor = user?.role && ADVISOR_ROLES.has(user.role);
 
   useEffect(() => {
-    fetchDevelopment(id).then(setDev).catch(() => setDev(null));
+    let alive = true;
+    fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
+    // Phase 7.6: superpone fotos reales de dev_assets si existen.
+    const API = process.env.REACT_APP_BACKEND_URL;
+    fetch(`${API}/api/developments/${encodeURIComponent(id)}/assets`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!alive || !data) return;
+        const photoTypes = ['foto_hero', 'foto_render', 'foto_unidad_modelo'];
+        const realPhotos = (data.assets || [])
+          .filter(a => photoTypes.includes(a.asset_type))
+          .map(a => `${API}${a.public_url}`);
+        if (realPhotos.length > 0) {
+          setDev((prev) => prev ? { ...prev, photos: realPhotos } : prev);
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
   }, [id]);
 
   // Scroll to #ie-scores anchor when navigated from marketplace badge click

@@ -367,8 +367,48 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - **Phase 7.3 ✅** Cross-Check Engine (5 reglas deterministas) + IE recipes + GC-X4 pricing block
 - **Phase 7.5 ✅** Auto-Sync Extracted → Marketplace (overlay store + audit + revert + locks + pause)
 - **Phase 7.4 ✅** Developer Portal Legajo (5 tabs) + Compliance Badge en marketplace + ficha pública
-- Phase 7.6 ⏳ Asset pipeline (Fotos + Planos thumbnails + Tour 360° Pedra)
+- **Phase 7.6 ✅** Asset pipeline (uploads watermark + Claude Vision categorize + Pedra 360° stub + ficha pública wired)
 - Phase 7.10 ⏳ Avance de obra timeline
+
+
+---
+
+## 2026-05-01 — Phase 7.6 · Asset Pipeline (Moat #2 Wave 6)
+**Objetivo:** subir fotos/renders/planos/360° por desarrollo, watermark automático "DesarrollosMX", auto-categorización con Claude Sonnet 4.5 Vision (cero invención: si no es claramente inmobiliario → `category=null`), y publicación pública en marketplace + ficha.
+
+### Backend (`dev_assets.py` + `routes_documents.py`)
+- Storage NO cifrado en `/app/backend/uploads/dev_assets/` (público, montado en `/api/assets-static/`).
+- Watermark Pillow esquina inferior-derecha, exporta JPEG q85.
+- IA categoriza vía emergentintegrations Claude Vision (`claude-sonnet-4-5-20250929`) con sys-prompt absolutista anti-invención. AI categories: sala, cocina, recamara, bano, fachada, exterior, amenidad, plano (o null).
+- Pedra 360° vía `httpx` POST `/v1/render-360` con `PEDRA_API_KEY`. Si key falta → stub honesto `{ok:false, hint:"Configura PEDRA_API_KEY..."}`.
+- `regenerate_plano_thumbnails` extrae página 1 de `plano_arquitectonico` docs vía pdfplumber, watermarkea, persiste como `plano_thumbnail` asset.
+- 8 endpoints superadmin (+ 8 dev_aliases multi-tenant): upload bulk · reorder · re-categorize · generate-360 · delete · regenerate-plano-thumbnails. 1 endpoint público: `GET /api/developments/{dev_id}/assets`.
+
+### Frontend (`AssetGallery.js` + `DesarrolladorLegajo.js` + `DevelopmentDetail.js`)
+- `AssetGallery` con drag&drop multi-upload, drag-reorder grid, AI category pills, IA caption auto-poll cada 3.5s mientras pending, botón 360° por imagen, delete confirm.
+- Tabs Legajo: Fotos (foto_render) · Planos (plano_thumbnail con botón regenerate) · Tour 360° (iframes Pedra cuando `tour_url` poblado).
+- `DevelopmentCard` (marketplace) y `DevelopmentDetail`/`PhotoGallery` (ficha pública) hacen fetch de `/api/developments/:id/assets` y, si hay assets reales, sobreponen sobre `dev.photos` seed. Fallback al seed si no hay reales.
+
+### Verificación
+- Upload `test_photo.jpg` (640x420) → watermark aplicado · IA correctamente devolvió `category=null, caption="Imagen de prueba sin contenido inmobiliario visible"` (cero invención respetada). Cost ≈ $0.003.
+- Endpoint público `GET /api/developments/altavista-polanco/assets` → count=1 con `public_url=/api/assets-static/asset_xxx.jpg`. Static file content-type image/jpeg, content-length 6479 ✓.
+- `GET /api/assets-static/asset_xxx.jpg` → 200 ✓.
+- Ficha `/desarrollo/altavista-polanco`: thumbnails count cambia de "1/6" (seed) → "1/1" (override real assets) confirmando wire end-to-end ✓.
+- Pedra 360° call con `PEDRA_API_KEY` ausente → stub honesto con hint "Configura PEDRA_API_KEY..." ✓.
+
+### Archivos tocados
+- `/app/backend/dev_assets.py` (nuevo · 269 líneas)
+- `/app/backend/routes_documents.py` (+ 8 endpoints + 8 dev_alias + public_router mount)
+- `/app/backend/server.py` (`StaticFiles` mount + ensure_asset_indexes startup)
+- `/app/frontend/src/components/documents/AssetGallery.js` (nuevo · 277 líneas)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (Fotos/Planos/Tour360 tabs wired)
+- `/app/frontend/src/components/marketplace/DevelopmentCard.js` (assets fetch override)
+- `/app/frontend/src/pages/DevelopmentDetail.js` (assets fetch override)
+- `/app/memory/PRD.md`
+
+### Backlog 7.x
+- ELEVENLABS_API_KEY · PEDRA_API_KEY pending — stubs honestos activos.
+- Phase 7.10 — Avance de obra timeline.
 
 ---
 
