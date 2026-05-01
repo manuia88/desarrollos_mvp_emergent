@@ -98,3 +98,12 @@ credentials.json
 # IE Engine — manual upload storage (operator-uploaded source data)
 backend/uploads/
 uploads/ie_engine/
+-e 
+# Environment and credential files
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
