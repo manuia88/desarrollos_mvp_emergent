@@ -23,6 +23,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+import uuid
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Query
 from fastapi.responses import StreamingResponse
@@ -46,6 +47,11 @@ from auto_sync_engine import (
     get_audit as sync_get_audit,
     set_field_lock as sync_set_field_lock,
     get_overlay as sync_get_overlay,
+)
+from dev_assets import (
+    ASSET_TYPES, ALLOWED_IMG_EXT, ASSET_MAX_BATCH, ASSET_MAX_FILE_BYTES,
+    watermark_image, ai_categorize, pedra_generate_360,
+    write_asset, sha256_bytes as asset_sha256, sanitize_asset, regenerate_plano_thumbnails,
 )
 
 log = logging.getLogger("dmx.di.routes")
@@ -579,6 +585,196 @@ async def sync_pending_summary(request: Request):
     return {"count": len(pending), "items": pending}
 
 
+# ─── Phase 7.6 — Asset pipeline ───────────────────────────────────────────────
+class ReorderBody(BaseModel):
+    asset_ids: List[str]
+
+
+@router.post("/api/superadmin/developments/{dev_id}/assets/upload")
+async def assets_upload(
+    dev_id: str,
+    request: Request,
+    files: List[UploadFile] = File(...),
+    asset_type: str = Form("foto_render"),
+):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    _dev_exists(dev_id)
+
+    if asset_type not in ASSET_TYPES:
+        raise HTTPException(400, f"asset_type inválido. Permitidos: {sorted(ASSET_TYPES)}")
+    if len(files) > ASSET_MAX_BATCH:
+        raise HTTPException(400, f"Máximo {ASSET_MAX_BATCH} archivos por lote")
+
+    db = _get_db(request)
+    # Determine starting order_index
+    last = await db.dev_assets.find_one(
+        {"development_id": dev_id, "asset_type": asset_type},
+        sort=[("order_index", -1)],
+    )
+    base_order = (last["order_index"] + 1) if last else 0
+
+    created: List[Dict[str, Any]] = []
+    for i, f in enumerate(files):
+        name = (f.filename or "").strip()
+        ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+        if ext not in ALLOWED_IMG_EXT:
+            continue
+        data = await f.read()
+        if not data or len(data) > ASSET_MAX_FILE_BYTES:
+            continue
+        wm = await asyncio.to_thread(watermark_image, data, f.content_type or "image/jpeg")
+        asset_id = f"asset_{uuid.uuid4().hex[:14]}"
+        sp = write_asset(asset_id, wm, "jpg")
+        doc = {
+            "id": asset_id,
+            "development_id": dev_id,
+            "uploader_user_id": user.user_id,
+            "asset_type": asset_type,
+            "filename": name,
+            "file_size_bytes": len(wm),
+            "mime_type": "image/jpeg",
+            "file_hash": asset_sha256(wm),
+            "storage_path": sp,
+            "order_index": base_order + i,
+            "ai_category": None,
+            "ai_caption": None,
+            "pedra_render_id": None,
+            "tour_url": None,
+            "watermarked": True,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        await db.dev_assets.insert_one(doc)
+        created.append(sanitize_asset(doc))
+
+        # Schedule AI categorization in background (non-blocking)
+        asyncio.create_task(_categorize_and_save(db, asset_id, wm))
+
+    return {"ok": True, "count": len(created), "created": created}
+
+
+async def _categorize_and_save(db, asset_id: str, image_bytes: bytes):
+    res = await ai_categorize(image_bytes)
+    update = {"updated_at": datetime.now(timezone.utc)}
+    if res.get("ok"):
+        update["ai_category"] = res.get("category")
+        update["ai_caption"] = res.get("caption")
+        update["ai_model"] = res.get("model")
+    else:
+        update["ai_error"] = res.get("error")
+    await db.dev_assets.update_one({"id": asset_id}, {"$set": update})
+
+
+@router.post("/api/superadmin/developments/{dev_id}/assets/reorder")
+async def assets_reorder(dev_id: str, body: ReorderBody, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    db = _get_db(request)
+    for i, aid in enumerate(body.asset_ids):
+        await db.dev_assets.update_one(
+            {"id": aid, "development_id": dev_id},
+            {"$set": {"order_index": i, "updated_at": datetime.now(timezone.utc)}},
+        )
+    return {"ok": True, "reordered": len(body.asset_ids)}
+
+
+@router.post("/api/superadmin/developments/{dev_id}/assets/{asset_id}/categorize")
+async def asset_categorize(dev_id: str, asset_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    db = _get_db(request)
+    a = await db.dev_assets.find_one({"id": asset_id, "development_id": dev_id})
+    if not a:
+        raise HTTPException(404, "Asset no encontrado")
+    try:
+        image_bytes = Path(a["storage_path"]).read_bytes()
+    except Exception:
+        raise HTTPException(410, "Archivo de asset no encontrado en disco")
+    res = await ai_categorize(image_bytes)
+    update = {"updated_at": datetime.now(timezone.utc)}
+    if res.get("ok"):
+        update["ai_category"] = res.get("category")
+        update["ai_caption"] = res.get("caption")
+        update["ai_model"] = res.get("model")
+        update["ai_error"] = None
+    else:
+        update["ai_error"] = res.get("error")
+    await db.dev_assets.update_one({"id": asset_id}, {"$set": update})
+    return res
+
+
+@router.post("/api/superadmin/developments/{dev_id}/assets/{asset_id}/generate-360")
+async def asset_generate_360(dev_id: str, asset_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    db = _get_db(request)
+    a = await db.dev_assets.find_one({"id": asset_id, "development_id": dev_id})
+    if not a:
+        raise HTTPException(404, "Asset no encontrado")
+    try:
+        image_bytes = Path(a["storage_path"]).read_bytes()
+    except Exception:
+        raise HTTPException(410, "Archivo de asset no encontrado en disco")
+    room = a.get("ai_category") or "sala"
+    res = await pedra_generate_360(image_bytes, room_type=room)
+    if res.get("ok"):
+        await db.dev_assets.update_one({"id": asset_id}, {"$set": {
+            "pedra_render_id": res.get("render_id"),
+            "tour_url": res.get("tour_url"),
+            "updated_at": datetime.now(timezone.utc),
+        }})
+    return res
+
+
+@router.delete("/api/superadmin/developments/{dev_id}/assets/{asset_id}")
+async def asset_delete(dev_id: str, asset_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    db = _get_db(request)
+    a = await db.dev_assets.find_one({"id": asset_id, "development_id": dev_id})
+    if not a:
+        raise HTTPException(404, "Asset no encontrado")
+    sp = a.get("storage_path")
+    try:
+        if sp and Path(sp).exists():
+            Path(sp).unlink()
+    except Exception as e:
+        log.warning(f"asset unlink failed {asset_id}: {e}")
+    await db.dev_assets.delete_one({"id": asset_id})
+    return {"ok": True, "id": asset_id}
+
+
+@router.post("/api/superadmin/developments/{dev_id}/assets/regenerate-plano-thumbnails")
+async def assets_regen_plano(dev_id: str, request: Request):
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
+    _check_dev_access(user, dev_id)
+    db = _get_db(request)
+    return await regenerate_plano_thumbnails(db, dev_id)
+
+
+# Public — used by marketplace & ficha (any user, even anon)
+public_router = APIRouter(tags=["assets_public"])
+
+
+@public_router.get("/api/developments/{dev_id}/assets")
+async def list_dev_assets_public(dev_id: str, request: Request,
+                                 asset_type: Optional[str] = Query(None)):
+    db = _get_db(request)
+    query: Dict[str, Any] = {"development_id": dev_id}
+    if asset_type and asset_type in ASSET_TYPES:
+        query["asset_type"] = asset_type
+    cursor = db.dev_assets.find(query).sort([("asset_type", 1), ("order_index", 1)])
+    items = [sanitize_asset(a) async for a in cursor]
+    return {"development_id": dev_id, "count": len(items), "assets": items}
+
+
 # ─── Developer-portal aliases (multi-tenant guard kicks in via _check_dev_access) ──
 dev_alias = APIRouter(tags=["document_intelligence_dev"])
 
@@ -692,3 +888,38 @@ async def dev_sync_lock(dev_id: str, body: FieldLockBody, request: Request):
 @dev_alias.get("/api/desarrollador/sync/pending-summary")
 async def dev_sync_pending(request: Request):
     return await sync_pending_summary(request)
+
+
+# Phase 7.6 dev aliases (assets)
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/assets/upload")
+async def dev_assets_upload(
+    dev_id: str, request: Request,
+    files: List[UploadFile] = File(...),
+    asset_type: str = Form("foto_render"),
+):
+    return await assets_upload(dev_id, request, files=files, asset_type=asset_type)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/assets/reorder")
+async def dev_assets_reorder(dev_id: str, body: ReorderBody, request: Request):
+    return await assets_reorder(dev_id, body, request)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/assets/{asset_id}/categorize")
+async def dev_asset_categorize(dev_id: str, asset_id: str, request: Request):
+    return await asset_categorize(dev_id, asset_id, request)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/assets/{asset_id}/generate-360")
+async def dev_asset_generate_360(dev_id: str, asset_id: str, request: Request):
+    return await asset_generate_360(dev_id, asset_id, request)
+
+
+@dev_alias.delete("/api/desarrollador/developments/{dev_id}/assets/{asset_id}")
+async def dev_asset_delete(dev_id: str, asset_id: str, request: Request):
+    return await asset_delete(dev_id, asset_id, request)
+
+
+@dev_alias.post("/api/desarrollador/developments/{dev_id}/assets/regenerate-plano-thumbnails")
+async def dev_assets_regen_plano(dev_id: str, request: Request):
+    return await assets_regen_plano(dev_id, request)

@@ -74,10 +74,16 @@ from routes_studio import router as studio_router
 app.include_router(studio_router)
 
 # Wire Document Intelligence router (Phase 7.1 — Moat #2)
-from routes_documents import router as documents_router, dev_alias as documents_dev_alias_router
+from routes_documents import router as documents_router, dev_alias as documents_dev_alias_router, public_router as assets_public_router
 from document_intelligence import ensure_di_indexes
 app.include_router(documents_router)
 app.include_router(documents_dev_alias_router)
+app.include_router(assets_public_router)
+
+# Phase 7.6 — Static asset serving (public, no auth)
+from fastapi.staticfiles import StaticFiles
+from dev_assets import ASSET_UPLOAD_DIR
+app.mount("/api/assets-static", StaticFiles(directory=str(ASSET_UPLOAD_DIR)), name="assets-static")
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
@@ -245,6 +251,9 @@ async def startup():
     # Phase 7.5 — Auto-Sync overlay indexes + preload cache
     from auto_sync_engine import ensure_indexes as ensure_sync_indexes
     await ensure_sync_indexes(db)
+    # Phase 7.6 — Asset pipeline indexes
+    from dev_assets import ensure_asset_indexes
+    await ensure_asset_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

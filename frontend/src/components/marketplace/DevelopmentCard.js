@@ -90,7 +90,8 @@ export default function DevelopmentCard({ dev, index = 0 }) {
   const [saved, setSaved] = useState(() => isFavorite(dev.id));
   const [imgError, setImgError] = useState({});
   const [rank, setRank] = useState(null);
-  const photos = dev.photos || [];
+  const [assetPhotos, setAssetPhotos] = useState([]);
+  const photos = assetPhotos.length > 0 ? assetPhotos : (dev.photos || []);
   const hue = dev.developer?.logo_hue || 231;
   const stageCfg = STAGE_COLORS[dev.stage] || STAGE_COLORS.preventa;
 
@@ -99,6 +100,15 @@ export default function DevelopmentCard({ dev, index = 0 }) {
     fetch(`${API}/api/developments/${dev.id}/rank`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (alive && d) setRank(d); })
+      .catch(() => {});
+    fetch(`${API}/api/developments/${dev.id}/assets`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!alive || !d?.assets) return;
+        const photoTypes = ['foto_hero', 'foto_render', 'foto_unidad_modelo'];
+        const photos = d.assets.filter(a => photoTypes.includes(a.asset_type)).map(a => `${API}${a.public_url}`);
+        if (photos.length) setAssetPhotos(photos);
+      })
       .catch(() => {});
     return () => { alive = false; };
   }, [dev.id]);
