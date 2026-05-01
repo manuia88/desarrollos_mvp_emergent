@@ -1,8 +1,10 @@
 // /barrios — stub page: "Los 16 barrios de CDMX leídos por IE Score"
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/landing/Navbar';
 import CtaFooter from '../components/landing/CtaFooter';
+import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
+import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import { MapPin, Leaf, Route, Shield, Store, ArrowRight } from '../components/icons';
 import { useAuth } from '../App';
 
@@ -23,6 +25,7 @@ const BARRIOS = [
 export default function Barrios() {
   const navigate = useNavigate();
   const { user, logout, openAuth } = useAuth();
+  const [explain, setExplain] = useState(null); // { zoneId, code } | null
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -116,8 +119,50 @@ export default function Barrios() {
             </div>
           ))}
         </div>
+
+        {/* LIVE scores para las 3 colonias con cobertura inicial */}
+        <div style={{ marginTop: 48 }}>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>LIVE · SCORES REALES</div>
+          <h2 style={{
+            fontFamily: 'Outfit', fontWeight: 800, fontSize: 24,
+            color: 'var(--cream)', letterSpacing: '-0.02em',
+            margin: '0 0 8px',
+          }}>
+            Tres colonias con lectura IE activa.
+          </h2>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', lineHeight: 1.55, marginBottom: 20, maxWidth: 640 }}>
+            El motor está midiendo estas colonias en vivo. Haz click en cualquier score para ver el breakdown de la fórmula.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {['roma_norte', 'polanco', 'condesa'].map(z => (
+              <div key={z} data-testid={`barrio-live-${z}`} style={{
+                padding: 18,
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border)',
+                borderRadius: 16,
+              }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 2, textTransform: 'capitalize' }}>
+                  {z.replace('_', ' ')}
+                </div>
+                <ZoneScoreStrip
+                  zoneId={z}
+                  limit={6}
+                  onScoreClick={s => setExplain({ zoneId: z, code: s.code })}
+                  title=""
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
       <CtaFooter />
+
+      <ScoreExplainModal
+        open={!!explain}
+        zoneId={explain?.zoneId}
+        code={explain?.code}
+        onClose={() => setExplain(null)}
+      />
     </div>
   );
 }

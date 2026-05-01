@@ -115,6 +115,103 @@ async def public_zone_scores(zone_id: str, request: Request):
     return [ScoreOut(**d) for d in docs]
 
 
+MIN_REAL_SCORES_FOR_UI = 5
+
+
+class ZoneCoverageOut(BaseModel):
+    zone_id: str
+    real_count: int
+    total_recipes: int
+    ui_mode: str  # "real" | "seed"
+    scores: List[ScoreOut]
+
+
+@pub_router.get("/zones/{zone_id}/scores/coverage", response_model=ZoneCoverageOut)
+async def zone_coverage(zone_id: str, request: Request):
+    """Tells the UI whether to show real scores or fall back to seed with 'estimado' badge."""
+    db = request.app.state.db
+    real_docs = await db.ie_scores.find(
+        {"zone_id": zone_id, "is_stub": False, "value": {"$ne": None}},
+        {"_id": 0},
+    ).to_list(length=200)
+    total = len(all_recipes())
+    mode = "real" if len(real_docs) >= MIN_REAL_SCORES_FOR_UI else "seed"
+    return ZoneCoverageOut(
+        zone_id=zone_id, real_count=len(real_docs),
+        total_recipes=total, ui_mode=mode,
+        scores=[ScoreOut(**d) for d in real_docs],
+    )
+
+
+class ScoreExplainOut(BaseModel):
+    code: str
+    zone_id: str
+    value: Optional[float]
+    tier: str
+    confidence: str
+    is_stub: bool
+    formula_version: str
+    description: str
+    dependencies: List[str]
+    tier_logic: str
+    inputs_used: Dict[str, int]
+    operations: List[str]
+    observation_sample_ids: List[str] = Field(default_factory=list)
+
+
+@pub_router.get("/zones/{zone_id}/scores/explain", response_model=ScoreExplainOut)
+async def explain_score(zone_id: str, code: str, request: Request):
+    """
+    Public breakdown endpoint — alimenta el 'how we know' en la UI y la sección
+    '97 indicadores detrás de cada precio' en /inteligencia.
+    """
+    recipe = get_recipe(code)
+    if not recipe:
+        raise HTTPException(404, f"Recipe '{code}' no existe")
+    db = request.app.state.db
+    doc = await db.ie_scores.find_one({"zone_id": zone_id, "code": code}, {"_id": 0})
+    if not doc:
+        return ScoreExplainOut(
+            code=code, zone_id=zone_id, value=None, tier="unknown",
+            confidence="low", is_stub=True, formula_version=recipe.version,
+            description=recipe.description,
+            dependencies=recipe.dependencies, tier_logic=recipe.tier_logic,
+            inputs_used={}, operations=["Score aún no calculado para esta zona."],
+        )
+
+    # Reconstruct the same observation set the recipe saw, to call .explanation()
+    from score_engine import ScoreEngine
+    engine = ScoreEngine(db)
+    obs_by_source = await engine._fetch_obs(recipe.dependencies, zone_id)
+    operations: List[str]
+    # Only SimpleHeuristicRecipe instances have explanation(); Recipe base doesn't
+    explain_fn = getattr(recipe, "explanation", None)
+    if callable(explain_fn) and hasattr(recipe, "_real_values"):
+        values = recipe._real_values(obs_by_source)
+        try:
+            operations = explain_fn(values, doc.get("value"))
+        except Exception as e:  # noqa: BLE001
+            operations = [f"Explanation failed: {e}"]
+    else:
+        operations = [f"Recipe {code} no expone explanation() (placeholder DataPending o piloto)."]
+
+    sample_ids = []
+    for sid in recipe.dependencies:
+        sid_obs = obs_by_source.get(sid, [])
+        sample_ids.extend([f"{sid}:{i}" for i, _ in enumerate(sid_obs[:3])])
+
+    return ScoreExplainOut(
+        code=code, zone_id=zone_id,
+        value=doc.get("value"), tier=doc.get("tier"),
+        confidence=doc.get("confidence"), is_stub=doc.get("is_stub"),
+        formula_version=doc.get("formula_version", recipe.version),
+        description=recipe.description,
+        dependencies=recipe.dependencies, tier_logic=recipe.tier_logic,
+        inputs_used=doc.get("inputs_used", {}),
+        operations=operations, observation_sample_ids=sample_ids,
+    )
+
+
 # ─── Superadmin: seed historic NOAA from a prior manual upload ───────────────
 class SeedHistoricRequest(BaseModel):
     upload_id: str

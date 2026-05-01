@@ -170,6 +170,20 @@ class FGJCDMXConnector(DatosCDMXConnector):
         return self.credentials.get("resource_id") or os.environ.get("IE_FGJ_CDMX_RESOURCE_ID")
 
 
+class LocatelConnector(DatosCDMXConnector):
+    source_id = "locatel"
+
+    def _resource(self) -> Optional[str]:
+        return self.credentials.get("resource_id") or os.environ.get("IE_LOCATEL_RESOURCE_ID")
+
+
+class SACMEXConnector(DatosCDMXConnector):
+    source_id = "sacmex"
+
+    def _resource(self) -> Optional[str]:
+        return self.credentials.get("resource_id") or os.environ.get("IE_SACMEX_RESOURCE_ID")
+
+
 # ─── 4. OSM Overpass — keyless_url ───────────────────────────────────────────
 class OSMOverpassConnector(BaseConnector):
     source_id = "osm_overpass"
@@ -310,7 +324,7 @@ class INEGIConnector(BaseConnector):
 
 class AirRoiConnector(BaseConnector):
     source_id = "airroi"
-    BASE = "https://api.airroi.com/v1"
+    BASE = "https://api.airroi.com"
     # AirROI costs money per call. Cron never touches this; only explicit recompute.
 
     def _key(self) -> Optional[str]:
@@ -322,33 +336,49 @@ class AirRoiConnector(BaseConnector):
             return _fail("Falta IE_AIRROI_API_KEY.")
         try:
             async with httpx.AsyncClient(timeout=10) as http:
-                r = await http.get(f"{self.BASE}/markets",
-                                   headers={"Authorization": f"Bearer {key}"},
-                                   params={"limit": 1})
+                r = await http.get(f"{self.BASE}/markets/search",
+                                   headers={"X-API-KEY": key},
+                                   params={"query": "Polanco"})
             if r.status_code == 200:
-                return _ok("AirROI API OK.")
-            if r.status_code == 401:
-                return _fail("AirROI key rechazada (401).")
+                n = len(r.json().get("entries", []))
+                return _ok(f"AirROI OK · {n} market matches for ping.")
+            if r.status_code in (401, 403):
+                return _fail(f"AirROI key rechazada (HTTP {r.status_code}).")
             return _fail(f"AirROI HTTP {r.status_code}.")
         except httpx.HTTPError as e:
             return _fail(f"Error de red AirROI: {e}")
 
     async def fetch(self, since=None, zone_id=None) -> List[Dict[str, Any]]:
+        """
+        Zone-aware fetch: for CDMX colonies we call /markets/summary with the colonia as district.
+        If no zone_id is given, degrades to a list of searched markets (cheap ping).
+        """
         key = self._key()
         if not key:
             return self._stub_obs(n=4, note="sin key")
-        # Pull CDMX markets (cheap; detailed comp queries via recompute with allow_paid)
-        try:
-            async with httpx.AsyncClient(timeout=15) as http:
-                r = await http.get(f"{self.BASE}/markets",
-                                   headers={"Authorization": f"Bearer {key}"},
-                                   params={"country": "MX", "city": "Mexico City", "limit": 20})
-            if r.status_code != 200:
-                return self._stub_obs(n=3, error=f"http {r.status_code}")
-            items = r.json() if isinstance(r.json(), list) else r.json().get("data", [])
-            return [self._real_obs(it, zone_id=zone_id) for it in items] or self._stub_obs(n=3)
-        except httpx.HTTPError:
-            return self._stub_obs(n=3)
+        async with httpx.AsyncClient(timeout=15) as http:
+            try:
+                if zone_id:
+                    # Try summary with district=colonia pretty name (best effort)
+                    district = str(zone_id).replace("_", " ").title()
+                    body = {"market": {"country": "Mexico", "region": "Ciudad de México",
+                                        "locality": "Mexico City", "district": district},
+                            "num_months": 12, "currency": "usd"}
+                    r = await http.post(f"{self.BASE}/markets/summary",
+                                        headers={"X-API-KEY": key, "Content-Type": "application/json"},
+                                        json=body)
+                    if r.status_code == 200:
+                        return [self._real_obs(r.json(), zone_id=zone_id)]
+                    # Fall through to search when summary 4xx (market not found)
+                r = await http.get(f"{self.BASE}/markets/search",
+                                   headers={"X-API-KEY": key},
+                                   params={"query": str(zone_id or "Mexico City")})
+                if r.status_code != 200:
+                    return self._stub_obs(n=3, error=f"http {r.status_code}")
+                entries = r.json().get("entries", [])
+                return [self._real_obs(e, zone_id=zone_id) for e in entries[:10]] or self._stub_obs(n=3)
+            except httpx.HTTPError:
+                return self._stub_obs(n=3)
 
 
 # ─── Stub fallback for the other 13 sources ─────────────────────────────────
@@ -362,24 +392,6 @@ class StubConnector(BaseConnector):
 
 
 # ─── Named stub connectors (sources with no real API yet): source-specific mocks ──
-class SACMEXStub(StubConnector):
-    source_id = "sacmex"
-
-    async def fetch(self, since=None, zone_id=None):
-        zonas = ["polanco", "condesa", "roma_norte"]
-        return [dict(self._stub_obs(n=1, colonia=z, cortes_30d=2 + i, duracion_promedio_h=4 + i * 1.5)[0])
-                for i, z in enumerate(zonas)]
-
-
-class LocatelStub(StubConnector):
-    source_id = "locatel"
-
-    async def fetch(self, since=None, zone_id=None):
-        return [dict(self._stub_obs(n=1, reporte=f"R-2024-{i:05d}",
-                                    tipo="bache" if i % 2 == 0 else "iluminacion")[0])
-                for i in range(4)]
-
-
 class ConaguaSMNStub(StubConnector):
     source_id = "conagua_smn"
 
@@ -424,11 +436,11 @@ _REAL: Dict[str, type] = {
     "banxico":      BanxicoConnector,
     "inegi":        INEGIConnector,
     "airroi":       AirRoiConnector,
+    "locatel":      LocatelConnector,
+    "sacmex":       SACMEXConnector,
 }
 
 _NAMED_STUBS: Dict[str, type] = {
-    "sacmex":      SACMEXStub,
-    "locatel":     LocatelStub,
     "conagua_smn": ConaguaSMNStub,
     "gtfs_cdmx":   GTFSCDMXStub,
     "cenapred":    CENAPREDStub,

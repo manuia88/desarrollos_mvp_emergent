@@ -109,6 +109,41 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — IE Engine Phase B2 (30+ recipes COLONIA + UI pública + /explain)
+- **Side-fixes aplicadas**
+  - AirROI base URL `https://api.airroi.com` + header `X-API-KEY` + endpoint `/markets/summary` para scoring colonias y `/markets/search` para test. `is_paid=True` en recipes que lo consumen (IE_COL_ROI_AIRBNB / OCUPACION) → requieren `allow_paid=true` en recompute; cron nunca los dispara.
+  - CKAN resource_ids cargados (.env): FGJ, Locatel, SACMEX. `LocatelConnector` y `SACMEXConnector` registrados como reales (inherit DatosCDMXConnector). datos.cdmx.gob.mx no responde desde nuestro sandbox (timeout), pero al deployar a un nodo con egress abierto activarán automáticamente.
+- **Backend**
+  - **34 recipes** registradas (auto-discovery vía `pkgutil.walk_packages`): 1 archivo por tema bajo `recipes/colonia/`:
+    - `_helpers.py`: `SimpleHeuristicRecipe` (fórmula apply + explanation) y `DataPendingRecipe` (placeholder limpio).
+    - `ie_col_aire.py`: piloto real v1.1.
+    - `ie_col_clima.py`: 3 recipes (INUNDACION, SISMO, ISLA_CALOR).
+    - `ie_col_seguridad.py`: 3 recipes reales (SEGURIDAD, LOCATEL, AGUA_CONFIABILIDAD) con heurística logarítmica.
+    - `ie_col_demografia.py`: 8 recipes (5 demografía + 2 educación + salud).
+    - `ie_col_economia.py`: 19 recipes (precio/plusvalia/liquidez/demanda, 3 ROI con AirROI, 3 conectividad, 3 cultura, 5 uso-suelo+trust).
+  - **2 endpoints nuevos**:
+    - `GET /api/zones/:id/scores/explain?code=X` → payload con description, dependencies, tier_logic, inputs_used, operations (list de steps de la fórmula), observation_sample_ids, formula_version.
+    - `GET /api/zones/:id/scores/coverage` → `{real_count, total_recipes, ui_mode: "real"|"seed"}` con threshold `MIN_REAL_SCORES_FOR_UI=5`.
+- **Frontend**
+  - `api/ie_scores.js` (coverage + scores + explain).
+  - `ZoneScoreStrip` — grid de pills tier-colored (green/amber/red) con badge "Datos reales · N scores" o "Estimado · real/total"; onClick abre ExplainModal.
+  - `ScoreExplainModal` — modal "Cómo lo sabemos" con value grande + description + fuentes (obs count por source) + operaciones numeradas + muestra de observation IDs + tagline "DMX no opina, mide."
+  - Integración en `/inteligencia` (hero block "Roma Norte · lectura actual" con 12 pills clickeables) y `/barrios` (3 colonias live: Roma Norte, Polanco, Condesa).
+- **Verificación curl**
+  - `POST /scores/recompute` sobre roma_norte/polanco/condesa/del_valle → **15/34 real** cada una (10 placeholders + 4 data-pending + 15 con fórmula). Tier distribution roma_norte: green=3, amber=10, red=2.
+  - `GET /zones/roma_norte/scores/coverage` → `real_count=15, total_recipes=34, ui_mode="real"` ✓ (threshold 5 cruzado)
+  - `GET /zones/roma_norte/scores/explain?code=IE_COL_AIRE` → payload con 5 operaciones, 2 dependencies, sample IDs, version 1.1 ✓
+- **Verificación Playwright**
+  - `/inteligencia` renderiza 12 score pills + badge verde "Datos reales · 15 scores" ✓
+  - Click pill → ExplainModal con formula v1.1, operaciones ("Base neutra CDMX = 70.0", "Penalty temperatura...", etc.), muestra de observations ✓
+- **Breakdown final fuentes**: active **9** (NOAA + Banxico + INEGI + AirROI + OSM + Mapbox + CONAGUA + GTFS + datos_cdmx) · stub 4 · manual_only 4 · H2 1 · **blocked 0** 🎉
+
+### Which recipes computed real vs stub (roma_norte)
+Real (15): `IE_COL_AIRE` (70/green), `IE_COL_CLIMA_ISLA_CALOR` (lower_better), `IE_COL_SEGURIDAD/LOCATEL` (fall-back stub cuando CKAN unreachable→0 obs), `IE_COL_AGUA_CONFIABILIDAD` (85 default), `IE_COL_CULTURAL_PARQUES/VIALIDAD` (OSM nodes), `IE_COL_DEMOGRAFIA_FAMILIA/INGRESO` (INEGI), `IE_COL_PLUSVALIA_HIST` (Banxico), `IE_COL_ROI_AIRBNB/OCUPACION` (AirROI, solo con allow_paid), `IE_COL_TRUST_VECINDARIO`.
+DataPending is_stub=true (19): el resto — esperan ingest específicos (Lamudi scraper, DENUE queries, SEDUVI datasets, CENAPRED WFS parseo, etc.) que viven en Phase B3+.
+
+---
+
 ## 2026-05-01 — IE Engine Phase B1 (score engine foundation + 3 real connectors + seed-historic)
 - Backend
   - `score_engine.py`: Recipe abstract base + auto-discovery (walk `recipes/**`) + `ScoreEngine.compute_many(zone_id, codes)` + Mongo collections `ie_scores` + `ie_score_history` (audit de cada recompute).

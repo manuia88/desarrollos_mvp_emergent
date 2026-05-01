@@ -1,7 +1,9 @@
 // /inteligencia — stub educativo: "Los 97 indicadores detrás de cada precio"
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '../components/landing/Navbar';
 import CtaFooter from '../components/landing/CtaFooter';
+import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
+import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import { Sparkle, Database, BarChart, Route, Shield, Leaf, Store, ArrowRight } from '../components/icons';
 import { useAuth } from '../App';
 
@@ -19,6 +21,7 @@ const TOTAL = CATEGORIES.reduce((a, c) => a + c.n, 0); // 97
 
 export default function Inteligencia() {
   const { user, logout, openAuth } = useAuth();
+  const [explainCode, setExplainCode] = useState(null);
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -45,6 +48,32 @@ export default function Inteligencia() {
           es una lectura verificable del territorio — el mismo motor que alimenta los
           dashboards del portal del desarrollador y el argumentario del asesor.
         </p>
+
+        {/* LIVE: scores reales calculados por el IE Engine */}
+        <div style={{
+          padding: 22, marginBottom: 40,
+          background: 'linear-gradient(140deg, rgba(99,102,241,0.08), rgba(236,72,153,0.03))',
+          border: '1px solid var(--border)',
+          borderRadius: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 4 }}>LIVE · IE ENGINE</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
+                Roma Norte · lectura actual
+              </div>
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
+              Haz click en un score para ver "cómo lo sabemos" →
+            </div>
+          </div>
+          <ZoneScoreStrip
+            zoneId="roma_norte"
+            limit={12}
+            onScoreClick={s => setExplainCode(s.code)}
+            title=""
+          />
+        </div>
 
         <div style={{
           display: 'grid',
@@ -120,6 +149,13 @@ export default function Inteligencia() {
         </div>
       </main>
       <CtaFooter />
+
+      <ScoreExplainModal
+        open={!!explainCode}
+        zoneId="roma_norte"
+        code={explainCode}
+        onClose={() => setExplainCode(null)}
+      />
     </div>
   );
 }
