@@ -109,6 +109,23 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Chunk 1 · Ingestion uniforme + seed extra
+- **Parte A — Ingestion sobre 16 colonias**
+  - `scheduler_ie.py run_daily_score_recompute()` ahora incluye las **16 colonias seed** en cada corrida (usa `data_seed.COLONIAS`), no solo las 4 piloto. Obs globales (zone_id=None) se propagan a cada zona vía `$or` query del engine.
+  - Limpieza: 160 scores "legacy" con zone_id humanizado ("Roma Norte", "Polanco", "Ñuño", etc.) eliminados — eran residuo de test Latin-1.
+- **Parte B — 3 desarrollos extra para activar peer recipes**
+  - `data_developments.py` DEVELOPMENTS_RAW +3:
+    - **Polanco Moderno** (habitare-capital · en_construccion · $11.8M–$24.5M) → 2º en Polanco.
+    - **Orquídea Roma** (agora-urbana · preventa · $4.95M–$11.4M) → 2º en Roma Norte.
+    - **Terraza Condesa** (sereno · preventa · $6.2M–$13.8M) → 2º en Condesa.
+- **Verificación**
+  - `POST /scores/recompute-all` → 34 zonas (16 col + **18 dev**), **417 reales + 343 stubs**, 1.2s. (vs 31/372/352 pre-chunk)
+  - **16/16 colonias** con ≥5 real · **18/18 developments** con ≥5 real.
+  - `altavista-polanco` ahora **12/12 real** (vs 9/12 antes): PRECIO_VS_MERCADO=55.89 (green, en mercado), BADGE_TOP=50 (amber), COMPETITION_PRESSURE=20 (green, 1 peer).
+  - Playwright: `/desarrollo/polanco-moderno` renderiza 6 pills reales.
+
+---
+
 ## 2026-05-01 — IE Engine Phase B3 (12 PROYECTO recipes + cron 02:00 MX + /superadmin/scores + ficha block)
 - **Backend**
   - `score_engine.py`: nuevo atributo `Recipe.scope = "colonia" | "proyecto"`. Engine `_build_project_context(zone_id)` inyecta pseudo-sources `_dmx_dev / _dmx_colonia_scores / _dmx_same_colonia_devs / _dmx_all_devs` cuando scope=proyecto. `compute_many(zone_id, codes=[])` auto-detecta scope (dev.id → proyecto, sino → colonia), evitando mezcla.

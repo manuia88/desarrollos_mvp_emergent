@@ -164,12 +164,19 @@ async def run_daily_score_recompute(db):
         "fetched_at": {"$gte": since}, "is_stub": False,
     })
     # distinct(None) is allowed; filter them out to avoid computing for global obs
-    colonia_zones = [z for z in zones_with_new_obs if z]
+    colonia_zones = set(z for z in zones_with_new_obs if z)
 
-    # Always include the 4 active colonia zones even if no new obs today (keeps coverage fresh)
-    for z in ["roma_norte", "polanco", "condesa", "del_valle"]:
-        if z not in colonia_zones:
-            colonia_zones.append(z)
+    # Always include ALL 16 seeded colonias so coverage stays fresh across the grid,
+    # not just the 4 pilot zones. Global obs (zone_id=None) already propagate to
+    # every zone via the score engine's $or query.
+    try:
+        from data_seed import COLONIAS
+        for c in COLONIAS:
+            colonia_zones.add(c["id"].replace("-", "_"))
+    except ImportError:
+        pass
+
+    colonia_zones = sorted(colonia_zones)
 
     # All developments — cheap because recipes work on in-memory DMX data
     try:
