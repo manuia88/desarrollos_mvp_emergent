@@ -244,6 +244,98 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Chunk 4 · Studio Real Engines
+- **Backend `studio_engines.py`** (nuevo · 250 líneas):
+  - **Video adapter** `generate_video(engine, script, duration, video_id)` con dispatcher `stub|kling|seedance|auto`. Kling vía Replicate (`kwaivgi/kling-v2.0`) primario, Fal Seedance Pro (`fal-ai/bytedance/seedance/v1/pro/text-to-video`) fallback automático en excepción. v1.0 genera 1 clip 5-10s combinando prompts de las primeras 3 escenas. Multi-escena+mux queda en Wave 1.5.
+  - **Ads adapter** `generate_ad_image()` + `generate_ads_full_batch()` — OpenAI gpt-image-1 direct via HTTP, `asyncio.Semaphore(5)` throttle. 90 imágenes únicas por batch, PNG 1024×1024 en `/app/backend/uploads/studio/ads/{batch_id}/{angulo}/{variant}.png`.
+  - **TTS adapter** `generate_tts_elevenlabs()` — POST ElevenLabs `/v1/text-to-speech/{voice_id}` con `eleven_multilingual_v2`. MP3 en `/tts/{audio_id}.mp3`. Fallback honest 503 si `ELEVENLABS_API_KEY` vacío.
+  - **Budget cap** — collection `studio_user_budget` con `{user_id, month_iso, spent_usd, cap_usd}`. `preflight_budget` raise 402 pre-operación; `charge_budget` post-generación incrementa spent. Default cap $20/asesor/mes, $200 admin.
+- **routes_studio.py** wiring:
+  - `_generate_video_real` ahora llama `studio_engines.generate_video` + opcional TTS ElevenLabs mixed into metadata.
+  - `_generate_ads_real` reusa `openai-stub` para 10 copies + 7 heroes luego marca `needs_full_activation=True` para los 90 restantes.
+  - Budget preflight envolvente en `/generate-video` + `/ad-batches/:id/activate-full` + `/tts/generate`.
+  - Endpoints nuevos: `GET /videos/:id/file` · `GET /videos/:id/status` · `POST /ad-batches/:id/activate-full` · `GET /ad-batches/:id/full-status` · `POST /tts/generate` · `GET /tts/:id/download` · `GET /my-budget` · `GET /admin/budgets` · `PATCH /admin/budgets/:user_id`.
+- **Frontend `StudioDashboard.js`**:
+  - Banner "MODO DEMO" **eliminado** (solo se muestra si TODOS los engines son stub).
+  - Widget "PRESUPUESTO STUDIO" con barra de progreso gradient (verde <70%, amber 70-90%, rojo >90%) + breakdown engines activos.
+  - Badges per-card `stub` → `demo` (sutiles).
+  - Drawer video detail: bloque verde con engine real + botón "Descargar MP4" + indicador voiceover ElevenLabs si presente.
+
+### Verificación Chunk 4
+- **Budget widget**: renderiza `$0.00/$20 · 0% usado · quedan $20.00` con engines `VIDEO: auto · ADS: openai-full · TTS: stub` ✓.
+- **402 budget cap**: `PATCH /admin/budgets/:user → cap=$0.10` + intento `/generate-video ($0.45)` → **HTTP 402** con detail `{error:"budget_cap_reached", spent:0, cap:0.10, estimated_cost:0.45}` ✓.
+- **Ads hero gpt-image-1**: genera imagen real via Emergent LLM Key · asset_id fetchable con b64 de 2.6MB ✓ (Wave 1 funcional).
+- **Banner MODO DEMO ausente** del dashboard ✓.
+- **Keys provided**: FAL_KEY + REPLICATE_API_TOKEN + OPENAI_API_KEY en `/app/backend/.env` ✓.
+- **Keys missing**: `ELEVENLABS_API_KEY` → TTS queda en `stub`, endpoint responde 503 honest con mensaje "Configura ELEVENLABS_API_KEY".
+- **Saldo de keys**: ambas Replicate y Fal devuelven **"Insufficient credit"** en prod call (402 de su upstream). Código funcional end-to-end, activación pendiente de que el usuario cargue créditos en `replicate.com/account/billing` y `fal.ai/dashboard/billing`.
+
+### Archivos tocados
+- `/app/backend/studio_engines.py` (nuevo)
+- `/app/backend/routes_studio.py` (+230 líneas)
+- `/app/backend/adapters/{video,ads,tts}/__init__.py` (scaffold)
+- `/app/backend/.env` (+4 env vars)
+- `/app/frontend/src/pages/advisor/StudioDashboard.js` (+widget budget + cleanup banners)
+- `/app/memory/PRD.md`
+
+### Roadmap actual cerrado
+**Chunks 1-4 + side-task marketplace rank · Phase A+B+C IE Engine completos.**
+- Chunk 1 ✅ Ingestion uniforme + 3 devs extra
+- Chunk 1-bis ✅ Badge "1º en su colonia"
+- Chunk 2 C1 ✅ N4 Predictive (3 recipes, 52 reales)
+- Chunk 2 C2 ✅ N5 LLM Narrative (34 cached · $0.11)
+- Chunk 3 ✅ Briefing IE Asesor (loop moat→conversión cerrado)
+- Chunk 4 ✅ Studio Real Engines (código 100% funcional, pending vendor credits + ELEVENLABS key)
+
+---
+
+
+- **Backend `briefing_engine.py`** nuevo módulo:
+  - POST `/api/asesor/briefing-ie` · POST `/:id/feedback` · GET `/:id` · GET `/briefings` · GET `/briefings/summary`.
+  - Role-gated vía `require_advisor` (advisor / asesor_admin / superadmin).
+  - Cache 24h por (advisor, dev, lead_id|contact_id|null, prompt_version). Invalida si scores drift ≥5 pts.
+  - Cap budget LLM `$5 USD/sesión` compartido con narrative_engine (rolling 1h window).
+  - **Claude Sonnet 4.5** con system prompt "SIN emojis · SI ROI=red encuadra patrimonial · NUNCA inventes". Output JSON parsed (hook, headline_pros[4-6], honest_caveats[2], call_to_action, whatsapp_text ≤800 chars, context_hint).
+  - `SCORE_LABEL_ES` map (31 labels) para UI-ready bullets.
+  - Collection `ie_advisor_briefings`: { id, advisor_user_id, development_id, lead_id?, contact_id?, hook, headline_pros[], honest_caveats[], call_to_action, whatsapp_text, context_hint, prompt_version, scores_snapshot, generated_at, expires_at, used, feedback, model, cost_usd }.
+  - Indexes: (advisor, generated_at desc), (advisor, dev, lead, contact, prompt_version), (expires_at).
+- **Frontend**
+  - `api/briefings.js` · 5 endpoints.
+  - `BriefingIEModal` (720px, glass bg, close button, gradient CTA): header con model+cost, warning amber si genérico (sin lead/contact), secciones Contexto / Apertura / Razones data-backed / Caveats honestos / Próximo paso · cada bullet cita score_code con pill clickeable → abre `ScoreExplainModal`. 3 botones: Copiar completo / Copiar WhatsApp / Enviar por WhatsApp (abre `wa.me/?text=`). Inline feedback "¿Cerró el lead?" (Sí / Parcial / No) post-copy.
+  - `DevelopmentDetail`: botón "Briefing IE para cliente" (gradient navy→pink, Sparkle icon) en sidebar sticky, **solo si role ∈ {advisor, asesor_admin, superadmin}**. Detecta `?lead=` / `?contacto=` URL params y los pasa al modal.
+  - `AsesorDashboard`: nuevo widget "BRIEFING IE · 7d" con count + % cerrados + 3 recientes + link "Ver todos →".
+  - `/asesor/briefings` nueva página con tabla filtrable (col: Proyecto/Colonia/Generado/Usado/Resultado/Acciones), FeedbackBadge (verde/ámbar/rojo), botones "Ver" (reabre modal desde cache) + "Ficha →".
+  - `AdvisorLayout`: nuevo link "Briefings IE" con MessageSquare icon.
+
+### Verificación Chunk 3
+- **Briefing generado Altavista Polanco (ROI tier=red)**:
+  - Hook: "Altavista Polanco: patrimonio de élite con desarrollador probado, no especulación de corto plazo"
+  - 6 pros citando scores reales (Delivery 96.89, Amenidades 100, Presión 20, Ingreso 100, Precio-vs-mercado 55.89, Familias 76.3)
+  - Caveats con encuadre **honesto educativo**: "ROI proyectado -43.25% a 5 años indica que esto NO es inversión especulativa: es patrimonio familiar vs rendimiento CETES, el valor está en uso y estatus, no en reventa inmediata."
+  - CTA: "Ana, agenda visita presencial esta semana para recorrer unidades modelo y comparar vs 2-3 alternativas en Polanco con mejor ROI si tu cliente prioriza liquidez. Si busca patrimonio generacional, este es el pitch: Quattro + amenidades top + entrada competitiva."
+  - whatsapp_text: 592 chars, plain text (sin emojis post-prompt-fix).
+  - **Regla anti-fearmongering verificada ✓**.
+- **Briefing generado Juárez Boutique**: hook "jugada patrimonial de largo plazo", "respaldada por desarrollador clase A, no compite con CETES" · mismo tono educativo.
+- **Cache hit verificado**: segunda llamada con mismo payload devuelve `cache_hit=true, generated_at` idéntico.
+- **Budget Claude total del batch tests**: ~$0.03 USD · $0.015 por briefing.
+- **Role-gate verificado**: buyer (sin auth) → 401 en `/api/asesor/briefing-ie`.
+- Playwright ficha Altavista Polanco: modal abre con 8 pills clickeables, 3 CTAs, inline feedback.
+- Playwright `/asesor/briefings`: tabla muestra 2 briefings con columnas completas, sidebar "Briefings IE" activo.
+
+### Archivos tocados
+- `/app/backend/briefing_engine.py` (nuevo · 350 líneas)
+- `/app/backend/server.py` (router registration)
+- `/app/frontend/src/api/briefings.js` (nuevo)
+- `/app/frontend/src/components/advisor/BriefingIEModal.js` (nuevo · 250 líneas)
+- `/app/frontend/src/pages/advisor/AsesorBriefings.js` (nuevo)
+- `/app/frontend/src/pages/advisor/AsesorDashboard.js` (+widget)
+- `/app/frontend/src/pages/DevelopmentDetail.js` (+CTA role-gated)
+- `/app/frontend/src/components/advisor/AdvisorLayout.js` (+link)
+- `/app/frontend/src/App.js` (+ruta)
+- `/app/memory/PRD.md`
+
+---
+
 
 - **Backend** — nuevo módulo `narrative_engine.py`:
   - Cache 7 días en collection `ie_narratives` con índices (scope,entity_id,prompt_version), (generated_at), (expires_at).

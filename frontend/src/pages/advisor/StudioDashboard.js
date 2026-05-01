@@ -14,13 +14,20 @@ export default function StudioDashboard({ user, onLogout }) {
   const [openBatch, setOpenBatch] = useState(null);
   const [toast, setToast] = useState(null);
 
+  const [budget, setBudget] = useState(null);
+
   const load = async () => {
-    const [d, l] = await Promise.all([api.getDashboard(), api.getLibrary()]);
-    setDash(d); setLib(l);
+    const [d, l, b] = await Promise.all([
+      api.getDashboard(),
+      api.getLibrary(),
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/studio/my-budget`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+    setDash(d); setLib(l); setBudget(b);
   };
   useEffect(() => { load(); }, []);
 
-  const isStub = lib && (lib.video_engine === 'stub' || lib.ads_engine === 'openai-stub');
+  const engines = budget?.engines || {};
+  const allStub = engines.video === 'stub' && engines.ads === 'openai-stub';
 
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
@@ -40,7 +47,7 @@ export default function StudioDashboard({ user, onLogout }) {
         }
       />
 
-      {isStub && (
+      {allStub && (
         <div data-testid="stub-banner" style={{
           padding: '10px 14px', marginBottom: 18,
           background: 'linear-gradient(140deg, rgba(245,158,11,0.10), rgba(245,158,11,0.02))',
@@ -49,7 +56,41 @@ export default function StudioDashboard({ user, onLogout }) {
         }}>
           <Badge tone="warn">MODO DEMO</Badge>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
-            Engines en modo stub: Claude Sonnet 4.5 genera scripts y copies completos; gpt-image-1 produce hero images bajo demanda. Render de video real (fal.ai/Replicate) y batch completo de 100 imágenes únicas se activan post-MVP.
+            Engines en modo stub. Configura STUDIO_VIDEO_ENGINE / STUDIO_ADS_ENGINE para activar pipeline real.
+          </div>
+        </div>
+      )}
+
+      {/* Chunk 4 · Widget presupuesto Studio */}
+      {budget && (
+        <div data-testid="studio-budget-widget" style={{
+          padding: '14px 18px', marginBottom: 18,
+          background: 'linear-gradient(140deg, rgba(99,102,241,0.08), rgba(236,72,153,0.04))',
+          border: '1px solid var(--border)', borderRadius: 14,
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+        }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>PRESUPUESTO STUDIO · {budget.month}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+              <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
+                ${budget.spent_usd.toFixed(2)}
+              </span>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
+                / ${budget.cap_usd.toFixed(0)} · {budget.percent_used}% usado · quedan ${budget.remaining_usd.toFixed(2)}
+              </span>
+            </div>
+            <div style={{ height: 5, background: 'rgba(148,163,184,0.16)', borderRadius: 9999, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${Math.min(100, budget.percent_used)}%`,
+                background: budget.percent_used > 90 ? '#ef4444' : budget.percent_used > 70 ? '#f59e0b' : 'var(--grad)',
+                transition: 'width 420ms cubic-bezier(0.22,1,0.36,1)',
+              }} />
+            </div>
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'right' }}>
+            Video: <strong style={{ color: 'var(--cream-2)' }}>{engines.video}</strong><br/>
+            Ads: <strong style={{ color: 'var(--cream-2)' }}>{engines.ads}</strong><br/>
+            TTS: <strong style={{ color: 'var(--cream-2)' }}>{engines.tts}</strong>
           </div>
         </div>
       )}
@@ -83,7 +124,7 @@ export default function StudioDashboard({ user, onLogout }) {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                           <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>{relDate(v.created_at)}</span>
-                          {v.is_stub && <Badge tone="warn">stub</Badge>}
+                          {v.is_stub && <Badge tone="muted">demo</Badge>}
                         </div>
                       </div>
                     ))}
@@ -110,7 +151,7 @@ export default function StudioDashboard({ user, onLogout }) {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                           <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>{relDate(b.created_at)}</span>
-                          {b.is_stub && <Badge tone="warn">stub</Badge>}
+                          {b.is_stub && <Badge tone="muted">demo</Badge>}
                         </div>
                       </div>
                     ))}
@@ -294,11 +335,25 @@ function VideoDetail({ video }) {
         </div>
       </Card>
       {video.is_stub && (
-        <Card style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.30)' }}>
-          <div className="eyebrow" style={{ color: '#fcd34d', marginBottom: 6 }}>MODO DEMO · NO RENDERIZADO</div>
+        <Card style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.30)' }}>
+          <div className="eyebrow" style={{ color: '#c7d2fe', marginBottom: 6 }}>Engine actual: DEMO (script + storyboard)</div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
-            Script + storyboard + voz + música seleccionados. El render MP4 se activa cuando se conecte fal.ai Seedance o Replicate Kling vía adapter.
+            Script + storyboard + voz + música generados. Para activar render MP4 real (Kling 3.0 / Seedance Pro) configura STUDIO_VIDEO_ENGINE=auto en backend.
           </div>
+        </Card>
+      )}
+      {!video.is_stub && video.file_path && (
+        <Card style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.30)' }}>
+          <div className="eyebrow" style={{ color: '#86efac', marginBottom: 6 }}>Video real · {video.engine}</div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
+            Renderizado con {video.engine}{video.fallback_from_kling ? ' (fallback auto)' : ''} · {Math.round((video.size_bytes||0)/1024)}KB · costo ${(video.cost_usd||0).toFixed(4)}
+            {video.audio?.file_path && <> · voiceover ElevenLabs incluido</>}
+            {video.audio?.error && <> · voiceover pendiente (ElevenLabs key no configurada)</>}
+          </div>
+          <a href={`${process.env.REACT_APP_BACKEND_URL}/api/studio/videos/${video.id}/file`} target="_blank" rel="noreferrer"
+            style={{ display: 'inline-block', marginTop: 8, padding: '6px 14px', borderRadius: 9999, background: 'var(--grad)', color: '#fff', textDecoration: 'none', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12 }}>
+            Descargar MP4
+          </a>
         </Card>
       )}
     </div>

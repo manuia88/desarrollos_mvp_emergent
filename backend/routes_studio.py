@@ -164,14 +164,67 @@ Genera exactamente {scenes_count} scenes que cubran toda la duración {req.durat
 
 
 async def _generate_video_real(req: VideoRequest, user) -> dict:
-    """Real engine adapter — to be wired by Claude Code post-MVP via fal.ai or Replicate."""
-    raise HTTPException(503, "Real video engine not configured. Set STUDIO_VIDEO_ENGINE=fal or replicate and provide API key.")
+    """Real video pipeline — Claude script → Kling (primary) / Seedance (fallback).
+
+    v1.0: 1 clip representativo, 5-10s. Multi-escena mux viene en Wave 1.5.
+    """
+    # Paso 1: reusar _generate_video_stub para obtener el script JSON (Claude)
+    stub_out = await _generate_video_stub(req, user)
+    script = stub_out.get("script") or {}
+
+    # Paso 2: render video via adapter dispatcher
+    from studio_engines import generate_video as run_video
+    engine_choice = _video_engine()  # auto|kling|seedance
+    video_id = _uid("vid")
+    render = await run_video(engine_choice, script, req.duration, video_id)
+
+    # Paso 3: TTS opcional (ElevenLabs) si engine TTS != stub
+    audio_info = None
+    tts_engine = os.environ.get("STUDIO_TTS_ENGINE", "stub")
+    if tts_engine == "elevenlabs":
+        try:
+            from studio_engines import generate_tts_elevenlabs
+            voiceover_text = " ".join(s.get("voiceover", "") for s in (script.get("scenes") or []))[:2000]
+            if voiceover_text.strip():
+                voice = next((v for v in VOICES if v["id"] == req.voice_id), VOICES[0])
+                audio_info = await generate_tts_elevenlabs(
+                    voiceover_text, voice.get("elevenlabs_voice_id") or voice["id"],
+                    voice.get("lang", "es-MX"), audio_id=video_id,
+                )
+        except HTTPException as e:
+            audio_info = {"error": e.detail}
+        except Exception as e:
+            audio_info = {"error": str(e)[:160]}
+
+    preview_url = f"/api/studio/videos/{video_id}/file"
+    voice = next((v for v in VOICES if v["id"] == req.voice_id), VOICES[0])
+    music = MUSIC_TRACKS.get(req.music_mood, MUSIC_TRACKS["lujo"])[0]
+    return {
+        "engine": render.get("engine"),
+        "is_stub": False,
+        "script": script,
+        "voice": voice,
+        "music": music,
+        "preview_url": preview_url,
+        "file_path": render.get("file_path"),
+        "size_bytes": render.get("size_bytes"),
+        "duration_s": req.duration,
+        "video_type": req.video_type,
+        "prompt_used": render.get("prompt_used"),
+        "fallback_from_kling": render.get("fallback_from_kling"),
+        "cost_usd": render.get("cost_usd", 0.0),
+        "audio": audio_info,
+        "video_id": video_id,
+    }
 
 
 VIDEO_ENGINE = {
     "stub": _generate_video_stub,
     "fal": _generate_video_real,
     "replicate": _generate_video_real,
+    "kling": _generate_video_real,
+    "seedance": _generate_video_real,
+    "auto": _generate_video_real,
 }
 
 
@@ -282,7 +335,12 @@ Cada headline máximo 60 caracteres. Cada body máximo 110 caracteres. Cada cta 
 
 
 async def _generate_ads_real(req: AdsRequest, user) -> dict:
-    raise HTTPException(503, "Full ads engine (100 unique images) not configured. Set STUDIO_ADS_ENGINE=openai-full.")
+    """openai-full: llama a stub para 10 copies + 7 heros, luego no-op (los 90 vienen via activate-full async)."""
+    stub_out = await _generate_ads_openai_stub(req, user)
+    stub_out["engine"] = "openai-full"
+    stub_out["is_stub"] = False
+    stub_out["needs_full_activation"] = True
+    return stub_out
 
 
 ADS_ENGINE = {
@@ -332,10 +390,25 @@ async def generate_video(payload: VideoRequest, request: Request):
     user = await require_studio(request)
     db = get_db(request)
     engine = _video_engine()
+    # Budget preflight (only for real engine)
+    if engine != "stub":
+        from studio_engines import preflight_budget, charge_budget, estimate_video_cost
+        tts_enabled = os.environ.get("STUDIO_TTS_ENGINE", "stub") == "elevenlabs"
+        est = estimate_video_cost(payload.duration, tts_enabled, len(payload.source_data))
+        await preflight_budget(db, user.user_id, est, is_admin=(user.role in ("asesor_admin","superadmin")))
+
     fn = VIDEO_ENGINE.get(engine, _generate_video_stub)
     out = await fn(payload, user)
+
+    # Post-charge budget
+    if engine != "stub" and not out.get("is_stub"):
+        from studio_engines import charge_budget
+        actual = out.get("cost_usd", 0) + (out.get("audio", {}) or {}).get("cost_usd", 0)
+        if actual > 0:
+            await charge_budget(db, user.user_id, actual)
+
     doc = {
-        "id": _uid("vid"),
+        "id": out.get("video_id") or _uid("vid"),
         "owner_id": user.user_id,
         "created_at": _now().isoformat(),
         "request": payload.model_dump(),
@@ -439,3 +512,203 @@ async def get_asset(asset_id: str, request: Request):
     a = await db.studio_assets.find_one({"asset_id": asset_id, "owner_id": user.user_id}, {"_id": 0})
     if not a: raise HTTPException(404, "Asset no encontrado")
     return {"asset_id": asset_id, "image_b64": a["image_b64"], "angulo": a.get("angulo")}
+
+
+# ─── Chunk 4: File streaming + async batch activation + TTS + budget ─────────
+from fastapi.responses import FileResponse
+from pathlib import Path as _Path
+
+
+@router.get("/videos/{vid}/file")
+async def stream_video_file(vid: str, request: Request):
+    user = await require_studio(request)
+    db = get_db(request)
+    v = await db.studio_videos.find_one({"id": vid, "owner_id": user.user_id}, {"_id": 0, "file_path": 1})
+    if not v or not v.get("file_path"):
+        raise HTTPException(404, "Video no disponible")
+    path = _Path(v["file_path"])
+    if not path.exists():
+        raise HTTPException(410, "Archivo eliminado del storage")
+    return FileResponse(str(path), media_type="video/mp4", filename=f"{vid}.mp4")
+
+
+@router.get("/videos/{vid}/status")
+async def video_status(vid: str, request: Request):
+    user = await require_studio(request)
+    db = get_db(request)
+    v = await db.studio_videos.find_one({"id": vid, "owner_id": user.user_id}, {"_id": 0})
+    if not v:
+        raise HTTPException(404, "No encontrado")
+    stage = "done" if v.get("file_path") else ("error" if v.get("error") else "queued")
+    return {"id": vid, "stage": stage, "progress_pct": 100 if stage == "done" else 0,
+            "size_bytes": v.get("size_bytes"), "engine": v.get("engine"),
+            "fallback_from_kling": v.get("fallback_from_kling"),
+            "cost_usd": v.get("cost_usd"), "audio": v.get("audio")}
+
+
+@router.post("/ad-batches/{bid}/activate-full")
+async def activate_full_batch(bid: str, request: Request):
+    """Generate 90 additional ads (non-hero) via OpenAI gpt-image-1, async."""
+    import uuid as _uuid
+    user = await require_studio(request)
+    db = get_db(request)
+    batch = await db.studio_ad_batches.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0})
+    if not batch:
+        raise HTTPException(404, "Batch no existe")
+    if batch.get("full_activation_task_id"):
+        return {"task_id": batch["full_activation_task_id"], "status": "already_running_or_done"}
+
+    from studio_engines import preflight_budget, charge_budget, estimate_ads_full_cost, generate_ads_full_batch
+    est = estimate_ads_full_cost(90)
+    await preflight_budget(db, user.user_id, est, is_admin=(user.role in ("asesor_admin","superadmin")))
+
+    task_id = f"adbfull_{_uuid.uuid4().hex[:12]}"
+    await db.studio_ad_tasks.insert_one({
+        "task_id": task_id, "batch_id": bid, "owner_id": user.user_id,
+        "status": "running", "generated": 0, "errors": [],
+        "started_at": _now(), "cost_usd": 0.0,
+    })
+    await db.studio_ad_batches.update_one({"id": bid}, {"$set": {"full_activation_task_id": task_id}})
+
+    async def _runner():
+        copies = batch.get("ads", [])
+        locked = [a for a in copies if a.get("locked")]
+        # Rebuild copy payloads for generation
+        copies_to_gen = [{"headline": batch["source_label"], "angle": a.get("angulo"), "variant": a.get("variant")}
+                         for a in locked[:90]]
+        results = await generate_ads_full_batch(copies_to_gen, batch.get("visual_profile", "joven"),
+                                                 bid, start_variant=10)
+        ok = [r for r in results if "error" not in r]
+        cost = sum(r.get("cost_usd", 0) for r in ok)
+        await charge_budget(db, user.user_id, cost)
+        await db.studio_ad_tasks.update_one({"task_id": task_id}, {"$set": {
+            "status": "done" if len(ok) == len(results) else "done_with_errors",
+            "generated": len(ok), "errors": [r.get("error") for r in results if "error" in r][:10],
+            "cost_usd": cost, "finished_at": _now(),
+        }})
+        # Update each locked ad with image_path
+        for ad, res in zip(locked[:90], results):
+            if "image_path" in res:
+                await db.studio_ad_batches.update_one(
+                    {"id": bid, "ads.id": ad.get("id")},
+                    {"$set": {"ads.$.image_path": res["image_path"], "ads.$.locked": False}},
+                )
+        await db.studio_ad_batches.update_one({"id": bid},
+            {"$inc": {"ads_unlocked": len(ok), "ads_locked": -len(ok)}})
+
+    asyncio.create_task(_runner())
+    return {"task_id": task_id, "status": "running", "estimated_cost": est, "total_items": 90}
+
+
+@router.get("/ad-batches/{bid}/full-status")
+async def ad_batch_full_status(bid: str, request: Request):
+    user = await require_studio(request)
+    db = get_db(request)
+    batch = await db.studio_ad_batches.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0, "ads": 0})
+    if not batch:
+        raise HTTPException(404, "Batch no existe")
+    task_id = batch.get("full_activation_task_id")
+    if not task_id:
+        return {"status": "idle", "generated": 0, "total": 90}
+    task = await db.studio_ad_tasks.find_one({"task_id": task_id}, {"_id": 0})
+    return task or {"status": "unknown"}
+
+
+# ─── TTS endpoints ──────────────────────────────────────────────────────────
+class TTSRequest(BaseModel):
+    script_text: str
+    voice_id: str
+    language: str = "es-MX"
+
+
+@router.post("/tts/generate")
+async def generate_tts(payload: TTSRequest, request: Request):
+    user = await require_studio(request)
+    db = get_db(request)
+    engine = os.environ.get("STUDIO_TTS_ENGINE", "stub")
+    if engine != "elevenlabs":
+        raise HTTPException(503, detail={
+            "error": "tts_engine_stub",
+            "message": "TTS engine en modo stub. Configura ELEVENLABS_API_KEY + STUDIO_TTS_ENGINE=elevenlabs.",
+        })
+
+    from studio_engines import generate_tts_elevenlabs, preflight_budget, charge_budget, estimate_tts_cost
+    est = estimate_tts_cost(len(payload.script_text))
+    await preflight_budget(db, user.user_id, est, is_admin=(user.role in ("asesor_admin","superadmin")))
+
+    voice = next((v for v in VOICES if v["id"] == payload.voice_id), None)
+    vid = voice.get("elevenlabs_voice_id") or payload.voice_id if voice else payload.voice_id
+    out = await generate_tts_elevenlabs(payload.script_text, vid, payload.language)
+    await charge_budget(db, user.user_id, out.get("cost_usd", 0))
+    await db.studio_tts.insert_one({**out, "owner_id": user.user_id, "created_at": _now(),
+                                     "script_text": payload.script_text[:300]})
+    return out
+
+
+@router.get("/tts/{aid}/download")
+async def download_tts(aid: str, request: Request):
+    user = await require_studio(request)
+    db = get_db(request)
+    t = await db.studio_tts.find_one({"audio_id": aid, "owner_id": user.user_id}, {"_id": 0})
+    if not t or not t.get("file_path"):
+        raise HTTPException(404, "Audio no existe")
+    p = _Path(t["file_path"])
+    if not p.exists():
+        raise HTTPException(410, "Archivo eliminado")
+    return FileResponse(str(p), media_type="audio/mpeg", filename=f"{aid}.mp3")
+
+
+# ─── Budget endpoints ───────────────────────────────────────────────────────
+@router.get("/my-budget")
+async def my_budget(request: Request):
+    user = await require_studio(request)
+    db = get_db(request)
+    from studio_engines import get_or_create_budget
+    b = await get_or_create_budget(db, user.user_id,
+                                    is_admin=(user.role in ("asesor_admin","superadmin")))
+    spent = b.get("spent_usd", 0.0)
+    cap = b.get("cap_usd", 0.0)
+    return {
+        "month": b["month_iso"], "spent_usd": round(spent, 4), "cap_usd": cap,
+        "remaining_usd": round(cap - spent, 4),
+        "percent_used": round(spent / cap * 100, 1) if cap else 0,
+        "engines": {
+            "video": _video_engine(),
+            "ads": _ads_engine(),
+            "tts": os.environ.get("STUDIO_TTS_ENGINE", "stub"),
+        },
+    }
+
+
+from pydantic import BaseModel as _BM
+class BudgetPatch(_BM):
+    cap_usd: float
+
+
+@router.get("/admin/budgets")
+async def list_all_budgets(request: Request):
+    user = await require_studio(request)
+    if user.role not in ("asesor_admin", "superadmin"):
+        raise HTTPException(403, "Solo admin")
+    db = get_db(request)
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    docs = await db.studio_user_budget.find({"month_iso": month}, {"_id": 0}).to_list(500)
+    return {"month": month, "budgets": docs}
+
+
+@router.patch("/admin/budgets/{user_id}")
+async def update_budget_cap(user_id: str, payload: BudgetPatch, request: Request):
+    user = await require_studio(request)
+    if user.role not in ("asesor_admin", "superadmin"):
+        raise HTTPException(403, "Solo admin")
+    if payload.cap_usd < 0:
+        raise HTTPException(400, "cap_usd debe ser ≥ 0")
+    db = get_db(request)
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    await db.studio_user_budget.update_one(
+        {"user_id": user_id, "month_iso": month},
+        {"$set": {"cap_usd": payload.cap_usd, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return {"ok": True, "user_id": user_id, "cap_usd": payload.cap_usd}
+
