@@ -666,6 +666,18 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
     # Closure: grant XP + increment cierres
     if payload.status == "cerrada":
         await db.asesor_profiles.update_one({"user_id": user.user_id}, {"$inc": {"xp": 250, "cierres_total": 1}}, upsert=True)
+    # Phase F0.11 — ML training event on status transition
+    try:
+        from observability import emit_ml_event
+        await emit_ml_event(
+            db, event_type="operacion_status_change",
+            user_id=user.user_id, org_id=getattr(user, "tenant_id", None), role=user.role,
+            context={"operacion_id": oid, "contacto_id": op.get("contacto_id"), "dev_id": op.get("dev_id"),
+                     "precio": op.get("precio"), "from_status": cur},
+            ai_decision={},
+            user_action={"to_status": payload.status, "reason": payload.reason or None},
+        )
+    except Exception: pass
     return {"ok": True, "status": payload.status}
 
 
@@ -957,6 +969,18 @@ async def generate_argumentario_rag(payload: ArgumentarioRagIn, request: Request
     out = {k: v for k, v in result.items() if k != "_id"}
     out["generated_at"] = out["generated_at"].isoformat()
     out["expires_at"] = out["expires_at"].isoformat()
+    # Phase F0.11 — ML training seed for RAG quality
+    try:
+        from observability import emit_ml_event
+        await emit_ml_event(
+            db, event_type="argumentario_rag_generated",
+            user_id=user.user_id, org_id=getattr(user, "tenant_id", None), role=user.role,
+            context={"contact_id": payload.contact_id, "development_id": payload.development_id,
+                     "rag_chunks_count": len(chunks), "cost_usd": result["cost_usd"]},
+            ai_decision={"hook": result["hook"][:120], "citations_count": len(citations)},
+            user_action={},
+        )
+    except Exception: pass
     return {**out, "cache_hit": False}
 
 

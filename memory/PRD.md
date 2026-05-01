@@ -373,6 +373,94 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Phase F0.11 · Sentry + PostHog + ML events (observability)
+**Objetivo:** wiring completo de observability + seed infra para Phase 17 (ML continuous training).
+
+### Backend (`observability.py` · 260 líneas · nuevo)
+- **Sentry SDK** init antes de FastAPI app (auto-instrumentación): `traces_sample_rate=0.1`, `profiles_sample_rate=0.1`, replay on-error 1.0, integraciones FastApi + Starlette + Logging. Release + environment taggeados. `send_default_pii=false`.
+- **`sentry_tag_user(user_dict)`** inyectado en `get_current_user` (server.py) → cada request lleva tags `role`, `tenant_id`, `org_id` y user.id/email en el scope Sentry → issues filtrables por tenant.
+- **PostHog** init con `sync_mode=False` + host `us.i.posthog.com`. Helpers `capture_event()` + `identify_user()`.
+- **`emit_ml_event(db, event_type, user_id, org_id, role, context, ai_decision, user_action)`** — unified emitter que persiste en Mongo `ml_training_events` + mirror a PostHog con prefijo `dmx_ml_*` para filtrado.
+- **Schema bare-bones `ml_training_events`**: `{id, event_type, user_id, org_id, role, context:{}, ai_decision:{}, user_action:{}, ts}` con indexes en `event_type`, `user_id`, `org_id`, `ts desc`.
+- **Graceful no-op** cuando keys vacías: `_sentry_initialized=False`, `_posthog_client=None` → todos los helpers devuelven silenciosamente sin romper app.
+
+### Endpoints
+- `POST /api/ml/emit` — cualquier user autenticado; stamp automático de user_id/org_id/role.
+- `POST /api/_internal/test-sentry` — solo superadmin; lanza `RuntimeError` con timestamp + user_id para validar pipeline Sentry end-to-end.
+- `GET /api/_internal/observability/status` — counts para UI cards + flags enabled/disabled + links dashboards.
+
+### ML event triggers wired (alimentan Phase 17)
+- `routes_advisor.update_op_status` → `operacion_status_change` con from/to status + precio + contacto_id + dev_id.
+- `routes_advisor.generate_argumentario_rag` → `argumentario_rag_generated` con rag_chunks_count + cost_usd + hook preview.
+- (Futuro — escala C11: Caya hand_off, briefing IE feedback, compliance badge upgrade, etc.)
+
+### Frontend (`observability.js` · 110 líneas · `SuperadminObservabilityPage.js` · 180 líneas)
+- **`initObservability()`** en `index.js` bootstrap (antes de ReactDOM.render):
+  - Sentry React: `browserTracingIntegration` + `replayIntegration` · sample 0.1 · replay-on-error 1.0.
+  - PostHog JS: `autocapture: true` · `capture_pageview/pageleave` · `person_profiles: identified_only`.
+- **`identifyUser(u)`** invocado post-login (modal `onSuccess` + `checkAuth` en refresh) → Sentry setUser + setTags role/tenant_id/org_id + PostHog identify con properties role/org_id/email/name.
+- **`resetUser()`** en logout → Sentry.setUser(null) + posthog.reset().
+- **`emitMlEvent({event_type, context, ai_decision, user_action})`** helper compartido que mirror a PostHog client-side + POST `/api/ml/emit` (doble mirror por defensa).
+- **`/superadmin/observability`** (nueva página + nav link con AlertTriangle icon):
+  - 3 cards: Sentry status (Conectado/Stub) · PostHog status · ML events 24h count con breakdown top-4 por `event_type`.
+  - 3 botones acción: Actualizar · Forzar error (Sentry) · Emitir ml_event test.
+  - Banner footer con env + sample rates + autocapture flag.
+
+### Verificación end-to-end
+- ✅ Sentry **enabled** via `/api/_internal/observability/status` return `{enabled:true}`.
+- ✅ PostHog **enabled** con host `https://us.i.posthog.com`.
+- ✅ `POST /api/_internal/test-sentry` retorna HTTP 500 con stacktrace visible en backend.err.log (sentry_sdk.integrations.fastapi wrapea el handler → el SDK intercepta + envía a dashboard Sentry).
+- ✅ `POST /api/ml/emit` persiste en Mongo (`ml_events 24h: 2 types: {observability_smoke: 1, test_smoke: 1}` tras 2 llamadas).
+- ✅ PostHog recibe mirror `dmx_ml_*` events server-side + client-side.
+- ✅ Lint clean (frontend + backend).
+- ✅ Backend startup limpio con Sentry + PostHog inicializados.
+
+### Keys en .env
+Backend `/app/backend/.env`:
+```
+SENTRY_DSN=https://1036522abd...@o45112...ingest.us.sentry.io/45112...
+SENTRY_TOKEN=sntryu_ff9e2952...
+POSTHOG_KEY=phc_QuzLBkPBL4fzm...
+POSTHOG_HOST=https://us.i.posthog.com
+```
+Frontend `/app/frontend/.env`:
+```
+REACT_APP_SENTRY_DSN=https://1036522abd...@o45112...ingest.us.sentry.io/45112...
+REACT_APP_POSTHOG_KEY=phc_QuzLBkPBL4fzm...
+REACT_APP_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+### Archivos tocados
+- `/app/backend/observability.py` (nuevo · 260 líneas)
+- `/app/backend/server.py` (init_sentry + init_posthog antes de FastAPI + sentry_tag_user en get_current_user + identify_user post-login + router mount + ensure_ml_indexes startup)
+- `/app/backend/routes_advisor.py` (+ emit_ml_event en update_op_status + argumentario-rag)
+- `/app/backend/.env` (+SENTRY_DSN + SENTRY_TOKEN + POSTHOG_KEY + POSTHOG_HOST)
+- `/app/backend/requirements.txt` (sentry-sdk[fastapi] 2.20 + posthog 3.7 via pip)
+- `/app/frontend/src/observability.js` (nuevo · 110 líneas)
+- `/app/frontend/src/index.js` (initObservability bootstrap)
+- `/app/frontend/src/App.js` (identifyUser post-login + resetUser en logout + checkAuth)
+- `/app/frontend/src/pages/superadmin/SuperadminObservabilityPage.js` (nuevo · 180 líneas)
+- `/app/frontend/src/components/superadmin/SuperadminLayout.js` (+nav Observability)
+- `/app/frontend/src/App.js` (+route /superadmin/observability)
+- `/app/frontend/.env` (+REACT_APP_SENTRY_DSN + REACT_APP_POSTHOG_KEY + REACT_APP_POSTHOG_HOST)
+- `/app/frontend/package.json` (@sentry/react 8.49 + posthog-js 1.205 via yarn)
+- `/app/memory/PRD.md`
+
+### Phase 17 seeds activos
+`ml_training_events` ya recibe events reales. Cuando se implemente training continuo, el corpus estará ahí con schema consistente (context/ai_decision/user_action) desde hoy.
+
+### Source maps upload (bonus · pendiente)
+Sentry CLI hook para subir source maps en cada deploy frontend. Script listo para agregar a `package.json`:
+```
+"scripts": {
+  "sentry:release": "sentry-cli releases new -p dmx-frontend $DMX_RELEASE && sentry-cli releases files $DMX_RELEASE upload-sourcemaps build/static/js --url-prefix '~/static/js' && sentry-cli releases finalize $DMX_RELEASE"
+}
+```
+Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/project slugs. Lo dejamos documentado hasta integración CI.
+
+---
+
+
 ## 2026-05-01 — Phase 7.9 (complement) + 7.11 upgrade · Status histórico + Drive Webhooks
 Cierre de Phase 7 al 100% con 2 mejoras complementarias.
 
