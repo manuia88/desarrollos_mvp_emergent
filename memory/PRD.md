@@ -461,7 +461,87 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 ---
 
 
-## 2026-05-01 — Phase F0.1 · Audit Log Global Mutations
+## 2026-05-01 — Phase 4 Batch 1 · Dev Portal Foundation + Upload Ready
+**Objetivo:** Fundaciones del portal del desarrollador para datos reales. Founder puede subir proyectos reales después de este batch.
+
+### Backend (`routes_dev_batch1.py` · nuevo · ~1000 líneas)
+
+**4.1 Bulk Upload Excel/CSV:**
+- `POST /api/dev/bulk-upload/parse` — pandas parse CSV/xlsx, validación por fila, preview 100 filas, retorna `{total_rows, valid_rows, error_rows, detected_columns, preview}`
+- `POST /api/dev/bulk-upload/commit` — upsert validados a `developer_unit_overrides`, crea `bulk_upload_jobs` entry, audit_log + ML event
+- `GET /api/dev/bulk-upload/jobs` — historial de uploads
+
+**4.5 Geolocalización:**
+- `PATCH /api/dev/projects/:id/location` — guarda lat/lng/zoom en `dev_project_meta`
+- `GET /api/dev/projects` — lista proyectos con metadata de ubicación
+
+**4.7 Unit Holds (Apartado temporal):**
+- `POST /api/dev/units/:id/hold` — crea hold (1/24/48/72h), auto-marca unidad como "apartado"
+- `DELETE /api/dev/units/:id/hold` — libera hold, restaura "disponible"
+- `GET /api/dev/units/:id/hold` — estado actual + `remaining_seconds`
+- `GET /api/dev/holds` — lista holds activos por org
+- `auto_release_expired_holds` — cron job APScheduler cada 30min
+
+**4.9 + Phase 14 Dev Slice (Internal Users):**
+- `GET/POST /api/dev/internal-users` — lista/invita usuarios del equipo
+- `PATCH /api/dev/internal-users/:id` — actualiza rol/estado
+- `DELETE /api/dev/internal-users/:id` — deshabilita
+- `PATCH /api/dev/org/settings` — toggle `allow_external_inventory` + otros settings
+- Roles: `admin|commercial_director|comercial|obras|marketing`
+- Invitación genera `activation_token` + envío email via Resend (stub si no hay RESEND_API_KEY)
+
+**4.10 ERP Webhook Stubs:**
+- `GET/POST /api/dev/erp-webhooks` — config providers (EasyBroker, Salesforce, HubSpot, Pipedrive, GHL)
+- `POST /api/dev/erp-webhooks/:provider/event` — receiver stub honesto (log en `erp_webhook_events`, 200 siempre)
+- `GET /api/dev/erp-webhooks/:provider/events` — últimos eventos
+- API keys encriptadas con Fernet
+
+**4.15 Content Calendar:**
+- `POST /api/dev/content/upload` — submit pending
+- `GET /api/dev/content` — lista filtrable por status/type/project
+- `POST /api/dev/content/:id/approve|reject` — director action
+- `POST /api/dev/content/:id/publish` — published (solo approved)
+
+### Frontend (nuevas páginas + componentes)
+- **`BulkUploadModal.js`** — drag&drop zone + parse preview table (error highlighting rojo) + commit con override mode selector
+- **`MapboxPicker.js`** — click-to-set marker draggable + save lat/lng + token-missing fallback
+- **`DesarrolladorInventario.js`** (actualizado) — Bulk Upload button + Hold buttons per unit + CountdownBadge timer + release hold
+- **`DesarrolladorUsuarios.js`** — tabla team + invite modal + edit role/status + disable
+- **`DesarrolladorConfiguracion.js`** — org settings toggles + ERP integrations grid + test ping + ver eventos
+- **`DesarrolladorCalendarioSubidas.js`** — kanban 4 cols (pending/approved/published/rejected) + upload modal + MapboxPicker integrado
+- **`DeveloperLayout.js`** actualizado con nav items: Equipo, Contenido, Configuración
+
+### Verificación curl (todos exitosos):
+- ✅ Bulk parse CSV: 5 filas, 4 válidas, 1 error detectado correctamente
+- ✅ Bulk commit: 2 unidades committed, job_id generado, audit_log entry
+- ✅ Unit hold: hold creado, expires_at calculado, unit marcada "apartado"
+- ✅ Internal user: invitado con activation_token y invite_url
+- ✅ ERP webhook config: easybroker configurado con receiver URL
+- ✅ ERP stub receiver: POST recibido, event_id generado, stub:true
+- ✅ Content upload → approve: status "approved" correcto
+- ✅ Audit log: 9+ entries creados de batch1 + audit_log scope func
+- ✅ MongoDB: 11 índices en 5 colecciones nuevas
+- ✅ openpyxl 3.1.5 instalado + requirements.txt actualizado
+- ✅ Frontend: webpack compiled sin errores (1 warning webpack no crítico)
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch1.py` (nuevo · ~1000 líneas)
+- `/app/backend/server.py` (+dev_batch1_router + ensure_dev_batch1_indexes)
+- `/app/backend/scheduler_ie.py` (+unit_holds_release cron cada 30min)
+- `/app/backend/requirements.txt` (+openpyxl 3.1.5)
+- `/app/frontend/src/api/developer.js` (+30 API helpers batch1)
+- `/app/frontend/src/components/developer/BulkUploadModal.js` (nuevo)
+- `/app/frontend/src/components/developer/MapboxPicker.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorInventario.js` (actualizado: bulk upload + holds)
+- `/app/frontend/src/pages/developer/DesarrolladorUsuarios.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorConfiguracion.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorCalendarioSubidas.js` (nuevo)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+Equipo + Contenido + Configuración nav)
+- `/app/frontend/src/components/icons/index.js` (+Users + Settings + Plus)
+- `/app/frontend/src/App.js` (+3 rutas developer)
+- `/app/memory/PRD.md`
+
+---
 **Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
 
 ### Backend (`audit_log.py` · nuevo · ~220 líneas)

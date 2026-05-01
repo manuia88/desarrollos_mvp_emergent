@@ -257,8 +257,15 @@ def start_scheduler(db):
         args=[db], id="drive_webhook_renew", replace_existing=True,
         misfire_grace_time=3600,
     )
+    # Phase 4 Batch 1 — Unit holds auto-release (every 30min)
+    from routes_dev_batch1 import auto_release_expired_holds
+    _scheduler.add_job(
+        auto_release_expired_holds, CronTrigger(minute="*/30", timezone=TZ),
+        args=[db], id="unit_holds_release", replace_existing=True,
+        misfire_grace_time=300,
+    )
     _scheduler.start()
-    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew"])
+    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew", "unit_holds_release"])
     return _scheduler
 
 

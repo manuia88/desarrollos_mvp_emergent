@@ -120,6 +120,10 @@ app.include_router(obs_router)
 from audit_log import router as audit_router, ensure_audit_log_indexes
 app.include_router(audit_router)
 
+# Phase 4 Batch 1 — Dev Portal Foundation
+from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
+app.include_router(dev_batch1_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -319,6 +323,8 @@ async def startup():
     await ensure_ml_indexes_fn(db)
     # Phase F0.1 — Audit log indexes
     await ensure_audit_log_indexes(db)
+    # Phase 4 Batch 1 — Dev Portal indexes
+    await ensure_dev_batch1_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

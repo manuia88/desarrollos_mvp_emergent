@@ -48,6 +48,9 @@ import DesarrolladorDemanda from './pages/developer/DesarrolladorDemanda';
 import DesarrolladorReportes from './pages/developer/DesarrolladorReportes';
 import DesarrolladorLegajo from './pages/developer/DesarrolladorLegajo';
 import DesarrolladorPricing from './pages/developer/DesarrolladorPricing';
+import DesarrolladorUsuarios from './pages/developer/DesarrolladorUsuarios';
+import DesarrolladorConfiguracion from './pages/developer/DesarrolladorConfiguracion';
+import DesarrolladorCalendarioSubidas from './pages/developer/DesarrolladorCalendarioSubidas';
 import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
 
 // Superadmin (IE Engine Phase A)
@@ -256,6 +259,9 @@ function AppRouter() {
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
       <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
+      <Route path="/desarrollador/usuarios" element={<AdvisorRoute Page={DesarrolladorUsuarios} />} />
+      <Route path="/desarrollador/configuracion" element={<AdvisorRoute Page={DesarrolladorConfiguracion} />} />
+      <Route path="/desarrollador/calendario-subidas" element={<AdvisorRoute Page={DesarrolladorCalendarioSubidas} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />
