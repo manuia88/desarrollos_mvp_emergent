@@ -85,6 +85,14 @@ from fastapi.staticfiles import StaticFiles
 from dev_assets import ASSET_UPLOAD_DIR
 app.mount("/api/assets-static", StaticFiles(directory=str(ASSET_UPLOAD_DIR)), name="assets-static")
 
+# Phase D1 — RAG semantic search routers
+from rag_engine import (
+    public_router as rag_public_router,
+    admin_router as rag_admin_router,
+)
+app.include_router(rag_public_router)
+app.include_router(rag_admin_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -254,6 +262,14 @@ async def startup():
     # Phase 7.6 — Asset pipeline indexes
     from dev_assets import ensure_asset_indexes
     await ensure_asset_indexes(db)
+    # Phase D1 — RAG indexes + corpus cache preload
+    from rag_engine import ensure_rag_indexes, load_corpus_cache
+    await ensure_rag_indexes(db)
+    try:
+        await load_corpus_cache(db)
+    except Exception as e:
+        import logging
+        logging.warning(f"rag corpus preload failed: {e}")
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

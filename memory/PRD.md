@@ -373,6 +373,50 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Phase D1 · Vector embeddings + Semantic Search (RAG base)
+**Objetivo:** capa RAG sobre todo el corpus DMX (devs, colonias, OCR, extractions, narrativas, scores) para búsqueda semántica pública. Base para D2 (argumentario/briefing IE con citations data-backed).
+
+### Backend (`rag_engine.py` · 350 líneas)
+- **OpenAI** `text-embedding-3-small` (1536 dim) vía `openai` SDK direct (Emergent proxy no expone embeddings). Key real ahora válida en `OPENAI_API_KEY`. Costo ≈ $0.02/1M tokens — primer reindex: **5800 tokens · $0.000116**.
+- **4 builders** de chunks con texto plano legible para embedding:
+  - `_build_dev_chunks` → 1 chunk/desarrollo (name + addr + colonia + amenities + description + scores compactos + narrativa AI). 18 chunks.
+  - `_build_colonia_chunks` → 1 chunk/colonia con scores + narrativa. 16 chunks.
+  - `_build_doc_chunks` → 1 chunk/DI document (OCR descifrado, max 4K chars). Excluye `predial`/`constancia_fiscal` (privados). 12 chunks.
+  - `_build_extraction_chunks` → 1 chunk/extracción estructurada (flatten K-V). Excluye privados. 14 chunks.
+- **Diff-based reindex**: hash sha256-24 del texto. Sólo re-embed si el hash cambia. Idempotente: 2da corrida skip=60, cost=0.
+- **Cosine search in-memory** sobre cache de corpus (Mongo Community no soporta `$vectorSearch`). Latencia <100ms. `embed_one(query)` → cosine vs todo el corpus en RAM → top-K.
+- **Filtros**: `scope=development|colonia`, `entity_id=...`, `source_types=development_card,extraction,...` (CSV).
+- **Cero invención**: cada hit retorna `chunk_id`, `source_type`, `entity_id`, `score`, `snippet` (300 chars), `metadata` (incluye `doc_id`/`extraction_id` cuando aplica → traza auditable).
+- **Anti-overshare**: predial + constancia_fiscal NUNCA se indexan (consistente con la regla del marketplace público).
+
+### Endpoints
+- **`GET /api/search/semantic?q=&top_k=&scope=&entity_id=&source_types=`** — público.
+- **`POST /api/superadmin/rag/reindex`** — recompute diff + cleanup stale + refresh cache. Solo superadmin.
+- **`GET /api/superadmin/rag/stats`** — totales + breakdown by source_type + dim + corpus_cache_size.
+- Indexes Mongo en startup + corpus preload automático al boot.
+
+### Verificación
+- Reindex inicial: **60 chunks · 5800 tokens · $0.000116** ✓.
+- Reindex idempotente: 60 skip · $0 ✓.
+- **Q1** "departamento de lujo en Polanco con amenidades" → top-2 hits son `altavista-polanco` y `polanco-moderno` (score 0.642), Anzures Classic y Roma Norte después (0.55). **Semántica correcta** ✓.
+- **Q2** "cocina equipada" → top hits son `plano_arquitectonico::extract` y `plano_arquitectonico::jb_plano.pdf` de juarez-boutique (score 0.36) — RAG une lexical + semántico bien ✓.
+- **Q3** scope=colonia + "mejor calidad de aire" → 16 colonias filtradas, top Santa Fe + Lomas Chapultepec (correcto: peri-urbanas) ✓.
+- **Auth gate**: anon→403, developer_admin→403 en reindex/stats; búsqueda pública→200 ✓.
+- **Privacy**: 12 di_documents indexados (excluye 4 privados predial/constancia_fiscal) ✓.
+
+### Archivos tocados
+- `/app/backend/rag_engine.py` (nuevo · 350 líneas)
+- `/app/backend/server.py` (router + ensure_rag_indexes + load_corpus_cache en startup)
+- `/app/backend/.env` (OPENAI_API_KEY actualizada · key real)
+- `/app/memory/PRD.md`
+
+### Pending (D2)
+- Bot RAG: argumentario asesor inline en M03+ contactos drawer + Briefing IE upgrade con citations data-backed (doc_id/extraction_id pills clickeables) + Caya prep stub.
+- Auto-reindex hook después de cada doc/extraction/cross-check upload (ahora es manual via superadmin).
+
+---
+
+
 ## 2026-05-01 — Phase 7.6 · Asset Pipeline (Moat #2 Wave 6)
 **Objetivo:** subir fotos/renders/planos/360° por desarrollo, watermark automático "DesarrollosMX", auto-categorización con Claude Sonnet 4.5 Vision (cero invención: si no es claramente inmobiliario → `category=null`), y publicación pública en marketplace + ficha.
 
