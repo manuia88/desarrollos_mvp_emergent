@@ -415,6 +415,11 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - WhatsApp Business real wiring (`whatsapp-web.js` QR).
 - NLP intent classifier real (reemplaza heurística keyword `_estimate_lead_score`).
 
+### Bonus (2026-05-01) — Caya en `/barrios` y `/inteligencia`
+- `<CayaBubble />` montado también en `/barrios` (Barrios.js) e `/inteligencia` (Inteligencia.js).
+- Verificado visual: burbuja gradient pink-purple bottom-right en ambas páginas ✓.
+- Cross-page session: misma `dmx.caya.session_id` en localStorage → conversación continúa al navegar entre marketplace ↔ barrios ↔ inteligencia ↔ desarrollo detail.
+
 ---
 
 
