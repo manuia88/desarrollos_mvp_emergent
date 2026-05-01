@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Stat, Badge, Empty, fmtMXN, relDate, isOverdue } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
+import * as briefApi from '../../api/briefings';
 import { ArrowRight, Sparkle, Clock } from '../../components/icons';
 
 export default function AsesorDashboard({ user, onLogout }) {
@@ -32,7 +33,13 @@ export default function AsesorDashboard({ user, onLogout }) {
     } finally { setLoading(false); }
   };
 
+  const [briefingsSummary, setBriefingsSummary] = useState(null);
+
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    briefApi.briefingsSummary().then(setBriefingsSummary).catch(() => setBriefingsSummary(null));
+  }, []);
 
   const runBriefing = async () => {
     setBriefingLoading(true);
@@ -212,6 +219,54 @@ export default function AsesorDashboard({ user, onLogout }) {
                   </div>
                 </div>
               </div>
+            </Card>
+          )}
+
+          {/* Widget Briefing IE (Phase C · Chunk 3) */}
+          {briefingsSummary && (
+            <Card data-testid="briefings-widget" style={{
+              marginTop: 22,
+              background: 'linear-gradient(140deg, rgba(99,102,241,0.09), rgba(236,72,153,0.04))',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Sparkle size={10} color="var(--indigo-3)" /> BRIEFING IE · 7d
+                  </div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', letterSpacing: '-0.02em', marginTop: 4 }}>
+                    {briefingsSummary.count_7d} briefings generados
+                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>
+                    {briefingsSummary.with_feedback} con feedback
+                    {briefingsSummary.closed_pct != null && ` · ${briefingsSummary.closed_pct}% cerrados`}
+                  </div>
+                </div>
+                <Link to="/asesor/briefings" data-testid="briefings-see-all" style={{
+                  padding: '7px 14px', borderRadius: 9999,
+                  background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.34)',
+                  color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+                  textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4,
+                }}>
+                  Ver todos <ArrowRight size={11} />
+                </Link>
+              </div>
+              {briefingsSummary.recent?.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {briefingsSummary.recent.map(r => (
+                    <div key={r.id} data-testid="briefing-recent-row" style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                      background: 'rgba(255,255,255,0.02)', borderRadius: 10,
+                      fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)',
+                    }}>
+                      <span style={{ color: 'var(--cream)', fontWeight: 500 }}>{r.development_name || r.development_id}</span>
+                      <span style={{ color: 'var(--cream-3)', fontSize: 11 }}>· {r.development_colonia}</span>
+                      <span style={{ marginLeft: 'auto', color: 'var(--cream-3)', fontSize: 10.5 }}>
+                        {relDate(r.generated_at)} {r.used ? '· usado' : '· no usado'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           )}
         </>

@@ -1,10 +1,10 @@
 // Full /desarrollo/:id — 5 tabs + sticky sidebar + paywall gate
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/landing/Navbar';
 import { fetchDevelopment } from '../api/marketplace';
-import { MapPin, ArrowRight } from '../components/icons';
+import { MapPin, ArrowRight, Sparkle } from '../components/icons';
 import PhotoGallery from '../components/dev/PhotoGallery';
 import DescriptionTab from '../components/dev/DescriptionTab';
 import PriceListTab from '../components/dev/PriceListTab';
@@ -16,6 +16,9 @@ import RegistrationModal from '../components/dev/RegistrationModal';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
+import BriefingIEModal from '../components/advisor/BriefingIEModal';
+
+const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
 const STAGE_COLORS = {
   preventa: '#10B981',
@@ -33,6 +36,11 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const [gateOpen, setGateOpen] = useState(false);
   const [gateContext, setGateContext] = useState(null);
   const [explain, setExplain] = useState(null); // { zoneId, code } | null
+  const [briefingOpen, setBriefingOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const leadId = searchParams.get('lead');
+  const contactoId = searchParams.get('contacto');
+  const isAdvisor = user?.role && ADVISOR_ROLES.has(user.role);
 
   useEffect(() => {
     fetchDevelopment(id).then(setDev).catch(() => setDev(null));
@@ -218,7 +226,31 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               {tab === 'localizacion' && <LocationTab dev={dev} user={user} onGateOpen={openGate} />}
             </div>
 
-            <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
+            <div>
+              <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
+              {isAdvisor && (
+                <button
+                  data-testid="briefing-ie-cta"
+                  onClick={() => setBriefingOpen(true)}
+                  style={{
+                    marginTop: 12, width: '100%',
+                    padding: '13px 20px', borderRadius: 9999,
+                    background: 'var(--grad)',
+                    border: 'none', color: '#fff',
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+                    letterSpacing: '0.02em',
+                    cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: '0 8px 22px rgba(236,72,153,0.28)',
+                    transition: 'transform 360ms cubic-bezier(0.22,1,0.36,1)',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                  onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+                >
+                  <Sparkle size={13} /> Briefing IE para cliente
+                </button>
+              )}
+            </div>
           </div>
         </section>
       </main>
@@ -235,6 +267,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         zoneId={explain?.zoneId}
         code={explain?.code}
         onClose={() => setExplain(null)}
+      />
+
+      <BriefingIEModal
+        open={briefingOpen}
+        development={dev}
+        leadId={leadId}
+        contactId={contactoId}
+        onClose={() => setBriefingOpen(false)}
       />
 
       <style>{`

@@ -57,12 +57,17 @@ from narrative_engine import (
     sa_router as narrative_sa_router,
     ensure_indexes as narrative_ensure_indexes,
 )
+from briefing_engine import (
+    router as briefing_router,
+    ensure_indexes as briefing_ensure_indexes,
+)
 from score_engine import ensure_score_indexes, auto_discover as discover_recipes
 app.include_router(ie_engine_router)
 app.include_router(ie_scores_sa_router)
 app.include_router(ie_scores_pub_router)
 app.include_router(narrative_pub_router)
 app.include_router(narrative_sa_router)
+app.include_router(briefing_router)
 
 # Wire Studio router (Phase 6 Wave 1)
 from routes_studio import router as studio_router
@@ -219,6 +224,7 @@ async def startup():
     # IE Engine — Phase A seed (idempotent: 18 fuentes)
     await seed_ie_engine(db)
     await narrative_ensure_indexes(db)
+    await briefing_ensure_indexes(db)
     # IE Engine — Phase B1 score infra: indexes + recipe auto-discover
     await ensure_score_indexes(db)
     discover_recipes()

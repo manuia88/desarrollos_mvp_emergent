@@ -197,6 +197,92 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Chunk 3 · Briefing IE Comparador Asesor (Phase C3)
+- **Backend `briefing_engine.py`** nuevo módulo:
+  - POST `/api/asesor/briefing-ie` · POST `/:id/feedback` · GET `/:id` · GET `/briefings` · GET `/briefings/summary`.
+  - Role-gated vía `require_advisor` (advisor / asesor_admin / superadmin).
+  - Cache 24h por (advisor, dev, lead_id|contact_id|null, prompt_version). Invalida si scores drift ≥5 pts.
+  - Cap budget LLM `$5 USD/sesión` compartido con narrative_engine (rolling 1h window).
+  - **Claude Sonnet 4.5** con system prompt "SIN emojis · SI ROI=red encuadra patrimonial · NUNCA inventes". Output JSON parsed (hook, headline_pros[4-6], honest_caveats[2], call_to_action, whatsapp_text ≤800 chars, context_hint).
+  - `SCORE_LABEL_ES` map (31 labels) para UI-ready bullets.
+  - Collection `ie_advisor_briefings`: { id, advisor_user_id, development_id, lead_id?, contact_id?, hook, headline_pros[], honest_caveats[], call_to_action, whatsapp_text, context_hint, prompt_version, scores_snapshot, generated_at, expires_at, used, feedback, model, cost_usd }.
+  - Indexes: (advisor, generated_at desc), (advisor, dev, lead, contact, prompt_version), (expires_at).
+- **Frontend**
+  - `api/briefings.js` · 5 endpoints.
+  - `BriefingIEModal` (720px, glass bg, close button, gradient CTA): header con model+cost, warning amber si genérico (sin lead/contact), secciones Contexto / Apertura / Razones data-backed / Caveats honestos / Próximo paso · cada bullet cita score_code con pill clickeable → abre `ScoreExplainModal`. 3 botones: Copiar completo / Copiar WhatsApp / Enviar por WhatsApp (abre `wa.me/?text=`). Inline feedback "¿Cerró el lead?" (Sí / Parcial / No) post-copy.
+  - `DevelopmentDetail`: botón "Briefing IE para cliente" (gradient navy→pink, Sparkle icon) en sidebar sticky, **solo si role ∈ {advisor, asesor_admin, superadmin}**. Detecta `?lead=` / `?contacto=` URL params y los pasa al modal.
+  - `AsesorDashboard`: nuevo widget "BRIEFING IE · 7d" con count + % cerrados + 3 recientes + link "Ver todos →".
+  - `/asesor/briefings` nueva página con tabla filtrable (col: Proyecto/Colonia/Generado/Usado/Resultado/Acciones), FeedbackBadge (verde/ámbar/rojo), botones "Ver" (reabre modal desde cache) + "Ficha →".
+  - `AdvisorLayout`: nuevo link "Briefings IE" con MessageSquare icon.
+
+### Verificación Chunk 3
+- **Briefing generado Altavista Polanco (ROI tier=red)**:
+  - Hook: "Altavista Polanco: patrimonio de élite con desarrollador probado, no especulación de corto plazo"
+  - 6 pros citando scores reales (Delivery 96.89, Amenidades 100, Presión 20, Ingreso 100, Precio-vs-mercado 55.89, Familias 76.3)
+  - Caveats con encuadre **honesto educativo**: "ROI proyectado -43.25% a 5 años indica que esto NO es inversión especulativa: es patrimonio familiar vs rendimiento CETES, el valor está en uso y estatus, no en reventa inmediata."
+  - CTA: "Ana, agenda visita presencial esta semana para recorrer unidades modelo y comparar vs 2-3 alternativas en Polanco con mejor ROI si tu cliente prioriza liquidez. Si busca patrimonio generacional, este es el pitch: Quattro + amenidades top + entrada competitiva."
+  - whatsapp_text: 592 chars, plain text (sin emojis post-prompt-fix).
+  - **Regla anti-fearmongering verificada ✓**.
+- **Briefing generado Juárez Boutique**: hook "jugada patrimonial de largo plazo", "respaldada por desarrollador clase A, no compite con CETES" · mismo tono educativo.
+- **Cache hit verificado**: segunda llamada con mismo payload devuelve `cache_hit=true, generated_at` idéntico.
+- **Budget Claude total del batch tests**: ~$0.03 USD · $0.015 por briefing.
+- **Role-gate verificado**: buyer (sin auth) → 401 en `/api/asesor/briefing-ie`.
+- Playwright ficha Altavista Polanco: modal abre con 8 pills clickeables, 3 CTAs, inline feedback.
+- Playwright `/asesor/briefings`: tabla muestra 2 briefings con columnas completas, sidebar "Briefings IE" activo.
+
+### Archivos tocados
+- `/app/backend/briefing_engine.py` (nuevo · 350 líneas)
+- `/app/backend/server.py` (router registration)
+- `/app/frontend/src/api/briefings.js` (nuevo)
+- `/app/frontend/src/components/advisor/BriefingIEModal.js` (nuevo · 250 líneas)
+- `/app/frontend/src/pages/advisor/AsesorBriefings.js` (nuevo)
+- `/app/frontend/src/pages/advisor/AsesorDashboard.js` (+widget)
+- `/app/frontend/src/pages/DevelopmentDetail.js` (+CTA role-gated)
+- `/app/frontend/src/components/advisor/AdvisorLayout.js` (+link)
+- `/app/frontend/src/App.js` (+ruta)
+- `/app/memory/PRD.md`
+
+---
+
+
+- **Backend** — nuevo módulo `narrative_engine.py`:
+  - Cache 7 días en collection `ie_narratives` con índices (scope,entity_id,prompt_version), (generated_at), (expires_at).
+  - Invalida cache si algún score N1-N4 drifta ≥5 puntos absolutos (`_scores_changed` compara `scores_snapshot`).
+  - Cap budget LLM **$5 USD/sesión** (1h rolling window). Degrada a cache stale si se alcanza.
+  - Emergent LLM Key · **Claude Sonnet 4.5** (`claude-sonnet-4-5-20250929`) · temperature implícito de la lib · hard cap 400 chars post-truncation.
+  - Dos prompts distintos (`SYSTEM_PROMPT_COLONIA` + `SYSTEM_PROMPT_PROYECTO`). El de proyecto incluye **regla explícita anti-fearmongering** para ROI rojo: "encuadra como 'proyecto de plusvalía patrimonial a largo plazo' con caveat honesto sobre liquidez vs CETES. Tono educativo, no transaccional."
+  - Endpoints:
+    - `GET /api/zones/:id/narrative` — público.
+    - `GET /api/developments/:slug/narrative` — público.
+    - `POST /api/superadmin/narratives/regenerate?id=&scope=` — force regen.
+    - `POST /api/superadmin/narratives/batch-generate?scope=all|colonia|development` — pre-calentar cache.
+    - `GET /api/superadmin/narratives/budget` — uso y cap.
+- **Frontend**
+  - Nuevo componente `NarrativeBlock.js` con props `{scope, entityId, compact, showFooter}`. Footer renderiza modelo + prompt_version + fecha + badge `CACHE` si cache hit.
+  - `/inteligencia` hero: `NarrativeBlock` de Roma Norte debajo del `ZoneScoreStrip`.
+  - `/desarrollo/:slug`: nueva section "Narrativa AI · N5" entre Score IE y tabs.
+  - `/barrios`: `NarrativeBlock compact showFooter={false}` entre el nombre de la colonia y el strip.
+
+### Verificación C2 (reporte completo)
+- **Generación batch**: 16 colonias + 18 developments = **34 narrativas reales · 0 errores**.
+- **Costo Claude total**: **$0.1073 USD** (bien debajo del cap $5). Cada narrativa ≈ $0.003.
+- **Cache funcional**: 2 calls consecutivos devuelven misma `generated_at` (`2026-05-01T04:02:42.874`).
+- **Ejemplo Roma Norte (colonia verde)**:
+  > "Roma Norte concentra el ingreso más alto de CDMX (IE_COL_DEMOGRAFIA_INGRESO 100.0) y perfil familiar consolidado (IE_COL_DEMOGRAFIA_FAMILIA 76.3). Calidad del aire favorable (IE_COL_AIRE 70.0). La isla de calor es severa (IE_COL_CLIMA_ISLA_CALOR 65.0, tier red) y plusvalía histórica nula (0.0), sugiriendo mercado maduro sin expansión reciente. Proyección de plusvalía modesta (3.21). DMX no opin…"
+- **Ejemplo Altavista Polanco (ROI tier red → encuadre educativo verificado)**:
+  > "Altavista Polanco combina desarrollador confiable (Quattro Capital: 96.89% cumplimiento histórico, 100.0 confianza) con amenidades nivel 100.0 y presión competitiva baja (20.0). **Caveat honesto: ROI comprador -43.25% sugiere que esto es patrimonio a largo plazo, no especulación**. Velocidad de absorción lenta (28.57%) indica paciencia requerida. Polanco sigue siendo Polanco: ingreso 100.0. DMX no…"
+  → Cita score específico, NO usa alarmismo, encuadra educativamente, respeta regla del system prompt.
+- **Playwright /inteligencia**: hero muestra narrativa con footer "Claude sonnet-4 · prompt v1.0 · 1 may 2026 · CACHE" ✓.
+- **Cero hallucination**: todos los números citados coinciden con los scores reales persistidos en `ie_scores`.
+
+### IE Engine layers finales
+- N1-N2 (descriptive) · 46 recipes
+- N4 (predictive) · 3 recipes
+- N5 (narrative) · 34 narrativas cacheadas (16 colonias + 18 devs)
+- **Phase C · COMPLETE ✅**
+
+---
+
 
 - **Base** `PredictiveRecipe` (`backend/recipes/predictive/_helpers.py`) extiende `Recipe` con `layer="predictive"`, `model_version`, `confidence_interval {low, high, percentile}`, `training_window_days`, `residual_std`. Pure + deterministic + versioned.
 - **3 recipes N4 nuevas**:
