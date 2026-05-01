@@ -16,6 +16,7 @@ import RegistrationModal from '../components/dev/RegistrationModal';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
+import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
@@ -101,6 +102,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                 {dev.name}
               </h1>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <ComplianceBadgeInline devId={dev.id} />
                 {dev.verified && (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,

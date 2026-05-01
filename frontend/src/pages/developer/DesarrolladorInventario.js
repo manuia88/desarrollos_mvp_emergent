@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
-import DocumentsList from '../../components/documents/DocumentsList';
+import { Link } from 'react-router-dom';
+import { FileText, ArrowRight } from '../../components/icons';
 
 const STATUSES = ['disponible', 'apartado', 'reservado', 'vendido', 'bloqueado'];
 const TONE = { disponible: 'ok', apartado: 'warn', reservado: 'pink', vendido: 'neutral', bloqueado: 'bad' };
@@ -114,10 +115,36 @@ export default function DesarrolladorInventario({ user, onLogout }) {
           </div>
         )}
 
-        {/* Phase 7.1 — Document Intelligence widget */}
+        {/* Phase 7.4 — Link to dev's Legajo page */}
         {dev && (
-          <div data-testid="dev-documents-widget" style={{ marginTop: 22 }}>
-            <DocumentsList devId={dev.id} devName={dev.name} scope="developer" compact={false} />
+          <div data-testid="dev-legajo-link" style={{ marginTop: 22 }}>
+            <Link to={`/desarrollador/desarrollos/${dev.id}/legajo`} className="card" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
+              padding: '18px 22px', textDecoration: 'none',
+              background: 'linear-gradient(140deg, rgba(99,102,241,0.10), transparent)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 42, height: 42, borderRadius: 9999,
+                  background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.32)',
+                }}>
+                  <FileText size={18} color="var(--indigo-3)" />
+                </span>
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 2 }}>Legajo del desarrollo</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>
+                    Documentos · Fotos · Planos · Avance · 360°
+                  </div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>
+                    Sube escrituras, permisos SEDUVI, listas de precios y más. Cada doc actualiza la ficha pública.
+                  </div>
+                </div>
+              </div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13 }}>
+                Abrir legajo <ArrowRight size={13} />
+              </span>
+            </Link>
           </div>
         )}
 

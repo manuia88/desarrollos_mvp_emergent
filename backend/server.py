@@ -706,6 +706,70 @@ async def list_dev_units(
     return units
 
 
+# Phase 7.4 — Public compliance badge
+@app.get("/api/developments/{dev_id}/compliance-badge")
+async def get_compliance_badge(dev_id: str, request: Request):
+    """Public endpoint surfacing 3 compliance scores aggregated as a tier.
+    Returns tier=null (hidden) when:
+      - no documents uploaded yet (cero data → cero overshare)
+      - any score < 50 OR tier=red on RISK_LEGAL (anti-fearmongering)
+    """
+    d = DEVELOPMENTS_BY_ID.get(dev_id)
+    if not d:
+        raise HTTPException(404, "Desarrollo no encontrado")
+    db = request.app.state.db
+
+    # Count extracted docs (gate: ≥1 to even consider showing)
+    extracted_count = await db.di_documents.count_documents({
+        "development_id": dev_id, "status": "extracted",
+    })
+
+    scores = {}
+    for code in ("IE_PROY_RISK_LEGAL", "IE_PROY_COMPLIANCE_SCORE", "IE_PROY_QUALITY_DOCS"):
+        s = await db.ie_scores.find_one({"zone_id": dev_id, "code": code}, {"_id": 0})
+        if s and not s.get("is_stub"):
+            scores[code] = {"value": s.get("value"), "tier": s.get("tier")}
+        else:
+            scores[code] = None
+
+    # Last update from overlay or scores
+    overlay = await db.dev_overlays.find_one({"development_id": dev_id}, {"_id": 0, "last_auto_sync_at": 1}) or {}
+    last = overlay.get("last_auto_sync_at")
+    last_iso = last.isoformat() if last else None
+
+    # Compute tier
+    tier = None
+    if extracted_count >= 1 and all(scores[c] is not None for c in scores):
+        risk = scores["IE_PROY_RISK_LEGAL"]
+        comp = scores["IE_PROY_COMPLIANCE_SCORE"]
+        qd = scores["IE_PROY_QUALITY_DOCS"]
+        # Hidden if RISK_LEGAL is red (critical issues active) or any score < 50
+        if risk["tier"] == "red":
+            tier = None
+        elif min(risk["value"] or 0, comp["value"] or 0, qd["value"] or 0) >= 80:
+            tier = "green"
+        elif min(risk["value"] or 0, comp["value"] or 0, qd["value"] or 0) >= 50:
+            tier = "amber"
+        else:
+            tier = None
+
+    return {
+        "development_id": dev_id,
+        "tier": tier,
+        "scores": {
+            "risk_legal": scores["IE_PROY_RISK_LEGAL"],
+            "compliance": scores["IE_PROY_COMPLIANCE_SCORE"],
+            "quality_docs": scores["IE_PROY_QUALITY_DOCS"],
+        },
+        "verified_docs_count": extracted_count,
+        "last_update_at": last_iso,
+        "label_es": (
+            "DMX Verificado · Documentos al día" if tier == "green"
+            else ("Documentos parciales · En verificación" if tier == "amber" else None)
+        ),
+    }
+
+
 @app.get("/api/developments/{dev_id}/similar")
 async def get_similar_developments(dev_id: str):
     target = DEVELOPMENTS_BY_ID.get(dev_id)

@@ -366,7 +366,65 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - **Phase 7.2 ✅** Claude structured extraction + auto-trigger post-OCR + tab UI
 - **Phase 7.3 ✅** Cross-Check Engine (5 reglas deterministas) + IE recipes + GC-X4 pricing block
 - **Phase 7.5 ✅** Auto-Sync Extracted → Marketplace (overlay store + audit + revert + locks + pause)
-- Phase 7.4 ⏳ Documents page completa en Developer Portal (read-only summary)
+- **Phase 7.4 ✅** Developer Portal Legajo (5 tabs) + Compliance Badge en marketplace + ficha pública
+- Phase 7.6 ⏳ Asset pipeline (Fotos + Planos thumbnails + Tour 360° Pedra)
+- Phase 7.10 ⏳ Avance de obra timeline
+
+---
+
+## 2026-05-01 — Phase 7.4 · Developer Portal Legajo + Compliance Badge (Moat #2 Wave 5)
+**Objetivo:** centralizar todo el legajo del desarrollo en una única página dedicada y surfacear el resultado del Document Intelligence al marketplace público mediante un badge "DMX Verificado" controlado.
+
+### Backend
+- **1 endpoint público nuevo** en `server.py`: `GET /api/developments/{dev_id}/compliance-badge`.
+  - Computa `tier` desde IE_PROY_RISK_LEGAL + IE_PROY_COMPLIANCE_SCORE + IE_PROY_QUALITY_DOCS:
+    - `green` si los 3 scores ≥ 80.
+    - `amber` si min ≥ 50 (pero <80).
+    - **`null` (HIDDEN)** si: 0 docs extraídos · OR cualquier score < 50 · OR `RISK_LEGAL.tier=red` (anti-overshare, anti-fearmongering).
+  - Devuelve: `{tier, scores, verified_docs_count, last_update_at, label_es}`.
+
+### Frontend
+- **Nuevo `components/marketplace/ComplianceBadge.js`** (3 variantes):
+  - **`ComplianceBadgeOverlay`** — pill absoluta top-right en cards del marketplace, gradient verde (DMX Verificado) o ámbar (Verificación parcial).
+  - **`ComplianceBadgeInline`** — badge clickable bajo título de la ficha pública → abre `BreakdownModal` con descripción del sistema, 3 ScoreRows con dots + valor /100, count docs verificados + last_update_at.
+  - **`ComplianceDotStrip`** — versión compacta para header del Legajo (3 dots con label + count docs).
+- **Wire**: badge overlay en `DevelopmentCard.js` (top-right, encima del IERankPill); badge inline en `DevelopmentDetail.js` (dentro de pills strip de hero, antes de "Verified" badge).
+- **Nueva página `pages/developer/DesarrolladorLegajo.js`** (`/desarrollador/desarrollos/:slug/legajo`):
+  - Header con breadcrumb (Inventario / Dev) + H1 + descripción + ComplianceDotStrip.
+  - **5 tabs** con icons: Documentos (FileText), Fotos (Camera), Planos (Map), Avance de obra (Sparkle), Tour 360° (Camera).
+  - **Tab Documentos**: render del componente `DocumentsList` reutilizado scope=developer (incluye 4 sub-tabs OCR/Datos extraídos/Cross-check/Sync Marketplace) + upload modal.
+  - **4 tabs placeholder honestos** con icon circular indigo, eyebrow "Phase X.Y · Próximamente", título y descripción explicando exactamente qué viene en cada chunk futuro:
+    - Fotos → Phase 7.6 (asset pipeline con versionado + watermark)
+    - Planos → Phase 7.6 (thumbnails desde plano_arquitectonico extractions)
+    - Avance de obra → Phase 7.10 (timeline antes/después + % por fase)
+    - Tour 360° → Phase 7.6 (integración Pedra)
+  - **Multi-tenant guard frontend**: probe `listDevDocuments` al mount; si responde 403 → render error card "Acceso restringido" con botón Volver a Inventario.
+- **2 iconos nuevos** (`Camera`, `Map`) en `components/icons/index.js`.
+- **`DesarrolladorInventario.js`**: reemplazo del widget DocumentsList inline por **link card "Legajo del desarrollo"** que enruta a la nueva página dedicada (mejor UX, evita scroll infinito).
+- **Route nueva** en `App.js`: `/desarrollador/desarrollos/:slug/legajo` → DesarrolladorLegajo (AdvisorRoute).
+
+### Verificación end-to-end
+- **Setup**: subí 10 docs canónicos a `juarez-boutique` (lp, brochure, escritura, permiso_seduvi, licencia_construccion, predial, estudio_suelo, plano_arquitectonico, contrato_cv, constancia_fiscal). Auto-extraction + auto cross-check + auto-sync corrieron en cadena.
+- **IE recipes computed**: `IE_PROY_RISK_LEGAL=100 (green)`, `IE_PROY_COMPLIANCE_SCORE=100 (green)`, `IE_PROY_QUALITY_DOCS=100 (green)` ✓.
+- **Compliance badge endpoint** `/api/developments/juarez-boutique/compliance-badge` → `tier=green, label_es="DMX Verificado · Documentos al día", verified_docs_count=10` ✓.
+- **Anti-overshare verificado**: `/api/developments/altavista-polanco/compliance-badge` → `tier=null` (RISK_LEGAL=red) — badge correctamente OCULTO ✓.
+- **Empty state**: dev sin docs → `tier=null, verified_docs_count=0` ✓.
+- **Marketplace** (`/marketplace`): 1 ComplianceBadgeOverlay verde renderiza para juarez-boutique. Otros 17 desarrollos sin badge (correcto: o sin docs o con RISK_LEGAL=red) ✓.
+- **Ficha pública** (`/desarrollo/juarez-boutique`): ComplianceBadgeInline gradient verde clickable bajo título → BreakdownModal muestra 3 ScoreRows con dots verdes (100/100/100), description del sistema, "10 documentos verificados · Actualizado 1 may 2026" ✓.
+- **Legajo page**: H1 "Legajo · Altavista Polanco", breadcrumb, ComplianceDotStrip 3 dots rojos + ámbar + "6 docs verificados", 5 tabs renderizadas, tab Documentos muestra 6 filas DATOS EXTRAÍDOS, tab Fotos muestra placeholder honesto "Phase 7.6 · Próximamente" con icon Camera ✓.
+- **Multi-tenant**: dev_admin (constructora_ariel) → `/api/desarrollador/developments/juarez-boutique/documents` → **403** ✓.
+- **Public badge**: anonymous user → 200 ✓.
+
+### Archivos tocados
+- `/app/backend/server.py` (+endpoint `compliance-badge`)
+- `/app/frontend/src/components/marketplace/ComplianceBadge.js` (nuevo · 3 variantes + modal)
+- `/app/frontend/src/components/marketplace/DevelopmentCard.js` (overlay badge wire)
+- `/app/frontend/src/pages/DevelopmentDetail.js` (inline badge wire)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (nuevo · 5 tabs)
+- `/app/frontend/src/pages/developer/DesarrolladorInventario.js` (DocumentsList → link card)
+- `/app/frontend/src/components/icons/index.js` (+Camera +Map)
+- `/app/frontend/src/App.js` (+route legajo)
+- `/app/memory/PRD.md`
 
 ---
 

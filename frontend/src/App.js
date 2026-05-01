@@ -46,6 +46,7 @@ import DesarrolladorDashboard from './pages/developer/DesarrolladorDashboard';
 import DesarrolladorInventario from './pages/developer/DesarrolladorInventario';
 import DesarrolladorDemanda from './pages/developer/DesarrolladorDemanda';
 import DesarrolladorReportes from './pages/developer/DesarrolladorReportes';
+import DesarrolladorLegajo from './pages/developer/DesarrolladorLegajo';
 import DesarrolladorPricing from './pages/developer/DesarrolladorPricing';
 import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
 
@@ -205,6 +206,7 @@ function AppRouter() {
       <Route path="/asesor/briefings" element={<AdvisorRoute Page={AsesorBriefings} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
       <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
+      <Route path="/desarrollador/desarrollos/:slug/legajo" element={<AdvisorRoute Page={DesarrolladorLegajo} />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />

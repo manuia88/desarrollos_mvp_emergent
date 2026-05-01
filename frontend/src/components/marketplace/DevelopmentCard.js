@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight, Sparkle } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
+import { ComplianceBadgeOverlay } from './ComplianceBadge';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -145,7 +146,10 @@ export default function DevelopmentCard({ dev, index = 0 }) {
       {/* Photo area */}
       <div style={{ position: 'relative', height: 198, overflow: 'hidden', background: '#0A0D16' }}>
         {/* IE rank badge (Phase B3 chunk 1-bis) — bottom-left overlay */}
-        {rank?.badge_tier && <IERankPill rank={rank} />}        {showFallback ? (
+        {rank?.badge_tier && <IERankPill rank={rank} />}
+        {/* Compliance badge (Phase 7.4) — top-right overlay */}
+        <ComplianceBadgeOverlay devId={dev.id} />
+        {showFallback ? (
           <Fallback hue={hue} seed={index} />
         ) : (
           <img
