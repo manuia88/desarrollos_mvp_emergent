@@ -51,7 +51,11 @@ app.include_router(developer_router)
 # Wire IE Engine (Phase A) router
 from routes_ie_engine import router as ie_engine_router, seed_ie_engine
 from scheduler_ie import start_scheduler, stop_scheduler
+from routes_scores import sa_router as ie_scores_sa_router, pub_router as ie_scores_pub_router
+from score_engine import ensure_score_indexes, auto_discover as discover_recipes
 app.include_router(ie_engine_router)
+app.include_router(ie_scores_sa_router)
+app.include_router(ie_scores_pub_router)
 
 # Wire Studio router (Phase 6 Wave 1)
 from routes_studio import router as studio_router
@@ -207,6 +211,9 @@ async def startup():
 
     # IE Engine — Phase A seed (idempotent: 18 fuentes)
     await seed_ie_engine(db)
+    # IE Engine — Phase B1 score infra: indexes + recipe auto-discover
+    await ensure_score_indexes(db)
+    discover_recipes()
     # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
     start_scheduler(db)
 

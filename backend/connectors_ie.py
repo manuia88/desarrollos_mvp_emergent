@@ -208,6 +208,149 @@ class OSMOverpassConnector(BaseConnector):
             return self._stub_obs(n=3)
 
 
+# ─── Named real connectors (Phase B1 — 3 new reals: Banxico, INEGI, AirROI) ──
+class BanxicoConnector(BaseConnector):
+    source_id = "banxico"
+    BASE = "https://www.banxico.org.mx/SieAPIRest/service/v1"
+    # SF43718 = Tipo de cambio FIX USD/MXN (serie más estable, buen ping)
+    PING_SERIE = "SF43718"
+
+    def _token(self) -> Optional[str]:
+        return self.credentials.get("token") or os.environ.get("IE_BANXICO_TOKEN")
+
+    async def test_connection(self) -> Tuple[bool, str]:
+        token = self._token()
+        if not token:
+            return _fail("Falta IE_BANXICO_TOKEN.")
+        try:
+            async with httpx.AsyncClient(timeout=10) as http:
+                r = await http.get(f"{self.BASE}/series/{self.PING_SERIE}/datos/oportuno",
+                                   headers={"Bmx-Token": token, "Accept": "application/json"})
+            if r.status_code == 200:
+                return _ok("Banxico SIE OK.")
+            return _fail(f"Banxico HTTP {r.status_code}.")
+        except httpx.HTTPError as e:
+            return _fail(f"Error de red Banxico: {e}")
+
+    async def fetch(self, since=None, zone_id=None) -> List[Dict[str, Any]]:
+        token = self._token()
+        if not token:
+            return self._stub_obs(n=5, serie=self.PING_SERIE, note="sin token")
+        # Multi-serie: USD/MXN + CETES28d + UDIS — base para IE_COL_PLUSVALIA_HIST
+        series = "SF43718,SF43936,SP68257"
+        try:
+            async with httpx.AsyncClient(timeout=15) as http:
+                r = await http.get(f"{self.BASE}/series/{series}/datos/oportuno",
+                                   headers={"Bmx-Token": token, "Accept": "application/json"})
+            if r.status_code != 200:
+                return self._stub_obs(n=3, error=f"http {r.status_code}")
+            series_list = r.json().get("bmx", {}).get("series", [])
+            out: List[Dict[str, Any]] = []
+            for s in series_list:
+                for d in s.get("datos", []):
+                    out.append(self._real_obs({
+                        "serie": s.get("idSerie"),
+                        "titulo": s.get("titulo"),
+                        "fecha": d.get("fecha"),
+                        "valor": d.get("dato"),
+                    }))
+            return out or self._stub_obs(n=3)
+        except httpx.HTTPError:
+            return self._stub_obs(n=3)
+
+
+class INEGIConnector(BaseConnector):
+    source_id = "inegi"
+    # BISE (Banco de Indicadores): 1 token cubre Censo+AGEB+ENIGH+DENUE+SCIAN
+    BASE = "https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/INDICATOR"
+
+    def _token(self) -> Optional[str]:
+        return self.credentials.get("token") or os.environ.get("IE_INEGI_TOKEN")
+
+    async def test_connection(self) -> Tuple[bool, str]:
+        token = self._token()
+        if not token:
+            return _fail("Falta IE_INEGI_TOKEN.")
+        # Indicador 1002000001 = Población total (México), área 00 = nación.
+        try:
+            async with httpx.AsyncClient(timeout=10) as http:
+                r = await http.get(f"{self.BASE}/1002000001/es/00/false/BISE/2.0/{token}?type=json")
+            if r.status_code == 200 and "Series" in r.text:
+                return _ok("INEGI BISE OK.")
+            return _fail(f"INEGI HTTP {r.status_code} · {r.text[:120]}")
+        except httpx.HTTPError as e:
+            return _fail(f"Error de red INEGI: {e}")
+
+    async def fetch(self, since=None, zone_id=None) -> List[Dict[str, Any]]:
+        token = self._token()
+        if not token:
+            return self._stub_obs(n=5, note="sin token")
+        # Set mínimo: población total + edad mediana + ingreso laboral promedio nacional
+        indicators = ["1002000001", "1002000002", "6200093976"]
+        out: List[Dict[str, Any]] = []
+        try:
+            async with httpx.AsyncClient(timeout=20) as http:
+                for ind in indicators:
+                    r = await http.get(f"{self.BASE}/{ind}/es/00/false/BISE/2.0/{token}?type=json")
+                    if r.status_code != 200:
+                        continue
+                    payload = r.json()
+                    series = payload.get("Series", [])
+                    for s in series:
+                        for obs in s.get("OBSERVATIONS", [])[:5]:
+                            out.append(self._real_obs({
+                                "indicador": ind,
+                                "periodo": obs.get("TIME_PERIOD"),
+                                "valor": obs.get("OBS_VALUE"),
+                            }, zone_id=zone_id))
+            return out or self._stub_obs(n=3)
+        except httpx.HTTPError:
+            return self._stub_obs(n=3)
+
+
+class AirRoiConnector(BaseConnector):
+    source_id = "airroi"
+    BASE = "https://api.airroi.com/v1"
+    # AirROI costs money per call. Cron never touches this; only explicit recompute.
+
+    def _key(self) -> Optional[str]:
+        return self.credentials.get("api_key") or os.environ.get("IE_AIRROI_API_KEY")
+
+    async def test_connection(self) -> Tuple[bool, str]:
+        key = self._key()
+        if not key:
+            return _fail("Falta IE_AIRROI_API_KEY.")
+        try:
+            async with httpx.AsyncClient(timeout=10) as http:
+                r = await http.get(f"{self.BASE}/markets",
+                                   headers={"Authorization": f"Bearer {key}"},
+                                   params={"limit": 1})
+            if r.status_code == 200:
+                return _ok("AirROI API OK.")
+            if r.status_code == 401:
+                return _fail("AirROI key rechazada (401).")
+            return _fail(f"AirROI HTTP {r.status_code}.")
+        except httpx.HTTPError as e:
+            return _fail(f"Error de red AirROI: {e}")
+
+    async def fetch(self, since=None, zone_id=None) -> List[Dict[str, Any]]:
+        key = self._key()
+        if not key:
+            return self._stub_obs(n=4, note="sin key")
+        # Pull CDMX markets (cheap; detailed comp queries via recompute with allow_paid)
+        try:
+            async with httpx.AsyncClient(timeout=15) as http:
+                r = await http.get(f"{self.BASE}/markets",
+                                   headers={"Authorization": f"Bearer {key}"},
+                                   params={"country": "MX", "city": "Mexico City", "limit": 20})
+            if r.status_code != 200:
+                return self._stub_obs(n=3, error=f"http {r.status_code}")
+            items = r.json() if isinstance(r.json(), list) else r.json().get("data", [])
+            return [self._real_obs(it, zone_id=zone_id) for it in items] or self._stub_obs(n=3)
+        except httpx.HTTPError:
+            return self._stub_obs(n=3)
+
+
 # ─── Stub fallback for the other 13 sources ─────────────────────────────────
 class StubConnector(BaseConnector):
     """Used for sources that don't have a real connector yet."""
@@ -218,49 +361,7 @@ class StubConnector(BaseConnector):
         return self._stub_obs(n=4, mode=self.source.get("access_mode"))
 
 
-# ─── Named stub connectors (Phase A4): same contract, source-specific mocks ──
-class BanxicoStub(StubConnector):
-    source_id = "banxico"
-
-    async def test_connection(self):
-        token = self.credentials.get("token") or os.environ.get("IE_BANXICO_TOKEN")
-        if not token:
-            return _fail("Falta IE_BANXICO_TOKEN.")
-        return _ok("Banxico SIE token presente — stub no llama API.")
-
-    async def fetch(self, since=None, zone_id=None):
-        return [
-            self._real_obs({"serie": "SF43718", "label": "USD/MXN", "valor": 17.42 + i * 0.05, "fecha": f"2024-01-{i+1:02d}"})
-            if False else dict(self._stub_obs(n=1, serie="SF43718", label=f"USD/MXN day {i+1}")[0])
-            for i in range(5)
-        ]
-
-
-class AirRoiStub(StubConnector):
-    source_id = "airroi"
-
-    async def fetch(self, since=None, zone_id=None):
-        zonas = ["polanco", "condesa", "roma_norte", "del_valle"]
-        return [dict(self._stub_obs(n=1, market=z, occupancy=0.62 + i * 0.04, adr_mxn=1850 + i * 35)[0])
-                for i, z in enumerate(zonas)]
-
-
-class INEGIStub(StubConnector):
-    source_id = "inegi"
-
-    async def test_connection(self):
-        token = self.credentials.get("token") or os.environ.get("IE_INEGI_TOKEN")
-        if not token:
-            return _fail("Falta IE_INEGI_TOKEN (cubre Censo + AGEB + ENIGH + DENUE + SCIAN).")
-        return _ok("INEGI token presente — stub no llama API.")
-
-    async def fetch(self, since=None, zone_id=None):
-        return [dict(self._stub_obs(n=1, ageb=f"090140001-{i:03d}",
-                                    pob_total=1200 + i * 35,
-                                    ingreso_promedio=18500 + i * 320)[0])
-                for i in range(5)]
-
-
+# ─── Named stub connectors (sources with no real API yet): source-specific mocks ──
 class SACMEXStub(StubConnector):
     source_id = "sacmex"
 
@@ -320,12 +421,12 @@ _REAL: Dict[str, type] = {
     "datos_cdmx":   DatosCDMXConnector,
     "fgj_cdmx":     FGJCDMXConnector,
     "osm_overpass": OSMOverpassConnector,
+    "banxico":      BanxicoConnector,
+    "inegi":        INEGIConnector,
+    "airroi":       AirRoiConnector,
 }
 
 _NAMED_STUBS: Dict[str, type] = {
-    "banxico":     BanxicoStub,
-    "airroi":      AirRoiStub,
-    "inegi":       INEGIStub,
     "sacmex":      SACMEXStub,
     "locatel":     LocatelStub,
     "conagua_smn": ConaguaSMNStub,

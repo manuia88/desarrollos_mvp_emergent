@@ -109,6 +109,31 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — IE Engine Phase B1 (score engine foundation + 3 real connectors + seed-historic)
+- Backend
+  - `score_engine.py`: Recipe abstract base + auto-discovery (walk `recipes/**`) + `ScoreEngine.compute_many(zone_id, codes)` + Mongo collections `ie_scores` + `ie_score_history` (audit de cada recompute).
+  - Thresholds tier: green ≥70, amber 40-69, rojo <40. Cada recipe declara `tier_logic: "higher_better" | "lower_better" | "custom"`.
+  - Recipes puras (pure functions): si deps no tienen data → `value=null + is_stub=true + confidence=low`. NUNCA inventa números.
+  - `recipes/colonia/ie_col_aire.py`: piloto real. Heurística base 70 − penalty anomalía térmica + bonus humedad. Dependencies: NOAA + CONAGUA SMN.
+  - `connectors_ie.py`: 3 nuevos reales (Banxico SIE, INEGI BISE, AirROI) reemplazan sus named stubs. NOAA connector ya era real.
+  - `routes_scores.py`: 4 endpoints nuevos
+    - `POST /api/superadmin/scores/recompute` — trigger engine sobre zone + códigos específicos (o todos si lista vacía), flag `allow_paid` para recipes marked is_paid=True (AirROI).
+    - `GET /api/superadmin/scores` — tabla filtrable (zone_id, code, tier).
+    - `GET /api/zones/:id/scores` — **público**, devuelve solo scores reales (`is_stub=false AND value!=null`) para que la UI jamás muestre números falsos como reales.
+    - `POST /api/superadmin/seed-historic-from-upload` — replay de un upload manual previo como raw_observations sin quemar tokens. Parser acepta nombres canónicos Y columnas GHCN-Daily oficiales (`STATION / DATE / TMAX / TMIN / PRCP / LATITUDE / LONGITUDE`) vía auto-aliasing.
+  - Indices `ie_scores` con compuesto unique `(zone_id, code)` + audit via `ie_score_history`.
+- Verificación
+  - 🔑 4 API keys cargadas en `backend/.env` (NOAA / Banxico / INEGI / AirROI).
+  - curl test_connection real: NOAA ✓, Banxico ✓ "Banxico SIE OK", INEGI ✓ "INEGI BISE OK" (tras corrección area 00=nación), AirROI ✗ HTTP 403 — auth scheme incorrecta, necesita docs del proveedor. Connector degrada a stub.
+  - curl sync: NOAA 10 records reales, Banxico 3 series (USD/MXN + CETES + UDIS), INEGI 10 indicadores reales.
+  - curl `POST /scores/recompute IE_COL_AIRE roma_norte` → `value=70.0 tier=green confidence=med inputs={noaa:10,conagua_smn:0}` ✓
+  - curl `GET /api/zones/roma_norte/scores` público → devuelve el score correctamente ✓
+  - Seed-historic: subí CSV GHCN-Daily oficial (STATION/DATE/TMAX/TMIN/PRCP) 5 filas → 15 obs insertadas (3 datatypes por fila) → auto-detect encoding utf-8 + sep `,` ✓
+  - Recompute post-seed: inputs_used pasa a noaa=30 (vs 10 antes), mismo tier/value (data coherente = score estable) ✓
+- Breakdown final: total 18 · active 6 (↑3) · stub 4 · manual_only 4 · H2 1 · blocked 3 (↓3: solo quedan SACMEX + Locatel + FGJ esperando resource_ids CKAN + AirROI con auth pendiente).
+
+---
+
 ## 2026-05-01 — IE Engine Phase A4 FINAL (cron + detail page + download + 8 named stubs)
 - Backend
   - `scheduler_ie.py`: AsyncIOScheduler con 2 jobs — `daily_ingestion` CronTrigger(hour=0, minute=0, timezone="America/Mexico_City") y `hourly_status_check` CronTrigger(minute=0). Logs JSON estructurados con prefijo `ie_cron` (filterables en Datadog/Stackdriver).
