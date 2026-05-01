@@ -340,7 +340,8 @@ async def compute_changes(db, dev_id: str) -> Dict[str, Any]:
 
 
 async def apply_changes(db, dev_id: str, *, applied_by: str = "system",
-                        only_high_confidence: bool = False) -> Dict[str, Any]:
+                        only_high_confidence: bool = False,
+                        units_history_source: str = "auto_sync") -> Dict[str, Any]:
     """Apply pending diffs to the overlay. Skips locked & paused fields. Logs each change in audit[]."""
     paused = await is_pricing_paused(db, dev_id)
     if paused and only_high_confidence:
@@ -389,6 +390,18 @@ async def apply_changes(db, dev_id: str, *, applied_by: str = "system",
                 u["source_doc_id"] = extractions["lp"]["doc_id"]
         old_units = overlay.get("units_overlay") or []
         overlay["units_overlay"] = new_units
+        # Phase 7.9 — record per-unit field changes (precio, status, etc.)
+        try:
+            from units_history import diff_units_overlay_and_record
+            await diff_units_overlay_and_record(
+                db, development_id=dev_id,
+                old_units=old_units, new_units=new_units,
+                source=units_history_source,
+                source_doc_id=extractions.get("lp", {}).get("doc_id"),
+                changed_by_user_id=applied_by,
+            )
+        except Exception as e:
+            import logging; logging.getLogger("dmx.auto_sync").warning(f"units_history diff failed: {e}")
         audit_entry = {
             "audit_id": _mk_id("audit"),
             "field": "units_overlay",

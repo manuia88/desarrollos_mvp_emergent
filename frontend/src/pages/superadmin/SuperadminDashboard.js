@@ -180,6 +180,75 @@ export default function SuperadminDashboard({ user, onLogout }) {
           backdropFilter: 'blur(20px)', maxWidth: 420,
         }}>{toast.msg}</div>
       )}
+
+      {/* Phase 7.9 — Recent unit changes (cross-dev) */}
+      <div data-testid="dash-recent-changes" style={{ marginTop: 28 }}>
+        <div className="eyebrow" style={{ marginBottom: 6 }}>Phase 7.9 · Histórico</div>
+        <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: '0 0 14px', letterSpacing: '-0.018em' }}>
+          Cambios recientes (todos los desarrollos)
+        </h3>
+        <RecentChangesAcrossDevs />
+      </div>
     </SuperadminLayout>
+  );
+}
+
+
+// Sub-component: cross-dev recent changes (last 10 from any development)
+function RecentChangesAcrossDevs() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        // Pull from each known dev (lightweight: superadmin endpoint per dev). Aggregate top 10 by changed_at desc.
+        const API = process.env.REACT_APP_BACKEND_URL;
+        const devsRes = await fetch(`${API}/api/developments?limit=30`, { credentials: 'include' });
+        const devs = (await devsRes.json()).items || [];
+        const all = [];
+        await Promise.all(devs.map(async (d) => {
+          try {
+            const r = await fetch(`${API}/api/superadmin/developments/${encodeURIComponent(d.id)}/units-history?limit=10`, { credentials: 'include' });
+            if (r.ok) {
+              const data = await r.json();
+              (data.history || []).forEach((h) => { all.push({ ...h, dev_name: d.name }); });
+            }
+          } catch {}
+        }));
+        all.sort((a, b) => (b.changed_at || '').localeCompare(a.changed_at || ''));
+        setItems(all.slice(0, 10));
+      } finally { setLoading(false); }
+    })();
+  }, []);
+  if (loading) return <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Cargando…</div>;
+  if (items.length === 0) return <div data-testid="dash-no-changes" style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Sin cambios recientes registrados.</div>;
+  const SOURCE_COLOR = {
+    manual_edit: '#c7d2fe', auto_sync: '#86efac', drive_webhook: '#f9a8d4',
+    drive_watcher: '#e9d5ff', bulk_upload: '#fcd34d', drive_sheets: '#93c5fd', system: 'var(--cream-3)',
+  };
+  return (
+    <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      {items.map((h, i) => (
+        <div key={h.id || i} data-testid={`dash-change-${i}`} style={{
+          display: 'grid', gridTemplateColumns: '1.4fr 1.2fr 0.8fr 1fr 1fr', gap: 0,
+          padding: '9px 14px', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none',
+          fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', alignItems: 'center',
+        }}>
+          <div style={{ color: 'var(--cream)', fontWeight: 600 }}>{h.dev_name || h.development_id}</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 10 }}>{h.unit_id}</div>
+          <div>{h.field_changed}</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--cream-3)' }}>
+            {String(h.old_value ?? '—')} → <span style={{ color: 'var(--cream)' }}>{String(h.new_value ?? '—')}</span>
+          </div>
+          <div>
+            <span style={{
+              padding: '2px 8px', borderRadius: 9999, fontSize: 9, fontWeight: 600,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+              color: SOURCE_COLOR[h.source] || 'var(--cream-3)',
+            }}>{h.source}</span>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

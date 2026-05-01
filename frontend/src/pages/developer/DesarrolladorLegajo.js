@@ -10,6 +10,7 @@ import AssetGallery from '../../components/documents/AssetGallery';
 import { ComplianceDotStrip } from '../../components/marketplace/ComplianceBadge';
 import { FileText, Camera, Map, AlertTriangle, ArrowRight, Sparkle } from '../../components/icons';
 import DriveConnect from '../../components/documents/DriveConnect';
+import UnitsHistoryTimeline from '../../components/documents/UnitsHistoryTimeline';
 import * as docsApi from '../../api/documents';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -95,6 +96,7 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
     { k: 'planos', label: 'Planos', icon: Map },
     { k: 'avance', label: 'Avance de obra', icon: Sparkle },
     { k: 'tour360', label: 'Tour 360°', icon: Camera },
+    { k: 'historial', label: 'Histórico unidades', icon: ArrowRight },
   ];
 
   return (
@@ -164,6 +166,10 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
 
       {tab === 'tour360' && (
         <Tour360Tab devId={slug} />
+      )}
+
+      {tab === 'historial' && (
+        <UnitsHistoryTimeline devId={slug} role="developer_admin" limit={100} />
       )}
     </DeveloperLayout>
   );

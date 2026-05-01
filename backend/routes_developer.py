@@ -141,6 +141,17 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
     db = get_db(request)
     if payload.status not in ("disponible", "apartado", "reservado", "vendido", "bloqueado"):
         raise HTTPException(400, "status inválido")
+    # Capture old status for history before upsert
+    prev = await db.developer_unit_overrides.find_one({"unit_id": payload.unit_id}, {"_id": 0, "status": 1})
+    old_status = (prev or {}).get("status")
+    if old_status is None:
+        # Fallback to seed status
+        from data_developments import DEVELOPMENTS_BY_ID
+        dev = DEVELOPMENTS_BY_ID.get(payload.dev_id) or {}
+        for u in dev.get("units", []):
+            if u.get("id") == payload.unit_id:
+                old_status = u.get("status")
+                break
     await db.developer_unit_overrides.update_one(
         {"unit_id": payload.unit_id},
         {"$set": {
@@ -156,6 +167,17 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
         "user_id": user.user_id, "action": "unit_status_change",
         "payload": payload.model_dump(), "ts": _now(),
     })
+    # Phase 7.9 — units_history trigger
+    try:
+        from units_history import record_unit_change
+        await record_unit_change(
+            db, unit_id=payload.unit_id, development_id=payload.dev_id,
+            field_changed="status", old_value=old_status, new_value=payload.status,
+            changed_by_user_id=user.user_id, source="manual_edit",
+            extra={"reason": payload.reason or ""},
+        )
+    except Exception as e:
+        import logging; logging.getLogger("dmx").warning(f"units_history record failed: {e}")
     return {"ok": True, "status": payload.status}
 
 

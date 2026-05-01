@@ -244,15 +244,21 @@ def start_scheduler(db):
         args=[db], id="ie_daily_score_recompute", replace_existing=True,
         misfire_grace_time=3600,
     )
-    # Phase 7.11 — Drive watcher every 6h
-    from drive_engine import run_drive_watcher_once
+    # Phase 7.11 — Drive watcher every 6h (FALLBACK; webhooks are realtime)
+    from drive_engine import run_drive_watcher_once, renew_expiring_webhooks
     _scheduler.add_job(
         run_drive_watcher_once, CronTrigger(hour="*/6", minute=15, timezone=TZ),
         args=[db], id="drive_watcher", replace_existing=True,
         misfire_grace_time=1800,
     )
+    # Phase 7.11 upgrade — renew webhooks expiring within 24h (Google caps ~7d)
+    _scheduler.add_job(
+        renew_expiring_webhooks, CronTrigger(hour=3, minute=30, timezone=TZ),
+        args=[db], id="drive_webhook_renew", replace_existing=True,
+        misfire_grace_time=3600,
+    )
     _scheduler.start()
-    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute", "drive_watcher"])
+    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew"])
     return _scheduler
 
 

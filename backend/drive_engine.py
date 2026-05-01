@@ -259,12 +259,108 @@ def _revoke_token_sync(refresh_token: str) -> bool:
         return False
 
 
+# ─── Drive Activity Webhooks (push notifications) ────────────────────────────
+def _webhook_url() -> str:
+    backend = os.environ.get("REACT_APP_BACKEND_URL") or os.environ.get("BACKEND_PUBLIC_URL", "")
+    return f"{backend.rstrip('/')}/api/webhooks/drive-changes"
+
+
+def _start_changes_channel_sync(conn: Dict[str, Any], webhook_token: str) -> Dict[str, Any]:
+    """Register a `changes.watch` channel for the current page token.
+    Returns Google's response: {kind, id, resourceId, expiration (ms), ...}."""
+    svc = _drive_service(conn)
+    # Get latest startPageToken (per-user)
+    start = svc.changes().getStartPageToken().execute()
+    page_token = start["startPageToken"]
+    channel_id = f"dmx-drv-{uuid.uuid4().hex}"
+    body = {
+        "id": channel_id,
+        "type": "web_hook",
+        "address": _webhook_url(),
+        "token": webhook_token,
+        # Google caps expiration ~7d for Drive; let it default and read back.
+    }
+    resp = svc.changes().watch(pageToken=page_token, body=body).execute()
+    resp["_page_token"] = page_token
+    return resp
+
+
+def _stop_channel_sync(conn: Dict[str, Any], channel_id: str, resource_id: str) -> bool:
+    try:
+        svc = _drive_service(conn)
+        svc.channels().stop(body={"id": channel_id, "resourceId": resource_id}).execute()
+        return True
+    except Exception as e:
+        log.warning(f"[drive] stop channel failed (ignorable on already-expired): {e}")
+        return False
+
+
+async def setup_webhook_for_connection(db, conn: Dict[str, Any]) -> Dict[str, Any]:
+    """Idempotent: stop existing channel (if any) + start new one.
+    Returns audit dict {ok, channel_id, expiration, error}."""
+    if not _has_keys():
+        return {"ok": False, "error": "google_oauth_keys_missing"}
+    dev_id = conn["development_id"]
+    # Stop existing
+    if conn.get("webhook_channel_id") and conn.get("webhook_resource_id"):
+        await asyncio.to_thread(_stop_channel_sync, conn, conn["webhook_channel_id"], conn["webhook_resource_id"])
+    token = uuid.uuid4().hex
+    try:
+        resp = await asyncio.to_thread(_start_changes_channel_sync, conn, token)
+    except Exception as e:
+        log.exception(f"[drive] webhook setup failed dev={dev_id}: {e}")
+        return {"ok": False, "error": f"watch_failed: {type(e).__name__}: {e}"}
+    expiration_ms = int(resp.get("expiration", 0))
+    expires_at = datetime.fromtimestamp(expiration_ms / 1000.0, tz=timezone.utc) if expiration_ms else None
+    await db.dev_drive_connections.update_one(
+        {"development_id": dev_id},
+        {"$set": {
+            "webhook_channel_id": resp.get("id"),
+            "webhook_resource_id": resp.get("resourceId"),
+            "webhook_expiration": expires_at,
+            "webhook_token": token,
+            "webhook_page_token": resp.get("_page_token"),
+            "updated_at": _now(),
+        }},
+    )
+    return {"ok": True, "channel_id": resp.get("id"), "expiration": expires_at.isoformat() if expires_at else None}
+
+
+async def teardown_webhook_for_connection(db, conn: Dict[str, Any]) -> None:
+    if conn.get("webhook_channel_id") and conn.get("webhook_resource_id"):
+        try:
+            await asyncio.to_thread(_stop_channel_sync, conn, conn["webhook_channel_id"], conn["webhook_resource_id"])
+        except Exception:
+            pass
+
+
+async def renew_expiring_webhooks(db) -> Dict[str, Any]:
+    """Renew webhooks expiring within 24h. Called by daily cron."""
+    if not _has_keys():
+        return {"ok": False, "reason": "google_oauth_keys_missing"}
+    threshold = _now().timestamp() + 24 * 3600
+    audits: List[Dict[str, Any]] = []
+    cursor = db.dev_drive_connections.find({"status": "connected", "webhook_channel_id": {"$ne": None}})
+    async for c in cursor:
+        exp = c.get("webhook_expiration")
+        if isinstance(exp, datetime):
+            if exp.timestamp() > threshold:
+                continue
+        elif exp is None:
+            continue
+        a = await setup_webhook_for_connection(db, c)
+        a["dev_id"] = c["development_id"]
+        audits.append(a)
+    return {"ok": True, "renewed": len(audits), "audits": audits}
+
+
 # ─── Watcher cron ─────────────────────────────────────────────────────────────
-async def _sync_one_connection(db, conn: Dict[str, Any]) -> Dict[str, Any]:
-    """Returns audit dict {dev_id, scanned, new, updated, errors}."""
+async def _sync_one_connection(db, conn: Dict[str, Any], *, triggered_via: str = "cron") -> Dict[str, Any]:
+    """Returns audit dict {dev_id, scanned, new, updated, errors, triggered_via}."""
     from routes_documents import _ingest_document_bytes
     dev_id = conn["development_id"]
-    audit = {"dev_id": dev_id, "scanned": 0, "new": 0, "updated": 0, "errors": [], "started_at": _now().isoformat()}
+    audit = {"dev_id": dev_id, "scanned": 0, "new": 0, "updated": 0, "errors": [],
+             "triggered_via": triggered_via, "started_at": _now().isoformat()}
 
     if not _has_keys():
         audit["errors"].append("GOOGLE_OAUTH_* keys missing")
@@ -325,8 +421,8 @@ async def _sync_one_connection(db, conn: Dict[str, Any]) -> Dict[str, Any]:
                 db, dev_id,
                 user_id=user_id, user_name="Drive Watcher", user_role="system",
                 filename=final_name, data=data, doc_type=doc_type,
-                upload_notes=f"Auto-imported from Google Drive folder '{conn.get('folder_name','')}'" + (" (native exported)" if is_native else ""),
-                source="drive_watcher",
+                upload_notes=f"Auto-imported from Google Drive folder '{conn.get('folder_name','')}'" + (" (native exported)" if is_native else "") + (" · webhook" if triggered_via == "webhook" else ""),
+                source="drive_webhook" if triggered_via == "webhook" else "drive_watcher",
                 source_metadata={
                     "drive_file_id": fid,
                     "drive_md5": md5,
@@ -525,7 +621,10 @@ async def drive_set_folder(dev_id: str, body: SetFolderIn, request: Request):
         {"development_id": dev_id},
         {"$set": {"folder_id": body.folder_id, "folder_name": body.folder_name, "status": "connected", "updated_at": _now()}},
     )
-    return {"ok": True}
+    # Phase 7.11 upgrade — auto-setup webhook for realtime push
+    fresh = await db.dev_drive_connections.find_one({"development_id": dev_id})
+    webhook_audit = await setup_webhook_for_connection(db, fresh)
+    return {"ok": True, "webhook": webhook_audit}
 
 
 # ─── 5. Status ────────────────────────────────────────────────────────────────
@@ -564,6 +663,8 @@ async def drive_disconnect(dev_id: str, request: Request):
     conn = await db.dev_drive_connections.find_one({"development_id": dev_id})
     if not conn:
         raise HTTPException(404, "Conexión Drive no encontrada")
+    # Phase 7.11 upgrade — teardown webhook FIRST
+    await teardown_webhook_for_connection(db, conn)
     rt = _dec(conn.get("refresh_token_enc"))
     if rt:
         await asyncio.to_thread(_revoke_token_sync, rt)
@@ -582,6 +683,39 @@ async def drive_connections(request: Request):
     async for c in db.dev_drive_connections.find({}):
         out.append(_public_conn(c))
     return {"configured": _has_keys(), "count": len(out), "connections": out}
+
+
+# ─── 9. Public webhook endpoint (Phase 7.11 upgrade) ──────────────────────────
+# Public endpoint — Google POSTs here without auth. We validate via
+# X-Goog-Channel-Token header against stored webhook_token per connection.
+@router.post("/api/webhooks/drive-changes")
+async def drive_webhook(request: Request):
+    db = request.app.state.db
+    channel_id = request.headers.get("x-goog-channel-id") or request.headers.get("X-Goog-Channel-ID")
+    resource_state = request.headers.get("x-goog-resource-state") or "change"
+    channel_token = request.headers.get("x-goog-channel-token") or ""
+
+    if not channel_id:
+        raise HTTPException(400, "Missing X-Goog-Channel-ID")
+
+    conn = await db.dev_drive_connections.find_one({"webhook_channel_id": channel_id})
+    if not conn:
+        # Unknown channel — return 200 silently to avoid Google retries (we may have rotated)
+        log.warning(f"[drive-webhook] unknown channel_id={channel_id}")
+        return {"ok": True, "ignored": True}
+
+    if (conn.get("webhook_token") or "") != channel_token:
+        log.warning(f"[drive-webhook] token mismatch channel={channel_id}")
+        raise HTTPException(403, "Token mismatch")
+
+    # Drive sends a "sync" message right after channel creation — no real change yet.
+    if resource_state == "sync":
+        return {"ok": True, "state": "sync_handshake"}
+
+    # Trigger sync in background — return 200 immediately (Google requires <30s response)
+    import asyncio
+    asyncio.create_task(_sync_one_connection(db, conn, triggered_via="webhook"))
+    return {"ok": True, "triggered": True, "dev_id": conn["development_id"]}
 
 
 # Developer multi-tenant aliases (mirror /api/superadmin/drive/* under /api/desarrollador/drive/*)

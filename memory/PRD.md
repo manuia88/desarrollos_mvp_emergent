@@ -373,6 +373,95 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Phase 7.9 (complement) + 7.11 upgrade · Status histórico + Drive Webhooks
+Cierre de Phase 7 al 100% con 2 mejoras complementarias.
+
+### A · Status histórico per unit (Phase 7.9 complement)
+- **`units_history` collection** + indexes `(unit_id, changed_at desc)` y `(development_id, changed_at desc)` + `source`.
+- **`record_unit_change(...)`** helper centralizado: skip si old==new, valida `source` contra `ALLOWED_SOURCES = {manual_edit, auto_sync, drive_sheets, drive_webhook, drive_watcher, bulk_upload, system}`.
+- **`diff_units_overlay_and_record(...)`** detecta cambios entre 2 listas de units en 8 fields tracked (precio, status, tipo, m2, recamaras, banos, nivel, cajones) + flag `removed` cuando una unit desaparece.
+- **Triggers wired**:
+  - `routes_developer.patch_unit_status` → `source=manual_edit` (con `extra.reason`).
+  - `auto_sync_engine.apply_changes` → param `units_history_source` (default `auto_sync`); emite 1 row per field change, vinculada al `source_doc_id` del LP.
+  - Drive watcher → cuando ingest dispara apply_changes downstream, propaga source.
+- **4 endpoints** (+ 2 dev_alias multi-tenant):
+  - `GET /api/superadmin/units/{unit_id}/history?limit=`
+  - `GET /api/superadmin/developments/{dev_id}/units-history?limit=`
+  - 2 alias `/api/desarrollador/...`
+- **Frontend** `UnitsHistoryTimeline.js` (180 líneas):
+  - Tabla cronológica responsive con columnas {Unidad, Campo, Antes, Después, Origen, Cuándo} (modo `compact` para widgets).
+  - 7 source badges con colores distintos (manual·indigo, auto-sync·green, drive_webhook·pink, drive_watcher·purple, drive_sheets·blue, bulk·amber, system·neutral).
+  - Botón refresh.
+  - Empty state explicativo.
+- **Wired**:
+  - Legajo `/desarrollador/desarrollos/:slug/legajo` nuevo tab "Histórico unidades".
+  - Superadmin dashboard widget "Cambios recientes (todos los desarrollos)" con cross-dev fetch + sort por timestamp + top 10.
+
+### B · Drive Webhooks (Phase 7.11 upgrade · polling 6h → realtime)
+- **Schema extension** `dev_drive_connections`: + `webhook_channel_id`, `webhook_resource_id`, `webhook_expiration`, `webhook_token` (random secret per conn), `webhook_page_token` (Google's startPageToken).
+- **`setup_webhook_for_connection`**: idempotente — stop existing channel si lo hay → `drive.changes.getStartPageToken()` → `drive.changes.watch({id, type:'web_hook', address:webhook_url, token})` → persiste resp.
+- **`teardown_webhook_for_connection`**: `drive.channels.stop({id, resourceId})` (no falla si ya expiró).
+- **Auto-setup** post folder selection: `drive_set_folder` ahora retorna `{ok, webhook: {ok, channel_id, expiration}}`.
+- **Auto-teardown** en `drive_disconnect` antes de revocar token.
+- **Renewal cron** `drive_webhook_renew` daily 03:30 → `renew_expiring_webhooks(db)` itera conns con `webhook_expiration < now+24h` y re-suscribe.
+- **Endpoint público** `POST /api/webhooks/drive-changes`:
+  - Lee headers `X-Goog-Channel-ID`, `X-Goog-Channel-Token`, `X-Goog-Resource-State`.
+  - Validación: missing channel-id → 400 · unknown channel → 200 ignored (silent, evita retries de Google) · token mismatch → 403 · `resource_state=sync` → 200 sync_handshake (Google envía esto al crear el channel) · `change` → trigger `_sync_one_connection(triggered_via='webhook')` en background + return 200 inmediato (Google requiere <30s).
+- **`_sync_one_connection(triggered_via)`** ahora marca `source="drive_webhook"` vs `"drive_watcher"` en `_ingest_document_bytes` automáticamente.
+- **Cron 6h queda como FALLBACK** si webhook expira o falla — defensa en profundidad.
+- **Stub honesto** `GOOGLE_OAUTH_*` missing: `setup_webhook_for_connection` retorna `{ok:false, error:'google_oauth_keys_missing'}`, watcher noops.
+
+### Verificación end-to-end (curl)
+- ✅ Manual edit unit → `units_history` row con `source=manual_edit, extra.reason="..."`.
+- ✅ 2nd manual edit → row con old_value real ("apartado") → new_value ("vendido") (rastrea estado previo).
+- ✅ Multi-tenant guards: anon 401, dev own 200, dev foreign 403 en /units-history.
+- ✅ Webhook missing channel-id → 400.
+- ✅ Webhook unknown channel → 200 silent ignore (anti-retry).
+- ✅ Webhook bad token → 403 (con conn real).
+- ✅ Webhook good token + `resource_state=sync` → `{ok, state: sync_handshake}`.
+- ✅ Webhook good token + `resource_state=change` → `{ok, triggered: true, dev_id}` + background sync.
+- ✅ APScheduler 5 jobs en startup: ie_daily_ingestion · ie_hourly_status · ie_daily_score_recompute · drive_watcher · drive_webhook_renew.
+
+### Archivos tocados
+- `/app/backend/units_history.py` (nuevo · 175 líneas · `record_unit_change` + `diff_units_overlay_and_record` + 2 endpoints + 2 dev_alias)
+- `/app/backend/drive_engine.py` (+ 100 líneas: webhook helpers + public endpoint + setup/teardown/renew)
+- `/app/backend/auto_sync_engine.py` (+ `units_history_source` param)
+- `/app/backend/routes_developer.py` (+ trigger en `patch_unit_status`)
+- `/app/backend/scheduler_ie.py` (+ `drive_webhook_renew` cron daily 03:30)
+- `/app/backend/server.py` (+ uh_router + uh_dev_alias + ensure_units_history_indexes startup)
+- `/app/backend/.env` (+ GOOGLE_API_KEY guardada para futuros usos)
+- `/app/frontend/src/components/documents/UnitsHistoryTimeline.js` (nuevo · 180 líneas · 7 source badges)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+ tab Histórico unidades)
+- `/app/frontend/src/pages/superadmin/SuperadminDashboard.js` (+ widget RecentChangesAcrossDevs cross-dev)
+- `/app/memory/PRD.md`
+
+### Phase 7 cerrada al 100% ✅
+Cumplido todo el roadmap original Phase 7:
+- 7.1 ✅ Document Upload + OCR + Fernet
+- 7.2 ✅ Claude Structured Extraction (11 templates)
+- 7.3 ✅ Cross-Check Engine + GC-X4 Pricing
+- 7.4 ✅ Developer Portal Legajo + Compliance Badge
+- 7.5 ✅ Auto-sync Marketplace
+- 7.6 ✅ Asset Pipeline (watermark + Vision categorize + Pedra stub)
+- 7.9 ✅ Status histórico per unit (este sprint)
+- 7.11 ✅ Drive Watch Service + Webhooks realtime (este sprint)
+
+### Pending fuera de Phase 7
+- Phase 7.10 — Avance de obra timeline (P1, no crítico para Moat #2 cierre)
+- Phase D — RAG ✅ (D1+D2 completados antes)
+- C11 Caya conversational UI completa + WhatsApp Business real
+- Studio Wave 1.5 (S1.2 timeline + S1.3 export presets)
+- Refactor `server.py` → routers (esperando prompt usuario)
+
+### Activación pendiente del usuario para Drive realtime
+Para activar webhooks realtime end-to-end, además del setup OAuth de Phase 7.11, el `webhook_url` debe ser HTTPS público accesible desde Google. La preview URL de Emergent ya cumple. Cuando agregues `GOOGLE_OAUTH_CLIENT_ID/SECRET`:
+1. Conectar Drive en Legajo header → OAuth flow.
+2. Seleccionar carpeta → backend auto-suscribe webhook.
+3. Editar/agregar archivos en esa carpeta → Google envía POST al endpoint en <2s → ingest automático con `source=drive_webhook`.
+
+---
+
+
 ## 2026-05-01 — Phase 7.11 · Drive Watch Service
 **Objetivo:** Google Drive OAuth per-tenant + cron 6h watcher que detecta cambios via md5Checksum y dispara automáticamente el pipeline 7.1 (upload encrypted) → 7.2 (Claude extraction) → 7.5 (auto-sync marketplace).
 

@@ -102,6 +102,11 @@ from drive_engine import router as drive_router, dev_alias as drive_dev_alias, e
 app.include_router(drive_router)
 app.include_router(drive_dev_alias)
 
+# Phase 7.9 — Units history
+from units_history import router as uh_router, dev_alias as uh_dev_alias, ensure_units_history_indexes
+app.include_router(uh_router)
+app.include_router(uh_dev_alias)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -284,6 +289,8 @@ async def startup():
     await ensure_caya_indexes(db)
     # Phase 7.11 — Drive connection indexes
     await ensure_drive_indexes(db)
+    # Phase 7.9 — units history indexes
+    await ensure_units_history_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o
