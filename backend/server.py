@@ -73,6 +73,12 @@ app.include_router(briefing_router)
 from routes_studio import router as studio_router
 app.include_router(studio_router)
 
+# Wire Document Intelligence router (Phase 7.1 — Moat #2)
+from routes_documents import router as documents_router, dev_alias as documents_dev_alias_router
+from document_intelligence import ensure_di_indexes
+app.include_router(documents_router)
+app.include_router(documents_dev_alias_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -228,6 +234,8 @@ async def startup():
     # IE Engine — Phase B1 score infra: indexes + recipe auto-discover
     await ensure_score_indexes(db)
     discover_recipes()
+    # Phase 7.1 — Document Intelligence indexes
+    await ensure_di_indexes(db)
     # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
     start_scheduler(db)
 

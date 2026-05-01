@@ -289,6 +289,87 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Phase 7.1 · Document Intelligence Pipeline (Moat #2 base)
+**Objetivo:** infraestructura para subir, procesar (OCR) y almacenar de forma cifrada documentos legales/comerciales por desarrollo. Base para 7.2 (extracción estructurada) y 7.3 (cross-checking).
+
+### Backend
+- **Nuevo módulo `document_intelligence.py`** — encryption (Fernet via `IE_FERNET_KEY` reusada · NO key nueva), OCR pipeline, Mongo indexes, sanitize helpers.
+  - Pipeline OCR: `pdfplumber` para PDFs con capa de texto (confianza 0.95), fallback `tesseract spa` para PDFs imagen. `tesseract spa` directo para JPG / PNG / TIFF. Cap 50 MB / archivo. Cap 500K chars OCR text.
+  - Cifrado dual: archivo en disco como bytes Fernet (`/app/backend/uploads/document_intelligence/{doc_id}.bin`) + `ocr_text_enc` Fernet en Mongo. Mime, sha256 y tamaños van plain.
+  - Tesseract instalado: `tesseract-ocr-spa`, `libmagic1`, `poppler-utils` (sistema) + `pytesseract`, `pdfplumber`, `python-magic` (Python).
+- **Nuevo módulo `routes_documents.py`** — 11 endpoints (6 superadmin + 5 alias `/api/desarrollador/*`):
+  - `POST /api/superadmin/developments/{dev_id}/documents/upload` — multipart (file + doc_type + upload_notes + period_start/end) → cifra y dispara `asyncio.create_task(run_ocr_for_document)`.
+  - `GET /api/superadmin/developments/{dev_id}/documents` — list por dev (filtros doc_type, status).
+  - `GET /api/superadmin/documents` — list global (filtrado por tenant).
+  - `GET /api/superadmin/documents/{doc_id}` — detalle + `ocr_preview` (1500 chars) descifrado on-read.
+  - `GET /api/superadmin/documents/{doc_id}/download` — descarga descifrada con verificación sha256 (409 si hash mismatch).
+  - `POST /api/superadmin/documents/{doc_id}/reprocess-ocr` — reset status pending + re-encolar OCR.
+  - `DELETE /api/superadmin/documents/{doc_id}` — elimina archivo cifrado del disco + extractions + doc.
+  - `GET /api/superadmin/document-types` — diccionario es-MX (11 tipos).
+  - Aliases `/api/desarrollador/*` con la misma lógica para devloper_admin.
+- **Multi-tenant guard** — `TENANT_DEV_MAP`:
+  - `superadmin` (tenant=`dmx`) → todos los desarrollos.
+  - `developer_admin` (tenant=`constructora_ariel`) → solo developer_ids `["quattro", "habitare-capital", "agora-urbana"]`.
+  - Mapping desde developer_ids → development_ids automático vía `data_developments.DEVELOPMENTS`.
+  - Roles distintos a esos dos → 403.
+- **Doc types (11)** según `03_INTELLIGENCE.md` sec 6: `lp`, `brochure`, `escritura`, `permiso_seduvi`, `estudio_suelo`, `licencia_construccion`, `predial`, `plano_arquitectonico`, `contrato_cv`, `constancia_fiscal`, `otro`. Granularidad necesaria para 7.2 (templates Claude por tipo) y 7.3 (cross-checks SEDUVI ≠ licencia construcción, predial vs constancia fiscal, etc.).
+- **Schemas Mongo**:
+  - `di_documents` — id, development_id, developer_id, uploader_user_id/name/role, filename, file_size_bytes, mime_type, file_hash (sha256), storage_path, doc_type, status, ocr_text_enc, ocr_text_chars, ocr_pages_count, ocr_confidence, ocr_engine, ocr_error, upload_notes, period_relevant_start/end, created_at, processed_at, expires_at. Indexes: (development_id, created_at desc), status, file_hash, doc_type, id unique.
+  - `di_extractions` — placeholder para 7.2 (id, document_id, extracted_data, schema_version, claude_model_used, extracted_at).
+- **Wiring `server.py`** — router montado, `ensure_di_indexes` en startup.
+
+### Frontend
+- **Nuevo `api/documents.js`** — 7 helpers (listDocTypes, listDevDocuments, listAllDocuments, getDocument, reprocessOcr, deleteDocument, uploadDocument, downloadDocumentUrl). Scope `superadmin | developer` switchable.
+- **Nuevo `components/documents/UploadDocumentModal.js`** — modal 640px gradient, dropzone drag&drop + acepta PDF/JPG/PNG/TIFF, select doc_type (11 tipos labeled es-MX), notas, vigencia desde/hasta. Errores inline. Botón submit gradient con estados disabled.
+- **Nuevo `components/documents/DocumentsList.js`** — widget reusable con tabla (Archivo, Tipo, Status pill, Tamaño, Subido, Acciones), drawer preview lateral (560px) con OCR text descifrado en `<pre>` + meta grid (uploader, fechas, sha256, vigencia, notas) + status badges (engine, confianza, páginas, chars), polling auto cada 2.5s mientras hay docs en `pending|ocr_running`.
+- **Nueva página `/superadmin/documents`** (`pages/superadmin/DocumentsPage.js`) — sidebar con 18 desarrollos + buscador, panel central con DocumentsList del dev activo, stats strip (Documentos, OCR listos, En proceso, Fallidos, Tipos distintos).
+- **Widget Developer Portal** — DocumentsList montado en `/desarrollador/inventario` debajo de la tabla del desarrollo activo, scope='developer'.
+- **Nav superadmin** — link "Documentos" con icon `FileText` en `SuperadminLayout`.
+- **6 iconos nuevos** en `components/icons/index.js`: `FileText`, `Upload`, `Download`, `Trash`, `RotateCcw`, `AlertTriangle`, `Check`.
+
+### Verificación end-to-end
+- **Upload PDF text-layer (escritura)** — pdfplumber engine, confianza 0.95, ocr_text descifrado: "Escritura publica notarial / Lote 12 Manzana 5 Polanco" ✓.
+- **Upload PNG image (permiso_seduvi)** — tesseract_spa engine, confianza 0.647, ocr_text: "Permiso SEDUVI numero 12345 valido para 2026" ✓.
+- **Sha256 dedupe** — re-upload mismo PDF → 409 con `Documento duplicado (sha256 ya existe en este desarrollo)` ✓.
+- **Validación extension** — .txt → 400 ✓.
+- **Validación doc_type** — `invalid_type` → 400 ✓.
+- **Multi-tenant guard**:
+  - dev_admin (constructora_ariel) → altavista-polanco (quattro): **200** ✓
+  - dev_admin → roma-norte-orquidea (agora-urbana): **200** ✓
+  - dev_admin → juarez-boutique (origen, NO tenant): **403** ✓
+  - buyer (sin auth): **401** ✓
+  - advisor: **403** ✓
+- **Download** — sha256 verificado on-read, archivo idéntico al subido ✓.
+- **Reprocess OCR** — status pending → ocr_running → ocr_done con timestamps actualizados ✓.
+- **Delete** — archivo cifrado removido del disco ✓.
+- **Playwright /superadmin/documents** — h1 "Document Intelligence", stats correctos, sidebar 18 desarrollos, fila escritura_test.pdf con pill "OCR LISTO" verde, drawer preview muestra OCR descifrado + meta + sha256 truncado ✓.
+- **Playwright /desarrollador/inventario** — widget "Documentos del desarrollo" renderiza debajo de la tabla de unidades con misma fila en OCR listo ✓.
+
+### Archivos tocados
+- `/app/backend/document_intelligence.py` (nuevo · 350 líneas)
+- `/app/backend/routes_documents.py` (nuevo · 320 líneas)
+- `/app/backend/server.py` (router + ensure_di_indexes)
+- `/app/backend/.env` (+DI_UPLOAD_DIR, +ELEVENLABS_API_KEY)
+- `/app/backend/requirements.txt` (pip freeze post pytesseract/pdfplumber/python-magic)
+- `/app/frontend/src/api/documents.js` (nuevo)
+- `/app/frontend/src/components/documents/UploadDocumentModal.js` (nuevo)
+- `/app/frontend/src/components/documents/DocumentsList.js` (nuevo)
+- `/app/frontend/src/pages/superadmin/DocumentsPage.js` (nuevo)
+- `/app/frontend/src/components/superadmin/SuperadminLayout.js` (link "Documentos")
+- `/app/frontend/src/components/icons/index.js` (+7 iconos)
+- `/app/frontend/src/pages/developer/DesarrolladorInventario.js` (widget DocumentsList)
+- `/app/frontend/src/App.js` (+ruta `/superadmin/documents`)
+- `/app/memory/PRD.md`
+
+### Phase 7 — Document Intelligence
+- **Phase 7.1 ✅** Upload + OCR + Fernet storage + multi-tenant guard
+- Phase 7.2 ⏳ Claude structured extraction por doc_type (templates específicos)
+- Phase 7.3 ⏳ Cross-checking entre documentos (precios escritura vs LP, vigencias predial, SEDUVI vs licencia, etc.)
+- Phase 7.4 ⏳ Documents page completa en Developer Portal (read-only summary + tab por tipo)
+
+---
+
+
 
 - **Backend `briefing_engine.py`** nuevo módulo:
   - POST `/api/asesor/briefing-ie` · POST `/:id/feedback` · GET `/:id` · GET `/briefings` · GET `/briefings/summary`.

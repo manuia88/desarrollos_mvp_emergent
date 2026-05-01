@@ -1,7 +1,7 @@
 // SuperadminLayout — sidebar nav for /superadmin/* (mirror of DeveloperLayout pattern).
 import React from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
-import { Database, LogOut, MapPin, BarChart, Sparkle } from '../icons';
+import { Database, LogOut, MapPin, BarChart, Sparkle, FileText } from '../icons';
 
 const ROLES_OK = new Set(['superadmin']);
 
@@ -9,6 +9,7 @@ const NAV = [
   { k: 'dashboard',     to: '/superadmin',              label: 'Panel',          Icon: BarChart, end: true },
   { k: 'data_sources',  to: '/superadmin/data-sources', label: 'Fuentes de datos', Icon: Database },
   { k: 'scores',        to: '/superadmin/scores',       label: 'Scores IE',      Icon: Sparkle },
+  { k: 'documents',     to: '/superadmin/documents',    label: 'Documentos',     Icon: FileText },
 ];
 
 export default function SuperadminLayout({ user, onLogout, children }) {

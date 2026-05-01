@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
+import DocumentsList from '../../components/documents/DocumentsList';
 
 const STATUSES = ['disponible', 'apartado', 'reservado', 'vendido', 'bloqueado'];
 const TONE = { disponible: 'ok', apartado: 'warn', reservado: 'pink', vendido: 'neutral', bloqueado: 'bad' };
@@ -110,6 +111,13 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                 </table>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Phase 7.1 — Document Intelligence widget */}
+        {dev && (
+          <div data-testid="dev-documents-widget" style={{ marginTop: 22 }}>
+            <DocumentsList devId={dev.id} devName={dev.name} scope="developer" compact={false} />
           </div>
         )}
 
