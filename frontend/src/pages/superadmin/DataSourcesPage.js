@@ -1,5 +1,6 @@
-// /superadmin/data-sources — IE Engine wire-up + manual upload admin (Phase A3: connect + test + sync + upload).
+// /superadmin/data-sources — IE Engine wire-up + manual upload admin (Phase A4: + cron + detail).
 import React, { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import ConnectModal from '../../components/superadmin/ConnectModal';
 import UploadModal from '../../components/superadmin/UploadModal';
@@ -249,10 +250,12 @@ export default function DataSourcesPage({ user, onLogout }) {
                   return (
                     <tr key={s.id} data-testid={`sa-row-${s.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 14px', color: 'var(--cream)' }}>
-                        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5 }}>{s.name}</div>
-                        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>
-                          {s.id}
-                        </div>
+                        <Link to={`/superadmin/data-sources/${s.id}`} data-testid={`sa-link-${s.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>{s.name}</div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>
+                            {s.id}
+                          </div>
+                        </Link>
                       </td>
                       <td style={{ padding: '12px 14px', color: 'var(--cream-2)' }}>
                         {CATEGORY_LABELS[s.category] || s.category}

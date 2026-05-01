@@ -20,6 +20,7 @@ from typing import List, Optional, Dict, Any
 
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import APIRouter, HTTPException, Request, Query, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from data_ie_sources import IE_DATA_SOURCES_SEED, initial_status_for
@@ -28,6 +29,7 @@ from uploads_ie import (
     MAX_UPLOAD_BYTES, ALLOWED_EXTS, is_allowed,
     sha256_bytes, build_preview, parse_manual_upload, upload_dir,
 )
+from scheduler_ie import trigger_now
 
 
 router = APIRouter(prefix="/api/superadmin")
@@ -665,3 +667,63 @@ async def get_upload(upload_id: str, request: Request):
     if not upl:
         raise HTTPException(404, "Upload no encontrado")
     return ManualUploadOut(**upl)
+
+
+
+@router.get("/uploads/{upload_id}/download")
+async def download_upload(upload_id: str, request: Request):
+    """Download the raw uploaded file. Role-gated. Returns the original file with proper headers."""
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+    upl = await db.ie_manual_uploads.find_one({"id": upload_id}, {"_id": 0})
+    if not upl:
+        raise HTTPException(404, "Upload no encontrado")
+
+    storage_path = upl.get("storage_path")
+    if not storage_path or not os.path.exists(storage_path):
+        raise HTTPException(410, "Archivo ausente del storage (posiblemente movido o purgado).")
+
+    # Verify on-disk hash still matches what we stored — alarms tampering.
+    try:
+        with open(storage_path, "rb") as fh:
+            current_hash = sha256_bytes(fh.read())
+    except OSError as e:
+        raise HTTPException(500, f"No pude leer el archivo: {e}") from e
+
+    if current_hash != upl.get("file_hash"):
+        await db.ie_manual_uploads.update_one(
+            {"id": upload_id},
+            {"$set": {"status": "failed", "processed_at": datetime.now(timezone.utc)}},
+        )
+        raise HTTPException(409, "Hash on-disk no coincide con el original — archivo manipulado.")
+
+    await audit(user.user_id, "ie_upload_download", upl["source_id"], {"upload_id": upload_id})
+    return FileResponse(
+        storage_path,
+        media_type=upl.get("mime_type") or "application/octet-stream",
+        filename=upl.get("filename") or upload_id,
+        headers={"X-IE-Upload-Hash": current_hash},
+    )
+
+
+# ─── Phase A4 — cron triggers ────────────────────────────────────────────────
+class CronTriggerIn(BaseModel):
+    job: str  # "daily_ingestion" | "hourly_status"
+
+
+class CronTriggerOut(BaseModel):
+    job: str
+    triggered_at: datetime
+    summary: List[Dict[str, Any]]
+
+
+@router.post("/cron/trigger", response_model=CronTriggerOut)
+async def trigger_cron(payload: CronTriggerIn, request: Request):
+    """Force-run a cron job from the UI (manual tick). Useful while the daily cron has not fired yet."""
+    user = await _require_superadmin(request)
+    db = request.app.state.db
+    if payload.job not in ("daily_ingestion", "hourly_status"):
+        raise HTTPException(400, "Job desconocido. Usa 'daily_ingestion' o 'hourly_status'.")
+    summary = await trigger_now(db, payload.job)
+    await audit(user.user_id, "ie_cron_trigger", payload.job, {"results": summary})
+    return CronTriggerOut(job=payload.job, triggered_at=datetime.now(timezone.utc), summary=summary or [])

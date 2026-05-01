@@ -109,6 +109,41 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — IE Engine Phase A4 FINAL (cron + detail page + download + 8 named stubs)
+- Backend
+  - `scheduler_ie.py`: AsyncIOScheduler con 2 jobs — `daily_ingestion` CronTrigger(hour=0, minute=0, timezone="America/Mexico_City") y `hourly_status_check` CronTrigger(minute=0). Logs JSON estructurados con prefijo `ie_cron` (filterables en Datadog/Stackdriver).
+  - `trigger_now(db, job)`: permite que la UI dispare manualmente cualquiera de los 2 jobs.
+  - `connectors_ie.py`: +8 named stub connectors con mocks source-specific (Banxico serie USD/MXN, AirROI occupancy+ADR por mercado, INEGI AGEB+ingreso, SACMEX cortes+duración, Locatel reportes, CONAGUA temp+humedad, GTFS modos+líneas, CENAPRED capas de riesgo). Factory ahora distingue `real` / `named_stub` / `stub`.
+  - 3 endpoints nuevos en `routes_ie_engine.py`:
+    - `POST /api/superadmin/cron/trigger` — dispara daily o hourly manualmente.
+    - `GET /api/superadmin/uploads/:id/download` — role-gated FileResponse con verificación sha256 on-read (si el hash no coincide → 409 + status=failed).
+    - `GET /api/superadmin/uploads/:id` (ya existía).
+  - Scheduler boot/teardown en FastAPI startup/shutdown hooks. `IE_DISABLE_CRON=1` para testing.
+- Frontend
+  - `/superadmin/data-sources/:id` — detail page con 4 tabs: **Estado** (metadatos + credenciales cifradas con masked preview), **Histórico ingestion** (tabla completa de jobs con duración calculada), **Uploads manuales** (cards con Descargar + Re-procesar + período + screenshot badge), **Errores** (lista cronológica del error_log).
+  - Dashboard: widget cron con 2 CTAs "Disparar daily_ingestion / hourly_status ahora" + toast live.
+  - Nombre de fuente en la tabla principal ahora linkea al detalle.
+- Breakdown final al cierre de Phase A: **18 fuentes** total
+  - 🟢 active (3): OSM Overpass, CONAGUA SMN, GTFS CDMX — keyless_url responden en vivo (OSM ingesta data real, otros caen a stubs por URLs pendientes).
+  - 🟡 stub (4): NOAA, CENAPRED, Mapbox, datos_cdmx — credentials presentes pero test falló o access_mode external_paid/wms_wfs sin URL.
+  - 🟪 manual_only (4): Catastro CDMX, DGIS, Atlas Riesgos CDMX, INEGI Shapefiles — se nutren solo vía upload manual.
+  - 🔵 H2 (1): Reelly Dubai.
+  - 🔴 blocked (6): Banxico, AirROI, INEGI, SACMEX, Locatel, FGJ CDMX — esperando API keys / resource_ids.
+- Verificación
+  - curl `POST /cron/trigger daily_ingestion` → 3 fuentes procesadas (OSM=1 real, CONAGUA=5 stub, GTFS=3 stub) ✓
+  - curl `POST /cron/trigger hourly_status` → 3 checks ✓
+  - curl `GET /uploads/:id/download` → sha256 idéntico al original, 401 sin cookie ✓
+  - Playwright: detail 4 tabs navegables ✓, 2 download + 2 reprocess buttons ✓, dashboard cron trigger+toast ✓
+  - Scheduler logs JSON estructurados en stdout: `{"ts":"...","ie_cron":"scheduler_started","tz":"America/Mexico_City","jobs":[...]}`
+- Logs rotación cifrado: `/app/IE_FERNET_ROTATION.md` (de A2)
+
+### IE Engine Phase A · COMPLETE ✅
+18 fuentes seedeadas · 4 collections Mongo indexadas · Fernet encryption · 12 connectors (4 real + 8 named stub + 6 base stub via Catastro/DGIS/etc) · 14 endpoints superadmin · APScheduler running 2 crons · manual upload con audit screenshot + sha256 dedupe + encoding/separator detection · detail page 4 tabs.
+
+**Phase B (score calculation N1-N2) queda pendiente para próximo chat.**
+
+---
+
 ## 2026-05-01 — IE Engine Phase A3 (manual upload + CSV preview + audit screenshot)
 - Backend
   - `uploads_ie.py`: 200 MB cap + extension allowlist + sha256 dedupe + auto-detect encoding (UTF-8 / Latin-1 / Windows-1252 vía `chardet`) + auto-detect separador (`,` `;` `\t` `|` vía `csv.Sniffer`). Soporte CSV / TSV / JSON / GeoJSON / ZIP / PDF / XLSX en metadata; parse activo solo CSV+JSON (otros guardados para audit).

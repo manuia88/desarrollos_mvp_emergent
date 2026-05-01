@@ -210,12 +210,108 @@ class OSMOverpassConnector(BaseConnector):
 
 # ─── Stub fallback for the other 13 sources ─────────────────────────────────
 class StubConnector(BaseConnector):
-    """Used for sources that don't have a real connector yet (Phase A4 fills in 9 more)."""
+    """Used for sources that don't have a real connector yet."""
     async def test_connection(self) -> Tuple[bool, str]:
         return _ok(f"Modo stub para {self.source.get('id')} — devuelve mock data sin red.")
 
     async def fetch(self, since=None, zone_id=None) -> List[Dict[str, Any]]:
         return self._stub_obs(n=4, mode=self.source.get("access_mode"))
+
+
+# ─── Named stub connectors (Phase A4): same contract, source-specific mocks ──
+class BanxicoStub(StubConnector):
+    source_id = "banxico"
+
+    async def test_connection(self):
+        token = self.credentials.get("token") or os.environ.get("IE_BANXICO_TOKEN")
+        if not token:
+            return _fail("Falta IE_BANXICO_TOKEN.")
+        return _ok("Banxico SIE token presente — stub no llama API.")
+
+    async def fetch(self, since=None, zone_id=None):
+        return [
+            self._real_obs({"serie": "SF43718", "label": "USD/MXN", "valor": 17.42 + i * 0.05, "fecha": f"2024-01-{i+1:02d}"})
+            if False else dict(self._stub_obs(n=1, serie="SF43718", label=f"USD/MXN day {i+1}")[0])
+            for i in range(5)
+        ]
+
+
+class AirRoiStub(StubConnector):
+    source_id = "airroi"
+
+    async def fetch(self, since=None, zone_id=None):
+        zonas = ["polanco", "condesa", "roma_norte", "del_valle"]
+        return [dict(self._stub_obs(n=1, market=z, occupancy=0.62 + i * 0.04, adr_mxn=1850 + i * 35)[0])
+                for i, z in enumerate(zonas)]
+
+
+class INEGIStub(StubConnector):
+    source_id = "inegi"
+
+    async def test_connection(self):
+        token = self.credentials.get("token") or os.environ.get("IE_INEGI_TOKEN")
+        if not token:
+            return _fail("Falta IE_INEGI_TOKEN (cubre Censo + AGEB + ENIGH + DENUE + SCIAN).")
+        return _ok("INEGI token presente — stub no llama API.")
+
+    async def fetch(self, since=None, zone_id=None):
+        return [dict(self._stub_obs(n=1, ageb=f"090140001-{i:03d}",
+                                    pob_total=1200 + i * 35,
+                                    ingreso_promedio=18500 + i * 320)[0])
+                for i in range(5)]
+
+
+class SACMEXStub(StubConnector):
+    source_id = "sacmex"
+
+    async def fetch(self, since=None, zone_id=None):
+        zonas = ["polanco", "condesa", "roma_norte"]
+        return [dict(self._stub_obs(n=1, colonia=z, cortes_30d=2 + i, duracion_promedio_h=4 + i * 1.5)[0])
+                for i, z in enumerate(zonas)]
+
+
+class LocatelStub(StubConnector):
+    source_id = "locatel"
+
+    async def fetch(self, since=None, zone_id=None):
+        return [dict(self._stub_obs(n=1, reporte=f"R-2024-{i:05d}",
+                                    tipo="bache" if i % 2 == 0 else "iluminacion")[0])
+                for i in range(4)]
+
+
+class ConaguaSMNStub(StubConnector):
+    source_id = "conagua_smn"
+
+    async def test_connection(self):
+        return _ok("CONAGUA SMN webservice público — stub no llama (pivot pendiente).")
+
+    async def fetch(self, since=None, zone_id=None):
+        return [dict(self._stub_obs(n=1, estacion=f"SMN-{i:03d}", temp_c=21 + i * 0.4, humedad=58 + i)[0])
+                for i in range(5)]
+
+
+class GTFSCDMXStub(StubConnector):
+    source_id = "gtfs_cdmx"
+
+    async def test_connection(self):
+        url = os.environ.get("IE_GTFS_CDMX_URL")
+        if not url:
+            return _fail("Falta IE_GTFS_CDMX_URL — DNS gtfs.cdmx.gob.mx pendiente, pivot CKAN.")
+        return _ok("GTFS feed URL configurada.")
+
+    async def fetch(self, since=None, zone_id=None):
+        modos = ["metro", "metrobus", "ecobici"]
+        return [dict(self._stub_obs(n=1, modo=m, lineas=12 - i, estaciones=195 - i * 30)[0])
+                for i, m in enumerate(modos)]
+
+
+class CENAPREDStub(StubConnector):
+    source_id = "cenapred"
+
+    async def fetch(self, since=None, zone_id=None):
+        capas = ["sismo_microzonificacion", "inundacion_2020", "deslave"]
+        return [dict(self._stub_obs(n=1, capa=c, features_count=42 - i * 8)[0])
+                for i, c in enumerate(capas)]
 
 
 # ─── Factory ─────────────────────────────────────────────────────────────────
@@ -226,14 +322,30 @@ _REAL: Dict[str, type] = {
     "osm_overpass": OSMOverpassConnector,
 }
 
+_NAMED_STUBS: Dict[str, type] = {
+    "banxico":     BanxicoStub,
+    "airroi":      AirRoiStub,
+    "inegi":       INEGIStub,
+    "sacmex":      SACMEXStub,
+    "locatel":     LocatelStub,
+    "conagua_smn": ConaguaSMNStub,
+    "gtfs_cdmx":   GTFSCDMXStub,
+    "cenapred":    CENAPREDStub,
+}
+
 
 def get_connector(source_doc: Dict[str, Any], credentials: Dict[str, str]) -> BaseConnector:
-    cls = _REAL.get(source_doc.get("id"), StubConnector)
+    sid = source_doc.get("id")
+    cls = _REAL.get(sid) or _NAMED_STUBS.get(sid) or StubConnector
     return cls(source_doc, credentials)
 
 
 def connector_kind(source_id: str) -> str:
-    return "real" if source_id in _REAL else "stub"
+    if source_id in _REAL:
+        return "real"
+    if source_id in _NAMED_STUBS:
+        return "named_stub"
+    return "stub"
 
 
 def new_job_id() -> str:

@@ -34,16 +34,35 @@ export default function SuperadminDashboard({ user, onLogout }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    api.getDataSourcesStats()
-      .then(setStats)
-      .catch(e => {
-        if (e?.status === 401) { window.location.href = '/?login=1&next=/superadmin'; return; }
-        setErr(e?.message || 'No se pudo cargar el panel.');
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const loadStats = async () => {
+    try {
+      const s = await api.getDataSourcesStats();
+      setStats(s);
+    } catch (e) {
+      if (e?.status === 401) { window.location.href = '/?login=1&next=/superadmin'; return; }
+      setErr(e?.message || 'No se pudo cargar el panel.');
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadStats(); }, []);
+
+  const triggerJob = async (job) => {
+    setBusy(job);
+    try {
+      const r = await api.triggerCron(job);
+      const okCount = r.summary.filter(s => s.status === 'ok' || s.ok).length;
+      setToast({ msg: `Cron ${job} corrió sobre ${r.summary.length} fuentes (${okCount} ok)`, tone: 'ok' });
+      await loadStats();
+    } catch (e) {
+      setToast({ msg: `Error: ${e.message}`, tone: 'bad' });
+    } finally {
+      setBusy(null);
+      setTimeout(() => setToast(null), 3500);
+    }
+  };
 
   return (
     <SuperadminLayout user={user} onLogout={onLogout}>
@@ -124,13 +143,43 @@ export default function SuperadminDashboard({ user, onLogout }) {
         background: 'rgba(255,255,255,0.02)',
         border: '1px solid var(--border)', borderRadius: 16,
       }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>FASE A3 · WIRE-UP + MANUAL UPLOAD</div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.6 }}>
-          Conectar / Probar / Sync / Subir están activos. Los cron jobs automáticos
-          (daily 00:00 MX + hourly status) y los 9 conectores reales restantes llegan en A4.
-          El cálculo real de scores N1-N2 se hace en Fase B.
+        <div className="eyebrow" style={{ marginBottom: 8 }}>CRON · APSCHEDULER</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 14 }}>
+          Daily ingestion corre a las <strong>00:00 America/Mexico_City</strong> sobre fuentes activas con access_mode
+          api_key / ckan_resource / keyless_url / wms_wfs. Hourly status check en el minuto 0 de cada hora.
+          Las fuentes manual_upload se actualizan solo cuando alguien sube archivo.
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            data-testid="dash-cron-daily"
+            onClick={() => triggerJob('daily_ingestion')}
+            disabled={busy === 'daily_ingestion'}
+            className="btn btn-primary btn-sm"
+          >
+            {busy === 'daily_ingestion' ? 'Corriendo…' : 'Disparar daily_ingestion ahora'}
+          </button>
+          <button
+            data-testid="dash-cron-hourly"
+            onClick={() => triggerJob('hourly_status')}
+            disabled={busy === 'hourly_status'}
+            className="btn btn-glass btn-sm"
+          >
+            {busy === 'hourly_status' ? 'Corriendo…' : 'Disparar hourly_status ahora'}
+          </button>
         </div>
       </div>
+
+      {toast && (
+        <div data-testid="dash-toast" style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 700,
+          padding: '12px 18px', borderRadius: 12,
+          background: toast.tone === 'ok' ? 'rgba(34,197,94,0.16)' : 'rgba(239,68,68,0.16)',
+          border: `1px solid ${toast.tone === 'ok' ? 'rgba(34,197,94,0.32)' : 'rgba(239,68,68,0.32)'}`,
+          color: toast.tone === 'ok' ? '#86efac' : '#fca5a5',
+          fontFamily: 'DM Sans', fontSize: 13, fontWeight: 500,
+          backdropFilter: 'blur(20px)', maxWidth: 420,
+        }}>{toast.msg}</div>
+      )}
     </SuperadminLayout>
   );
 }

@@ -28,3 +28,13 @@ export const updateCredentials = (id, body) => j(`/api/superadmin/data-sources/$
 });
 export const testConnection = (id) => j(`/api/superadmin/data-sources/${id}/test`, { method: 'POST' });
 export const syncSource     = (id) => j(`/api/superadmin/data-sources/${id}/sync`, { method: 'POST' });
+
+// Phase A4
+export const triggerCron    = (job) => j('/api/superadmin/cron/trigger', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ job }),
+});
+export const getUpload      = (id) => j(`/api/superadmin/uploads/${id}`);
+export const reprocessUpload = (id) => j(`/api/superadmin/uploads/${id}/process`, { method: 'POST' });
+export const downloadUploadUrl = (id) => `${API}/api/superadmin/uploads/${id}/download`;

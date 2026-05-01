@@ -50,6 +50,7 @@ app.include_router(developer_router)
 
 # Wire IE Engine (Phase A) router
 from routes_ie_engine import router as ie_engine_router, seed_ie_engine
+from scheduler_ie import start_scheduler, stop_scheduler
 app.include_router(ie_engine_router)
 
 # Wire Studio router (Phase 6 Wave 1)
@@ -206,6 +207,13 @@ async def startup():
 
     # IE Engine — Phase A seed (idempotent: 18 fuentes)
     await seed_ie_engine(db)
+    # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
+    start_scheduler(db)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    stop_scheduler()
 
 # ─── Auth routes ──────────────────────────────────────────────────────────────
 @app.post("/api/auth/register")
