@@ -87,6 +87,9 @@ const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDia
 // Phase 4 Batch 12
 const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoProyecto'));
 
+// Phase 4 Batch 13
+const LinksTrackingPage          = lazy(() => import('./pages/asesor/LinksTracking'));
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -247,6 +250,13 @@ function AuthCallback() {
 function AppRouter() {
   const location = useLocation();
 
+  // Phase 4 Batch 13 — Capture ?ref=asesor_id tracking cookie on initial load
+  useEffect(() => {
+    import('./lib/tracking').then(({ captureRefCookie }) => {
+      try { captureRefCookie(); } catch {}
+    });
+  }, []);
+
   if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
   }
@@ -329,6 +339,7 @@ function AppRouter() {
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
+      <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksTrackingPage} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>

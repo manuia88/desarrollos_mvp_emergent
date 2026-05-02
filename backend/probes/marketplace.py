@@ -1,59 +1,59 @@
-"""Marketplace public-side probes."""
-import os
+"""Marketplace public-side probes — unified (B13)."""
 from diagnostic_engine import functional_probe
+from projects_unified import get_project_by_slug
 
 
 async def _public_listing_renders(db, project_id, user):
     if not project_id:
         return {"passed": True}
-    from data_developments import DEVELOPMENTS
-    dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
-    if not dev:
+    p = await get_project_by_slug(db, project_id)
+    if not p:
         return {"passed": False, "error_type": "wiring_broken",
-                "location": f"data_developments:{project_id}",
-                "recommendation": "Proyecto ausente del catálogo público."}
-    # Marketplace requires: name, colonia, price_from, units
+                "location": f"projects_unified:{project_id}",
+                "recommendation": "Proyecto ausente del catálogo (legacy + db.projects)."}
     required = ["name", "colonia"]
-    missing = [f for f in required if not dev.get(f)]
+    missing = [f for f in required if not p.get(f)]
     if missing:
         return {"passed": False, "error_type": "data_quality",
-                "location": f"data_developments:{project_id}",
-                "recommendation": f"Faltan campos públicos: {missing}"}
-    return {"passed": True}
+                "location": f"{p['entity_source']}:{project_id}",
+                "recommendation": f"Faltan campos públicos: {missing}",
+                "extra": {"entity_source": p["entity_source"]}}
+    return {"passed": True, "extra": {"entity_source": p["entity_source"]}}
 
 
 async def _public_endpoints_ok(db, project_id, user):
-    # Check dev_overlays + colonia_metrics consistency (internal, no HTTP)
     if not project_id:
         return {"passed": True}
-    from data_developments import DEVELOPMENTS
-    dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
-    if not dev:
+    p = await get_project_by_slug(db, project_id)
+    if not p:
         return {"passed": False, "error_type": "wiring_broken",
                 "recommendation": "Proyecto no existe."}
-    colonia_id = dev.get("colonia_id") or dev.get("colonia")
+    colonia_id = p.get("colonia_id") or p.get("colonia")
     if not colonia_id:
         return {"passed": False, "error_type": "data_quality",
                 "location": f"{project_id}.colonia_id",
-                "recommendation": "Proyecto sin colonia asociada → marketplace search no lo indexará."}
-    return {"passed": True}
+                "recommendation": "Proyecto sin colonia asociada → marketplace no lo indexará."}
+    return {"passed": True, "extra": {"entity_source": p["entity_source"]}}
 
 
 async def _asset_urls_resolve(db, project_id, user):
     if not project_id:
         return {"passed": True}
-    from data_developments import DEVELOPMENTS
-    dev = next((d for d in DEVELOPMENTS if d["id"] == project_id), None)
-    if not dev:
+    p = await get_project_by_slug(db, project_id)
+    if not p:
         return {"passed": True}
-    photos = dev.get("photos") or dev.get("cover_photos") or []
-    cover = dev.get("cover_photo")
+    photos = p.get("photos") or p.get("cover_photos") or []
+    cover = p.get("cover_photo")
     if not photos and not cover:
-        return {"passed": False, "error_type": "data_quality",
-                "location": f"{project_id}.photos",
-                "recommendation": "Proyecto sin fotos públicas. Subir al menos una imagen cover.",
-                "severity": "medium"}
-    return {"passed": True, "extra": {"photos_count": len(photos)}}
+        # Wizard projects may have assets in db.dev_assets
+        count = await db.dev_assets.count_documents({"development_id": project_id})
+        if count == 0:
+            return {"passed": False, "error_type": "data_quality",
+                    "location": f"{project_id}.photos / dev_assets",
+                    "recommendation": "Proyecto sin fotos públicas. Subir al menos una imagen cover.",
+                    "extra": {"entity_source": p["entity_source"]}}
+    return {"passed": True, "extra": {"photos_count": len(photos),
+                                       "entity_source": p["entity_source"]}}
 
 
 functional_probe("public_listing_renders_correctly", "marketplace", "high",

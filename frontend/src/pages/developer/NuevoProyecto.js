@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import DeveloperLayout from '../../components/shared/DeveloperLayout';
 import { SmartWizard } from '../../components/shared/SmartWizard';
 import { DragDropZone } from '../../components/shared/DragDropZone';
+import MapboxPicker from '../../components/developer/MapboxPicker';
 import {
   getWizardSmartDefaults, createWizardProject,
   uploadWizardFiles, getDriveStatus, processDriveUrl,
@@ -80,25 +81,41 @@ function Step2Operacion({ data = {}, onChange, ia_prefill }) {
 function Step3Ubicacion({ data = {}, onChange, ia_prefill }) {
   const set = (k, v) => onChange({ ...data, [k]: v });
   const uia = ia_prefill?.ubicacion || {};
+  const handleMapSave = (lat, lng) => {
+    onChange({ ...data, lat, lng });
+  };
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Field label="Estado *" ia={uia.estado}>
-        <Input value={data.estado || ''} onChange={v => set('estado', v)} tid="estado" />
-      </Field>
-      <Field label="Municipio *" ia={uia.municipio}>
-        <Input value={data.municipio || ''} onChange={v => set('municipio', v)} tid="municipio" />
-      </Field>
-      <Field label="Colonia *" ia={uia.colonia}>
-        <Input value={data.colonia || ''} onChange={v => set('colonia', v)} tid="colonia" />
-      </Field>
-      <Field label="Calle y número" ia={uia.calle}>
-        <Input value={data.calle || ''} onChange={v => set('calle', v)} tid="calle" />
-      </Field>
-      <Field label="Código postal" ia={uia.cp}>
-        <Input value={data.cp || ''} onChange={v => set('cp', v)} tid="cp" />
-      </Field>
-      <div className="col-span-full text-xs text-[rgba(240,235,224,0.35)]">
-        MapboxPicker fine-tune coordenadas: <span className="italic">próximamente (lat/lng se inferirán de la dirección).</span>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field label="Estado *" ia={uia.estado}>
+          <Input value={data.estado || ''} onChange={v => set('estado', v)} tid="estado" />
+        </Field>
+        <Field label="Municipio *" ia={uia.municipio}>
+          <Input value={data.municipio || ''} onChange={v => set('municipio', v)} tid="municipio" />
+        </Field>
+        <Field label="Colonia *" ia={uia.colonia}>
+          <Input value={data.colonia || ''} onChange={v => set('colonia', v)} tid="colonia" />
+        </Field>
+        <Field label="Calle y número" ia={uia.calle}>
+          <Input value={data.calle || ''} onChange={v => set('calle', v)} tid="calle" />
+        </Field>
+        <Field label="Código postal" ia={uia.cp}>
+          <Input value={data.cp || ''} onChange={v => set('cp', v)} tid="cp" />
+        </Field>
+        <Field label="Coordenadas (lat, lng)" hint="Click en el mapa para fijar el marker">
+          <div className="text-xs text-[var(--cream-2)] font-mono px-3 py-2 bg-[rgba(240,235,224,0.04)] rounded-lg border border-[rgba(240,235,224,0.12)]">
+            {data.lat && data.lng ? `${Number(data.lat).toFixed(5)}, ${Number(data.lng).toFixed(5)}` : 'Sin definir'}
+          </div>
+        </Field>
+      </div>
+      <div className="rounded-xl overflow-hidden border border-[rgba(240,235,224,0.12)]">
+        <MapboxPicker
+          lat={data.lat || 19.4326}
+          lng={data.lng || -99.1332}
+          zoom={13}
+          onSave={handleMapSave}
+          height={300}
+        />
       </div>
     </div>
   );

@@ -66,6 +66,28 @@ async def _tracking_attribution(db, project_id, user):
     return {"passed": True}
 
 
+async def _cross_portal_sync_health(db, project_id, user):
+    """B13: verifies wizard + legacy project sources are coherent."""
+    if not project_id:
+        return {"passed": True}
+    from projects_unified import get_project_by_slug
+    p = await get_project_by_slug(db, project_id)
+    if not p:
+        return {"passed": False, "error_type": "wiring_broken",
+                "location": "projects_unified",
+                "recommendation": "Proyecto no existe en ninguna fuente."}
+    # Check coherent: project must have units in proper place
+    if p["entity_source"] == "db.projects":
+        units_n = await db.units.count_documents({"project_id": project_id})
+        if units_n == 0:
+            return {"passed": False, "error_type": "sync_failure",
+                    "location": "db.units",
+                    "recommendation": "Proyecto wizard sin units en db.units. "
+                                       "Re-ejecutar setup post-create.",
+                    "extra": {"entity_source": "db.projects"}}
+    return {"passed": True, "extra": {"entity_source": p["entity_source"]}}
+
+
 functional_probe("asesor_brokers_see_project_if_whitelist", "cross_portal", "high",
                  "Brokers activos cuando política lo requiere",
                  _asesor_brokers_see, "wiring_broken")
@@ -78,3 +100,6 @@ functional_probe("inmobiliaria_admin_sees_org_data", "cross_portal", "low",
 functional_probe("tracking_cookie_attribution_works", "cross_portal", "medium",
                  "Atribución de asesor en leads",
                  _tracking_attribution, "wiring_broken")
+functional_probe("cross_portal_sync_health", "cross_portal", "high",
+                 "Coherencia entre fuentes de proyectos (legacy + wizard)",
+                 _cross_portal_sync_health, "sync_failure")

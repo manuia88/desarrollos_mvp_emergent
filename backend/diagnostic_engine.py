@@ -49,6 +49,7 @@ class ProbeResult:
     first_detected: Optional[str] = None
     last_detected: Optional[str] = None
     duration_ms: Optional[int] = None
+    entity_source: Optional[str] = None  # B13: 'developments' | 'db.projects' | None
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -113,6 +114,7 @@ def functional_probe(
                 "recommendation": f"Excepción en probe: {str(e)[:160]}",
             }
         dur_ms = int((time.perf_counter() - t0) * 1000)
+        extra = res.get("extra") or {}
         return ProbeResult(
             probe_id=self.id,
             module=self.module,
@@ -124,7 +126,8 @@ def functional_probe(
             recommendation=res.get("recommendation"),
             action_id=res.get("action_id"),
             duration_ms=dur_ms,
-            extra=res.get("extra") or {},
+            entity_source=extra.get("entity_source"),
+            extra=extra,
         )
 
     _FP.run = _run

@@ -206,6 +206,10 @@ app.include_router(diagnostic_router)
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
 
+# Phase 4 Batch 13 — Tracking attribution + Cross-portal sync
+from routes_b13 import (router as b13_router, ensure_b13_indexes)
+app.include_router(b13_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -440,6 +444,8 @@ async def startup():
     await ensure_diagnostic_indexes(db)
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
+    # Phase 4 Batch 13 — Tracking + cross-portal indexes
+    await ensure_b13_indexes(db)
     # Phase 4 Batch 0 Sub-chunk C — project_documents migration
     try:
         await db.project_documents.create_index([("development_id", 1), ("doc_type", 1)])

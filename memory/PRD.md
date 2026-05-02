@@ -619,6 +619,74 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - 🟡 Drive OAuth completo desde wizard — actualmente referencia al flow del sidebar Drive existente.
 - 🟡 Schema probes B0.5 de wizard projects: actualmente fallan porque check `DEVELOPMENTS` array (gap arquitectural a resolver en B13).
 
+---
+
+## 2026-05-02 — Phase 4 Batch 13 · Cross-portal sync + Tracking attribution
+
+### Sub-chunk A ✅ — Unified projects helper + extended B0.5 probes
+- `/app/backend/projects_unified.py`: `get_all_projects(db, dev_org_id)` merge legacy `DEVELOPMENTS` + `db.projects` con `entity_source` field. `get_project_by_slug(db, slug)` lookup unificado. `get_units_for_project(db, project)` retorna units desde fuente correcta. `update_project_unified(db, slug, patch, user)` con fallback a `developer_project_patches` para legacy.
+- `is_wizard_project(project)` heurística por `created_via=wizard` o `wizard_source` field.
+- Probes `schema/` re-escritas: 5 probes (project_required_fields, units_required, assets_orphan, documents_orphan, commercialization_valid) ahora usan `get_project_by_slug` + retornan `entity_source` en `extra`.
+- Probes `marketplace/` re-escritas: 3 probes con check de `dev_assets` collection cuando wizard project sin photos array.
+- `ProbeResult` extendido con campo `entity_source` (promovido desde `extra`).
+- Verificación: wizard project `test-wizard-torre` ahora pasa todas las schema probes (PASS [schema/critical] project_required_fields_complete (src: db.projects), etc.). Criticals: 0 (era 1).
+
+### Sub-chunk B ✅ — Tracking cookie + Multi-touch attribution
+- **Schema `lead_source_attribution`** (unique `lead_id`): `{lead_id, dev_org_id, project_id, touchpoints[], first_touch_asesor_id, last_touch_asesor_id, attribution_model, created_at}`.
+- **Frontend `/app/frontend/src/lib/tracking.js`**: `captureRefCookie()` lee `?ref=asesor_id`, persiste cookie 30d (SameSite=Lax) + push touchpoint a localStorage stack (max 15) + dispara POST `/api/tracking/view`. `getCurrentAttribution()` retorna snapshot. `clearAttribution()` post-conversion. `appendTouchpoint(tp)` para casos manuales (caya bot, feria).
+- Wire en `App.js` `AppRouter` useEffect inicial (lazy import).
+- **Backend endpoints**:
+  - `POST /api/leads/public` (no-auth): captura attribution, resuelve dev_org via `get_project_by_slug`, lee `attribution_model` del `dev_org_settings`, asigna `assigned_to` según modelo, persiste en `lead_source_attribution`, notifica al asesor + dev_admins. ml_event `lead_attribution_captured`.
+  - `GET/POST /api/leads/:lead_id/attribution` (auth) — read full chain / append touchpoint.
+  - `GET/PATCH /api/dev/settings/attribution-model` — `'first'|'last'|'split'` per dev_org. Audit + ml_event `attribution_model_changed`.
+  - `POST /api/tracking/view` (no-auth) — registra view event en `tracking_link_events`.
+- **Asesor links page** (`/asesor/links-tracking`):
+  - `GET /api/asesor/tracking-links` — proyectos visibles por broker_whitelist + preassign, link `https://desarrollosmx.io/desarrollo/{slug}?ref={asesor_id}`, stats views/conversions per link.
+  - `POST /api/asesor/tracking-links/qrcode` — genera PNG dataURL via `qrcode` lib (pip installed).
+  - `GET /api/asesor/tracking-links/stats` — totales: views, conversions, conversion_rate_pct.
+  - UI: KPIStrip global + cards por proyecto con copy-to-clipboard + botón QR toggleable + entity_source badge.
+- Sidebar nav `ASESOR_NAV` tier 3 ahora incluye "Links tracking".
+
+### Sub-chunk C ✅ — Cross-portal sync + MapboxPicker wizard
+- **Endpoint `GET /api/dev/leads/kanban-unified`**: leads visibles cross-source via `get_all_projects`, agrupados en 6 columnas (nuevo/contactado/qualified/negociacion/cerrado_ganado/cerrado_perdido).
+- **Endpoint `POST /api/cross-portal/sync-check`**: itera proyectos del org, detecta wizard projects sin units en `db.units`, retorna `{projects_checked, issues, ok}`. ml_event `cross_portal_sync_check`.
+- **Nueva probe** `cross_portal_sync_health` (severity high) en `probes/cross_portal.py` — verifica que wizard projects tengan units en `db.units` para no fallar marketplace público.
+- **MapboxPicker en wizard Step 3**: replaced "próximamente" stub con `MapboxPicker` real. Click-to-set marker + draggable + readonly fallback si no `REACT_APP_MAPBOX_TOKEN`. Nuevo Field "Coordenadas (lat, lng)" muestra valores actualizados en tiempo real al draggar.
+
+### Colecciones nuevas/extendidas
+- `lead_source_attribution` (unique `lead_id`, idx `first_touch_asesor_id`, `last_touch_asesor_id`)
+- `dev_org_settings` (unique `dev_org_id`)
+- `tracking_link_events` (idx `(asesor_id, project_id, timestamp desc)`)
+- `developer_project_patches` (unique `project_id`) — para mutaciones a DEVELOPMENTS legacy
+
+### Smoke tests (2026-05-02)
+- ✅ Probe registry: 31 probes (era 30, +`cross_portal_sync_health`).
+- ✅ Diagnostic en wizard project `test-wizard-torre`: schema 5/5 PASS con `entity_source: db.projects` correcto.
+- ✅ Diagnostic en legacy `altavista-polanco`: schema 5/5 PASS con `entity_source: developments` correcto.
+- ✅ `attribution_model` GET/PATCH cycle (first/last/split) + invalid 400.
+- ✅ `POST /api/leads/public` con touchpoints array → lead creado + attribution persistida + notif disparada.
+- ✅ `POST /api/tracking/view` registra evento.
+- ✅ Asesor con broker assignment → tracking-links retorna 1 item con link generado.
+- ✅ QR PNG dataURL generado correctamente (770 chars base64).
+- ✅ Cross-portal sync-check: 0 issues para projects con units.
+- ✅ Frontend `/asesor/links-tracking` renderiza con sidebar Explorar + KPIStrip + card link + botones Copiar/QR.
+- ✅ `/app/backend/tests/test_batch13.py` regression file (10 tests).
+
+### Constraints respetados
+- ✅ Solo Batch 13, 3 sub-chunks scope-locked.
+- ✅ Backward-compat 100% — legacy `/desarrollador/desarrollos/:slug` sigue, DEVELOPMENTS array intacto.
+- ✅ Reuse: diagnostic_engine (B0.5), MapboxPicker (B1), permissions (B0), notifications (B2.1), get_project_by_slug.
+- ✅ Audit + ml_events: `lead_attribution_captured`, `attribution_model_changed`, `cross_portal_sync_check`.
+- ✅ Zero emojis, lucide-react SVGs (LinkIcon, Copy, Check, BarChart3, QrCode).
+- ✅ es-MX 100%.
+
+### Mocked / pending
+- 🟡 Mapbox reverse geocoding (auto-infer estado/colonia/CP from click) — actualmente solo lat/lng se guarda; campos texto siguen manuales.
+- 🟡 Polling 60s en asesor portal para refresh real-time — usuarios deben recargar manual; deferred.
+- 🟡 Cache invalidation tag-based en marketplace — usa polling natural por ahora.
+- 🟡 Sentry MCP lookup en problem reports — stub honesto continúa.
+
+
 
 
 ## 2026-05-01 — Phase F0.11 · Sentry + PostHog + ML events (observability)
