@@ -38,6 +38,7 @@ function SectionPanel({ section, openState, onToggle, user }) {
     <div className="border-b border-[rgba(240,235,224,0.07)] last:border-0">
       <button
         onClick={() => onToggle(section.id)}
+        data-density-drawer-section
         className="w-full flex items-center gap-2.5 px-5 py-3.5 text-left hover:bg-[rgba(240,235,224,0.04)] transition-colors"
         data-testid={`drawer-section-${section.id}`}
       >

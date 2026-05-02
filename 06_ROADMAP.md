@@ -307,7 +307,7 @@ GET /v1/portfolio/exposure                  análisis cartera
 3. Si conflict: "Create Branch & Push" → Claude Code mergea PR via gh CLI
 4. Cada batch ship → Claude Code marca ✅ en PRD.md + verifica gaps
 5. Standards file: `/app/memory/prompt_standards.md`
-6. URL preview: `https://real-estate-ai-55.preview.emergentagent.com`
+6. URL preview: `https://compacto-nav.preview.emergentagent.com`
 
 ---
 

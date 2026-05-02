@@ -16,9 +16,10 @@ import { navByRole } from '../../config/navByRole';
 import { UniversalSearch } from './UniversalSearch';
 import { NotificationsBell } from './NotificationsBell';
 import ReportProblemButton from './ReportProblemButton';
+import { useDensity } from '../../hooks/useDensity';
 import {
   ChevronDown, ChevronRight, Menu, X, Search, LogOut, User,
-  ChevronLeft,
+  ChevronLeft, Settings,
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -121,6 +122,9 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
+
+  // Phase 4 Batch 18 Sub-A — apply density class to <body>
+  useDensity();
 
   const tiers = navByRole[role] || navByRole['buyer'] || [];
 
@@ -322,6 +326,15 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
                   <LogOut size={14} />
                   Cerrar sesión
                 </button>
+                <Link
+                  to="/configuracion/preferencias"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
+                  data-testid="topbar-preferences-link"
+                >
+                  <Settings size={14} />
+                  Preferencias
+                </Link>
               </div>
             )}
           </div>

@@ -77,7 +77,7 @@ export default function AsesorTareas({ user, onLogout }) {
             {SCOPES.map(s => {
               const col = sortCol(all.filter(t => s.types.includes(t.tipo)));
               return (
-                <div key={s.k} data-testid={`tareas-col-${s.k}`} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+                <div key={s.k} data-testid={`tareas-col-${s.k}`} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 'var(--d-pad-item, 14px)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div className="eyebrow">{s.label}</div>
                     <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream-2)' }}>{col.length}</span>
@@ -85,7 +85,7 @@ export default function AsesorTareas({ user, onLogout }) {
                   {col.length === 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', padding: 16, textAlign: 'center' }}>Sin pendientes</div>
                     : col.map(t => (
                       <div key={t.id} data-testid={`tarea-${t.id}`} style={{
-                        padding: 12, marginBottom: 8,
+                        padding: 'var(--d-pad-item, 12px)', marginBottom: 8,
                         background: isOverdue(t.due_at) ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
                         border: `1px solid ${isOverdue(t.due_at) ? 'rgba(239,68,68,0.32)' : 'var(--border)'}`,
                         borderRadius: 12,

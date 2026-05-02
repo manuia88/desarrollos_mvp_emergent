@@ -233,6 +233,11 @@ from routes_dev_batch17 import (router as dev_batch17_router,
                                   purge_expired_undo_log)
 app.include_router(dev_batch17_router)
 
+# Phase 4 Batch 18 Sub-A — Density toggle + Project Switcher preferences
+from routes_dev_batch18 import (router as dev_batch18_router,
+                                  ensure_batch18_indexes)
+app.include_router(dev_batch18_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -578,6 +583,12 @@ async def startup():
         await ensure_ai_suggestions_indexes(db)
     except Exception as e:
         logging.warning(f"[batch16] index setup failed: {e}")
+
+    # Phase 4 Batch 18 Sub-A — Density + Project Switcher
+    try:
+        await ensure_batch18_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch18] index setup failed: {e}")
 
     # Phase 4 Batch 17 — Undo + Filter presets indexes + purge cron
     try:

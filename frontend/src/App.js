@@ -96,6 +96,9 @@ const CalendarSettings           = lazy(() => import('./pages/advisor/CalendarSe
 const CitasPolicies              = lazy(() => import('./pages/developer/CitasPolicies'));
 const AutoAssignments            = lazy(() => import('./pages/developer/AutoAssignments'));
 
+// Phase 4 Batch 18 Sub-A — Density + Preferences page
+const PreferenciasPage           = lazy(() => import('./pages/configuracion/PreferenciasPage'));
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -352,6 +355,9 @@ function AppRouter() {
       <Route path="/asesor/configuracion" element={<AdvisorRoute Page={CalendarSettings} />} />
       <Route path="/desarrollador/configuracion/citas-policies" element={<AdvisorRoute Page={CitasPolicies} />} />
       <Route path="/desarrollador/crm/auto-assignments" element={<AdvisorRoute Page={AutoAssignments} />} />
+
+      {/* Phase 4 Batch 18 Sub-A — Density + Preferences */}
+      <Route path="/configuracion/preferencias" element={<AdvisorRoute Page={PreferenciasPage} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>

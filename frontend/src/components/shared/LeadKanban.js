@@ -108,7 +108,7 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
       <div data-testid="lead-kanban-grid" style={{
         display: 'grid', gridTemplateColumns: 'repeat(5, minmax(220px, 1fr))',
         gap: 10, overflowX: 'auto', paddingBottom: 8,
-      }}>
+      }} className="density-kanban-grid">
         {data.columns.map(col => {
           const tok = COL_TOKEN[col.key] || COL_TOKEN.nuevo;
           const isOver = dragOver === col.key;
@@ -196,7 +196,7 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
       data-can-view-full={canFull ? 'true' : 'false'}
       style={{
         position: 'relative',
-        padding: 10, borderRadius: 10,
+        padding: 'var(--d-pad-kanban, 10px)', borderRadius: 10,
         background: hover ? 'rgba(240,235,224,0.05)' : 'rgba(240,235,224,0.02)',
         border: `1px solid ${hover ? tok.bd : 'var(--border)'}`,
         cursor: canMove ? 'grab' : 'pointer',
