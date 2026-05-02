@@ -11,6 +11,10 @@ import HealthScore from '../../components/shared/HealthScore';
 import VentasTab from '../../components/developer/VentasTab';
 import AvanceObraTab from '../../components/developer/AvanceObraTab';
 import GeolocalizacionTab from '../../components/developer/GeolocalizacionTab';
+import ContenidoTab from '../../components/developer/ContenidoTab';
+import AmenidadesTab from '../../components/developer/AmenidadesTab';
+import LegalTab from '../../components/developer/LegalTab';
+import ComercializacionTab from '../../components/developer/ComercializacionTab';
 import BulkUploadModal from '../../components/developer/BulkUploadModal';
 import { getProjectSummary } from '../../api/developer';
 import { ChevronRight, Building } from '../../components/icons';
@@ -39,12 +43,12 @@ const fmtMXN = (v) => {
 
 const TABS = [
   { key: 'ventas',          label: 'Ventas',          phase: null },
-  { key: 'contenido',       label: 'Contenido',       phase: 'B11' },
+  { key: 'contenido',       label: 'Contenido',       phase: null },
   { key: 'avance',          label: 'Avance de obra',  phase: null },
   { key: 'ubicacion',       label: 'Ubicación',       phase: null },
-  { key: 'amenidades',      label: 'Amenidades',      phase: 'B11' },
-  { key: 'legal',           label: 'Legal',           phase: 'B11' },
-  { key: 'comercializacion',label: 'Comercialización',phase: 'B11' },
+  { key: 'amenidades',      label: 'Amenidades',      phase: null },
+  { key: 'legal',           label: 'Legal',           phase: null },
+  { key: 'comercializacion',label: 'Comercialización',phase: null },
   { key: 'insights',        label: 'Insights',        phase: 'B22' },
 ];
 
@@ -328,16 +332,28 @@ export default function ProyectoDetail({ user, onLogout }) {
           {activeTab === 'ventas' && (
             <VentasTab devId={slug} user={user} onBulkUpload={() => setShowBulkUpload(true)} />
           )}
+          {activeTab === 'contenido' && (
+            <ContenidoTab devId={slug} user={user} />
+          )}
           {activeTab === 'avance' && (
             <AvanceObraTab devId={slug} />
           )}
           {activeTab === 'ubicacion' && (
             <GeolocalizacionTab devId={slug} user={user} />
           )}
-          {['contenido', 'amenidades', 'legal', 'comercializacion', 'insights'].includes(activeTab) && (
+          {activeTab === 'amenidades' && (
+            <AmenidadesTab devId={slug} user={user} />
+          )}
+          {activeTab === 'legal' && (
+            <LegalTab devId={slug} user={user} />
+          )}
+          {activeTab === 'comercializacion' && (
+            <ComercializacionTab devId={slug} user={user} />
+          )}
+          {activeTab === 'insights' && (
             <PlaceholderTab
-              tabLabel={TABS.find(t => t.key === activeTab)?.label || activeTab}
-              phase={TABS.find(t => t.key === activeTab)?.phase}
+              tabLabel="Insights"
+              phase="B22"
             />
           )}
         </div>

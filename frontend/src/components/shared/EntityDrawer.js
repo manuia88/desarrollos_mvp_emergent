@@ -59,6 +59,7 @@ export function EntityDrawer({
   isOpen, onClose, title,
   sections = [], entity_type = 'default', user,
   width = 520,
+  body = null,  // Phase 4 B11: custom body (bypasses sections)
 }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 840);
   const [sectionState, setSectionState] = useState(() => loadSectionState(entity_type));
@@ -126,6 +127,10 @@ export function EntityDrawer({
     />
   ));
 
+  const bodyContent = body != null
+    ? <div className="px-5 py-4">{body}</div>
+    : panelSections;
+
   const drawer = (
     <div className="fixed inset-0 z-[100]" data-testid="entity-drawer">
       {/* Backdrop */}
@@ -145,7 +150,7 @@ export function EntityDrawer({
               <X size={18} />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto scrollbar-none">{panelSections}</div>
+          <div className="flex-1 overflow-y-auto scrollbar-none">{bodyContent}</div>
         </div>
       ) : (
         /* Mobile: bottom-sheet */
@@ -167,7 +172,7 @@ export function EntityDrawer({
               <X size={18} />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto scrollbar-none">{panelSections}</div>
+          <div className="flex-1 overflow-y-auto scrollbar-none">{bodyContent}</div>
         </div>
       )}
 

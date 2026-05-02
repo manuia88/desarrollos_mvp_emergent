@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FilterChipsBar } from '../shared/FilterChipsBar';
 import { EntityDrawer } from '../shared/EntityDrawer';
+import UnitDrawerContent from './UnitDrawerContent';
 import usePreferences from '../../hooks/usePreferences';
 import { listInventory } from '../../api/developer';
 import { Search, Upload, Eye, Building, Bed, Ruler } from '../../components/icons';
@@ -82,6 +83,12 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const rowHeight = density_mode === 'compacto' ? 40 : 56;
+
+  // Reload inventory on unit update callback
+  const handleUnitUpdated = () => {
+    // Parent VentasTab manages loading; emit a window event so it can refresh.
+    window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } }));
+  };
 
   const drawerSections = drawerUnit ? [
     {
@@ -287,9 +294,17 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
         isOpen={!!drawerUnit}
         onClose={() => setDrawerUnit(null)}
         title={drawerUnit ? `Unidad ${drawerUnit.unit_number}` : ''}
-        sections={drawerSections}
-        entity_type="unit_detail"
+        entity_type="unit_detail_b11"
         user={user}
+        width={560}
+        body={drawerUnit ? (
+          <UnitDrawerContent
+            unit={drawerUnit}
+            devId={devId}
+            user={user}
+            onUnitUpdated={handleUnitUpdated}
+          />
+        ) : null}
       />
     </div>
   );
@@ -365,7 +380,7 @@ function PorPrototipo({ units, onFilterInventario }) {
 }
 
 // ─── Vista de Planta ────────────────────────────────────────────────────────
-function VistaDePlanta({ units, user }) {
+function VistaDePlanta({ units, user, devId }) {
   const [levelFilter, setLevelFilter] = useState('todos');
   const [tooltip, setTooltip] = useState(null);
   const [drawerUnit, setDrawerUnit] = useState(null);
@@ -483,25 +498,17 @@ function VistaDePlanta({ units, user }) {
         isOpen={!!drawerUnit}
         onClose={() => setDrawerUnit(null)}
         title={drawerUnit ? `Unidad ${drawerUnit.unit_number}` : ''}
-        sections={drawerUnit ? [
-          {
-            id: 'info',
-            title: 'Información de unidad',
-            defaultOpen: true,
-            content: (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {[['Prototipo', drawerUnit.prototype], ['Nivel', drawerUnit.level], ['m²', `${drawerUnit.area_total ?? '—'}m²`], ['Estado', <StatusChip key="s" status={drawerUnit.status} />], ['Precio', fmtMXN(drawerUnit.price)], ['Orientación', drawerUnit.orientation ?? '—']].map(([l, v]) => (
-                  <div key={l}>
-                    <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 2 }}>{l}</div>
-                    <div style={{ fontSize: 13, color: 'var(--cream)' }}>{v}</div>
-                  </div>
-                ))}
-              </div>
-            ),
-          },
-        ] : []}
-        entity_type="unit_planta"
+        entity_type="unit_detail_b11"
         user={user}
+        width={560}
+        body={drawerUnit ? (
+          <UnitDrawerContent
+            unit={drawerUnit}
+            devId={devId}
+            user={user}
+            onUnitUpdated={() => window.dispatchEvent(new CustomEvent('dmx:unit-updated', { detail: { devId } }))}
+          />
+        ) : null}
       />
     </div>
   );
@@ -600,7 +607,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />
           )}
           {activeSubTab === 'planta' && (
-            <VistaDePlanta units={units} user={user} />
+            <VistaDePlanta units={units} user={user} devId={devId} />
           )}
         </>
       )}

@@ -27,7 +27,7 @@ ASSET_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ASSET_MAX_FILE_BYTES = 12 * 1024 * 1024  # 12 MB per image
 ASSET_MAX_BATCH = 20
 
-ASSET_TYPES = {"foto_hero", "foto_render", "foto_unidad_modelo", "plano_thumbnail", "tour_360"}
+ASSET_TYPES = {"foto_hero", "foto_render", "foto_unidad_modelo", "plano_thumbnail", "tour_360", "video", "brochure"}
 AI_CATEGORIES = {"sala", "cocina", "recamara", "bano", "fachada", "exterior", "amenidad", "plano"}
 
 ALLOWED_IMG_EXT = {"jpg", "jpeg", "png", "webp"}

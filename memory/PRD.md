@@ -409,6 +409,64 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - `/desarrollador/crm` → `DesarrolladorCRMShell.js`: 6 tabs (Pipeline real con LeadKanban + Leads/Citas/Slots/Brokers/Métricas placeholder)
 
 
+
+---
+
+## 2026-05-02 — Phase 4 Batch 11 · Migración Legajo → Tabs + Comercialización + Drawer enriquecido
+
+### Sub-chunk A ✅ — Tabs migradas (Contenido, Amenidades, Legal)
+- `ContenidoTab.js`: 6 sub-tabs (Fotos/Planos/Renders/Videos/Tour 360°/Brochures) con URL sync `?content_sub=`, drag-drop zone (`DragDropZone`), thumbnails con hover (descargar/portada/eliminar), preview modal.
+- `AmenidadesTab.js`: 4 categorías (comunes/internas/tecnológicas/sustentabilidad) con checkboxes editables, contador activas, botón "Aplicar desde otro proyecto" (smart defaults desde otros proyectos del dev_org).
+- `LegalTab.js`: Timeline de proceso legal (5 etapas: Uso de Suelo → SEDUVI → Planos → Contrato → Escritura), upload zone con categorizer IA (Claude Haiku), cards de documentos con badge status (pendiente/aprobado/rechazado/revisión).
+
+### Sub-chunk B ✅ — Comercialización
+- `ComercializacionTab.js`: 3 secciones:
+  - **Política comercial**: toggles (trabajar con brokers / solo in-house / IVA), InlineEditField para comisión default %, textarea de términos. Toggle "Aplicar desde otro proyecto".
+  - **Brokers asignados**: lista con status badges, botones Pausar/Revocar, modal de asignación con dropdown de asesores.
+  - **Pre-asignación in-house**: toggle por asesor interno para auto-asignar a nuevos invitados.
+
+### Sub-chunk C ✅ — UnitDrawerContent enriquecido
+- `UnitDrawerContent.js`: 7 secciones colapsables en `EntityDrawer` (body prop):
+  1. **Estado y precio**: InlineEdit status + precio, historial de precios con sparkline SVG + delta vs. promedio colonia.
+  2. **Engagement**: métricas asesores vs. clientes (vistas/clicks/tiempo/compartidos/intent score) + funnel 5 etapas (stub honesto con `is_stub`).
+  3. **Comparables internos**: stats agregados misma prototipo + tabla de unidades hermanas.
+  4. **Comparables de mercado (colonia)**: avg $/m² colonia vs. tu precio + delta % + top 5 proyectos.
+  5. **Predicción IA**: prob. cierre 90d, prob. si bajas 3%, días estimados, recomendaciones, nivel confianza, disclaimer (Claude Haiku via `track_ai_call`, cache 1h, fallback stub honesto).
+  6. **Características**: 6 campos read-only (vista/orientación/nivel/m²/recámaras/baños).
+  7. **Documentos y assets**: links a plano/render/tour de la unidad.
+- Footer con acciones rápidas: Apartar (24h) / Marcar reservado / Marcar vendido.
+- `EntityDrawer` extendido con prop `body` para bypass de `sections` (manteniendo backward compat).
+
+### Backend `routes_dev_batch11.py` (nuevo, 700+ líneas)
+- `GET/PATCH /api/dev/projects/:id/amenities` — with seed fallback desde `DEVELOPMENTS`, index por `(project_id, dev_org_id)`.
+- `GET/PATCH /api/dev/projects/:id/commercialization` — colección `project_commercialization` (unique `(project_id, dev_org_id)`).
+- `GET/POST/DELETE /api/dev/projects/:id/preassignments` — colección `project_preassignments` (unique `(project_id, assigned_user_id)`).
+- `GET /api/dev/units/:dev_id/:unit_id/price-history` — real desde audit_log + sintético determinístico fallback (6 meses) + avg price/m² de colonia.
+- `GET /api/dev/units/:dev_id/:unit_id/comparables` — misma prototipo con stats sold/available.
+- `GET /api/dev/units/:dev_id/:unit_id/market-comparables` — top 8 unidades de otros proyectos en misma colonia + vs_market_pct.
+- `POST /api/dev/units/:dev_id/:unit_id/ai-prediction` — Claude Haiku vía `track_ai_call` + cache TTL 1h en `ai_predictions_cache` (unique `key`, TTL index 3600s). Fallback stub honesto si sin key o excede budget.
+- `PATCH /api/dev/units/:dev_id/:unit_id` — price/status/price_change_reason con audit + ml_event `unit_price_changed|unit_status_changed`.
+- `GET /api/dev/units/:dev_id/:unit_id/engagement` — stub determinístico `seed % 997` (marcado `is_stub=true`) con asesores/clientes/funnel.
+- `PATCH /api/dev/projects/:id/assets/:asset_id/role` — set cover (auto unset existing cover) en `project_asset_meta`.
+
+### ProyectoDetail.js cableado
+- Placeholders reemplazados con `ContenidoTab`, `AmenidadesTab`, `LegalTab`, `ComercializacionTab` reales (Insights sigue como placeholder B22).
+- VentasTab `EntityDrawer` ahora usa `body={<UnitDrawerContent .../>}`.
+
+### Smoke tests (2026-05-02, developer@demo.com)
+- ✅ Backend: 9 endpoints B11 responden 200 vía curl con cookie session.
+- ✅ Frontend: 4 tabs renderizan sin errores + drawer enriquecido abre desde Ventas → click row.
+- ✅ PATCH commercialization persiste.
+- ✅ AI prediction fallback-stub responde con recomendaciones es-MX.
+- ✅ Test regression file: `/app/backend/tests/test_batch11.py`.
+
+### Constraints respetados
+- ✅ Ruta legacy `/desarrollador/desarrollos/:slug/legajo` intacta (no migración destructiva).
+- ✅ Tabs "Avance de obra" y "Ubicación" siguen con lógica legacy.
+- ✅ UI 100% es-MX.
+- ✅ Zero emoji (lucide-react SVGs).
+- ✅ Icon `Star` agregado a `/components/icons/index.js` (faltaba).
+
 ---
 
 ## 2026-05-01 — Phase F0.11 · Sentry + PostHog + ML events (observability)

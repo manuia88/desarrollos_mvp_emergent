@@ -231,5 +231,27 @@ export const cashFlowDownloadUrl = (projectId, fileId) =>
 export const listProjectsWithStats = () => j('/api/dev/projects/list-with-stats');
 export const getProjectSummary = (projectId) => j(`/api/dev/projects/${projectId}/summary`);
 
+// Phase 4 Batch 11 — Amenidades, Comercialización, Unit Drawer
+export const getProjectAmenities = (pid) => j(`/api/dev/projects/${pid}/amenities`);
+export const patchProjectAmenities = (pid, b) => patch(`/api/dev/projects/${pid}/amenities`, b);
+export const getCommercialization = (pid) => j(`/api/dev/projects/${pid}/commercialization`);
+export const patchCommercialization = (pid, b) => patch(`/api/dev/projects/${pid}/commercialization`, b);
+export const listBrokers = (pid) => j(`/api/dev/projects/${pid}/brokers`);
+export const assignBroker = (pid, b) => post(`/api/dev/projects/${pid}/brokers`, b);
+export const patchBroker = (pid, brokerId, b) => patch(`/api/dev/projects/${pid}/brokers/${brokerId}`, b);
+export const listPreassignments = (pid) => j(`/api/dev/projects/${pid}/preassignments`);
+export const createPreassignment = (pid, b) => post(`/api/dev/projects/${pid}/preassignments`, b);
+export const deletePreassignment = (pid, userId) => del(`/api/dev/projects/${pid}/preassignments/${userId}`);
+export const getUnitPriceHistory = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/price-history`);
+export const getUnitComparables = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/comparables`);
+export const getUnitMarketComparables = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/market-comparables`);
+export const getUnitAIPrediction = (devId, unitId) => post(`/api/dev/units/${devId}/${unitId}/ai-prediction`, {});
+export const patchUnit = (devId, unitId, b) => patch(`/api/dev/units/${devId}/${unitId}`, b);
+export const getUnitEngagement = (devId, unitId) => j(`/api/dev/units/${devId}/${unitId}/engagement`);
+export const listDevAssets = (devId, type) => j(`/api/developments/${devId}/assets${type ? `?asset_type=${type}` : ''}`);
+export const listDevDocuments = (devId, type) => j(`/api/desarrollador/developments/${devId}/documents${type ? `?doc_type=${type}` : ''}`);
+export const uploadDevDocument = (devId, formData) => j(`/api/desarrollador/developments/${devId}/documents/upload`, { method: 'POST', body: formData });
+
+
 
 
