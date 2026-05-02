@@ -40,6 +40,7 @@ import AsesorComisiones from './pages/advisor/AsesorComisiones';
 import AsesorRanking from './pages/advisor/AsesorRanking';
 import StudioDashboard from './pages/advisor/StudioDashboard';
 import AsesorBriefings from './pages/advisor/AsesorBriefings';
+import AsesorCitas from './pages/advisor/AsesorCitas';
 
 // Developer portal (Phase 5)
 import DesarrolladorDashboard from './pages/developer/DesarrolladorDashboard';
@@ -54,6 +55,9 @@ import DesarrolladorCalendarioSubidas from './pages/developer/DesarrolladorCalen
 import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
 import DesarrolladorIEDetail from './pages/developer/DesarrolladorIEDetail';
 import DesarrolladorLeads from './pages/developer/DesarrolladorLeads';
+import DesarrolladorCitas from './pages/developer/DesarrolladorCitas';
+import InmobiliariaDashboard from './pages/developer/InmobiliariaDashboard';
+import InmobiliariaAsesores from './pages/developer/InmobiliariaAsesores';
 import DesarrolladorCRM from './pages/developer/DesarrolladorCRM';
 import AceptarInvitacion from './pages/public/AceptarInvitacion';
 
@@ -256,11 +260,13 @@ function AppRouter() {
       <Route path="/asesor/ranking" element={<AdvisorRoute Page={AsesorRanking} />} />
       <Route path="/asesor/studio" element={<AdvisorRoute Page={StudioDashboard} />} />
       <Route path="/asesor/briefings" element={<AdvisorRoute Page={AsesorBriefings} />} />
+      <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
       <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
       <Route path="/desarrollador/desarrollos/:slug/legajo" element={<AdvisorRoute Page={DesarrolladorLegajo} />} />
       <Route path="/desarrollador/desarrollos/:slug/ie" element={<AdvisorRoute Page={DesarrolladorIEDetail} />} />
       <Route path="/desarrollador/leads" element={<AdvisorRoute Page={DesarrolladorLeads} />} />
+      <Route path="/desarrollador/citas" element={<AdvisorRoute Page={DesarrolladorCitas} />} />
       <Route path="/desarrollador/desarrollos/:slug/crm" element={<AdvisorRoute Page={DesarrolladorCRM} />} />
       <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
@@ -270,6 +276,8 @@ function AppRouter() {
       <Route path="/desarrollador/usuarios" element={<AdvisorRoute Page={DesarrolladorUsuarios} />} />
       <Route path="/desarrollador/configuracion" element={<AdvisorRoute Page={DesarrolladorConfiguracion} />} />
       <Route path="/desarrollador/calendario-subidas" element={<AdvisorRoute Page={DesarrolladorCalendarioSubidas} />} />
+      <Route path="/inmobiliaria" element={<AdvisorRoute Page={InmobiliariaDashboard} />} />
+      <Route path="/inmobiliaria/asesores" element={<AdvisorRoute Page={InmobiliariaAsesores} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />

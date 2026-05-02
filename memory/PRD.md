@@ -765,6 +765,89 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 4.1 · Cita Registration + DMX Inmobiliaria + Anti-fraude
+**Objetivo:** formulario de registro de citas con 5 secciones + detección anti-fraude 6-layer (rapidfuzz) + portal Inmobiliaria DMX con auto-routing de leads públicos.
+
+### Sub-Chunk A · 4.26 Cita Registration Form
+**Backend (`routes_dev_batch4_1.py` · nuevo · ~1500 líneas):**
+- Nueva `appointments` collection: _id, lead_id, project_id, dev_org_id, asesor_id, inmobiliaria_id, datetime (ISO+tz), duration_minutes, modalidad, status (6 valores), confirmation_token (256-bit), reminders {sent_24h,sent_2h,sent_1h}, cancel_reason, reschedule_reason, created_at/updated_at.
+- Nueva `project_slots` collection: project_id, dev_org_id, day_of_week(0-6), hour_start/end, max_concurrent, active.
+- Extensiones `leads`: payment_methods[], lfpdppp_consent{accepted_at,ip,user_agent}, presupuesto_min/max, client_global_id (hash), geo_metadata{phone_area_code,mismatch}, velocity_flag, suspected_match_id, origin{type,inmobiliaria_id}, inmobiliaria_id.
+- `POST /api/dev/projects/{id}/slots` — bulk upsert slots con audit + ML `project_slots_configured`.
+- `GET /api/projects/{id}/slots/availability?date=YYYY-MM-DD` — disponibilidad cruzando slots + appointments existentes.
+- `POST /api/cita` (optional auth) — crea lead + appointment, valida LFPDPPP, corre anti-fraude 6-layer, envía email Resend con .ics, genera WA template URL, retorna `{lead_id, appointment_id, status, wa_template_url}`.
+- `GET /api/asesor/citas` — lista citas del asesor con stats strip (total_mes, proximas_7d, realizadas, canceladas).
+- `GET /api/dev/citas` — lista citas scoped por dev_org con filtros.
+- `PATCH /api/cita/{id}` — update status/datetime, valida cancel_reason en cancelada, reschedule_reason en reagendada.
+- `GET /api/cita/{id}/wa-template?type=success|under_review` — genera URL WA con template parametrizado.
+
+**Frontend:**
+- `NewCitaModal.js` (nuevo) — modal 5 secciones colapsables: Cliente, Cita, Presupuesto/Pago, Asesor, Consentimiento LFPDPPP. Dual entry points. Post-submit muestra result screen success/under_review/409.
+- `AsesorCitas.js` (nuevo) — página `/asesor/citas` con stats strip + tabs Lista/Calendario + filtros + CitaDrawer (editar/reagendar/cancelar).
+- `DesarrolladorCitas.js` (nuevo) — página `/desarrollador/citas` con lista filtrable + CitaDrawer + approve/reject review para admins.
+- Nav "Citas" agregado a DeveloperLayout y AdvisorLayout.
+- Rutas `/asesor/citas` y `/desarrollador/citas` registradas en App.js.
+
+### Sub-Chunk B · 4.27 DMX Inmobiliaria + Auto-routing
+**Backend:**
+- Nueva `inmobiliarias` collection: id, name, type (dmx_owner/partner/standard), is_system_default, status, rfc, contact, created_at.
+- Nueva `inmobiliaria_internal_users` collection: id, inmobiliaria_id, email, name, role (admin/director/asesor/marketing), status, password_hash, created_at.
+- Seed automático en startup: crea `dmx_root` inmobiliaria si no existe + usuario admin DMX.
+- `POST /GET /PATCH /DELETE /api/inmobiliaria/asesores` — CRUD completo, gated superadmin/developer_admin.
+- `GET /api/inmobiliaria/dashboard` — stats (total_leads, active_leads, won, win_rate_pct, avg_time_to_close_days) + top 5 asesores por leads/win_rate, filtro period 7d/30d/90d/all_time.
+- `GET /api/inmobiliaria/list` — lista todas las inmobiliarias.
+- Auto-routing: leads públicos (no auth) → detecta DMX root → `pick_best_inmobiliaria_asesor` (scoring: +50 deals en colonia, +30 conversion>50%, -20 per active lead) → asigna asesor.
+- origin.type mejorado: public_unassigned→inmobiliaria_lead, broker_external, dev_inhouse, dev_direct.
+
+**Frontend:**
+- `InmobiliariaLayout.js` (nuevo) — sidebar para portal `/inmobiliaria`.
+- `InmobiliariaDashboard.js` (nuevo) — dashboard con stats cards + top asesores + period filter.
+- `InmobiliariaAsesores.js` (nuevo) — CRUD asesores DMX con modal creación.
+- Rutas `/inmobiliaria` y `/inmobiliaria/asesores` registradas.
+
+### Sub-Chunk C · 4.28 Anti-duplicate + Anti-fraude + WA Templates
+**Backend (integrado en POST /api/cita):**
+- CHECK 1: Exact match (phone_norm + email_norm) → 409 + Plantilla 2 WA URL. Nada creado.
+- CHECK 2: 85% similarity con rapidfuzz (phone_sim×0.5 + email_sim×0.3 + Jaro-Winkler name×0.2) → status='under_review', notif developer_admin, Plantilla 2.
+- CHECK 3: Velocity (≥5 leads/30min del mismo asesor) → under_review + velocity_flag=true.
+- CHECK 4: Geo mismatch (area_code ≠ CDMX) → metadata.mismatch=true (no block).
+- CHECK 5: Cross-project activity scoring (21d recency-weighted) → in-app movement alert si score≥1.0.
+- WA Plantillas 1 (success) y 2 (under_review) con todos los datos del cliente/cita.
+- `POST /api/dev/leads/{id}/approve-review` → lead.status='nuevo' + notif asesor.
+- `POST /api/dev/leads/{id}/reject-review` → lead.status='cerrado_perdido', lost_reason='duplicado' + notif asesor.
+- In-app movement alert en notification collection (tipo 'movement_alert' con acciones WA/llamar/historial).
+
+### Dependencias Python añadidas
+- `rapidfuzz==3.10.1` (agregado a requirements.txt)
+
+### Verificación backend (todos ✅ verificados por curl)
+- POST /api/cita sin auth → status: 'created', lead + appointment creados ✅
+- POST /api/cita sin LFPDPPP → 422 ✅
+- POST /api/cita exact duplicate → 409 + WA Plantilla 2 URL ✅
+- POST /api/cita similar (Jaro-Winkler) → status: 'under_review', rapidfuzz detect ✅
+- GET /api/inmobiliaria/dashboard → stats reales {total_leads:5, top_asesores:1} ✅
+- DMX seed → inmobiliarias.find({is_system_default:True}) = DesarrollosMX ✅
+- WA template URL → https://wa.me/{phone}?text=Hola... (11 lines) ✅
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch4_1.py` (nuevo · ~1508 líneas)
+- `/app/backend/server.py` (+router + indexes + seed startup)
+- `/app/backend/requirements.txt` (+rapidfuzz==3.10.1)
+- `/app/frontend/src/api/developer.js` (+16 helpers B4.1)
+- `/app/frontend/src/components/developer/NewCitaModal.js` (nuevo)
+- `/app/frontend/src/components/developer/InmobiliariaLayout.js` (nuevo)
+- `/app/frontend/src/pages/advisor/AsesorCitas.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorCitas.js` (nuevo)
+- `/app/frontend/src/pages/developer/InmobiliariaDashboard.js` (nuevo)
+- `/app/frontend/src/pages/developer/InmobiliariaAsesores.js` (nuevo)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+Citas nav, +icons)
+- `/app/frontend/src/components/advisor/AdvisorLayout.js` (+Citas nav, +icon)
+- `/app/frontend/src/components/icons/index.js` (+CalendarCheck, Video, Phone, Building, UserCheck, AlertCircle, ExternalLink)
+- `/app/frontend/src/App.js` (+5 rutas B4.1)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4 · Sales/CRM core (Leads + project_brokers)
 **Objetivo:** stack sales operativo — pipeline de leads multi-canal + kanban por proyecto + control de brokers autorizados (preview Phase 13 multi-tenant).
 
@@ -1066,7 +1149,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://latam-desarrollos.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://real-estate-ai-55.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -2022,7 +2105,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://latam-desarrollos.preview.emergentagent.com
+https://real-estate-ai-55.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales

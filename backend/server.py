@@ -136,6 +136,10 @@ app.include_router(dev_batch3_router)
 from routes_dev_batch4 import router as dev_batch4_router, ensure_dev_batch4_indexes
 app.include_router(dev_batch4_router)
 
+# Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
+from routes_dev_batch4_1 import router as dev_batch4_1_router, ensure_batch4_1_indexes, seed_dmx_inmobiliaria
+app.include_router(dev_batch4_1_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -343,6 +347,9 @@ async def startup():
     await ensure_dev_batch3_indexes(db)
     # Phase 4 Batch 4 — Sales / CRM core indexes
     await ensure_dev_batch4_indexes(db)
+    # Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
+    await ensure_batch4_1_indexes(db)
+    await seed_dmx_inmobiliaria(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

@@ -1,7 +1,7 @@
 // AdvisorLayout — sidebar nav + role gate + header + onboarding gate
 import React, { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
-import { Home, Database, BarChart, Clock, Route, TrendUp, Bookmark, Shield, LogOut, MapPin, Sparkle, MessageSquare } from '../icons';
+import { Home, Database, BarChart, Clock, Route, TrendUp, Bookmark, Shield, LogOut, MapPin, Sparkle, MessageSquare, CalendarCheck } from '../icons';
 import OnboardingGate from './OnboardingGate';
 import * as api from '../../api/advisor';
 
@@ -18,6 +18,7 @@ const NAV = [
   { k: 'lb',        to: '/asesor/ranking',      label: 'Ranking',     Icon: Shield },
   { k: 'studio',    to: '/asesor/studio',       label: 'Studio IA',   Icon: Sparkle },
   { k: 'briefings', to: '/asesor/briefings',    label: 'Briefings IE', Icon: MessageSquare },
+  { k: 'citas',     to: '/asesor/citas',         label: 'Citas',        Icon: CalendarCheck },
 ];
 
 export default function AdvisorLayout({ user, onLogout, children }) {

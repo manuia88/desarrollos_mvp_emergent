@@ -1,7 +1,7 @@
 // DeveloperLayout — sidebar nav for developer portal
 import React from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
-import { Home, Database, BarChart, Sparkle, Radio, LogOut, MapPin, Users, Settings, Calendar, Target } from '../icons';
+import { Home, Database, BarChart, Sparkle, Radio, LogOut, MapPin, Users, Settings, Calendar, Target, CalendarCheck, Building } from '../icons';
 
 const ROLES_OK = new Set(['developer_admin', 'developer_member', 'superadmin']);
 
@@ -9,6 +9,7 @@ const NAV = [
   { k: 'dashboard',    to: '/desarrollador',                        label: 'Panel',           Icon: Home,     end: true },
   { k: 'inv',          to: '/desarrollador/inventario',             label: 'Inventario',      Icon: Database },
   { k: 'leads',        to: '/desarrollador/leads',                  label: 'Leads',           Icon: Target },
+  { k: 'citas',        to: '/desarrollador/citas',                  label: 'Citas',           Icon: CalendarCheck },
   { k: 'dem',          to: '/desarrollador/demanda',                label: 'Demanda',         Icon: MapPin },
   { k: 'rep',          to: '/desarrollador/reportes',               label: 'Reportes IA',     Icon: Sparkle },
   { k: 'price',        to: '/desarrollador/pricing',                label: 'Pricing dinámico', Icon: BarChart },

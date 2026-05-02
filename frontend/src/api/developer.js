@@ -131,3 +131,36 @@ export const revokeProjectBroker = (projectId, rowId) => fetch(`${process.env.RE
   method: 'DELETE', credentials: 'include',
 }).then(async r => { const d = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(d.detail || r.statusText); e.body = d; e.status = r.status; throw e; } return d; });
 
+
+// Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
+export const createCita = (b) => post('/api/cita', b);
+export const getSlotAvailability = (projectId, date) => j(`/api/projects/${projectId}/slots/availability?date=${date}`);
+export const configureSlots = (projectId, slots) => post(`/api/dev/projects/${projectId}/slots`, { slots });
+export const getAsesorCitas = (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString();
+  return j(`/api/asesor/citas${qs ? `?${qs}` : ''}`);
+};
+export const getDevCitas = (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString();
+  return j(`/api/dev/citas${qs ? `?${qs}` : ''}`);
+};
+export const patchCita = (id, b) => fetch(`${process.env.REACT_APP_BACKEND_URL}/api/cita/${id}`, {
+  method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b),
+}).then(async r => { const d = await r.json(); if (!r.ok) { const e = new Error(JSON.stringify(d.detail) || r.statusText); e.body = d; e.status = r.status; throw e; } return d; });
+export const getCitaWaTemplate = (id, type = 'success') => j(`/api/cita/${id}/wa-template?type=${type}`);
+export const approveLeadReview = (id) => post(`/api/dev/leads/${id}/approve-review`);
+export const rejectLeadReview = (id) => post(`/api/dev/leads/${id}/reject-review`);
+// Inmobiliaria
+export const listInmobiliarias = () => j('/api/inmobiliaria/list');
+export const createInmAsesor = (b) => post('/api/inmobiliaria/asesores', b);
+export const listInmAsesores = (inmId = 'dmx_root') => j(`/api/inmobiliaria/asesores?inmobiliaria_id=${inmId}`);
+export const patchInmAsesor = (id, b) => fetch(`${process.env.REACT_APP_BACKEND_URL}/api/inmobiliaria/asesores/${id}`, {
+  method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b),
+}).then(async r => { const d = await r.json(); if (!r.ok) { const e = new Error(d.detail || r.statusText); e.body = d; e.status = r.status; throw e; } return d; });
+export const disableInmAsesor = (id) => fetch(`${process.env.REACT_APP_BACKEND_URL}/api/inmobiliaria/asesores/${id}`, {
+  method: 'DELETE', credentials: 'include',
+}).then(async r => { const d = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(d.detail || r.statusText); e.body = d; e.status = r.status; throw e; } return d; });
+export const getInmobiliariaDashboard = (period = '30d', inmId = 'dmx_root') =>
+  j(`/api/inmobiliaria/dashboard?period=${period}&inmobiliaria_id=${inmId}`);
+
+
