@@ -286,10 +286,22 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_weekly_brief_error", error=str(e))
 
+    # Phase 4 Batch 15 — Refresh expiring OAuth tokens every 30 min
+    try:
+        from oauth_calendar import refresh_all_expiring_tokens
+        _scheduler.add_job(
+            refresh_all_expiring_tokens, "interval", minutes=30,
+            args=[db], id="oauth_token_refresh", replace_existing=True,
+            misfire_grace_time=300,
+        )
+    except Exception as e:
+        _emit("scheduler_oauth_refresh_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",
-          "unit_holds_release", "health_score_snapshots", "weekly_brief_generation"])
+          "unit_holds_release", "health_score_snapshots", "weekly_brief_generation",
+          "oauth_token_refresh"])
     return _scheduler
 
 

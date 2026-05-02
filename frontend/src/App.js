@@ -90,6 +90,11 @@ const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoPro
 // Phase 4 Batch 13
 const LinksTrackingPage          = lazy(() => import('./pages/asesor/LinksTracking'));
 
+// Phase 4 Batch 15 — Multi-broker Calendar
+const CalendarSettings           = lazy(() => import('./pages/advisor/CalendarSettings'));
+const CitasPolicies              = lazy(() => import('./pages/developer/CitasPolicies'));
+const AutoAssignments            = lazy(() => import('./pages/developer/AutoAssignments'));
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -340,6 +345,11 @@ function AppRouter() {
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
       <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksTrackingPage} />} />
+
+      {/* Phase 4 Batch 15 — Multi-broker Calendar */}
+      <Route path="/asesor/configuracion" element={<AdvisorRoute Page={CalendarSettings} />} />
+      <Route path="/desarrollador/configuracion/citas-policies" element={<AdvisorRoute Page={CitasPolicies} />} />
+      <Route path="/desarrollador/crm/auto-assignments" element={<AdvisorRoute Page={AutoAssignments} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>

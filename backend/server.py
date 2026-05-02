@@ -215,6 +215,11 @@ from routes_dev_batch14 import (router as dev_batch14_router, ensure_batch14_ind
 from health_score import ensure_health_score_indexes
 app.include_router(dev_batch14_router)
 
+# Phase 4 Batch 15 — Multi-broker Calendar (Google OAuth + Availability + Auto-assign)
+from routes_dev_batch15 import (router as dev_batch15_router, ensure_batch15_indexes)
+from oauth_calendar import ensure_oauth_indexes
+app.include_router(dev_batch15_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -547,6 +552,13 @@ async def startup():
         await ensure_health_score_indexes(db)
     except Exception as e:
         logging.warning(f"[batch14] index setup failed: {e}")
+
+    # Phase 4 Batch 15 — OAuth Calendar + Availability indexes
+    try:
+        await ensure_batch15_indexes(db)
+        await ensure_oauth_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch15] index setup failed: {e}")
 
 
 @app.on_event("shutdown")

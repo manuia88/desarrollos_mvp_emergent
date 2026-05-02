@@ -3276,3 +3276,26 @@ https://latam-spatial.preview.emergentagent.com
 - `/app/frontend/src/pages/developer/MisProyectos.js` (+diagnostic badge + updated KPIs)
 - `/app/frontend/src/components/shared/FloatingQuickActions.js` (fix lucide import)
 - `/app/frontend/src/pages/developer/NuevoProyecto.js` (fix DeveloperLayout import path)
+
+---
+
+## Phase 4 Batch 15 — Multi-broker Calendar (Google OAuth + Availability + Auto-assign)
+**Completado: 2026-05-02 · 18/18 pytest passed · Google real, Microsoft stub**
+
+### Sub-Chunk A: OAuth Google Calendar ✅
+- **Service**: `oauth_calendar.py` — `CalendarProvider` ABC + `GoogleCalendarProvider` (real) + `MicrosoftCalendarProvider` (stub: NotImplementedError "coming_soon"). Registry: `PROVIDERS = {'google': ...}`
+- **Encryption**: Fernet key `OAUTH_TOKEN_ENCRYPTION_KEY`; CSRF state in-memory con 1h TTL
+- **Endpoints**: `GET /api/oauth/google/initiate` · `GET /api/oauth/google/callback` · `POST /api/oauth/google/revoke` · `GET /api/oauth/connections` · `GET /api/oauth/advisor-pool`
+- **APScheduler**: `oauth_token_refresh` cada 30min · **UI**: `/asesor/configuracion/calendar`
+
+### Sub-Chunk B: Availability + Auto-assign ✅
+- `availability.py`: `get_available_slots()` → Google freeBusy + working_hours + buffer + cache 5min; `assign_appointment()` con 3 policies (round_robin/load_balance/pre_selected) + ICS fallback
+- **Endpoints**: `POST /api/appointments/availability` · `POST /api/appointments/auto-assign` · `GET/PUT /api/appointments/policy/{project_id}` · `POST /api/public/appointments/book`
+
+### Sub-Chunk C: UI + Métricas ✅
+- 3 páginas: `/asesor/configuracion/calendar` · `/desarrollador/configuracion/citas-policies` · `/desarrollador/crm/auto-assignments`
+- 2 probes B15: `oauth_calendar_health` + `auto_assign_engine` (35 total probes)
+
+### Activación Microsoft (futuro)
+Registrar MicrosoftCalendarProvider real en PROVIDERS + agregar redirect URI. Sin tocar policies/availability/métricas.
+
