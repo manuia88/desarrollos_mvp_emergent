@@ -55,8 +55,10 @@ function NavItem({ item, collapsed, badge }) {
       end={item.end}
       data-testid={`nav-item-${item.key}`}
       className={({ isActive: ia }) =>
-        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 relative group
-        ${ia ? 'bg-[var(--cream)] text-[var(--navy)]' : 'text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.08)]'}`
+        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 relative group
+        ${ia
+          ? 'bg-[rgba(99,102,241,0.18)] text-[var(--cream)] font-semibold shadow-[inset_3px_0_0_#6366F1]'
+          : 'font-medium text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)]'}`
       }
     >
       <item.Icon size={17} className="shrink-0" />

@@ -11,8 +11,8 @@ import {
   LayoutDashboard, Building2, Users, CalendarDays, MapPin, BarChart3,
   TrendingUp, FolderOpen, Settings, Shield, Activity,
   Search, Layers, Home, Star,
-  ClipboardList, LineChart, FileText, Database, Film, Eye,
-  Target, Handshake, DollarSign, Trophy, Sparkles, Megaphone,
+  ClipboardList, LineChart, FileText, Database, Eye,
+  Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) ─────────────────────────────────────────
@@ -66,7 +66,7 @@ const ASESOR_NAV = [
     tier: 2,
     label: 'Operación',
     items: [
-      { key: 'captaciones',  to: '/asesor/captaciones',                  label: 'Captaciones',      Icon: Handshake },
+      { key: 'captaciones',  to: '/asesor/captaciones',                  label: 'Captaciones',      Icon: Briefcase },
       { key: 'tareas',       to: '/asesor/tareas',                       label: 'Tareas',           Icon: ClipboardList },
       { key: 'operaciones',  to: '/asesor/operaciones',                  label: 'Operaciones',      Icon: Activity },
       { key: 'leads-dev',    to: '/asesor/leads-dev',                    label: 'Leads Dev',        Icon: Megaphone },
