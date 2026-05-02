@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
@@ -378,13 +378,13 @@ async def _run_kanban(
 @router.get("/api/leads/kanban")
 async def unified_kanban(
     request: Request,
-    scope: str = Query("mine"),
+    scope: str = "mine",
     project_id: Optional[str] = None,
     source: Optional[str] = None,
     asesor_id: Optional[str] = None,
-    from_date: Optional[str] = Query(None, alias="from"),
-    to_date: Optional[str] = Query(None, alias="to"),
-    q_search: Optional[str] = Query(None, alias="q"),
+    from_date: Annotated[Optional[str], Query(alias="from")] = None,
+    to_date: Annotated[Optional[str], Query(alias="to")] = None,
+    q_search: Annotated[Optional[str], Query(alias="q")] = None,
 ):
     return await _run_kanban(
         request, scope=scope, project_id=project_id, source=source,
@@ -698,7 +698,7 @@ async def client_cross_project_leads(client_gid: str, request: Request):
 async def dev_kanban_compat(
     request: Request,
     project_id: Optional[str] = None,
-    scope: str = Query("all_org"),
+    scope: str = "all_org",
 ):
     """Backward-compat wrapper. Dev surfaces should migrate to /api/leads/kanban."""
     return await _run_kanban(request, scope=scope, project_id=project_id)
@@ -717,7 +717,7 @@ async def advisor_kanban_compat(
 async def inmobiliaria_kanban_compat(
     request: Request,
     project_id: Optional[str] = None,
-    scope: str = Query("all_inmobiliaria"),
+    scope: str = "all_inmobiliaria",
 ):
     """Backward-compat wrapper for inmobiliaria leads kanban."""
     return await _run_kanban(request, scope=scope, project_id=project_id)
