@@ -554,6 +554,72 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - 🟡 Recommendations PDF export (solo JSON por ahora).
 - 🟡 Screenshot capture via html2canvas (payload `screenshot_data_url` ya aceptado por API, frontend puede plug-in lib después).
 
+---
+
+## 2026-05-02 — Phase 4 Batch 12 · Wizard 7 pasos + IA upload + Drive
+
+### Sub-chunk A ✅ — Wizard manual 7 pasos
+- `routes_wizard.py` con 8 endpoints: smart-defaults, draft save/load, projects POST, ia-extract POST/GET, drive/status, drive/url.
+- `/desarrollador/proyectos/nuevo` (`NuevoProyecto.js`): page con SmartWizard primitive (B0), 7 step components inline:
+  1. **Categoría**: tipo (residencial vertical/horizontal/mixto/comercial) · segmento NSE_AB/C+/C/D · etapa preventa/en_construccion/entregado
+  2. **Operación**: nombre + slug auto + total_unidades + construction_cost + target_price + absorption months
+  3. **Ubicación**: estado/municipio/colonia/calle/cp (MapboxPicker stub para B13)
+  4. **Amenidades** *opcional*: 4 categorías (comunes/internas/exteriores/premium) con checkboxes + smart-defaults sparkle
+  5. **Contenido** *opcional*: DragDropZone fotos/planos/renders/videos/tour (max 20, 50MB)
+  6. **Legal** *opcional*: estado proceso (5 opciones) + DragDropZone documentos
+  7. **Comercialización**: toggle brokers + slider comisión 1-10% + IVA + términos + in-house-only
+- Auto-save draft cada 600ms (localStorage + cross-device via `wizard_drafts` collection).
+- Smart defaults learning: `GET /api/dev/wizard/smart-defaults` agrega tipo/segmento más frecuente, total unidades promedio, top 10 amenidades del org, comercialización del proyecto más reciente.
+- "+ Nuevo proyecto" button en `MisProyectos` ahora navega correctamente a `/proyectos/nuevo`.
+- Submit final crea `db.projects` + `db.units` (placeholders) + `db.project_amenities` + `db.project_commercialization` + `db.project_preassignments` con audit + `project_created_via_wizard` ml_event + diagnostic auto post-create (5min delay).
+- `list-with-stats` extendido para incluir wizard-created projects desde `db.projects` (merge con DEVELOPMENTS catalog).
+
+### Sub-chunk B ✅ — IA upload modo drag-drop
+- `IaUploadTab` component: DragDropZone con accept `.pdf,.xlsx,.xls,.csv,.docx,.txt,.md` (max 10 archivos, 20MB each).
+- Pipeline backend `_extract_text_from_upload`: pypdf · openpyxl · python-docx · plain text fallback. Combina texto extraído (cap 30KB).
+- Claude Haiku call con system prompt structured (es-MX, JSON output con value/confidence/source per campo). Cache `wizard_ia_extractions` collection.
+- Tracked vía `track_ai_call` con call_type='wizard_ia_extract'. Budget gate vía `is_within_budget`.
+- Honest stub `_stub_extraction` cuando key missing o budget exceeded — usuario ve badge "FALLBACK STUB" claro.
+- `IaResultSummary` modal: confianza promedio + tabla 15 campos (color-coded green/amber/red) + botón "Continuar al wizard pre-llenado".
+- Pre-fill: `prefill` merged con smart defaults; cada Field muestra Sparkles icon cuando IA detectó valor + tooltip con confidence% y source filename.
+- ml_event `wizard_ia_extract_completed` con metrics.
+
+### Sub-chunk C ✅ — Drive import (URL paste + OAuth check)
+- `DriveImportTab` component: input URL paste con regex validación de pattern `drive.google.com/drive/folders/{id}`.
+- `GET /api/dev/wizard/drive/status` — reporta `oauth_configured` (basado en `_has_keys()` de drive_engine existente).
+- `POST /api/dev/wizard/drive/url` — extrae folder_id, retorna `{ok, reason, message}` honest cuando OAuth no configurado.
+- UI muestra badge amber "Google OAuth no configurado" + instrucciones para .env. Sub-modo "Conectar Drive personal" referenciado a flow OAuth existente del sidebar Drive (no duplicado).
+- Reutiliza pipeline IA extract de Sub-chunk B (mismo `wizard_ia_extractions`).
+
+### Colecciones nuevas
+- `wizard_drafts` (unique `(user_id, dev_org_id)`) — borrador cross-device.
+- `wizard_ia_extractions` (unique `run_id`, idx `(dev_org_id, created_at desc)`) — historial extracciones IA.
+
+### Smoke tests (2026-05-02)
+- ✅ Smart defaults learning (vacío inicial → enriquecido tras 1 wizard project).
+- ✅ Draft save+load cross-device.
+- ✅ Project creation completa (db.projects + units + amenities + commercialization).
+- ✅ Wizard project visible en Mis Proyectos (`list-with-stats` extendido).
+- ✅ IA extract con .txt: filename → text → Claude call → fallback honesto cuando budget exceeded.
+- ✅ Drive URL pattern validation + honest oauth_not_configured response.
+- ✅ Diagnostic B0.5 auto-corre 5min post-create.
+- ✅ `/app/backend/tests/test_batch12.py` regression file.
+
+### Constraints respetados
+- ✅ Solo Batch 12 — 3 sub-chunks, scope-locked.
+- ✅ Backward-compat 100% — ruta `/desarrollador/proyectos/:slug` legacy intacta.
+- ✅ Reuse: SmartWizard (B0) + DragDropZone (B0) + drive_engine (existente) + extraction_engine pattern + diagnostic_engine (B0.5) + track_ai_call (B0).
+- ✅ Audit + ml_events: `project_created_via_wizard`, `wizard_ia_extract_completed`.
+- ✅ Zero emojis, lucide-react SVGs (Sparkles para IA, Cloud para Drive, FileText para manual, Check, AlertCircle, X).
+- ✅ es-MX 100%.
+
+### Mocked / pending
+- 🟡 MapboxPicker en step Ubicación (lat/lng auto-infer de dirección) — stub para B13.
+- 🟡 Asset role auto-categorize por filename (Claude classify) — pendiente, frontend prepara files lista pero upload físico se debe hacer post-create vía ContenidoTab existente.
+- 🟡 Drive OAuth completo desde wizard — actualmente referencia al flow del sidebar Drive existente.
+- 🟡 Schema probes B0.5 de wizard projects: actualmente fallan porque check `DEVELOPMENTS` array (gap arquitectural a resolver en B13).
+
+
 
 ## 2026-05-01 — Phase F0.11 · Sentry + PostHog + ML events (observability)
 **Objetivo:** wiring completo de observability + seed infra para Phase 17 (ML continuous training).

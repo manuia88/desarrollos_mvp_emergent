@@ -277,7 +277,7 @@ export default function MisProyectos({ user, onLogout }) {
           </div>
           <button
             data-testid="nuevo-proyecto-btn"
-            onClick={() => navigate('/desarrollador/configuracion')}
+            onClick={() => navigate('/desarrollador/proyectos/nuevo')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'var(--cream)', color: 'var(--navy)',

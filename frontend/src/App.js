@@ -84,6 +84,9 @@ const PrimitivesDemo             = lazy(() => import('./pages/superadmin/Primiti
 const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
 const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDiagnostics'));
 
+// Phase 4 Batch 12
+const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoProyecto'));
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -325,6 +328,7 @@ function AppRouter() {
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
+      <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>

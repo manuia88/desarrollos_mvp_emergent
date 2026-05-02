@@ -241,6 +241,38 @@ async def list_projects_with_stats(request: Request):
             "delivery_estimate": dev.get("delivery_estimate"),
         })
 
+    # Phase 4 Batch 12 — Include wizard-created projects (db.projects)
+    org = (getattr(user, "tenant_id", None) or
+           getattr(user, "org_id", None) or "default")
+    async for p in db.projects.find({"dev_org_id": org}, {"_id": 0}):
+        if p.get("id") in {r["id"] for r in results}:
+            continue
+        # Aggregate units from db.units
+        total_units = await db.units.count_documents({"project_id": p["id"]})
+        by_status: Dict[str, int] = {}
+        async for u in db.units.find({"project_id": p["id"]}, {"_id": 0, "status": 1}):
+            s = u.get("status", "disponible")
+            by_status[s] = by_status.get(s, 0) + 1
+        results.append({
+            "id": p["id"],
+            "name": p.get("name", p["id"]),
+            "colonia": p.get("colonia", ""),
+            "stage": p.get("stage", "preventa"),
+            "price_from": int(p.get("price_from") or 0),
+            "price_to": int(p.get("price_from") or 0),
+            "units_total": total_units,
+            "units_by_status": by_status,
+            "construction_pct": 0,
+            "health_score": 65,  # neutral default for fresh projects
+            "leads_active": 0,
+            "revenue_mtd_est": 0,
+            "weekly_sales": [0] * 8,
+            "cover_photo": None,
+            "developer_id": p.get("developer_id"),
+            "delivery_estimate": None,
+            "created_via": "wizard",
+        })
+
     return results
 
 

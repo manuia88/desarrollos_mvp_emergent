@@ -202,6 +202,10 @@ from routes_diagnostic import (router as diagnostic_router,
 from diagnostic_engine import ensure_diagnostic_indexes
 app.include_router(diagnostic_router)
 
+# Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
+from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
+app.include_router(wizard_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -434,6 +438,8 @@ async def startup():
     await ensure_preferences_indexes(db)
     # Phase 4 Batch 0.5 — Diagnostic Engine indexes
     await ensure_diagnostic_indexes(db)
+    # Phase 4 Batch 12 — Wizard indexes
+    await ensure_wizard_indexes(db)
     # Phase 4 Batch 0 Sub-chunk C — project_documents migration
     try:
         await db.project_documents.create_index([("development_id", 1), ("doc_type", 1)])
