@@ -1,20 +1,21 @@
-<analysis>**original_problem_statement**: Build DesarrollosMX (DMX), an AI-native Spatial Decision Intelligence Platform for LATAM real estate.
+<analysis>**original_problem_statement**: 
+Build DesarrollosMX (DMX), an AI-native Spatial Decision Intelligence Platform for LATAM real estate.
 PRODUCT REQUIREMENTS: 
 - 6 Phases + New Moat #2 (Document Intelligence) & Asset Pipeline. 
 - Strict visual guidelines: Navy (#06080F) + Cream (#F0EBE0) + specific gradient, Outfit/DM Sans fonts, zero emojis (use lucide SVGs).
 - Technical constraints: Multi-tenant data isolation, single-session enforcement, mobile-first, robust auth, strictly es-MX UI localization.
 
-**User's preferred language**: Spanish (es-MX). 
-**INSTRUCT NEXT AGENT**: You MUST respond in the user's preferred language (Spanish es-MX) only. All application UI, mock data, responses, and internal string files MUST strictly be in Spanish .
+**User's preferred language**: Spanish (es-MX)
+**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language (Spanish es-MX) only. All application UI, mock data, responses, and internal string files MUST strictly be in Spanish .
 
 **what currently exists?** 
-A highly functional LATAM real estate platform covering up through Phase 4 Batch 8. Features include lead tracking, dynamic pricing, Mapbox heatmaps, Claude Haiku AI integrations (via Emergent Key) for narratives and recommendations, Site Selection AI, Expansion Simulators, and an INEGI real demographics connector. The platform has just successfully implemented and stabilized Phase 4 Batch 8 — Cash Flow Forecast IA Standalone, achieving a clean Sentry log output and fixing React component rendering errors. 
+A highly functional LATAM real estate platform. Phase 4 Batch 0 (Foundation Refactor) Sub-chunks A, B, and C are now fully completed. This includes a modularized backend, shared UI primitives (like SmartWizard, EntityDrawer, DragDropZone), lazy loading optimizations for heavy chunks (Mapbox, Recharts), AI Budget tracking, data scoping, and baseline i18n setup.
 
 **Last working item**:
-    - Last item agent was working: The user reported the Preview environment was down, providing an old deployment URL as evidence. The agent investigated, confirmed the cluster was healthy via Supervisor, verified the app was correctly running on the real  URL, and successfully loaded the app via curl and screenshot. The agent finished the task by clarifying the URL confusion to the user.
-    - Status: NONE (Completed, user verification pending on the new URL).
-    - Agent Testing Done: Y (Backend tested via bash/curl, Frontend smoke tested via screenshot tool).
-    - Which testing method agent to use? manual testing by python -c / curl / Playwright local DOM scripts / screenshot tool. (CRITICAL: Do NOT use  or any testing subagent as historically forbidden by the user unless explicitly told otherwise).
+    - Last item agent was working: Phase 4 B0 Sub-chunk C. Consolidating permissions, adding  for payload scrubbing,  to track Claude calls across all routes, basic i18next setup, and wiring dynamic badges in the sidebar.
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use? manual testing by bash/curl script and python -c (Note: user strictly forbade testing subagents).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
@@ -45,103 +46,104 @@ A highly functional LATAM real estate platform covering up through Phase 4 Batch
      - Should Test frontend/backend/both after fix? frontend
      - Blocked on other issue: User explicit deferral.
 
+  Issue 4: Playwright screenshot runner drops session state/cookies for deeply nested routes. (P2)
+     - Attempted fixes: Direct token injection failed due to UI router requirement ().
+     - Next debug checklist: Find a reliable way to maintain playwright auth state or build a workaround for deeply nested page screenshot tests.
+     - Why fix this issue and what will be achieved with the fix? Unblocks visual testing of deeply nested authenticated routes.
+     - Status: BLOCKED
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix? frontend
+     - Blocked on other issue: None
+
 **In progress Task List**:
-  *(None. The agent fully completed Phase 4 Batch 8. Awaiting next user directive.)*
+  *(None. Last task was successfully finished)*
 
 **Upcoming and Future Tasks**
-  - Phase 7.10: Avance-Obra tab integration — connecting cash flow outflows with real actual-vs-plan progression (P1)
+  Upcoming Tasks:
+  - Phase 7.10: Avance-Obra tab integration — connecting cash flow outflows with real actual-vs-plan progression (P0)
   - WhatsApp Business real integration via  QR + C11 Caya UI conversational completa + NLP intent classifier (P1)
+  
+  Future Tasks:
   - Phase 17 / ML Observability extension: Feedback Acceptance Rate tracking and UI widgets (P2)
   - Google Calendar OAuth bidireccional en Tareas (P2)
   - Studio Wave 1.5 (S1.2 timeline + S1.3 export presets) (P2)
   - Live-tail/SSE real-time changes for Superadmin  aggregation (P2 backlog)
-  - Split  into dedicated routers (Refactor - P2) - *Wait for user prompt before doing this refactor.*
 
 **Completed work in this session**
-- Phase 4 Batch 8: Cash Flow Forecast Frontend Wiring ( CTA pointing to new page) (DONE)
-- Bug Fix (Sentry DMX-WEB-7, 8, 9): Fixed  in  affecting APScheduler jobs. (DONE)
-- Bug Fix (Sentry DMX-WEB-6): Fixed Objects are not valid as React child error in  when expanding the Site Selection Drawer. (DONE)
-- Playwright smoke test verification for Flujo de Caja and Site Selection routes. (DONE)
-- PRD Update to log Phase 4 Batch 8 closure. (DONE)
-- App environment/URL diagnostic validation. (DONE)
+- Phase 4 B0 Sub-chunk B: Created , , , , , and  shared components and verified via  (DONE)
+- Phase 4 B0 Sub-chunk C:  extraction,  scrubbing logic,  usage tracking wired across all Claude calls, dynamic badges in sidebar, i18next base setup (DONE)
+- Mapbox-gl and Recharts lazy loading verified (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: Playwright screenshot runner drops session state/cookies for deeply nested routes.
-   - Debug checklist: Direct token injection failed due to UI router requirement ().
-   - Why to solve this issue and what will be achieved with this? Unblocks visual testing of deeply nested authenticated routes.
-   - Should Test frontend/backend/both after fix: frontend
-   - Is recurring issue? Y
+   Issue 1: Playwright screenshot runner auth drops (Refer to Issue 4 in Pending list above)
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Playwright screenshot runner auth drops.
-  - Recurrence count: 4
+  - Issue recurrence in previous fork: Playwright screenshot runner auth drops for deeply nested components.
+  - Recurrence count: 6
   - Status: BLOCKED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-FastAPI, React.js, Tailwind CSS (strict var usage), MongoDB, Claude Haiku via Emergent LLM Key, ReportLab (PDF rendering), Mapbox GL JS, INEGI BISE API integration, APScheduler (cron jobs).
+FastAPI, React.js (lazy/Suspense context), Tailwind CSS, MongoDB, Claude Haiku/Sonnet via Emergent LLM Key, APScheduler, JWT Authentication, i18next.
 
 **key DB schema**
   - : 
   - : 
-  - : 
-  - : 
+  - : Schema established for unified media storage.
 
 **changes in tech stack**
-  - None in this session.
+  - Added  and  for localization infrastructure.
 
 **All files of reference** 
-  - 
-  - 
-  - 
-  - 
-  -  (Strict styling and project rules)
-  - 
+  -  (All newly created/updated primitive components)
+  -  (Localization setup)
+  -  (AI usage tracking logic)
+  -  &  (Centralized permissions and payload scrubbing)
+  -  (Endpoints for dynamic sidebar badges)
+  -  (Registered new routes and migrations)
+  -  (Updated with completion notes)
 
-**Areas that need refactoring**
-  -  is extremely large. *Wait for user prompt before breaking into routers.*
-  - Dead code present in .
+**Areas that need refactoring**:
+  - None at the moment. Focus purely on the backlog tasks.
 
 **key api endpoints**
-  -  (Batch 8)
-  -  (Batch 8)
-  -  (Batch 7.1)
-  -  (Batch 7.2)
+  -  (Dev budget info)
+  -  (Superadmin global AI usage)
+  - 
+  - ,  (Sidebar badges)
 
 **Critical Info for New Agent**
   - **LANGUAGE:** All outputs MUST be in Spanish .
-  - **TESTING AGENT RESTRICTION:** Do NOT use  or any testing subagents. Rely on , Python scripts, and the Playwright Screenshot tool. 
-  - **URL VALIDATION:** The user may try to access older deployment URLs (like ). ALWAYS rely strictly on the  from  for testing and explicitly remind the user to use that specific URL.
-  - **STRICT GUIDELINES:** Adhere to . Avoid unauthorized CSS colors. Use strictly  and .
-  - **EMERGENT LLM KEY:** Working well with  for Site Selection narratives, Cash Flow AI recommendations, and PDF generation.
-  - **DEFERRED TASKS:** DO NOT fix the UI rendering bug with , cleanup , or  unless explicitly prompted.
+  - **TESTING AGENT RESTRICTION:** Do NOT use  or any testing subagents. Rely on , Python scripts, and the Playwright Screenshot tool for testing changes. User is highly specific about this.
+  - **LUCIDE REACT:** The installed version of  (0.263.1) does NOT contain the  icon. Use alternatives like  if needed.
+  - Claude call tracking () is heavily wired across multiple backend routes. If you add new AI capabilities, ensure they use this tracker to maintain the AI budget logic.
 
 **documents and test reports created in this job**
-  -  (Updated with completion block for Batch 8).
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- 1. User prompts: Option A — close B8 completely + Verify Sentry DMX-WEB-7,8,9 + Verify DMX-WEB-6 (React child error). No scope creep.
- 2. Agent updates  with the frontend CTA logic pointing to Flujo de Caja.
- 3. Agent identifies and fixes  related to  inside  startup function. 
- 4. Agent identifies and fixes React child error in .
- 5. Agent conducts Playwright screenshot verification on Cash Flow page and Site Selection page.
- 6. Agent updates  to reflect B8 completion and finishes.
- 7. User prompts: PREVIEW IS NOT RUNNING. curl to returns 1354 bytes... Activate preview. No scope creep.
- 8. Agent verifies Supervisor logs (running). Realizes user was hitting an outdated deployment URL.
- 9. Agent tests the real  and takes a live screenshot confirming the environment is healthy.
- 10. Agent finishes task, advising the user of the URL mix-up.
- *(Pending user instruction to move on to Phase 7.10 or WhatsApp).*
+ - User: Please use ask_human tool and confirm your plan now. (Resolved)
+ - User: GO B0 SUB-CHUNK B — Primitives Set 2 + SmartWizard (~4h) (Resolved)
+ - User:  (Resolved)
+ - User:  (Resolved)
+ - User: GO B0 SUB-CHUNK C — Backend modules + Hooks + i18n + Schema disgregado + Wire gaps de A (~5h) (Resolved)
+ - User:  (Resolved)
+ - User:  (Resolved)
+ - User:  (Resolved)
+ - User:  (Resolved)
+ - User:  (Resolved)
+ - *No Pending Human Messages.*
 
 **Project Health Check:**
-  - Broken: Playwright cookie dropping for complex authenticated routes.  rendering (Deferred).
-  - Mocked: ERP Webhooks, 3rd party API keys (Pedra, Google Auth).
+  - Broken: Playwright testing harness dropping auth on nested routes.
+  - Mocked: 3rd party API keys (Pedra, Google Auth).
 
-**3rd Party Integrations**
+**3rd Party Integrations** 
   - Mapbox GL JS — requires User API Key
   - Sentry/Posthog — requires User API Key
-  - Claude/OpenAI — Emergent LLM Key (Used in AI narratives)
+  - Claude/OpenAI — Emergent LLM Key (Used in AI narratives & Budget tracking)
   - Resend — requires User API Key
   - INEGI BISE API — User Token inside env/constants
 
@@ -149,7 +151,7 @@ FastAPI, React.js, Tailwind CSS (strict var usage), MongoDB, Claude Haiku via Em
   - Testing agent used after significant changes: NO (Forbidden by user)
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
-  - Known regressions: None.
+  - Known regressions: Playwright automation token drop for nested views.
 
 **Credentials to test flow:**
   -  /  (Superadmin)
@@ -158,4 +160,4 @@ FastAPI, React.js, Tailwind CSS (strict var usage), MongoDB, Claude Haiku via Em
   -  /  (Developer Comercial)
 
 **What agent forgot to execute**
-  - Nothing was forgotten. The agent debunked the user's false alarm regarding the environment stability. Next action should just wait for the user to select the next feature (Phase 7.10 or WhatsApp integration).</analysis>
+  - Nothing. The agent successfully implemented both Sub-chunk B UI primitives and Sub-chunk C backend features, wired the AI usage tracking securely, resolved index conflicts, tested everything cleanly via  and screenshots, and verified bundle lazy-loading sizes.</analysis>
