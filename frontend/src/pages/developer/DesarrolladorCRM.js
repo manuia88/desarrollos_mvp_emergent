@@ -1,9 +1,10 @@
-// /desarrollador/desarrollos/:slug/crm — Phase 4.23 CRM Kanban + Project brokers
+// /desarrollador/desarrollos/:slug/crm — Phase 4.23 CRM Kanban + Project brokers (Universal Kanban 4.2)
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { Card, Badge, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
+import LeadKanban from '../../components/shared/LeadKanban';
 import { Target, Users, Plus, X, ArrowRight } from '../../components/icons';
 
 const SOURCE_LABELS = {
@@ -76,7 +77,7 @@ export default function DesarrolladorCRM({ user, onLogout }) {
         })}
       </div>
 
-      {tab === 'kanban'  && <KanbanTab projectId={slug} onToast={setToast} />}
+      {tab === 'kanban'  && <LeadKanban scope="all_org" projectId={slug} onToast={setToast} />}
       {tab === 'brokers' && <BrokersTab projectId={slug} user={user} onToast={setToast} />}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}

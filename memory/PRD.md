@@ -765,6 +765,54 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 4.2 · Universal LeadKanban + Permission Tiers + client_id
+**Objetivo:** unificar los kanbans duplicados de leads en un único componente compartido + matriz de permisos jerárquica + visibilidad cross-project del cliente único.
+
+### Sub-Chunk A · 4.29 Universal Kanban
+**Backend (`routes_dev_batch4_2.py` · nuevo · ~700 líneas):**
+- 8 helpers de permisos:
+  - `get_user_permission_level(user)` → niveles canónicos: `superadmin`, `developer_director`, `developer_member`, `inmobiliaria_director`, `inmobiliaria_member`, `asesor_freelance`, `public`.
+  - `can_view_kanban(user, scope, target_org)` — gate por scope `mine` / `all_org` / `all_inmobiliaria`.
+  - `can_move_lead(user, lead)` — owner check + dev_director (NO broker_external) + inmobiliaria_director (todos).
+  - `can_view_full_client_data(user, lead)` — datos PII visibles solo al asesor asignado, dev_director (su org) y inmobiliaria_director (su inm).
+  - `can_view_conversation(user, lead)` — asesor + inmobiliaria_director; dev_director NO ve conversación de broker_external.
+  - `can_view_ai_summary(user, lead)` — dev_director SÍ ve AI summary de TODOS sus leads (incluso broker_external) para coachear.
+  - `_scrub_lead(lead)` — versión PII-stripped con "Cliente de {asesor}".
+  - `_run_kanban(...)` — helper interno para los 4 endpoints de kanban (evita filtrar Query objects entre wrappers).
+- `GET /api/leads/kanban?scope=mine|all_org|all_inmobiliaria&project_id=&source=&asesor_id=&from=&to=&q=` — kanban universal con permission gate y cross-project counts.
+- `POST /api/leads/{id}/move-column` — mover lead entre columnas con `can_move_lead` enforcement; emite `permission_denied_attempt` ML event si bloqueado.
+- `GET /api/leads/{id}` — detalle scrubbed según `can_view_full_client_data`; retorna `_permissions` block con los 4 booleans.
+- `GET /api/leads/{id}/conversation` — 403 si no `can_view_conversation`; resuelve names de notes.
+- `GET /api/leads/{id}/ai-summary` — 403 si no `can_view_ai_summary`; resumen heurístico con headline/intent/budget/risk/recommendations.
+- `GET /api/clients/{client_global_id}/leads` — vista cross-project filtrada por permission level.
+- Backward-compat wrappers: `GET /api/dev/leads/kanban/v2`, `GET /api/advisor/leads/kanban`, `GET /api/inmobiliaria/leads/kanban`.
+
+**Frontend:**
+- `api/leads.js` (nuevo) — cliente API universal: `getKanban`, `getLead`, `moveColumn`, `getConversation`, `getAiSummary`, `getClientLeads`.
+- `components/shared/LeadKanban.js` (nuevo · ~470 líneas) — componente universal:
+  - HTML5 drag-drop con `data-can-move` enforcement (cards no movibles bloquean drag + tooltip + icono Lock).
+  - 5 columnas color-coded (Nuevo/En contacto/Visita realizada/Propuesta/Cerrado).
+  - LeadKanbanCard con conditional render: nombre real vs "Cliente de {asesor}" según `can_view_full`; icono EyeOff si no canFull.
+  - **Cross-project badge** `Link2 · N proyectos` cuando `cross_project_count > 0`.
+  - **LeadDrawer** integrado: 4 secciones condicionales (Contacto / Otras citas de este cliente / Conversación / Resumen IA), 4 PermBadges, LockedHint cuando 403.
+- `pages/developer/InmobiliariaLeads.js` (nuevo) — `/inmobiliaria/leads` con scope=all_inmobiliaria.
+- `pages/advisor/AsesorLeadsDev.js` (nuevo) — `/asesor/leads-dev` con scope=mine.
+- `DesarrolladorLeads.js` — agregada tab "Kanban universal" (entre Pipeline y Analytics) con scope=all_org.
+- `DesarrolladorCRM.js` — `KanbanTab` reemplazado por `<LeadKanban scope="all_org" projectId={slug} />`.
+- `AdvisorLayout.js` — nav item "Leads desarrollos" (icono Target) cableado.
+- Iconos nuevos en `icons/index.js`: `Link2`, `Brain`, `EyeOff`.
+
+### Verificación ✅
+- Backend: los 4 endpoints kanban (mine/all_org/all_inmobiliaria/v2) → `200 OK` con superadmin; asesor en `scope=all_org` → `403 "Scope 'all_org' no permitido para tu rol (asesor_freelance)"` ✅
+- `GET /api/leads/{id}` → retorna `_permissions: {can_move, can_view_full, can_view_conversation, can_view_ai_summary, permission_level}` ✅
+- `GET /api/leads/{id}/conversation` y `/ai-summary` → `200` con superadmin, `403` con permisos insuficientes ✅
+- `GET /api/clients/dummy_gid/leads` → `200 {total:0, leads:[]}` ✅
+- Frontend (Playwright): `/inmobiliaria/leads` superadmin → grid con 5 cols + 12 cards + drawer con AI summary + Conversación + 4 perm badges ✅
+- `/asesor/leads-dev` con asesor@demo.com → grid 5 cols + 0 cards (mine scope correcto) + h1 + sidebar nav "Leads desarrollos" activo ✅
+- Lint limpio en `LeadKanban.js`, `InmobiliariaLeads.js`, `AsesorLeadsDev.js`, `App.js`, `AdvisorLayout.js`, `api/leads.js` ✅
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.1.1 · Slots UI en Legajo Proyecto
 **Objetivo:** cierre del gap de B4.1 — UI para configurar `project_slots` desde el legajo de proyecto.
 

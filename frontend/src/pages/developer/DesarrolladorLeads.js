@@ -1,9 +1,10 @@
-// /desarrollador/leads — Phase 4.19 Lead Pipeline Cross-Channel
+// /desarrollador/leads — Phase 4.19 Lead Pipeline + Phase 4.2 Universal Kanban
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, Toast, fmt0, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
+import LeadKanban from '../../components/shared/LeadKanban';
 import { Activity, Target, Plus, X, Sparkle, MessageCircle } from '../../components/icons';
 import { BarList, FunnelChart } from '../../components/developer/ChartPrimitives';
 
@@ -27,6 +28,7 @@ const LOST_REASON_LABELS = {
 
 const TABS = [
   { k: 'pipeline',  label: 'Pipeline',  Icon: Target },
+  { k: 'kanban',    label: 'Kanban universal', Icon: Sparkle },
   { k: 'analytics', label: 'Analytics', Icon: Activity },
 ];
 
@@ -66,6 +68,7 @@ export default function DesarrolladorLeads({ user, onLogout }) {
       </div>
 
       {tab === 'pipeline'  && <PipelineTab onToast={setToast} currentUser={user} />}
+      {tab === 'kanban'    && <LeadKanban scope="all_org" onToast={setToast} />}
       {tab === 'analytics' && <AnalyticsTab onToast={setToast} />}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}

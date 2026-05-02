@@ -41,6 +41,7 @@ import AsesorRanking from './pages/advisor/AsesorRanking';
 import StudioDashboard from './pages/advisor/StudioDashboard';
 import AsesorBriefings from './pages/advisor/AsesorBriefings';
 import AsesorCitas from './pages/advisor/AsesorCitas';
+import AsesorLeadsDev from './pages/advisor/AsesorLeadsDev';
 
 // Developer portal (Phase 5)
 import DesarrolladorDashboard from './pages/developer/DesarrolladorDashboard';
@@ -58,6 +59,7 @@ import DesarrolladorLeads from './pages/developer/DesarrolladorLeads';
 import DesarrolladorCitas from './pages/developer/DesarrolladorCitas';
 import InmobiliariaDashboard from './pages/developer/InmobiliariaDashboard';
 import InmobiliariaAsesores from './pages/developer/InmobiliariaAsesores';
+import InmobiliariaLeads from './pages/developer/InmobiliariaLeads';
 import DesarrolladorCRM from './pages/developer/DesarrolladorCRM';
 import AceptarInvitacion from './pages/public/AceptarInvitacion';
 
@@ -261,6 +263,7 @@ function AppRouter() {
       <Route path="/asesor/studio" element={<AdvisorRoute Page={StudioDashboard} />} />
       <Route path="/asesor/briefings" element={<AdvisorRoute Page={AsesorBriefings} />} />
       <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
+      <Route path="/asesor/leads-dev" element={<AdvisorRoute Page={AsesorLeadsDev} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
       <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
       <Route path="/desarrollador/desarrollos/:slug/legajo" element={<AdvisorRoute Page={DesarrolladorLegajo} />} />
@@ -278,6 +281,7 @@ function AppRouter() {
       <Route path="/desarrollador/calendario-subidas" element={<AdvisorRoute Page={DesarrolladorCalendarioSubidas} />} />
       <Route path="/inmobiliaria" element={<AdvisorRoute Page={InmobiliariaDashboard} />} />
       <Route path="/inmobiliaria/asesores" element={<AdvisorRoute Page={InmobiliariaAsesores} />} />
+      <Route path="/inmobiliaria/leads" element={<AdvisorRoute Page={InmobiliariaLeads} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />
