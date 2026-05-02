@@ -2751,16 +2751,16 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B12 — Wizard 7 pasos + IA upload (drag-drop + Drive URL paste + Claude haiku extraction + smart defaults learning + diagnostic post-create) | shipped | 12 |
 | ✅ | B13 — Cross-portal sync + Tracking attribution + Gap fix (unified projects + B0.5 probes extendidas + lead_source_attribution + multi-touch + asesor links-tracking + MapboxPicker wizard + cross_portal_sync_health probe) | shipped 5032435 | 12 |
 | ✅ | B14 — Health Score Engine + Project Cards + Activity Feed + Notifications + Setup Checklist + Quick Actions + Weekly Brief AI (20/20 pytest · 2 probes B0.5 · APScheduler snapshots 6am + weekly brief lunes 8am) | shipped | 10 |
+| ✅ | B15 — Google Calendar OAuth + Availability Engine + Auto-assign Policies (38/38 pytest cumulativo · CalendarProvider ABC + Google real + Microsoft stub · 3 policies round_robin/load_balance/pre_selected · cache 5min · APScheduler refresh 30min · 2 probes B0.5) | shipped | 8 |
+| ✅ | B16 — AI Suggestions Inline + Smart Empty States + Public Booking Page /reservar/{slug} (12/12 pytest · Claude Haiku + cache 24h + fallback determinístico · 5 entity_types · 10 empty state contexts · UTM tracking + WhatsApp stub forward-compat C11) | shipped | 6 |
 
-### Pendientes Phase 4 refactor (~59h restantes)
+### Pendientes Phase 4 refactor (~47h restantes)
 
 | # | Batch | h |
-| 🟡 | B15 — Multi-broker calendar (Google + Microsoft OAuth + policies asignación) | 8 |
-| 🟡 | B16 — AI suggestions inline + Smart empty states | 4 |
 | 🟡 | B17 — Drag-drop universal + Inline edit + Filter chips + Undo system | 7 |
 | 🟡 | B18 — Vista planta 2.0 + Density toggle + Project switcher topbar | 5 |
 | 🟡 | B19 — Onboarding tour + Personalization brand + Cross-portal sync feedback + Keyboard shortcuts + Modo presentación | 7 |
-| 🟡 | B20 — Asesor metrics module + Links tracking generator | 6 |
+| 🟡 | B20 — Asesor metrics module + Links tracking generator + Conversion funnel portal público (PostHog UTM funnel: ficha→reservar→confirmación · AI suggestion budget per campaña) + Sankey atribución | 8 |
 | 🟡 | B21 — Dev CRM > Métricas equipo (aggregated) | 5 |
 | 🟡 | B22 — Insights tab dentro proyecto (Engagement actor split + Cash Flow + Comparables + IA con sub-tabs) | 9 |
 | 🟡 | B23 — AI Copilot lateral toggleable Cmd+/ | 6 |
