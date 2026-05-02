@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 
-// Landing components
+// Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
 import Navbar from './components/landing/Navbar';
 import Hero from './components/landing/Hero';
@@ -18,64 +18,63 @@ import CtaFooter from './components/landing/CtaFooter';
 import AuthModal from './components/landing/AuthModal';
 import RolePicker from './components/landing/RolePicker';
 
-// Marketplace pages
-import Marketplace from './pages/Marketplace';
-import PropertyDetail from './pages/PropertyDetail';
-import DevelopmentDetail from './pages/DevelopmentDetail';
-import Mapa from './pages/Mapa';
+// ─── Lazy-loaded page routes ───────────────────────────────────────────────────
+// Marketplace
+const Marketplace       = lazy(() => import('./pages/Marketplace'));
+const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
+const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
+const Mapa              = lazy(() => import('./pages/Mapa'));
+const Barrios           = lazy(() => import('./pages/Barrios'));
+const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
+const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
-// B9 stubs
-import Barrios from './pages/Barrios';
-import Inteligencia from './pages/Inteligencia';
-import AsesoresLanding from './pages/AsesoresLanding';
+// Advisor portal
+const AsesorDashboard   = lazy(() => import('./pages/advisor/AsesorDashboard'));
+const AsesorContactos   = lazy(() => import('./pages/advisor/AsesorContactos'));
+const AsesorBusquedas   = lazy(() => import('./pages/advisor/AsesorBusquedas'));
+const AsesorCaptaciones = lazy(() => import('./pages/advisor/AsesorCaptaciones'));
+const AsesorTareas      = lazy(() => import('./pages/advisor/AsesorTareas'));
+const AsesorOperaciones = lazy(() => import('./pages/advisor/AsesorOperaciones'));
+const AsesorComisiones  = lazy(() => import('./pages/advisor/AsesorComisiones'));
+const AsesorRanking     = lazy(() => import('./pages/advisor/AsesorRanking'));
+const StudioDashboard   = lazy(() => import('./pages/advisor/StudioDashboard'));
+const AsesorBriefings   = lazy(() => import('./pages/advisor/AsesorBriefings'));
+const AsesorCitas       = lazy(() => import('./pages/advisor/AsesorCitas'));
+const AsesorLeadsDev    = lazy(() => import('./pages/advisor/AsesorLeadsDev'));
 
-// Advisor portal (Phase 4 CRM Pulppo+)
-import AsesorDashboard from './pages/advisor/AsesorDashboard';
-import AsesorContactos from './pages/advisor/AsesorContactos';
-import AsesorBusquedas from './pages/advisor/AsesorBusquedas';
-import AsesorCaptaciones from './pages/advisor/AsesorCaptaciones';
-import AsesorTareas from './pages/advisor/AsesorTareas';
-import AsesorOperaciones from './pages/advisor/AsesorOperaciones';
-import AsesorComisiones from './pages/advisor/AsesorComisiones';
-import AsesorRanking from './pages/advisor/AsesorRanking';
-import StudioDashboard from './pages/advisor/StudioDashboard';
-import AsesorBriefings from './pages/advisor/AsesorBriefings';
-import AsesorCitas from './pages/advisor/AsesorCitas';
-import AsesorLeadsDev from './pages/advisor/AsesorLeadsDev';
+// Developer portal
+const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
+const DesarrolladorInventario        = lazy(() => import('./pages/developer/DesarrolladorInventario'));
+const DesarrolladorDemanda           = lazy(() => import('./pages/developer/DesarrolladorDemanda'));
+const DesarrolladorReportes          = lazy(() => import('./pages/developer/DesarrolladorReportes'));
+const DesarrolladorLegajo            = lazy(() => import('./pages/developer/DesarrolladorLegajo'));
+const DesarrolladorPricing           = lazy(() => import('./pages/developer/DesarrolladorPricing'));
+const DesarrolladorUsuarios          = lazy(() => import('./pages/developer/DesarrolladorUsuarios'));
+const DesarrolladorConfiguracion     = lazy(() => import('./pages/developer/DesarrolladorConfiguracion'));
+const DesarrolladorCalendarioSubidas = lazy(() => import('./pages/developer/DesarrolladorCalendarioSubidas'));
+const DesarrolladorCompetidores      = lazy(() => import('./pages/developer/DesarrolladorCompetidores'));
+const DesarrolladorIEDetail          = lazy(() => import('./pages/developer/DesarrolladorIEDetail'));
+const DesarrolladorLeads             = lazy(() => import('./pages/developer/DesarrolladorLeads'));
+const DesarrolladorCitas             = lazy(() => import('./pages/developer/DesarrolladorCitas'));
+const InmobiliariaDashboard          = lazy(() => import('./pages/developer/InmobiliariaDashboard'));
+const InmobiliariaAsesores           = lazy(() => import('./pages/developer/InmobiliariaAsesores'));
+const InmobiliariaLeads              = lazy(() => import('./pages/developer/InmobiliariaLeads'));
+const DesarrolladorCRM               = lazy(() => import('./pages/developer/DesarrolladorCRM'));
+const DesarrolladorPricingLab        = lazy(() => import('./pages/developer/DesarrolladorPricingLab'));
+const DesarrolladorSiteSelection     = lazy(() => import('./pages/developer/DesarrolladorSiteSelection'));
+const DesarrolladorCashFlow          = lazy(() => import('./pages/developer/DesarrolladorCashFlow'));
+const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
+const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
 
-// Developer portal (Phase 5)
-import DesarrolladorDashboard from './pages/developer/DesarrolladorDashboard';
-import DesarrolladorInventario from './pages/developer/DesarrolladorInventario';
-import DesarrolladorDemanda from './pages/developer/DesarrolladorDemanda';
-import DesarrolladorReportes from './pages/developer/DesarrolladorReportes';
-import DesarrolladorLegajo from './pages/developer/DesarrolladorLegajo';
-import DesarrolladorPricing from './pages/developer/DesarrolladorPricing';
-import DesarrolladorUsuarios from './pages/developer/DesarrolladorUsuarios';
-import DesarrolladorConfiguracion from './pages/developer/DesarrolladorConfiguracion';
-import DesarrolladorCalendarioSubidas from './pages/developer/DesarrolladorCalendarioSubidas';
-import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
-import DesarrolladorIEDetail from './pages/developer/DesarrolladorIEDetail';
-import DesarrolladorLeads from './pages/developer/DesarrolladorLeads';
-import DesarrolladorCitas from './pages/developer/DesarrolladorCitas';
-import InmobiliariaDashboard from './pages/developer/InmobiliariaDashboard';
-import InmobiliariaAsesores from './pages/developer/InmobiliariaAsesores';
-import InmobiliariaLeads from './pages/developer/InmobiliariaLeads';
-import DesarrolladorCRM from './pages/developer/DesarrolladorCRM';
-import DesarrolladorPricingLab from './pages/developer/DesarrolladorPricingLab';
-import DesarrolladorSiteSelection from './pages/developer/DesarrolladorSiteSelection';
-import DesarrolladorCashFlow from './pages/developer/DesarrolladorCashFlow';
-import AceptarInvitacion from './pages/public/AceptarInvitacion';
-import PublicCitaPage from './pages/public/PublicCitaPage';
-
-// Superadmin (IE Engine Phase A)
-import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
-import DataSourcesPage from './pages/superadmin/DataSourcesPage';
-import DataSourceDetailPage from './pages/superadmin/DataSourceDetailPage';
-import ScoresPage from './pages/superadmin/ScoresPage';
-import DocumentsPage from './pages/superadmin/DocumentsPage';
-import SuperadminDrivePage from './pages/superadmin/SuperadminDrivePage';
-import SuperadminObservabilityPage from './pages/superadmin/SuperadminObservabilityPage';
-import AuditLogPage from './pages/superadmin/AuditLogPage';
+// Superadmin
+const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
+const DataSourcesPage            = lazy(() => import('./pages/superadmin/DataSourcesPage'));
+const DataSourceDetailPage       = lazy(() => import('./pages/superadmin/DataSourceDetailPage'));
+const ScoresPage                 = lazy(() => import('./pages/superadmin/ScoresPage'));
+const DocumentsPage              = lazy(() => import('./pages/superadmin/DocumentsPage'));
+const SuperadminDrivePage        = lazy(() => import('./pages/superadmin/SuperadminDrivePage'));
+const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
+const AuditLogPage               = lazy(() => import('./pages/superadmin/AuditLogPage'));
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -242,6 +241,12 @@ function AppRouter() {
   }
 
   return (
+    <Suspense fallback={
+      <div style={{ padding: 60, color: 'rgba(240,235,224,0.5)', textAlign: 'center', fontFamily: 'DM Sans', background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 36, height: 36, border: '2px solid rgba(240,235,224,0.12)', borderTopColor: 'var(--cream)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 12 }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    }>
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
@@ -303,6 +308,7 @@ function AppRouter() {
 
       <Route path="*" element={<LandingPage />} />
     </Routes>
+    </Suspense>
   );
 }
 

@@ -32,8 +32,14 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 ## Arquitectura implementada
 
 ### Backend `/app/backend/`
-- `server.py` — core: auth, public marketplace, Claude briefing/parser (973 líneas)
-- `routes_advisor.py` — **nuevo Fase 4**: CRUD contactos/búsquedas/captaciones/tareas/operaciones/comisiones + argumentario AI + briefing + leaderboard
+- `server.py` — **SLIM** (~479 líneas): solo app init, middleware, auth helpers, router includes, lifecycle
+- `routes_auth.py` — **B0 NUEVO**: auth endpoints (register, login, session, me, select-role, logout)
+- `routes_public.py` — **B0 NUEVO**: marketplace público (colonias, developments, properties, briefings, AI search)
+- `routes_search_prefs.py` — **B0 NUEVO**: universal search + user preferences
+- `permissions.py` — **B0 NUEVO**: canonical permission helpers (get_user_permission_level, can_view_*, can_move_*)
+- `ai_budget.py` — **B0 NUEVO**: AI cost tracking per dev_org + /api/superadmin/ai-usage endpoint
+- `data_scoping.py` — **B0 NUEVO**: scope_data() per user role (lead/project/unit/asesor/client)
+- `routes_advisor.py` — Fase 4: CRUD contactos/búsquedas/captaciones/tareas/operaciones/comisiones + argumentario AI + briefing + leaderboard
 - `data_seed.py` — 16 colonias CDMX
 - `data_developments.py` — 10 developers + 15 developments + ~420 units
 
@@ -2714,8 +2720,15 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 - [ ] Expansión Dubai / Miami
 - [ ] Public profile `/asesor/perfil/:slug` con endorsements
 
-### Refactor (no blocker)
-- [ ] Split `server.py` en routers (auth/marketplace/developments/briefings/ai-search)
+### Refactor (DONE B0)
+- [x] Split `server.py` en routers (routes_auth, routes_public, routes_search_prefs, ai_budget)
+- [x] permissions.py centralizado
+- [x] data_scoping.py
+- [x] PortalLayout + navByRole unificados
+- [x] Bundle splitting React.lazy() en App.js
+- [x] Universal search + NotificationsBell + shared primitives (EntityCard, KPIStrip, FilterChipsBar, etc.)
+
+### Refactor (pending)
 - [ ] Split landing components grandes (ColoniasBento, Hero)
 - [ ] Backend tests unit (pytest) por router
 
