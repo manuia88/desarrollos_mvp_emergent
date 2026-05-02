@@ -10,7 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import * as leadsApi from '../../api/leads';
 import { Badge } from '../advisor/primitives';
-import { Link2, Lock, Brain, MessageCircle, X, EyeOff, Sparkle } from '../icons';
+import { Link2, Lock, Brain, MessageCircle, X, EyeOff, Sparkle, Flame } from '../icons';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -222,6 +222,7 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
         <Badge tone="neutral">{SOURCE_LABELS[card.source] || card.source}</Badge>
         {card.intent && <Badge tone="neutral">{card.intent}</Badge>}
+        {card.heat_tag && <HeatBadge tag={card.heat_tag} score={card.heat_score} />}
         {isBrokerExternal && (
           /* Single allowed gradient usage: Broker externo badge */
           <span data-testid={`broker-badge-${card.id}`} style={{
@@ -258,6 +259,30 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
   );
 }
 
+function HeatBadge({ tag, score }) {
+  const tones = {
+    caliente: { bg: 'rgba(239,68,68,0.10)',  bd: 'rgba(239,68,68,0.32)',  fg: 'var(--red)',     showIcon: true },
+    tibio:    { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.30)', fg: 'var(--amber)',   showIcon: false },
+    frio:     { bg: 'rgba(240,235,224,0.05)', bd: 'rgba(240,235,224,0.16)', fg: 'var(--cream-3)', showIcon: false },
+  };
+  const t = tones[tag] || tones.frio;
+  const tooltip = score != null ? `Heat: ${score}/100 (${tag})` : `Heat: ${tag}`;
+  return (
+    <span
+      data-testid={`heat-badge-${tag}`}
+      title={tooltip}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 3,
+        padding: '2px 7px', borderRadius: 9999,
+        background: t.bg, border: `1px solid ${t.bd}`, color: t.fg,
+        fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700, textTransform: 'capitalize',
+      }}>
+      {t.showIcon && <Flame size={9} />}
+      {tag} {score != null ? `· ${score}` : ''}
+    </span>
+  );
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // LeadDrawer — full lead detail with conditional sections
 // ═════════════════════════════════════════════════════════════════════════════
@@ -265,6 +290,8 @@ function LeadDrawer({ leadId, onClose, onToast }) {
   const [lead, setLead] = useState(null);
   const [conv, setConv] = useState(null);
   const [ai, setAi] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [heat, setHeat] = useState(null);
   const [crossLeads, setCrossLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [convLocked, setConvLocked] = useState(false);
@@ -279,7 +306,8 @@ function LeadDrawer({ leadId, onClose, onToast }) {
         if (!mounted) return;
         setLead(r);
         leadsApi.getConversation(leadId).then(c => mounted && setConv(c)).catch(() => mounted && setConvLocked(true));
-        leadsApi.getAiSummary(leadId).then(a => mounted && setAi(a)).catch(() => mounted && setAiLocked(true));
+        leadsApi.getAiSummaryV2(leadId).then(a => mounted && setAi(a)).catch(() => mounted && setAiLocked(true));
+        leadsApi.getHeat(leadId).then(h => mounted && setHeat(h)).catch(() => {});
         if (r.client_global_id) {
           leadsApi.getClientLeads(r.client_global_id).then(cp => {
             if (!mounted) return;
@@ -294,6 +322,17 @@ function LeadDrawer({ leadId, onClose, onToast }) {
     load();
     return () => { mounted = false; };
   }, [leadId, onClose, onToast]);
+
+  const refreshSummary = async () => {
+    setAiLoading(true);
+    try {
+      const r = await leadsApi.refreshAiSummary(leadId);
+      setAi(r);
+      onToast?.({ kind: 'success', text: 'Análisis IA refrescado' });
+    } catch (e) {
+      onToast?.({ kind: 'error', text: e.body?.detail || 'Error al refrescar' });
+    } finally { setAiLoading(false); }
+  };
 
   return (
     <div
@@ -399,42 +438,92 @@ function LeadDrawer({ leadId, onClose, onToast }) {
               )}
             </Section>
 
-            <Section title="Resumen IA" icon={<Brain size={13} />} testid="lead-drawer-ai-summary">
+            <Section title="Resumen IA" icon={<Brain size={13} />} testid="lead-drawer-ai-summary"
+              right={
+                ai && !aiLocked ? (
+                  <button data-testid="ai-refresh" onClick={refreshSummary} disabled={aiLoading} style={{
+                    padding: '4px 10px', borderRadius: 9999, cursor: aiLoading ? 'not-allowed' : 'pointer',
+                    background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+                    color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 600,
+                  }}>{aiLoading ? '…' : 'Refrescar'}</button>
+                ) : null
+              }>
               {aiLocked ? (
                 <LockedHint text="Sin permisos para ver el resumen IA de este lead" />
               ) : !ai ? (
                 <div style={{ color: 'var(--cream-3)', fontSize: 11, fontFamily: 'DM Sans' }}>Cargando…</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontFamily: 'DM Sans' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cream)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontFamily: 'DM Sans' }}>
+                  <div style={{ fontSize: 13, color: 'var(--cream)', lineHeight: 1.5 }}>
                     <Sparkle size={12} style={{ verticalAlign: 'middle', marginRight: 6 }} />
-                    {ai.headline}
+                    {ai.summary}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
-                    <strong style={{ color: 'var(--cream-3)' }}>Intención:</strong> {ai.intent}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
-                    <strong style={{ color: 'var(--cream-3)' }}>Presupuesto:</strong> {ai.budget_summary}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
-                    <strong style={{ color: 'var(--cream-3)' }}>Riesgo:</strong>{' '}
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 11.5 }}>
+                    <span style={{ color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>SENTIMIENTO:</span>
                     <span style={{
-                      color: ai.risk_level === 'alto' ? 'var(--red)' :
-                             ai.risk_level === 'medio' ? 'var(--amber)' : 'var(--green)',
-                      fontWeight: 600,
-                    }}>{ai.risk_level}</span>
+                      padding: '2px 8px', borderRadius: 9999,
+                      background: ai.sentiment === 'positivo' ? 'rgba(34,197,94,0.10)' :
+                                  ai.sentiment === 'preocupante' ? 'rgba(239,68,68,0.10)' : 'rgba(240,235,224,0.05)',
+                      border: `1px solid ${
+                        ai.sentiment === 'positivo' ? 'rgba(34,197,94,0.30)' :
+                        ai.sentiment === 'preocupante' ? 'rgba(239,68,68,0.30)' : 'var(--border)'}`,
+                      color: ai.sentiment === 'positivo' ? 'var(--green)' :
+                             ai.sentiment === 'preocupante' ? 'var(--red)' : 'var(--cream-2)',
+                      fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                    }}>{ai.sentiment}</span>
                   </div>
-                  {ai.recommendations && ai.recommendations.length > 0 && (
+                  {ai.last_action && (
                     <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
-                      <strong style={{ color: 'var(--cream-3)' }}>Próxima acción:</strong>
-                      <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                        {ai.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+                      <strong style={{ color: 'var(--cream-3)' }}>Última acción:</strong> {ai.last_action}
+                    </div>
+                  )}
+                  {ai.next_steps && ai.next_steps.length > 0 && (
+                    <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
+                      <strong style={{ color: 'var(--cream-3)' }}>Próximos pasos:</strong>
+                      <ul data-testid="ai-next-steps" style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                        {ai.next_steps.map((r, i) => <li key={i} style={{ marginBottom: 2 }}>{r}</li>)}
                       </ul>
                     </div>
                   )}
+                  <div style={{ fontSize: 10, color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace' }}>
+                    {ai._cached ? 'Caché · ' : 'Recién generado · '}
+                    {ai.generated_at?.slice(0, 16).replace('T', ' ')}
+                  </div>
                 </div>
               )}
             </Section>
+
+            {heat && heat.heat_score != null && (
+              <Section title="Heat score IA" icon={<Flame size={13} />} testid="lead-drawer-heat">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontFamily: 'DM Sans' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                    <span style={{
+                      fontFamily: 'Outfit', fontWeight: 800, fontSize: 28,
+                      color: heat.heat_tag === 'caliente' ? 'var(--red)' : heat.heat_tag === 'tibio' ? 'var(--amber)' : 'var(--cream-2)',
+                    }}>{heat.heat_score}</span>
+                    <span style={{ color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace', fontSize: 11 }}>/100</span>
+                    <HeatBadge tag={heat.heat_tag} score={null} />
+                  </div>
+                  {heat.heat_factors && Object.keys(heat.heat_factors).length > 0 && (
+                    <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
+                      <strong style={{ color: 'var(--cream-3)' }}>Factores:</strong>
+                      <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                        {Object.entries(heat.heat_factors).map(([k, v]) => (
+                          <li key={k} style={{ marginBottom: 2 }}>
+                            <span style={{ color: 'var(--cream-3)' }}>{k}:</span> {v}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {heat.heat_calculated_at && (
+                    <div style={{ fontSize: 10, color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace' }}>
+                      Calculado: {heat.heat_calculated_at.slice(0, 16).replace('T', ' ')}
+                    </div>
+                  )}
+                </div>
+              </Section>
+            )}
           </>
         )}
       </div>
@@ -456,18 +545,23 @@ function PermBadge({ active, label }) {
   );
 }
 
-function Section({ title, icon, children, testid }) {
+function Section({ title, icon, children, testid, right }) {
   return (
     <div data-testid={testid} style={{
       padding: 14, borderRadius: 10,
       background: 'rgba(240,235,224,0.025)', border: '1px solid var(--border)',
     }}>
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
-        fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--cream)',
-        textTransform: 'uppercase', letterSpacing: '0.05em',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 10,
       }}>
-        {icon} {title}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--cream)',
+          textTransform: 'uppercase', letterSpacing: '0.05em',
+        }}>
+          {icon} {title}
+        </div>
+        {right}
       </div>
       {children}
     </div>

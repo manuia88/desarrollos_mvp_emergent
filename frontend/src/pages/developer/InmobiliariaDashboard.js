@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import InmobiliariaLayout from '../../components/developer/InmobiliariaLayout';
 import { getInmobiliariaDashboard } from '../../api/developer';
 import { BarChart, Users, CheckCircle, Clock, TrendUp } from '../../components/icons';
+import { InsightsTab } from './DesarrolladorReportes';
 
 function StatCard({ label, value, icon: Icon, testid }) {
   return (
@@ -111,6 +112,11 @@ export default function InmobiliariaDashboard({ user, onLogout }) {
             )}
           </>
         )}
+
+        <div style={{ marginTop: 36 }}>
+          <h2 data-testid="inm-insights-h2" style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: '0 0 14px', letterSpacing: '-0.01em' }}>Insights de mercado</h2>
+          <InsightsTab scope="inm" onToast={() => {}} />
+        </div>
       </div>
     </InmobiliariaLayout>
   );

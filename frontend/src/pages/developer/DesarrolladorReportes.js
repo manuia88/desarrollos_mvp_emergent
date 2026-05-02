@@ -13,6 +13,8 @@ const TABS = [
   { k: 'executive', label: 'Reporte ejecutivo', Icon: Sparkle },
   { k: 'absorption', label: 'Absorción avanzada', Icon: Activity },
   { k: 'forecast',   label: 'Forecast vs actual', Icon: Target },
+  { k: 'insights',   label: 'Insights de mercado', Icon: BarChart },
+  { k: 'alerts',     label: 'Movement alerts', Icon: TrendUp },
 ];
 
 export default function DesarrolladorReportes({ user, onLogout }) {
@@ -57,6 +59,8 @@ export default function DesarrolladorReportes({ user, onLogout }) {
       {tab === 'executive'  && <ExecutiveTab onToast={setToast} />}
       {tab === 'absorption' && <AbsorptionTab onToast={setToast} />}
       {tab === 'forecast'   && <ForecastTab onToast={setToast} />}
+      {tab === 'insights'   && <InsightsTab scope="dev" onToast={setToast} />}
+      {tab === 'alerts'     && <MovementAlertsTab onToast={setToast} />}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
     </DeveloperLayout>
@@ -383,5 +387,164 @@ function ListBox({ title, items, tone }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Tab 4 — Insights de mercado (cancel/reschedule/lost reasons)
+// Phase 4 Batch 4.4 · 4.37
+// ═════════════════════════════════════════════════════════════════════════════
+export function InsightsTab({ scope = 'dev', onToast }) {
+  const [period, setPeriod] = useState('30d');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const fetcher = scope === 'dev' ? api.getDevAnalyticsCancelReasons : api.getInmAnalyticsCancelReasons;
+    fetcher(period).then(r => setData(r))
+      .catch(e => onToast?.({ kind: 'error', text: e.body?.detail || 'Error al cargar insights' }))
+      .finally(() => setLoading(false));
+  }, [period, scope, onToast]);
+
+  return (
+    <div data-testid="insights-tab" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <PeriodFilter value={period} onChange={setPeriod} />
+      {loading ? (
+        <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando…</div>
+      ) : data && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+            <Card>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Razones cancelación</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', marginBottom: 10 }}>
+                {fmt0(data.totals.cancellations)} citas
+              </div>
+              <BarList items={data.cancel_reasons_breakdown.map(r => ({ label: r.reason, value: r.count }))} format={v => `${v}`} />
+            </Card>
+            <Card>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Razones reagendar</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', marginBottom: 10 }}>
+                {fmt0(data.totals.reschedules)} citas
+              </div>
+              <BarList items={data.reschedule_reasons_breakdown.map(r => ({ label: r.reason, value: r.count }))} format={v => `${v}`} />
+            </Card>
+            <Card>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>Razones perdido</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', marginBottom: 10 }}>
+                {fmt0(data.totals.lost)} leads
+              </div>
+              <BarList items={data.lost_reasons_breakdown.map(r => ({ label: r.reason, value: r.count }))} format={v => `${v}`} />
+            </Card>
+          </div>
+
+          <Card>
+            <div className="eyebrow" style={{ marginBottom: 12 }}>Tendencia mensual</div>
+            {data.trends.per_month.length === 0 ? (
+              <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12 }}>Sin datos del período</div>
+            ) : (
+              <div data-testid="trend-chart" style={{ overflowX: 'auto' }}>
+                <LineChart
+                  series={[
+                    { name: 'Cancelaciones', values: data.trends.per_month.map(m => m.cancellations) },
+                    { name: 'Reagendamientos', values: data.trends.per_month.map(m => m.reschedules) },
+                    { name: 'Perdidos', values: data.trends.per_month.map(m => m.lost) },
+                  ]}
+                  labels={data.trends.per_month.map(m => m.month)}
+                  width={720} height={200}
+                />
+              </div>
+            )}
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Tab 5 — Movement alerts (Phase 4 Batch 4.4 · 4.37)
+// ═════════════════════════════════════════════════════════════════════════════
+function MovementAlertsTab({ onToast }) {
+  const [period, setPeriod] = useState('30d');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api.getDevMovementAlerts(period)
+      .then(r => setData(r))
+      .catch(e => onToast?.({ kind: 'error', text: e.body?.detail || 'Error al cargar movement alerts' }))
+      .finally(() => setLoading(false));
+  }, [period, onToast]);
+
+  return (
+    <div data-testid="alerts-tab" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <PeriodFilter value={period} onChange={setPeriod} />
+      {loading ? (
+        <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando…</div>
+      ) : data && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+            <StatCard label="Alertas enviadas" value={fmt0(data.total_alerts_sent)} />
+            <StatCard label="Tasa de respuesta" value={`${data.response_rate}%`} />
+            <StatCard label="Tasa reactivación" value={`${data.reactivation_rate}%`} />
+          </div>
+          <Card>
+            <div className="eyebrow" style={{ marginBottom: 12 }}>Por asesor</div>
+            {data.alerts_by_asesor.length === 0 ? (
+              <div style={{ color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12 }}>Sin alertas en el período</div>
+            ) : (
+              <table data-testid="alerts-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <th style={{ textAlign: 'left', padding: '8px 4px' }}>Asesor</th>
+                    <th style={{ textAlign: 'right', padding: '8px 4px' }}>Alertas recibidas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.alerts_by_asesor.map(a => (
+                    <tr key={a.asesor_id} style={{ borderBottom: '1px solid rgba(240,235,224,0.04)' }}>
+                      <td style={{ padding: '10px 4px', color: 'var(--cream)' }}>{a.asesor_name}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 4px', color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace' }}>{a.alerts_received}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PeriodFilter({ value, onChange }) {
+  const opts = [{ k: '7d', label: '7d' }, { k: '30d', label: '30d' }, { k: '90d', label: '90d' }, { k: '12m', label: '12m' }];
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {opts.map(o => (
+        <button
+          key={o.k}
+          data-testid={`period-${o.k}`}
+          onClick={() => onChange(o.k)}
+          style={{
+            padding: '6px 12px', borderRadius: 9999, cursor: 'pointer',
+            background: value === o.k ? 'rgba(240,235,224,0.10)' : 'transparent',
+            border: `1px solid ${value === o.k ? 'rgba(240,235,224,0.30)' : 'var(--border)'}`,
+            color: value === o.k ? 'var(--cream)' : 'var(--cream-3)',
+            fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
+          }}>{o.label}</button>
+      ))}
+    </div>
+  );
+}
+
+function StatCard({ label, value }) {
+  return (
+    <Card>
+      <div className="eyebrow" style={{ marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)' }}>{value}</div>
+    </Card>
   );
 }

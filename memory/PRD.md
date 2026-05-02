@@ -765,6 +765,64 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 4.4 · AI Engine + Analytics
+
+### Sub-Chunk A · 4.35 Lead Heat AI Score
+**Backend (`routes_dev_batch4_4.py` · nuevo · ~530 líneas):**
+- Schema extension `leads.{heat_score, heat_tag, heat_factors, heat_calculated_at, heat_recalc_pending}`.
+- Heuristic scorer (`compute_heat_for_lead`) combinando: presupuesto realismo (vs project price band), forma de pago (recursos_propios > hipotecario > infonavit), origen, antigüedad lead (decay), close_rate del asesor, historial cliente (priorLeads vs abandonments), velocity_flag bump.
+- **Claude haiku-4-5** vía Emergent LLM key (60% heuristic + 40% Claude blend) con explicabilidad `factors.ia_summary`.
+- `POST /api/leads/{id}/recalc-heat` (dev_admin/director/superadmin only).
+- `GET /api/leads/{id}/heat` con permission gate `can_view_full_client_data`.
+- APScheduler `process_heat_queue` cada 30 min (max 50 leads/run, in-process lock).
+- Auto-queue: `heat_recalc_pending=true` en lead create (B4.1) + en lead status change (B4.2 move-column).
+- Audit + ml_event `heat_score_calculated`.
+
+### Sub-Chunk B · 4.36 AI Summary + Recommendations
+**Backend:**
+- Schema extension `leads.ai_summary{summary, last_action, sentiment, next_steps[], generated_at, expires_at}` (cache 4h).
+- **Claude haiku-4-5** prompt coach senior es-MX, output JSON estructurado validable. Fallback determinístico si falla.
+- `GET /api/leads/{id}/ai-summary-v2` con cache hit/miss + permission `can_view_ai_summary`.
+- `POST /api/leads/{id}/refresh-ai-summary` con rate-limit 1x/hour por (user, lead) en memoria.
+- Audit + ml_event `ai_summary_viewed` / `ai_summary_refreshed`.
+
+### Sub-Chunk C · 4.37 Analytics Cancel/Reschedule/Lost Reasons + Movement Alerts
+**Backend (no new schema — agrega data ya capturada en B4.3):**
+- `GET /api/dev/analytics/cancel-reasons?period=7d|30d|90d|12m&project_id=` → breakdown 3 categorías + trend per_month + totals.
+- `GET /api/inmobiliaria/analytics/cancel-reasons` → mismo contrato, scope inmobiliaria.
+- `GET /api/dev/analytics/movement-alerts` → total alerts + alerts_by_asesor[] + response_rate + reactivation_rate.
+- Audit + ml_event `analytics_cancel_reasons_viewed`.
+
+**Frontend:**
+- API client extendido `api/leads.js` (recalcHeat, getHeat, getAiSummaryV2, refreshAiSummary) + `api/developer.js` (3 analytics endpoints).
+- `LeadKanbanCard`: badge nuevo `HeatBadge` (caliente=red+Flame icon, tibio=amber, frío=cream) con tooltip `Heat: XX/100`.
+- `LeadDrawer`: nueva sección **"Heat score IA"** con score grande + factor list explicable; sección **"Resumen IA"** rediseñada con sentiment badge color-coded + next_steps list + botón Refrescar (rate-limited) + timestamp _cached.
+- `DesarrolladorReportes`: 2 tabs nuevas:
+  - **"Insights de mercado"** (`InsightsTab` exportada): 3 BarLists (cancel/reschedule/lost) + LineChart trend mensual con 3 series + PeriodFilter (7d/30d/90d/12m).
+  - **"Movement alerts"**: 3 StatCards + tabla per-asesor.
+- `InmobiliariaDashboard`: importa `InsightsTab` con `scope="inm"`, sección dedicada al final.
+- Iconos nuevos: `Flame` añadido a `icons/index.js`.
+- Diseño 100% compliant: var(--cream)/--navy/--green/--amber/--red, lucide icons, Outfit/DM Sans, badge atom de primitives, único gradient reservado para Broker externo.
+
+### Verificación ✅
+- **Backend lint** Ruff OK; **Frontend lint** ESLint OK en 7 archivos modificados/creados.
+- **Curl smoke** (todos OK):
+  - `POST /api/leads/{id}/recalc-heat` → score=49, tag=tibio, factors+ia_summary persisted ✅
+  - `GET /api/leads/{id}/heat` → 200 con datos completos ✅
+  - `GET /api/leads/{id}/ai-summary-v2` → 200 + cache hit en segunda llamada (`_cached:true`) ✅
+  - `GET /api/dev/analytics/cancel-reasons?period=30d` → breakdown 3 categorías + totals ✅
+  - `GET /api/inmobiliaria/analytics/cancel-reasons` → scope inmobiliaria ✅
+  - `GET /api/dev/analytics/movement-alerts?period=30d` → stats strip ✅
+- **Playwright smoke**:
+  - `/inmobiliaria/leads` → 16 cards, 1 heat-badge visible (uno computado), drawer abre con AI summary section ✅
+  - `/desarrollador/reportes` → tabs `insights` y `alerts` se montan correctamente, BarLists + trend-chart + alerts table renderean ✅
+
+### Áreas mocked
+- **Heat queue** procesará leads pendientes en próximo ciclo APScheduler (30 min). Para forzar inmediato usar `POST /api/leads/{id}/recalc-heat`.
+- **Claude haiku** funciona con `EMERGENT_LLM_KEY` ya configurada en `.env`. Fallback determinístico si falla.
+
+---
+
 ## 2026-05-02 — LeadKanban Design System Refactor (Post-B4.2)
 **Objetivo:** eliminar violaciones del design system en `LeadKanban.js` (indigo/purple/pink rgba custom).
 

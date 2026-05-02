@@ -250,6 +250,8 @@ def _build_card(lead: Dict, name_by_id: Dict[str, str], now: datetime,
         "can_view_full": can_full,
         "velocity_flag": lead.get("velocity_flag", False),
         "geo_metadata": lead.get("geo_metadata"),
+        "heat_score": lead.get("heat_score"),
+        "heat_tag": lead.get("heat_tag"),
     }
 
 
@@ -438,7 +440,8 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
     now_iso = _now().isoformat()
     await db.leads.update_one(
         {"id": lead_id},
-        {"$set": {"status": payload.target_status, "updated_at": now_iso, "last_activity_at": now_iso}},
+        {"$set": {"status": payload.target_status, "updated_at": now_iso, "last_activity_at": now_iso,
+                  "heat_recalc_pending": True}},
     )
     lvl = get_user_permission_level(user)
     await _safe_audit_ml(

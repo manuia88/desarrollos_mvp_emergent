@@ -148,6 +148,10 @@ app.include_router(dev_batch4_2_router)
 from routes_dev_batch4_3 import router as dev_batch4_3_router, ensure_batch4_3_indexes, register_batch4_3_jobs
 app.include_router(dev_batch4_3_router)
 
+# Phase 4 Batch 4.4 — AI Engine + Analytics
+from routes_dev_batch4_4 import router as dev_batch4_4_router, ensure_batch4_4_indexes, register_batch4_4_jobs
+app.include_router(dev_batch4_4_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -362,6 +366,8 @@ async def startup():
     await ensure_batch4_2_indexes(db)
     # Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression
     await ensure_batch4_3_indexes(db)
+    # Phase 4 Batch 4.4 — AI Engine + Analytics
+    await ensure_batch4_4_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o
@@ -375,6 +381,10 @@ async def startup():
             register_batch4_3_jobs(sched, db)
         except Exception as e:
             logging.warning(f"batch4.3 scheduler register failed: {e}")
+        try:
+            register_batch4_4_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"batch4.4 scheduler register failed: {e}")
 
 
 @app.on_event("shutdown")

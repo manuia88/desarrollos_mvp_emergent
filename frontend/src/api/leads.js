@@ -46,3 +46,9 @@ export const citaPostAction = (apptId, action, extra = {}) =>
 
 export const leadPostRealizadaFollowup = (leadId, has_proposal, notes = null) =>
   post(`/api/leads/${leadId}/post-realizada-followup`, { has_proposal, notes });
+
+// ─── Phase 4 Batch 4.4 — AI Engine ────────────────────────────────────────
+export const recalcHeat = (leadId) => post(`/api/leads/${leadId}/recalc-heat`, {});
+export const getHeat = (leadId) => j(`/api/leads/${leadId}/heat`);
+export const getAiSummaryV2 = (leadId) => j(`/api/leads/${leadId}/ai-summary-v2`);
+export const refreshAiSummary = (leadId) => post(`/api/leads/${leadId}/refresh-ai-summary`, {});

@@ -164,3 +164,12 @@ export const getInmobiliariaDashboard = (period = '30d', inmId = 'dmx_root') =>
   j(`/api/inmobiliaria/dashboard?period=${period}&inmobiliaria_id=${inmId}`);
 
 
+// Phase 4 Batch 4.4 — Analytics
+export const getDevAnalyticsCancelReasons = (period = '30d', projectId) =>
+  j(`/api/dev/analytics/cancel-reasons?period=${period}${projectId ? `&project_id=${projectId}` : ''}`);
+export const getInmAnalyticsCancelReasons = (period = '30d', projectId) =>
+  j(`/api/inmobiliaria/analytics/cancel-reasons?period=${period}${projectId ? `&project_id=${projectId}` : ''}`);
+export const getDevMovementAlerts = (period = '30d') =>
+  j(`/api/dev/analytics/movement-alerts?period=${period}`);
+
+
