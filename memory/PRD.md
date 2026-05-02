@@ -848,6 +848,45 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 6 · Demand Heatmap + Engagement Analytics
+**Objetivo:** mapa de calor geográfico Mapbox sobre 16 colonias + analítica de engagement por unidad con recomendaciones Claude haiku.
+
+### Backend (`routes_dev_batch6.py` · ~460 líneas, ya existente, ahora wired en `server.py`)
+- `GET /api/dev/analytics/demand-heatmap?from=&to=&granularity=&include_searches=` — agrega leads × 3 + appts × 5 + searches × 1, normaliza score 0–100 por colonia, devuelve **GeoJSON FeatureCollection** (16 polígonos cerrados desde `data_seed.COLONIAS`) + `top_10` ordenado. Tenant-scoped (developer_admin sólo ve su org). ML event `demand_heatmap_viewed`.
+- `GET /api/dev/projects/{id}/engagement-units?from=&to=&sort=engagement_score|views|leads|cierres` — lee `units` de `data_developments`, agrega views (ml_training_events `unit_viewed`), leads/appointments/cierres de Mongo, calcula `engagement_score = (views×1 + leads×5 + appts×10 + cierres×30)` normalizado, **Claude haiku-4-5 recommendations** (cache 12h por `project_id`, fallback determinista). ML event `engagement_analytics_viewed`.
+- `GET /api/dev/projects/{id}/engagement-units/{unit_id}/timeline` — eventos cronológicos (view/lead_created/cierre/appointment_scheduled). ML event `engagement_unit_drill`.
+- Wiring `server.py`: `app.include_router(dev_batch6_router)` + `await ensure_batch6_indexes(db)` en startup.
+
+### Frontend
+- **`components/developer/DemandHeatmapMap.js`** (nuevo · ~140 líneas) — Mapbox choropleth con 5-stop ramp cream→navy→pink (0→100), popup hover (Score/Leads/Citas/Búsquedas), `fitBounds` automático, fallback honesto si falta `REACT_APP_MAPBOX_TOKEN`.
+- **`components/developer/EngagementTab.js`** (nuevo · ~220 líneas) — KPI strip (Unidades, Engagement promedio, Top, Más lenta) + card "Recomendaciones IA · Claude Haiku" + tabla 200-row sortable (Score/Vistas/Leads/Cierres) con `ScoreBar` gradient + drilldown drawer 440px con timeline de eventos.
+- **`pages/developer/DesarrolladorDemanda.js`** — sección Mapbox heatmap nueva en cabecera (con period 7D/30D/90D + sidebar Top 10) preservando legacy forecast/funnel/queries debajo.
+- **`pages/developer/DesarrolladorLegajo.js`** — nueva tab `Engagement` con icono `Activity` entre `Avance de obra` e `IE Score`.
+- **`api/developer.js`** (+3 helpers): `getDemandHeatmap`, `getEngagementUnits`, `getEngagementUnitTimeline`.
+
+### Verificación curl ✅
+- `GET /demand-heatmap` (developer) → 16 features, top_10[0]=Polanco score=100 (6 leads), `total_leads=6` ✅
+- `GET /demand-heatmap?from={7d}` → 16 features, periodo correcto ✅
+- `GET /engagement-units/altavista-polanco` → 56 unidades + avg=0.0 + 3 recomendaciones reales Claude (e.g. "Las unidades tipo A no generan engagement…", "Implementa estrategia de pricing dinámico…", "Crea campañas segmentadas por piso…"), primer item con `prototype:'A', level:2, m2:127, status:'disponible'` ✅
+- `GET /engagement-units/{unit_id}/timeline` → 200 con `events:[]` (sin actividad real aún en periodo) ✅
+- Role guard: `asesor@demo.com` → 403 en heatmap y engagement; anon → 401 ✅
+
+### Smoke Playwright ✅
+- `/desarrollador/demanda` → `demand-heatmap-card`=1, `demand-heatmap-map`=1, `mapboxgl-canvas`=1, top10 con Polanco visible (badge 100) y polígono fucsia sobre Polanco en mapa.
+- `/desarrollador/desarrollos/altavista-polanco/legajo` tab Engagement → `engagement-units-table`=1, 56 rows, `engagement-recommendations`=1 con 3 recos Claude reales en es-MX, 4 sort buttons; drill-down → `engagement-timeline-drawer`=1 con "Sin actividad registrada en este periodo." (esperado, sin events seed).
+
+### Archivos tocados
+- `/app/backend/server.py` (+router include + `ensure_batch6_indexes` en startup)
+- `/app/backend/routes_dev_batch6.py` (fix mapping campos `unit_number/prototype/m2_total` desde data_developments)
+- `/app/frontend/src/components/developer/DemandHeatmapMap.js` (nuevo)
+- `/app/frontend/src/components/developer/EngagementTab.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorDemanda.js` (rewrite con Mapbox section + legacy preservado)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+tab `engagement` con icono Activity)
+- `/app/frontend/src/api/developer.js` (+3 helpers B6)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.4 · AI Engine + Analytics
 
 ### Sub-Chunk A · 4.35 Lead Heat AI Score

@@ -326,7 +326,7 @@ async def engagement_units(
     out = []
     raw_scores = {}
     for u in units:
-        uid = u.get("id") or u.get("unit_id") or u.get("number") or "_"
+        uid = u.get("id") or u.get("unit_id") or u.get("unit_number") or "_"
         v = views_by_unit.get(uid, 0)
         ld = leads_by_unit.get(uid, 0)
         ap = appts_by_unit.get(uid, 0)
@@ -335,11 +335,13 @@ async def engagement_units(
         raw_scores[uid] = raw
         out.append({
             "unit_id": uid,
-            "unit_number": u.get("number") or u.get("name") or uid,
-            "type": u.get("type"),
+            "unit_number": u.get("unit_number") or u.get("number") or u.get("name") or uid,
+            "prototype": u.get("prototype"),
+            "level": u.get("level"),
+            "bedrooms": u.get("bedrooms"),
             "status": u.get("status"),
             "price": u.get("price"),
-            "m2": u.get("m2"),
+            "m2": u.get("m2_total") or u.get("m2_privative") or u.get("m2"),
             "views": v, "leads": ld, "appointments": ap, "cierres": ci,
             "_raw_score": raw,
         })

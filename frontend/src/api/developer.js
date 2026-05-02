@@ -174,4 +174,18 @@ export const getDevMovementAlerts = (period = '30d') =>
 export const getHeatCohort = (period = '30d', projectId) =>
   j(`/api/dev/analytics/heat-cohort?period=${period}${projectId ? `&project_id=${projectId}` : ''}`);
 
+// Phase 4 Batch 6 — Demand Heatmap + Engagement Analytics
+export const getDemandHeatmap = (params = {}) => {
+  const qs = new URLSearchParams(params).toString();
+  return j(`/api/dev/analytics/demand-heatmap${qs ? `?${qs}` : ''}`);
+};
+export const getEngagementUnits = (projectId, params = {}) => {
+  const qs = new URLSearchParams(params).toString();
+  return j(`/api/dev/projects/${projectId}/engagement-units${qs ? `?${qs}` : ''}`);
+};
+export const getEngagementUnitTimeline = (projectId, unitId, params = {}) => {
+  const qs = new URLSearchParams(params).toString();
+  return j(`/api/dev/projects/${projectId}/engagement-units/${unitId}/timeline${qs ? `?${qs}` : ''}`);
+};
+
 
