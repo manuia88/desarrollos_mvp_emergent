@@ -11,9 +11,10 @@ from . import performance  # noqa: F401
 from . import notifications  # noqa: F401
 from . import health_score  # noqa: F401  (Batch 14)
 from . import batch15  # noqa: F401  (Batch 15)
+from . import batch17  # noqa: F401  (Batch 17)
 
 __all__ = [
     "schema", "ie_engine", "marketplace", "cross_portal",
     "engagement", "ai_integrations", "integrations_external",
-    "performance", "notifications", "health_score", "batch15",
+    "performance", "notifications", "health_score", "batch15", "batch17",
 ]

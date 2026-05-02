@@ -4,6 +4,9 @@ import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, relDate, isOverdue } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
 import { Clock } from '../../components/icons';
+import SortableList from '../../components/shared/SortableList';
+import { reorderTareas } from '../../api/batch17';
+import { useServerUndo } from '../../components/shared/UndoSnackbar';
 
 const SCOPES = [
   { k: 'property', label: 'Propiedades', types: ['property', 'capture', 'search'] },
@@ -16,6 +19,7 @@ export default function AsesorTareas({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [toast, setToast] = useState(null);
+  const { showServerUndo } = useServerUndo();
 
   const load = async () => {
     setLoading(true);
@@ -25,6 +29,30 @@ export default function AsesorTareas({ user, onLogout }) {
 
   const complete = async (id) => {
     try { await api.completeTarea(id); setToast({ kind: 'success', text: '+5 XP — Tarea completada' }); load(); } catch { setToast({ kind: 'error', text: 'Error' }); }
+  };
+
+  const handleReorder = async (orderedIds) => {
+    try {
+      await reorderTareas(orderedIds);
+      setToast({ kind: 'success', text: 'Orden actualizado' });
+      // Fetch last undo for this reorder
+      try {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/undo/recent?limit=1`,
+          { credentials: 'include' });
+        if (res.ok) {
+          const j = await res.json();
+          const last = j.items?.[0];
+          if (last && last.action === 'reorder' && last.entity_type === 'tarea') {
+            showServerUndo({
+              message: 'Orden de tareas actualizado',
+              undoId: last.id, onRestored: load,
+            });
+          }
+        }
+      } catch {}
+    } catch {
+      setToast({ kind: 'error', text: 'Error al reordenar' });
+    }
   };
 
   // Sort: overdue first, then due_at asc

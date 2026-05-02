@@ -227,6 +227,12 @@ from routes_dev_batch16 import router as dev_batch16_public_router
 app.include_router(ai_suggestions_router)
 app.include_router(dev_batch16_public_router)
 
+# Phase 4 Batch 17 — Inline edit + Undo + Filter presets + Reorder
+from routes_dev_batch17 import (router as dev_batch17_router,
+                                  ensure_batch17_indexes,
+                                  purge_expired_undo_log)
+app.include_router(dev_batch17_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -572,6 +578,20 @@ async def startup():
         await ensure_ai_suggestions_indexes(db)
     except Exception as e:
         logging.warning(f"[batch16] index setup failed: {e}")
+
+    # Phase 4 Batch 17 — Undo + Filter presets indexes + purge cron
+    try:
+        await ensure_batch17_indexes(db)
+        if sched:
+            from apscheduler.triggers.cron import CronTrigger
+            sched.add_job(
+                purge_expired_undo_log, CronTrigger(minute=7),
+                id="undo_purge_hourly", replace_existing=True,
+                kwargs={"db": db}, max_instances=1,
+            )
+            logging.info("[batch17] undo purge cron scheduled @ :07 hourly")
+    except Exception as e:
+        logging.warning(f"[batch17] index/cron setup failed: {e}")
 
 
 @app.on_event("shutdown")

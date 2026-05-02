@@ -76,9 +76,14 @@ export function FilterChipsBar({
                     key={opt.value}
                     onClick={() => handleChange(fc.key, isActive ? null : opt.value)}
                     data-testid={`filter-chip-${fc.key}-${opt.value}`}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all
+                    style={{
+                      animation: isActive ? 'chipPop 220ms ease-out' : undefined,
+                      transitionProperty: 'background-color, color, border-color, transform',
+                      transitionDuration: '180ms',
+                    }}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
                       ${isActive
-                        ? 'bg-[var(--cream)] text-[var(--navy)]'
+                        ? 'bg-[var(--cream)] text-[var(--navy)] scale-[1.02]'
                         : 'bg-[rgba(240,235,224,0.06)] text-[rgba(240,235,224,0.55)] border border-[rgba(240,235,224,0.1)] hover:border-[rgba(240,235,224,0.25)] hover:text-[var(--cream)]'}`}
                   >
                     {opt.label}
@@ -105,9 +110,16 @@ export function FilterChipsBar({
           data-testid="filter-clear-all-btn"
         >
           <X size={10} />
-          Limpiar
+          Limpiar ({activeCount})
         </button>
       )}
+      <style>{`
+        @keyframes chipPop {
+          0% { transform: scale(0.92); opacity: 0.4; }
+          60% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1.02); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

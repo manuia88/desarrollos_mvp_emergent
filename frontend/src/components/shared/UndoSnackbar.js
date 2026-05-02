@@ -125,4 +125,34 @@ export function useUndo() {
   return ctx;
 }
 
+/**
+ * Phase 4 Batch 17 — Server-persisted undo hook.
+ * Wraps showUndo() and calls POST /api/undo/{undoId} when user clicks "Deshacer".
+ *
+ * Usage:
+ *   const { showServerUndo } = useServerUndo();
+ *   showServerUndo({ message: 'Lead movido a Negociación', undoId: 'undo_xxx',
+ *                    onRestored: () => refetch() });
+ */
+export function useServerUndo() {
+  const { showUndo } = useUndo();
+  const showServerUndo = useCallback(({ message, undoId, onRestored, timeout = 10000 }) => {
+    if (!undoId) return null;
+    return showUndo({
+      message,
+      timeout,
+      onUndo: async () => {
+        try {
+          const API = process.env.REACT_APP_BACKEND_URL;
+          const res = await fetch(`${API}/api/undo/${undoId}`, {
+            method: 'POST', credentials: 'include',
+          });
+          if (res.ok) onRestored?.();
+        } catch {}
+      },
+    });
+  }, [showUndo]);
+  return { showServerUndo };
+}
+
 export default UndoProvider;

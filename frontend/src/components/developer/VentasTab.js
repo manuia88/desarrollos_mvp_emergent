@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FilterChipsBar } from '../shared/FilterChipsBar';
+import FilterPresetsBar from '../shared/FilterPresetsBar';
 import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
 import usePreferences from '../../hooks/usePreferences';
@@ -195,8 +196,17 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
         }]}
         current_state={{ status: statusFilter }}
         on_change={handleFilterChange}
-        sync_url={false}
+        sync_url={true}
       />
+
+      {/* Batch 17 — filter presets */}
+      <div style={{ marginTop: 6 }}>
+        <FilterPresetsBar
+          route="/desarrollador/proyectos/ventas"
+          currentFilters={{ status: statusFilter }}
+          onLoadPreset={(f) => handleFilterChange('status', f.status || null)}
+        />
+      </div>
 
       {/* Table */}
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(240,235,224,0.1)' }}>

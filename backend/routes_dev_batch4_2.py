@@ -458,6 +458,20 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
         },
     )
     updated = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+
+    # Phase 4 Batch 17 — register undo
+    try:
+        from routes_dev_batch17 import register_undo
+        await register_undo(
+            db, user_id=user.user_id, action="lead_stage_change",
+            entity_type="lead", entity_id=lead_id,
+            before_state={"lead_stage": lead.get("status"), "status": lead.get("status")},
+            after_state={"lead_stage": payload.target_status, "status": payload.target_status},
+            meta={"collection": "leads", "id_field": "id"},
+        )
+    except Exception:
+        pass
+
     return {"ok": True, "lead_id": lead_id, "new_status": payload.target_status, "days_in_prev": days_in_prev, "lead": updated}
 
 

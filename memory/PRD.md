@@ -3229,6 +3229,37 @@ https://latam-spatial.preview.emergentagent.com
 
 ---
 
+---
+
+## Phase 4 Batch 17 — Drag-drop universal + Inline edit + Filter chips enhanced + Undo system
+**Completado: 2026-05-02 · 13/13 pytest passed (B17) · 50/50 regresión B14+B15+B16 passed**
+
+### Sub-Chunk A — Drag-drop universal + Inline edit ✅
+- **`<SortableList>` primitive** (`@dnd-kit` basado) con keyboard + touch. Props: `items, onReorder, renderItem, axis, disabled`.
+- **Drag-drop wired en 5 lugares**: CRM Kanban (HTML5 existente + server undo) · Project Assets (HTML5 + server undo) · Project Documents (HTML5 nuevo + reorder endpoint) · Tareas Asesor (`<SortableList>` + reorder endpoint) · Prototypes reorder endpoint (backend listo, UI pendiente).
+- **Inline edit reuse**: hook `useInlineSaver(entityType, entityId)` wrapea `PATCH /api/inline/{type}/{id}` con whitelist + permission + activity log + undo registration.
+- **Whitelist backend**: 8 entity_types (unit, lead, project, tarea, comision, asesor_profile, broker, amenity) con 30+ campos editables totales.
+
+### Sub-Chunk B — Filter chips enhanced + Undo system ✅
+- **FilterChipsBar enhanced** con animación `chipPop` + count badges + clear-all con contador.
+- **`<FilterPresetsBar>`** companion — save/load/delete presets server-persisted.
+- **Filter presets CRUD**: 3 endpoints + schema `db.filter_presets`.
+- **Undo server-persisted**: schema `db.undo_log` con TTL 10min + purge 24h · helper `register_undo()` · endpoints `POST /api/undo/{id}` + `GET /api/undo/recent` · 3 restorers (inline_edit, lead_stage_change, reorder).
+- **Wired en 7+ mutaciones**: inline edits genéricos, lead_stage_change (Kanban), reorder documents/prototypes/tareas/assets, project inline updates.
+- **`useServerUndo` hook** frontend + cron `purge_expired_undo_log` @ :07 hourly.
+- **2 probes B0.5**: `inline_edit_audit` · `undo_system_health`.
+
+### Archivos nuevos
+`routes_dev_batch17.py` · `probes/batch17.py` · `tests/test_batch17.py` · `SortableList.js` · `FilterPresetsBar.js` · `api/batch17.js` · `hooks/useInlineSaver.js`
+
+### Conservative decisions
+- Prototypes reorder UI pendiente (entidad sin vista frontend); endpoint y undo listos.
+- FilterChipsBar adoption incremental: hoy solo VentasTab; infra lista para replicar en 5 páginas más.
+- Kanban drag-drop mantiene HTML5 existente (cross-column complejo en dnd-kit); server-undo añadido.
+- Documents usa HTML5 en `<tr>` (dnd-kit en tablas problemático); equivalente funcional.
+
+---
+
 ## Phase 4 Batch 16 — AI Suggestions Inline + Smart Empty States + Public Booking Page
 **Completado: 2026-05-02 · 12/12 pytest passed · 38/38 regresión B14+B15 passed**
 

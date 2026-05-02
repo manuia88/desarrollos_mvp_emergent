@@ -22,6 +22,8 @@ import { getProjectSummary } from '../../api/developer';
 import { getLatestDiagnostic } from '../../api/diagnostic';
 import { ChevronRight, Building, Activity } from '../../components/icons';
 import AISuggestionCard from '../../components/shared/AISuggestionCard';
+import InlineEditField from '../../components/shared/InlineEditField';
+import useInlineSaver from '../../hooks/useInlineSaver';
 
 const STAGE_LABELS = {
   preventa: 'Preventa',
@@ -234,6 +236,12 @@ export default function ProyectoDetail({ user, onLogout }) {
   }, [slug]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Phase 4 Batch 17 — inline edit saver for project fields
+  const saveProject = useInlineSaver('project', slug, {
+    onUpdated: load,
+    toastMessage: 'Proyecto actualizado',
+  });
 
   const stageStyle = summary ? (STAGE_BADGE_STYLE[summary.stage] || STAGE_BADGE_STYLE.preventa) : {};
 

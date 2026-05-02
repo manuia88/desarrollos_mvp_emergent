@@ -8,6 +8,7 @@ import {
   getUnitAIPrediction, patchUnit, getUnitEngagement,
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
+import useInlineSaver from '../../hooks/useInlineSaver';
 import { ChevronRight, TrendUp, BarChart, Users, Building, FileText, Star } from '../../components/icons';
 
 const fmtMXN = (v) => {
@@ -94,13 +95,31 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
   const area = unit.area_total || unit.area;
   const priceM2 = unit.price && area ? Math.round(unit.price / area) : null;
 
+  // Batch 17 — saver via generic inline endpoint (adds activity log + undo)
+  const unitId = unit.id || unit.unit_id || unit.unit_number;
+  const inlineSave = useInlineSaver('unit', unitId, {
+    onUpdated: () => onUnitUpdated?.(),
+    toastMessage: 'Unidad actualizada',
+  });
+
   const handleSave = async (field, value) => {
     setSaving(true);
     try {
-      await patchUnit(devId, unit.id || unit.unit_number, { [field]: field === 'price' ? parseFloat(value.replace(/[^0-9.]/g, '')) : value });
-      onUnitUpdated?.();
-    } catch (e) { console.error('Patch unit:', e); }
-    finally { setSaving(false); }
+      const v = field === 'price' && typeof value === 'string'
+        ? parseFloat(value.replace(/[^0-9.]/g, ''))
+        : value;
+      await inlineSave(field, v);
+    } catch (e) {
+      // Fallback to legacy patchUnit if inline endpoint fails (e.g., legacy data)
+      try {
+        await patchUnit(devId, unitId, {
+          [field]: field === 'price' && typeof value === 'string'
+            ? parseFloat(value.replace(/[^0-9.]/g, ''))
+            : value,
+        });
+        onUnitUpdated?.();
+      } catch (err) { console.error('Patch unit (fallback):', err); throw err; }
+    } finally { setSaving(false); }
   };
 
   return (
