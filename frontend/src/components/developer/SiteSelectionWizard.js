@@ -2,9 +2,9 @@
  * SiteSelectionWizard — 4-step modal wizard to create a Site Selection AI study.
  * Phase 4 Batch 7 · 4.22
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
-import { X, ArrowRight, ArrowLeft, Check, Sparkle } from '../icons';
+import { X, ArrowRight, ArrowLeft, Check, Sparkle, MapPin } from '../icons';
 import * as api from '../../api/developer';
 
 const PROJECT_TYPES = [
@@ -83,9 +83,9 @@ function Toggle({ active, onClick, children, testid }) {
   );
 }
 
-export default function SiteSelectionWizard({ onClose, onCreated }) {
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
+export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia, prefillState, fromHeatmap }) {
+  const [step, setStep] = useState(fromHeatmap ? 3 : 1);
+  const [name, setName] = useState(prefillColonia ? `Feasibility ${prefillColonia}` : '');
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
   const [inp, setInp] = useState({
@@ -95,10 +95,27 @@ export default function SiteSelectionWizard({ onClose, onCreated }) {
     price_range_per_m2: { min: 80000, max: 140000 },
     total_units_target: 40,
     budget_construction: 250_000_000,
-    preferred_states: ['CDMX'],
+    preferred_states: prefillState ? [prefillState] : ['CDMX'],
     preferred_features: ['metro_proximity'],
     avoid_features: ['flood_risk'],
   });
+
+  // Emit ml_event on mount when prefill is active
+  useEffect(() => {
+    if (fromHeatmap && prefillColonia) {
+      try {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/ml/emit`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: 'site_selection_prefilled_from_heatmap',
+            context: { prefill_colonia: prefillColonia, prefill_state: prefillState },
+          }),
+        }).catch(() => {});
+      } catch (e) { /* noop */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setField = (k, v) => setInp(prev => ({ ...prev, [k]: v }));
   const toggleArr = (k, v) => setInp(prev => ({
@@ -149,6 +166,19 @@ export default function SiteSelectionWizard({ onClose, onCreated }) {
         </div>
 
         <div style={{ padding: 22 }}>
+          {fromHeatmap && prefillColonia && (
+            <div data-testid="wizard-prefill-banner" style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start', padding: 12,
+              background: 'rgba(240,235,224,0.05)', border: '1px solid rgba(240,235,224,0.32)',
+              borderRadius: 10, marginBottom: 14,
+            }}>
+              <MapPin size={14} color="var(--cream)" />
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', lineHeight: 1.5 }}>
+                <b>Pre-llenado desde Demand Heatmap:</b> {prefillColonia}, {prefillState || 'CDMX'}.{' '}
+                <span style={{ color: 'var(--cream-3)' }}>Ajusta otros criterios para evaluar feasibility de un proyecto en esta zona.</span>
+              </div>
+            </div>
+          )}
           {step === 1 && (
             <div data-testid="site-wizard-step-1">
               <Field label="Tipo de proyecto">

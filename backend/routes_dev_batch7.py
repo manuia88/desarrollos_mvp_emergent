@@ -542,6 +542,11 @@ async def list_studies(request: Request, status: Optional[str] = None):
     return {"items": items, "total": len(items)}
 
 
+@router.get("/api/dev/site-selection/studies/compare")
+async def compare_studies_endpoint(request: Request, ids: str):
+    return await _compare_studies_impl(request, ids)
+
+
 @router.get("/api/dev/site-selection/studies/{study_id}")
 async def get_study(study_id: str, request: Request):
     user = await _auth(request)
@@ -728,6 +733,521 @@ async def download_study_pdf(file_id: str, request: Request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 4.22.1 · COMPARE STUDIES
+# ─────────────────────────────────────────────────────────────────────────────
+async def _compare_narrative(studies_summary: List[Dict]) -> str:
+    fallback = (f"Comparación entre {len(studies_summary)} estudios: enfoques distintos en "
+                f"segmento y precio target. Revisa el ranking y métricas para decidir cuál criterio "
+                f"se alinea mejor con tu tesis de inversión.")[:280]
+    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    if not key:
+        return fallback
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        chat = LlmChat(
+            api_key=key, session_id=f"site_compare_{secrets.token_hex(4)}",
+            system_message=(
+                "Eres consultor inmobiliario LATAM. Compara 2-3 estudios de site selection. "
+                "Genera un párrafo único, 200-280 caracteres, español es-MX, sin emojis, "
+                "destacando el contraste estratégico (segmento, precio, criterio dominante)."
+            ),
+        ).with_model("anthropic", "claude-haiku-4-5-20251001")
+        msg = UserMessage(text=(
+            "Estudios a comparar (resumen):\n" + json.dumps(studies_summary, ensure_ascii=False)
+        ))
+        raw = await chat.send_message(msg)
+        text = (raw or "").strip()
+        if text.startswith("```"):
+            import re
+            text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S).strip()
+        return text[:300] or fallback
+    except Exception as e:
+        log.warning(f"[batch7] compare narrative failed: {e}")
+        return fallback
+
+
+async def _compare_studies_impl(request: Request, ids: str):
+    user = await _auth(request)
+    if not _is_dev_admin(user):
+        raise HTTPException(403, "Rol no autorizado")
+    db = _db(request)
+    org = getattr(user, "tenant_id", None) or "default"
+
+    parsed = [s.strip() for s in (ids or "").split(",") if s.strip()]
+    if len(parsed) < 2 or len(parsed) > 3:
+        raise HTTPException(422, "Debes enviar entre 2 y 3 ids para comparar")
+
+    q = {"id": {"$in": parsed}}
+    if user.role != "superadmin":
+        q["dev_org_id"] = org
+    studies = await db.site_selection_studies.find(q, {"_id": 0}).to_list(10)
+    if len(studies) != len(parsed):
+        raise HTTPException(403, "Uno o más estudios no pertenecen a tu organización o no existen")
+    incomplete = [s["id"] for s in studies if s.get("status") != "completed"]
+    if incomplete:
+        raise HTTPException(409, f"Estudios sin completar: {', '.join(incomplete)}")
+
+    # Build per-study summary with top-3 zones
+    summaries = []
+    for s in studies:
+        zones = s.get("candidate_zones") or []
+        top3 = [{
+            "colonia": z.get("colonia"), "colonia_id": z.get("colonia_id"),
+            "feasibility_score": z.get("feasibility_score"),
+            "sub_scores": z.get("sub_scores", {}),
+            "estimated_roi_5y": z.get("estimated_roi_5y"),
+        } for z in zones[:3]]
+        avg_feas = round(sum(z.get("feasibility_score", 0) for z in zones) / max(len(zones), 1), 1) if zones else 0
+        # Avg sub-scores across all zones (for radar overlay)
+        avg_sub: Dict[str, float] = {}
+        if zones:
+            keys = ["market_demand", "price_match", "competition", "infrastructure",
+                    "absorption_potential", "risk_factors"]
+            for k in keys:
+                vals = [z.get("sub_scores", {}).get(k, 0) for z in zones]
+                avg_sub[k] = round(sum(vals) / len(vals), 1) if vals else 0
+        summaries.append({
+            "id": s["id"], "name": s.get("name"),
+            "inputs": s.get("inputs", {}),
+            "top_3_zones": top3,
+            "avg_sub_scores": avg_sub,
+            "avg_feasibility": avg_feas,
+            "total_zones_evaluated": len(zones),
+            "completed_at": s.get("completed_at"),
+        })
+
+    # Criteria diff
+    criteria_keys = ["project_type", "target_segment", "total_units_target", "budget_construction"]
+    criteria_diff: Dict[str, List] = {}
+    for k in criteria_keys:
+        criteria_diff[k] = [{"id": s["id"], "value": (s.get("inputs") or {}).get(k)} for s in studies]
+    # Range fields
+    for k in ("unit_size_range", "price_range_per_m2"):
+        criteria_diff[k] = [{"id": s["id"], "value": (s.get("inputs") or {}).get(k)} for s in studies]
+    # Features list-typed
+    for k in ("preferred_features", "avoid_features"):
+        criteria_diff[k] = [{"id": s["id"], "value": (s.get("inputs") or {}).get(k) or []} for s in studies]
+
+    # Winners per metric
+    winner_per_metric: Dict[str, str] = {}
+    metric_keys = ["market_demand", "price_match", "competition", "infrastructure",
+                   "absorption_potential", "risk_factors"]
+    for mk in metric_keys:
+        best = max(summaries, key=lambda s: s["avg_sub_scores"].get(mk, 0))
+        winner_per_metric[mk] = best["id"]
+    winner_per_metric["avg_feasibility"] = max(summaries, key=lambda s: s["avg_feasibility"])["id"]
+    if summaries[0]["top_3_zones"]:
+        # ROI winner = study whose #1 zone has highest ROI
+        winner_per_metric["top_roi"] = max(summaries, key=lambda s: (s["top_3_zones"][0]["estimated_roi_5y"] if s["top_3_zones"] else -999))["id"]
+
+    narrative = await _compare_narrative([{
+        "id": s["id"], "name": s["name"],
+        "segment": s["inputs"].get("target_segment"),
+        "type": s["inputs"].get("project_type"),
+        "avg_feasibility": s["avg_feasibility"],
+        "top_zone": (s["top_3_zones"][0]["colonia"] if s["top_3_zones"] else None),
+    } for s in summaries])
+
+    await _safe_audit_ml(
+        db, user, action="read", entity_type="site_selection_compare", entity_id=",".join(parsed),
+        request=request, ml_event="site_selection_compared",
+        ml_context={"study_ids": parsed},
+    )
+    return {
+        "studies": summaries,
+        "diff_matrix": {
+            "criteria_diff": criteria_diff,
+            "winner_per_metric": winner_per_metric,
+            "narrative_diff": narrative,
+        },
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4.22.2 · EXPANSION SIMULATOR
+# ─────────────────────────────────────────────────────────────────────────────
+ELASTICITY_BY_SEGMENT = {
+    "NSE_AB": -0.6, "NSE_C+": -0.9, "NSE_C": -1.2, "NSE_D": -1.5,
+}
+
+# Baseline annual absorption rate by state (heuristic, per CDMX-LATAM benchmarks)
+BASELINE_ABSORPTION_BY_STATE = {
+    "CDMX": 0.42, "EDOMEX": 0.36, "JAL": 0.38, "NL": 0.40, "QRO": 0.38,
+}
+
+
+class SimulatePayload(BaseModel):
+    zone_colonia: str = Field(..., min_length=1)
+    target_absorption_pct: float = Field(..., ge=50, le=100)
+    target_months: int = Field(..., ge=6, le=36)
+    base_price_per_m2: int = Field(..., ge=10_000, le=2_000_000)
+
+
+def _scenario_decay(target_months: int, total_units: int, adjusted_rate: float,
+                    elasticity_factor: float) -> tuple[List[Dict], int]:
+    """Front-loaded decay model: months 1-6 strong, taper after month 12.
+    Returns (monthly_absorption[], total_units_sold)."""
+    out: List[Dict] = []
+    cumulative = 0
+    # Total sellable units (cap at target_months × monthly_max)
+    monthly_target_avg = total_units / max(target_months, 1)
+    for m in range(1, target_months + 1):
+        # Decay curve: weight peak at month 3-4, then taper
+        if m <= 6:
+            phase = 1.20 - (m - 1) * 0.04   # 1.20 → 0.96
+        elif m <= 12:
+            phase = 0.96 - (m - 6) * 0.04   # 0.96 → 0.72
+        else:
+            phase = max(0.45, 0.72 - (m - 12) * 0.025)
+        units = monthly_target_avg * phase * adjusted_rate * elasticity_factor
+        units = max(0, int(round(units)))
+        if cumulative + units > total_units:
+            units = max(0, total_units - cumulative)
+        cumulative += units
+        out.append({
+            "month": m, "units_sold": units,
+            "cumulative_pct": round(100.0 * cumulative / max(total_units, 1), 1),
+        })
+        if cumulative >= total_units:
+            # Pad remaining months with zeros so chart shows full range
+            for k in range(m + 1, target_months + 1):
+                out.append({"month": k, "units_sold": 0,
+                            "cumulative_pct": round(100.0 * cumulative / max(total_units, 1), 1)})
+            break
+    return out, cumulative
+
+
+def _build_scenario(*, label: str, base_price: int, price_mult: float, discount_pct: float,
+                    target_months: int, total_units_target: int, adjusted_rate: float,
+                    elasticity: float, avg_unit_size: int, budget_construction: int) -> Dict:
+    price = int(round(base_price * price_mult))
+    effective_price = int(price * (1 - discount_pct / 100.0))
+    # Elasticity factor: % change relative to base price
+    pct_change = (price_mult * (1 - discount_pct / 100.0)) - 1.0
+    elasticity_factor = max(0.4, 1.0 + (pct_change * elasticity))
+
+    monthly, sold = _scenario_decay(target_months, total_units_target, adjusted_rate, elasticity_factor)
+
+    # Revenue
+    revenue = sum(m["units_sold"] for m in monthly) * effective_price * avg_unit_size
+
+    # Breakeven month
+    cum_revenue = 0
+    breakeven = None
+    for m in monthly:
+        cum_revenue += m["units_sold"] * effective_price * avg_unit_size
+        if breakeven is None and cum_revenue >= budget_construction and budget_construction > 0:
+            breakeven = m["month"]
+    if breakeven is None:
+        breakeven = -1  # Did not break even within target horizon
+
+    # Sensitivity
+    _, sold_5pct_drop = _scenario_decay(
+        target_months, total_units_target, adjusted_rate,
+        max(0.4, 1.0 + ((pct_change - 0.05) * elasticity)),
+    )
+    _, sold_demand_minus = _scenario_decay(
+        target_months, total_units_target, adjusted_rate * 0.9, elasticity_factor,
+    )
+    _, sold_demand_plus = _scenario_decay(
+        target_months, total_units_target, min(adjusted_rate * 1.1, 1.0), elasticity_factor,
+    )
+    return {
+        "label": label,
+        "price_per_m2": price,
+        "discount_pct": discount_pct,
+        "effective_price_per_m2": effective_price,
+        "monthly_absorption": monthly,
+        "total_units_target": total_units_target,
+        "total_units_sold": sold,
+        "revenue_projection": int(revenue),
+        "breakeven_month": breakeven,
+        "sensitivity": {
+            "price_drop_5pct_impact_units": sold_5pct_drop - sold,
+            "demand_score_minus_10_impact_units": sold_demand_minus - sold,
+            "demand_score_plus_10_impact_units": sold_demand_plus - sold,
+        },
+    }
+
+
+async def _claude_scenario_narrative(label: str, scn: Dict) -> str:
+    fallback = (f"Escenario {label}: precio ${scn['effective_price_per_m2']:,}/m² con descuento "
+                f"{scn['discount_pct']:.0f}%. Breakeven mes "
+                f"{scn['breakeven_month'] if scn['breakeven_month'] > 0 else 'fuera de horizonte'}, "
+                f"{scn['total_units_sold']} unidades vendidas.")[:200]
+    key = os.environ.get("EMERGENT_LLM_KEY", "")
+    if not key:
+        return fallback
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        chat = LlmChat(
+            api_key=key, session_id=f"scn_{label}_{secrets.token_hex(3)}",
+            system_message=(
+                "Consultor inmobiliario senior LATAM. Genera narrative 130-150 chars es-MX "
+                "explicando el trade-off del escenario. Tono directo, sin emojis, sin jerga."
+            ),
+        ).with_model("anthropic", "claude-haiku-4-5-20251001")
+        msg = UserMessage(text=(
+            f"Escenario '{label}': precio ${scn['effective_price_per_m2']:,}/m², "
+            f"descuento {scn['discount_pct']}%, breakeven mes {scn['breakeven_month']}, "
+            f"unidades {scn['total_units_sold']} de {scn['total_units_target']}."
+        ))
+        raw = await chat.send_message(msg)
+        text = (raw or "").strip()
+        if text.startswith("```"):
+            import re
+            text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S).strip()
+        return text[:200] or fallback
+    except Exception:
+        return fallback
+
+
+@router.post("/api/dev/site-selection/studies/{study_id}/simulate")
+async def simulate_expansion(study_id: str, payload: SimulatePayload, request: Request):
+    user = await _auth(request)
+    if not _is_dev_admin(user):
+        raise HTTPException(403, "Rol no autorizado")
+    db = _db(request)
+    org = getattr(user, "tenant_id", None) or "default"
+    q = {"id": study_id}
+    if user.role != "superadmin":
+        q["dev_org_id"] = org
+    study = await db.site_selection_studies.find_one(q, {"_id": 0})
+    if not study:
+        raise HTTPException(404, "Estudio no encontrado")
+    if study.get("status") != "completed":
+        raise HTTPException(409, "El estudio no está completado")
+
+    zones = study.get("candidate_zones") or []
+    zone = next((z for z in zones if z.get("colonia") == payload.zone_colonia or z.get("colonia_id") == payload.zone_colonia), None)
+    if not zone:
+        raise HTTPException(404, "Zona no encontrada en el estudio")
+
+    inputs = study.get("inputs") or {}
+    segment = inputs.get("target_segment", "NSE_C+")
+    state = (inputs.get("preferred_states") or ["CDMX"])[0]
+    elasticity = ELASTICITY_BY_SEGMENT.get(segment, -1.0)
+    baseline = BASELINE_ABSORPTION_BY_STATE.get(state, 0.38)
+
+    feas = float(zone.get("feasibility_score") or 60) / 100.0
+    sub = zone.get("sub_scores") or {}
+    infra = float(sub.get("infrastructure", 60)) / 100.0
+    demand = float(zone.get("data_points", {}).get("demand_score", 50)) / 100.0
+    adjusted_rate = max(0.05, min(1.0, baseline * demand * infra * feas * 1.6))
+
+    total_units_target = int(round(zone.get("target_units_estimate") or inputs.get("total_units_target") or 40))
+    avg_unit_size = int((inputs.get("unit_size_range") or {}).get("min_m2", 80) +
+                       (inputs.get("unit_size_range") or {}).get("max_m2", 180)) // 2
+    budget = int(inputs.get("budget_construction") or 0)
+
+    # Build 3 scenarios
+    scn_specs = [
+        ("conservador", 1.05, 0.0),
+        ("base", 1.0, 0.0),
+        ("agresivo", 0.92, 5.0),
+    ]
+    scenarios: List[Dict] = []
+    for label, mult, disc in scn_specs:
+        s = _build_scenario(
+            label=label, base_price=payload.base_price_per_m2,
+            price_mult=mult, discount_pct=disc, target_months=payload.target_months,
+            total_units_target=total_units_target, adjusted_rate=adjusted_rate,
+            elasticity=elasticity, avg_unit_size=avg_unit_size, budget_construction=budget,
+        )
+        scenarios.append(s)
+
+    # Run Claude narratives in parallel for the 3 scenarios
+    narratives = await asyncio.gather(*[_claude_scenario_narrative(s["label"], s) for s in scenarios])
+    for s, n in zip(scenarios, narratives):
+        s["narrative"] = n
+
+    sim_id = _uid("expsim")
+    doc = {
+        "id": sim_id, "dev_org_id": org, "study_id": study_id,
+        "zone_colonia": zone.get("colonia"),
+        "zone_data": {
+            "feasibility_score": zone.get("feasibility_score"),
+            "sub_scores": sub,
+            "demand_score": zone.get("data_points", {}).get("demand_score"),
+            "infrastructure_score": sub.get("infrastructure"),
+            "ie_score_avg": zone.get("data_points", {}).get("ie_score_avg"),
+        },
+        "inputs": {
+            "target_absorption_pct": payload.target_absorption_pct,
+            "target_months": payload.target_months,
+            "base_price_per_m2": payload.base_price_per_m2,
+            "target_segment": segment,
+        },
+        "scenarios": scenarios,
+        "disclaimer": ("Estimaciones basadas en benchmarks de mercado MX por NSE + demand_score "
+                       "(B6) + feasibility (B7). Refinará con tu data histórica de cierres."),
+        "created_at": _now_iso(),
+        "created_by": getattr(user, "user_id", None),
+    }
+    await db.expansion_simulations.insert_one(doc)
+    await _safe_audit_ml(
+        db, user, action="create", entity_type="expansion_simulation", entity_id=sim_id,
+        request=request, ml_event="expansion_simulated",
+        ml_context={"sim_id": sim_id, "study_id": study_id, "zone": zone.get("colonia")},
+    )
+    doc.pop("_id", None)
+    return doc
+
+
+@router.get("/api/dev/site-selection/simulations/{sim_id}")
+async def get_simulation(sim_id: str, request: Request):
+    user = await _auth(request)
+    if not _is_dev_admin(user):
+        raise HTTPException(403, "Rol no autorizado")
+    db = _db(request)
+    org = getattr(user, "tenant_id", None) or "default"
+    q = {"id": sim_id}
+    if user.role != "superadmin":
+        q["dev_org_id"] = org
+    sim = await db.expansion_simulations.find_one(q, {"_id": 0})
+    if not sim:
+        raise HTTPException(404, "Simulación no encontrada")
+    return sim
+
+
+@router.get("/api/dev/site-selection/studies/{study_id}/simulations")
+async def list_simulations(study_id: str, request: Request):
+    user = await _auth(request)
+    if not _is_dev_admin(user):
+        raise HTTPException(403, "Rol no autorizado")
+    db = _db(request)
+    org = getattr(user, "tenant_id", None) or "default"
+    q = {"study_id": study_id}
+    if user.role != "superadmin":
+        q["dev_org_id"] = org
+    items = await db.expansion_simulations.find(q, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return {"items": items, "total": len(items)}
+
+
+def _build_simulation_pdf(sim: Dict) -> bytes:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib import colors
+
+    primary = HexColor("#06080F")
+    amber = HexColor("#FBBF24")
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter, leftMargin=0.6 * inch, rightMargin=0.6 * inch,
+                            topMargin=0.6 * inch, bottomMargin=0.6 * inch)
+    styles = getSampleStyleSheet()
+    eyebrow = ParagraphStyle("eyebrow", parent=styles["Normal"], textColor=colors.grey,
+                             fontSize=9, fontName="Helvetica-Bold", spaceAfter=4)
+    h1 = ParagraphStyle("H1", parent=styles["Heading1"], fontSize=22, leading=26,
+                        textColor=primary, fontName="Helvetica-Bold", spaceAfter=10)
+    h2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=13, leading=17,
+                        textColor=primary, fontName="Helvetica-Bold", spaceAfter=8)
+    body = ParagraphStyle("Body", parent=styles["BodyText"], fontSize=10, leading=14,
+                          textColor=colors.black, spaceAfter=6)
+    small = ParagraphStyle("Small", parent=styles["Normal"], fontSize=8,
+                           textColor=colors.grey, spaceAfter=4)
+    warn = ParagraphStyle("Warn", parent=styles["BodyText"], fontSize=10, leading=14,
+                          textColor=amber, fontName="Helvetica-Bold", spaceAfter=8,
+                          backColor=HexColor("#FEF3C7"), borderPadding=8,
+                          borderColor=amber, borderWidth=1, borderRadius=4)
+
+    story: List = []
+    story.append(Paragraph("DESARROLLOSMX · EXPANSION SIMULATOR", eyebrow))
+    story.append(Paragraph(f"Simulación · {sim.get('zone_colonia', '—')}", h1))
+    story.append(Paragraph(f"Generada: {sim.get('created_at', '')[:19]} · Sim ID: {sim.get('id')}",
+                           small))
+    story.append(Spacer(1, 0.18 * inch))
+    story.append(Paragraph(f"DISCLAIMER: {sim.get('disclaimer', '')}", warn))
+    story.append(Spacer(1, 0.16 * inch))
+
+    inp = sim.get("inputs") or {}
+    inputs_table = [
+        ["Zona", sim.get("zone_colonia", "—")],
+        ["Segmento target", inp.get("target_segment", "—")],
+        ["Absorción objetivo", f"{inp.get('target_absorption_pct', 0)}%"],
+        ["Horizonte", f"{inp.get('target_months', 0)} meses"],
+        ["Precio base/m²", f"${inp.get('base_price_per_m2', 0):,} MXN"],
+    ]
+    t = Table(inputs_table, colWidths=[2.2 * inch, 4.6 * inch])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, -1), HexColor("#F0EBE0")),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOX", (0, 0), (-1, -1), 0.4, colors.grey),
+        ("INNERGRID", (0, 0), (-1, -1), 0.2, colors.lightgrey),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 0.2 * inch))
+
+    for scn in sim.get("scenarios") or []:
+        story.append(Paragraph(f"Escenario · {scn.get('label', '').upper()}", h2))
+        story.append(Paragraph(scn.get("narrative", ""), body))
+        rows = [
+            ["Métrica", "Valor"],
+            ["Precio efectivo/m²", f"${scn.get('effective_price_per_m2', 0):,}"],
+            ["Descuento", f"{scn.get('discount_pct', 0)}%"],
+            ["Unidades vendidas", f"{scn.get('total_units_sold', 0)} / {scn.get('total_units_target', 0)}"],
+            ["Revenue proyectado", f"${scn.get('revenue_projection', 0):,} MXN"],
+            ["Breakeven mes", str(scn.get("breakeven_month")) if (scn.get("breakeven_month") or -1) > 0 else "Fuera de horizonte"],
+            ["Sensibilidad: −5% precio", f"{scn.get('sensitivity', {}).get('price_drop_5pct_impact_units', 0):+d} unidades"],
+            ["Sensibilidad: −10 demand", f"{scn.get('sensitivity', {}).get('demand_score_minus_10_impact_units', 0):+d} unidades"],
+        ]
+        rt = Table(rows, colWidths=[2.6 * inch, 4.2 * inch])
+        rt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), primary),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("BOX", (0, 0), (-1, -1), 0.4, colors.grey),
+            ("INNERGRID", (0, 0), (-1, -1), 0.2, colors.lightgrey),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        story.append(rt)
+        story.append(Spacer(1, 0.15 * inch))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+@router.post("/api/dev/site-selection/simulations/{sim_id}/export-pdf")
+async def export_simulation_pdf(sim_id: str, request: Request):
+    user = await _auth(request)
+    if not _is_dev_admin(user):
+        raise HTTPException(403, "Rol no autorizado")
+    db = _db(request)
+    org = getattr(user, "tenant_id", None) or "default"
+    q = {"id": sim_id}
+    if user.role != "superadmin":
+        q["dev_org_id"] = org
+    sim = await db.expansion_simulations.find_one(q, {"_id": 0})
+    if not sim:
+        raise HTTPException(404, "Simulación no encontrada")
+
+    pdf_bytes = _build_simulation_pdf(sim)
+    file_id = _uid("expsimpdf")
+    await db.site_selection_files.insert_one({
+        "id": file_id, "simulation_id": sim_id, "dev_org_id": org,
+        "size_bytes": len(pdf_bytes),
+        "pdf_b64": base64.b64encode(pdf_bytes).decode("ascii"),
+        "created_at": _now_iso(),
+    })
+    await _safe_audit_ml(
+        db, user, action="export", entity_type="expansion_simulation", entity_id=sim_id,
+        request=request, ml_event="expansion_simulation_pdf_exported",
+        ml_context={"sim_id": sim_id, "file_id": file_id, "size_kb": round(len(pdf_bytes) / 1024, 1)},
+    )
+    return {"file_id": file_id, "size_kb": round(len(pdf_bytes) / 1024, 1),
+            "download_url": f"/api/dev/site-selection/files/{file_id}"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Indexes
 # ─────────────────────────────────────────────────────────────────────────────
 async def ensure_batch7_indexes(db) -> None:
@@ -736,6 +1256,8 @@ async def ensure_batch7_indexes(db) -> None:
         await db.site_selection_studies.create_index([("dev_org_id", 1), ("status", 1), ("created_at", -1)], background=True)
         await db.site_selection_files.create_index([("id", 1)], unique=True, background=True)
         await db.site_selection_files.create_index([("study_id", 1), ("created_at", -1)], background=True)
+        await db.expansion_simulations.create_index([("id", 1)], unique=True, background=True)
+        await db.expansion_simulations.create_index([("dev_org_id", 1), ("study_id", 1), ("created_at", -1)], background=True)
     except Exception:
         pass
     log.info("[batch7] indexes ensured")

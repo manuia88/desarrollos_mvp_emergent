@@ -3,13 +3,16 @@
  * Site Selection AI standalone page · 3 tabs: Estudios | Crear | Resultados.
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmt0 } from '../../components/advisor/primitives';
-import { Sparkle, MapPin, Target, Activity, Plus, Download, ArrowRight, X } from '../../components/icons';
+import { Sparkle, MapPin, Target, Activity, Plus, Download, ArrowRight, X, BarChart, AlertTriangle } from '../../components/icons';
 import * as api from '../../api/developer';
 import SiteSelectionWizard from '../../components/developer/SiteSelectionWizard';
 import SiteSelectionMap from '../../components/developer/SiteSelectionMap';
 import RadarChart from '../../components/developer/RadarChart';
+import CompareTab from '../../components/developer/CompareTab';
+import ExpansionSimulatorModal from '../../components/developer/ExpansionSimulatorModal';
 
 function StatusPill({ status }) {
   const map = {
@@ -35,7 +38,7 @@ function TabButton({ active, onClick, children, testid }) {
   );
 }
 
-function StudyDetailDrawer({ zone, onClose }) {
+function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
   if (!zone) return null;
   const sub = zone.sub_scores || {};
   return (
@@ -57,6 +60,13 @@ function StudyDetailDrawer({ zone, onClose }) {
       </div>
 
       <div style={{ overflowY: 'auto', padding: '16px 22px', flex: 1 }}>
+        <button data-testid="site-zone-simulate" onClick={() => onSimulate && onSimulate(zone)} style={{
+          width: '100%', marginBottom: 14, padding: '10px 14px', borderRadius: 10,
+          background: 'linear-gradient(135deg, var(--gradient-from), var(--gradient-to))',
+          border: 'none', color: '#fff', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
+          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        }}><BarChart size={12} /> Simular expansión en esta zona</button>
+
         {/* Headline KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
           <div style={{ padding: 10, background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.32)', borderRadius: 10 }}>
@@ -290,12 +300,18 @@ function ResultsTab({ study, onRefresh, onExport, onSelectZone, selectedZoneId }
 }
 
 export default function DesarrolladorSiteSelection({ user, onLogout }) {
-  const [tab, setTab] = useState('studies');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const prefillColonia = searchParams.get('prefill_colonia');
+  const prefillState = searchParams.get('prefill_state');
+  const fromHeatmap = searchParams.get('from') === 'heatmap';
+
+  const [tab, setTab] = useState(fromHeatmap ? 'create' : 'studies');
   const [studies, setStudies] = useState([]);
   const [activeStudy, setActiveStudy] = useState(null);
   const [activeStudyDetail, setActiveStudyDetail] = useState(null);
-  const [showWizard, setShowWizard] = useState(false);
+  const [showWizard, setShowWizard] = useState(fromHeatmap);
   const [drawerZoneId, setDrawerZoneId] = useState(null);
+  const [simulateZone, setSimulateZone] = useState(null);
 
   const loadStudies = useCallback(() => {
     api.listSiteStudies().then(d => setStudies(d.items || [])).catch(() => setStudies([]));
@@ -326,6 +342,12 @@ export default function DesarrolladorSiteSelection({ user, onLogout }) {
   };
   const onCreated = (study) => {
     setShowWizard(false);
+    // Clear prefill query params after creation
+    if (fromHeatmap) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('prefill_colonia'); next.delete('prefill_state'); next.delete('from');
+      setSearchParams(next, { replace: true });
+    }
     loadStudies();
     openStudy(study);
   };
@@ -357,6 +379,7 @@ export default function DesarrolladorSiteSelection({ user, onLogout }) {
       <div data-testid="site-tabs" style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
         <TabButton testid="site-tab-studies" active={tab === 'studies'} onClick={() => setTab('studies')}><Sparkle size={12} /> Estudios</TabButton>
         <TabButton testid="site-tab-create" active={tab === 'create'} onClick={() => { setTab('create'); setShowWizard(true); }}><Plus size={12} /> Crear estudio</TabButton>
+        <TabButton testid="site-tab-compare" active={tab === 'compare'} onClick={() => setTab('compare')}><BarChart size={12} /> Comparar</TabButton>
         <TabButton testid="site-tab-results" active={tab === 'results'} onClick={() => setTab('results')}><Activity size={12} /> Resultados</TabButton>
       </div>
 
@@ -379,6 +402,10 @@ export default function DesarrolladorSiteSelection({ user, onLogout }) {
         </Card>
       )}
 
+      {tab === 'compare' && (
+        <CompareTab />
+      )}
+
       {tab === 'results' && (
         <ResultsTab
           study={activeStudyDetail}
@@ -390,10 +417,30 @@ export default function DesarrolladorSiteSelection({ user, onLogout }) {
       )}
 
       {showWizard && (
-        <SiteSelectionWizard onClose={() => setShowWizard(false)} onCreated={onCreated} />
+        <SiteSelectionWizard
+          onClose={() => setShowWizard(false)}
+          onCreated={onCreated}
+          prefillColonia={prefillColonia}
+          prefillState={prefillState}
+          fromHeatmap={fromHeatmap}
+        />
       )}
 
-      <StudyDetailDrawer zone={drawerZoneWithRank} onClose={() => setDrawerZoneId(null)} />
+      <StudyDetailDrawer
+        zone={drawerZoneWithRank}
+        studyId={activeStudyDetail?.id}
+        onClose={() => setDrawerZoneId(null)}
+        onSimulate={(z) => setSimulateZone(z)}
+      />
+
+      {simulateZone && activeStudyDetail && (
+        <ExpansionSimulatorModal
+          studyId={activeStudyDetail.id}
+          zoneColonia={simulateZone.colonia}
+          defaultPrice={simulateZone.target_price_range?.min || activeStudyDetail.inputs?.price_range_per_m2?.min || 80000}
+          onClose={() => setSimulateZone(null)}
+        />
+      )}
     </DeveloperLayout>
   );
 }

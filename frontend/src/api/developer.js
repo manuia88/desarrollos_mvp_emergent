@@ -197,5 +197,16 @@ export const getSiteStudy = (id) => j(`/api/dev/site-selection/studies/${id}`);
 export const exportSiteStudyPdf = (id) => post(`/api/dev/site-selection/studies/${id}/export-pdf`);
 export const siteStudyDownloadUrl = (fileId) =>
   `${process.env.REACT_APP_BACKEND_URL}/api/dev/site-selection/files/${fileId}`;
+// Phase 4 Batch 7.1
+export const compareSiteStudies = (ids) =>
+  j(`/api/dev/site-selection/studies/compare?ids=${encodeURIComponent(ids.join(','))}`);
+export const simulateExpansion = (studyId, body) =>
+  post(`/api/dev/site-selection/studies/${studyId}/simulate`, body);
+export const getExpansionSimulation = (simId) =>
+  j(`/api/dev/site-selection/simulations/${simId}`);
+export const listExpansionSimulations = (studyId) =>
+  j(`/api/dev/site-selection/studies/${studyId}/simulations`);
+export const exportSimulationPdf = (simId) =>
+  post(`/api/dev/site-selection/simulations/${simId}/export-pdf`);
 
 

@@ -101,6 +101,20 @@ export default function DemandHeatmapMap({ geojson, height = 460, onSelectColoni
             if (!f) return;
             const p = f.properties || {};
             if (onSelectColonia) onSelectColonia(p.colonia_id, p);
+            // Sticky CTA popup → site-selection wizard prefill
+            try { popupRef.current.remove(); } catch (er) { /* noop */ }
+            const sticky = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, offset: 8, className: 'dmx-cta-popup' });
+            const html = `
+              <div style="font-family:DM Sans;color:#06080F;padding:8px 6px;min-width:200px;">
+                <div style="font-family:Outfit;font-weight:700;font-size:13px;">${p.colonia}</div>
+                <div style="font-size:11px;opacity:0.7;text-transform:uppercase;margin-bottom:8px;">${p.alcaldia || ''} · score ${p.demand_score}</div>
+                <a data-testid="heatmap-cta-feasibility"
+                   href="/desarrollador/site-selection?prefill_colonia=${encodeURIComponent(p.colonia)}&prefill_state=CDMX&from=heatmap"
+                   style="display:inline-block;padding:6px 11px;border-radius:9999px;background:transparent;border:1px solid #06080F;color:#06080F;font-family:DM Sans;font-size:11.5px;font-weight:600;text-decoration:none;">
+                  Ver feasibility para nuevo proyecto →
+                </a>
+              </div>`;
+            sticky.setLngLat(e.lngLat).setHTML(html).addTo(map);
           });
         }
         // Fit bounds to all features

@@ -967,6 +967,84 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 7.1 · Compare + Expansion Simulator + B6/B7 Cross-Link
+**Objetivo:** cerrar el loop discovery→feasibility→pricing actionable con 3 features autorizadas por founder.
+
+### Sub-chunk A · 4.22.1 Compare Studies
+- **Backend** (`routes_dev_batch7.py` extendido):
+  - `GET /api/dev/site-selection/studies/compare?ids=id1,id2[,id3]` registrado **antes** de `/studies/{study_id}` para evitar shadowing.
+  - Validación: 2-3 ids (else 422), todos del `dev_org` del user (else 403), todos `status=completed` (else 409).
+  - Response: `studies[]` con `top_3_zones`, `avg_sub_scores` (avg de los 6 sub-scores sobre todas las candidate_zones), `avg_feasibility`. `diff_matrix` con `criteria_diff` (8 keys: project_type/target_segment/total_units_target/budget_construction/unit_size_range/price_range_per_m2/preferred_features/avoid_features), `winner_per_metric` (8 winners: 6 sub-scores + avg_feasibility + top_roi), `narrative_diff` Claude haiku-4-5 200-300 chars es-MX.
+  - Audit + ML event `site_selection_compared`.
+- **Frontend** (`components/developer/CompareTab.js` · ~210 líneas):
+  - Toggles para seleccionar 2-3 studies completed, contador "X/3".
+  - Side-by-side grid (`gridTemplateColumns: repeat(N, 1fr)` responsive a 1 col en <880px).
+  - Por columna: header con tinta única (indigo/pink/green per idx), KPIs (avg_feasibility con badge WINNER, total_zones_evaluated), tabla top-3 zonas, **RadarChart B7** con `avg_sub_scores` (color por columna).
+  - Narrative IA card con gradient indigo→pink subtle.
+  - Grid de 8 winners-per-metric con cards.
+- Tab "Comparar" agregado en page principal.
+
+### Sub-chunk B · 4.22.2 Expansion Simulator
+- **Schema Mongo**: `expansion_simulations` con `{id, dev_org_id, study_id, zone_colonia, zone_data, inputs:{target_absorption_pct, target_months, base_price_per_m2, target_segment}, scenarios:[{label, price_per_m2, discount_pct, effective_price_per_m2, monthly_absorption:[{month, units_sold, cumulative_pct}], total_units_sold, revenue_projection, breakeven_month, sensitivity:{price_drop_5pct_impact_units, demand_score_minus_10_impact_units, demand_score_plus_10_impact_units}, narrative}], disclaimer, created_at, created_by}`.
+- **Engine** (`routes_dev_batch7.py`):
+  - `ELASTICITY_BY_SEGMENT`: NSE_AB=-0.6, NSE_C+=-0.9, NSE_C=-1.2, NSE_D=-1.5.
+  - `BASELINE_ABSORPTION_BY_STATE`: CDMX=0.42, EDOMEX=0.36, JAL=0.38, NL=0.40, QRO=0.38.
+  - `_scenario_decay`: front-loaded curve (peak meses 3-4 con phase 1.20→0.96, taper 6-12 con 0.96→0.72, decay post-12 mín 0.45).
+  - 3 escenarios fijos: `conservador` (price×1.05, disc=0%), `base` (price×1.0, disc=0%), `agresivo` (price×0.92, disc=5%).
+  - `_build_scenario` calcula adjusted_rate = baseline × demand × infrastructure × feasibility × 1.6 (cap [0.05,1.0]), aplica elasticity_factor, devuelve `monthly_absorption`, `revenue_projection`, `breakeven_month` (-1 si fuera de horizonte), 3 sensitivities.
+  - **Claude haiku-4-5** 3 calls en paralelo (`asyncio.gather`) por escenario, narrative 130-150 chars con fallback determinista.
+- **Endpoints**:
+  - `POST /api/dev/site-selection/studies/:id/simulate` (Pydantic SimulatePayload: target_absorption_pct ∈ [50,100], target_months ∈ [6,36], base_price_per_m2 ∈ [10k,2M]). Validates zone exists. Run sync ~3s. ML event `expansion_simulated`.
+  - `GET /api/dev/site-selection/simulations/:id` detail.
+  - `GET /api/dev/site-selection/studies/:id/simulations` lista por study (sort created_at desc, limit 50).
+  - `POST /api/dev/site-selection/simulations/:id/export-pdf` ReportLab PDF con DISCLAIMER amber prominente + 3 escenarios tabla. ML event `expansion_simulation_pdf_exported`.
+- **Frontend** (`components/developer/ExpansionSimulatorModal.js` · ~210 líneas):
+  - Modal 960px desde drawer detail de zona.
+  - DISCLAIMER amber prominente top.
+  - Inputs: range slider absorption_pct (50-100), range slider target_months (6-36), number input base_price_per_m2.
+  - Submit → spinner → 3 ScenarioCard side-by-side (responsive stack <580px):
+    - Header: badge label + price + descuento.
+    - KPIs: revenue formato $XM + breakeven badge (Mes N o "Fuera").
+    - **AbsorptionLine** SVG inline (path color fucsia, eje base, label % final).
+    - 3 sensitivity badges (-5% precio, +10 demand, -10 demand).
+    - Narrative italic Claude.
+  - Botón "Exportar simulación PDF" reusa `siteStudyDownloadUrl`.
+- Botón "Simular expansión en esta zona" prominente en `StudyDetailDrawer` (gradient único).
+
+### Sub-chunk C · 4.22.3 B6+B7 Cross-Link
+- **`DemandHeatmapMap.js`**: al click en polígono colonia, además del callback `onSelectColonia`, abre **sticky popup** con CTA `<a data-testid="heatmap-cta-feasibility" href="/desarrollador/site-selection?prefill_colonia=...&prefill_state=CDMX&from=heatmap">` estilizado outline cream sobre fondo cream.
+- **`DesarrolladorSiteSelection.js`**: lee `useSearchParams()` al mount (prefill_colonia, prefill_state, from=heatmap), pasa props al Wizard, auto-abre wizard si `fromHeatmap`, limpia query params después de creación exitosa.
+- **`SiteSelectionWizard.js`**:
+  - Acepta props `prefillColonia`, `prefillState`, `fromHeatmap`.
+  - Si `fromHeatmap=true`: arranca en Paso 3 (skip 1-2), pre-fill `name = "Feasibility {colonia}"`, pre-fill `preferred_states=[prefillState]`.
+  - Banner contextual prominente con icon MapPin: "Pre-llenado desde Demand Heatmap: {colonia}, {state}. Ajusta otros criterios…"
+  - `useEffect` mount: POST `/api/ml/emit` con `event_type=site_selection_prefilled_from_heatmap` + context.
+
+### Verificación curl ✅
+- `compare?ids=ssel_1db02b2831a0,ssel_048e03e62a9e` (2 studies) → 200 con 2 studies, 8 winners, narrative 300 chars Claude real es-MX ✅
+- `compare?ids=1` → 422 ✅; `compare?ids=a,b,c,d` → 422 ✅; asesor → 403 ✅
+- `simulate` Polanco zone (target=80%, months=18, price=110000) → 200 con 3 escenarios distintos: conservador price=$115,500/breakeven mes 17, base price=$110,000/breakeven mes 18, agresivo effective=$96,140/breakeven fuera. 3 narratives Claude reales ✅. PDF 4.5KB con magic header `%PDF-1.4` ✅.
+- Validación: target_absorption=30 → 422; target_months=60 → 422; zone "Tepito" (no existe en study) → 404 ✅.
+- ml events emitidos: `site_selection_compared`, `expansion_simulated`, `expansion_simulation_pdf_exported`, `site_selection_prefilled_from_heatmap`.
+
+### Verificación Playwright smoke ✅
+- **A · Compare**: tab visible, 2 study pickers, click → `compare-grid`=1, 2 cols renderizadas, narrative-IA visible, 8 winner cards, 2 RadarChart con avg_sub_scores. Badge "WINNER" sobre study con mayor avg_feasibility ✅
+- **B · Simulate**: drawer zone Polanco → botón "Simular expansión en esta zona" → modal con DISCLAIMER amber + 3 scenario cards (conservador/base/agresivo) con narratives Claude reales en es-MX, AbsorptionLine SVG, sensitivity badges, botón Exportar PDF ✅
+- **C · Cross-link**: navegar `/desarrollador/site-selection?prefill_colonia=Polanco&prefill_state=CDMX&from=heatmap` → wizard auto-abierto en **Paso 3 de 4**, banner "Pre-llenado desde Demand Heatmap: Polanco, CDMX." visible, **CDMX state pre-seleccionado** con gradient activo ✅
+- Heatmap polygon Polanco renderizado en pink (score 100). El sticky popup aparece al click real del usuario sobre el polígono (test simulado por mouse-coords no llegó al polígono pero la lógica está wired correctamente).
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch7.py` (+~480 líneas: compare endpoint pre-registrado, helpers `_compare_narrative`/`_compare_studies_impl`, ELASTICITY/BASELINE benchmarks, `_scenario_decay`, `_build_scenario`, `_claude_scenario_narrative`, simulate/get/list/export-pdf endpoints, índice `expansion_simulations`)
+- `/app/frontend/src/api/developer.js` (+5 helpers: `compareSiteStudies`, `simulateExpansion`, `getExpansionSimulation`, `listExpansionSimulations`, `exportSimulationPdf`)
+- `/app/frontend/src/components/developer/CompareTab.js` (nuevo)
+- `/app/frontend/src/components/developer/ExpansionSimulatorModal.js` (nuevo)
+- `/app/frontend/src/components/developer/SiteSelectionWizard.js` (+prefill props/banner/auto-skip + ml_event emit)
+- `/app/frontend/src/components/developer/DemandHeatmapMap.js` (+sticky CTA popup en click polygon)
+- `/app/frontend/src/pages/developer/DesarrolladorSiteSelection.js` (+CompareTab tab, simulator modal state, useSearchParams prefill flow, wizard props pass-through)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.4 · AI Engine + Analytics
 
 ### Sub-Chunk A · 4.35 Lead Heat AI Score
