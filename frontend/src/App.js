@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+import { UndoProvider } from './components/shared/UndoSnackbar';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 
 // Landing components (eager — first-paint critical)
@@ -75,6 +76,7 @@ const DocumentsPage              = lazy(() => import('./pages/superadmin/Documen
 const SuperadminDrivePage        = lazy(() => import('./pages/superadmin/SuperadminDrivePage'));
 const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
 const AuditLogPage               = lazy(() => import('./pages/superadmin/AuditLogPage'));
+const PrimitivesDemo             = lazy(() => import('./pages/superadmin/PrimitivesDemo'));
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -305,6 +307,7 @@ function AppRouter() {
       <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
       <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
+      <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>
@@ -424,10 +427,12 @@ function LandingPage() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CustomCursor />
-        <AppRouter />
-      </AuthProvider>
+      <UndoProvider>
+        <AuthProvider>
+          <CustomCursor />
+          <AppRouter />
+        </AuthProvider>
+      </UndoProvider>
     </BrowserRouter>
   );
 }

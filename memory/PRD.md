@@ -1772,7 +1772,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://zona-inteligente.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://dmx-realestate-hub.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -2736,7 +2736,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://zona-inteligente.preview.emergentagent.com
+https://dmx-realestate-hub.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
@@ -2744,3 +2744,86 @@ https://zona-inteligente.preview.emergentagent.com
 - `/mapa` Mapbox CDMX
 - `/asesor` Panel asesor (login `asesor@demo.com`)
 - `/asesor/contactos|busquedas|captaciones|tareas|operaciones|comisiones|ranking`
+
+
+---
+
+## 2026-05-02 — Phase 4 B0 Sub-chunk B · Primitives Set 2 + SmartWizard
+
+### Componentes creados/reescritos (todos en `frontend/src/components/shared/`)
+
+**EntityDrawer.js** (~150L)
+- Desktop: panel lateral derecho 520px con animación `slideInRight` via `createPortal`
+- Mobile (<840px): bottom-sheet 90vh con drag handle + swipe-down cierra (touch events)
+- Props: `isOpen, onClose, title, sections[{id,title,content,defaultOpen,role_visible[]}], entity_type, user`
+- Secciones colapsables individualmente, estado persistido en localStorage por `entity_type` (`dmx_drawer_${entity_type}`)
+- Filtro role-based: section oculta si `user.role` no en `role_visible` (salvo `'*'`)
+- ESC cierra · click backdrop cierra · swipe-down >80px cierra en mobile
+
+**HealthScore.js** (~90L)
+- SVG ring circular. Sizes: sm=48px · md=64px · lg=88px
+- Color: rojo `#f87171` si score <50 · ámbar `#fbbf24` si 50–79 · verde `#4ade80` si ≥80
+- Centro: número grande + "/100" a menor tamaño
+- Click → popover breakdown con barras por componente. Breakdown format: `{label, weight, score, status}`
+- `variant` prop: 'project' | 'asesor' | 'client' controla header del popover
+- Close popover on outside click (useRef + mousedown)
+
+**DragDropZone.js** (~100L)
+- Props: `accept, maxSizeMB, maxFiles, onUpload`
+- Drop area dashed, hover state visible + scale-[1.01] on drag
+- Multi-file (hasta maxFiles), preview thumbnails (imagen real o FileText icon para PDFs)
+- Validación por archivo: tamaño > maxSizeMB → error inline con AlertCircle
+- Click también abre file picker
+
+**InlineEditField.js** (~120L)
+- Types: text | number | currency | date | select
+- Optimistic update: aplica valor antes de `onSave`, revierte si la promesa rechaza
+- Loading spinner durante save, check flash 1.8s tras éxito
+- `user_can_edit=false` → modo read-only con Lock icon (no click handler)
+- Error inline posicionado absoluto bajo el campo
+
+**UndoSnackbar.js** (~90L)
+- API: `showUndo({ message, onUndo, timeout=30000 })`
+- Stack bottom-right: múltiples undos simultáneos en columna (más nuevo arriba)
+- `CountdownBar` animado via `requestAnimationFrame`: verde >50% · ámbar 20–50% · rojo <20%
+- Auto-dismiss exacto por `setTimeout` + `dismiss()` limpia timer y stack
+- `fadeInUp` CSS animation en cada snack
+
+**SmartWizard.js** (~200L)
+- Props: `steps[{id, title, component, optional, validate}], onComplete, draft_key, ia_prefill, title, onCancel`
+- Progress bar gradient `#6366F1→#EC4899` interpolando por step index
+- Auto-save draft a localStorage cada 600ms (debounce)
+- Banner "Tienes un borrador guardado" + botones Continuar/Descartar
+- IA prefill banner con Sparkles icon (badge "Sugerido por IA" por campo individual en el step component)
+- "Llenar después" toggle en pasos `optional: true` (antes de último paso)
+- Botones footer: Atrás · Guardar borrador · Llenar después (si optional) · Siguiente / Finalizar
+- `UndoProvider` envuelve toda la app en `App.js` (raíz)
+
+### Página demo
+- **`/superadmin/primitives-demo`** (`PrimitivesDemo.js` ~270L)
+  - Secciones: 1.EntityDrawer · 2.HealthScore · 3.DragDropZone · 4.InlineEditField · 5.UndoSnackbar · 6.SmartWizard
+  - EntityDrawer: role filter activo (sección "Acciones Admin" solo visible superadmin)
+  - HealthScore: scores 25/65/92 con lg + scores 78/55 sm/md
+  - SmartWizard embedded con IA prefill ("Torre Polanco Residencial"), step "Ubicación" optional
+  - Nav item "UI Primitivas" (Boxes icon) en superadmin sidebar · active state funciona
+- **`frontend/package.json`**: script `"start": "react-scripts start"` restaurado (estaba faltando)
+- **`App.js`**: `UndoProvider` envuelve `AuthProvider` · lazy import `PrimitivesDemo` · ruta `/superadmin/primitives-demo`
+
+### Verificación screenshot
+- Login `admin@desarrollosmx.com` → `/superadmin/primitives-demo` carga sin error ✓
+- HealthScore 3 colores correctos (rojo/ámbar/verde) ✓
+- EntityDrawer abre con secciones colapsables + backdrop blur ✓
+- SmartWizard: 3 dots, IA prefill banner, "Guardar borrador" button ✓
+- InlineEditField: text/currency/select/date + read-only con lock ✓
+
+### Archivos tocados
+- `/app/frontend/src/components/shared/EntityDrawer.js` (reescrito)
+- `/app/frontend/src/components/shared/HealthScore.js` (reescrito)
+- `/app/frontend/src/components/shared/DragDropZone.js` (reescrito)
+- `/app/frontend/src/components/shared/InlineEditField.js` (reescrito)
+- `/app/frontend/src/components/shared/UndoSnackbar.js` (reescrito)
+- `/app/frontend/src/components/shared/SmartWizard.js` (reescrito)
+- `/app/frontend/src/pages/superadmin/PrimitivesDemo.js` (nuevo)
+- `/app/frontend/src/App.js` (+UndoProvider + PrimitivesDemo import + route)
+- `/app/frontend/src/config/navByRole.js` (+Boxes import + "UI Primitivas" nav item)
+- `/app/frontend/package.json` (+start script restaurado)

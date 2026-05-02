@@ -12,7 +12,7 @@ import {
   TrendingUp, FolderOpen, Settings, Shield, Activity,
   Search, Layers, Home, Star,
   ClipboardList, LineChart, FileText, Database, Eye,
-  Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone,
+  Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) ─────────────────────────────────────────
@@ -141,6 +141,7 @@ const SUPERADMIN_NAV = [
       { key: 'drive',        to: '/superadmin/drive',                    label: 'Drive',            Icon: FolderOpen },
       { key: 'observability',to: '/superadmin/observability',            label: 'Observabilidad',   Icon: Eye },
       { key: 'audit-log',    to: '/superadmin/audit-log',                label: 'Auditoría',        Icon: Shield },
+      { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },
 ];

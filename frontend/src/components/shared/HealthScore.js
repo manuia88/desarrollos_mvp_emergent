@@ -1,113 +1,135 @@
 /**
- * Phase 4 Batch 0 — HealthScore
- * Circular progress SVG with breakdown popover.
+ * Phase 4 B0 Sub-chunk B — HealthScore
+ * Circular SVG progress ring with breakdown popover.
  * Props:
- *   score: 0-100
- *   components: [{ label, weight, value, max }]
- *   entity_type: 'project' | 'lead' | 'development'
- *   size: 'sm' | 'md' | 'lg'
- *   on_click_component: fn(component)
+ *   score       — 0-100
+ *   size        — 'sm' | 'md' | 'lg' (default md = 64px outer)
+ *   breakdown   — [{label, weight, score, status}]
+ *   variant     — 'project' | 'asesor' | 'client'
+ *   className   — string
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-const SIZES = {
-  sm: { r: 20, stroke: 4, fontSize: 11, outerSize: 52 },
-  md: { r: 30, stroke: 5, fontSize: 16, outerSize: 76 },
-  lg: { r: 44, stroke: 7, fontSize: 22, outerSize: 108 },
+const SIZE_MAP = {
+  sm: { outer: 48,  r: 18, stroke: 3.5, numSize: 12 },
+  md: { outer: 64,  r: 24, stroke: 4,   numSize: 16 },
+  lg: { outer: 88,  r: 33, stroke: 5.5, numSize: 22 },
+};
+
+const STATUS_COLORS = {
+  green:   '#4ade80',
+  amber:   '#fbbf24',
+  red:     '#f87171',
+  neutral: 'rgba(240,235,224,0.3)',
 };
 
 function scoreColor(score) {
-  if (score >= 85) return '#4ade80'; // green
-  if (score >= 60) return '#fbbf24'; // amber
-  return '#f87171';                  // red
+  if (score >= 80) return '#4ade80';
+  if (score >= 50) return '#fbbf24';
+  return '#f87171';
 }
+
+const VARIANT_LABELS = {
+  project: { prefix: 'Proyecto' },
+  asesor:  { prefix: 'Asesor' },
+  client:  { prefix: 'Cliente' },
+};
 
 export function HealthScore({
   score = 0,
-  components = [],
-  entity_type = 'project',
   size = 'md',
-  on_click_component,
+  breakdown = [],
+  variant = 'project',
   className = '',
 }) {
-  const [showBreakdown, setShowBreakdown] = useState(false);
-  const cfg = SIZES[size] || SIZES.md;
-  const { r, stroke, fontSize, outerSize } = cfg;
-  const cx = outerSize / 2;
-  const cy = outerSize / 2;
-  const circumference = 2 * Math.PI * r;
-  const filled = ((score || 0) / 100) * circumference;
-  const gap = circumference - filled;
-  const color = scoreColor(score || 0);
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const cfg = SIZE_MAP[size] || SIZE_MAP.md;
+  const { outer, r, stroke, numSize } = cfg;
+  const cx = outer / 2;
+  const cy = outer / 2;
+  const circ = 2 * Math.PI * r;
+  const filled = (Math.min(100, Math.max(0, score)) / 100) * circ;
+  const gap = circ - filled;
+  const color = scoreColor(score);
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
   return (
-    <div className={`relative inline-flex flex-col items-center ${className}`} data-testid="health-score">
-      {/* SVG ring */}
+    <div ref={ref} className={`relative inline-flex flex-col items-center ${className}`} data-testid="health-score">
+      {/* Ring + center */}
       <button
-        onClick={() => setShowBreakdown(o => !o)}
-        title="Ver desglose"
-        className="relative hover:opacity-80 transition-opacity"
+        onClick={() => setOpen(o => !o)}
+        title="Ver desglose de salud"
+        className="relative hover:scale-105 transition-transform duration-200"
         data-testid="health-score-ring"
+        aria-expanded={open}
       >
-        <svg width={outerSize} height={outerSize} className="-rotate-90">
-          {/* Track */}
+        <svg width={outer} height={outer} className="-rotate-90" aria-hidden="true">
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(240,235,224,0.08)" strokeWidth={stroke} />
           <circle
-            cx={cx} cy={cy} r={r}
-            fill="none"
-            stroke="rgba(240,235,224,0.08)"
-            strokeWidth={stroke}
-          />
-          {/* Progress */}
-          <circle
-            cx={cx} cy={cy} r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth={stroke}
+            cx={cx} cy={cy} r={r} fill="none"
+            stroke={color} strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={`${filled} ${gap}`}
-            style={{ transition: 'stroke-dasharray 0.6s ease' }}
+            style={{ transition: 'stroke-dasharray 0.7s ease, stroke 0.4s ease' }}
           />
         </svg>
-        {/* Center value */}
-        <span
-          className="absolute inset-0 flex items-center justify-center font-bold rotate-0"
-          style={{ fontSize, color }}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center leading-none"
+          style={{ transform: 'rotate(0deg)' }}
         >
-          {Math.round(score || 0)}
-        </span>
+          <span className="font-bold tabular-nums" style={{ fontSize: numSize, color, lineHeight: 1.1 }}>
+            {Math.round(score)}
+          </span>
+          <span style={{ fontSize: numSize * 0.55, color: 'rgba(240,235,224,0.35)', lineHeight: 1 }}>/100</span>
+        </div>
       </button>
 
       {/* Breakdown popover */}
-      {showBreakdown && components.length > 0 && (
+      {open && (
         <div
-          className="absolute top-full mt-2 z-50 min-w-[200px] rounded-xl bg-[#131722] border border-[rgba(240,235,224,0.12)] shadow-2xl p-3 space-y-2"
+          className="absolute top-full mt-2 z-50 w-[220px] rounded-xl bg-[#131722] border border-[rgba(240,235,224,0.12)] shadow-2xl p-3"
           data-testid="health-score-breakdown"
         >
-          <p className="text-[rgba(240,235,224,0.4)] text-[10px] uppercase tracking-wide mb-2">Desglose</p>
-          {components.map((c, i) => (
-            <button
-              key={i}
-              onClick={() => on_click_component?.(c)}
-              className={`w-full text-left space-y-1 p-1.5 rounded-lg transition-colors
-                ${on_click_component ? 'hover:bg-[rgba(240,235,224,0.06)] cursor-pointer' : 'cursor-default'}`}
-              data-testid={`health-component-${i}`}
-            >
-              <div className="flex items-center justify-between">
+          <p className="text-[rgba(240,235,224,0.4)] text-[10px] uppercase tracking-widest mb-2.5">
+            {VARIANT_LABELS[variant]?.prefix || 'Desglose'}
+          </p>
+          {breakdown.length === 0 && (
+            <p className="text-[rgba(240,235,224,0.35)] text-xs">Sin desglose disponible.</p>
+          )}
+          {breakdown.map((c, i) => (
+            <div key={i} className="mb-2" data-testid={`health-component-${i}`}>
+              <div className="flex items-center justify-between mb-1">
                 <span className="text-[rgba(240,235,224,0.7)] text-xs">{c.label}</span>
-                <span className="text-xs font-medium" style={{ color: scoreColor((c.value / (c.max || 100)) * 100) }}>
-                  {c.value}/{c.max || 100}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {c.weight && (
+                    <span className="text-[9px] text-[rgba(240,235,224,0.3)]">{Math.round(c.weight * 100)}%</span>
+                  )}
+                  <span
+                    className="text-xs font-semibold"
+                    style={{ color: STATUS_COLORS[c.status] || scoreColor(c.score) }}
+                  >
+                    {Math.round(c.score)}
+                  </span>
+                </div>
               </div>
-              <div className="h-1.5 bg-[rgba(240,235,224,0.08)] rounded-full overflow-hidden">
+              <div className="h-1 bg-[rgba(240,235,224,0.07)] rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all"
+                  className="h-full rounded-full transition-all duration-500"
                   style={{
-                    width: `${Math.min(100, (c.value / (c.max || 100)) * 100)}%`,
-                    backgroundColor: scoreColor((c.value / (c.max || 100)) * 100),
+                    width: `${Math.min(100, Math.max(0, c.score))}%`,
+                    backgroundColor: STATUS_COLORS[c.status] || scoreColor(c.score),
                   }}
                 />
               </div>
-            </button>
+            </div>
           ))}
         </div>
       )}

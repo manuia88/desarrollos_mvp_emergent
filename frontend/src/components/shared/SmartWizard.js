@@ -1,34 +1,46 @@
 /**
- * Phase 4 Batch 0 — SmartWizard
- * Multi-step wizard with auto-save draft, IA prefill, optional steps.
+ * Phase 4 B0 Sub-chunk B — SmartWizard
+ * Multi-step wizard: progress bar, draft auto-save, IA prefill, optional steps.
  * Props:
- *   steps: [{ key, label, component: Component, optional?, validate?: fn(data) => string|null }]
- *   on_complete: fn(finalData)
- *   draft_key: string (localStorage key prefix)
- *   ia_prefill_data: { [field]: { value, source, confidence } } | null
- *   title: string
- *   on_cancel: fn
+ *   steps        — [{id, title, component, optional?, validate?: fn(data)=>string|null}]
+ *   onComplete   — fn(allData)
+ *   draft_key    — string (localStorage namespace)
+ *   ia_prefill   — { [fieldKey]: { value, source, confidence } } | null
+ *   title        — string
+ *   onCancel     — fn
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Check, Sparkles, X, SkipForward, Save } from 'lucide-react';
 
-const DRAFT_PREFIX = 'dmx_wizard_draft_';
+const LS_PREFIX = 'dmx_wiz_';
 
-function StepDot({ index, currentIndex, label, done }) {
-  const state = done ? 'done' : index === currentIndex ? 'active' : index < currentIndex ? 'passed' : 'pending';
+function loadDraft(key) {
+  try {
+    const raw = localStorage.getItem(`${LS_PREFIX}${key}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveDraft(key, data, step) {
+  try { localStorage.setItem(`${LS_PREFIX}${key}`, JSON.stringify({ data, step, ts: Date.now() })); } catch {}
+}
+function clearDraft(key) {
+  try { localStorage.removeItem(`${LS_PREFIX}${key}`); } catch {}
+}
+
+function StepDot({ index, currentIndex, step, isPassed }) {
+  const state = isPassed ? 'done' : index === currentIndex ? 'active' : 'pending';
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div
-        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all
-          ${state === 'done' || state === 'passed' ? 'bg-emerald-500 text-white'
-            : state === 'active' ? 'bg-[var(--cream)] text-[var(--navy)]'
-            : 'bg-[rgba(240,235,224,0.1)] text-[rgba(240,235,224,0.3)]'}`}
-      >
-        {state === 'done' || state === 'passed' ? <Check size={13} /> : index + 1}
+    <div className="flex flex-col items-center gap-1 flex-1" data-testid={`wizard-step-dot-${index}`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300
+        ${state === 'done'   ? 'bg-emerald-500 text-white'
+        : state === 'active' ? 'bg-[var(--cream)] text-[var(--navy)]'
+        : 'bg-[rgba(240,235,224,0.1)] text-[rgba(240,235,224,0.3)]'}`}>
+        {state === 'done' ? <Check size={13} /> : index + 1}
       </div>
-      <span className={`text-[9px] text-center max-w-[60px] truncate
+      <span className={`text-[9px] text-center max-w-[64px] truncate leading-tight
         ${state === 'active' ? 'text-[var(--cream)]' : 'text-[rgba(240,235,224,0.35)]'}`}>
-        {label}
+        {step.title}
+        {step.optional && <span className="block text-[8px] text-[rgba(240,235,224,0.25)]">opcional</span>}
       </span>
     </div>
   );
@@ -36,203 +48,213 @@ function StepDot({ index, currentIndex, label, done }) {
 
 export function SmartWizard({
   steps = [],
-  on_complete,
+  onComplete,
   draft_key = 'default',
-  ia_prefill_data = null,
+  ia_prefill = null,
   title = 'Asistente',
-  on_cancel,
+  onCancel,
 }) {
-  const storageKey = `${DRAFT_PREFIX}${draft_key}`;
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState({});
-  const [errors, setErrors] = useState({});
-  const [showDraftBanner, setShowDraftBanner] = useState(false);
-  const [draftLoaded, setDraftLoaded] = useState(false);
-  const autoSaveRef = useRef(null);
+  const [stepError, setStepError] = useState(null);
+  const [draftBanner, setDraftBanner] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const autoSaveTimer = useRef(null);
 
-  // Check for existing draft on mount
+  // Detect existing draft on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        setShowDraftBanner(true);
-      }
-    } catch (_) {}
-  }, [storageKey]);
+    const d = loadDraft(draft_key);
+    if (d) setDraftBanner(true);
+  }, [draft_key]);
 
-  const loadDraft = () => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
-      setData(saved.data || {});
-      setCurrentStep(saved.step || 0);
-      setDraftLoaded(true);
-    } catch (_) {}
-    setShowDraftBanner(false);
+  // Auto-save draft on every change
+  useEffect(() => {
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => saveDraft(draft_key, data, currentStep), 600);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [data, currentStep, draft_key]);
+
+  const resumeDraft = () => {
+    const d = loadDraft(draft_key);
+    if (d) { setData(d.data || {}); setCurrentStep(d.step || 0); }
+    setDraftBanner(false);
   };
 
   const discardDraft = () => {
-    localStorage.removeItem(storageKey);
-    setShowDraftBanner(false);
+    clearDraft(draft_key);
+    setDraftBanner(false);
   };
 
-  // Auto-save draft on data change
-  useEffect(() => {
-    clearTimeout(autoSaveRef.current);
-    autoSaveRef.current = setTimeout(() => {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify({ data, step: currentStep }));
-      } catch (_) {}
-    }, 500);
-    return () => clearTimeout(autoSaveRef.current);
-  }, [data, currentStep, storageKey]);
+  const updateStepData = useCallback((stepId, val) => {
+    setData(prev => ({ ...prev, [stepId]: val }));
+    setStepError(null);
+  }, []);
 
-  const updateData = (stepKey, stepData) => {
-    setData(prev => ({ ...prev, [stepKey]: stepData }));
-  };
-
-  const validate = () => {
+  const validateCurrent = () => {
     const step = steps[currentStep];
     if (!step?.validate) return true;
-    const err = step.validate(data[step.key]);
-    if (err) {
-      setErrors(prev => ({ ...prev, [step.key]: err }));
-      return false;
-    }
-    setErrors(prev => ({ ...prev, [step.key]: null }));
+    const err = step.validate(data[step.id]);
+    if (err) { setStepError(err); return false; }
     return true;
   };
 
   const goNext = () => {
-    if (!validate()) return;
-    if (currentStep < steps.length - 1) setCurrentStep(i => i + 1);
+    if (!validateCurrent()) return;
+    setStepError(null);
+    setCurrentStep(i => Math.min(i + 1, steps.length - 1));
   };
 
   const goPrev = () => {
-    if (currentStep > 0) setCurrentStep(i => i - 1);
+    setStepError(null);
+    setCurrentStep(i => Math.max(i - 1, 0));
   };
 
-  const skip = () => {
-    if (currentStep < steps.length - 1) setCurrentStep(i => i + 1);
+  const skipStep = () => {
+    setStepError(null);
+    setCurrentStep(i => Math.min(i + 1, steps.length - 1));
+  };
+
+  const saveDraftManual = () => {
+    saveDraft(draft_key, data, currentStep);
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2000);
   };
 
   const complete = () => {
-    if (!validate()) return;
-    localStorage.removeItem(storageKey);
-    on_complete?.(data);
+    if (!validateCurrent()) return;
+    clearDraft(draft_key);
+    onComplete?.(data);
   };
 
   const step = steps[currentStep];
   const StepComponent = step?.component;
-  const progressPct = ((currentStep) / Math.max(steps.length - 1, 1)) * 100;
+  const progressPct = steps.length <= 1 ? 100 : (currentStep / (steps.length - 1)) * 100;
 
   return (
-    <div className="flex flex-col h-full" data-testid="smart-wizard">
+    <div className="flex flex-col h-full bg-[#0d1022]" data-testid="smart-wizard">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[rgba(240,235,224,0.08)]">
+        <h3 className="text-[var(--cream)] font-semibold font-[Outfit]">{title}</h3>
+        {onCancel && (
+          <button onClick={onCancel} className="text-[rgba(240,235,224,0.35)] hover:text-[var(--cream)] transition-colors" data-testid="wizard-cancel-btn">
+            <X size={17} />
+          </button>
+        )}
+      </div>
+
       {/* Progress bar */}
-      <div className="h-1 bg-[rgba(240,235,224,0.08)] rounded-full overflow-hidden mx-6 mt-4">
+      <div className="h-[3px] bg-[rgba(240,235,224,0.07)] mx-5 mt-3 rounded-full overflow-hidden">
         <div
-          className="h-full bg-[var(--cream)] rounded-full transition-all duration-400"
-          style={{ width: `${progressPct}%` }}
+          className="h-full rounded-full transition-all duration-400"
+          style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }}
         />
       </div>
 
       {/* Step dots */}
-      <div className="flex items-start justify-between px-6 py-3">
+      <div className="flex items-start px-5 pt-3 pb-2">
         {steps.map((s, i) => (
-          <button
-            key={s.key}
-            onClick={() => i < currentStep && setCurrentStep(i)}
-            disabled={i >= currentStep}
-            className="flex-1"
-          >
-            <StepDot index={i} currentIndex={currentStep} label={s.label} done={i < currentStep} />
-          </button>
+          <React.Fragment key={s.id}>
+            <StepDot index={i} currentIndex={currentStep} step={s} isPassed={i < currentStep} />
+            {i < steps.length - 1 && (
+              <div className="flex-1 h-[1px] bg-[rgba(240,235,224,0.08)] mt-3.5 mx-1" />
+            )}
+          </React.Fragment>
         ))}
       </div>
 
       {/* Draft recovery banner */}
-      {showDraftBanner && !draftLoaded && (
-        <div className="mx-6 mb-3 p-3 rounded-xl bg-[rgba(240,235,224,0.08)] border border-[rgba(240,235,224,0.12)] flex items-center gap-3">
-          <Save size={15} className="text-[rgba(240,235,224,0.6)] shrink-0" />
-          <span className="flex-1 text-sm text-[rgba(240,235,224,0.7)]">Tienes un borrador guardado. ¿Continuar donde quedaste?</span>
-          <button onClick={loadDraft} className="text-[var(--cream)] text-sm font-semibold hover:opacity-80 whitespace-nowrap">Continuar</button>
-          <button onClick={discardDraft} className="text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)]"><X size={13} /></button>
+      {draftBanner && (
+        <div className="mx-5 mb-2 p-3 rounded-xl bg-[rgba(240,235,224,0.07)] border border-[rgba(240,235,224,0.1)] flex items-center gap-3">
+          <Save size={14} className="text-[rgba(240,235,224,0.5)] shrink-0" />
+          <span className="flex-1 text-xs text-[rgba(240,235,224,0.7)]">Tienes un borrador guardado — ¿Continuar?</span>
+          <button onClick={resumeDraft} className="text-[var(--cream)] text-xs font-semibold hover:opacity-80 whitespace-nowrap" data-testid="wizard-resume-draft-btn">Continuar</button>
+          <button onClick={discardDraft} className="text-[rgba(240,235,224,0.35)] hover:text-[var(--cream)]" data-testid="wizard-discard-draft-btn"><X size={12} /></button>
         </div>
       )}
 
+      {/* IA prefill badge */}
+      {ia_prefill && step && (
+        <div className="mx-5 mb-2 flex items-center gap-1.5 text-amber-400 text-xs">
+          <Sparkles size={12} />
+          <span>Campos pre-completados por IA — revisa antes de continuar</span>
+        </div>
+      )}
+
+      {/* Step error */}
+      {stepError && (
+        <p className="mx-5 mb-1 text-red-400 text-xs" data-testid="wizard-step-error">{stepError}</p>
+      )}
+
       {/* Step content */}
-      <div className="flex-1 overflow-y-auto px-6 py-2">
-        {/* IA prefill badge */}
-        {ia_prefill_data && step && (
-          <div className="flex items-center gap-1.5 mb-3 text-amber-400 text-xs">
-            <Sparkles size={12} />
-            Algunos campos pre-completados por IA — revisa antes de continuar
-          </div>
-        )}
-
-        {/* Step error */}
-        {step && errors[step.key] && (
-          <p className="text-red-400 text-xs mb-2">{errors[step.key]}</p>
-        )}
-
-        {/* Step component */}
+      <div className="flex-1 overflow-y-auto px-5 py-3" data-testid={`wizard-step-content-${step?.id}`}>
         {StepComponent && (
           <StepComponent
-            data={data[step.key]}
-            onChange={(d) => updateData(step.key, d)}
-            ia_prefill={ia_prefill_data}
+            data={data[step?.id]}
+            onChange={(d) => updateStepData(step.id, d)}
+            ia_prefill={ia_prefill}
           />
         )}
       </div>
 
       {/* Footer navigation */}
-      <div className="px-6 py-4 border-t border-[rgba(240,235,224,0.08)] flex items-center gap-3 shrink-0">
-        {on_cancel && currentStep === 0 && (
-          <button
-            onClick={on_cancel}
-            className="px-4 py-2 rounded-lg text-[rgba(240,235,224,0.55)] hover:text-[var(--cream)] text-sm transition-colors"
-            data-testid="wizard-cancel-btn"
-          >
-            Cancelar
-          </button>
-        )}
-        {currentStep > 0 && (
+      <div className="px-5 py-4 border-t border-[rgba(240,235,224,0.08)] flex items-center gap-2 shrink-0">
+        {/* Back */}
+        {currentStep > 0 ? (
           <button
             onClick={goPrev}
-            className="flex items-center gap-1 px-4 py-2 rounded-lg text-[rgba(240,235,224,0.55)] hover:text-[var(--cream)] text-sm transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[rgba(240,235,224,0.55)] hover:text-[var(--cream)] text-sm transition-colors"
             data-testid="wizard-back-btn"
           >
             <ChevronLeft size={14} />
             Atrás
           </button>
+        ) : (
+          onCancel && <div />
         )}
+
         <div className="flex-1" />
+
+        {/* Save draft */}
+        <button
+          onClick={saveDraftManual}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all
+            ${savedFlash ? 'text-emerald-400' : 'text-[rgba(240,235,224,0.4)] hover:text-[rgba(240,235,224,0.7)]'}`}
+          data-testid="wizard-save-draft-btn"
+        >
+          {savedFlash ? <Check size={13} /> : <Save size={13} />}
+          {savedFlash ? 'Guardado' : 'Guardar borrador'}
+        </button>
+
+        {/* Skip (optional) */}
         {step?.optional && currentStep < steps.length - 1 && (
           <button
-            onClick={skip}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] text-sm transition-colors"
+            onClick={skipStep}
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-[rgba(240,235,224,0.35)] hover:text-[rgba(240,235,224,0.6)] text-sm transition-colors"
             data-testid="wizard-skip-btn"
           >
             <SkipForward size={13} />
-            Saltar
+            Llenar después
           </button>
         )}
+
+        {/* Next / Finish */}
         {currentStep < steps.length - 1 ? (
           <button
             onClick={goNext}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[var(--cream)] text-[var(--navy)] font-semibold text-sm hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-[var(--cream)] text-[var(--navy)] font-semibold text-sm hover:opacity-90 transition-opacity"
             data-testid="wizard-next-btn"
           >
-            Siguiente
-            <ChevronRight size={14} />
+            Siguiente <ChevronRight size={14} />
           </button>
         ) : (
           <button
             onClick={complete}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[var(--cream)] text-[var(--navy)] font-semibold text-sm hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full font-semibold text-sm hover:opacity-90 transition-opacity"
+            style={{ background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: 'white' }}
             data-testid="wizard-complete-btn"
           >
             <Check size={14} />
-            Completar
+            Finalizar
           </button>
         )}
       </div>
