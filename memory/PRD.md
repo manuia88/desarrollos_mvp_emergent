@@ -701,6 +701,70 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 3 · Internal Users LOGIN real + GeoJSON Export
+**Objetivo:** cerrar debt B1 (invited users no podían hacer login) + feature small (export GeoJSON para análisis externo).
+
+### Sub-Chunk A · 4.9 Internal users login flow real
+**Backend (`routes_dev_batch3.py` nuevo · ~330 líneas + extensión `routes_dev_batch1.py` invite):**
+- Schema extendido `dev_internal_users`: `activation_expires_at` (now+7d), `password_hash` (ref flag), `last_login_at`, `user_id` (link a `users`).
+- `GET /api/dev/invitations/{token}/verify` — público (no auth), retorna `{email, name, role, dev_org_name, expires_at}`. 404 inválido, 410 expirado.
+- `POST /api/dev/invitations/{token}/accept` — público, valida token + password ≥8 + confirm match, hashea con bcrypt (reusa `hash_password`), crea entry en `users` con `role=INTERNAL_ROLE_TO_USERS_ROLE[int_role]` + `internal_role` + `tenant_id`, setea JWT cookies httpOnly+Secure+SameSite=none (mismo patrón que `/api/auth/login`), limpia `activation_token`, audit `dev_internal_users|update` + ML `internal_user_activated`.
+- `POST /api/auth/internal/login` — valida credenciales en `users`, filtra por role `developer_admin/member/superadmin` (403 si no), setea cookies, bump `last_login_at`, ML `internal_user_login`.
+- `routes_dev_batch1.create_internal_user` actualizado: setea `activation_expires_at` +7d, email URL real `{PUBLIC_APP_URL}/aceptar-invitacion/{token}`, template Resend en español con `dev_org_name` dinámico.
+
+**Frontend:**
+- Nueva página pública `/aceptar-invitacion/:token` — `AceptarInvitacion.js` (~180 líneas): branding DMX, "Bienvenido a {org_name}", role label localizado (admin/commercial_director/comercial/obras/marketing), fields password+confirm con validación visual (min 8, match), submit → auto-login → redirect hard a `/desarrollador`.
+- `DeveloperLayout.js` ROLES_OK ahora incluye `developer_member` (comerciales, obras, marketing invitados deben poder acceder al portal, sin ese cambio quedaban en 403).
+
+**Curl verification (todos ✅):**
+- Invite → `activation_expires_at` 7d futuro ✅
+- GET verify válido → `{email, role, dev_org_name:"Constructora Ariel"}`
+- GET verify token inválido → 404 `Invitación no encontrada`
+- GET verify token expirado (seeded -2d) → 410 `Invitación expirada`
+- POST accept passwords no match → 400
+- POST accept password <8 → 422 Pydantic
+- POST accept válido → 200 con user {role:developer_member, internal_role:comercial, tenant_id:constructora_ariel}, cookies access_token+refresh_token emitidas
+- POST accept 2ª vez (token ya limpiado) → 404
+- POST internal/login válido → 200 + cookies
+- POST internal/login wrong pwd → 401 `Email o contraseña incorrectos`
+
+**Smoke Playwright (e2e):**
+- `/aceptar-invitacion/{token}` con `marketing` role → fill password → submit → `Final URL: /desarrollador` · `403_page:0 panel_link:1` ✅
+
+### Sub-Chunk B · 4.18 GeoJSON Export
+**Backend:**
+- `GET /api/dev/projects/{id}/export/geojson` — auth required, role guard `{developer_admin, superadmin}` o internal_role=`commercial_director`. Requiere `dev_project_meta` con `lat/lng` (422 si falta). Retorna FeatureCollection con:
+  - 1 Feature Point del proyecto (properties: project_id, name, colonia, units_total, status, ie_score_overall, overall_percent, price_from, exported_at, developer_id)
+  - N Features Point (1/unit) con offset determinista ±50m (properties: unit_id, unit_number, prototype, level, status, price_mxn, area_m2, percent_complete, current_stage)
+- Response headers `application/geo+json` + `Content-Disposition: attachment; filename="project-{slug}.geojson"`.
+- Audit `project_geojson_export|read` + ML `geojson_export`.
+
+**Frontend:**
+- `GeolocalizacionTab.js` (+60 líneas): sección "Exportar" debajo del picker (solo visible a roles autorizados). Botón "Exportar GeoJSON" dispara fetch con `credentials: include` → `createObjectURL(blob) + a.download + revokeObjectURL`. Disable + tooltip "Configura y guarda la ubicación primero" cuando `source!=manual`.
+
+**Curl verification (todos ✅):**
+- Export con location guardada → HTTP 200 · content-type `application/geo+json` · content-disposition correcto · 32KB · FeatureCollection con 57 features · project feature geometry `[lng, lat]` correcto · metadata `{generator_version: batch3, feature_count: 57}` · GeoJSON structure valid (3 features checked)
+- Export sin location (lomas-signature) → 422 `Geolocalización no configurada`
+- Export como asesor → 403 `Rol no autorizado`
+
+### Audit log summary
+17 entries tenant-scoped después de Batch 3. Nuevos tipos B3:
+- `dev_internal_users|update` (invitation accept)
+- `project_geojson_export|read` (export)
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch3.py` (nuevo ~330 líneas)
+- `/app/backend/routes_dev_batch1.py` (invite email template + activation_expires_at)
+- `/app/backend/server.py` (router + indexes registrados)
+- `/app/frontend/src/api/developer.js` (+4 helpers B3)
+- `/app/frontend/src/pages/public/AceptarInvitacion.js` (nuevo)
+- `/app/frontend/src/components/developer/GeolocalizacionTab.js` (+export button + role guard)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+developer_member en ROLES_OK)
+- `/app/frontend/src/App.js` (+ruta `/aceptar-invitacion/:token` pública)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-01 — Phase F0.1 · Audit Log Global Mutations
 **Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
 

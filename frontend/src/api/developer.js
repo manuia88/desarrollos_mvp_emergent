@@ -102,3 +102,9 @@ export const markNotificationRead = (nid) => post(`/api/dev/notifications/${nid}
 export const markAllNotificationsRead = () => post('/api/dev/notifications/mark-all-read');
 export const updateUnitProgress = (projectId, b) => post(`/api/dev/construction/${projectId}/unit-update`, b);
 
+// Phase 4 Batch 3 — Internal user invitations + GeoJSON export
+export const verifyInvitation = (token) => j(`/api/dev/invitations/${token}/verify`);
+export const acceptInvitation = (token, b) => post(`/api/dev/invitations/${token}/accept`, b);
+export const internalLogin = (email, password) => post('/api/auth/internal/login', { email, password });
+export const getProjectGeoJsonUrl = (projectId) => `${process.env.REACT_APP_BACKEND_URL}/api/dev/projects/${projectId}/export/geojson`;
+

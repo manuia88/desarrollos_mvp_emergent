@@ -629,6 +629,7 @@ async def create_internal_user(payload: InternalUserCreate, request: Request):
         raise HTTPException(409, "Ya existe un usuario con ese email en tu organización")
 
     activation_token = uuid.uuid4().hex
+    activation_expires_at = (_now() + timedelta(days=7)).isoformat()
     new_user = {
         "id": _uid("diu"),
         "dev_org_id": _tenant(user),
@@ -638,27 +639,39 @@ async def create_internal_user(payload: InternalUserCreate, request: Request):
         "status": "invited",
         "invited_by": user.user_id,
         "activation_token": activation_token,
+        "activation_expires_at": activation_expires_at,
+        "password_hash": None,
+        "last_login_at": None,
+        "user_id": None,
         "ts": _now().isoformat(),
     }
     await db.dev_internal_users.insert_one(dict(new_user))
     new_user.pop("_id", None)
 
-    # Stub: log invite (real email via Resend when RESEND_API_KEY present)
-    invite_url = f"/activar-cuenta?token={activation_token}"
+    # Public activation URL (frontend public page)
+    import os as _os
+    app_url = _os.environ.get("PUBLIC_APP_URL", "").rstrip("/")
+    invite_url = f"{app_url}/aceptar-invitacion/{activation_token}" if app_url else f"/aceptar-invitacion/{activation_token}"
     email_sent = False
-    resend_key = __import__("os").environ.get("RESEND_API_KEY", "")
+    resend_key = _os.environ.get("RESEND_API_KEY", "")
+    # Best-effort: real email via Resend when key present.
     if resend_key:
         try:
             import resend
             resend.api_key = resend_key
+            # Resolve dev_org_name for personalized subject
+            org_name = _tenant(user).replace("_", " ").title()
             resend.Emails.send({
                 "from": "DMX Platform <noreply@desarrollosmx.com>",
                 "to": payload.email.lower(),
-                "subject": f"Invitación a DesarrollosMX — Portal Desarrollador",
+                "subject": f"Invitación a {org_name} — DesarrollosMX",
                 "html": (
-                    f"<h2>Bienvenido a DesarrollosMX</h2>"
-                    f"<p>Has sido invitado como <strong>{payload.role}</strong> por tu organización.</p>"
-                    f"<p><a href='{invite_url}'>Activar cuenta</a></p>"
+                    f"<h2>Has sido invitado a {org_name}</h2>"
+                    f"<p>Fuiste invitado como <strong>{payload.role}</strong> en el Portal Desarrollador de DesarrollosMX.</p>"
+                    f"<p><a href='{invite_url}' style='background:#EC4899;color:#fff;padding:12px 24px;"
+                    f"border-radius:999px;text-decoration:none;font-family:sans-serif'>Activar cuenta</a></p>"
+                    f"<p style='color:#8F897A;font-size:12px'>Este enlace expira el "
+                    f"{activation_expires_at[:10]}. Si no esperabas esta invitación, ignora este correo.</p>"
                 ),
             })
             email_sent = True

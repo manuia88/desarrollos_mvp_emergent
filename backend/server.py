@@ -128,6 +128,10 @@ app.include_router(dev_batch1_router)
 from routes_dev_batch2 import router as dev_batch2_router, ensure_dev_batch2_indexes
 app.include_router(dev_batch2_router)
 
+# Phase 4 Batch 3 — Internal users login + GeoJSON export
+from routes_dev_batch3 import router as dev_batch3_router, ensure_dev_batch3_indexes
+app.include_router(dev_batch3_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -331,6 +335,8 @@ async def startup():
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
     await ensure_dev_batch2_indexes(db)
+    # Phase 4 Batch 3 — Internal users + GeoJSON export indexes
+    await ensure_dev_batch3_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

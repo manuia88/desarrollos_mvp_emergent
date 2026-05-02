@@ -3,7 +3,7 @@ import React from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { Home, Database, BarChart, Sparkle, Radio, LogOut, MapPin, Users, Settings, Calendar } from '../icons';
 
-const ROLES_OK = new Set(['developer_admin', 'superadmin']);
+const ROLES_OK = new Set(['developer_admin', 'developer_member', 'superadmin']);
 
 const NAV = [
   { k: 'dashboard',    to: '/desarrollador',                        label: 'Panel',           Icon: Home,     end: true },
