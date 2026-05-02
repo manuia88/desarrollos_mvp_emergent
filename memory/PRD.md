@@ -2754,6 +2754,7 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B15 — Google Calendar OAuth + Availability Engine + Auto-assign Policies (38/38 pytest cumulativo · CalendarProvider ABC + Google real + Microsoft stub · 3 policies round_robin/load_balance/pre_selected · cache 5min · APScheduler refresh 30min · 2 probes B0.5) | shipped | 8 |
 | ✅ | B16 — AI Suggestions Inline + Smart Empty States + Public Booking Page /reservar/{slug} (12/12 pytest · Claude Haiku + cache 24h + fallback determinístico · 5 entity_types · 10 empty state contexts · UTM tracking + WhatsApp stub forward-compat C11) | shipped | 6 |
 | ✅ | B17 — Drag-drop SortableList + Inline edit genérico + FilterChipsBar enhanced + Undo server-side (13/13 pytest · 50/50 regresión · 30+ campos whitelisted en 8 entity_types · undo_log TTL 10min + purge cron · 2 probes B0.5 · 7+ mutaciones wired) | shipped | 7 |
+| ✅ | B18 — Density Toggle + Project Switcher topbar (Sub-A: 7/7 pytest · `useDensity` hook + 3 CSS vars + 6 vistas · ProjectSwitcher 409 LOC + Cmd+P + recent_project_ids FIFO · SHA f1431e0) + Vista Planta 2.0 Interactiva (Sub-B: 8/8 pytest · SVG canvas zoom/pan/pinch · UnitRect density-aware · FilterChipsBar B17 · edit mode drag+resize+upload + mobile bottom sheet · SHA 7333982) | shipped | 5 |
 
 ### Conservative decisions B17 (deferidos a follow-up sweep)
 - FilterChipsBar adopción solo VentasTab. Replicar a CRM leads + Mis proyectos + Inventario + Activity feed + Notifications → mover a B19 o sweep
@@ -2761,11 +2762,15 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 - Kanban drag-drop mantiene HTML5 (no migración dnd-kit, cross-column complejo)
 - Documents drag-drop HTML5 en `<tr>` (dnd-kit problemático en tablas)
 
-### Pendientes Phase 4 refactor (~40h restantes)
+### Conservative decisions B18 (deferidos)
+- Units sin `position` seteada → auto-grid (8 cols, 80×60). Manual reposition cuando dev configure layout
+- project_id en PATCH unit position derivado de unit_id pattern (fallback 'unknown' solo afecta activity log)
+- VistaDePlanta legacy queda en VentasTab.js sin uso (backward compat)
+- Upload plano arquitectónico actualmente base64. Migrar a S3/GCS en sweep H2
+
+### Pendientes Phase 4 refactor (~35h restantes)
 
 | # | Batch | h |
-| 🟡 | B17 — Drag-drop universal + Inline edit + Filter chips + Undo system | 7 |
-| 🟡 | B18 — Vista planta 2.0 + Density toggle + Project switcher topbar | 5 |
 | 🟡 | B19 — Onboarding tour + Personalization brand + Cross-portal sync feedback + Keyboard shortcuts + Modo presentación | 7 |
 | 🟡 | B20 — Asesor metrics module + Links tracking generator + Conversion funnel portal público (PostHog UTM funnel: ficha→reservar→confirmación · AI suggestion budget per campaña) + Sankey atribución | 8 |
 | 🟡 | B21 — Dev CRM > Métricas equipo (aggregated) | 5 |
