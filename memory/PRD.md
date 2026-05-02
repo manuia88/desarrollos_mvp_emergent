@@ -3016,3 +3016,19 @@ GET /v1/portfolio/exposure                  → análisis carteras (auth)
 - `useDensity` cache module-level evita re-fetch entre instancias; `invalidateDensityCache()` exportado para PreferenciasPage post-save.
 - ProjectSwitcher usa `listProjectsWithStats()` existente; si falla retorna array vacío + SmartEmptyState.
 - PortalLayout ya tenía `projectSwitcherSlot` prop — DeveloperLayout simplemente lo pasa.
+
+---
+
+## Batch 18 Sub-B (2026-05-02) — Vista Planta 2.0 Interactiva
+
+### Entregables completados:
+- **Backend** `routes_floor_view.py` (4 endpoints): floors list, floor detail, layout upsert (admin), unit position PATCH (admin)
+- **Collections**: `db.floor_layouts` + `db.floor_unit_positions` con índices únicos
+- **Frontend** `VistaPlantaInteractiva.js`: SVG canvas 1000×800, zoom/pan/pinch, UnitRect density-aware, floor tabs, FilterChipsBar B17, edit mode drag+resize+upload, mobile bottom sheet, SmartEmptyState
+- **Tests**: 8/8 Sub-B + 7/7 Sub-A = 15/15 total passing · **SHA**: 7333982
+
+### Edge cases conservadores:
+- Units sin position → auto-grid (8 cols 80×60, is_auto_positioned=true)
+- project_id en PATCH derivado de unit_id pattern (fallback='unknown')
+- floor_number = campo level existente en data_developments.py, fallback 1
+
