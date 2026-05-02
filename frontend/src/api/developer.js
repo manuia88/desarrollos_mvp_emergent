@@ -69,3 +69,28 @@ export const publishContent = (id) => post(`/api/dev/content/${id}/publish`);
 export const saveProjectLocation = (projectId, b) => patch(`/api/dev/projects/${projectId}/location`, b);
 export const listProjects = () => j('/api/dev/projects');
 
+// Phase 4 Batch 2 — Project location read
+export const getProjectLocation = (projectId) => j(`/api/dev/projects/${projectId}/location`);
+
+// Phase 4 Batch 2 — Absorption + Forecast analytics
+export const getAbsorptionAnalytics = (projectId) => j(`/api/dev/analytics/absorption${projectId ? `?project_id=${projectId}` : ''}`);
+export const getForecast = (consolidated) => j(`/api/dev/analytics/forecast${consolidated ? '?consolidated=true' : ''}`);
+export const adjustForecast = (b) => post('/api/dev/analytics/forecast/adjust', b);
+
+// Phase 4 Batch 2 — Competitor enriched
+export const getCompetitorsEnriched = (devId, radius) => {
+  const qs = new URLSearchParams({ ...(devId ? { dev_id: devId } : {}), ...(radius ? { radius_km: radius } : {}) }).toString();
+  return j(`/api/dev/competitors/enriched${qs ? `?${qs}` : ''}`);
+};
+export const getCompetitorHistory = (compId) => j(`/api/dev/competitors/${compId}/history`);
+export const saveAlertConfig = (b) => post('/api/dev/competitors/alert-config', b);
+
+// Phase 4 Batch 2 — IE breakdown + drill-down
+export const getIEBreakdown = (projectId) => j(`/api/dev/ie/projects/${projectId}/breakdown`);
+export const getIEImprove = (projectId, code) => j(`/api/dev/ie/projects/${projectId}/improve?code=${encodeURIComponent(code)}`);
+
+// Phase 4 Batch 2 — Construction progress
+export const getConstructionProgress = (projectId) => j(`/api/dev/construction/${projectId}/progress`);
+export const updateConstructionStage = (projectId, b) => post(`/api/dev/construction/${projectId}/update-stage`, b);
+export const addConstructionComment = (projectId, b) => post(`/api/dev/construction/${projectId}/comment`, b);
+

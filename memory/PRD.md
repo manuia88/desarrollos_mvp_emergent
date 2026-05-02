@@ -542,6 +542,95 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 - `/app/memory/PRD.md`
 
 ---
+
+## 2026-05-02 — Phase 4 Batch 2 · Dashboards + IE + Construcción + Mapbox tab
+**Objetivo:** completar el dev portal con analytics avanzados, drill-down IE, timeline de obra y picker Mapbox en legajo.
+
+### Backend (`routes_dev_batch2.py` · nuevo · ~530 líneas)
+
+**4.5 FIX · Project location read:**
+- `GET /api/dev/projects/{id}/location` — devuelve `{lat, lng, zoom, address, source}`. Fallback a centro de colonia (GeoJSON [lng,lat]) si no hay override, último fallback CDMX.
+
+**4.11 · Absorción avanzada:**
+- `GET /api/dev/analytics/absorption?project_id?` — cohort matrix 12 meses (captación×cierre), heatmap YTD (ventas por día, niveles 0-4 estilo GitHub), win/loss breakdown (5 razones con %), funnel 5-step (lead→visita→propuesta→aceptada→cerrada) con `dropoff_pct` + `conversion_from_prev`.
+
+**4.12 · Forecast vs actual + multi-proyecto:**
+- `GET /api/dev/analytics/forecast?consolidated=` — por proyecto: target_units, actual_units, variance_pct, trend, revenue_target/actual, monthly_projection (base/pesimista/optimista × 12m). Toggle consolidado suma todo.
+- `POST /api/dev/analytics/forecast/adjust` — actualiza target manualmente con audit_log + ML event.
+
+**4.13 · Competitor radar enriquecido:**
+- `GET /api/dev/competitors/enriched?dev_id&radius_km` — reutiliza `competitor_radar()` legacy + añade `alert_config` (umbrales configurables) + `press_clips` (6 headlines mock con `ai_summary` + sentiment).
+- `GET /api/dev/competitors/{id}/history` — 12 meses de price_sqm_mxn por competidor + delta 12m %.
+- `POST /api/dev/competitors/alert-config` — guarda umbrales (price_delta, absorption, email/inapp). audit_log + ML event.
+
+**4.16 · IE Score proyecto detallado:**
+- `GET /api/dev/ie/projects/{id}/breakdown` — 12 scores en 4 categorías (fundamentals, market, risk, sentiment). Prioriza `ie_scores` real, fallback sintético honesto (flag `is_stub`). Cada score: value, benchmark_colonia, delta_vs_colonia, tier (excellent/good/fair/poor), confidence. `overall_score` + `overall_tier`.
+- `GET /api/dev/ie/projects/{id}/improve?code=` — 2-3 recomendaciones concretas por score (title, effort, impact, detail) + `narrative_stub` IA. 12 codes mapeados.
+
+**4.25 · Avance de obra:**
+- `GET /api/dev/construction/{id}/progress` — timeline 5 etapas (cimentación/estructura/instalaciones/acabados/entrega) + overall_percent + per_unit_avg_percent + photos + comments. Seed desde `development.progress` si no existe.
+- `POST /api/dev/construction/{id}/update-stage` — actualiza % de una etapa + recalcula overall + current_stage. audit_log + ML event (`avance_obra_milestone`).
+- `POST /api/dev/construction/{id}/comment` — bitácora con texto + foto_url opcional. audit_log + ML event (`avance_obra_comment`).
+
+**Wiring transversal:**
+- `log_mutation` en TODAS las mutaciones (4 tipos de entity: forecast_target, competitor_alert_config, construction_progress, construction_comment, project_location update ya en B1).
+- `emit_ml_event` en forecast_adjust, competitor_alert_config_update, avance_obra_milestone, avance_obra_comment, ie_breakdown_view, ie_drilldown_click.
+
+### Frontend
+
+**Nuevos componentes:**
+- `ChartPrimitives.js` — SVG-only (zero deps): `Sparkline`, `LineChart` (multi-serie + Y grid + labels), `BarList` (horizontal bars), `HeatmapCalendar` (GitHub-style weekly grid), `FunnelChart` (trapezoidal SVG), `CohortMatrix` (tabla con gradient de intensidad).
+- `AvanceObraTab.js` — overall progress bar + timeline 5 etapas editables + bitácora (textarea + photo URL) + audit via API. Modal inline edit.
+- `GeolocalizacionTab.js` — reusa `MapboxPicker.js` de B1. Badge "manual/colonia_fallback" + dirección texto. Save audit trail.
+
+**Páginas actualizadas:**
+- `DesarrolladorReportes.js` — 3 tabs: `executive` (legacy D9 Claude), `absorption` (cohort+heatmap+winloss+funnel), `forecast` (tabla por proyecto ↔ consolidado + LineChart 12m sensitivity).
+- `DesarrolladorCompetidores.js` — alert config modal (umbrales editables), histórico modal con LineChart 12m precio/m², grid press clips (source + sentiment badge + ai_summary).
+- `DesarrolladorLegajo.js` — 3 nuevos tabs: Geolocalización, IE Score (CTA a `/ie`), Avance de obra (reemplaza placeholder).
+
+**Nueva página:**
+- `DesarrolladorIEDetail.js` (`/desarrollador/desarrollos/:slug/ie`) — overall score card con tier gradient + 4 category cards (12 scores totales con click drill-down) → modal con 3 MiniMetrics (mi/benchmark/delta), narrativa IA + recomendaciones (title, impacto/esfuerzo badges, detail).
+
+### Verificación curl (todos exitosos):
+- ✅ GET location altavista-polanco → `{lat:19.433, lng:-99.1939, source:colonia_fallback}` (orden lng/lat GeoJSON corregido)
+- ✅ GET absorption → 12 cohort rows, 122 heatmap cells, 5 win_loss reasons, funnel 5 steps
+- ✅ GET forecast → 2 rows, consolidated `{target:17, actual:18, variance:+5.9%, trend:up}`, monthly_projection 12m
+- ✅ GET competitors/enriched → my_project + 3 competitors + alert_config + 6 press_clips
+- ✅ GET competitors/{id}/history → 12 price points + delta 12m
+- ✅ POST alert-config → audit entry `competitor_alert_config|update`
+- ✅ GET ie/projects/{id}/breakdown → overall 56-70, 4 categories × 3 scores = 12 total
+- ✅ GET ie/projects/{id}/improve?code=P1 → 2 recs (title/effort/impact/detail) + narrative_stub
+- ✅ GET construction/progress → 5 stages + overall 8% seeded from dev.progress
+- ✅ POST construction/update-stage → etapa `estructura 45%`, audit entry + ML event
+- ✅ POST construction/comment → entry c_xxx, audit entry `construction_comment|create`
+- ✅ POST forecast/adjust → target:35, audit entry `forecast_target|update`
+- ✅ Audit log total 5+ entries de Batch 2 con diff_keys correctos
+- ✅ MongoDB: 3 nuevos índices (dev_forecast_overrides, dev_competitor_alert_config, project_construction_progress)
+
+### Frontend smoke tests (Playwright):
+- ✅ `/desarrollador/desarrollos/altavista-polanco/ie` → 1 h1, 4 categorías, 12 scores renderizados
+- ✅ `/desarrollador/reportes` → 3 tabs; tab absorption → cohort + heatmap + winloss + funnel todos con 1 match
+- ✅ `/desarrollador/competidores` → 1 config btn, 6 press clips, 3 history btns
+- ✅ `/desarrollador/desarrollos/altavista-polanco/legajo` → 8 tabs (docs/fotos/planos/geoloc/avance/ie/tour360/historial); tab geoloc presente; tab avance con 5 stages
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch2.py` (nuevo · ~530 líneas)
+- `/app/backend/server.py` (+dev_batch2_router + ensure_dev_batch2_indexes)
+- `/app/frontend/src/api/developer.js` (+10 API helpers batch2)
+- `/app/frontend/src/components/developer/ChartPrimitives.js` (nuevo · ~250 líneas)
+- `/app/frontend/src/components/developer/AvanceObraTab.js` (nuevo)
+- `/app/frontend/src/components/developer/GeolocalizacionTab.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorReportes.js` (rewrite con 3 tabs)
+- `/app/frontend/src/pages/developer/DesarrolladorCompetidores.js` (rewrite con enriquecido)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+3 tabs: geoloc/ie/avance real)
+- `/app/frontend/src/pages/developer/DesarrolladorIEDetail.js` (nuevo · ~260 líneas)
+- `/app/frontend/src/App.js` (+ruta `/desarrollador/desarrollos/:slug/ie`)
+- `/app/frontend/src/components/icons/index.js` (+TrendDown, Activity, Target, Bell, Eye, Image, Layers, MessageCircle)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-01 — Phase F0.1 · Audit Log Global Mutations
 **Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
 
 ### Backend (`audit_log.py` · nuevo · ~220 líneas)

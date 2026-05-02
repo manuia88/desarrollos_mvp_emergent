@@ -52,6 +52,7 @@ import DesarrolladorUsuarios from './pages/developer/DesarrolladorUsuarios';
 import DesarrolladorConfiguracion from './pages/developer/DesarrolladorConfiguracion';
 import DesarrolladorCalendarioSubidas from './pages/developer/DesarrolladorCalendarioSubidas';
 import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
+import DesarrolladorIEDetail from './pages/developer/DesarrolladorIEDetail';
 
 // Superadmin (IE Engine Phase A)
 import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
@@ -255,6 +256,7 @@ function AppRouter() {
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
       <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
       <Route path="/desarrollador/desarrollos/:slug/legajo" element={<AdvisorRoute Page={DesarrolladorLegajo} />} />
+      <Route path="/desarrollador/desarrollos/:slug/ie" element={<AdvisorRoute Page={DesarrolladorIEDetail} />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
