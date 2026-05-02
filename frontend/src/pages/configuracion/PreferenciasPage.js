@@ -1,11 +1,13 @@
 /**
  * Batch 18 Sub-A — /configuracion/preferencias
  * 3 visual density preview cards + radio button select + save inmediato (PATCH).
+ *
+ * B18.5: wrapped in PortalLayout so users keep the portal nav/topbar context.
  */
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getMyPreferences, patchMyPreferences } from '../../api/preferences18';
 import { invalidateDensityCache } from '../../hooks/useDensity';
+import { PortalLayout } from '../../components/shared/PortalLayout';
 import { Check } from 'lucide-react';
 
 const DENSITIES = [
@@ -100,34 +102,12 @@ export default function PreferenciasPage({ user, onLogout }) {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      fontFamily: 'DM Sans, sans-serif',
-    }}>
-      {/* Topbar minimal */}
+    <PortalLayout role={user?.role || 'developer_admin'} user={user} onLogout={onLogout}>
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 24px',
-        borderBottom: '1px solid rgba(240,235,224,0.08)',
-        background: '#0b0e18',
+        minHeight: '100%', background: 'var(--bg)',
+        fontFamily: 'DM Sans, sans-serif',
       }}>
-        <button
-          onClick={() => navigate(-1)}
-          data-testid="prefs-back-btn"
-          style={{
-            background: 'transparent', border: '1px solid rgba(240,235,224,0.15)',
-            borderRadius: 8, color: 'var(--cream-2)', cursor: 'pointer',
-            padding: '6px 12px', fontSize: 12, fontFamily: 'DM Sans',
-          }}
-        >
-          ← Atrás
-        </button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--cream)' }}>
-          Preferencias de visualización
-        </span>
-      </div>
-
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px' }}>
         {/* Header */}
         <div style={{ marginBottom: 36 }}>
           <div className="eyebrow" style={{ marginBottom: 8 }}>Configuración · Preferencias</div>
@@ -145,7 +125,7 @@ export default function PreferenciasPage({ user, onLogout }) {
               <div key={i} style={{
                 flex: 1, height: 220, borderRadius: 14,
                 background: 'rgba(240,235,224,0.04)',
-                animation: 'pulse 1.5s ease-in-out infinite',
+                animation: 'pulse 850ms ease-in-out infinite',
               }} />
             ))}
           </div>
@@ -183,7 +163,7 @@ export default function PreferenciasPage({ user, onLogout }) {
                   onMouseEnter={e => {
                     if (!isSelected && !saving) {
                       e.currentTarget.style.borderColor = 'rgba(240,235,224,0.25)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.transform = 'translateY(-6px)';
                     }
                   }}
                   onMouseLeave={e => {
@@ -269,9 +249,10 @@ export default function PreferenciasPage({ user, onLogout }) {
             </span>
           </div>
         )}
-      </div>
+        </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }`}</style>
-    </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }`}</style>
+      </div>
+    </PortalLayout>
   );
 }

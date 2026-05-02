@@ -76,7 +76,7 @@ function NavItem({ item, collapsed, badge }) {
         </span>
       )}
       {collapsed && (
-        <span className="absolute left-full ml-2 px-2 py-1 rounded bg-[var(--navy)] border border-[rgba(240,235,224,0.15)] text-[var(--cream)] text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <span className="absolute left-full ml-2 px-2 py-1 rounded bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] text-[var(--cream)] text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 backdrop-blur-[24px]">
           {item.label}
         </span>
       )}
@@ -313,19 +313,11 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
                 : <User size={14} />}
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-44 rounded-xl bg-[#131722] border border-[rgba(240,235,224,0.12)] shadow-2xl py-1 z-50">
+              <div className="absolute right-0 top-full mt-2 w-44 rounded-xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] py-1 z-50">
                 <div className="px-3 py-2 border-b border-[rgba(240,235,224,0.08)]">
                   <p className="text-[var(--cream)] text-xs font-medium truncate">{user?.name}</p>
                   <p className="text-[rgba(240,235,224,0.4)] text-[10px] truncate">{user?.email}</p>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
-                  data-testid="topbar-logout-btn"
-                >
-                  <LogOut size={14} />
-                  Cerrar sesión
-                </button>
                 <Link
                   to="/configuracion/preferencias"
                   onClick={() => setUserMenuOpen(false)}
@@ -335,6 +327,14 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
                   <Settings size={14} />
                   Preferencias
                 </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
+                  data-testid="topbar-logout-btn"
+                >
+                  <LogOut size={14} />
+                  Cerrar sesión
+                </button>
               </div>
             )}
           </div>

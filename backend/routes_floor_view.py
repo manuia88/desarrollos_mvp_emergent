@@ -28,7 +28,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+# Maximum size of an inline (data-URI) SVG/PNG background. ~500 KB raw → ~666 KB base64.
+# Conservative cap to keep DB & memory healthy.
+_MAX_BG_BYTES = 500 * 1024
+_MAX_BG_DATAURL_LEN = int(_MAX_BG_BYTES * 4 / 3) + 256  # base64 overhead
 
 log = logging.getLogger("dmx.floor_view")
 router = APIRouter(tags=["floor_view"])
@@ -210,7 +215,23 @@ async def upsert_floor_layout(
     """Upsert floor layout metadata. dev_admin only."""
     user = await _require_dev_admin(request)
     db = _db(request)
-    _load_dev(project_id)   # validates project exists
+    dev = _load_dev(project_id)
+
+    # Validate floor_number is one of the project's real floors
+    real_floors = {int(u.get("level") or 1) for u in dev.get("units", [])}
+    if real_floors and floor_number not in real_floors:
+        raise HTTPException(
+            400,
+            f"Piso {floor_number} no existe en este proyecto. Pisos válidos: {sorted(real_floors)}",
+        )
+
+    # Validate SVG/image background size (data-URI) ≤ 500 KB
+    if payload.svg_background_url and payload.svg_background_url.startswith("data:"):
+        if len(payload.svg_background_url) > _MAX_BG_DATAURL_LEN:
+            raise HTTPException(
+                413,
+                "El plano supera 500 KB. Comprime la imagen o usa un URL externo.",
+            )
 
     updates: Dict[str, Any] = {
         "project_id": project_id,
@@ -251,19 +272,25 @@ class PositionBody(BaseModel):
     y: float
     width: float
     height: float
-    floor_number: Optional[int] = None
+    floor_number: int = Field(..., description="Required: avoids data corruption")
+    project_id: str = Field(..., min_length=1, description="Required: avoids ID derivation bugs")
 
 
 @router.patch("/api/units/{unit_id}/position")
 async def patch_unit_position(unit_id: str, payload: PositionBody, request: Request):
-    """Reposition a unit on the floor plan. dev_admin only."""
+    """Reposition a unit on the floor plan. dev_admin only.
+
+    Caller MUST send `project_id` and `floor_number` explicitly. We never derive
+    project_id from unit_id (B18.5 fix: the legacy `rsplit('-')` corrupted IDs
+    like `altavista-polanco-A201` → `altavista-polanco`). Validate the project
+    exists, then trust the caller.
+    """
     user = await _require_dev_admin(request)
     db = _db(request)
 
-    # Derive project_id from unit_id (pattern: {project_id}-{unit_num})
-    # Conservative: store whatever we receive; project_id is advisory
-    parts = unit_id.rsplit("-", 2)
-    project_id = parts[0] if len(parts) >= 2 else "unknown"
+    # Validate project exists
+    _load_dev(payload.project_id)
+    project_id = payload.project_id
 
     pos = {
         "x": max(0.0, payload.x),
@@ -278,7 +305,7 @@ async def patch_unit_position(unit_id: str, payload: PositionBody, request: Requ
             "$set": {
                 "unit_id": unit_id,
                 "project_id": project_id,
-                "floor_number": payload.floor_number,
+                "floor_number": int(payload.floor_number),
                 "position": pos,
                 "updated_at": _now(),
                 "updated_by": user.user_id,

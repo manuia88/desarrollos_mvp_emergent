@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { createProblemReport } from '../../api/diagnostic';
 import { AlertTriangle, X } from '../icons';
+import { Check } from 'lucide-react';
 
 export default function ReportProblemButton({ user }) {
   const [open, setOpen] = useState(false);
@@ -51,10 +52,10 @@ export default function ReportProblemButton({ user }) {
           borderRadius: '50%', width: 42, height: 42,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
-          transition: 'transform 0.15s',
+          transition: 'transform 0.15s, background 0.15s',
         }}
-        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.06)'}
-        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(239,68,68,0.14)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
       >
         <AlertTriangle size={16} />
       </button>
@@ -120,7 +121,7 @@ export default function ReportProblemButton({ user }) {
             ) : submitted.ok !== false ? (
               <div style={{ textAlign: 'center', padding: '16px 8px' }}>
                 <div style={{ width: 48, height: 48, margin: '0 auto 12px', borderRadius: '50%', background: 'rgba(34,197,94,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ color: '#22c55e', fontSize: 24 }}>✓</div>
+                  <Check size={22} color="#22c55e" />
                 </div>
                 <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif' }}>
                   Reporte enviado

@@ -13,6 +13,9 @@ const post = (url, body) => j(url, { method: 'POST', headers: { 'Content-Type': 
 const patch = (url, body) => j(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 const del = (url) => j(url, { method: 'DELETE' });
 
+// Phase 4 Batch 14 — Developer dashboard
+export const getDashboard = () => j('/api/desarrollador/dashboard');
+
 // Phase 4 Batch 18 Sub-B — Floor plan endpoints
 export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);
 export const getProjectFloorDetail = (projectId, floor) => j(`/api/projects/${projectId}/floors/${floor}`);

@@ -121,7 +121,7 @@ export function NotificationsBell({ user }) {
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-80 max-h-[480px] rounded-2xl bg-[#0f1320] border border-[rgba(240,235,224,0.12)] shadow-2xl flex flex-col z-50 overflow-hidden"
+          className="absolute right-0 top-full mt-2 w-80 max-h-[480px] rounded-2xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] flex flex-col z-50 overflow-hidden"
           data-testid="notifications-drawer"
         >
           {/* Header */}

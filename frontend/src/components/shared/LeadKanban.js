@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import * as leadsApi from '../../api/leads';
 import { Badge } from '../advisor/primitives';
 import { Link2, Lock, Brain, MessageCircle, X, EyeOff, Sparkle, Flame } from '../icons';
+import { Check, Circle } from 'lucide-react';
 import { useServerUndo } from './UndoSnackbar';
 
 const SOURCE_LABELS = {
@@ -552,13 +553,14 @@ function LeadDrawer({ leadId, onClose, onToast }) {
 function PermBadge({ active, label }) {
   return (
     <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '3px 8px', borderRadius: 9999,
       background: active ? 'rgba(34,197,94,0.10)' : 'rgba(240,235,224,0.04)',
       border: `1px solid ${active ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
       color: active ? 'var(--green)' : 'var(--cream-3)',
       fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 600,
     }}>
-      {active ? '✓' : '○'} {label}
+      {active ? <Check size={9} /> : <Circle size={9} />} {label}
     </span>
   );
 }
