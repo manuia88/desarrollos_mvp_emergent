@@ -2994,3 +2994,25 @@ GET /v1/portfolio/exposure                  → análisis carteras (auth)
 3. Si conflict: "Create Branch & Push" → Claude Code mergea PR via gh CLI
 4. Cada batch ship → Claude Code marca ✅ + verifica gaps
 5. Standards file: `/app/memory/prompt_standards.md`
+
+
+---
+
+## Batch 18 Sub-A (2026-05-02) — Density Toggle + Project Switcher Topbar
+
+### Entregables completados:
+- **Backend** `routes_dev_batch18.py`: GET/PATCH `/api/preferences/me` + POST `/api/preferences/me/recent-project` (dedupe + trim 5). Schema `db.user_preferences`: density, last_project_id, recent_project_ids, sidebar_collapsed, theme, updated_at.
+- **CSS** `frontend/src/styles/density.css`: 3 clases globales (body.density-comfortable / compact / spacious) con CSS vars `--d-pad-card`, `--d-pad-item`, `--d-pad-kanban`, `--d-gap-grid`, `--d-row-h`, etc.
+- **Hook** `useDensity.js`: aplica clase en `<body>`, persiste via PATCH, cache module-level, `invalidateDensityCache()`.
+- **API** `preferences18.js`: getMyPreferences, patchMyPreferences, pushRecentProject.
+- **Page** `/configuracion/preferencias`: 3 tarjetas visuales preview + radio select + save inmediato + link en user menu de PortalLayout.
+- **Component** `<ProjectSwitcher>`: botón topbar + dropdown 360px (search debounce 200ms, Recientes top 5 FIFO, Todos max 50 scroll), HealthScoreWidget sm, Cmd+P shortcut, mobile fullscreen modal.
+- **Density aplicada a 6 vistas**: LeadKanban (kanban cards + grid), MisProyectos (grid gap + card body + lista table), VentasTab (density-table class), AsesorTareas (items + col pad), EntityDrawer (data-density-drawer-section CSS overrides).
+- **Tests**: 7/7 pytest passing — GET defaults, PATCH persist, push recent, dedupe, trim-5, 422 invalid density, 401 unauth.
+- **SHA**: f1431e0
+
+### Edge cases conservadores:
+- `$set`/`$setOnInsert` no solapan campos — fix aplicado en push_recent_project y patch.
+- `useDensity` cache module-level evita re-fetch entre instancias; `invalidateDensityCache()` exportado para PreferenciasPage post-save.
+- ProjectSwitcher usa `listProjectsWithStats()` existente; si falla retorna array vacío + SmartEmptyState.
+- PortalLayout ya tenía `projectSwitcherSlot` prop — DeveloperLayout simplemente lo pasa.
