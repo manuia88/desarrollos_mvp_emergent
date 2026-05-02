@@ -8,7 +8,7 @@ import { PageHeader, Card } from '../../components/advisor/primitives';
 import DocumentsList from '../../components/documents/DocumentsList';
 import AssetGallery from '../../components/documents/AssetGallery';
 import { ComplianceDotStrip } from '../../components/marketplace/ComplianceBadge';
-import { FileText, Camera, Map, AlertTriangle, ArrowRight, Sparkle, MapPin, Target, CalendarCheck, Activity } from '../../components/icons';
+import { FileText, Camera, Map, AlertTriangle, ArrowRight, Sparkle, MapPin, Target, CalendarCheck, Activity, BarChart } from '../../components/icons';
 import DriveConnect from '../../components/documents/DriveConnect';
 import UnitsHistoryTimeline from '../../components/documents/UnitsHistoryTimeline';
 import AvanceObraTab from '../../components/developer/AvanceObraTab';
@@ -102,6 +102,7 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
     { k: 'slots',  label: 'Slots disponibles', icon: CalendarCheck },
     { k: 'avance', label: 'Avance de obra', icon: Sparkle },
     { k: 'engagement', label: 'Engagement', icon: Activity },
+    { k: 'cashflow', label: 'Flujo de caja', icon: BarChart },
     { k: 'ie', label: 'IE Score', icon: Target },
     { k: 'crm', label: 'CRM', icon: ArrowRight },
     { k: 'tour360', label: 'Tour 360°', icon: Camera },
@@ -196,6 +197,27 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
           </p>
           <Link to={`/desarrollador/desarrollos/${slug}/crm`} className="btn btn-primary" data-testid="crm-cta">
             Abrir CRM del proyecto <ArrowRight size={12} />
+          </Link>
+        </Card>
+      )}
+
+      {tab === 'cashflow' && (
+        <Card style={{ padding: 28, textAlign: 'center' }} data-testid="legajo-cashflow-card">
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 48, height: 48, borderRadius: 9999,
+                        background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.34)',
+                        marginBottom: 10 }}>
+            <BarChart size={20} color="#a5b4fc" />
+          </div>
+          <div className="eyebrow" style={{ marginBottom: 6, color: '#a5b4fc' }}>4.24 · CASH FLOW FORECAST IA</div>
+          <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: '4px 0 8px', letterSpacing: '-0.02em' }}>
+            Flujo de caja proyectado · 18 meses · 3 escenarios
+          </h3>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 560, margin: '0 auto', lineHeight: 1.55, marginBottom: 16 }}>
+            Reporte investor-grade con inflows/outflows mensuales, breakeven, gap alerts y recomendaciones IA accionables. Exporta PDF para tu comité o inversores.
+          </p>
+          <Link to={`/desarrollador/desarrollos/${slug}/cash-flow`} className="btn btn-primary" data-testid="cashflow-cta">
+            Abrir flujo de caja <ArrowRight size={12} />
           </Link>
         </Card>
       )}

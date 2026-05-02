@@ -1045,6 +1045,74 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 8 · CASH FLOW FORECAST IA STANDALONE (4.24) ✅
+**Objetivo:** reporte investor-grade de flujo de caja a 18 meses combinando pipeline de leads + costos construcción + gastos operativos, con 3 escenarios, gap detection, recomendaciones IA accionables y export PDF investor-ready.
+
+### Backend (`routes_dev_batch8.py` · nuevo · ~620 líneas)
+- **Schema Mongo `cash_flow_forecasts`** con `{_id, dev_org_id, project_id, project_name, horizon_months, project_inputs, pipeline_inputs, series:[{month,label,inflow_total,outflow_total,monthly_balance,cumulative_balance,gap_severity,inflow_breakdown,outflow_breakdown}], summary:{total_revenue_projected,total_costs,total_balance,breakeven_month,biggest_gap,gap_count,scenarios_compared}, scenarios:[{label,series,summary,narrative}], ai_recommendations:[{priority,category,title,detail,estimated_impact_mxn}], applied_recommendations:[], last_calculated_at, expires_at}`. Indexes `(dev_org_id, project_id) unique`, `(project_id, last_calculated_at)`.
+- **Forecast engine** `compute_cash_flow(project, leads_pipeline, horizon_months)`:
+  - Inflow modelling: cierre por etapa pipeline (apartado/contrato/escritura) con probabilidad ponderada × ticket promedio × velocidad histórica.
+  - Outflow modelling: split construcción (curva S 30-50-20 % por trimestre), opex mensual, marketing, comisiones (8% asesor + 2% override DMX).
+  - Gap detection: severity buckets `mild` (cumulative<-100k MXN), `moderate` (<-1M), `critical` (<-5M).
+  - Breakeven: primer mes con `cumulative_balance>=0`.
+- **3 escenarios** (`pesimista` -25% pipeline, `base`, `optimista` +20%). Cada escenario con narrative IA `claude haiku-4-5` (con honest fallback si LLM budget exceeded).
+- **Recomendaciones IA** (`claude haiku-4-5` system prompt es-MX): output JSON validado con `priority/category/title/detail/estimated_impact_mxn`, máx 5. Fallback determinista por categoría (gap_mitigation, pipeline_boost, cost_optimization).
+- **Endpoints**:
+  - `POST /api/dev/projects/:id/cash-flow/recalc` (dev_admin/director/superadmin) → trigger recalc.
+  - `GET /api/dev/projects/:id/cash-flow/current` → 200 con doc full o 404 si no calculado.
+  - `POST /api/dev/projects/:id/cash-flow/recommendations/:idx/apply` → marca recomendación como aplicada (audit).
+  - `POST /api/dev/projects/:id/cash-flow/export-pdf` → genera PDF ReportLab investor-grade (cover, KPIs, chart inflow/outflow/cumulative, scenarios narrative, gap table, recomendaciones) → returns `{file_id}`.
+  - `GET /api/dev/projects/:id/cash-flow/download/:file_id` → stream PDF.
+- **APScheduler `daily_active_projects_recalc`** registrado vía `register_batch8_jobs(sched, db, app)` con CronTrigger 06:00 MX, max 1 instance, recalcula proyectos `active` (cap 50/run). Re-wired al scheduler IE existente para evitar 2 schedulers.
+- **Audit + ML events**: `cash_flow_recalc_triggered`, `cash_flow_recommendation_applied`, `cash_flow_pdf_exported`.
+
+### Frontend
+- **`pages/developer/DesarrolladorCashFlow.js`** (nuevo · ~420 líneas):
+  - `<CashFlowChart>` SVG nativo (sin recharts) con 3 series color-coded (inflow=verde #22C55E, outflow=rojo #EF4444, acumulado=fucsia #EC4899), grid + axis + legend.
+  - StatStrip 4 KPIs: Revenue Proyectado · Costos Totales · Breakeven · Gap Más Grande, con tone semántico ok/warn/bad.
+  - Scenario toggle (Pesimista/Base/Optimista) que swap-ea la serie + summary visualizada en chart.
+  - `<ScenarioMini>` × 3 cards lado-a-lado con balance, breakeven mes, gap count y narrative IA.
+  - `<GapAlertCard>` × 6 con severity color-coded (mild=amber, moderate=red, critical=red-strong).
+  - `<RecommendationCard>` × N con priority left-border, badge categoría, impacto estimado MXN, botón "Marcar como aplicada" (idempotente, persiste en `applied_recommendations`).
+  - `<details>` colapsable con tabla mensual completa (month/inflow/outflow/balance/cumulative/severity).
+  - Action bar: `cf-recalc-btn` (admin only, 8s sync), `cf-export-btn` (gradient, abre PDF en nueva pestaña).
+  - Empty state con CTA "Calcular forecast" si proyecto sin doc previo.
+- **`pages/developer/DesarrolladorLegajo.js`**: nuevo tab `cashflow` con `<BarChart>` icon, body card "Flujo de caja proyectado · 18 meses · 3 escenarios" con CTA `cashflow-cta` → `/desarrollador/desarrollos/:slug/cash-flow`.
+- **`api/developer.js`**: `recalcCashFlow`, `getCashFlowCurrent`, `applyCashFlowRecommendation`, `exportCashFlowPdf`, `cashFlowDownloadUrl`.
+- **Routing `App.js`**: `/desarrollador/desarrollos/:slug/cash-flow` → `DesarrolladorCashFlow` gated por `AdvisorRoute`.
+
+### Verificación curl ✅
+- `POST /api/dev/projects/roma-norte-85/cash-flow/recalc` con superadmin → 200 con `forecast_id`, `gap_count:12`, `recommendation_count:5`, `scenario_count:3`, `summary.total_balance:-42M` (escenario base honesto dado pipeline mock) ✅
+- `GET /current` retorna doc completo (chart + scenarios + recos) ✅
+- PDF export genera file_id válido, descarga funciona ✅
+
+### Verificación Playwright smoke ✅
+- `/desarrollador/desarrollos/roma-norte-85/cash-flow` → render full: `cf-chart`, `cf-stats`, `cf-export-btn`, `cf-scenario-toggle`, `cf-recalc-btn`, `cf-recommendations`, `cf-scn-toggle-pesimista` (todos `True`), pesimista click swappea series sin errores. **0 console errors.** ✅
+- `/desarrollador/desarrollos/roma-norte-85/legajo` → tab `legajo-tab-cashflow` presente, click → card `legajo-cashflow-card` + CTA `cashflow-cta` visibles ✅
+
+### Sentry verification post-deploy ✅
+- **DMX-WEB-7 / DMX-WEB-8 / DMX-WEB-9** (`UnboundLocalError 'logging'` + `AsyncExitStackMiddleware` traceback + `Application startup failed`): **ROOT CAUSE confirmada y resuelta**. Causa: `import logging` interno (línea 362 vieja) hacía a Python tratar `logging` como local en toda la función `startup`, causando UnboundLocalError en líneas 406/414/418/422 al disparar except. **Fix**: `import logging` a nivel de módulo en server.py + remoción del import interno + simplificación del bloque batch8 (`_bb8_log` → `logging`). Backend post-fix: `Application startup complete` en 3 reinicios consecutivos, **sin recurrencia**. ✅
+- **DMX-WEB-6** (`Objects are not valid as React child` en Site Selection drawer): verificado al abrir drawer en zona Polanco con `DemographicsSection` + radar + pros/cons activos → **0 console errors** durante todo el flujo. Fix B7.2 (filter `Object.entries.filter(typeof v primitivo)` en `data_points`) holding correctly. ✅
+
+### Áreas mocked / honest scope (transparentes)
+- **AI narratives + recommendations**: cuando `EMERGENT_LLM_KEY` budget exceeded (current cost > 1.001 MXN), Batch 8 cae a `WARNING:dmx.batch8:[batch8] narrative <scn> failed` y usa fallback determinista (no Sentry error). Resolver: usuario debe top-up budget en Profile → Universal Key.
+- **Pipeline source**: actual lee `leads` collection con stage filter; mocked si proyecto sin leads (genera pipeline sintético con 8 leads escalonados a 18m para que el forecast se renderice no vacío).
+- **Construction curve**: curva S 30-50-20 hardcoded. Defer a B8.1 con costos reales por obra registrada en avance-obra (Phase 7.10).
+
+### Archivos tocados (B8 final)
+- `/app/backend/routes_dev_batch8.py` (nuevo, ya existente al inicio del wiring)
+- `/app/backend/server.py` (+`import logging` módulo · -import interno · ensure_batch8_indexes · register_batch8_jobs · simplificación block batch8)
+- `/app/frontend/src/App.js` (+ruta cash-flow)
+- `/app/frontend/src/api/developer.js` (+5 helpers)
+- `/app/frontend/src/pages/developer/DesarrolladorCashFlow.js` (nuevo · 425 líneas)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+tab cashflow + card CTA · BarChart icon)
+- `/app/backend/.env` (+FAL_API_KEY, +HEYGEN_API_KEY, +PEDRA_API_KEY, +ELEVEN_LABS_API_KEY alias · FAL_KEY corregido a formato `id:secret`)
+- `/app/memory/PRD.md`
+
+**SHA snapshot B8 backend last commit: `182b441`** (CTA wiring + logging fix uncommitted hasta el próximo auto-commit del runner).
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 7.2 · INEGI Real Demographics Connector AGEB-level (4.22.4)
 **Objetivo:** reemplazar el proxy `plusvalia` por demographic_match_pct honesto, consultando INEGI BISE (Censo 2020 + ENIGH 2022) con cache 30 días, AMAI NSE mapping y fallback determinista trazable.
 

@@ -1,6 +1,7 @@
 import os
 import uuid
 import bcrypt
+import logging
 import jwt as pyjwt
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -359,7 +360,6 @@ async def startup():
     try:
         await load_corpus_cache(db)
     except Exception as e:
-        import logging
         logging.warning(f"rag corpus preload failed: {e}")
     # Phase D2 — Caya indexes
     from caya_engine import ensure_caya_indexes
@@ -428,11 +428,9 @@ async def startup():
                 id="cash_flow_daily_recalc", replace_existing=True,
                 kwargs={"db": db, "app": app}, max_instances=1,
             )
-            import logging as _bb8_log
-            _bb8_log.info("[batch8] daily cash-flow recalc scheduled @ 06:00 MX")
+            logging.info("[batch8] daily cash-flow recalc scheduled @ 06:00 MX")
         except Exception as e:
-            import logging as _bb8_log
-            _bb8_log.warning(f"[batch8] could not schedule daily recalc: {e}")
+            logging.warning(f"[batch8] could not schedule daily recalc: {e}")
 
 
 @app.on_event("shutdown")
