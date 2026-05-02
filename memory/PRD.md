@@ -374,7 +374,39 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - **Phase 7.5 ✅** Auto-Sync Extracted → Marketplace (overlay store + audit + revert + locks + pause)
 - **Phase 7.4 ✅** Developer Portal Legajo (5 tabs) + Compliance Badge en marketplace + ficha pública
 - **Phase 7.6 ✅** Asset pipeline (uploads watermark + Claude Vision categorize + Pedra 360° stub + ficha pública wired)
-- Phase 7.10 ⏳ Avance de obra timeline
+- Phase 7.10 ⏳ Avance de obra timeline (próxima: P0)
+
+---
+
+## 2026-05-02 — Phase 4 Batch 10 · Sidebar Reorganizado + Mis Proyectos + VentasTab
+
+**SHA:** `1b538117daf64d1c82390a528421365a275a40db`
+
+### Sub-chunk A ✅ — Sidebar refactor + Mis Proyectos page
+- `navByRole.js` → DEV_NAV reestructurado en 3 tiers collapsibles (11 items):
+  - WORKFLOW DIARIO: Dashboard, Mis Proyectos, CRM, Mensajes
+  - INTELIGENCIA: Reportes IA, Demanda, Site Selection, Precios IA, Competidores
+  - CONFIGURACIÓN: Equipo, Configuración
+- `/desarrollador/proyectos` → `MisProyectos.js`: cards grid (EntityCard-style), HealthScore circular, filtros por etapa, sort, view toggle cards/lista, paginación 20/página
+- Legacy redirects backward-compat: `/inventario → /proyectos`, `/leads → /crm?tab=pipeline`, `/citas → /crm?tab=citas`, `/calendario-subidas → /proyectos`
+
+### Sub-chunk B ✅ — ProyectoDetail shell 8 tabs
+- `/desarrollador/proyectos/:slug` → `ProyectoDetail.js`: breadcrumb, KPIStrip (4 KPIs: % vendido/uds vendidas/revenue MTD/leads activos), HealthScore md, 8 tabs con URL sync `?tab=`
+- Tabs: Ventas (contenido real) · Contenido · Avance de obra (reutiliza AvanceObraTab) · Ubicación (reutiliza GeolocalizacionTab) · Amenidades · Legal · Comercialización · Insights
+- Cmd+P project switcher (localStorage recientes)
+
+### Sub-chunk C ✅ — Tab Ventas 3 sub-tabs
+- `VentasTab.js` component en `/components/developer/`: Inventario completo | Por prototipo | Vista de planta (URL sync `?subtab=`)
+- Inventario completo: tabla sticky, FilterChipsBar multi-status con contadores, búsqueda instant unit_number, density toggle (compacto/expandido via usePreferences), paginación 30/página, EntityDrawer on click, Bulk Upload wired
+- Por prototipo: cards por tipo con stats (total, disponibles, desde $X), click → switch to inventario con proto filter
+- Vista de planta: grid color-coded por nivel (disponible=verde/reservado=azul/vendido=rojo/etc.), hover tooltip, click → EntityDrawer, leyenda colores
+
+### Backend `routes_dev_batch10.py` (nuevo)
+- `GET /api/dev/projects/list-with-stats` — proyectos enriquecidos con health_score, leads_active, revenue_mtd_est, units_by_status
+- `GET /api/dev/projects/:id/summary` — stats KPI para un proyecto específico
+
+### CRM Shell ✅
+- `/desarrollador/crm` → `DesarrolladorCRMShell.js`: 6 tabs (Pipeline real con LeadKanban + Leads/Citas/Slots/Brokers/Métricas placeholder)
 
 
 ---
