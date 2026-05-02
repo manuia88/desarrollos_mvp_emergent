@@ -12,6 +12,7 @@ const NAV = [
   { k: 'citas',        to: '/desarrollador/citas',                  label: 'Citas',           Icon: CalendarCheck },
   { k: 'dem',          to: '/desarrollador/demanda',                label: 'Demanda',         Icon: MapPin },
   { k: 'rep',          to: '/desarrollador/reportes',               label: 'Reportes IA',     Icon: Sparkle },
+  { k: 'site',         to: '/desarrollador/site-selection',         label: 'Site Selection',  Icon: MapPin },
   { k: 'price',        to: '/desarrollador/pricing',                label: 'Pricing dinámico', Icon: BarChart },
   { k: 'comp',         to: '/desarrollador/competidores',           label: 'Radar',           Icon: Radio },
   { k: 'usuarios',     to: '/desarrollador/usuarios',               label: 'Equipo',          Icon: Users },

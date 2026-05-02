@@ -160,6 +160,10 @@ app.include_router(dev_batch5_router)
 from routes_dev_batch6 import router as dev_batch6_router, ensure_batch6_indexes
 app.include_router(dev_batch6_router)
 
+# Phase 4 Batch 7 — Site Selection AI Standalone
+from routes_dev_batch7 import router as dev_batch7_router, ensure_batch7_indexes
+app.include_router(dev_batch7_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -380,6 +384,8 @@ async def startup():
     await ensure_batch5_indexes(db)
     # Phase 4 Batch 6 — Demand Heatmap + Engagement Analytics
     await ensure_batch6_indexes(db)
+    # Phase 4 Batch 7 — Site Selection AI Standalone
+    await ensure_batch7_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o

@@ -887,6 +887,86 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 7 · Site Selection AI Standalone (4.22)
+**Objetivo:** motor IA standalone que dado criterios + presupuesto del developer, recomienda y rankea zonas candidatas con feasibility 0–100 + sub-scores + narrative Claude haiku para decisiones de expansión.
+
+### Backend (`routes_dev_batch7.py` · nuevo · ~660 líneas)
+- **Schemas Mongo**:
+  - `site_selection_studies`: `{id, dev_org_id, name, status:'draft|running|completed|failed', inputs:{project_type, target_segment, unit_size_range, price_range_per_m2, total_units_target, budget_construction, preferred_states[], preferred_features[], avoid_features[]}, candidate_zones:[{colonia, colonia_id, alcaldia, state, center, polygon, bbox, feasibility_score, sub_scores:{market_demand, price_match, competition, infrastructure, absorption_potential, risk_factors}, narrative, data_points:{avg_price_per_m2, existing_projects_count, absorption_rate_12m, demographic_match_pct, ie_score_avg, demand_score}, pros[], cons[], target_units_estimate, target_price_range:{min,max}, estimated_roi_5y}], created_by, created_at, completed_at, error_message}` con índices unique-id + (dev_org, status, created_at).
+  - `site_selection_files`: `{id, study_id, dev_org_id, size_bytes, pdf_b64, created_at}` para PDFs exportados.
+- **Pipeline asíncrono**:
+  1. `POST /studies` → crea draft con inputs validados (Pydantic). 422 en project_type/target_segment fuera de allowlist.
+  2. `POST /studies/:id/run` → flip a `running` + `asyncio.create_task(_run_engine)`. Idempotente sobre running/completed.
+  3. **`_run_engine`**: filtra 16 colonias `data_seed.COLONIAS` (drop si zone_price < seg_min×0.4 o > seg_max×2.4), calcula 6 sub-scores deterministas + feasibility (avg de los 6), keeps top-10, llama **Claude haiku-4-5** (`emergentintegrations.LlmChat`) por zona para narrative ≤320 chars + 3-5 pros + 2-4 cons. Estima `target_units` (escala por price ratio), `target_price_range` (±8% del price del zone), `estimated_roi_5y` (heurística sobre price_match + market_demand + plusvalía score). Persiste `status=completed`. En cualquier excepción → `status=failed` + `error_message`.
+  4. `GET /studies?status=` lista paginada (sin candidate_zones) · `GET /studies/:id` detalle full.
+  5. `POST /studies/:id/export-pdf` reusa **ReportLab** patterns de B5: portada + tabla criterios + ranking 7-col + páginas detalle top-5 con narrative+pros+cons. Persiste en `site_selection_files` y devuelve `download_url`.
+  6. `GET /files/:file_id` descarga PDF (`application/pdf`).
+- **Sub-score helpers** (deterministas):
+  - `market_demand` = leads_norm + demand_proxy×0.4
+  - `price_match` = inverse-distance del zone_price vs band target
+  - `competition` = step function (0 → 95, 1-2 → 80, 3-5 → 60, 6-8 → 40, 9+ → 20)
+  - `infrastructure` = avg(movilidad+comercio+educacion) + bonus por features preferidas
+  - `risk_factors` = avg(seguridad+riesgo) − penalty por features evitar
+  - `absorption_potential` = función de competencia + leads
+- **Audit + ML events**: `site_selection_study_created`, `site_selection_run_started`, `site_selection_exported`. (run_completed/failed se persiste en doc, no como ML event explícito para evitar ruido en logs).
+- **Role guard**: `_is_dev_admin` (developer_admin/director/superadmin/internal_role admin/commercial_director). asesor → 403, anon → 401.
+- **Wiring `server.py`**: router include + `ensure_batch7_indexes(db)` en startup.
+
+### Frontend
+- **`api/developer.js`** (+6 helpers B7): `createSiteStudy`, `runSiteStudy`, `listSiteStudies`, `getSiteStudy`, `exportSiteStudyPdf`, `siteStudyDownloadUrl`.
+- **`components/developer/RadarChart.js`** (nuevo · ~70 líneas) — SVG-only radar 6-axes, grid 25/50/75/100, polígono fucsia 0.18 fill + stroke 1.6, labels Outfit/DM Sans en castellano.
+- **`components/developer/SiteSelectionMap.js`** (nuevo · ~150 líneas) — Mapbox dark-v11 con `fill` layer (5-stop ramp por feasibility) + `line` layer + `circle` markers cream/navy. Popup hover con feasibility+ROI. Click sincroniza con sidebar via `onSelect`. fitBounds automático.
+- **`components/developer/SiteSelectionWizard.js`** (nuevo · ~250 líneas) — Modal 720px glass con 4 pasos:
+  - Paso 1: project_type + target_segment (toggles pill)
+  - Paso 2: unit_size_range + price_range_per_m2 + total_units + budget (number inputs)
+  - Paso 3: preferred_states + preferred_features + avoid_features (multi-toggle pills)
+  - Paso 4: nombre + resumen visual de criterios + features + submit "Crear y ejecutar"
+  - Submit invoca `createSiteStudy` + `runSiteStudy` + `onCreated` callback.
+- **`pages/developer/DesarrolladorSiteSelection.js`** (nuevo · ~340 líneas) — Page completa con 3 tabs:
+  - `Estudios`: cards grid clickeable con StatusPill, empty state con CTA gradient.
+  - `Crear estudio`: card con CTA → abre wizard.
+  - `Resultados`: header con study + StatusPill + botón Exportar PDF / Refrescar. Si running: progress card con ETA. Si completed: grid 1.4fr/1fr con `SiteSelectionMap` + ranking sidebar (10 zones clickables con badges feasibility). Click zone abre `StudyDetailDrawer` 480px lateral con headline KPIs (Feasibility/ROI/Unidades), `RadarChart` sub-scores, narrative IA, Pros/Cons, tabla data_points.
+  - Polling automático cada 3.5s mientras study está `running`.
+- **`App.js`** (+ruta `/desarrollador/site-selection` + import).
+- **`components/developer/DeveloperLayout.js`** (+nav link "Site Selection" con icon `MapPin` entre Reportes IA y Pricing dinámico).
+
+### Verificación curl ✅ (full lifecycle)
+- POST `/studies` con inputs completos NSE_AB Polanco-Roma → 201 con `id=ssel_048e03e62a9e, status=draft` ✅
+- POST `/studies/:id/run` → `{ok:true, status:running, eta_seconds:60}` ✅
+- Polling: completed en <4s (engine + 10× Claude haiku) ✅
+- GET `/studies/:id` completed → 10 candidate_zones, top=Polanco con feasibility=84.8, ROI 5y=24.8%, sub_scores `{market_demand:70.6, price_match:87.5, competition:80, infrastructure:97.7, absorption_potential:86, risk_factors:87}`, narrative 314 chars real Claude (es-MX), 5 pros + 4 cons ✅
+- GET `/studies` → list con 1 item (sin candidate_zones, payload ligero) ✅
+- POST `/studies/:id/export-pdf` → `file_id`, 9.7KB ✅
+- GET `/files/:file_id` → `application/pdf` con magic header `%PDF-1.4` ✅
+- Validación inputs: `project_type:"invalid"` → 422 Pydantic ✅
+- Role guards: asesor → list/get 403; anon → list 401 ✅
+
+### Verificación Playwright smoke ✅
+- `/desarrollador/site-selection` carga con sidebar nav nuevo "Site Selection" (icon MapPin) ✅
+- Tab Estudios: card grid renderiza con 1 study existente. Click → resulta en Tab Resultados con map + 10 ranking items + Map canvas Mapbox cargado ✅
+- Click zone en ranking → drawer lateral con `data-testid="site-zone-drawer"`, `radar-chart`=1, `narrative`=1, **5 pros + 4 cons** renderizados ✅
+- Botón Exportar PDF visible solo si status=completed ✅
+- **Wizard flow end-to-end**: `site-new-btn` → wizard 4 pasos → submit "Smoke wizard NSE_C+" → Mongo persiste study completed con candidate_zones (verificado por API listStudies post-flow: 2 studies, ambos completed) ✅
+- Diseño: 100% var(--navy)/var(--cream)/gradient, cero indigo/purple custom hex en componentes nuevos, tipografía Outfit/DM Sans, lucide-style icons ✅
+
+### Áreas mocked / pendientes
+- `marketplace_searches` collection vacía → `demand_proxy` para market_demand usa solo `leads × 8 + comercio_score × 0.4`. Cuando el frontend público registre búsquedas, el motor las incorpora automáticamente.
+- INEGI demographics no enchufado (B7 usa `plusvalia` score como proxy de `demographic_match_pct`). El connector existe en `data_ie_sources` pero no se llama desde B7 — defer.
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch7.py` (nuevo)
+- `/app/backend/server.py` (+router include + `ensure_batch7_indexes`)
+- `/app/frontend/src/api/developer.js` (+6 helpers B7)
+- `/app/frontend/src/components/developer/RadarChart.js` (nuevo)
+- `/app/frontend/src/components/developer/SiteSelectionMap.js` (nuevo)
+- `/app/frontend/src/components/developer/SiteSelectionWizard.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorSiteSelection.js` (nuevo)
+- `/app/frontend/src/App.js` (+ruta `/desarrollador/site-selection`)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+nav link)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.4 · AI Engine + Analytics
 
 ### Sub-Chunk A · 4.35 Lead Heat AI Score

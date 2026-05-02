@@ -188,4 +188,14 @@ export const getEngagementUnitTimeline = (projectId, unitId, params = {}) => {
   return j(`/api/dev/projects/${projectId}/engagement-units/${unitId}/timeline${qs ? `?${qs}` : ''}`);
 };
 
+// Phase 4 Batch 7 — Site Selection AI
+export const createSiteStudy = (b) => post('/api/dev/site-selection/studies', b);
+export const runSiteStudy = (id) => post(`/api/dev/site-selection/studies/${id}/run`);
+export const listSiteStudies = (status) =>
+  j(`/api/dev/site-selection/studies${status ? `?status=${status}` : ''}`);
+export const getSiteStudy = (id) => j(`/api/dev/site-selection/studies/${id}`);
+export const exportSiteStudyPdf = (id) => post(`/api/dev/site-selection/studies/${id}/export-pdf`);
+export const siteStudyDownloadUrl = (fileId) =>
+  `${process.env.REACT_APP_BACKEND_URL}/api/dev/site-selection/files/${fileId}`;
+
 
