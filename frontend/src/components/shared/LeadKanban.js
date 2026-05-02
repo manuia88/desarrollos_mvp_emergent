@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import * as leadsApi from '../../api/leads';
 import { Badge } from '../advisor/primitives';
 import { Link2, Lock, Brain, MessageCircle, X, EyeOff, Sparkle, Flame } from '../icons';
+import { useServerUndo } from './UndoSnackbar';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -44,6 +45,7 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
   const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(null);
   const [openLeadId, setOpenLeadId] = useState(null);
+  const { showServerUndo } = useServerUndo();
 
   const load = async () => {
     setLoading(true);
@@ -69,8 +71,24 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
     if (!leadId || fromCol === colKey) return;
     const target = COL_TO_DEFAULT_STATUS[colKey];
     try {
-      await leadsApi.moveColumn(leadId, target);
+      const resp = await leadsApi.moveColumn(leadId, target);
       onToast?.({ kind: 'success', text: `Lead movido a "${target}"` });
+      // Phase 4 Batch 17 — undo toast (server-persisted)
+      try {
+        const recentRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/undo/recent?limit=1`,
+          { credentials: 'include' });
+        if (recentRes.ok) {
+          const j = await recentRes.json();
+          const last = j.items?.[0];
+          if (last && last.action === 'lead_stage_change' && last.entity_id === leadId) {
+            showServerUndo({
+              message: `Lead movido a ${target}`,
+              undoId: last.id,
+              onRestored: load,
+            });
+          }
+        }
+      } catch {}
       load();
     } catch (e2) {
       onToast?.({ kind: 'error', text: e2.body?.detail || 'Error al mover' });

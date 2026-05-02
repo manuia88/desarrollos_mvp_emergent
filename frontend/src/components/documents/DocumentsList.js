@@ -7,6 +7,10 @@ import UploadDocumentModal from './UploadDocumentModal';
 import ExtractionView from './ExtractionView';
 import CrossCheckView from './CrossCheckView';
 import SyncPreview from './SyncPreview';
+import { reorderDocuments } from '../../api/batch17';
+import { useServerUndo } from '../shared/UndoSnackbar';
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const STATUS_TONE = {
   pending:             { bg: 'rgba(99,102,241,0.12)', fg: '#c7d2fe', label: 'En cola',           Icon: Clock },
@@ -203,6 +207,8 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
   const [showUpload, setShowUpload] = useState(false);
   const [preview, setPreview] = useState(null);
   const [toast, setToast] = useState(null);
+  const [dragId, setDragId] = useState(null);
+  const { showServerUndo } = useServerUndo();
 
   const load = async () => {
     if (!devId) return;
@@ -248,6 +254,36 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
       setToast({ type: 'ok', msg: 'Documento eliminado.' });
       load();
     } catch (e) { setToast({ type: 'err', msg: `Error: ${e.message}` }); }
+  };
+
+  // Phase 4 Batch 17 — drag-drop reorder via HTML5 drag (simpler within table rows)
+  const handleDocDrop = async (targetId) => {
+    if (!dragId || dragId === targetId) { setDragId(null); return; }
+    const srcIdx = docs.findIndex(d => d.id === dragId);
+    const tgtIdx = docs.findIndex(d => d.id === targetId);
+    if (srcIdx < 0 || tgtIdx < 0) { setDragId(null); return; }
+    const next = docs.slice();
+    const [moved] = next.splice(srcIdx, 1);
+    next.splice(tgtIdx, 0, moved);
+    setDocs(next);
+    setDragId(null);
+    try {
+      await reorderDocuments(devId, next.map(d => d.id));
+      try {
+        const res = await fetch(`${API}/api/undo/recent?limit=1`, { credentials: 'include' });
+        if (res.ok) {
+          const j = await res.json();
+          const last = j.items?.[0];
+          if (last && last.action === 'reorder' && last.entity_type === 'document') {
+            showServerUndo({ message: 'Orden de documentos actualizado',
+                              undoId: last.id, onRestored: load });
+          }
+        }
+      } catch {}
+    } catch {
+      setToast({ type: 'err', msg: 'Error al reordenar' });
+      load();
+    }
   };
 
   return (
@@ -299,7 +335,16 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
               </thead>
               <tbody>
                 {docs.map(d => (
-                  <tr key={d.id} data-testid="doc-row" style={{ borderBottom: '1px solid rgba(148,163,184,0.08)' }}>
+                  <tr key={d.id} data-testid="doc-row"
+                      draggable
+                      onDragStart={() => setDragId(d.id)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => handleDocDrop(d.id)}
+                      style={{
+                        borderBottom: '1px solid rgba(148,163,184,0.08)',
+                        cursor: dragId ? 'grabbing' : 'grab',
+                        opacity: dragId === d.id ? 0.5 : 1,
+                      }}>
                     <td style={{ padding: '10px 14px', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.filename}>
                       <button onClick={() => setPreview(d)} data-testid="doc-name-link" style={{ background: 'transparent', border: 'none', color: 'var(--cream)', fontFamily: 'inherit', fontSize: 'inherit', cursor: 'pointer', padding: 0, textAlign: 'left', textDecoration: 'underline', textDecorationColor: 'rgba(99,102,241,0.4)', textUnderlineOffset: 3 }}>
                         {d.filename}

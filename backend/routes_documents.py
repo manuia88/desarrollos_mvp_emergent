@@ -740,11 +740,32 @@ async def assets_reorder(dev_id: str, body: ReorderBody, request: Request):
     _require_dev_or_superadmin(user)
     _check_dev_access(user, dev_id)
     db = _get_db(request)
+
+    # Capture previous order for undo (Batch 17)
+    prev = await db.dev_assets.find(
+        {"development_id": dev_id, "id": {"$in": body.asset_ids}},
+        {"_id": 0, "id": 1, "order_index": 1},
+    ).sort("order_index", 1).to_list(len(body.asset_ids))
+    prev_ids = [p["id"] for p in prev]
+
     for i, aid in enumerate(body.asset_ids):
         await db.dev_assets.update_one(
             {"id": aid, "development_id": dev_id},
             {"$set": {"order_index": i, "updated_at": datetime.now(timezone.utc)}},
         )
+
+    # Register undo (Batch 17)
+    try:
+        from routes_dev_batch17 import register_undo
+        await register_undo(
+            db, user_id=user.user_id, action="reorder",
+            entity_type="asset", entity_id=dev_id,
+            before_state={"ordered_ids": prev_ids},
+            after_state={"ordered_ids": body.asset_ids},
+            meta={"collection": "dev_assets", "id_field": "id"},
+        )
+    except Exception:
+        pass
     return {"ok": True, "reordered": len(body.asset_ids)}
 
 

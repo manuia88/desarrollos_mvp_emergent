@@ -532,7 +532,7 @@ async def ie_project_breakdown(project_id: str, request: Request):
     except Exception:
         pass
 
-    return {
+    response_data = {
         "project_id": project_id,
         "project_name": dev["name"],
         "colonia": dev["colonia"],
@@ -541,6 +541,13 @@ async def ie_project_breakdown(project_id: str, request: Request):
         "categories": categories,
         "generated_at": _now().isoformat(),
     }
+    # Apply data scoping — hides engagement_metrics for lower roles
+    try:
+        from data_scoping import scope_data
+        response_data = scope_data(response_data, user, "project")
+    except Exception:
+        pass
+    return response_data
 
 
 @router.get("/ie/projects/{project_id}/improve")

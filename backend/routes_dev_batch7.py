@@ -247,7 +247,8 @@ def _estimate_roi_5y(price_match: float, market_demand: float, plusvalia_score: 
 # Claude haiku — narrative + pros/cons
 # ─────────────────────────────────────────────────────────────────────────────
 async def _claude_zone_narrative(
-    *, zone: Dict, sub_scores: Dict, data_points: Dict, inputs: StudyInputs,
+    *, zone: Dict, sub_scores: Dict, data_points: Dict, inputs,
+    db=None, dev_org_id: str = "default",
 ) -> Dict[str, Any]:
     fallback = {
         "narrative": (f"{zone['name']} obtiene feasibility {sub_scores['feasibility_score']}/100 "
@@ -298,6 +299,16 @@ async def _claude_zone_narrative(
         narrative = str(data.get("narrative") or fallback["narrative"])[:320]
         pros = [str(p)[:140] for p in (data.get("pros") or fallback["pros"])][:5]
         cons = [str(c)[:140] for c in (data.get("cons") or fallback["cons"])][:4]
+        # Budget tracking
+        if db is not None:
+            t_in = len(prompt) // 4
+            t_out = len(raw or "") // 4
+            try:
+                from ai_budget import track_ai_call
+                await track_ai_call(db, dev_org_id, "claude-haiku-4-5-20251001", 0,
+                                    "site_selection_narrative", tokens_in=t_in, tokens_out=t_out)
+            except Exception:
+                pass
         return {"narrative": narrative, "pros": pros, "cons": cons}
     except Exception as e:
         log.warning(f"[batch7] claude narrative failed for {zone['id']}: {e}")
@@ -427,7 +438,7 @@ async def _candidate_zones(db, inputs: StudyInputs) -> List[Dict]:
     return zones[:10]
 
 
-async def _run_engine(db, study_id: str, inputs: StudyInputs) -> None:
+async def _run_engine(db, study_id: str, inputs, dev_org_id: str = "default") -> None:
     """Background engine: filter+score+Claude+persist. Status flips to completed/failed."""
     started = _now_iso()
     try:
@@ -438,6 +449,7 @@ async def _run_engine(db, study_id: str, inputs: StudyInputs) -> None:
             narrative = await _claude_zone_narrative(
                 zone=col, sub_scores=z["_inputs_for_claude"],
                 data_points=z["data_points"], inputs=inputs,
+                db=db, dev_org_id=dev_org_id,
             )
             target_units = _estimate_units(
                 inputs.price_range_per_m2.min, inputs.price_range_per_m2.max,
@@ -549,7 +561,7 @@ async def run_study(study_id: str, request: Request):
     await db.site_selection_studies.update_one(
         {"id": study_id}, {"$set": {"status": "running", "engine_started_at": _now_iso()}},
     )
-    asyncio.create_task(_run_engine(db, study_id, inputs))
+    asyncio.create_task(_run_engine(db, study_id, inputs, dev_org_id=org))
     await _safe_audit_ml(
         db, user, action="update", entity_type="site_selection_study", entity_id=study_id,
         request=request, ml_event="site_selection_run_started",

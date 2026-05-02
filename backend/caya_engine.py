@@ -143,6 +143,13 @@ async def caya_query(payload: CayaQueryIn, request: Request):
             answer_payload = json.loads(text[s:e+1]) if s >= 0 and e > s else {"answer": text[:500], "hand_off_recommended": True, "hand_off_reason": "fallback parser"}
         out_tokens = len(text) // 4
         cost_usd = (in_tokens / 1000.0) * 0.003 + (out_tokens / 1000.0) * 0.015
+        # Budget tracking
+        try:
+            from ai_budget import track_ai_call
+            await track_ai_call(db, "caya", "claude-sonnet-4-5-20250929", 0, "caya_conversation",
+                                tokens_in=in_tokens, tokens_out=out_tokens)
+        except Exception:
+            pass
     except Exception as e:
         log.warning(f"Caya Claude error: {e}")
         error = str(e)

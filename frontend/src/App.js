@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+import { UndoProvider } from './components/shared/UndoSnackbar';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 
-// Landing components
+// Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
 import Navbar from './components/landing/Navbar';
 import Hero from './components/landing/Hero';
@@ -18,64 +19,82 @@ import CtaFooter from './components/landing/CtaFooter';
 import AuthModal from './components/landing/AuthModal';
 import RolePicker from './components/landing/RolePicker';
 
-// Marketplace pages
-import Marketplace from './pages/Marketplace';
-import PropertyDetail from './pages/PropertyDetail';
-import DevelopmentDetail from './pages/DevelopmentDetail';
-import Mapa from './pages/Mapa';
+// ─── Lazy-loaded page routes ───────────────────────────────────────────────────
+// Marketplace
+const Marketplace       = lazy(() => import('./pages/Marketplace'));
+const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
+const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
+const Mapa              = lazy(() => import('./pages/Mapa'));
+const Barrios           = lazy(() => import('./pages/Barrios'));
+const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
+const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
-// B9 stubs
-import Barrios from './pages/Barrios';
-import Inteligencia from './pages/Inteligencia';
-import AsesoresLanding from './pages/AsesoresLanding';
+// Advisor portal
+const AsesorDashboard   = lazy(() => import('./pages/advisor/AsesorDashboard'));
+const AsesorContactos   = lazy(() => import('./pages/advisor/AsesorContactos'));
+const AsesorBusquedas   = lazy(() => import('./pages/advisor/AsesorBusquedas'));
+const AsesorCaptaciones = lazy(() => import('./pages/advisor/AsesorCaptaciones'));
+const AsesorTareas      = lazy(() => import('./pages/advisor/AsesorTareas'));
+const AsesorOperaciones = lazy(() => import('./pages/advisor/AsesorOperaciones'));
+const AsesorComisiones  = lazy(() => import('./pages/advisor/AsesorComisiones'));
+const AsesorRanking     = lazy(() => import('./pages/advisor/AsesorRanking'));
+const StudioDashboard   = lazy(() => import('./pages/advisor/StudioDashboard'));
+const AsesorBriefings   = lazy(() => import('./pages/advisor/AsesorBriefings'));
+const AsesorCitas       = lazy(() => import('./pages/advisor/AsesorCitas'));
+const AsesorLeadsDev    = lazy(() => import('./pages/advisor/AsesorLeadsDev'));
 
-// Advisor portal (Phase 4 CRM Pulppo+)
-import AsesorDashboard from './pages/advisor/AsesorDashboard';
-import AsesorContactos from './pages/advisor/AsesorContactos';
-import AsesorBusquedas from './pages/advisor/AsesorBusquedas';
-import AsesorCaptaciones from './pages/advisor/AsesorCaptaciones';
-import AsesorTareas from './pages/advisor/AsesorTareas';
-import AsesorOperaciones from './pages/advisor/AsesorOperaciones';
-import AsesorComisiones from './pages/advisor/AsesorComisiones';
-import AsesorRanking from './pages/advisor/AsesorRanking';
-import StudioDashboard from './pages/advisor/StudioDashboard';
-import AsesorBriefings from './pages/advisor/AsesorBriefings';
-import AsesorCitas from './pages/advisor/AsesorCitas';
-import AsesorLeadsDev from './pages/advisor/AsesorLeadsDev';
+// Developer portal
+const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
+const DesarrolladorInventario        = lazy(() => import('./pages/developer/DesarrolladorInventario'));
+const DesarrolladorDemanda           = lazy(() => import('./pages/developer/DesarrolladorDemanda'));
+const DesarrolladorReportes          = lazy(() => import('./pages/developer/DesarrolladorReportes'));
+const DesarrolladorLegajo            = lazy(() => import('./pages/developer/DesarrolladorLegajo'));
+const DesarrolladorPricing           = lazy(() => import('./pages/developer/DesarrolladorPricing'));
+const DesarrolladorUsuarios          = lazy(() => import('./pages/developer/DesarrolladorUsuarios'));
+const DesarrolladorConfiguracion     = lazy(() => import('./pages/developer/DesarrolladorConfiguracion'));
+const DesarrolladorCalendarioSubidas = lazy(() => import('./pages/developer/DesarrolladorCalendarioSubidas'));
+const DesarrolladorCompetidores      = lazy(() => import('./pages/developer/DesarrolladorCompetidores'));
+const DesarrolladorIEDetail          = lazy(() => import('./pages/developer/DesarrolladorIEDetail'));
+const DesarrolladorLeads             = lazy(() => import('./pages/developer/DesarrolladorLeads'));
+const DesarrolladorCitas             = lazy(() => import('./pages/developer/DesarrolladorCitas'));
+const InmobiliariaDashboard          = lazy(() => import('./pages/developer/InmobiliariaDashboard'));
+const InmobiliariaAsesores           = lazy(() => import('./pages/developer/InmobiliariaAsesores'));
+const InmobiliariaLeads              = lazy(() => import('./pages/developer/InmobiliariaLeads'));
+const DesarrolladorCRM               = lazy(() => import('./pages/developer/DesarrolladorCRM'));
+const DesarrolladorPricingLab        = lazy(() => import('./pages/developer/DesarrolladorPricingLab'));
+const DesarrolladorSiteSelection     = lazy(() => import('./pages/developer/DesarrolladorSiteSelection'));
+const DesarrolladorCashFlow          = lazy(() => import('./pages/developer/DesarrolladorCashFlow'));
+// Phase 4 Batch 10 — Mis Proyectos + CRM Shell
+const MisProyectos                   = lazy(() => import('./pages/developer/MisProyectos'));
+const ProyectoDetail                 = lazy(() => import('./pages/developer/ProyectoDetail'));
+const DesarrolladorCRMShell          = lazy(() => import('./pages/developer/DesarrolladorCRMShell'));
+const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
+const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
+const PublicBookingPage              = lazy(() => import('./pages/public/PublicBookingPage'));
 
-// Developer portal (Phase 5)
-import DesarrolladorDashboard from './pages/developer/DesarrolladorDashboard';
-import DesarrolladorInventario from './pages/developer/DesarrolladorInventario';
-import DesarrolladorDemanda from './pages/developer/DesarrolladorDemanda';
-import DesarrolladorReportes from './pages/developer/DesarrolladorReportes';
-import DesarrolladorLegajo from './pages/developer/DesarrolladorLegajo';
-import DesarrolladorPricing from './pages/developer/DesarrolladorPricing';
-import DesarrolladorUsuarios from './pages/developer/DesarrolladorUsuarios';
-import DesarrolladorConfiguracion from './pages/developer/DesarrolladorConfiguracion';
-import DesarrolladorCalendarioSubidas from './pages/developer/DesarrolladorCalendarioSubidas';
-import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
-import DesarrolladorIEDetail from './pages/developer/DesarrolladorIEDetail';
-import DesarrolladorLeads from './pages/developer/DesarrolladorLeads';
-import DesarrolladorCitas from './pages/developer/DesarrolladorCitas';
-import InmobiliariaDashboard from './pages/developer/InmobiliariaDashboard';
-import InmobiliariaAsesores from './pages/developer/InmobiliariaAsesores';
-import InmobiliariaLeads from './pages/developer/InmobiliariaLeads';
-import DesarrolladorCRM from './pages/developer/DesarrolladorCRM';
-import DesarrolladorPricingLab from './pages/developer/DesarrolladorPricingLab';
-import DesarrolladorSiteSelection from './pages/developer/DesarrolladorSiteSelection';
-import DesarrolladorCashFlow from './pages/developer/DesarrolladorCashFlow';
-import AceptarInvitacion from './pages/public/AceptarInvitacion';
-import PublicCitaPage from './pages/public/PublicCitaPage';
+// Superadmin
+const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
+const DataSourcesPage            = lazy(() => import('./pages/superadmin/DataSourcesPage'));
+const DataSourceDetailPage       = lazy(() => import('./pages/superadmin/DataSourceDetailPage'));
+const ScoresPage                 = lazy(() => import('./pages/superadmin/ScoresPage'));
+const DocumentsPage              = lazy(() => import('./pages/superadmin/DocumentsPage'));
+const SuperadminDrivePage        = lazy(() => import('./pages/superadmin/SuperadminDrivePage'));
+const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
+const AuditLogPage               = lazy(() => import('./pages/superadmin/AuditLogPage'));
+const PrimitivesDemo             = lazy(() => import('./pages/superadmin/PrimitivesDemo'));
+const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
+const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDiagnostics'));
 
-// Superadmin (IE Engine Phase A)
-import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
-import DataSourcesPage from './pages/superadmin/DataSourcesPage';
-import DataSourceDetailPage from './pages/superadmin/DataSourceDetailPage';
-import ScoresPage from './pages/superadmin/ScoresPage';
-import DocumentsPage from './pages/superadmin/DocumentsPage';
-import SuperadminDrivePage from './pages/superadmin/SuperadminDrivePage';
-import SuperadminObservabilityPage from './pages/superadmin/SuperadminObservabilityPage';
-import AuditLogPage from './pages/superadmin/AuditLogPage';
+// Phase 4 Batch 12
+const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoProyecto'));
+
+// Phase 4 Batch 13
+const LinksTrackingPage          = lazy(() => import('./pages/asesor/LinksTracking'));
+
+// Phase 4 Batch 15 — Multi-broker Calendar
+const CalendarSettings           = lazy(() => import('./pages/advisor/CalendarSettings'));
+const CitasPolicies              = lazy(() => import('./pages/developer/CitasPolicies'));
+const AutoAssignments            = lazy(() => import('./pages/developer/AutoAssignments'));
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -237,11 +256,24 @@ function AuthCallback() {
 function AppRouter() {
   const location = useLocation();
 
+  // Phase 4 Batch 13 — Capture ?ref=asesor_id tracking cookie on initial load
+  useEffect(() => {
+    import('./lib/tracking').then(({ captureRefCookie }) => {
+      try { captureRefCookie(); } catch {}
+    });
+  }, []);
+
   if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
   }
 
   return (
+    <Suspense fallback={
+      <div style={{ padding: 60, color: 'rgba(240,235,224,0.5)', textAlign: 'center', fontFamily: 'DM Sans', background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 36, height: 36, border: '2px solid rgba(240,235,224,0.12)', borderTopColor: 'var(--cream)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 12 }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    }>
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
@@ -269,24 +301,34 @@ function AppRouter() {
       <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
       <Route path="/asesor/leads-dev" element={<AdvisorRoute Page={AsesorLeadsDev} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
-      <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
+
+      {/* Phase 4 Batch 10 — Mis Proyectos + CRM Shell */}
+      <Route path="/desarrollador/proyectos" element={<AdvisorRoute Page={MisProyectos} />} />
+      <Route path="/desarrollador/proyectos/:slug" element={<AdvisorRoute Page={ProyectoDetail} />} />
+      <Route path="/desarrollador/crm" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
+      <Route path="/desarrollador/mensajes" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
+
+      {/* Legacy backward-compat redirects */}
+      <Route path="/desarrollador/inventario" element={<Navigate to="/desarrollador/proyectos" replace />} />
+      <Route path="/desarrollador/leads" element={<Navigate to="/desarrollador/crm?tab=pipeline" replace />} />
+      <Route path="/desarrollador/citas" element={<Navigate to="/desarrollador/crm?tab=citas" replace />} />
+      <Route path="/desarrollador/calendario-subidas" element={<Navigate to="/desarrollador/proyectos" replace />} />
+
       <Route path="/desarrollador/desarrollos/:slug/legajo" element={<AdvisorRoute Page={DesarrolladorLegajo} />} />
       <Route path="/desarrollador/desarrollos/:slug/ie" element={<AdvisorRoute Page={DesarrolladorIEDetail} />} />
-      <Route path="/desarrollador/leads" element={<AdvisorRoute Page={DesarrolladorLeads} />} />
-      <Route path="/desarrollador/citas" element={<AdvisorRoute Page={DesarrolladorCitas} />} />
       <Route path="/desarrollador/desarrollos/:slug/crm" element={<AdvisorRoute Page={DesarrolladorCRM} />} />
       <Route path="/desarrollador/desarrollos/:slug/pricing-lab" element={<AdvisorRoute Page={DesarrolladorPricingLab} />} />
       <Route path="/desarrollador/desarrollos/:slug/cash-flow" element={<AdvisorRoute Page={DesarrolladorCashFlow} />} />
       <Route path="/desarrollador/site-selection" element={<AdvisorRoute Page={DesarrolladorSiteSelection} />} />
       <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
       <Route path="/cita/:token" element={<PublicCitaPage />} />
+      <Route path="/reservar/:slug" element={<PublicBookingPage />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
       <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
       <Route path="/desarrollador/usuarios" element={<AdvisorRoute Page={DesarrolladorUsuarios} />} />
       <Route path="/desarrollador/configuracion" element={<AdvisorRoute Page={DesarrolladorConfiguracion} />} />
-      <Route path="/desarrollador/calendario-subidas" element={<AdvisorRoute Page={DesarrolladorCalendarioSubidas} />} />
       <Route path="/inmobiliaria" element={<AdvisorRoute Page={InmobiliariaDashboard} />} />
       <Route path="/inmobiliaria/asesores" element={<AdvisorRoute Page={InmobiliariaAsesores} />} />
       <Route path="/inmobiliaria/leads" element={<AdvisorRoute Page={InmobiliariaLeads} />} />
@@ -300,9 +342,20 @@ function AppRouter() {
       <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
       <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
+      <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
+      <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
+      <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
+      <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
+      <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksTrackingPage} />} />
 
-      <Route path="*" element={<LandingPage />} />
+      {/* Phase 4 Batch 15 — Multi-broker Calendar */}
+      <Route path="/asesor/configuracion" element={<AdvisorRoute Page={CalendarSettings} />} />
+      <Route path="/desarrollador/configuracion/citas-policies" element={<AdvisorRoute Page={CitasPolicies} />} />
+      <Route path="/desarrollador/crm/auto-assignments" element={<AdvisorRoute Page={AutoAssignments} />} />
+
+      <Route path="*" element={<FallbackRoute />} />
     </Routes>
+    </Suspense>
   );
 }
 
@@ -346,6 +399,39 @@ function AdvisorRoute({ Page }) {
   return <Page user={user} onLogout={logout} />;
 }
 
+// ─── Fallback route: protects portal users from dropping onto Landing ─────────
+// If user is authenticated and URL starts with a known portal prefix, redirect
+// to their role's portal root instead of showing Landing (which feels like a
+// silent logout). Otherwise render LandingPage.
+function FallbackRoute() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  const portalForRole = (role) => {
+    if (role === 'superadmin') return '/superadmin';
+    if (role === 'advisor' || role === 'asesor_admin' || role === 'asesor_freelance') return '/asesor';
+    if (role === 'developer_admin' || role === 'developer_member' || role === 'developer') return '/desarrollador';
+    if (role === 'inmobiliaria_admin' || role === 'inmobiliaria_member' || role === 'inmobiliaria_director') return '/inmobiliaria';
+    return '/marketplace';
+  };
+
+  if (loading) {
+    return <div style={{ padding: 60, color: '#807e78', textAlign: 'center', fontFamily: 'DM Sans' }}>Cargando…</div>;
+  }
+
+  const path = location.pathname;
+  const isPortalPath =
+    path.startsWith('/desarrollador') ||
+    path.startsWith('/asesor') ||
+    path.startsWith('/inmobiliaria') ||
+    path.startsWith('/superadmin');
+
+  if (user && isPortalPath) {
+    return <Navigate to={portalForRole(user.role)} replace />;
+  }
+  return <LandingPage />;
+}
+
 // ─── Landing page ─────────────────────────────────────────────────────────────
 function LandingPage() {
   const { user, logout, openAuth, loading } = useAuth();
@@ -385,10 +471,12 @@ function LandingPage() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CustomCursor />
-        <AppRouter />
-      </AuthProvider>
+      <UndoProvider>
+        <AuthProvider>
+          <CustomCursor />
+          <AppRouter />
+        </AuthProvider>
+      </UndoProvider>
     </BrowserRouter>
   );
 }

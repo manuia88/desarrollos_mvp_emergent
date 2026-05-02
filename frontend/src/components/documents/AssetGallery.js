@@ -1,6 +1,7 @@
 // AssetGallery — Phase 7.6 · Drag-reorder grid + AI category badges + delete + bulk upload + 360°.
 import React, { useEffect, useRef, useState } from 'react';
 import { Upload, Trash, Sparkle, RotateCcw, Camera, AlertTriangle } from '../icons';
+import { useServerUndo } from '../shared/UndoSnackbar';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -31,6 +32,7 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
   const [toast, setToast] = useState(null);
   const [dragId, setDragId] = useState(null);
   const fileRef = useRef(null);
+  const { showServerUndo } = useServerUndo();
 
   const basePath = scope === 'developer' ? '/api/desarrollador' : '/api/superadmin';
 
@@ -95,6 +97,20 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ asset_ids: newOrder.map(a => a.id) }),
       });
+      // Batch 17 — surface undo toast
+      try {
+        const res = await fetch(`${API}/api/undo/recent?limit=1`, { credentials: 'include' });
+        if (res.ok) {
+          const j = await res.json();
+          const last = j.items?.[0];
+          if (last && last.action === 'reorder' && last.entity_id === devId) {
+            showServerUndo({
+              message: 'Orden de fotos actualizado',
+              undoId: last.id, onRestored: load,
+            });
+          }
+        }
+      } catch {}
     } catch (e) { setToast({ ok: false, msg: e.message }); load(); }
   };
 
