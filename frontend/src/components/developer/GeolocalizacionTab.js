@@ -5,10 +5,13 @@ import MapboxPicker from './MapboxPicker';
 import * as api from '../../api/developer';
 import { MapPin, CheckCircle } from '../icons';
 
-export default function GeolocalizacionTab({ devId, readOnly = false }) {
+export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp = false }) {
   const [loc, setLoc] = useState(null);
   const [err, setErr] = useState(null);
   const [toast, setToast] = useState(null);
+  // Batch 2.1 role guard — only developer_admin or superadmin can move the marker.
+  const canEdit = !readOnlyProp && (user?.role === 'developer_admin' || user?.role === 'superadmin');
+  const readOnly = !canEdit;
 
   useEffect(() => {
     if (!devId) return;

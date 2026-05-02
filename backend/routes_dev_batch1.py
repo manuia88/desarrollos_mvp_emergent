@@ -29,7 +29,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 log = logging.getLogger("dmx.dev_batch1")
 
@@ -363,8 +363,8 @@ async def list_bulk_jobs(request: Request):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class LocationPayload(BaseModel):
-    lat: float
-    lng: float
+    lat: float = Field(..., ge=-90.0, le=90.0)
+    lng: float = Field(..., ge=-180.0, le=180.0)
     address: Optional[str] = None
     zoom: Optional[float] = 14.0
 
@@ -373,6 +373,14 @@ class LocationPayload(BaseModel):
 async def save_project_location(project_id: str, payload: LocationPayload, request: Request):
     user = await _auth(request)
     db = _db(request)
+    # Capture before state for audit diff
+    before_doc = await db.dev_project_meta.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    )
+    before = (
+        {"lat": before_doc.get("lat"), "lng": before_doc.get("lng"), "zoom": before_doc.get("zoom")}
+        if before_doc else None
+    )
     await db.dev_project_meta.update_one(
         {"project_id": project_id, "dev_org_id": _tenant(user)},
         {"$set": {
@@ -389,10 +397,22 @@ async def save_project_location(project_id: str, payload: LocationPayload, reque
     )
     try:
         from audit_log import log_mutation
-        await log_mutation(db, user, "update", "project_location", project_id,
-                           before=None, after={"lat": payload.lat, "lng": payload.lng}, request=request)
+        from observability import emit_ml_event
+        await log_mutation(
+            db, user, "update", "project_location", project_id,
+            before=before,
+            after={"lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom},
+            request=request,
+        )
+        await emit_ml_event(
+            db, event_type="mapbox_location_set",
+            user_id=user.user_id, org_id=_tenant(user), role=user.role,
+            context={"project_id": project_id},
+            ai_decision={},
+            user_action={"lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom},
+        )
     except Exception: pass
-    return {"ok": True, "project_id": project_id, "lat": payload.lat, "lng": payload.lng}
+    return {"ok": True, "project_id": project_id, "lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom}
 
 
 @router.get("/projects")

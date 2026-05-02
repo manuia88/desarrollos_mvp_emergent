@@ -94,3 +94,11 @@ export const getConstructionProgress = (projectId) => j(`/api/dev/construction/$
 export const updateConstructionStage = (projectId, b) => post(`/api/dev/construction/${projectId}/update-stage`, b);
 export const addConstructionComment = (projectId, b) => post(`/api/dev/construction/${projectId}/comment`, b);
 
+// Phase 4 Batch 2.1 — Colonia benchmark + notifications + per-unit progress + simulate
+export const getColoniaBenchmark = (projectId) => j(`/api/dev/ie/projects/${projectId}/colonia-benchmark`);
+export const simulateCompetitorPrice = (competitorId, deltaPct) => post(`/api/dev/competitors/${competitorId}/simulate-price-update`, { delta_pct: deltaPct });
+export const listNotifications = (unreadOnly = false) => j(`/api/dev/notifications${unreadOnly ? '?unread_only=true' : ''}`);
+export const markNotificationRead = (nid) => post(`/api/dev/notifications/${nid}/read`);
+export const markAllNotificationsRead = () => post('/api/dev/notifications/mark-all-read');
+export const updateUnitProgress = (projectId, b) => post(`/api/dev/construction/${projectId}/unit-update`, b);
+

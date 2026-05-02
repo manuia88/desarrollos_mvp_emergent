@@ -51,6 +51,14 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
     finally { setSubmittingComment(false); }
   };
 
+  const saveUnit = async (unitId, percent, stage) => {
+    try {
+      await api.updateUnitProgress(devId, { unit_id: unitId, percent_complete: percent, current_stage: stage });
+      setToast({ type: 'ok', msg: `Unidad actualizada: ${percent}%` });
+      load();
+    } catch (e) { setToast({ type: 'error', msg: e.body?.detail || 'Error al actualizar unidad' }); }
+  };
+
   if (!data) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando avance de obra…</div>;
 
   const stages = data.stages || [];
@@ -175,6 +183,29 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
         })}
       </div>
 
+      {/* Per-unit progress table (Batch 2.1) */}
+      {data.units && data.units.length > 0 && (
+        <>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>AVANCE POR UNIDAD · {data.units.length} unidades</div>
+          <Card style={{ marginBottom: 22, padding: 0, overflow: 'hidden' }} data-testid="avance-units-table">
+            <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
+                <thead style={{ position: 'sticky', top: 0, background: '#0D1118', zIndex: 2 }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    {['Unidad', 'Prototipo', 'Etapa actual', '% Avance', 'Última act.', ''].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10.5, fontWeight: 500, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.units.map(u => <UnitRow key={u.unit_id} u={u} onSave={saveUnit} readOnly={readOnly} />)}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+
       {/* Comments / Reports */}
       <div className="eyebrow" style={{ marginBottom: 10 }}>BITÁCORA · comentarios y fotos</div>
       {!readOnly && (
@@ -266,5 +297,124 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
         </div>
       )}
     </div>
+  );
+}
+
+
+const STAGE_OPTIONS = [
+  { key: 'cimentacion', label: 'Cimentación' },
+  { key: 'estructura', label: 'Estructura' },
+  { key: 'instalaciones', label: 'Instalaciones' },
+  { key: 'acabados', label: 'Acabados' },
+  { key: 'entrega', label: 'Entrega' },
+];
+
+function UnitRow({ u, onSave, readOnly }) {
+  const [editing, setEditing] = useState(false);
+  const [pct, setPct] = useState(u.percent_complete);
+  const [stage, setStage] = useState(u.current_stage || 'cimentacion');
+  const [saving, setSaving] = useState(false);
+  const clr = STAGE_COLORS[u.current_stage] || STAGE_COLORS.cimentacion;
+
+  const save = async () => {
+    setSaving(true);
+    await onSave(u.unit_id, pct, stage);
+    setSaving(false);
+    setEditing(false);
+  };
+
+  return (
+    <tr data-testid={`unit-row-${u.unit_id}`} style={{ borderBottom: '1px solid var(--border)' }}>
+      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', color: 'var(--cream)', fontWeight: 600 }}>
+        {u.unit_number}
+      </td>
+      <td style={{ padding: '10px 14px', color: 'var(--cream-2)' }}>
+        {u.prototype || '—'}
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        {editing ? (
+          <select
+            data-testid={`unit-stage-${u.unit_id}`}
+            value={stage} onChange={e => setStage(e.target.value)}
+            style={{
+              padding: '4px 8px', background: '#0D1118', border: '1px solid var(--border)', borderRadius: 6,
+              color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12,
+            }}>
+            {STAGE_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+        ) : (
+          <span style={{
+            padding: '3px 10px', borderRadius: 9999,
+            background: clr.bg, border: `1px solid ${clr.bd}`, color: clr.fg,
+            fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
+          }}>
+            {STAGE_OPTIONS.find(s => s.key === u.current_stage)?.label || u.current_stage}
+          </span>
+        )}
+      </td>
+      <td style={{ padding: '10px 14px', minWidth: 120 }}>
+        {editing ? (
+          <input
+            data-testid={`unit-pct-${u.unit_id}`}
+            type="number" min={0} max={100} step={1}
+            value={pct} onChange={e => setPct(+e.target.value)}
+            style={{
+              width: 80, padding: '4px 8px',
+              background: '#0D1118', border: '1px solid var(--border)', borderRadius: 6,
+              color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 12,
+            }}
+          />
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 999 }}>
+              <div style={{ width: `${u.percent_complete}%`, height: '100%', background: clr.fg, borderRadius: 999 }} />
+            </div>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: clr.fg, fontWeight: 600 }}>{u.percent_complete}%</span>
+          </div>
+        )}
+      </td>
+      <td style={{ padding: '10px 14px', fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream-3)' }}>
+        {u.updated_at ? new Date(u.updated_at).toLocaleDateString('es-MX') : '—'}
+      </td>
+      <td style={{ padding: '10px 14px' }}>
+        {!readOnly && !editing && (
+          <button
+            data-testid={`unit-edit-${u.unit_id}`}
+            onClick={() => { setPct(u.percent_complete); setStage(u.current_stage || 'cimentacion'); setEditing(true); }}
+            style={{
+              padding: '5px 10px', borderRadius: 9999,
+              background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+              color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, cursor: 'pointer',
+            }}>
+            Actualizar
+          </button>
+        )}
+        {editing && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button
+              data-testid={`unit-save-${u.unit_id}`}
+              onClick={save}
+              disabled={saving}
+              style={{
+                padding: '5px 10px', borderRadius: 9999,
+                background: 'var(--grad)', border: 'none', color: '#fff',
+                fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600,
+                cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1,
+              }}>
+              {saving ? '…' : 'Guardar'}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              style={{
+                padding: '5px 8px', borderRadius: 9999,
+                background: 'transparent', border: '1px solid var(--border)',
+                color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 10.5, cursor: 'pointer',
+              }}>
+              ✕
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
   );
 }

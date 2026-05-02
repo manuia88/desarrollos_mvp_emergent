@@ -630,6 +630,77 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 2.1 · Recovery gaps B2
+**Objetivo:** cerrar 4 gaps específicos de Batch 2 antes de avanzar a B3: persistencia real de lat/lng + trigger real de alertas competidor con email/notifs + benchmark colonia IE + per-unit construction progress.
+
+### Backend (`routes_dev_batch2.py` +750 líneas · `routes_dev_batch1.py` location validation)
+
+**Sub-Chunk A · 4.5 Mapbox SAVE real:**
+- `PATCH /api/dev/projects/{id}/location` reforzado: validación Pydantic `lat∈[-90,90]` + `lng∈[-180,180]` (422 si fuera), captura `before` doc real para diff_keys, `emit_ml_event('mapbox_location_set')`.
+- Retorna `{ok, project_id, lat, lng, zoom}`.
+
+**Sub-Chunk B · 4.13 Alert TRIGGER real (notifications + email + simulate):**
+- `_fire_competitor_price_alert(db, *, dev_org_id, user_id, user_role, competitor_id, competitor_name, old_price_sqm, new_price_sqm, request)` — núcleo del trigger. Lee `dev_competitor_alert_config`, calcula `delta_pct`, solo dispara cuando competidor baja debajo del umbral (`delta_pct <= -threshold`). Crea `notifications` doc con `channels` (in_app/email), envía Resend email si `RESEND_API_KEY` presente, logs `competitor_alert_fired` audit + `competitor_alert_triggered` ML.
+- `POST /api/dev/competitors/{id}/simulate-price-update` (**DEBUG/QA — restrict or remove before prod launch**) — guard: solo `developer_admin` + `superadmin` (403 para otros). Snapshot persistido en `dev_competitor_price_snapshots`. Audit `competitor_price_simulated` separado del trigger normal.
+- `GET /api/dev/notifications?unread_only=` — lista paginada + `unread_count`.
+- `POST /api/dev/notifications/{id}/read` — marca individual.
+- `POST /api/dev/notifications/mark-all-read` — bulk.
+- Índices: `notifications` (org_id+user_id+read_at+created_at) + `competitor_price_snapshots` (dev_org_id+competitor_id+ts).
+
+**Sub-Chunk C1 · 4.16 Colonia benchmark:**
+- `GET /api/dev/ie/projects/{id}/colonia-benchmark` — agrega score avg de los proyectos peer de la misma `colonia_id` (excluyendo self). Reusa misma RNG determinista para coherencia con breakdown. Retorna `{colonia, projects_count, score_avg:{fundamentals, market, risk, sentiment, overall}}`. `emit_ml_event('ie_colonia_benchmark_view')`.
+
+**Sub-Chunk C2 · 4.25 Per-unit construction progress:**
+- Schema extendido `project_construction_progress.units: [{unit_id, unit_number, prototype, level, current_stage, current_stage_index, percent_complete, updated_at}]`. Seed desde `data_developments._generate_units` la primera vez (56 units para Altavista).
+- `GET /construction/{id}/progress` ahora incluye `units[] + overall_percent` recalculado server-side como avg. Retro-seed para docs pre-B2.1.
+- `POST /construction/{id}/unit-update` — actualiza `percent_complete` + `current_stage` de una unidad, recalcula `overall_percent` + `stages[]` buckets. audit `construction_unit_progress` + ML `avance_obra_unit_update`.
+
+### Frontend
+
+**Componentes:**
+- `AvanceObraTab.js` (+90 líneas) — nueva tabla scroll con 56+ unidades. Columnas: Unidad · Prototipo · Etapa (select dropdown inline) · % avance (progress bar visual + input inline) · Última act · Editar/Guardar/Cancelar. Persistencia vía `updateUnitProgress`.
+- `GeolocalizacionTab.js` — role guard `canEdit = role ∈ {developer_admin, superadmin}`, disable picker si no.
+- `DesarrolladorIEDetail.js` (+90 líneas) — nuevo `ColoniaBenchmarkCard` entre Overall card y categorías. Card muestra 4 categorías con `mine vs col · delta` + badge Δ overall verde/rojo.
+- `DesarrolladorCompetidores.js` (+170 líneas):
+  - Bell icon con badge count unread en header (badge oculto si 0)
+  - Drawer lateral 420px con últimas 50 notifs, botón "Marcar leídas" + bulk mark-all-read + poll 30s
+  - Por cada competidor: botón `Sim -7%` **solo visible si role ∈ {developer_admin, superadmin}**, con Zap icon, disabled while submitting
+  - Integración directa con `simulateCompetitorPrice` API
+
+**API helpers (+7):**
+`getColoniaBenchmark`, `simulateCompetitorPrice`, `listNotifications`, `markNotificationRead`, `markAllNotificationsRead`, `updateUnitProgress`.
+
+### Verificación backend curl (todos ✅)
+- PATCH location válido 200 + lat 19.4355 / lng -99.1945 persisted → source=manual
+- PATCH lat=200 → 422 `less_than_equal` (validación 90)
+- PATCH lng=-500 → 422 `greater_than_equal` (validación -180)
+- Config threshold 5% → simulate -7% Lomas Signature → `fired:true, notif_id:notif_...`, notification creada, unread=1
+- Simulate -3% → `fired:false` (bajo umbral) — sin notificación
+- Role guard: asesor@demo.com POST simulate → 403 `Rol no autorizado`
+- Mark-read → unread_count: 0
+- Colonia benchmark Altavista (colonia Polanco) → 1 peer + 4 cat averages + overall
+- Construction/progress → 56 units embebidas + overall_percent calculado
+- POST unit-update (unit 02A, 85%, acabados) → overall recalculado 9.4%
+- Audit log final: 14 entries · 4 nuevos tipos B2.1 (`project_location` 1 · `competitor_price_simulated` 3 · `competitor_alert_fired` 2 · `construction_unit_progress` 1)
+
+### Smoke test Playwright
+- `/desarrollador/desarrollos/altavista-polanco/ie` → `ie-colonia-benchmark` card=1, `ie-bench-overall-delta`=1, 5 bench cat blocks (incluye overall).
+- `/desarrollador/competidores` → `notif-bell-btn`=1, `comp-simulate-*`=3 (1 por competidor), click simulate → notif-drawer=1, 2 notif_items visibles.
+- `/desarrollador/desarrollos/altavista-polanco/legajo` tab avance → `avance-units-table`=1, 56 unit rows, 56 botones editar.
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch2.py` (+750 líneas: colonia benchmark + notifications + simulate + per-unit)
+- `/app/backend/routes_dev_batch1.py` (location validation + before capture + ML event)
+- `/app/frontend/src/api/developer.js` (+7 helpers batch 2.1)
+- `/app/frontend/src/pages/developer/DesarrolladorIEDetail.js` (+ColoniaBenchmarkCard)
+- `/app/frontend/src/pages/developer/DesarrolladorCompetidores.js` (+bell+drawer+simulate btn+role guard)
+- `/app/frontend/src/components/developer/AvanceObraTab.js` (+UnitRow table +saveUnit flow)
+- `/app/frontend/src/components/developer/GeolocalizacionTab.js` (role guard)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (pasa `user` prop a GeolocalizacionTab)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-01 — Phase F0.1 · Audit Log Global Mutations
 **Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
 

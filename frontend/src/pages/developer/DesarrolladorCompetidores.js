@@ -1,10 +1,10 @@
-// /desarrollador/competidores — D3 Competitor Radar ENRICHED (Phase 4 Batch 2)
+// /desarrollador/competidores — D3 Competitor Radar ENRICHED (Phase 4 Batch 2 + 2.1 notifications)
 import React, { useEffect, useState } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, fmt0, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
-import { Radio, Bell, TrendUp, TrendDown, X, MessageCircle } from '../../components/icons';
-import { LineChart, Sparkline } from '../../components/developer/ChartPrimitives';
+import { Radio, Bell, TrendUp, TrendDown, X, MessageCircle, Zap } from '../../components/icons';
+import { LineChart } from '../../components/developer/ChartPrimitives';
 
 export default function DesarrolladorCompetidores({ user, onLogout }) {
   const [data, setData] = useState(null);
@@ -15,11 +15,25 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
   const [showConfig, setShowConfig] = useState(false);
   const [cfg, setCfg] = useState(null);
 
+  // Batch 2.1 — notifications + simulate
+  const [notifs, setNotifs] = useState({ items: [], unread_count: 0 });
+  const [showNotifDrawer, setShowNotifDrawer] = useState(false);
+  const [simulatingId, setSimulatingId] = useState(null);
+
+  const canSimulate = user && (user.role === 'developer_admin' || user.role === 'superadmin');
+
   const load = () => api.getCompetitorsEnriched(null, radius).then(d => {
     setData(d);
     setCfg(d.alert_config);
   });
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [radius]);
+  const loadNotifs = () => api.listNotifications().then(setNotifs).catch(() => {});
+
+  useEffect(() => { load(); loadNotifs(); /* eslint-disable-next-line */ }, [radius]);
+  useEffect(() => {
+    // Poll notifications every 30s
+    const iv = setInterval(loadNotifs, 30000);
+    return () => clearInterval(iv);
+  }, []);
 
   const openHistory = async (comp) => {
     setHistoryFor(comp);
@@ -28,6 +42,38 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
       const h = await api.getCompetitorHistory(comp.id);
       setHistory(h);
     } catch (e) { setToast({ kind: 'error', text: e.body?.detail || 'Error al cargar histórico' }); }
+  };
+
+  const simulatePrice = async (competitor) => {
+    if (simulatingId) return;
+    setSimulatingId(competitor.id);
+    try {
+      const r = await api.simulateCompetitorPrice(competitor.id, -7);
+      if (r.trigger?.fired) {
+        setToast({ kind: 'success', text: `Alerta disparada: ${competitor.name} Δ${r.delta_pct}%` });
+        loadNotifs();
+      } else {
+        setToast({ kind: 'success', text: `Simulado Δ${r.delta_pct}% · sin alerta (bajo umbral)` });
+      }
+    } catch (e) {
+      setToast({ kind: 'error', text: e.body?.detail || 'Error al simular' });
+    } finally {
+      setSimulatingId(null);
+    }
+  };
+
+  const onMarkRead = async (nid) => {
+    try {
+      await api.markNotificationRead(nid);
+      loadNotifs();
+    } catch {}
+  };
+
+  const onMarkAllRead = async () => {
+    try {
+      await api.markAllNotificationsRead();
+      loadNotifs();
+    } catch {}
   };
 
   const saveCfg = async (newCfg) => {
@@ -49,6 +95,31 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <button
+              data-testid="notif-bell-btn"
+              onClick={() => setShowNotifDrawer(true)}
+              style={{
+                position: 'relative',
+                padding: '8px 12px', borderRadius: 9999,
+                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}>
+              <Bell size={13} />
+              {notifs.unread_count > 0 && (
+                <span
+                  data-testid="notif-badge"
+                  style={{
+                    position: 'absolute', top: -4, right: -4,
+                    minWidth: 18, height: 18, padding: '0 5px',
+                    borderRadius: 9999,
+                    background: '#EC4899', color: '#06080F',
+                    fontFamily: 'DM Mono, monospace', fontSize: 10.5, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '1.5px solid #0D1118',
+                  }}>{notifs.unread_count > 99 ? '99+' : notifs.unread_count}</span>
+              )}
+            </button>
+            <button
               data-testid="comp-config-btn"
               onClick={() => setShowConfig(true)}
               style={{
@@ -57,7 +128,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                 color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
               }}>
-              <Bell size={12} /> Alertas
+              <Bell size={12} /> Config
             </button>
             <select value={radius} onChange={e => setRadius(+e.target.value)} className="asr-select" data-testid="comp-radius">
               <option value={1}>Radio 1km</option>
@@ -119,7 +190,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
                   {data.competitors.map(c => (
                     <Card key={c.id} data-testid={`comp-${c.id}`}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr auto', alignItems: 'center', gap: 14 }} className="comp-row">
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr auto auto', alignItems: 'center', gap: 12 }} className="comp-row">
                         <div>
                           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{c.name}</div>
                           <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
@@ -156,6 +227,23 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
                           }}>
                           <TrendUp size={11} /> Histórico
                         </button>
+                        {canSimulate && (
+                          <button
+                            data-testid={`comp-simulate-${c.id}`}
+                            onClick={() => simulatePrice(c)}
+                            disabled={simulatingId === c.id}
+                            title="DEBUG/QA — Simular bajada -7% para probar alertas"
+                            style={{
+                              padding: '7px 10px', borderRadius: 9999,
+                              background: simulatingId === c.id ? 'rgba(148,163,184,0.25)' : 'rgba(251,191,36,0.12)',
+                              border: '1px solid rgba(251,191,36,0.32)',
+                              color: '#fcd34d', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
+                              cursor: simulatingId === c.id ? 'wait' : 'pointer',
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                            }}>
+                            <Zap size={10} /> {simulatingId === c.id ? '…' : 'Sim -7%'}
+                          </button>
+                        )}
                       </div>
                     </Card>
                   ))}
@@ -190,6 +278,96 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
             </div>
           </>
         )}
+
+      {/* Notifications drawer (Batch 2.1) */}
+      {showNotifDrawer && (
+        <div
+          data-testid="notif-drawer"
+          onClick={() => setShowNotifDrawer(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 710, background: 'rgba(8,10,18,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#0D1118', borderLeft: '1px solid var(--border)',
+            width: 'min(420px, 100%)', height: '100%', overflowY: 'auto',
+            padding: 22,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <div>
+                <div className="eyebrow">NOTIFICACIONES</div>
+                <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: '4px 0 0' }}>
+                  Alertas de competidores
+                </h3>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>
+                  {notifs.unread_count} sin leer · {notifs.items.length} totales
+                </div>
+              </div>
+              <button onClick={() => setShowNotifDrawer(false)} data-testid="notif-drawer-close" style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {notifs.unread_count > 0 && (
+              <button
+                data-testid="notif-mark-all"
+                onClick={onMarkAllRead}
+                style={{
+                  width: '100%', padding: '8px 14px', marginBottom: 12,
+                  background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)',
+                  borderRadius: 9999, color: '#f9a8d4',
+                  fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}>
+                Marcar todas como leídas
+              </button>
+            )}
+
+            {notifs.items.length === 0 && (
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
+                Sin notificaciones aún. Configura umbrales y simula una bajada para probar.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {notifs.items.map(n => {
+                const unread = !n.read_at;
+                const p = n.payload || {};
+                return (
+                  <div key={n.id} data-testid={`notif-${n.id}`} style={{
+                    padding: 14, borderRadius: 12,
+                    background: unread ? 'rgba(236,72,153,0.08)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${unread ? 'rgba(236,72,153,0.3)' : 'var(--border)'}`,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6, gap: 8 }}>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>
+                        {p.competitor_name || 'Competidor'}
+                      </div>
+                      <Badge tone={p.delta_pct < 0 ? 'bad' : 'neutral'}>
+                        {p.delta_pct > 0 ? '+' : ''}{p.delta_pct}%
+                      </Badge>
+                    </div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.5, marginBottom: 6 }}>
+                      Bajó precio/m² de <strong>{fmtMXN(p.old_price_sqm)}</strong> a <strong>{fmtMXN(p.new_price_sqm)}</strong>. Umbral configurado: {p.threshold_pct}%.
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-3)' }}>
+                        {new Date(n.created_at).toLocaleString('es-MX')}
+                      </div>
+                      {unread && (
+                        <button
+                          data-testid={`notif-mark-${n.id}`}
+                          onClick={() => onMarkRead(n.id)}
+                          style={{
+                            background: 'transparent', border: 'none',
+                            color: 'var(--cream-3)', cursor: 'pointer',
+                            fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
+                          }}>Marcar leída</button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* History modal */}
       {historyFor && (

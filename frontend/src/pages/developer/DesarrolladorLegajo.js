@@ -164,7 +164,7 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
       )}
 
       {tab === 'geoloc' && (
-        <GeolocalizacionTab devId={slug} />
+        <GeolocalizacionTab devId={slug} user={user} />
       )}
 
       {tab === 'ie' && (

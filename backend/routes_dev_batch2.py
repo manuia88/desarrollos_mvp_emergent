@@ -682,31 +682,20 @@ async def get_construction_progress(project_id: str, request: Request):
     if not dev:
         raise HTTPException(404, "Proyecto no encontrado")
 
-    doc = await db.project_construction_progress.find_one(
-        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
-    )
-    if not doc:
-        # Seed from development.progress
-        seed_pct = dev.get("construction_progress", {}).get("percentage", 0) if isinstance(dev.get("construction_progress"), dict) else dev.get("progress", 0)
-        stages = []
-        # Distribute seed_pct across stages
-        remaining = seed_pct
-        for s in DEFAULT_STAGES:
-            pct = min(100, remaining)
-            stages.append({**s, "percent": max(0, pct), "updated_at": None})
-            remaining = max(0, remaining - 100)
-        current_idx = next((i for i, s in enumerate(stages) if s["percent"] < 100), len(stages) - 1)
-        doc = {
-            "project_id": project_id,
-            "dev_org_id": _tenant(user),
-            "stages": stages,
-            "current_stage": stages[current_idx]["key"],
-            "overall_percent": seed_pct,
-            "per_unit_avg_percent": seed_pct,
-            "photos": [],
-            "comments": [],
-            "updated_at": _now().isoformat(),
-        }
+    doc = await _get_or_seed_progress_doc(db, project_id, _tenant(user))
+
+    # If an existing doc was created before Batch 2.1 without units, seed them now.
+    if not doc.get("units"):
+        seed_pct = doc.get("overall_percent", 0)
+        units = _seed_units_from_project(project_id, initial_overall=seed_pct)
+        if units:
+            overall = round(sum(u["percent_complete"] for u in units) / len(units), 1)
+            await db.project_construction_progress.update_one(
+                {"project_id": project_id, "dev_org_id": _tenant(user)},
+                {"$set": {"units": units, "per_unit_avg_percent": overall, "updated_at": _now().isoformat()}},
+            )
+            doc["units"] = units
+            doc["per_unit_avg_percent"] = overall
 
     return {
         "project_id": project_id,
@@ -827,6 +816,465 @@ async def add_construction_comment(project_id: str, payload: ConstructionComment
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# BATCH 2.1 · Sub-Chunk C1 — IE COLONIA BENCHMARK
+# ═════════════════════════════════════════════════════════════════════════════
+@router.get("/ie/projects/{project_id}/colonia-benchmark")
+async def ie_colonia_benchmark(project_id: str, request: Request):
+    """Return average IE scores of OTHER projects in same colonia (excluding self).
+    Reuses the internal breakdown logic per peer project to compute per-category averages.
+    """
+    user = await _auth(request)
+    db = _db(request)
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:
+        raise HTTPException(404, "Proyecto no encontrado")
+
+    # Find peers in same colonia (by colonia_id)
+    from data_developments import DEVELOPMENTS
+    peers = [d for d in DEVELOPMENTS if d["colonia_id"] == dev["colonia_id"] and d["id"] != project_id]
+
+    if not peers:
+        return {
+            "project_id": project_id, "colonia": dev["colonia"],
+            "projects_count": 0,
+            "score_avg": {"fundamentals": None, "market": None, "risk": None, "sentiment": None, "overall": None},
+        }
+
+    # Helper: compute mock score per (project, category) using same deterministic RNG as breakdown
+    def _peer_cat_scores(peer_id: str) -> Dict[str, float]:
+        peer_rng = random.Random(hash(peer_id) % 2**32)
+        cats: Dict[str, float] = {}
+        all_vals: List[float] = []
+        for cat_name, codes in SCORE_CATEGORIES.items():
+            vals = []
+            for _code in codes:
+                base = 55 + peer_rng.randint(-12, 28)
+                vals.append(max(0, min(100, base)))
+            cats[cat_name] = round(sum(vals) / len(vals), 1) if vals else 0
+            all_vals.extend(vals)
+        cats["overall"] = round(sum(all_vals) / len(all_vals), 1) if all_vals else 0
+        return cats
+
+    peer_cats = [_peer_cat_scores(p["id"]) for p in peers]
+    n = len(peer_cats)
+    score_avg = {
+        k: round(sum(p[k] for p in peer_cats) / n, 1)
+        for k in ("fundamentals", "market", "risk", "sentiment", "overall")
+    }
+
+    # ML event
+    try:
+        from observability import emit_ml_event
+        await emit_ml_event(
+            db, event_type="ie_colonia_benchmark_view",
+            user_id=user.user_id, org_id=_tenant(user), role=user.role,
+            context={"project_id": project_id, "colonia": dev["colonia"], "peers": n},
+            ai_decision={}, user_action={"action": "view"},
+        )
+    except Exception:
+        pass
+
+    return {
+        "project_id": project_id,
+        "colonia": dev["colonia"],
+        "projects_count": n,
+        "score_avg": score_avg,
+    }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# BATCH 2.1 · Sub-Chunk B — NOTIFICATIONS + COMPETITOR ALERT TRIGGER
+# ═════════════════════════════════════════════════════════════════════════════
+ALERT_NOTIF_TYPE = "competitor_price_alert"
+
+
+async def _fire_competitor_price_alert(
+    db, *, dev_org_id: str, user_id: str, user_role: str,
+    competitor_id: str, competitor_name: str,
+    old_price_sqm: float, new_price_sqm: float, request: Optional[Request] = None,
+) -> Dict[str, Any]:
+    """Core trigger: if delta breaches configured threshold, create notification and
+    optionally send email via Resend. Returns a summary dict (ok, fired, delta_pct)."""
+    if not old_price_sqm or old_price_sqm <= 0:
+        return {"ok": True, "fired": False, "reason": "no_prev_price"}
+    delta_pct = round(100 * (new_price_sqm - old_price_sqm) / old_price_sqm, 2)
+
+    cfg = await db.dev_competitor_alert_config.find_one(
+        {"dev_org_id": dev_org_id}, {"_id": 0}
+    ) or {"price_delta_threshold_pct": 5.0, "absorption_threshold_pct": 65.0, "notify_email": True, "notify_inapp": True}
+
+    threshold = float(cfg.get("price_delta_threshold_pct") or 5.0)
+    # Fire only when competitor dropped below our price (delta_pct <= -threshold).
+    if delta_pct > -threshold:
+        return {"ok": True, "fired": False, "delta_pct": delta_pct, "threshold": threshold}
+
+    channels = []
+    if cfg.get("notify_inapp", True):
+        channels.append("in_app")
+    if cfg.get("notify_email", True):
+        channels.append("email")
+
+    notif = {
+        "id": _uid("notif"),
+        "user_id": user_id,
+        "org_id": dev_org_id,
+        "type": ALERT_NOTIF_TYPE,
+        "payload": {
+            "competitor_id": competitor_id,
+            "competitor_name": competitor_name,
+            "old_price_sqm": round(old_price_sqm, 2),
+            "new_price_sqm": round(new_price_sqm, 2),
+            "delta_pct": delta_pct,
+            "threshold_pct": threshold,
+        },
+        "channels": channels,
+        "read_at": None,
+        "created_at": _now().isoformat(),
+    }
+    await db.notifications.insert_one(notif)
+
+    # Email via Resend (best-effort)
+    email_sent = False
+    import os as _os
+    resend_key = _os.environ.get("RESEND_API_KEY", "")
+    recipient_email = None
+    if "email" in channels and resend_key:
+        try:
+            me = await db.users.find_one({"user_id": user_id}, {"_id": 0, "email": 1})
+            recipient_email = (me or {}).get("email")
+            if recipient_email:
+                import resend
+                resend.api_key = resend_key
+                resend.Emails.send({
+                    "from": "DMX Alerts <alerts@desarrollosmx.com>",
+                    "to": recipient_email,
+                    "subject": f"Alerta precio: {competitor_name} bajó {-delta_pct}%",
+                    "html": (
+                        f"<h2>Alerta de competidor</h2>"
+                        f"<p><strong>{competitor_name}</strong> redujo su precio/m² "
+                        f"de ${int(old_price_sqm):,} a ${int(new_price_sqm):,} "
+                        f"(Δ {delta_pct}%). Tu umbral: {threshold}%.</p>"
+                        f"<p><a href='/desarrollador/competidores'>Ver radar de competidores</a></p>"
+                    ),
+                })
+                email_sent = True
+        except Exception as ex:
+            import logging
+            logging.getLogger("dmx").warning(f"[alert] Resend failed: {ex}")
+
+    try:
+        from audit_log import log_mutation
+        from observability import emit_ml_event
+        await log_mutation(
+            db, {"user_id": user_id, "role": user_role, "tenant_id": dev_org_id, "name": None},
+            "create", "competitor_alert_fired", notif["id"],
+            before=None, after={"competitor_id": competitor_id, "delta_pct": delta_pct, "threshold": threshold, "email_sent": email_sent},
+            request=request,
+        )
+        await emit_ml_event(
+            db, event_type="competitor_alert_triggered",
+            user_id=user_id, org_id=dev_org_id, role=user_role,
+            context={"competitor_id": competitor_id, "delta_pct": delta_pct, "threshold": threshold},
+            ai_decision={"email_sent": email_sent, "channels": channels},
+            user_action={},
+        )
+    except Exception:
+        pass
+
+    return {"ok": True, "fired": True, "notif_id": notif["id"], "delta_pct": delta_pct, "threshold": threshold, "email_sent": email_sent}
+
+
+class CompetitorPriceSimulation(BaseModel):
+    delta_pct: float = Field(..., ge=-50.0, le=50.0, description="Signed delta to apply to current price_sqm (e.g. -7 for 7%% drop)")
+
+
+@router.post("/competitors/{competitor_id}/simulate-price-update")
+async def simulate_competitor_price_update(competitor_id: str, payload: CompetitorPriceSimulation, request: Request):
+    """DEBUG/QA — restrict or remove before prod launch.
+
+    Simulates a competitor price change and runs the real alert trigger chain
+    (notification creation + optional email + audit + ML event). Only
+    accessible to developer_admin and superadmin.
+    """
+    user = await _auth(request)
+    if user.role not in ("developer_admin", "superadmin"):
+        raise HTTPException(403, "Solo developer_admin / superadmin pueden simular precios")
+    db = _db(request)
+    from data_developments import DEVELOPMENTS_BY_ID
+    comp = DEVELOPMENTS_BY_ID.get(competitor_id)
+    if not comp:
+        raise HTTPException(404, "Competidor no encontrado")
+
+    old_price_sqm = comp["price_from"] / max(1, comp["m2_range"][0])
+    new_price_sqm = old_price_sqm * (1 + payload.delta_pct / 100)
+
+    # Persist a snapshot in a dedicated collection (demo only).
+    await db.dev_competitor_price_snapshots.insert_one({
+        "id": _uid("psnap"),
+        "competitor_id": competitor_id,
+        "dev_org_id": _tenant(user),
+        "old_price_sqm": old_price_sqm,
+        "new_price_sqm": new_price_sqm,
+        "delta_pct": payload.delta_pct,
+        "simulated": True,
+        "simulated_by": user.user_id,
+        "ts": _now().isoformat(),
+    })
+
+    # Audit the simulation itself (separate entry type).
+    try:
+        from audit_log import log_mutation
+        await log_mutation(
+            db, user, "create", "competitor_price_simulated", competitor_id,
+            before={"price_sqm": round(old_price_sqm, 2)},
+            after={"price_sqm": round(new_price_sqm, 2), "delta_pct": payload.delta_pct},
+            request=request,
+        )
+    except Exception:
+        pass
+
+    trigger = await _fire_competitor_price_alert(
+        db,
+        dev_org_id=_tenant(user), user_id=user.user_id, user_role=user.role,
+        competitor_id=competitor_id, competitor_name=comp["name"],
+        old_price_sqm=old_price_sqm, new_price_sqm=new_price_sqm, request=request,
+    )
+    return {
+        "ok": True, "competitor_id": competitor_id, "competitor_name": comp["name"],
+        "old_price_sqm": round(old_price_sqm, 2),
+        "new_price_sqm": round(new_price_sqm, 2),
+        "delta_pct": payload.delta_pct,
+        "trigger": trigger,
+    }
+
+
+@router.get("/notifications")
+async def list_notifications(request: Request, unread_only: bool = False, limit: int = 50):
+    user = await _auth(request)
+    db = _db(request)
+    q: Dict[str, Any] = {"org_id": _tenant(user), "user_id": user.user_id}
+    if unread_only:
+        q["read_at"] = None
+    items = await db.notifications.find(q, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    unread = await db.notifications.count_documents({"org_id": _tenant(user), "user_id": user.user_id, "read_at": None})
+    return {"items": items, "unread_count": unread}
+
+
+@router.post("/notifications/{nid}/read")
+async def mark_notification_read(nid: str, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    r = await db.notifications.update_one(
+        {"id": nid, "user_id": user.user_id, "org_id": _tenant(user)},
+        {"$set": {"read_at": _now().isoformat()}},
+    )
+    if r.matched_count == 0:
+        raise HTTPException(404, "Notificación no encontrada")
+    return {"ok": True, "id": nid}
+
+
+@router.post("/notifications/mark-all-read")
+async def mark_all_notifications_read(request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    r = await db.notifications.update_many(
+        {"user_id": user.user_id, "org_id": _tenant(user), "read_at": None},
+        {"$set": {"read_at": _now().isoformat()}},
+    )
+    return {"ok": True, "updated": r.modified_count}
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# BATCH 2.1 · Sub-Chunk C2 — PER-UNIT CONSTRUCTION PROGRESS
+# ═════════════════════════════════════════════════════════════════════════════
+STAGE_ORDER = ["cimentacion", "estructura", "instalaciones", "acabados", "entrega"]
+
+
+def _stage_index(stage_key: str) -> int:
+    try:
+        return STAGE_ORDER.index(stage_key)
+    except ValueError:
+        return 0
+
+
+def _seed_units_from_project(project_id: str, initial_overall: int = 0) -> List[Dict[str, Any]]:
+    """Build per-unit progress seed from data_developments._generate_units output."""
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(project_id)
+    if not dev:
+        return []
+    now_iso = _now().isoformat()
+    units_seed: List[Dict[str, Any]] = []
+    for u in dev.get("units", []):
+        # Approximate stage from initial_overall (even distribution).
+        pct = max(0.0, min(100.0, float(initial_overall)))
+        idx = _stage_index(
+            "cimentacion" if pct < 20 else
+            "estructura" if pct < 40 else
+            "instalaciones" if pct < 60 else
+            "acabados" if pct < 90 else
+            "entrega"
+        )
+        units_seed.append({
+            "unit_id": u["id"],
+            "unit_number": u.get("unit_number"),
+            "prototype": u.get("prototype"),
+            "level": u.get("level"),
+            "current_stage_index": idx,
+            "current_stage": STAGE_ORDER[idx],
+            "percent_complete": pct,
+            "updated_at": now_iso,
+        })
+    return units_seed
+
+
+async def _get_or_seed_progress_doc(db, project_id: str, dev_org_id: str) -> Dict[str, Any]:
+    doc = await db.project_construction_progress.find_one(
+        {"project_id": project_id, "dev_org_id": dev_org_id}, {"_id": 0}
+    )
+    if doc and doc.get("units"):
+        return doc
+
+    # Seed from development.progress
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(project_id) or {}
+    seed_pct = dev.get("construction_progress", {}).get("percentage", 0) if isinstance(dev.get("construction_progress"), dict) else dev.get("progress", 0)
+
+    stages = []
+    remaining = seed_pct
+    for s in DEFAULT_STAGES:
+        pct = min(100, remaining)
+        stages.append({**s, "percent": max(0, pct), "updated_at": None})
+        remaining = max(0, remaining - 100)
+    current_idx = next((i for i, s in enumerate(stages) if s["percent"] < 100), len(stages) - 1)
+
+    units = _seed_units_from_project(project_id, initial_overall=seed_pct)
+    overall = round(sum(u["percent_complete"] for u in units) / len(units), 1) if units else seed_pct
+
+    doc = {
+        "project_id": project_id,
+        "dev_org_id": dev_org_id,
+        "stages": stages,
+        "current_stage": stages[current_idx]["key"] if stages else None,
+        "overall_percent": overall,
+        "per_unit_avg_percent": overall,
+        "units": units,
+        "photos": [],
+        "comments": [],
+        "updated_at": _now().isoformat(),
+    }
+    # Best-effort upsert (keep idempotent)
+    await db.project_construction_progress.update_one(
+        {"project_id": project_id, "dev_org_id": dev_org_id},
+        {"$setOnInsert": doc},
+        upsert=True,
+    )
+    return doc
+
+
+class UnitProgressUpdate(BaseModel):
+    unit_id: str
+    percent_complete: float = Field(..., ge=0.0, le=100.0)
+    current_stage: Optional[str] = None  # key in STAGE_ORDER (if not given, derived from percent)
+    note: Optional[str] = None
+
+
+@router.post("/construction/{project_id}/unit-update")
+async def update_unit_progress(project_id: str, payload: UnitProgressUpdate, request: Request):
+    user = await _auth(request)
+    db = _db(request)
+    from data_developments import DEVELOPMENTS_BY_ID
+    if project_id not in DEVELOPMENTS_BY_ID:
+        raise HTTPException(404, "Proyecto no encontrado")
+
+    doc = await _get_or_seed_progress_doc(db, project_id, _tenant(user))
+    units = list(doc.get("units") or [])
+
+    # Find unit
+    target_idx = next((i for i, u in enumerate(units) if u["unit_id"] == payload.unit_id), None)
+    if target_idx is None:
+        raise HTTPException(404, f"Unidad {payload.unit_id} no encontrada en el proyecto")
+
+    prev = dict(units[target_idx])
+    stage_key = payload.current_stage or (
+        "cimentacion" if payload.percent_complete < 20 else
+        "estructura" if payload.percent_complete < 40 else
+        "instalaciones" if payload.percent_complete < 60 else
+        "acabados" if payload.percent_complete < 90 else
+        "entrega"
+    )
+    if stage_key not in STAGE_ORDER:
+        raise HTTPException(400, f"current_stage inválido: {stage_key}")
+
+    units[target_idx].update({
+        "percent_complete": float(payload.percent_complete),
+        "current_stage": stage_key,
+        "current_stage_index": _stage_index(stage_key),
+        "updated_at": _now().isoformat(),
+    })
+
+    # Recalculate overall server-side (avg of units.percent_complete)
+    overall = round(sum(u["percent_complete"] for u in units) / len(units), 1) if units else 0.0
+
+    # Also re-seed stages aggregate to reflect units.
+    stages = doc.get("stages") or [dict(s) for s in DEFAULT_STAGES]
+    # Bucket units into stages (0-20/20-40/40-60/60-90/90-100) and compute per-stage average
+    buckets: Dict[str, List[float]] = {k: [] for k in STAGE_ORDER}
+    for u in units:
+        sk = u.get("current_stage") or "cimentacion"
+        if sk in buckets:
+            buckets[sk].append(u.get("percent_complete", 0))
+    for s in stages:
+        vals = buckets.get(s["key"], [])
+        if vals:
+            s["percent"] = round(sum(vals) / len(vals), 1)
+            s["updated_at"] = _now().isoformat()
+    current = next((s["key"] for s in stages if s["percent"] < 100), stages[-1]["key"] if stages else None)
+
+    await db.project_construction_progress.update_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)},
+        {"$set": {
+            "project_id": project_id,
+            "dev_org_id": _tenant(user),
+            "units": units,
+            "stages": stages,
+            "overall_percent": overall,
+            "per_unit_avg_percent": overall,
+            "current_stage": current,
+            "updated_at": _now().isoformat(),
+            "updated_by": user.user_id,
+        }},
+        upsert=True,
+    )
+
+    try:
+        from audit_log import log_mutation
+        from observability import emit_ml_event
+        await log_mutation(
+            db, user, "update", "construction_unit_progress", payload.unit_id,
+            before={"percent_complete": prev.get("percent_complete"), "current_stage": prev.get("current_stage")},
+            after={"percent_complete": payload.percent_complete, "current_stage": stage_key, "note": payload.note},
+            request=request,
+        )
+        await emit_ml_event(
+            db, event_type="avance_obra_unit_update",
+            user_id=user.user_id, org_id=_tenant(user), role=user.role,
+            context={"project_id": project_id, "unit_id": payload.unit_id, "stage": stage_key},
+            ai_decision={},
+            user_action={"percent_complete": payload.percent_complete},
+        )
+    except Exception:
+        pass
+
+    return {
+        "ok": True, "project_id": project_id, "unit_id": payload.unit_id,
+        "percent_complete": payload.percent_complete, "current_stage": stage_key,
+        "overall_percent": overall, "current_project_stage": current,
+    }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # INDEXES
 # ═════════════════════════════════════════════════════════════════════════════
 async def ensure_dev_batch2_indexes(db) -> None:
@@ -838,6 +1286,15 @@ async def ensure_dev_batch2_indexes(db) -> None:
     )
     await db.project_construction_progress.create_index(
         [("dev_org_id", 1), ("project_id", 1)], unique=True, background=True
+    )
+    # Batch 2.1 — notifications + price snapshots
+    await db.notifications.create_index(
+        [("org_id", 1), ("user_id", 1), ("read_at", 1), ("created_at", -1)], background=True
+    )
+    await db.notifications.create_index([("type", 1)], background=True)
+    await db.notifications.create_index([("id", 1)], unique=True, background=True)
+    await db.dev_competitor_price_snapshots.create_index(
+        [("dev_org_id", 1), ("competitor_id", 1), ("ts", -1)], background=True
     )
     import logging
     logging.getLogger("dmx").info("[dev_batch2] indexes ensured")

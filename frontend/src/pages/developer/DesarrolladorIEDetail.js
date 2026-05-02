@@ -24,12 +24,14 @@ const CAT_LABELS = {
 export default function DesarrolladorIEDetail({ user, onLogout }) {
   const { slug } = useParams();
   const [data, setData] = useState(null);
+  const [benchmark, setBenchmark] = useState(null);
   const [drillScore, setDrillScore] = useState(null);
   const [drillData, setDrillData] = useState(null);
 
   useEffect(() => {
     if (!slug) return;
     api.getIEBreakdown(slug).then(setData).catch(() => setData({ error: true }));
+    api.getColoniaBenchmark(slug).then(setBenchmark).catch(() => setBenchmark({ error: true }));
   }, [slug]);
 
   const openDrill = async (score) => {
@@ -92,6 +94,11 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
           </div>
         </div>
       </Card>
+
+      {/* Colonia benchmark card (Batch 2.1) */}
+      {benchmark && !benchmark.error && benchmark.projects_count > 0 && (
+        <ColoniaBenchmarkCard myData={data} benchmark={benchmark} />
+      )}
 
       {/* Categories */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14 }}>
@@ -241,6 +248,80 @@ function MiniMetric({ label, v, color }) {
     <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
       <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>{label}</div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color }}>{v}</div>
+    </div>
+  );
+}
+
+function ColoniaBenchmarkCard({ myData, benchmark }) {
+  const CATS = [
+    { key: 'fundamentals', label: 'Fundamentales' },
+    { key: 'market',       label: 'Mercado' },
+    { key: 'risk',         label: 'Riesgo' },
+    { key: 'sentiment',    label: 'Sentimiento' },
+  ];
+  const myCats = {};
+  (myData.categories || []).forEach(c => { myCats[c.key] = c.avg; });
+  const myOverall = myData.overall_score;
+  const colOverall = benchmark.score_avg.overall;
+  const overallDelta = myOverall != null && colOverall != null ? +(myOverall - colOverall).toFixed(1) : 0;
+
+  return (
+    <div data-testid="ie-colonia-benchmark" style={{
+      background: 'linear-gradient(140deg, rgba(99,102,241,0.08), rgba(236,72,153,0.04))',
+      border: '1px solid var(--border)', borderRadius: 16, padding: 18, marginBottom: 18,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+        <div>
+          <div className="eyebrow">VS BENCHMARK COLONIA</div>
+          <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', margin: '4px 0 2px', letterSpacing: '-0.018em' }}>
+            {myData.project_name} vs promedio {benchmark.colonia}
+          </h3>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
+            Comparado con {benchmark.projects_count} proyecto{benchmark.projects_count === 1 ? '' : 's'} en {benchmark.colonia}
+          </div>
+        </div>
+        <div style={{
+          padding: '8px 14px', borderRadius: 10,
+          background: overallDelta >= 0 ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)',
+          border: `1px solid ${overallDelta >= 0 ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}`,
+          color: overallDelta >= 0 ? '#86efac' : '#fca5a5',
+          fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }} data-testid="ie-bench-overall-delta">
+          {overallDelta >= 0 ? <TrendUp size={13} /> : <TrendDown size={13} />}
+          Δ overall: {overallDelta >= 0 ? '+' : ''}{overallDelta}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+        {CATS.map(c => {
+          const mine = myCats[c.key] ?? 0;
+          const col = benchmark.score_avg[c.key] ?? 0;
+          const d = +(mine - col).toFixed(1);
+          const positive = d >= 0;
+          return (
+            <div key={c.key} data-testid={`ie-bench-${c.key}`} style={{
+              padding: 12, borderRadius: 12,
+              background: 'rgba(13,17,24,0.55)', border: '1px solid var(--border)',
+            }}>
+              <div className="eyebrow" style={{ marginBottom: 4, fontSize: 9 }}>{c.label}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>{mine}</div>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-3)' }}>· col {col}</div>
+              </div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '2px 8px', borderRadius: 9999,
+                background: positive ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)',
+                color: positive ? '#86efac' : '#fca5a5',
+                fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
+              }}>
+                {positive ? '+' : ''}{d}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
