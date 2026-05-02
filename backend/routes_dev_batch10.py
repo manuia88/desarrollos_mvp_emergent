@@ -45,6 +45,52 @@ def _user_dev_ids(user) -> List[str]:
     return ids or [DEVELOPMENTS[0]["id"], DEVELOPMENTS[1]["id"]]
 
 
+def _generate_weekly_sales(project_id: str, sold_total: int, stage: str) -> List[int]:
+    """
+    Deterministic 8-week sales sparkline seeded from project_id.
+    Generates a realistic absorption curve:
+    - Preventa: crescente (ramp-up hacia semanas recientes)
+    - En_construccion: relativamente plano con ligero descenso final
+    - Entrega: spike en semanas anteriores, bajo ahora
+    """
+    if sold_total == 0:
+        return [0] * 8
+
+    # LCG seeded by project string hash for determinism
+    seed = abs(hash(project_id)) % (2 ** 31)
+    def lcg_next(s):
+        return (1664525 * s + 1013904223) % (2 ** 32)
+
+    # Generate 8 raw values [0, 1)
+    raw = []
+    s = seed
+    for _ in range(8):
+        s = lcg_next(s)
+        raw.append(s / (2 ** 32))
+
+    # Apply stage-specific weight curve (index 0 = oldest week, 7 = latest)
+    if stage in ("preventa", "en_construccion"):
+        # Ramp-up: more weight on recent weeks
+        weights = [0.04, 0.06, 0.08, 0.10, 0.14, 0.18, 0.20, 0.20]
+    elif stage in ("entrega_inmediata",):
+        # Spike mid-history, lower now
+        weights = [0.05, 0.18, 0.22, 0.20, 0.15, 0.10, 0.07, 0.03]
+    else:
+        weights = [0.12, 0.13, 0.12, 0.14, 0.12, 0.13, 0.12, 0.12]
+
+    # Scale each week = weight * sold_total + noise
+    scaled = [w * sold_total * (0.7 + raw[i] * 0.6) for i, w in enumerate(weights)]
+
+    # Normalize so sum ≈ sold_total
+    total_raw = sum(scaled)
+    if total_raw > 0:
+        scaled = [v * sold_total / total_raw for v in scaled]
+
+    # Round to integers, ensure non-negative
+    result = [max(0, round(v)) for v in scaled]
+    return result
+
+
 def _compute_health_score(
     units_by_status: Dict[str, int],
     units_total: int,
@@ -170,6 +216,9 @@ async def list_projects_with_stats(request: Request):
         avg_price = (price_from + price_to) / 2 if price_to > price_from else price_from
         revenue_mtd_est = int(sold_units * avg_price) if avg_price else 0
 
+        # Weekly sales sparkline (last 8 weeks, deterministic from project seed)
+        weekly_sales = _generate_weekly_sales(dev["id"], sold_units, stage)
+
         colonia_id = dev.get("colonia_id", dev.get("colonia", ""))
         colonia_name = colonia_map.get(colonia_id, dev.get("colonia", colonia_id).replace("_", " ").title())
 
@@ -186,6 +235,7 @@ async def list_projects_with_stats(request: Request):
             "health_score": health,
             "leads_active": leads_agg.get(dev["id"], 0),
             "revenue_mtd_est": revenue_mtd_est,
+            "weekly_sales": weekly_sales,
             "cover_photo": cover_photos.get(dev["id"]),
             "developer_id": dev.get("developer_id"),
             "delivery_estimate": dev.get("delivery_estimate"),

@@ -9,6 +9,41 @@ import HealthScore from '../../components/shared/HealthScore';
 import { listProjectsWithStats } from '../../api/developer';
 import { Plus, Building, BarChart, Users, TrendUp } from '../../components/icons';
 
+// ─── Mini Sparkline SVG ──────────────────────────────────────────────────────
+function MiniSparkline({ data = [], color = '#22c55e', width = 80, height = 28 }) {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - (v / max) * (height - 4) - 2;
+    return [x, y];
+  });
+
+  const polyline = pts.map(([x, y]) => `${x},${y}`).join(' ');
+  const area = [
+    `0,${height}`,
+    ...pts.map(([x, y]) => `${x},${y}`),
+    `${width},${height}`,
+  ].join(' ');
+
+  const gradId = `sg-${color.replace('#', '')}`;
+  const [lx, ly] = pts[pts.length - 1];
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} overflow="visible">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={area} fill={`url(#${gradId})`} />
+      <polyline points={polyline} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r="2.5" fill={color} />
+    </svg>
+  );
+}
+
 const STAGE_LABELS = {
   preventa: 'Preventa',
   en_construccion: 'En construcción',
@@ -139,6 +174,23 @@ function ProjectCard({ project, onClick }) {
           <StatPill icon={<TrendUp size={12} />} label="Ingresos MTD" value={fmtMXN(project.revenue_mtd_est)} />
           <StatPill icon={<BarChart size={12} />} label="Total" value={`${total} uds`} />
         </div>
+
+        {/* Weekly sales sparkline */}
+        {project.weekly_sales && project.weekly_sales.some(v => v > 0) && (
+          <div style={{ borderTop: '1px solid rgba(240,235,224,0.08)', paddingTop: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <div style={{ fontSize: 9, color: 'var(--cream-3)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>
+                  Ventas · últimas 8 semanas
+                </div>
+                <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>
+                  +{project.weekly_sales[project.weekly_sales.length - 1]} esta semana
+                </div>
+              </div>
+              <MiniSparkline data={project.weekly_sales} color="#22c55e" width={80} height={28} />
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );
