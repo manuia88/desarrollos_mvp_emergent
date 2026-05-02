@@ -227,4 +227,9 @@ export const exportCashFlowPdf = (projectId) =>
 export const cashFlowDownloadUrl = (projectId, fileId) =>
   `${process.env.REACT_APP_BACKEND_URL}/api/dev/projects/${projectId}/cash-flow/files/${fileId}`;
 
+// Phase 4 Batch 10 — Mis Proyectos
+export const listProjectsWithStats = () => j('/api/dev/projects/list-with-stats');
+export const getProjectSummary = (projectId) => j(`/api/dev/projects/${projectId}/summary`);
+
+
 

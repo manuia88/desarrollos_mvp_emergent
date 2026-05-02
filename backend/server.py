@@ -164,6 +164,9 @@ from routes_dev_batch7_2 import router as dev_batch7_2_router, ensure_batch7_2_i
 app.include_router(dev_batch7_2_router)
 
 # Phase 4 Batch 8 — Cash Flow Forecast IA
+from routes_dev_batch10 import router as dev_batch10_router, ensure_batch10_indexes
+app.include_router(dev_batch10_router)
+
 from routes_dev_batch8 import (router as dev_batch8_router, ensure_batch8_indexes,
                               daily_active_projects_recalc)
 app.include_router(dev_batch8_router)
@@ -414,6 +417,7 @@ async def startup():
     # Phase 4 Batch 7.2 — INEGI Real Demographics
     await ensure_batch7_2_indexes(db)
     # Phase 4 Batch 8 — Cash Flow Forecast IA
+    await ensure_batch10_indexes(db)
     await ensure_batch8_indexes(db)
     # Phase 4 Batch 0 — AI Budget + Preferences indexes
     await ensure_ai_budget_indexes(db)

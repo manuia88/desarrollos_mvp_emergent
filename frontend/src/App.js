@@ -64,6 +64,10 @@ const DesarrolladorCRM               = lazy(() => import('./pages/developer/Desa
 const DesarrolladorPricingLab        = lazy(() => import('./pages/developer/DesarrolladorPricingLab'));
 const DesarrolladorSiteSelection     = lazy(() => import('./pages/developer/DesarrolladorSiteSelection'));
 const DesarrolladorCashFlow          = lazy(() => import('./pages/developer/DesarrolladorCashFlow'));
+// Phase 4 Batch 10 — Mis Proyectos + CRM Shell
+const MisProyectos                   = lazy(() => import('./pages/developer/MisProyectos'));
+const ProyectoDetail                 = lazy(() => import('./pages/developer/ProyectoDetail'));
+const DesarrolladorCRMShell          = lazy(() => import('./pages/developer/DesarrolladorCRMShell'));
 const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
 const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
 
@@ -276,11 +280,21 @@ function AppRouter() {
       <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
       <Route path="/asesor/leads-dev" element={<AdvisorRoute Page={AsesorLeadsDev} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
-      <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
+
+      {/* Phase 4 Batch 10 — Mis Proyectos + CRM Shell */}
+      <Route path="/desarrollador/proyectos" element={<AdvisorRoute Page={MisProyectos} />} />
+      <Route path="/desarrollador/proyectos/:slug" element={<AdvisorRoute Page={ProyectoDetail} />} />
+      <Route path="/desarrollador/crm" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
+      <Route path="/desarrollador/mensajes" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
+
+      {/* Legacy backward-compat redirects */}
+      <Route path="/desarrollador/inventario" element={<Navigate to="/desarrollador/proyectos" replace />} />
+      <Route path="/desarrollador/leads" element={<Navigate to="/desarrollador/crm?tab=pipeline" replace />} />
+      <Route path="/desarrollador/citas" element={<Navigate to="/desarrollador/crm?tab=citas" replace />} />
+      <Route path="/desarrollador/calendario-subidas" element={<Navigate to="/desarrollador/proyectos" replace />} />
+
       <Route path="/desarrollador/desarrollos/:slug/legajo" element={<AdvisorRoute Page={DesarrolladorLegajo} />} />
       <Route path="/desarrollador/desarrollos/:slug/ie" element={<AdvisorRoute Page={DesarrolladorIEDetail} />} />
-      <Route path="/desarrollador/leads" element={<AdvisorRoute Page={DesarrolladorLeads} />} />
-      <Route path="/desarrollador/citas" element={<AdvisorRoute Page={DesarrolladorCitas} />} />
       <Route path="/desarrollador/desarrollos/:slug/crm" element={<AdvisorRoute Page={DesarrolladorCRM} />} />
       <Route path="/desarrollador/desarrollos/:slug/pricing-lab" element={<AdvisorRoute Page={DesarrolladorPricingLab} />} />
       <Route path="/desarrollador/desarrollos/:slug/cash-flow" element={<AdvisorRoute Page={DesarrolladorCashFlow} />} />
@@ -293,7 +307,6 @@ function AppRouter() {
       <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
       <Route path="/desarrollador/usuarios" element={<AdvisorRoute Page={DesarrolladorUsuarios} />} />
       <Route path="/desarrollador/configuracion" element={<AdvisorRoute Page={DesarrolladorConfiguracion} />} />
-      <Route path="/desarrollador/calendario-subidas" element={<AdvisorRoute Page={DesarrolladorCalendarioSubidas} />} />
       <Route path="/inmobiliaria" element={<AdvisorRoute Page={InmobiliariaDashboard} />} />
       <Route path="/inmobiliaria/asesores" element={<AdvisorRoute Page={InmobiliariaAsesores} />} />
       <Route path="/inmobiliaria/leads" element={<AdvisorRoute Page={InmobiliariaLeads} />} />

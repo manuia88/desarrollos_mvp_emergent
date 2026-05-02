@@ -1,5 +1,5 @@
 /**
- * Phase 4 Batch 0 — navByRole.js
+ * Phase 4 Batch 10 — navByRole.js
  * Canonical navigation config per portal role.
  * Each item: { key, to, label, Icon, end?, badge_source? }
  * badge_source: identifier for dynamic counter fetch
@@ -10,42 +10,42 @@
 import {
   LayoutDashboard, Building2, Users, CalendarDays, MapPin, BarChart3,
   TrendingUp, FolderOpen, Settings, Shield, Activity,
-  Search, Layers, Home, Star,
+  Search, Layers, Home,
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
+  MessageSquare,
 } from 'lucide-react';
 
-// ─── DEV (developer / developer_admin) ─────────────────────────────────────────
-// All routes verified against App.js (Phase 4 B0 sync)
+// ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
+// 3 tiers collapsible: Workflow diario | Inteligencia | Configuración
 const DEV_NAV = [
   {
     tier: 1,
-    label: 'Operación',
+    label: 'Workflow diario',
     items: [
-      { key: 'dashboard',    to: '/desarrollador',                       label: 'Dashboard',        Icon: LayoutDashboard, end: true },
-      { key: 'inventario',   to: '/desarrollador/inventario',            label: 'Inventario',       Icon: Building2 },
-      { key: 'leads',        to: '/desarrollador/leads',                 label: 'Leads CRM',        Icon: Users,     badge_source: 'crm_unread_leads' },
-      { key: 'citas',        to: '/desarrollador/citas',                 label: 'Citas',            Icon: CalendarDays, badge_source: 'citas_today' },
+      { key: 'dashboard',    to: '/desarrollador',                   label: 'Dashboard',      Icon: LayoutDashboard, end: true },
+      { key: 'proyectos',    to: '/desarrollador/proyectos',         label: 'Mis Proyectos',  Icon: Building2,       badge_source: 'projects_health_below_60' },
+      { key: 'crm',          to: '/desarrollador/crm',               label: 'CRM',            Icon: ClipboardList,   badge_source: 'crm_unread_leads' },
+      { key: 'mensajes',     to: '/desarrollador/mensajes',          label: 'Mensajes',       Icon: MessageSquare },
     ],
   },
   {
     tier: 2,
     label: 'Inteligencia',
     items: [
-      { key: 'pricing',      to: '/desarrollador/pricing',               label: 'Precios IA',       Icon: TrendingUp },
-      { key: 'demanda',      to: '/desarrollador/demanda',               label: 'Demanda',          Icon: BarChart3 },
-      { key: 'site',         to: '/desarrollador/site-selection',        label: 'Site Selection',   Icon: MapPin },
-      { key: 'competidores', to: '/desarrollador/competidores',          label: 'Competidores',     Icon: Target },
+      { key: 'reportes',     to: '/desarrollador/reportes',          label: 'Reportes IA',    Icon: LineChart },
+      { key: 'demanda',      to: '/desarrollador/demanda',           label: 'Demanda',        Icon: BarChart3 },
+      { key: 'site',         to: '/desarrollador/site-selection',    label: 'Site Selection', Icon: MapPin },
+      { key: 'pricing',      to: '/desarrollador/pricing',           label: 'Precios IA',     Icon: TrendingUp },
+      { key: 'competidores', to: '/desarrollador/competidores',      label: 'Competidores',   Icon: Target },
     ],
   },
   {
     tier: 3,
-    label: 'Gestión',
+    label: 'Configuración',
     items: [
-      { key: 'reportes',     to: '/desarrollador/reportes',              label: 'Reportes',         Icon: LineChart },
-      { key: 'calendario',   to: '/desarrollador/calendario-subidas',    label: 'Calendario',       Icon: CalendarDays },
-      { key: 'usuarios',     to: '/desarrollador/usuarios',              label: 'Usuarios',         Icon: Users },
-      { key: 'configuracion',to: '/desarrollador/configuracion',         label: 'Configuración',    Icon: Settings },
+      { key: 'usuarios',     to: '/desarrollador/usuarios',          label: 'Equipo',         Icon: Users },
+      { key: 'configuracion',to: '/desarrollador/configuracion',     label: 'Configuración',  Icon: Settings },
     ],
   },
 ];
