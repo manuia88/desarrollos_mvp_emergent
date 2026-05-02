@@ -32,14 +32,8 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 ## Arquitectura implementada
 
 ### Backend `/app/backend/`
-- `server.py` — **SLIM** (~479 líneas): solo app init, middleware, auth helpers, router includes, lifecycle
-- `routes_auth.py` — **B0 NUEVO**: auth endpoints (register, login, session, me, select-role, logout)
-- `routes_public.py` — **B0 NUEVO**: marketplace público (colonias, developments, properties, briefings, AI search)
-- `routes_search_prefs.py` — **B0 NUEVO**: universal search + user preferences
-- `permissions.py` — **B0 NUEVO**: canonical permission helpers (get_user_permission_level, can_view_*, can_move_*)
-- `ai_budget.py` — **B0 NUEVO**: AI cost tracking per dev_org + /api/superadmin/ai-usage endpoint
-- `data_scoping.py` — **B0 NUEVO**: scope_data() per user role (lead/project/unit/asesor/client)
-- `routes_advisor.py` — Fase 4: CRUD contactos/búsquedas/captaciones/tareas/operaciones/comisiones + argumentario AI + briefing + leaderboard
+- `server.py` — core: auth, public marketplace, Claude briefing/parser (973 líneas)
+- `routes_advisor.py` — **nuevo Fase 4**: CRUD contactos/búsquedas/captaciones/tareas/operaciones/comisiones + argumentario AI + briefing + leaderboard
 - `data_seed.py` — 16 colonias CDMX
 - `data_developments.py` — 10 developers + 15 developments + ~420 units
 
@@ -374,320 +368,10 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 - **Phase 7.5 ✅** Auto-Sync Extracted → Marketplace (overlay store + audit + revert + locks + pause)
 - **Phase 7.4 ✅** Developer Portal Legajo (5 tabs) + Compliance Badge en marketplace + ficha pública
 - **Phase 7.6 ✅** Asset pipeline (uploads watermark + Claude Vision categorize + Pedra 360° stub + ficha pública wired)
-- Phase 7.10 ⏳ Avance de obra timeline (próxima: P0)
-
----
-
-## 2026-05-02 — Phase 4 Batch 10 · Sidebar Reorganizado + Mis Proyectos + VentasTab
-
-**SHA:** `1b538117daf64d1c82390a528421365a275a40db`
-
-### Sub-chunk A ✅ — Sidebar refactor + Mis Proyectos page
-- `navByRole.js` → DEV_NAV reestructurado en 3 tiers collapsibles (11 items):
-  - WORKFLOW DIARIO: Dashboard, Mis Proyectos, CRM, Mensajes
-  - INTELIGENCIA: Reportes IA, Demanda, Site Selection, Precios IA, Competidores
-  - CONFIGURACIÓN: Equipo, Configuración
-- `/desarrollador/proyectos` → `MisProyectos.js`: cards grid (EntityCard-style), HealthScore circular, filtros por etapa, sort, view toggle cards/lista, paginación 20/página
-- Legacy redirects backward-compat: `/inventario → /proyectos`, `/leads → /crm?tab=pipeline`, `/citas → /crm?tab=citas`, `/calendario-subidas → /proyectos`
-
-### Sub-chunk B ✅ — ProyectoDetail shell 8 tabs
-- `/desarrollador/proyectos/:slug` → `ProyectoDetail.js`: breadcrumb, KPIStrip (4 KPIs: % vendido/uds vendidas/revenue MTD/leads activos), HealthScore md, 8 tabs con URL sync `?tab=`
-- Tabs: Ventas (contenido real) · Contenido · Avance de obra (reutiliza AvanceObraTab) · Ubicación (reutiliza GeolocalizacionTab) · Amenidades · Legal · Comercialización · Insights
-- Cmd+P project switcher (localStorage recientes)
-
-### Sub-chunk C ✅ — Tab Ventas 3 sub-tabs
-- `VentasTab.js` component en `/components/developer/`: Inventario completo | Por prototipo | Vista de planta (URL sync `?subtab=`)
-- Inventario completo: tabla sticky, FilterChipsBar multi-status con contadores, búsqueda instant unit_number, density toggle (compacto/expandido via usePreferences), paginación 30/página, EntityDrawer on click, Bulk Upload wired
-- Por prototipo: cards por tipo con stats (total, disponibles, desde $X), click → switch to inventario con proto filter
-- Vista de planta: grid color-coded por nivel (disponible=verde/reservado=azul/vendido=rojo/etc.), hover tooltip, click → EntityDrawer, leyenda colores
-
-### Backend `routes_dev_batch10.py` (nuevo)
-- `GET /api/dev/projects/list-with-stats` — proyectos enriquecidos con health_score, leads_active, revenue_mtd_est, units_by_status
-- `GET /api/dev/projects/:id/summary` — stats KPI para un proyecto específico
-
-### CRM Shell ✅
-- `/desarrollador/crm` → `DesarrolladorCRMShell.js`: 6 tabs (Pipeline real con LeadKanban + Leads/Citas/Slots/Brokers/Métricas placeholder)
-
+- Phase 7.10 ⏳ Avance de obra timeline
 
 
 ---
-
-## 2026-05-02 — Phase 4 Batch 11 · Migración Legajo → Tabs + Comercialización + Drawer enriquecido
-
-### Sub-chunk A ✅ — Tabs migradas (Contenido, Amenidades, Legal)
-- `ContenidoTab.js`: 6 sub-tabs (Fotos/Planos/Renders/Videos/Tour 360°/Brochures) con URL sync `?content_sub=`, drag-drop zone (`DragDropZone`), thumbnails con hover (descargar/portada/eliminar), preview modal.
-- `AmenidadesTab.js`: 4 categorías (comunes/internas/tecnológicas/sustentabilidad) con checkboxes editables, contador activas, botón "Aplicar desde otro proyecto" (smart defaults desde otros proyectos del dev_org).
-- `LegalTab.js`: Timeline de proceso legal (5 etapas: Uso de Suelo → SEDUVI → Planos → Contrato → Escritura), upload zone con categorizer IA (Claude Haiku), cards de documentos con badge status (pendiente/aprobado/rechazado/revisión).
-
-### Sub-chunk B ✅ — Comercialización
-- `ComercializacionTab.js`: 3 secciones:
-  - **Política comercial**: toggles (trabajar con brokers / solo in-house / IVA), InlineEditField para comisión default %, textarea de términos. Toggle "Aplicar desde otro proyecto".
-  - **Brokers asignados**: lista con status badges, botones Pausar/Revocar, modal de asignación con dropdown de asesores.
-  - **Pre-asignación in-house**: toggle por asesor interno para auto-asignar a nuevos invitados.
-
-### Sub-chunk C ✅ — UnitDrawerContent enriquecido
-- `UnitDrawerContent.js`: 7 secciones colapsables en `EntityDrawer` (body prop):
-  1. **Estado y precio**: InlineEdit status + precio, historial de precios con sparkline SVG + delta vs. promedio colonia.
-  2. **Engagement**: métricas asesores vs. clientes (vistas/clicks/tiempo/compartidos/intent score) + funnel 5 etapas (stub honesto con `is_stub`).
-  3. **Comparables internos**: stats agregados misma prototipo + tabla de unidades hermanas.
-  4. **Comparables de mercado (colonia)**: avg $/m² colonia vs. tu precio + delta % + top 5 proyectos.
-  5. **Predicción IA**: prob. cierre 90d, prob. si bajas 3%, días estimados, recomendaciones, nivel confianza, disclaimer (Claude Haiku via `track_ai_call`, cache 1h, fallback stub honesto).
-  6. **Características**: 6 campos read-only (vista/orientación/nivel/m²/recámaras/baños).
-  7. **Documentos y assets**: links a plano/render/tour de la unidad.
-- Footer con acciones rápidas: Apartar (24h) / Marcar reservado / Marcar vendido.
-- `EntityDrawer` extendido con prop `body` para bypass de `sections` (manteniendo backward compat).
-
-### Backend `routes_dev_batch11.py` (nuevo, 700+ líneas)
-- `GET/PATCH /api/dev/projects/:id/amenities` — with seed fallback desde `DEVELOPMENTS`, index por `(project_id, dev_org_id)`.
-- `GET/PATCH /api/dev/projects/:id/commercialization` — colección `project_commercialization` (unique `(project_id, dev_org_id)`).
-- `GET/POST/DELETE /api/dev/projects/:id/preassignments` — colección `project_preassignments` (unique `(project_id, assigned_user_id)`).
-- `GET /api/dev/units/:dev_id/:unit_id/price-history` — real desde audit_log + sintético determinístico fallback (6 meses) + avg price/m² de colonia.
-- `GET /api/dev/units/:dev_id/:unit_id/comparables` — misma prototipo con stats sold/available.
-- `GET /api/dev/units/:dev_id/:unit_id/market-comparables` — top 8 unidades de otros proyectos en misma colonia + vs_market_pct.
-- `POST /api/dev/units/:dev_id/:unit_id/ai-prediction` — Claude Haiku vía `track_ai_call` + cache TTL 1h en `ai_predictions_cache` (unique `key`, TTL index 3600s). Fallback stub honesto si sin key o excede budget.
-- `PATCH /api/dev/units/:dev_id/:unit_id` — price/status/price_change_reason con audit + ml_event `unit_price_changed|unit_status_changed`.
-- `GET /api/dev/units/:dev_id/:unit_id/engagement` — stub determinístico `seed % 997` (marcado `is_stub=true`) con asesores/clientes/funnel.
-- `PATCH /api/dev/projects/:id/assets/:asset_id/role` — set cover (auto unset existing cover) en `project_asset_meta`.
-
-### ProyectoDetail.js cableado
-- Placeholders reemplazados con `ContenidoTab`, `AmenidadesTab`, `LegalTab`, `ComercializacionTab` reales (Insights sigue como placeholder B22).
-- VentasTab `EntityDrawer` ahora usa `body={<UnitDrawerContent .../>}`.
-
-### Smoke tests (2026-05-02, developer@demo.com)
-- ✅ Backend: 9 endpoints B11 responden 200 vía curl con cookie session.
-- ✅ Frontend: 4 tabs renderizan sin errores + drawer enriquecido abre desde Ventas → click row.
-- ✅ PATCH commercialization persiste.
-- ✅ AI prediction fallback-stub responde con recomendaciones es-MX.
-- ✅ Test regression file: `/app/backend/tests/test_batch11.py`.
-
-### Constraints respetados
-- ✅ Ruta legacy `/desarrollador/desarrollos/:slug/legajo` intacta (no migración destructiva).
-- ✅ Tabs "Avance de obra" y "Ubicación" siguen con lógica legacy.
-- ✅ UI 100% es-MX.
-- ✅ Zero emoji (lucide-react SVGs).
-- ✅ Icon `Star` agregado a `/components/icons/index.js` (faltaba).
-
----
-
----
-
-## 2026-05-02 — Phase 4 Batch 0.5 · Diagnostic Engine + Observability
-
-### Sub-chunk A ✅ — Backend Diagnostic Engine
-- `/app/backend/diagnostic_engine.py`: `Probe` base class, `ProbeResult` dataclass, `PROBE_REGISTRY`, `functional_probe()`, `run_diagnostics()`, `ai_recommend_for_failure()` (Claude Haiku via `track_ai_call` + cache 24h), `register_auto_fix()`, `ensure_diagnostic_indexes()`.
-- `/app/backend/probes/` package con 9 módulos y **30 probes totales**:
-  - **schema** (5): project_required_fields / units_required_fields / assets_orphan / documents_orphan / commercialization_valid
-  - **ie_engine** (4): ie_score_recent / heat_score_per_lead / ai_summary_cache / narratives_generation
-  - **marketplace** (3): public_listing / public_endpoints_200 / asset_urls_resolve
-  - **cross_portal** (4): asesor_brokers / inhouse_preassign / inmobiliaria / tracking_attribution
-  - **engagement** (3): posthog_emit / audit_mutations / badge_counters
-  - **ai_integrations** (3): claude_budget / cash_flow / site_studies
-  - **integrations_external** (4): sentry / resend / mapbox / inegi
-  - **performance** (2): heavy_endpoints_under_2s / bundle_initial_size
-  - **notifications** (2): notifications_writeable / bell_counter
-- Error types (10): schema_integrity, wiring_broken, sync_failure, stale_data, ai_failure, permission_issue, performance, integration_external, data_quality, orphan_record.
-- Recurrence tracker: `probe_recurrence` collection (unique `(probe_id, project_id)`) actualizado en cada fail.
-
-### Backend endpoints (`routes_diagnostic.py`)
-- `POST /api/dev/projects/:id/diagnostic/run` — scope (all|critical|specific_modules) + modules filter.
-- `GET /api/dev/projects/:id/diagnostic/latest` + `/history?limit=N`.
-- `POST /api/dev/projects/:id/diagnostic/auto-fix/:action_id` — 6 handlers registrados (seed_default_commercialization, cleanup_orphan_assets, recompute_ie_score, recompute_lead_heat, recompute_cash_flow, generate_narratives).
-- `POST /api/dev/projects/:id/diagnostic/ai-recommend` — Claude Haiku suggestion con cache 24h.
-- `POST /api/diagnostic/user/:user_id/run` — 12 probes user-level (auth self o superadmin).
-- `GET /api/diagnostic/user/:user_id/latest`.
-- `POST /api/diagnostic/problem-reports` — crea reporte + auto-ejecuta user-diagnostic + snapshot audit trail 50 entries + notif a superadmins.
-- `GET/PATCH /api/superadmin/problem-reports[/:id]` — con filtro `status`.
-- `GET /api/superadmin/system-map` — nodos de módulos con pass_pct_7d + health color + edges dependencia.
-- `GET /api/superadmin/probe-recurrence` — errores cross-projects rankeados por recurrence.
-- `GET /api/superadmin/diagnostics/per-org` — dashboard por dev_org.
-- `GET /api/dev/diagnostic/probe-registry` — inventario de probes registrados.
-
-### Schedulers
-- Daily 06:15 MX (APScheduler cron): re-ejecuta diagnostic para todos los proyectos activos y detecta drift (`_daily_active_projects_diag`).
-- Audit + ml_events: `diagnostic_run`, `auto_fix_applied`, `system_map_viewed`, `user_problem_reported`.
-
-### Sub-chunk B ✅ — Diagnostic Report UI
-- `DiagnosticReportContent` (EntityDrawer body, 600px): header con timestamp + botón "Ejecutar ahora" + "Exportar JSON" · KPIStrip (Total/Pass/Fail/Críticos) · filter chips severidad + módulo · probes agrupadas con color-coding (Pass verde / Warning amber / Fail red) · click probe → expandir con Tipo error, Ubicación, Recomendación, Recurrence, botones [Aplicar fix] + [Recomendar con IA].
-- Botón "Diagnóstico" en `ProyectoDetail` header con badge contador (rojo si criticals, amber si fails, cream si OK), deep-link `?diagnostic=open`.
-- Notificación in-app: al detectar ≥1 critical → crea notifs para developer_admin/director del org (dedup 1/día).
-
-### Sub-chunk C ✅ — Superadmin System Map
-- `/superadmin/system-map` (auth superadmin): SystemGraph SVG con 9 nodos (módulos) en layout radial, tamaño ∝ probe_count, color por health (green ≥90% / amber 70-90% / red <70%), edges = data flow deps · click nodo → filtra tabla recurrence.
-- KPIStrip global: Total probes 7d · Pass rate · Críticos abiertos · Top problemático.
-- Recurrence table: probe_id, módulo, error_type, severity, #, projects afectados, último.
-- Per-org dashboard: runs_7d, projects, pass_rate, criticals_open.
-
-### Sub-chunk D ✅ — User-level diagnostic + Report Problem
-- `ReportProblemButton` floating (rojo bottom-right, z=900) en `PortalLayout` (cubre todos los portales autenticados). Modal con textarea descripción + auto-captura `current_url`. Submit → corre user-diagnostic + snapshot audit_log últimos 50 + crea reporte + notif a superadmins.
-- 12 probes user-level: user_exists, user_role_valid, user_session_valid, user_preferences_load, saved_searches_healthy, asesor_brokers_active (condicional), asesor_has_leads, user_org_linked, calendar_oauth_valid, no_recent_audit_errors, user_events_tracked, notifications_stack_ok. (Sentry MCP lookup stub con hook preparado.)
-- `/superadmin/user-diagnostics`: KPIStrip (Total/Open/Investigating/Resolved) + filtros status + lista + drawer detail con audit trail + buttons "Marcar investigando" / "Resolver" + notes.
-
-### Colecciones + índices
-- `project_diagnostics` (unique `id`, idx `(project_id, run_at desc)` + `(dev_org_id, run_at desc)`)
-- `probe_recurrence` (unique `(probe_id, project_id)`, idx `recurrence_count desc`)
-- `user_diagnostics` (idx `(user_id, run_at desc)`)
-- `user_problem_reports` (unique `id`, idx `(status, created_at desc)`)
-- `user_problem_screenshots` (heavy storage sep.)
-- `diagnostic_ai_cache` (unique `sig`, TTL 86400s)
-
-### Smoke tests (2026-05-02)
-- ✅ `/api/dev/diagnostic/probe-registry` returns 30 probes, 9 modules.
-- ✅ `POST /diagnostic/run` corre en <200ms, persiste doc correctamente.
-- ✅ System map visual + KPI strip + módulo nodes con health colors correcto.
-- ✅ Report Problem modal abre desde floating button, textarea + auto-capture URL.
-- ✅ User-level diagnostic corre 12 probes, detecta 2 warnings honestos.
-- ✅ Auto-fix `seed_default_commercialization` persiste correctamente.
-- ✅ AI-assisted recommendation wired (cache 24h).
-- ✅ Notificación critical fail deduplicada 1/día.
-- ✅ Test file: `/app/backend/tests/test_batch05.py`.
-
-### Guardrails respetados
-- ✅ Solo Batch 0.5 — 4 sub-chunks, scope-locked.
-- ✅ Backward-compat 100% — no routes anteriores tocadas.
-- ✅ Probes idempotentes (solo lecturas + update recurrence).
-- ✅ Auto-fix actions logged vía audit + ml_event.
-- ✅ Reuse primitives: EntityDrawer (con nuevo prop `body`), KPIStrip, HealthScore, notifications, track_ai_call, icons (Activity, AlertTriangle, Check, Sparkle agregados).
-- ✅ Zero emoji, 100% es-MX, fuentes Outfit/DM Sans.
-
-### Mocked / pending
-- 🟡 Sentry MCP lookup para eventos user-specific (stub honesto).
-- 🟡 Recommendations PDF export (solo JSON por ahora).
-- 🟡 Screenshot capture via html2canvas (payload `screenshot_data_url` ya aceptado por API, frontend puede plug-in lib después).
-
----
-
-## 2026-05-02 — Phase 4 Batch 12 · Wizard 7 pasos + IA upload + Drive
-
-### Sub-chunk A ✅ — Wizard manual 7 pasos
-- `routes_wizard.py` con 8 endpoints: smart-defaults, draft save/load, projects POST, ia-extract POST/GET, drive/status, drive/url.
-- `/desarrollador/proyectos/nuevo` (`NuevoProyecto.js`): page con SmartWizard primitive (B0), 7 step components inline:
-  1. **Categoría**: tipo (residencial vertical/horizontal/mixto/comercial) · segmento NSE_AB/C+/C/D · etapa preventa/en_construccion/entregado
-  2. **Operación**: nombre + slug auto + total_unidades + construction_cost + target_price + absorption months
-  3. **Ubicación**: estado/municipio/colonia/calle/cp (MapboxPicker stub para B13)
-  4. **Amenidades** *opcional*: 4 categorías (comunes/internas/exteriores/premium) con checkboxes + smart-defaults sparkle
-  5. **Contenido** *opcional*: DragDropZone fotos/planos/renders/videos/tour (max 20, 50MB)
-  6. **Legal** *opcional*: estado proceso (5 opciones) + DragDropZone documentos
-  7. **Comercialización**: toggle brokers + slider comisión 1-10% + IVA + términos + in-house-only
-- Auto-save draft cada 600ms (localStorage + cross-device via `wizard_drafts` collection).
-- Smart defaults learning: `GET /api/dev/wizard/smart-defaults` agrega tipo/segmento más frecuente, total unidades promedio, top 10 amenidades del org, comercialización del proyecto más reciente.
-- "+ Nuevo proyecto" button en `MisProyectos` ahora navega correctamente a `/proyectos/nuevo`.
-- Submit final crea `db.projects` + `db.units` (placeholders) + `db.project_amenities` + `db.project_commercialization` + `db.project_preassignments` con audit + `project_created_via_wizard` ml_event + diagnostic auto post-create (5min delay).
-- `list-with-stats` extendido para incluir wizard-created projects desde `db.projects` (merge con DEVELOPMENTS catalog).
-
-### Sub-chunk B ✅ — IA upload modo drag-drop
-- `IaUploadTab` component: DragDropZone con accept `.pdf,.xlsx,.xls,.csv,.docx,.txt,.md` (max 10 archivos, 20MB each).
-- Pipeline backend `_extract_text_from_upload`: pypdf · openpyxl · python-docx · plain text fallback. Combina texto extraído (cap 30KB).
-- Claude Haiku call con system prompt structured (es-MX, JSON output con value/confidence/source per campo). Cache `wizard_ia_extractions` collection.
-- Tracked vía `track_ai_call` con call_type='wizard_ia_extract'. Budget gate vía `is_within_budget`.
-- Honest stub `_stub_extraction` cuando key missing o budget exceeded — usuario ve badge "FALLBACK STUB" claro.
-- `IaResultSummary` modal: confianza promedio + tabla 15 campos (color-coded green/amber/red) + botón "Continuar al wizard pre-llenado".
-- Pre-fill: `prefill` merged con smart defaults; cada Field muestra Sparkles icon cuando IA detectó valor + tooltip con confidence% y source filename.
-- ml_event `wizard_ia_extract_completed` con metrics.
-
-### Sub-chunk C ✅ — Drive import (URL paste + OAuth check)
-- `DriveImportTab` component: input URL paste con regex validación de pattern `drive.google.com/drive/folders/{id}`.
-- `GET /api/dev/wizard/drive/status` — reporta `oauth_configured` (basado en `_has_keys()` de drive_engine existente).
-- `POST /api/dev/wizard/drive/url` — extrae folder_id, retorna `{ok, reason, message}` honest cuando OAuth no configurado.
-- UI muestra badge amber "Google OAuth no configurado" + instrucciones para .env. Sub-modo "Conectar Drive personal" referenciado a flow OAuth existente del sidebar Drive (no duplicado).
-- Reutiliza pipeline IA extract de Sub-chunk B (mismo `wizard_ia_extractions`).
-
-### Colecciones nuevas
-- `wizard_drafts` (unique `(user_id, dev_org_id)`) — borrador cross-device.
-- `wizard_ia_extractions` (unique `run_id`, idx `(dev_org_id, created_at desc)`) — historial extracciones IA.
-
-### Smoke tests (2026-05-02)
-- ✅ Smart defaults learning (vacío inicial → enriquecido tras 1 wizard project).
-- ✅ Draft save+load cross-device.
-- ✅ Project creation completa (db.projects + units + amenities + commercialization).
-- ✅ Wizard project visible en Mis Proyectos (`list-with-stats` extendido).
-- ✅ IA extract con .txt: filename → text → Claude call → fallback honesto cuando budget exceeded.
-- ✅ Drive URL pattern validation + honest oauth_not_configured response.
-- ✅ Diagnostic B0.5 auto-corre 5min post-create.
-- ✅ `/app/backend/tests/test_batch12.py` regression file.
-
-### Constraints respetados
-- ✅ Solo Batch 12 — 3 sub-chunks, scope-locked.
-- ✅ Backward-compat 100% — ruta `/desarrollador/proyectos/:slug` legacy intacta.
-- ✅ Reuse: SmartWizard (B0) + DragDropZone (B0) + drive_engine (existente) + extraction_engine pattern + diagnostic_engine (B0.5) + track_ai_call (B0).
-- ✅ Audit + ml_events: `project_created_via_wizard`, `wizard_ia_extract_completed`.
-- ✅ Zero emojis, lucide-react SVGs (Sparkles para IA, Cloud para Drive, FileText para manual, Check, AlertCircle, X).
-- ✅ es-MX 100%.
-
-### Mocked / pending
-- 🟡 MapboxPicker en step Ubicación (lat/lng auto-infer de dirección) — stub para B13.
-- 🟡 Asset role auto-categorize por filename (Claude classify) — pendiente, frontend prepara files lista pero upload físico se debe hacer post-create vía ContenidoTab existente.
-- 🟡 Drive OAuth completo desde wizard — actualmente referencia al flow del sidebar Drive existente.
-- 🟡 Schema probes B0.5 de wizard projects: actualmente fallan porque check `DEVELOPMENTS` array (gap arquitectural a resolver en B13).
-
----
-
-## 2026-05-02 — Phase 4 Batch 13 · Cross-portal sync + Tracking attribution
-
-### Sub-chunk A ✅ — Unified projects helper + extended B0.5 probes
-- `/app/backend/projects_unified.py`: `get_all_projects(db, dev_org_id)` merge legacy `DEVELOPMENTS` + `db.projects` con `entity_source` field. `get_project_by_slug(db, slug)` lookup unificado. `get_units_for_project(db, project)` retorna units desde fuente correcta. `update_project_unified(db, slug, patch, user)` con fallback a `developer_project_patches` para legacy.
-- `is_wizard_project(project)` heurística por `created_via=wizard` o `wizard_source` field.
-- Probes `schema/` re-escritas: 5 probes (project_required_fields, units_required, assets_orphan, documents_orphan, commercialization_valid) ahora usan `get_project_by_slug` + retornan `entity_source` en `extra`.
-- Probes `marketplace/` re-escritas: 3 probes con check de `dev_assets` collection cuando wizard project sin photos array.
-- `ProbeResult` extendido con campo `entity_source` (promovido desde `extra`).
-- Verificación: wizard project `test-wizard-torre` ahora pasa todas las schema probes (PASS [schema/critical] project_required_fields_complete (src: db.projects), etc.). Criticals: 0 (era 1).
-
-### Sub-chunk B ✅ — Tracking cookie + Multi-touch attribution
-- **Schema `lead_source_attribution`** (unique `lead_id`): `{lead_id, dev_org_id, project_id, touchpoints[], first_touch_asesor_id, last_touch_asesor_id, attribution_model, created_at}`.
-- **Frontend `/app/frontend/src/lib/tracking.js`**: `captureRefCookie()` lee `?ref=asesor_id`, persiste cookie 30d (SameSite=Lax) + push touchpoint a localStorage stack (max 15) + dispara POST `/api/tracking/view`. `getCurrentAttribution()` retorna snapshot. `clearAttribution()` post-conversion. `appendTouchpoint(tp)` para casos manuales (caya bot, feria).
-- Wire en `App.js` `AppRouter` useEffect inicial (lazy import).
-- **Backend endpoints**:
-  - `POST /api/leads/public` (no-auth): captura attribution, resuelve dev_org via `get_project_by_slug`, lee `attribution_model` del `dev_org_settings`, asigna `assigned_to` según modelo, persiste en `lead_source_attribution`, notifica al asesor + dev_admins. ml_event `lead_attribution_captured`.
-  - `GET/POST /api/leads/:lead_id/attribution` (auth) — read full chain / append touchpoint.
-  - `GET/PATCH /api/dev/settings/attribution-model` — `'first'|'last'|'split'` per dev_org. Audit + ml_event `attribution_model_changed`.
-  - `POST /api/tracking/view` (no-auth) — registra view event en `tracking_link_events`.
-- **Asesor links page** (`/asesor/links-tracking`):
-  - `GET /api/asesor/tracking-links` — proyectos visibles por broker_whitelist + preassign, link `https://desarrollosmx.io/desarrollo/{slug}?ref={asesor_id}`, stats views/conversions per link.
-  - `POST /api/asesor/tracking-links/qrcode` — genera PNG dataURL via `qrcode` lib (pip installed).
-  - `GET /api/asesor/tracking-links/stats` — totales: views, conversions, conversion_rate_pct.
-  - UI: KPIStrip global + cards por proyecto con copy-to-clipboard + botón QR toggleable + entity_source badge.
-- Sidebar nav `ASESOR_NAV` tier 3 ahora incluye "Links tracking".
-
-### Sub-chunk C ✅ — Cross-portal sync + MapboxPicker wizard
-- **Endpoint `GET /api/dev/leads/kanban-unified`**: leads visibles cross-source via `get_all_projects`, agrupados en 6 columnas (nuevo/contactado/qualified/negociacion/cerrado_ganado/cerrado_perdido).
-- **Endpoint `POST /api/cross-portal/sync-check`**: itera proyectos del org, detecta wizard projects sin units en `db.units`, retorna `{projects_checked, issues, ok}`. ml_event `cross_portal_sync_check`.
-- **Nueva probe** `cross_portal_sync_health` (severity high) en `probes/cross_portal.py` — verifica que wizard projects tengan units en `db.units` para no fallar marketplace público.
-- **MapboxPicker en wizard Step 3**: replaced "próximamente" stub con `MapboxPicker` real. Click-to-set marker + draggable + readonly fallback si no `REACT_APP_MAPBOX_TOKEN`. Nuevo Field "Coordenadas (lat, lng)" muestra valores actualizados en tiempo real al draggar.
-
-### Colecciones nuevas/extendidas
-- `lead_source_attribution` (unique `lead_id`, idx `first_touch_asesor_id`, `last_touch_asesor_id`)
-- `dev_org_settings` (unique `dev_org_id`)
-- `tracking_link_events` (idx `(asesor_id, project_id, timestamp desc)`)
-- `developer_project_patches` (unique `project_id`) — para mutaciones a DEVELOPMENTS legacy
-
-### Smoke tests (2026-05-02)
-- ✅ Probe registry: 31 probes (era 30, +`cross_portal_sync_health`).
-- ✅ Diagnostic en wizard project `test-wizard-torre`: schema 5/5 PASS con `entity_source: db.projects` correcto.
-- ✅ Diagnostic en legacy `altavista-polanco`: schema 5/5 PASS con `entity_source: developments` correcto.
-- ✅ `attribution_model` GET/PATCH cycle (first/last/split) + invalid 400.
-- ✅ `POST /api/leads/public` con touchpoints array → lead creado + attribution persistida + notif disparada.
-- ✅ `POST /api/tracking/view` registra evento.
-- ✅ Asesor con broker assignment → tracking-links retorna 1 item con link generado.
-- ✅ QR PNG dataURL generado correctamente (770 chars base64).
-- ✅ Cross-portal sync-check: 0 issues para projects con units.
-- ✅ Frontend `/asesor/links-tracking` renderiza con sidebar Explorar + KPIStrip + card link + botones Copiar/QR.
-- ✅ `/app/backend/tests/test_batch13.py` regression file (10 tests).
-
-### Constraints respetados
-- ✅ Solo Batch 13, 3 sub-chunks scope-locked.
-- ✅ Backward-compat 100% — legacy `/desarrollador/desarrollos/:slug` sigue, DEVELOPMENTS array intacto.
-- ✅ Reuse: diagnostic_engine (B0.5), MapboxPicker (B1), permissions (B0), notifications (B2.1), get_project_by_slug.
-- ✅ Audit + ml_events: `lead_attribution_captured`, `attribution_model_changed`, `cross_portal_sync_check`.
-- ✅ Zero emojis, lucide-react SVGs (LinkIcon, Copy, Check, BarChart3, QrCode).
-- ✅ es-MX 100%.
-
-### Mocked / pending
-- 🟡 Mapbox reverse geocoding (auto-infer estado/colonia/CP from click) — actualmente solo lat/lng se guarda; campos texto siguen manuales.
-- 🟡 Polling 60s en asesor portal para refresh real-time — usuarios deben recargar manual; deferred.
-- 🟡 Cache invalidation tag-based en marketplace — usa polling natural por ahora.
-- 🟡 Sentry MCP lookup en problem reports — stub honesto continúa.
-
-
-
 
 ## 2026-05-01 — Phase F0.11 · Sentry + PostHog + ML events (observability)
 **Objetivo:** wiring completo de observability + seed infra para Phase 17 (ML continuous training).
@@ -2082,7 +1766,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://latam-spatial.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://real-estate-ai-55.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -3030,23 +2714,15 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 - [ ] Expansión Dubai / Miami
 - [ ] Public profile `/asesor/perfil/:slug` con endorsements
 
-### Refactor (DONE B0)
-- [x] Split `server.py` en routers (routes_auth, routes_public, routes_search_prefs, ai_budget)
-- [x] permissions.py centralizado
-- [x] data_scoping.py
-- [x] PortalLayout + navByRole unificados
-- [x] Bundle splitting React.lazy() en App.js
-- [x] Universal search + NotificationsBell + shared primitives (EntityCard, KPIStrip, FilterChipsBar, etc.)
-- [x] **Phase 4 B0 BUG-AUTH FIX (2026-02)** — navByRole.js sincronizado 1:1 con rutas de App.js (40 items); `FallbackRoute` en App.js protege usuarios autenticados: en vez de caer a Landing al hit de ruta portal inválida, redirige al dashboard del rol. Elimina el falso "401 / logout" al navegar el sidebar post-refactor.
-
-### Refactor (pending)
+### Refactor (no blocker)
+- [ ] Split `server.py` en routers (auth/marketplace/developments/briefings/ai-search)
 - [ ] Split landing components grandes (ColoniasBento, Hero)
 - [ ] Backend tests unit (pytest) por router
 
 ---
 
 ## URL preview
-https://latam-spatial.preview.emergentagent.com
+https://real-estate-ai-55.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
@@ -3055,304 +2731,266 @@ https://latam-spatial.preview.emergentagent.com
 - `/asesor` Panel asesor (login `asesor@demo.com`)
 - `/asesor/contactos|busquedas|captaciones|tareas|operaciones|comisiones|ranking`
 
+═══════════════════════════════════════════════════════════
+# PHASE 4 DEV MODULE — REFACTOR + PHASE Y INTELLIGENCE
+═══════════════════════════════════════════════════════════
+Última actualización: 2026-05-02
 
----
+## Phase 4 Dev Module — refactor B0 → B23
 
-## 2026-05-02 — Phase 4 B0 Sub-chunk C · Backend Modules + Hooks + i18n + Schema + Wire
+Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusable.
 
-### 1. permissions.py — 3 nuevos helpers
-- `can_edit_project(user)` → solo developer_director / superadmin
-- `can_view_commercialization(user)` → directors + superadmin (pricing, commissions, broker agreements)
-- `can_view_engagement_metrics(user)` → directors + developer_member
+### Batches shipped del refactor (5 nuevos · 50h)
 
-### 2. data_scoping.py — entity type 'commercialization'
-- `_scope_commercialization(data, lvl)` → scrubs campos sensitivos (broker_commission_pct, internal_target_margin, reserve_price, etc.) para no-directores
-- `scope_data(data, user, 'commercialization')` ya disponible
-- Wired en 3 endpoints existentes:
-  - `GET /api/leads/{lead_id}` (routes_dev_batch4_2.py) — scope_data(result, user, "lead")
-  - `GET /projects/{project_id}/breakdown` (routes_dev_batch2.py) — scope_data(response, user, "project")
-  - Notas: uso via import inline dentro del endpoint (cero breaking changes)
+| # | Batch | Status | h |
+|---|---|---|---|
+| ✅ | B0 — Foundation Refactor (Layout + Primitives + Bundle splitting + server.py refactor 1421→479L + AI budget tracking + permissions module + i18n + schema disgregado) | shipped | 16 |
+| ✅ | B10 — Sidebar reorganized 3 tiers + Mis Proyectos shell + VentasTab (3 sub-tabs) + paginación + filter chips | shipped | 14 |
+| ✅ | B11 — Migrar tabs Legajo + Comercialización (brokers + comisiones + IVA) + Drawer enriquecido (7 secciones) | shipped | 14 |
+| ✅ | B0.5 — Diagnostic Engine + Observability (Engine + 30 probes + Report UI + System map + User-level + Auto-fix + Recommendations) | shipped | 20 |
+| ✅ | B12 — Wizard 7 pasos + IA upload (drag-drop + Drive URL paste + Claude haiku extraction + smart defaults learning + diagnostic post-create) | shipped | 12 |
+| ✅ | B13 — Cross-portal sync + Tracking attribution + Gap fix (unified projects + B0.5 probes extendidas + lead_source_attribution + multi-touch + asesor links-tracking + MapboxPicker wizard + cross_portal_sync_health probe) | shipped 5032435 | 12 |
+| ✅ | B14 — Health Score Engine + Project Cards + Activity Feed + Notifications + Setup Checklist + Quick Actions + Weekly Brief AI (20/20 pytest · 2 probes B0.5 · APScheduler snapshots 6am + weekly brief lunes 8am) | shipped | 10 |
+| ✅ | B15 — Google Calendar OAuth + Availability Engine + Auto-assign Policies (38/38 pytest cumulativo · CalendarProvider ABC + Google real + Microsoft stub · 3 policies round_robin/load_balance/pre_selected · cache 5min · APScheduler refresh 30min · 2 probes B0.5) | shipped | 8 |
+| ✅ | B16 — AI Suggestions Inline + Smart Empty States + Public Booking Page /reservar/{slug} (12/12 pytest · Claude Haiku + cache 24h + fallback determinístico · 5 entity_types · 10 empty state contexts · UTM tracking + WhatsApp stub forward-compat C11) | shipped | 6 |
+| ✅ | B17 — Drag-drop SortableList + Inline edit genérico + FilterChipsBar enhanced + Undo server-side (13/13 pytest · 50/50 regresión · 30+ campos whitelisted en 8 entity_types · undo_log TTL 10min + purge cron · 2 probes B0.5 · 7+ mutaciones wired) | shipped | 7 |
 
-### 3. ai_budget.py — refactor completo con nuevas features
-- `track_ai_call(db, dev_org_id, model, tokens, call_type, tokens_in=None, tokens_out=None)`:
-  - Acepta split tokens_in/tokens_out (70/30 si no se proveen)
-  - Costo estimado USD → MXN usando MODEL_COST_PER_1K lookup table
-  - `call_log` rolling array (últimas 100 calls) en el documento
-- `_maybe_send_budget_alert()` — email Resend si org > 80% del cap (1x/día, rate-limited)
-- `get_ai_usage(db, dev_org_id, period)` → stats para "current_month" o "last_3_months"
-- `ensure_ai_budget_indexes()` → manejo graceful de conflicto de índice (drop+recreate)
-- Endpoints nuevos:
-  - `PATCH /api/dev/ai-budget/threshold` (developer_admin: set threshold propio)
-  - + audit_log + emit_ml_event para threshold_changed
-- Endpoints existentes ya estaban: `GET /api/dev/ai-budget`, `GET /api/superadmin/ai-usage`, `PATCH /api/superadmin/ai-usage/{org}/cap`
+### Conservative decisions B17 (deferidos a follow-up sweep)
+- FilterChipsBar adopción solo VentasTab. Replicar a CRM leads + Mis proyectos + Inventario + Activity feed + Notifications → mover a B19 o sweep
+- Prototypes reorder UI pendiente (endpoint listo, falta UI cuando exista vista prototypes)
+- Kanban drag-drop mantiene HTML5 (no migración dnd-kit, cross-column complejo)
+- Documents drag-drop HTML5 en `<tr>` (dnd-kit problemático en tablas)
 
-### 4. track_ai_call() wired en TODAS las Claude calls ⭐ CRITICAL
-- `routes_dev_batch4_4.py` — `_claude_json()` ahora acepta `db, dev_org_id, call_type`. Wired en:
-  - `compute_heat_for_lead` → call_type="heat_score"
-  - AI summary endpoint → call_type="ai_summary"
-  - is_within_budget check ANTES de llamar a Claude (fallback determinista si over budget)
-- `routes_dev_batch8.py` — wired en:
-  - `_claude_scenario_narrative` → call_type="cash_flow_narrative"
-  - `_claude_recommendations` → call_type="cash_flow_recommendations"
-  - `_build_scenario_with_narrative` + `_recalc_forecast` actualizados para thread db/dev_org_id
-- `routes_dev_batch7.py` — wired en:
-  - `_claude_zone_narrative` → call_type="site_selection_narrative"
-  - `_run_engine` acepta y pasa `dev_org_id` a `_claude_zone_narrative`
-  - `asyncio.create_task(_run_engine(db, study_id, inputs, dev_org_id=org))` actualizado
-- `routes_dev_batch5.py` — wired en:
-  - `_claude_narrative` → call_type="pdf_report_narrative"
-  - `_build_pdf` pasa `db` y `dev_org_id` a `_claude_narrative`
-- `narrative_engine.py` — wired en `get_or_generate` tras `_generate_narrative` (usa tokens reales input/output)
-- `caya_engine.py` — wired inline tras Claude call → call_type="caya_conversation"
-- `routes_public.py` — wired inline tras `property_briefing` call → dev_org_id="public"
+### Pendientes Phase 4 refactor (~40h restantes)
 
-### 5. routes_badges.py (NUEVO) + server.py registration
-- `GET /api/dev/leads/count-unread` → leads sin leer asignados al org
-- `GET /api/dev/citas/count-today` → citas hoy en estado scheduled/confirmed
-- `GET /api/dev/projects/count-unhealthy` → proyectos con health_score < 60 (fallback: ie_scores)
-- `GET /api/asesor/contacts/count-new` → leads nuevos en últimos 7 días para asesor
-- `server.py`: `include_router(badges_router)` + project_documents migration en startup
-- project_documents migration: escaneá developments con embedded docs, migra a colección separada
+| # | Batch | h |
+| 🟡 | B17 — Drag-drop universal + Inline edit + Filter chips + Undo system | 7 |
+| 🟡 | B18 — Vista planta 2.0 + Density toggle + Project switcher topbar | 5 |
+| 🟡 | B19 — Onboarding tour + Personalization brand + Cross-portal sync feedback + Keyboard shortcuts + Modo presentación | 7 |
+| 🟡 | B20 — Asesor metrics module + Links tracking generator + Conversion funnel portal público (PostHog UTM funnel: ficha→reservar→confirmación · AI suggestion budget per campaña) + Sankey atribución | 8 |
+| 🟡 | B21 — Dev CRM > Métricas equipo (aggregated) | 5 |
+| 🟡 | B22 — Insights tab dentro proyecto (Engagement actor split + Cash Flow + Comparables + IA con sub-tabs) | 9 |
+| 🟡 | B23 — AI Copilot lateral toggleable Cmd+/ | 6 |
 
-### 6. i18n/index.js — Namespaces es-MX + en-US
-- Recursos duales: `translation` (backward-compat es/en) + `common` namespace (es-MX/common.json, en-US/common.json)
-- `lng: 'es-MX'` como primario, fallbackLng chain: es-MX → es → en-US → en
-- `useTranslation('common')` disponible para primitivos compartidos
+### Estructura navegación final (post B10-B11)
 
-### 7. Lazy Load verificado ✓
-- 50 React.lazy() chunks en App.js
-- mapbox-gl: solo en chunks lazy (Mapa, PropertyDetail, DevelopmentDetail, SiteSelection, Demanda, CalendarioSubidas)
-- recharts: NO es dependencia directa — usa SVG custom charts
-- maplibre-gl: en package.json pero sin import directo (ready para usar)
-- Conclusión: initial bundle limpio, heavy deps (~700KB mapbox gzip) solo en lazy chunks
+```
+SIDEBAR DEV (3 tiers collapsible)
+├── TIER 1 — Workflow diario
+│   ├── Panel
+│   ├── Mis Proyectos (lista cards + Health Score + Diagnostic badge)
+│   │   └── [proyecto] → 8 tabs (Ventas · Contenido · Avance · Ubicación · Amenidades · Legal · Comercialización · Insights)
+│   ├── CRM (Pipeline · Leads · Citas · Slots · Brokers · Métricas equipo)
+│   └── Mensajes/WA (futuro Phase 8)
+├── TIER 2 — Reportes IA · Demanda · Site Selection · Pricing · Radar
+└── TIER 3 — Equipo · Configuración
+```
 
-### Archivos tocados
-- `/app/backend/permissions.py` (+3 helpers)
-- `/app/backend/data_scoping.py` (+commercialization type + _scope_commercialization)
-- `/app/backend/ai_budget.py` (refactor completo: tokens_in/out, email alert, get_ai_usage, threshold endpoint)
-- `/app/backend/routes_badges.py` (NUEVO: 4 badge count endpoints)
-- `/app/backend/routes_dev_batch4_4.py` (track_ai_call en _claude_json + callers)
-- `/app/backend/routes_dev_batch8.py` (track_ai_call en _claude_scenario_narrative + _claude_recommendations)
-- `/app/backend/routes_dev_batch7.py` (track_ai_call en _claude_zone_narrative + _run_engine)
-- `/app/backend/routes_dev_batch5.py` (track_ai_call en _claude_narrative)
-- `/app/backend/narrative_engine.py` (track_ai_call en get_or_generate)
-- `/app/backend/caya_engine.py` (track_ai_call inline)
-- `/app/backend/routes_public.py` (track_ai_call inline property_briefing)
-- `/app/backend/server.py` (+routes_badges + project_documents migration)
-- `/app/frontend/src/i18n/index.js` (namespaces es-MX + en-US)
+### Decisiones arquitectónicas confirmadas
 
-### SHA antes de este commit: `9185564`
+- DMX como inmobiliaria first-class (`inmobiliaria_id='dmx_root'`)
+- Permisos tiered: comercial individual (sus leads) vs director/gerente (todo el ámbito)
+- Métricas por unidad: actor split (asesor vs cliente, lecturas complementarias NO comparativas)
+- Tracking attribution: cookie `?ref=asesor_id` 30d + multi-touch
+- Anti-duplicate scope = proyecto (NO network) · 85% similarity match en mismo proyecto
+- Multi-broker calendar: Google + Microsoft OAuth · policies round-robin OR pre-selected
+- Schema disgregado: developments lean + refs (units, project_assets, project_documents)
+- Mobile-first responsive desde día 1
+- i18n infrastructure (es-MX default + en-US ready) — auto-detection rejected
 
+═══════════════════════════════════════════════════════════
+## Phase Y — DMX Intelligence Platform (~102h, post-Phase 4)
+═══════════════════════════════════════════════════════════
 
----
+Reemplaza Phase 17 ML training original. Fusión Phase 17 + agentic features (Accio-inspired).
 
-## 2026-05-02 — Phase 4 B0 Sub-chunk B · Primitives Set 2 + SmartWizard
+### Sub-phases
 
-### Componentes creados/reescritos (todos en `frontend/src/components/shared/`)
+| Sub | Foco | h |
+|---|---|---|
+| Y.0 | Opt-in controls + Permission tiers T1-T4 + Master switch IA + Simulation mode | 8 |
+| Y.1 | Director Agent + Memory layer (vector embeddings) + Event collectors universales | 25 |
+| Y.2 | 5 sub-agents especializados (Pricing · Marketing · Lead · Construction · Compliance) + Per-user ML classifiers fusion | 25 |
+| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling | 20 |
+| Y.4 | Adaptive features per-user/org (Caya style · Match weights · Argumentario tone · Briefing per-segment) | 15 |
+| Y.5 | Agent observability + Audit replay UI + ML accuracy metrics | 9 |
 
-**EntityDrawer.js** (~150L)
-- Desktop: panel lateral derecho 520px con animación `slideInRight` via `createPortal`
-- Mobile (<840px): bottom-sheet 90vh con drag handle + swipe-down cierra (touch events)
-- Props: `isOpen, onClose, title, sections[{id,title,content,defaultOpen,role_visible[]}], entity_type, user`
-- Secciones colapsables individualmente, estado persistido en localStorage por `entity_type` (`dmx_drawer_${entity_type}`)
-- Filtro role-based: section oculta si `user.role` no en `role_visible` (salvo `'*'`)
-- ESC cierra · click backdrop cierra · swipe-down >80px cierra en mobile
+### Permission tier system (Y.0)
 
-**HealthScore.js** (~90L)
-- SVG ring circular. Sizes: sm=48px · md=64px · lg=88px
-- Color: rojo `#f87171` si score <50 · ámbar `#fbbf24` si 50–79 · verde `#4ade80` si ≥80
-- Centro: número grande + "/100" a menor tamaño
-- Click → popover breakdown con barras por componente. Breakdown format: `{label, weight, score, status}`
-- `variant` prop: 'project' | 'asesor' | 'client' controla header del popover
-- Close popover on outside click (useRef + mousedown)
+```
+T1 — Read only         (default for all features)
+T2 — Suggest           (AI sugiere, founder aprueba c/u)
+T3 — Auto low-risk     (acciones reversibles: status, notas, schedules)
+T4 — Auto high-risk    (acciones irreversibles con audit + undo 24h)
+```
 
-**DragDropZone.js** (~100L)
-- Props: `accept, maxSizeMB, maxFiles, onUpload`
-- Drop area dashed, hover state visible + scale-[1.01] on drag
-- Multi-file (hasta maxFiles), preview thumbnails (imagen real o FileText icon para PDFs)
-- Validación por archivo: tamaño > maxSizeMB → error inline con AlertCircle
-- Click también abre file picker
+**Defaults**: agentic features OFF al onboarding. Master switch en topbar para pause global instant.
 
-**InlineEditField.js** (~120L)
-- Types: text | number | currency | date | select
-- Optimistic update: aplica valor antes de `onSave`, revierte si la promesa rechaza
-- Loading spinner durante save, check flash 1.8s tras éxito
-- `user_can_edit=false` → modo read-only con Lock icon (no click handler)
-- Error inline posicionado absoluto bajo el campo
+### Simulation Mode (Y.0)
 
-**UndoSnackbar.js** (~90L)
-- API: `showUndo({ message, onUndo, timeout=30000 })`
-- Stack bottom-right: múltiples undos simultáneos en columna (más nuevo arriba)
-- `CountdownBar` animado via `requestAnimationFrame`: verde >50% · ámbar 20–50% · rojo <20%
-- Auto-dismiss exacto por `setTimeout` + `dismiss()` limpia timer y stack
-- `fadeInUp` CSS animation en cada snack
+Antes de activar T3/T4 production, founder simula dry-run sobre histórico:
+> "Si Lead Nurture Agent estaba activo últimos 30 días → 47 mensajes WA, 12 calls agendados, costo $X, +3 leads cerrados proyectados"
 
-**SmartWizard.js** (~200L)
-- Props: `steps[{id, title, component, optional, validate}], onComplete, draft_key, ia_prefill, title, onCancel`
-- Progress bar gradient `#6366F1→#EC4899` interpolando por step index
-- Auto-save draft a localStorage cada 600ms (debounce)
-- Banner "Tienes un borrador guardado" + botones Continuar/Descartar
-- IA prefill banner con Sparkles icon (badge "Sugerido por IA" por campo individual en el step component)
-- "Llenar después" toggle en pasos `optional: true` (antes de último paso)
-- Botones footer: Atrás · Guardar borrador · Llenar después (si optional) · Siguiente / Finalizar
-- `UndoProvider` envuelve toda la app en `App.js` (raíz)
+### Audit Replay UI (Y.5)
 
-### Página demo
-- **`/superadmin/primitives-demo`** (`PrimitivesDemo.js` ~270L)
-  - Secciones: 1.EntityDrawer · 2.HealthScore · 3.DragDropZone · 4.InlineEditField · 5.UndoSnackbar · 6.SmartWizard
-  - EntityDrawer: role filter activo (sección "Acciones Admin" solo visible superadmin)
-  - HealthScore: scores 25/65/92 con lg + scores 78/55 sm/md
-  - SmartWizard embedded con IA prefill ("Torre Polanco Residencial"), step "Ubicación" optional
-  - Nav item "UI Primitivas" (Boxes icon) en superadmin sidebar · active state funciona
-- **`frontend/package.json`**: script `"start": "react-scripts start"` restaurado (estaba faltando)
-- **`App.js`**: `UndoProvider` envuelve `AuthProvider` · lazy import `PrimitivesDemo` · ruta `/superadmin/primitives-demo`
+Dashboard cronológico de TODAS las acciones AI:
+- Filtros agent type / date / severity
+- Cada entry expandible: reasoning Claude + data input + output + status
+- Botón Undo si reversible
 
-### Verificación screenshot
-- Login `admin@desarrollosmx.com` → `/superadmin/primitives-demo` carga sin error ✓
-- HealthScore 3 colores correctos (rojo/ámbar/verde) ✓
-- EntityDrawer abre con secciones colapsables + backdrop blur ✓
-- SmartWizard: 3 dots, IA prefill banner, "Guardar borrador" button ✓
-- InlineEditField: text/currency/select/date + read-only con lock ✓
+### Riesgos Phase Y mitigados
 
-### Archivos tocados
-- `/app/frontend/src/components/shared/EntityDrawer.js` (reescrito)
-- `/app/frontend/src/components/shared/HealthScore.js` (reescrito)
-- `/app/frontend/src/components/shared/DragDropZone.js` (reescrito)
-- `/app/frontend/src/components/shared/InlineEditField.js` (reescrito)
-- `/app/frontend/src/components/shared/UndoSnackbar.js` (reescrito)
-- `/app/frontend/src/components/shared/SmartWizard.js` (reescrito)
-- `/app/frontend/src/pages/superadmin/PrimitivesDemo.js` (nuevo)
-- `/app/frontend/src/App.js` (+UndoProvider + PrimitivesDemo import + route)
-- `/app/frontend/src/config/navByRole.js` (+Boxes import + "UI Primitivas" nav item)
-- `/app/frontend/package.json` (+start script restaurado)
+| Riesgo | Mitigation |
+|---|---|
+| Privacy/LFPDPPP | Opt-in + per-user purge + audit |
+| User trust loss | Tiers T1-T4 + activity log + undo + simulation |
+| Prompt injection | Sanitization + sandbox + T4 approval humano |
+| Cost explosion | B0 ai_budget gating + tier limits |
+| Onboarding overwhelm | Default OFF + progressive disclosure |
 
+### Rejected by founder
+- Confetti animations
+- WebSocket real-time
+- Cross-network deduplication
+- A/B testing infrastructure
+- Multi-language detection automático (Idea 15)
+- Cross-org agent templates marketplace (Idea 16, defer H2)
 
----
+### Diferidos dentro Phase 4 refactor
+- Sankey de atribución visual en B20 (asesor metrics) — diferido de B14 por scope creep + falta data volumen
+- Mapbox reverse geocoding wizard (auto-infer estado/colonia/CP) — P2 backlog
 
----
+### H2 backlog
+- Lead post-close legal flow (deposit, escrow)
+- Multi-currency MXN/USD/AED full
+- Tax calculations IVA/ISR
+- Asesor tier/ranking system
+- Compliance MX nativa (CFDI, Mifiel NOM-151)
+- Cross-org templates marketplace
 
-## Phase 4 Batch 17 — Drag-drop universal + Inline edit + Filter chips enhanced + Undo system
-**Completado: 2026-05-02 · 13/13 pytest passed (B17) · 50/50 regresión B14+B15+B16 passed**
+### Keys pendientes (founder action)
+- INEGI_TOKEN real (B7.2 funciona con fallback honest)
+- GOOGLE_OAUTH_CLIENT_ID (B12 Drive + B15 Calendar)
+- MICROSOFT_OAUTH (B15 Calendar)
+- ELEVENLABS_API_KEY · PEDRA_API_KEY (Studio Wave 2)
 
-### Sub-Chunk A — Drag-drop universal + Inline edit ✅
-- **`<SortableList>` primitive** (`@dnd-kit` basado) con keyboard + touch. Props: `items, onReorder, renderItem, axis, disabled`.
-- **Drag-drop wired en 5 lugares**: CRM Kanban (HTML5 existente + server undo) · Project Assets (HTML5 + server undo) · Project Documents (HTML5 nuevo + reorder endpoint) · Tareas Asesor (`<SortableList>` + reorder endpoint) · Prototypes reorder endpoint (backend listo, UI pendiente).
-- **Inline edit reuse**: hook `useInlineSaver(entityType, entityId)` wrapea `PATCH /api/inline/{type}/{id}` con whitelist + permission + activity log + undo registration.
-- **Whitelist backend**: 8 entity_types (unit, lead, project, tarea, comision, asesor_profile, broker, amenity) con 30+ campos editables totales.
+═══════════════════════════════════════════════════════════
+## Phase Z — Superadmin Data Intelligence Layer (~72h, post-Phase Y)
+═══════════════════════════════════════════════════════════
 
-### Sub-Chunk B — Filter chips enhanced + Undo system ✅
-- **FilterChipsBar enhanced** con animación `chipPop` + count badges + clear-all con contador.
-- **`<FilterPresetsBar>`** companion — save/load/delete presets server-persisted.
-- **Filter presets CRUD**: 3 endpoints + schema `db.filter_presets`.
-- **Undo server-persisted**: schema `db.undo_log` con TTL 10min + purge 24h · helper `register_undo()` · endpoints `POST /api/undo/{id}` + `GET /api/undo/recent` · 3 restorers (inline_edit, lead_stage_change, reorder).
-- **Wired en 7+ mutaciones**: inline edits genéricos, lead_stage_change (Kanban), reorder documents/prototypes/tareas/assets, project inline updates.
-- **`useServerUndo` hook** frontend + cron `purge_expired_undo_log` @ :07 hourly.
-- **2 probes B0.5**: `inline_edit_audit` · `undo_system_health`.
+**Tesis**: La data agregada cross-org cross-tiempo es el verdadero moat. SaaS para devs/asesores genera ARR; data products para bancos/notarías/aseguradoras/inversionistas/gobierno generan ARR multiplicador + barrera de entrada insuperable.
 
-### Archivos nuevos
-`routes_dev_batch17.py` · `probes/batch17.py` · `tests/test_batch17.py` · `SortableList.js` · `FilterPresetsBar.js` · `api/batch17.js` · `hooks/useInlineSaver.js`
+**Originada por**: pregunta founder 2026-05-02 — "¿tenemos un concentrado general de toda la info que es lo que le da valor a la plataforma no solo con devs, sino con bancos, notarías, aseguradoras y cross-selling de la data que podemos tener?". Honest answer: NO lo teníamos contemplado. Phase Z lo subsana.
 
-### Conservative decisions
-- Prototypes reorder UI pendiente (entidad sin vista frontend); endpoint y undo listos.
-- FilterChipsBar adoption incremental: hoy solo VentasTab; infra lista para replicar en 5 páginas más.
-- Kanban drag-drop mantiene HTML5 existente (cross-column complejo en dnd-kit); server-undo añadido.
-- Documents usa HTML5 en `<tr>` (dnd-kit en tablas problemático); equivalente funcional.
+### Customers de la data (B2B + B2G + B2B2C)
 
----
+| Tipo cliente | Producto data | Caso uso |
+|---|---|---|
+| Bancos / SOFOM | AVM API + comparables justification | Mortgage origination · loan-to-value · portfolio risk |
+| Aseguradoras | Risk score per propiedad/zona | Underwriting · premium calc · catastrophic risk modeling |
+| Notarías | Title chain + valuation report PDF | Escrituras · due diligence comprador · cumplimiento Mifiel |
+| Inversionistas / REITs | Yield calculator + comparables | Deal sourcing · exit comps · portfolio simulator |
+| Devs / builders | Pricing intelligence + demand heatmaps | Pre-launch pricing · feature mix · timing |
+| Brokerages externos | Market reports white-label | Competitive intelligence · client pitches |
+| Gobierno / SAT / SHF | Aggregate market reports | Tax assessment · transparency · money laundering signals |
+| Construction supply | Material demand by region/tipo | Supply chain forecasting |
+| Real estate media | Trend data feeds | Editorial content · indices |
+| Private equity | Deal sourcing + DD accelerator | M&A real estate ops |
 
-## Phase 4 Batch 16 — AI Suggestions Inline + Smart Empty States + Public Booking Page
-**Completado: 2026-05-02 · 12/12 pytest passed · 38/38 regresión B14+B15 passed**
+### Dimensiones del cubo
 
-### Sub-Chunk A: AI Suggestions Inline ✅
-- **Service**: `/app/backend/ai_suggestions.py` · Claude Haiku vía Emergent LLM Key · cache 24h TTL · fallback determinístico cuando LLM no disponible.
-- **Entities soportadas**: `project | lead | unit | asesor | appointment`.
-- **3 endpoints**: `GET /api/ai/suggestions/{type}/{id}?force=1` · `POST /{sug_id}/dismiss` · `POST /{sug_id}/accept`.
-- **Frontend**: `<AISuggestionCard entityType entityId />` en `components/shared/AISuggestionCard.js` · wired en `ProyectoDetail`.
-- **ML events**: `ai_suggestion_dismissed`, `ai_suggestion_accepted`.
+**Geographic**: alcaldía · colonia · AGEB INEGI 2020 · polígono custom · zona metropolitana · país (MX/AED H1)
+**Temporal**: snapshots diarios/semanales/mensuales · time-series desde día 1
+**Property**: tipo (depto/casa/loft/town/PH) · m² · recámaras · baños · niveles · amenidades · year built · floor · view · orientation
+**Price**: rango (entry/mid/luxury/ultraluxury) · $/m² · $/total · evolución vs precio inicial · descuentos negociados · pre-venta vs entrega
+**Project**: developer · marca · stage (lanzamiento/comercialización/entrega) · sale velocity · financing options · reputación dev
+**Demand**: leads por zona/precio/tipo · conversion rate · abandono journey · source attribution
+**Market signal**: precio inicial vs cierre · descuentos típicos · time-on-market distribution · comparable matrix
+**Cross-portal**: dev portfolio health · asesor performance distribution · comprador segments · search patterns
 
-### Sub-Chunk B: Smart Empty States ✅
-- **Config**: `/app/frontend/src/config/emptyStates.js` · 10 contextos mapeados.
-- **Componente**: `<SmartEmptyState contextKey onAction />` reutilizable con CTAs contextuales.
+### Sub-phases
 
-### Sub-Chunk C: Public Booking Page ✅
-- **Ruta**: `/reservar/:slug` (bypass auth).
-- **3 endpoints públicos**: `GET /api/public/projects/{slug}/booking` · `POST /availability` · `POST /book` (crea lead + auto-assign B15 + WhatsApp stub).
-- **Rate limit**: 3 bookings/email/hora. **UTM tracking** forwarded a `lead.utm`.
-- **Frontend**: flujo 3 pasos (slots → form mínimo → confirmación) con estados loading/error/no-pool/empty-slots.
+| Sub | Foco | h |
+|---|---|---|
+| Z.0 | Data Lake + Warehouse Foundation: time-series store + ETL diaria + geo indexing AGEB + facts/dim tables | 10 |
+| Z.1 | Consolidated Metrics Cube: OLAP-style aggregations + materialized views per slice + cache Redis + backfill histórico | 12 |
+| Z.2 | Superadmin Intelligence Hub UI: dashboard ejecutivo cross-org + heatmaps geográficos + trend lines + comparables matrix + drill-down zona→proyecto→unidad→lead + alerts ejecutivos | 12 |
+| Z.3 | Data Products + Public API: API v1 versionada + auth keys + rate limits + OpenAPI docs + tier system free/pro/enterprise + webhooks + Stripe billing | 10 |
+| Z.4 | Vertical Data Products: Bank AVM endpoint · Insurance risk score · Notaría title chain + PDF · Investor yield calculator — cada uno white-label widget + dedicated API | 14 |
+| Z.5 | Anonymization + Compliance Layer: PII stripping antes de export + k-anonymity (≥5 properties) + audit log queries externas + LFPDPPP DSR + differential privacy noise | 6 |
+| Z.6 | Cross-sell Intelligence: lead enrichment + partner integrations (banco preapproval inline · seguro cotización embebida) + revenue share tracking + propensity ML | 8 |
 
-### Known limitations
-- EMERGENT_LLM_KEY budget exhausted → fallback determinístico activo. Cuando recargue saldo, Claude Haiku generará sugerencias reales sin cambio de código.
-- WhatsApp confirmation = stub (log + audit). Real WhatsApp Business pendiente (C11).
+### Endpoints públicos planeados (Z.3)
 
----
+```
+GET /v1/markets/{alcaldia}/snapshot         → KPIs zona actual
+GET /v1/markets/{alcaldia}/timeseries       → histórico precio/demanda
+GET /v1/comparables?lat=&lng=&radius=&type= → propiedades comparables
+GET /v1/valuations/{property_id}            → AVM con confidence interval
+GET /v1/zone-scores/{ageb_id}               → 125 IE Engine scores
+GET /v1/demand-pulse?zona=&tipo=&precio=    → leads activos + heat
+GET /v1/risk/insurance/{property_id}        → score riesgo aseguradora
+POST /v1/title-chain/check                  → verificación notarial
+GET /v1/yield/{property_id}                 → renta estimada + yield neto
+GET /v1/portfolio/exposure                  → análisis carteras (auth)
+```
 
-## Phase 4 Batch 14 — Health Score + Activity Feed + Notifications + Quick Actions + Setup Checklist
-**Completado: 2026-05-02 · 20/20 pytest passed**
+### Architecture decisions Phase Z
 
-### Sub-Chunk A: Health Score Engine ✅
-- **Service**: `/app/backend/health_score.py` — `compute_health_score(entity_type, entity_id, db, force=False)` → score 0-100, TTL 60min cache in `db.health_scores`
-- **Daily snapshot**: `take_health_snapshots(db)` → APScheduler 6am MX → `db.health_scores_snapshots` (30d retention)
-- **Trend 7d**: compares current score vs snapshot 7 días atrás
-- **Endpoints**:
-  - `GET /api/health-score/{entity_type}/{entity_id}` (cached)
-  - `GET /api/health-score/batch?entity_type=&ids=a,b,c` (hasta 20 entidades)
-  - `POST /api/health-score/{entity_type}/{entity_id}/recompute` (force refresh)
-- **Probes B14**: `health_score_engine` + `weekly_brief_generator` registrados en `probes/health_score.py`
-- **Frontend**: `<HealthScoreWidget entity_type entity_id size=sm|md|lg />` en `components/shared/HealthScoreWidget.js`
+- **Time-series store**: TimescaleDB extension PostgreSQL O MongoDB time-series collections (decidir Z.0)
+- **ETL**: APScheduler nightly jobs · transactional (MongoDB) → analytics (warehouse)
+- **Geo indexing**: AGEB INEGI 2020 como primary key + polígonos custom para zonas premium
+- **Cache**: Redis para hot queries top-100 zonas
+- **API auth**: JWT API keys + Stripe metered billing
+- **Compliance gate**: ningún endpoint expone data <5 properties (k-anonymity hard rule)
+- **Audit log**: cada query externa loggeada con customer_id + endpoint + cost + timestamp
+- **Pricing model tier**: Free 1k req/mes · Pro $499/mes 100k req · Enterprise custom + SLA
 
-### Sub-Chunk B: Project Cards + Activity Feed + Notifications + Setup Checklist ✅
-- **Activity feed**: `db.activities` + `log_activity()` helper + `GET /api/activity/feed` + `POST /api/activity/log`
-- **Notifications mark-read**: `POST /api/notifications/mark-read` (single + bulk + all)
-- **Notifications trigger**: recompute si score <50 → notificación `health_score_alert` a devs
-- **Setup checklist**: `setup_progress(user_id, db)` → 5 items progress bar + `GET /api/panel/setup-progress`
-- **Project cards** (`MisProyectos.js`): diagnostic badge "ATENCIÓN" si health <70, KPIs actualizados (sold/total, leads_30d, conversion_pct, days_listed)
-- **Frontend**: `<ActivityFeed />`, `<SetupChecklist />` en `components/shared/`
+### Por qué Phase Z post-Phase Y (no antes)
 
-### Sub-Chunk C: Quick Actions + Weekly Brief AI ✅
-- **QuickActions**: `config/quickActions.js` con `resolveQuickActions(pathname)` → CTAs por ruta (/panel, /proyectos, /proyectos/:id, /crm)
-- **Weekly brief**: `db.weekly_briefs` + `_generate_weekly_brief()` (Claude Haiku) + APScheduler lunes 8am + `GET /api/panel/weekly-brief` (on-demand si stale)
-- **Dashboard** (`DesarrolladorDashboard.js`): WeeklyBriefWidget + ActivityFeed + SetupChecklist + FloatingQuickActions por ruta
-- **Fallback**: si Claude budget agotado → brief estático fallback (graceful)
+1. Phase Y genera el flujo agentic + ML continuous training — alimenta scores per-property/zone
+2. Sin Phase Y, el cubo Phase Z queda con scores estáticos B0-style (heat score básico)
+3. Phase Z monetiza la inteligencia que Phase Y produce — orden correcto
 
-### Archivos creados
-- `/app/backend/health_score.py`
-- `/app/backend/routes_dev_batch14.py`
-- `/app/backend/probes/health_score.py`
-- `/app/backend/tests/test_batch14.py`
-- `/app/frontend/src/components/shared/HealthScoreWidget.js`
-- `/app/frontend/src/components/shared/ActivityFeed.js`
-- `/app/frontend/src/components/shared/SetupChecklist.js`
-- `/app/frontend/src/config/quickActions.js`
+### Riesgos Phase Z mitigados
 
-### Archivos modificados
-- `/app/backend/probes/__init__.py` (+health_score probe import)
-- `/app/backend/scheduler_ie.py` (+health_score_snapshots job + weekly_brief_generation job)
-- `/app/backend/server.py` (+B14 router + health score indexes)
-- `/app/backend/routes_dev_batch10.py` (+leads_30d, conversion_pct, days_listed fields)
-- `/app/frontend/src/pages/developer/DesarrolladorDashboard.js` (rewrite con B14 widgets)
-- `/app/frontend/src/pages/developer/MisProyectos.js` (+diagnostic badge + updated KPIs)
-- `/app/frontend/src/components/shared/FloatingQuickActions.js` (fix lucide import)
-- `/app/frontend/src/pages/developer/NuevoProyecto.js` (fix DeveloperLayout import path)
+| Riesgo | Mitigation |
+|---|---|
+| Privacy regulators (LFPDPPP, INAI) | Z.5 compliance layer + DSR + audit + k-anonymity |
+| Customer data leak | API auth + rate limits + per-customer audit log |
+| Aggregation bias / errors → liability | Confidence intervals · SLA disclaimers · "for informational purposes" |
+| Cost de cómputo cubo | Materialized views + Redis cache + tiered access |
+| Regulación bancaria (SAVM, CONDUSEF) | Partnership con appraisers certificados Z.4 (no reemplazar) |
+| Adopción lenta verticals | Z.4 white-label widgets reducen barrera integración |
 
----
+### Cross-sell concrete examples (Z.6)
 
-## Phase 4 Batch 15 — Multi-broker Calendar (Google OAuth + Availability + Auto-assign)
-**Completado: 2026-05-02 · 18/18 pytest passed · Google real, Microsoft stub**
+- Lead Marketplace clica "Apartamento $3M Polanco" → widget inline "Pre-aprobación BBVA en 30s" → comisión banco si cierra
+- Asesor abre lead → ve "Cliente elegible seguro Qualitas $1,200/año" → 1-click cotización embebida → comisión seguro
+- Comprador compra → notaría partner sugerida con título pre-verificado vía Z.4 endpoint → fee notaría
+- Dev publica proyecto → "Construct supplier X tiene oferta tu zona" → revenue share
 
-### Sub-Chunk A: OAuth Google Calendar ✅
-- **Service**: `oauth_calendar.py` — `CalendarProvider` ABC + `GoogleCalendarProvider` (real) + `MicrosoftCalendarProvider` (stub: NotImplementedError "coming_soon"). Registry: `PROVIDERS = {'google': ...}`
-- **Encryption**: Fernet key `OAUTH_TOKEN_ENCRYPTION_KEY`; CSRF state in-memory con 1h TTL
-- **Endpoints**: `GET /api/oauth/google/initiate` · `GET /api/oauth/google/callback` · `POST /api/oauth/google/revoke` · `GET /api/oauth/connections` · `GET /api/oauth/advisor-pool`
-- **APScheduler**: `oauth_token_refresh` cada 30min · **UI**: `/asesor/configuracion/calendar`
+### Métricas éxito Phase Z
 
-### Sub-Chunk B: Availability + Auto-assign ✅
-- `availability.py`: `get_available_slots()` → Google freeBusy + working_hours + buffer + cache 5min; `assign_appointment()` con 3 policies (round_robin/load_balance/pre_selected) + ICS fallback
-- **Endpoints**: `POST /api/appointments/availability` · `POST /api/appointments/auto-assign` · `GET/PUT /api/appointments/policy/{project_id}` · `POST /api/public/appointments/book`
+- 5+ partnerships verticals firmados primer año (1 banco · 1 aseguradora · 1 notaría · 1 fondo · 1 brokerage)
+- API revenue ≥30% de ARR total para fin Y2
+- Audit compliance: 100% queries externas loggeadas + 0 violaciones k-anonymity
+- Portfolio coverage: ≥80% colonias CDMX con data ≥10 properties
 
-### Sub-Chunk C: UI + Métricas ✅
-- 3 páginas: `/asesor/configuracion/calendar` · `/desarrollador/configuracion/citas-policies` · `/desarrollador/crm/auto-assignments`
-- 2 probes B15: `oauth_calendar_health` + `auto_assign_engine` (35 total probes)
+═══════════════════════════════════════════════════════════
+## Bug fixes 2026-05-02
+═══════════════════════════════════════════════════════════
 
-### Activación Microsoft (futuro)
-Registrar MicrosoftCalendarProvider real en PROVIDERS + agregar redirect URI. Sin tocar policies/availability/métricas.
+- ✅ DMX-WEB-4 (Sentry test event) resolved via MCP
+- ✅ DMX-WEB-5 (InvalidDocument Query(None)) fixed con Annotated pattern
+- ✅ DMX-WEB-6 (Objects React child NSE distribution) fixed con filter primitives
+- ✅ DMX-WEB-7/8/9 (UnboundLocalError logging scoping) fixed import top-level
+- ✅ BUG-001 (Bulk Upload botón missing) — RESUELTO: era falso positivo. URL fantasma. URL real es `real-estate-ai-55.preview.emergentagent.com`.
 
+## Workflow protocol
+
+1. Forkear chat emergent entre cada batch
+2. Antes de Save to GitHub: emergent debe `git fetch + rebase origin/main`
+3. Si conflict: "Create Branch & Push" → Claude Code mergea PR via gh CLI
+4. Cada batch ship → Claude Code marca ✅ + verifica gaps
+5. Standards file: `/app/memory/prompt_standards.md`
