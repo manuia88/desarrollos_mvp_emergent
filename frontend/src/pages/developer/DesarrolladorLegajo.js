@@ -8,11 +8,12 @@ import { PageHeader, Card } from '../../components/advisor/primitives';
 import DocumentsList from '../../components/documents/DocumentsList';
 import AssetGallery from '../../components/documents/AssetGallery';
 import { ComplianceDotStrip } from '../../components/marketplace/ComplianceBadge';
-import { FileText, Camera, Map, AlertTriangle, ArrowRight, Sparkle, MapPin, Target } from '../../components/icons';
+import { FileText, Camera, Map, AlertTriangle, ArrowRight, Sparkle, MapPin, Target, CalendarCheck } from '../../components/icons';
 import DriveConnect from '../../components/documents/DriveConnect';
 import UnitsHistoryTimeline from '../../components/documents/UnitsHistoryTimeline';
 import AvanceObraTab from '../../components/developer/AvanceObraTab';
 import GeolocalizacionTab from '../../components/developer/GeolocalizacionTab';
+import SlotsTab from '../../components/developer/SlotsTab';
 import * as docsApi from '../../api/documents';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -97,6 +98,7 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
     { k: 'fotos', label: 'Fotos', icon: Camera },
     { k: 'planos', label: 'Planos', icon: Map },
     { k: 'geoloc', label: 'Geolocalización', icon: MapPin },
+    { k: 'slots',  label: 'Slots disponibles', icon: CalendarCheck },
     { k: 'avance', label: 'Avance de obra', icon: Sparkle },
     { k: 'ie', label: 'IE Score', icon: Target },
     { k: 'crm', label: 'CRM', icon: ArrowRight },
@@ -166,6 +168,10 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
 
       {tab === 'geoloc' && (
         <GeolocalizacionTab devId={slug} user={user} />
+      )}
+
+      {tab === 'slots' && (
+        <SlotsTab devId={slug} user={user} />
       )}
 
       {tab === 'crm' && (

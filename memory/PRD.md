@@ -765,6 +765,20 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 4.1.1 · Slots UI en Legajo Proyecto
+**Objetivo:** cierre del gap de B4.1 — UI para configurar `project_slots` desde el legajo de proyecto.
+
+### Cambios
+- `SlotsTab.js` (nuevo component) — tabla 7 días (Lun-Dom) con toggle activo, hora apertura/cierre, citas simultáneas. Admin puede editar, otros roles ven read-only con `disabled` + tooltip. Botón "Guardar configuración" → `POST /api/dev/projects/:id/slots`. Preview "Próximas 4 fechas" vía `GET availability`. Toast success/error.
+- `DesarrolladorLegajo.js` — tab "Slots disponibles" añadido después de Geolocalización. Import `SlotsTab` + icon `CalendarCheck`.
+
+### Verificación ✅
+- `POST /api/dev/projects/quattro-alto/slots` → `{ok:true, slots_configured:7}` ✅
+- `GET /api/projects/quattro-alto/slots/availability?date=2026-05-04` → 1 slot disponible (Lunes configurado) ✅
+- Lint limpio en SlotsTab.js y DesarrolladorLegajo.js ✅
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.1 · Cita Registration + DMX Inmobiliaria + Anti-fraude
 **Objetivo:** formulario de registro de citas con 5 secciones + detección anti-fraude 6-layer (rapidfuzz) + portal Inmobiliaria DMX con auto-routing de leads públicos.
 
