@@ -3229,6 +3229,32 @@ https://latam-spatial.preview.emergentagent.com
 
 ---
 
+## Phase 4 Batch 16 — AI Suggestions Inline + Smart Empty States + Public Booking Page
+**Completado: 2026-05-02 · 12/12 pytest passed · 38/38 regresión B14+B15 passed**
+
+### Sub-Chunk A: AI Suggestions Inline ✅
+- **Service**: `/app/backend/ai_suggestions.py` · Claude Haiku vía Emergent LLM Key · cache 24h TTL · fallback determinístico cuando LLM no disponible.
+- **Entities soportadas**: `project | lead | unit | asesor | appointment`.
+- **3 endpoints**: `GET /api/ai/suggestions/{type}/{id}?force=1` · `POST /{sug_id}/dismiss` · `POST /{sug_id}/accept`.
+- **Frontend**: `<AISuggestionCard entityType entityId />` en `components/shared/AISuggestionCard.js` · wired en `ProyectoDetail`.
+- **ML events**: `ai_suggestion_dismissed`, `ai_suggestion_accepted`.
+
+### Sub-Chunk B: Smart Empty States ✅
+- **Config**: `/app/frontend/src/config/emptyStates.js` · 10 contextos mapeados.
+- **Componente**: `<SmartEmptyState contextKey onAction />` reutilizable con CTAs contextuales.
+
+### Sub-Chunk C: Public Booking Page ✅
+- **Ruta**: `/reservar/:slug` (bypass auth).
+- **3 endpoints públicos**: `GET /api/public/projects/{slug}/booking` · `POST /availability` · `POST /book` (crea lead + auto-assign B15 + WhatsApp stub).
+- **Rate limit**: 3 bookings/email/hora. **UTM tracking** forwarded a `lead.utm`.
+- **Frontend**: flujo 3 pasos (slots → form mínimo → confirmación) con estados loading/error/no-pool/empty-slots.
+
+### Known limitations
+- EMERGENT_LLM_KEY budget exhausted → fallback determinístico activo. Cuando recargue saldo, Claude Haiku generará sugerencias reales sin cambio de código.
+- WhatsApp confirmation = stub (log + audit). Real WhatsApp Business pendiente (C11).
+
+---
+
 ## Phase 4 Batch 14 — Health Score + Activity Feed + Notifications + Quick Actions + Setup Checklist
 **Completado: 2026-05-02 · 20/20 pytest passed**
 

@@ -21,6 +21,7 @@ import { EntityDrawer } from '../../components/shared/EntityDrawer';
 import { getProjectSummary } from '../../api/developer';
 import { getLatestDiagnostic } from '../../api/diagnostic';
 import { ChevronRight, Building, Activity } from '../../components/icons';
+import AISuggestionCard from '../../components/shared/AISuggestionCard';
 
 const STAGE_LABELS = {
   preventa: 'Preventa',
@@ -337,6 +338,13 @@ export default function ProyectoDetail({ user, onLogout }) {
         {!loading && (
           <div style={{ marginBottom: 20 }}>
             <KPIStrip items={kpiItems} />
+          </div>
+        )}
+
+        {/* Phase 4 Batch 16 — AI Suggestions Inline */}
+        {!loading && slug && (
+          <div style={{ marginBottom: 20 }} data-testid="proyecto-ai-suggestions">
+            <AISuggestionCard entityType="project" entityId={slug} onNavigate={(p) => navigate(p)} />
           </div>
         )}
 

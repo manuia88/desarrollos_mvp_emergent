@@ -220,6 +220,13 @@ from routes_dev_batch15 import (router as dev_batch15_router, ensure_batch15_ind
 from oauth_calendar import ensure_oauth_indexes
 app.include_router(dev_batch15_router)
 
+# Phase 4 Batch 16 — AI Suggestions Inline + Public Booking Page
+from ai_suggestions import (router as ai_suggestions_router,
+                             ensure_ai_suggestions_indexes)
+from routes_dev_batch16 import router as dev_batch16_public_router
+app.include_router(ai_suggestions_router)
+app.include_router(dev_batch16_public_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -559,6 +566,12 @@ async def startup():
         await ensure_oauth_indexes(db)
     except Exception as e:
         logging.warning(f"[batch15] index setup failed: {e}")
+
+    # Phase 4 Batch 16 — AI Suggestions indexes
+    try:
+        await ensure_ai_suggestions_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch16] index setup failed: {e}")
 
 
 @app.on_event("shutdown")

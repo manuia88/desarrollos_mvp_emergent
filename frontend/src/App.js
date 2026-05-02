@@ -70,6 +70,7 @@ const ProyectoDetail                 = lazy(() => import('./pages/developer/Proy
 const DesarrolladorCRMShell          = lazy(() => import('./pages/developer/DesarrolladorCRMShell'));
 const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
 const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
+const PublicBookingPage              = lazy(() => import('./pages/public/PublicBookingPage'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -321,6 +322,7 @@ function AppRouter() {
       <Route path="/desarrollador/site-selection" element={<AdvisorRoute Page={DesarrolladorSiteSelection} />} />
       <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
       <Route path="/cita/:token" element={<PublicCitaPage />} />
+      <Route path="/reservar/:slug" element={<PublicBookingPage />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
