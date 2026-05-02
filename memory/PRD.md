@@ -2730,3 +2730,154 @@ https://real-estate-ai-55.preview.emergentagent.com
 - `/mapa` Mapbox CDMX
 - `/asesor` Panel asesor (login `asesor@demo.com`)
 - `/asesor/contactos|busquedas|captaciones|tareas|operaciones|comisiones|ranking`
+
+═══════════════════════════════════════════════════════════
+# PHASE 4 DEV MODULE — REFACTOR + PHASE Y INTELLIGENCE
+═══════════════════════════════════════════════════════════
+Última actualización: 2026-05-02
+
+## Phase 4 Dev Module — refactor B0 → B23
+
+Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusable.
+
+### Batches shipped del refactor (5 nuevos · 50h)
+
+| # | Batch | Status | h |
+|---|---|---|---|
+| ✅ | B0 — Foundation Refactor (Layout + Primitives + Bundle splitting + server.py refactor 1421→479L + AI budget tracking + permissions module + i18n + schema disgregado) | shipped | 16 |
+| ✅ | B10 — Sidebar reorganized 3 tiers + Mis Proyectos shell + VentasTab (3 sub-tabs) + paginación + filter chips | shipped | 14 |
+| ✅ | B11 — Migrar tabs Legajo + Comercialización (brokers + comisiones + IVA) + Drawer enriquecido (7 secciones) | shipped | 14 |
+| ✅ | B0.5 — Diagnostic Engine + Observability (Engine + 30 probes + Report UI + System map + User-level + Auto-fix + Recommendations) | shipped | 20 |
+
+### Pendientes Phase 4 refactor (~93h restantes)
+
+| # | Batch | h |
+|---|---|---|
+| 🟡 | B12 — Wizard 7 pasos + IA upload (drag-drop + Drive OAuth + URL paste + Claude haiku extraction) | 12 |
+| 🟡 | B13 — Sync cross-portal + tracking cookie + multi-touch attribution | 10 |
+| 🟡 | B14 — Health Score + Project cards visuales + Activity feed + Notifications + Quick actions + Widget "Esta semana" + Setup checklist + Diagnostic badge cards | 10 |
+| 🟡 | B15 — Multi-broker calendar (Google + Microsoft OAuth + policies asignación) | 8 |
+| 🟡 | B16 — AI suggestions inline + Smart empty states | 4 |
+| 🟡 | B17 — Drag-drop universal + Inline edit + Filter chips + Undo system | 7 |
+| 🟡 | B18 — Vista planta 2.0 + Density toggle + Project switcher topbar | 5 |
+| 🟡 | B19 — Onboarding tour + Personalization brand + Cross-portal sync feedback + Keyboard shortcuts + Modo presentación | 7 |
+| 🟡 | B20 — Asesor metrics module + Links tracking generator | 6 |
+| 🟡 | B21 — Dev CRM > Métricas equipo (aggregated) | 5 |
+| 🟡 | B22 — Insights tab dentro proyecto (Engagement actor split + Cash Flow + Comparables + IA con sub-tabs) | 9 |
+| 🟡 | B23 — AI Copilot lateral toggleable Cmd+/ | 6 |
+
+### Estructura navegación final (post B10-B11)
+
+```
+SIDEBAR DEV (3 tiers collapsible)
+├── TIER 1 — Workflow diario
+│   ├── Panel
+│   ├── Mis Proyectos (lista cards + Health Score + Diagnostic badge)
+│   │   └── [proyecto] → 8 tabs (Ventas · Contenido · Avance · Ubicación · Amenidades · Legal · Comercialización · Insights)
+│   ├── CRM (Pipeline · Leads · Citas · Slots · Brokers · Métricas equipo)
+│   └── Mensajes/WA (futuro Phase 8)
+├── TIER 2 — Reportes IA · Demanda · Site Selection · Pricing · Radar
+└── TIER 3 — Equipo · Configuración
+```
+
+### Decisiones arquitectónicas confirmadas
+
+- DMX como inmobiliaria first-class (`inmobiliaria_id='dmx_root'`)
+- Permisos tiered: comercial individual (sus leads) vs director/gerente (todo el ámbito)
+- Métricas por unidad: actor split (asesor vs cliente, lecturas complementarias NO comparativas)
+- Tracking attribution: cookie `?ref=asesor_id` 30d + multi-touch
+- Anti-duplicate scope = proyecto (NO network) · 85% similarity match en mismo proyecto
+- Multi-broker calendar: Google + Microsoft OAuth · policies round-robin OR pre-selected
+- Schema disgregado: developments lean + refs (units, project_assets, project_documents)
+- Mobile-first responsive desde día 1
+- i18n infrastructure (es-MX default + en-US ready) — auto-detection rejected
+
+═══════════════════════════════════════════════════════════
+## Phase Y — DMX Intelligence Platform (~102h, post-Phase 4)
+═══════════════════════════════════════════════════════════
+
+Reemplaza Phase 17 ML training original. Fusión Phase 17 + agentic features (Accio-inspired).
+
+### Sub-phases
+
+| Sub | Foco | h |
+|---|---|---|
+| Y.0 | Opt-in controls + Permission tiers T1-T4 + Master switch IA + Simulation mode | 8 |
+| Y.1 | Director Agent + Memory layer (vector embeddings) + Event collectors universales | 25 |
+| Y.2 | 5 sub-agents especializados (Pricing · Marketing · Lead · Construction · Compliance) + Per-user ML classifiers fusion | 25 |
+| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling | 20 |
+| Y.4 | Adaptive features per-user/org (Caya style · Match weights · Argumentario tone · Briefing per-segment) | 15 |
+| Y.5 | Agent observability + Audit replay UI + ML accuracy metrics | 9 |
+
+### Permission tier system (Y.0)
+
+```
+T1 — Read only         (default for all features)
+T2 — Suggest           (AI sugiere, founder aprueba c/u)
+T3 — Auto low-risk     (acciones reversibles: status, notas, schedules)
+T4 — Auto high-risk    (acciones irreversibles con audit + undo 24h)
+```
+
+**Defaults**: agentic features OFF al onboarding. Master switch en topbar para pause global instant.
+
+### Simulation Mode (Y.0)
+
+Antes de activar T3/T4 production, founder simula dry-run sobre histórico:
+> "Si Lead Nurture Agent estaba activo últimos 30 días → 47 mensajes WA, 12 calls agendados, costo $X, +3 leads cerrados proyectados"
+
+### Audit Replay UI (Y.5)
+
+Dashboard cronológico de TODAS las acciones AI:
+- Filtros agent type / date / severity
+- Cada entry expandible: reasoning Claude + data input + output + status
+- Botón Undo si reversible
+
+### Riesgos Phase Y mitigados
+
+| Riesgo | Mitigation |
+|---|---|
+| Privacy/LFPDPPP | Opt-in + per-user purge + audit |
+| User trust loss | Tiers T1-T4 + activity log + undo + simulation |
+| Prompt injection | Sanitization + sandbox + T4 approval humano |
+| Cost explosion | B0 ai_budget gating + tier limits |
+| Onboarding overwhelm | Default OFF + progressive disclosure |
+
+### Rejected by founder
+- Confetti animations
+- WebSocket real-time
+- Cross-network deduplication
+- A/B testing infrastructure
+- Multi-language detection automático (Idea 15)
+- Cross-org agent templates marketplace (Idea 16, defer H2)
+
+### H2 backlog
+- Lead post-close legal flow (deposit, escrow)
+- Multi-currency MXN/USD/AED full
+- Tax calculations IVA/ISR
+- Asesor tier/ranking system
+- Compliance MX nativa (CFDI, Mifiel NOM-151)
+- Cross-org templates marketplace
+
+### Keys pendientes (founder action)
+- INEGI_TOKEN real (B7.2 funciona con fallback honest)
+- GOOGLE_OAUTH_CLIENT_ID (B12 Drive + B15 Calendar)
+- MICROSOFT_OAUTH (B15 Calendar)
+- ELEVENLABS_API_KEY · PEDRA_API_KEY (Studio Wave 2)
+
+═══════════════════════════════════════════════════════════
+## Bug fixes 2026-05-02
+═══════════════════════════════════════════════════════════
+
+- ✅ DMX-WEB-4 (Sentry test event) resolved via MCP
+- ✅ DMX-WEB-5 (InvalidDocument Query(None)) fixed con Annotated pattern
+- ✅ DMX-WEB-6 (Objects React child NSE distribution) fixed con filter primitives
+- ✅ DMX-WEB-7/8/9 (UnboundLocalError logging scoping) fixed import top-level
+- ✅ BUG-001 (Bulk Upload botón missing) — RESUELTO: era falso positivo. URL fantasma. URL real es `real-estate-ai-55.preview.emergentagent.com`.
+
+## Workflow protocol
+
+1. Forkear chat emergent entre cada batch
+2. Antes de Save to GitHub: emergent debe `git fetch + rebase origin/main`
+3. Si conflict: "Create Branch & Push" → Claude Code mergea PR via gh CLI
+4. Cada batch ship → Claude Code marca ✅ + verifica gaps
+5. Standards file: `/app/memory/prompt_standards.md`
