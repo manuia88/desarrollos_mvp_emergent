@@ -2748,12 +2748,12 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B10 — Sidebar reorganized 3 tiers + Mis Proyectos shell + VentasTab (3 sub-tabs) + paginación + filter chips | shipped | 14 |
 | ✅ | B11 — Migrar tabs Legajo + Comercialización (brokers + comisiones + IVA) + Drawer enriquecido (7 secciones) | shipped | 14 |
 | ✅ | B0.5 — Diagnostic Engine + Observability (Engine + 30 probes + Report UI + System map + User-level + Auto-fix + Recommendations) | shipped | 20 |
+| ✅ | B12 — Wizard 7 pasos + IA upload (drag-drop + Drive URL paste + Claude haiku extraction + smart defaults learning + diagnostic post-create) | shipped | 12 |
+| ✅ | B13 — Cross-portal sync + Tracking attribution + Gap fix (unified projects + B0.5 probes extendidas + lead_source_attribution + multi-touch + asesor links-tracking + MapboxPicker wizard + cross_portal_sync_health probe) | shipped 5032435 | 12 |
 
-### Pendientes Phase 4 refactor (~93h restantes)
+### Pendientes Phase 4 refactor (~69h restantes)
 
 | # | Batch | h |
-|---|---|---|
-| 🟡 | B12 — Wizard 7 pasos + IA upload (drag-drop + Drive OAuth + URL paste + Claude haiku extraction) | 12 |
 | 🟡 | B13 — Sync cross-portal + tracking cookie + multi-touch attribution | 10 |
 | 🟡 | B14 — Health Score + Project cards visuales + Activity feed + Notifications + Quick actions + Widget "Esta semana" + Setup checklist + Diagnostic badge cards | 10 |
 | 🟡 | B15 — Multi-broker calendar (Google + Microsoft OAuth + policies asignación) | 8 |
@@ -2849,6 +2849,10 @@ Dashboard cronológico de TODAS las acciones AI:
 - A/B testing infrastructure
 - Multi-language detection automático (Idea 15)
 - Cross-org agent templates marketplace (Idea 16, defer H2)
+
+### Diferidos dentro Phase 4 refactor
+- Sankey de atribución visual en B20 (asesor metrics) — diferido de B14 por scope creep + falta data volumen
+- Mapbox reverse geocoding wizard (auto-infer estado/colonia/CP) — P2 backlog
 
 ### H2 backlog
 - Lead post-close legal flow (deposit, escrow)
