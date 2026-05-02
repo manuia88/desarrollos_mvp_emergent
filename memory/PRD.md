@@ -2727,6 +2727,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 - [x] PortalLayout + navByRole unificados
 - [x] Bundle splitting React.lazy() en App.js
 - [x] Universal search + NotificationsBell + shared primitives (EntityCard, KPIStrip, FilterChipsBar, etc.)
+- [x] **Phase 4 B0 BUG-AUTH FIX (2026-02)** — navByRole.js sincronizado 1:1 con rutas de App.js (40 items); `FallbackRoute` en App.js protege usuarios autenticados: en vez de caer a Landing al hit de ruta portal inválida, redirige al dashboard del rol. Elimina el falso "401 / logout" al navegar el sidebar post-refactor.
 
 ### Refactor (pending)
 - [ ] Split landing components grandes (ColoniasBento, Hero)

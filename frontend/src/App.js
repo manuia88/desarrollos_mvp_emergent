@@ -306,7 +306,7 @@ function AppRouter() {
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
       <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
 
-      <Route path="*" element={<LandingPage />} />
+      <Route path="*" element={<FallbackRoute />} />
     </Routes>
     </Suspense>
   );
@@ -350,6 +350,39 @@ function AdvisorRoute({ Page }) {
     return <Navigate to={`/?login=1&next=${encodeURIComponent(location.pathname)}`} replace />;
   }
   return <Page user={user} onLogout={logout} />;
+}
+
+// ─── Fallback route: protects portal users from dropping onto Landing ─────────
+// If user is authenticated and URL starts with a known portal prefix, redirect
+// to their role's portal root instead of showing Landing (which feels like a
+// silent logout). Otherwise render LandingPage.
+function FallbackRoute() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  const portalForRole = (role) => {
+    if (role === 'superadmin') return '/superadmin';
+    if (role === 'advisor' || role === 'asesor_admin' || role === 'asesor_freelance') return '/asesor';
+    if (role === 'developer_admin' || role === 'developer_member' || role === 'developer') return '/desarrollador';
+    if (role === 'inmobiliaria_admin' || role === 'inmobiliaria_member' || role === 'inmobiliaria_director') return '/inmobiliaria';
+    return '/marketplace';
+  };
+
+  if (loading) {
+    return <div style={{ padding: 60, color: '#807e78', textAlign: 'center', fontFamily: 'DM Sans' }}>Cargando…</div>;
+  }
+
+  const path = location.pathname;
+  const isPortalPath =
+    path.startsWith('/desarrollador') ||
+    path.startsWith('/asesor') ||
+    path.startsWith('/inmobiliaria') ||
+    path.startsWith('/superadmin');
+
+  if (user && isPortalPath) {
+    return <Navigate to={portalForRole(user.role)} replace />;
+  }
+  return <LandingPage />;
 }
 
 // ─── Landing page ─────────────────────────────────────────────────────────────
