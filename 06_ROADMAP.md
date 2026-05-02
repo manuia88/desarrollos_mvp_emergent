@@ -11,6 +11,7 @@
 1. [Status snapshot H1](#1-status-snapshot-h1)
 2. [Phase 4 Dev Module — refactor B0 → B23](#2-phase-4-dev-module-refactor)
 3. [Phase Y — DMX Intelligence Platform](#3-phase-y-dmx-intelligence-platform)
+3.5. [Phase Z — Superadmin Data Intelligence Layer](#35-phase-z-superadmin-data-intelligence-layer)
 4. [Decisiones arquitectónicas](#4-decisiones-arquitectonicas)
 5. [Riesgos + mitigations](#5-riesgos)
 6. [H2 backlog + rejected](#6-h2-backlog)
@@ -23,7 +24,7 @@
 | Phase | Status | Estimado |
 |---|---|---|
 | Phase 4 Dev Module (original v1) | ✅ shipped 16 batches | ~78h |
-| Phase 4 Dev REFACTOR | 🟡 5/16 shipped (B0/B10/B11/B0.5/B12), 11 pending | ~143h total |
+| Phase 4 Dev REFACTOR | 🟡 7/16 shipped (B0/B0.5/B10/B11/B12/B13/B14), 9 pending | ~157h total |
 | Phase 1 Marketplace gaps | 🟡 pending | ~30h |
 | Phase 2 Comprador | 🟡 pending | ~12-14h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
@@ -34,12 +35,13 @@
 | Phase 10 Caya + A11 | 🟡 pending | ~26h |
 | Phase 11 Dubai | 🟡 pending | ~38h |
 | **Phase Y DMX Intelligence Platform** (reemplaza Phase 17) | 🟡 pending | ~102h |
+| **Phase Z Superadmin Data Intelligence Layer** (NUEVO 2026-05-02) | 🟡 pending | ~72h |
 | Phase 19 Buyer Coach + Mortgage | 🟡 pending | ~14h |
 | Phase 20 Polish + Launch | 🟡 pending | ~23h |
 | F0 sweep (resto) | 🟡 pending | ~22h |
 | Cross-cutting (CC1-4) | 🟡 pending | ~28h |
 
-**Total H1 restante**: ~530h emergent
+**Total H1 restante**: ~602h emergent (incluye Phase Z nueva)
 
 ---
 
@@ -55,12 +57,12 @@
 | ✅ B0.5 | Diagnostic Engine + Observability | 20 | 30 probes + Report UI + System map + User-level + Auto-fix |
 | ✅ B12 | Wizard 7 pasos + IA upload | 12 | SmartWizard + drag-drop + Drive URL + Claude haiku extraction |
 | ✅ B13 | Cross-portal sync + Tracking attribution + Gap fix | 12 | Unified projects + probes extendidas + lead_source_attribution + multi-touch + links-tracking + MapboxPicker |
+| ✅ B14 | Health Score + Project cards + Activity feed + Notifications + Setup checklist + Weekly Brief AI | 10 | 20/20 pytest · Health engine 4 components · APScheduler snapshots 6am + weekly brief lunes 8am · 2 probes B0.5 |
 
-### Pendientes (~69h restantes)
+### Pendientes (~59h restantes)
 
 | # | Batch | h | Foco |
 |---|---|---|---|
-| 🟡 B14 | Health Score + Project cards visuales + Activity feed + más | 10 | Notifications panel + Quick actions + Widget "Esta semana" + Setup checklist + Diagnostic badge cards |
 | 🟡 B15 | Multi-broker calendar | 8 | Google + Microsoft OAuth + policies asignación |
 | 🟡 B16 | AI suggestions inline + Smart empty states | 4 | |
 | 🟡 B17 | Drag-drop universal + Inline edit + Filter chips + Undo system | 7 | |
@@ -127,6 +129,95 @@ Antes de activar T3/T4 production, founder simula dry-run sobre histórico:
 ### Audit Replay UI (Y.5)
 
 Dashboard cronológico de TODAS las acciones AI con filtros + reasoning expandible + Undo si reversible.
+
+---
+
+## 3.5 Phase Z — Superadmin Data Intelligence Layer
+
+**~72h · 7 sub-phases · post-Phase Y**
+
+**Tesis**: La data agregada cross-org cross-tiempo es el moat. SaaS para devs/asesores genera ARR; data products para bancos/notarías/aseguradoras/inversionistas/gobierno generan ARR multiplicador + barrera de entrada insuperable.
+
+**Origen**: pregunta founder 2026-05-02. Antes de esta fecha, la consolidación cross-org como producto comercial NO estaba en roadmap. Phase Z lo subsana.
+
+### Customers de la data
+
+| Cliente | Producto | Caso uso |
+|---|---|---|
+| Bancos / SOFOM | AVM API + comparables | Mortgage origination · LTV · portfolio risk |
+| Aseguradoras | Risk score per propiedad/zona | Underwriting · premium · catastrophic risk |
+| Notarías | Title chain + valuation PDF | Escrituras · DD comprador · Mifiel |
+| Inversionistas / REITs | Yield calc + comparables | Deal sourcing · exit comps · simulator |
+| Devs / builders | Pricing intelligence | Pre-launch · feature mix · timing |
+| Brokerages externos | Market reports white-label | Competitive intel · pitches |
+| Gobierno / SAT / SHF | Aggregate reports | Tax · transparency · AML signals |
+| Construction supply | Material demand region/tipo | Supply chain forecast |
+| Real estate media | Trend data feeds | Editorial · indices |
+| Private equity | Deal sourcing + DD | M&A real estate ops |
+
+### Dimensiones del cubo
+
+- **Geographic**: alcaldía · colonia · AGEB INEGI 2020 · polígono custom · zona metro · país
+- **Temporal**: snapshots diarios/semanales/mensuales · time-series desde día 1
+- **Property**: tipo · m² · recámaras · baños · niveles · amenidades · year built · floor · view · orientation
+- **Price**: rango · $/m² · $/total · evolución vs precio inicial · descuentos · pre-venta vs entrega
+- **Project**: developer · stage · sale velocity · financing · reputación
+- **Demand**: leads/zona/tipo · conversion · journey abandono · source attribution
+- **Market signal**: precio inicial vs cierre · descuentos típicos · time-on-market · comparables matrix
+- **Cross-portal**: dev portfolio health · asesor performance · comprador segments · search patterns
+
+### Sub-phases
+
+| Sub | Foco | h |
+|---|---|---|
+| Z.0 | Data Lake + Warehouse Foundation: time-series store + ETL diaria + geo indexing AGEB + facts/dim tables | 10 |
+| Z.1 | Consolidated Metrics Cube: OLAP aggregations + materialized views + Redis cache + backfill | 12 |
+| Z.2 | Superadmin Intelligence Hub UI: dashboard cross-org + heatmaps geo + trend lines + comparables matrix + drill-down + alerts | 12 |
+| Z.3 | Data Products + Public API: API v1 + auth keys + rate limits + OpenAPI + tier free/pro/enterprise + webhooks + Stripe billing | 10 |
+| Z.4 | Vertical Data Products: Bank AVM · Insurance risk · Notaría title+PDF · Investor yield — c/u widget white-label + API | 14 |
+| Z.5 | Anonymization + Compliance: PII strip + k-anonymity ≥5 props + audit log + LFPDPPP DSR + differential privacy | 6 |
+| Z.6 | Cross-sell Intelligence: lead enrichment + partner integrations + revenue share + propensity ML | 8 |
+
+### Endpoints públicos planeados (Z.3)
+
+```
+GET /v1/markets/{alcaldia}/snapshot         KPIs zona
+GET /v1/markets/{alcaldia}/timeseries       histórico
+GET /v1/comparables?lat=&lng=&radius=       comparables
+GET /v1/valuations/{property_id}            AVM + CI
+GET /v1/zone-scores/{ageb_id}               125 IE scores
+GET /v1/demand-pulse                        leads activos
+GET /v1/risk/insurance/{property_id}        riesgo seguro
+POST /v1/title-chain/check                  verif notarial
+GET /v1/yield/{property_id}                 renta + yield
+GET /v1/portfolio/exposure                  análisis cartera
+```
+
+### Por qué Phase Z post-Phase Y
+
+1. Phase Y genera flujo agentic + ML continuous training → scores per-property/zone
+2. Sin Phase Y, cubo Z queda con scores estáticos B0-style
+3. Phase Z monetiza inteligencia que Y produce — orden correcto
+
+### Pricing model planeado
+
+- **Free**: 1k req/mes
+- **Pro**: $499/mes · 100k req
+- **Enterprise**: custom + SLA + white-label widgets
+
+### Métricas éxito Y2
+
+- 5+ partnerships verticals (1 banco · 1 aseguradora · 1 notaría · 1 fondo · 1 brokerage)
+- API revenue ≥30% ARR total
+- 100% queries externas loggeadas + 0 violaciones k-anonymity
+- ≥80% colonias CDMX con data ≥10 properties
+
+### Cross-sell ejemplos concretos (Z.6)
+
+- Lead Marketplace ve apto Polanco → widget "Pre-aprobación BBVA 30s" → comisión banco si cierra
+- Asesor abre lead → "Cliente elegible Qualitas $1,200/año" → 1-click cotización embebida → comisión seguro
+- Comprador compra → notaría partner con título pre-verificado vía Z.4 → fee notaría
+- Dev publica proyecto → "Constructor X tiene oferta tu zona" → revenue share
 
 ---
 

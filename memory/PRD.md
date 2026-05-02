@@ -2750,12 +2750,11 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B0.5 — Diagnostic Engine + Observability (Engine + 30 probes + Report UI + System map + User-level + Auto-fix + Recommendations) | shipped | 20 |
 | ✅ | B12 — Wizard 7 pasos + IA upload (drag-drop + Drive URL paste + Claude haiku extraction + smart defaults learning + diagnostic post-create) | shipped | 12 |
 | ✅ | B13 — Cross-portal sync + Tracking attribution + Gap fix (unified projects + B0.5 probes extendidas + lead_source_attribution + multi-touch + asesor links-tracking + MapboxPicker wizard + cross_portal_sync_health probe) | shipped 5032435 | 12 |
+| ✅ | B14 — Health Score Engine + Project Cards + Activity Feed + Notifications + Setup Checklist + Quick Actions + Weekly Brief AI (20/20 pytest · 2 probes B0.5 · APScheduler snapshots 6am + weekly brief lunes 8am) | shipped | 10 |
 
-### Pendientes Phase 4 refactor (~69h restantes)
+### Pendientes Phase 4 refactor (~59h restantes)
 
 | # | Batch | h |
-| 🟡 | B13 — Sync cross-portal + tracking cookie + multi-touch attribution | 10 |
-| 🟡 | B14 — Health Score + Project cards visuales + Activity feed + Notifications + Quick actions + Widget "Esta semana" + Setup checklist + Diagnostic badge cards | 10 |
 | 🟡 | B15 — Multi-broker calendar (Google + Microsoft OAuth + policies asignación) | 8 |
 | 🟡 | B16 — AI suggestions inline + Smart empty states | 4 |
 | 🟡 | B17 — Drag-drop universal + Inline edit + Filter chips + Undo system | 7 |
@@ -2867,6 +2866,109 @@ Dashboard cronológico de TODAS las acciones AI:
 - GOOGLE_OAUTH_CLIENT_ID (B12 Drive + B15 Calendar)
 - MICROSOFT_OAUTH (B15 Calendar)
 - ELEVENLABS_API_KEY · PEDRA_API_KEY (Studio Wave 2)
+
+═══════════════════════════════════════════════════════════
+## Phase Z — Superadmin Data Intelligence Layer (~72h, post-Phase Y)
+═══════════════════════════════════════════════════════════
+
+**Tesis**: La data agregada cross-org cross-tiempo es el verdadero moat. SaaS para devs/asesores genera ARR; data products para bancos/notarías/aseguradoras/inversionistas/gobierno generan ARR multiplicador + barrera de entrada insuperable.
+
+**Originada por**: pregunta founder 2026-05-02 — "¿tenemos un concentrado general de toda la info que es lo que le da valor a la plataforma no solo con devs, sino con bancos, notarías, aseguradoras y cross-selling de la data que podemos tener?". Honest answer: NO lo teníamos contemplado. Phase Z lo subsana.
+
+### Customers de la data (B2B + B2G + B2B2C)
+
+| Tipo cliente | Producto data | Caso uso |
+|---|---|---|
+| Bancos / SOFOM | AVM API + comparables justification | Mortgage origination · loan-to-value · portfolio risk |
+| Aseguradoras | Risk score per propiedad/zona | Underwriting · premium calc · catastrophic risk modeling |
+| Notarías | Title chain + valuation report PDF | Escrituras · due diligence comprador · cumplimiento Mifiel |
+| Inversionistas / REITs | Yield calculator + comparables | Deal sourcing · exit comps · portfolio simulator |
+| Devs / builders | Pricing intelligence + demand heatmaps | Pre-launch pricing · feature mix · timing |
+| Brokerages externos | Market reports white-label | Competitive intelligence · client pitches |
+| Gobierno / SAT / SHF | Aggregate market reports | Tax assessment · transparency · money laundering signals |
+| Construction supply | Material demand by region/tipo | Supply chain forecasting |
+| Real estate media | Trend data feeds | Editorial content · indices |
+| Private equity | Deal sourcing + DD accelerator | M&A real estate ops |
+
+### Dimensiones del cubo
+
+**Geographic**: alcaldía · colonia · AGEB INEGI 2020 · polígono custom · zona metropolitana · país (MX/AED H1)
+**Temporal**: snapshots diarios/semanales/mensuales · time-series desde día 1
+**Property**: tipo (depto/casa/loft/town/PH) · m² · recámaras · baños · niveles · amenidades · year built · floor · view · orientation
+**Price**: rango (entry/mid/luxury/ultraluxury) · $/m² · $/total · evolución vs precio inicial · descuentos negociados · pre-venta vs entrega
+**Project**: developer · marca · stage (lanzamiento/comercialización/entrega) · sale velocity · financing options · reputación dev
+**Demand**: leads por zona/precio/tipo · conversion rate · abandono journey · source attribution
+**Market signal**: precio inicial vs cierre · descuentos típicos · time-on-market distribution · comparable matrix
+**Cross-portal**: dev portfolio health · asesor performance distribution · comprador segments · search patterns
+
+### Sub-phases
+
+| Sub | Foco | h |
+|---|---|---|
+| Z.0 | Data Lake + Warehouse Foundation: time-series store + ETL diaria + geo indexing AGEB + facts/dim tables | 10 |
+| Z.1 | Consolidated Metrics Cube: OLAP-style aggregations + materialized views per slice + cache Redis + backfill histórico | 12 |
+| Z.2 | Superadmin Intelligence Hub UI: dashboard ejecutivo cross-org + heatmaps geográficos + trend lines + comparables matrix + drill-down zona→proyecto→unidad→lead + alerts ejecutivos | 12 |
+| Z.3 | Data Products + Public API: API v1 versionada + auth keys + rate limits + OpenAPI docs + tier system free/pro/enterprise + webhooks + Stripe billing | 10 |
+| Z.4 | Vertical Data Products: Bank AVM endpoint · Insurance risk score · Notaría title chain + PDF · Investor yield calculator — cada uno white-label widget + dedicated API | 14 |
+| Z.5 | Anonymization + Compliance Layer: PII stripping antes de export + k-anonymity (≥5 properties) + audit log queries externas + LFPDPPP DSR + differential privacy noise | 6 |
+| Z.6 | Cross-sell Intelligence: lead enrichment + partner integrations (banco preapproval inline · seguro cotización embebida) + revenue share tracking + propensity ML | 8 |
+
+### Endpoints públicos planeados (Z.3)
+
+```
+GET /v1/markets/{alcaldia}/snapshot         → KPIs zona actual
+GET /v1/markets/{alcaldia}/timeseries       → histórico precio/demanda
+GET /v1/comparables?lat=&lng=&radius=&type= → propiedades comparables
+GET /v1/valuations/{property_id}            → AVM con confidence interval
+GET /v1/zone-scores/{ageb_id}               → 125 IE Engine scores
+GET /v1/demand-pulse?zona=&tipo=&precio=    → leads activos + heat
+GET /v1/risk/insurance/{property_id}        → score riesgo aseguradora
+POST /v1/title-chain/check                  → verificación notarial
+GET /v1/yield/{property_id}                 → renta estimada + yield neto
+GET /v1/portfolio/exposure                  → análisis carteras (auth)
+```
+
+### Architecture decisions Phase Z
+
+- **Time-series store**: TimescaleDB extension PostgreSQL O MongoDB time-series collections (decidir Z.0)
+- **ETL**: APScheduler nightly jobs · transactional (MongoDB) → analytics (warehouse)
+- **Geo indexing**: AGEB INEGI 2020 como primary key + polígonos custom para zonas premium
+- **Cache**: Redis para hot queries top-100 zonas
+- **API auth**: JWT API keys + Stripe metered billing
+- **Compliance gate**: ningún endpoint expone data <5 properties (k-anonymity hard rule)
+- **Audit log**: cada query externa loggeada con customer_id + endpoint + cost + timestamp
+- **Pricing model tier**: Free 1k req/mes · Pro $499/mes 100k req · Enterprise custom + SLA
+
+### Por qué Phase Z post-Phase Y (no antes)
+
+1. Phase Y genera el flujo agentic + ML continuous training — alimenta scores per-property/zone
+2. Sin Phase Y, el cubo Phase Z queda con scores estáticos B0-style (heat score básico)
+3. Phase Z monetiza la inteligencia que Phase Y produce — orden correcto
+
+### Riesgos Phase Z mitigados
+
+| Riesgo | Mitigation |
+|---|---|
+| Privacy regulators (LFPDPPP, INAI) | Z.5 compliance layer + DSR + audit + k-anonymity |
+| Customer data leak | API auth + rate limits + per-customer audit log |
+| Aggregation bias / errors → liability | Confidence intervals · SLA disclaimers · "for informational purposes" |
+| Cost de cómputo cubo | Materialized views + Redis cache + tiered access |
+| Regulación bancaria (SAVM, CONDUSEF) | Partnership con appraisers certificados Z.4 (no reemplazar) |
+| Adopción lenta verticals | Z.4 white-label widgets reducen barrera integración |
+
+### Cross-sell concrete examples (Z.6)
+
+- Lead Marketplace clica "Apartamento $3M Polanco" → widget inline "Pre-aprobación BBVA en 30s" → comisión banco si cierra
+- Asesor abre lead → ve "Cliente elegible seguro Qualitas $1,200/año" → 1-click cotización embebida → comisión seguro
+- Comprador compra → notaría partner sugerida con título pre-verificado vía Z.4 endpoint → fee notaría
+- Dev publica proyecto → "Construct supplier X tiene oferta tu zona" → revenue share
+
+### Métricas éxito Phase Z
+
+- 5+ partnerships verticals firmados primer año (1 banco · 1 aseguradora · 1 notaría · 1 fondo · 1 brokerage)
+- API revenue ≥30% de ARR total para fin Y2
+- Audit compliance: 100% queries externas loggeadas + 0 violaciones k-anonymity
+- Portfolio coverage: ≥80% colonias CDMX con data ≥10 properties
 
 ═══════════════════════════════════════════════════════════
 ## Bug fixes 2026-05-02
