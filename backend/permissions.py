@@ -105,3 +105,26 @@ def can_view_full_project_data(user) -> bool:
 def can_view_full_unit_data(user) -> bool:
     lvl = get_user_permission_level(user)
     return lvl in ("superadmin", "developer_director", "developer_member", "inmobiliaria_director")
+
+
+def can_edit_project(user) -> bool:
+    """Only developer_admin / director or superadmin can mutate project settings."""
+    lvl = get_user_permission_level(user)
+    return lvl in ("superadmin", "developer_director")
+
+
+def can_view_commercialization(user) -> bool:
+    """Commercialization data (pricing strategy, commissions, broker agreements)
+    visible to directors and above.
+    """
+    lvl = get_user_permission_level(user)
+    return lvl in ("superadmin", "developer_director", "inmobiliaria_director")
+
+
+def can_view_engagement_metrics(user) -> bool:
+    """Engagement analytics (portal hits, time-on-page, funnel drop-offs)
+    visible to developers and inmobiliarias at director level or above.
+    """
+    lvl = get_user_permission_level(user)
+    return lvl in ("superadmin", "developer_director", "developer_member",
+                   "inmobiliaria_director")

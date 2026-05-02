@@ -233,6 +233,14 @@ async def generate_property_briefing(prop_id: str, request: Request):
         text = (raw or "").strip().strip('"')
         if len(text) > 290:
             text = text[:277].rstrip() + "..."
+        # Budget tracking for public briefing AI
+        if text:
+            try:
+                from ai_budget import track_ai_call
+                await track_ai_call(db, "public", "claude-sonnet-4-5-20250929", 0,
+                                    "property_briefing", tokens_in=len(prompt)//4, tokens_out=len(text)//4)
+            except Exception:
+                pass
     except Exception:
         text = None
     if not text:

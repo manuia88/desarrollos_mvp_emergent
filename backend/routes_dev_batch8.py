@@ -314,7 +314,8 @@ def _build_series(project_inputs: Dict, pipeline_inputs: Dict, *,
 # ─────────────────────────────────────────────────────────────────────────────
 # Claude IA narratives + recommendations
 # ─────────────────────────────────────────────────────────────────────────────
-async def _claude_scenario_narrative(label: str, summary: Dict) -> str:
+async def _claude_scenario_narrative(label: str, summary: Dict,
+                                    db=None, dev_org_id: str = "default") -> str:
     fallback = (
         f"Escenario {label}: revenue ${summary['total_revenue_projected'] / 1_000_000:.1f}M, "
         f"balance ${summary['total_balance'] / 1_000_000:.1f}M, "
@@ -340,14 +341,26 @@ async def _claude_scenario_narrative(label: str, summary: Dict) -> str:
             f"Max negativo acumulado ${summary['max_negative_cumulative']:,}."
         )
         raw = await chat.send_message(UserMessage(text=prompt))
-        return (raw or "").strip()[:240] or fallback
+        result = (raw or "").strip()[:240] or fallback
+        # Budget tracking
+        if db is not None:
+            t_in = len(prompt) // 4
+            t_out = len(result) // 4
+            try:
+                from ai_budget import track_ai_call
+                await track_ai_call(db, dev_org_id, "claude-haiku-4-5-20251001", 0,
+                                    "cash_flow_narrative", tokens_in=t_in, tokens_out=t_out)
+            except Exception:
+                pass
+        return result
     except Exception as e:
         log.warning(f"[batch8] narrative {label} failed: {e}")
         return fallback
 
 
 async def _claude_recommendations(*, base_summary: Dict, biggest_gap: Optional[Dict],
-                                  pipeline_inputs: Dict, project_inputs: Dict) -> List[Dict]:
+                                  pipeline_inputs: Dict, project_inputs: Dict,
+                                  db=None, dev_org_id: str = "default") -> List[Dict]:
     """One Claude call returning 3-5 prioritized recommendations as JSON."""
     fallback: List[Dict] = []
     if base_summary["gap_count"] > 0:
@@ -422,6 +435,16 @@ async def _claude_recommendations(*, base_summary: Dict, biggest_gap: Optional[D
                                              else None),
                     "generated_at": _now_iso(),
                 })
+            # Budget tracking
+            if db is not None:
+                t_in = len(prompt) // 4
+                t_out = len(text) // 4
+                try:
+                    from ai_budget import track_ai_call
+                    await track_ai_call(db, dev_org_id, "claude-haiku-4-5-20251001", 0,
+                                        "cash_flow_recommendations", tokens_in=t_in, tokens_out=t_out)
+                except Exception:
+                    pass
             return cleaned
     except Exception as e:
         log.warning(f"[batch8] claude recs failed: {e}")
@@ -451,7 +474,8 @@ async def _recalc_forecast(db, *, project_id: str, dev_org_id: str, user_id: str
     # 3 scenarios
     scenarios = []
     scn_results = await asyncio.gather(*[
-        _build_scenario_with_narrative(project_inputs, pipeline_inputs, label, defs, horizon_months)
+        _build_scenario_with_narrative(project_inputs, pipeline_inputs, label, defs,
+                                       horizon_months, db=db, dev_org_id=dev_org_id)
         for label, defs in SCENARIO_DEFS.items()
     ])
     scenarios = list(scn_results)
@@ -461,6 +485,7 @@ async def _recalc_forecast(db, *, project_id: str, dev_org_id: str, user_id: str
         biggest_gap=base_summary.get("biggest_gap"),
         pipeline_inputs=pipeline_inputs,
         project_inputs=project_inputs,
+        db=db, dev_org_id=dev_org_id,
     )
 
     fid = _uid("cfcst")
@@ -485,14 +510,15 @@ async def _recalc_forecast(db, *, project_id: str, dev_org_id: str, user_id: str
     return doc
 
 
-async def _build_scenario_with_narrative(project_inputs, pipeline_inputs, label, defs, horizon):
+async def _build_scenario_with_narrative(project_inputs, pipeline_inputs, label, defs, horizon,
+                                         db=None, dev_org_id: str = "default"):
     series, summary = _build_series(
         project_inputs, pipeline_inputs, horizon=horizon,
         absorption_modifier=defs["absorption_modifier"],
         price_modifier=defs["price_modifier"],
         construction_delay_months=defs["construction_delay_months"],
     )
-    narrative = await _claude_scenario_narrative(label, summary)
+    narrative = await _claude_scenario_narrative(label, summary, db=db, dev_org_id=dev_org_id)
     return {
         "label": label,
         "assumptions": defs,

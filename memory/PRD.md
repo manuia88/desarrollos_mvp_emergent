@@ -2748,6 +2748,94 @@ https://dmx-realestate-hub.preview.emergentagent.com
 
 ---
 
+## 2026-05-02 — Phase 4 B0 Sub-chunk C · Backend Modules + Hooks + i18n + Schema + Wire
+
+### 1. permissions.py — 3 nuevos helpers
+- `can_edit_project(user)` → solo developer_director / superadmin
+- `can_view_commercialization(user)` → directors + superadmin (pricing, commissions, broker agreements)
+- `can_view_engagement_metrics(user)` → directors + developer_member
+
+### 2. data_scoping.py — entity type 'commercialization'
+- `_scope_commercialization(data, lvl)` → scrubs campos sensitivos (broker_commission_pct, internal_target_margin, reserve_price, etc.) para no-directores
+- `scope_data(data, user, 'commercialization')` ya disponible
+- Wired en 3 endpoints existentes:
+  - `GET /api/leads/{lead_id}` (routes_dev_batch4_2.py) — scope_data(result, user, "lead")
+  - `GET /projects/{project_id}/breakdown` (routes_dev_batch2.py) — scope_data(response, user, "project")
+  - Notas: uso via import inline dentro del endpoint (cero breaking changes)
+
+### 3. ai_budget.py — refactor completo con nuevas features
+- `track_ai_call(db, dev_org_id, model, tokens, call_type, tokens_in=None, tokens_out=None)`:
+  - Acepta split tokens_in/tokens_out (70/30 si no se proveen)
+  - Costo estimado USD → MXN usando MODEL_COST_PER_1K lookup table
+  - `call_log` rolling array (últimas 100 calls) en el documento
+- `_maybe_send_budget_alert()` — email Resend si org > 80% del cap (1x/día, rate-limited)
+- `get_ai_usage(db, dev_org_id, period)` → stats para "current_month" o "last_3_months"
+- `ensure_ai_budget_indexes()` → manejo graceful de conflicto de índice (drop+recreate)
+- Endpoints nuevos:
+  - `PATCH /api/dev/ai-budget/threshold` (developer_admin: set threshold propio)
+  - + audit_log + emit_ml_event para threshold_changed
+- Endpoints existentes ya estaban: `GET /api/dev/ai-budget`, `GET /api/superadmin/ai-usage`, `PATCH /api/superadmin/ai-usage/{org}/cap`
+
+### 4. track_ai_call() wired en TODAS las Claude calls ⭐ CRITICAL
+- `routes_dev_batch4_4.py` — `_claude_json()` ahora acepta `db, dev_org_id, call_type`. Wired en:
+  - `compute_heat_for_lead` → call_type="heat_score"
+  - AI summary endpoint → call_type="ai_summary"
+  - is_within_budget check ANTES de llamar a Claude (fallback determinista si over budget)
+- `routes_dev_batch8.py` — wired en:
+  - `_claude_scenario_narrative` → call_type="cash_flow_narrative"
+  - `_claude_recommendations` → call_type="cash_flow_recommendations"
+  - `_build_scenario_with_narrative` + `_recalc_forecast` actualizados para thread db/dev_org_id
+- `routes_dev_batch7.py` — wired en:
+  - `_claude_zone_narrative` → call_type="site_selection_narrative"
+  - `_run_engine` acepta y pasa `dev_org_id` a `_claude_zone_narrative`
+  - `asyncio.create_task(_run_engine(db, study_id, inputs, dev_org_id=org))` actualizado
+- `routes_dev_batch5.py` — wired en:
+  - `_claude_narrative` → call_type="pdf_report_narrative"
+  - `_build_pdf` pasa `db` y `dev_org_id` a `_claude_narrative`
+- `narrative_engine.py` — wired en `get_or_generate` tras `_generate_narrative` (usa tokens reales input/output)
+- `caya_engine.py` — wired inline tras Claude call → call_type="caya_conversation"
+- `routes_public.py` — wired inline tras `property_briefing` call → dev_org_id="public"
+
+### 5. routes_badges.py (NUEVO) + server.py registration
+- `GET /api/dev/leads/count-unread` → leads sin leer asignados al org
+- `GET /api/dev/citas/count-today` → citas hoy en estado scheduled/confirmed
+- `GET /api/dev/projects/count-unhealthy` → proyectos con health_score < 60 (fallback: ie_scores)
+- `GET /api/asesor/contacts/count-new` → leads nuevos en últimos 7 días para asesor
+- `server.py`: `include_router(badges_router)` + project_documents migration en startup
+- project_documents migration: escaneá developments con embedded docs, migra a colección separada
+
+### 6. i18n/index.js — Namespaces es-MX + en-US
+- Recursos duales: `translation` (backward-compat es/en) + `common` namespace (es-MX/common.json, en-US/common.json)
+- `lng: 'es-MX'` como primario, fallbackLng chain: es-MX → es → en-US → en
+- `useTranslation('common')` disponible para primitivos compartidos
+
+### 7. Lazy Load verificado ✓
+- 50 React.lazy() chunks en App.js
+- mapbox-gl: solo en chunks lazy (Mapa, PropertyDetail, DevelopmentDetail, SiteSelection, Demanda, CalendarioSubidas)
+- recharts: NO es dependencia directa — usa SVG custom charts
+- maplibre-gl: en package.json pero sin import directo (ready para usar)
+- Conclusión: initial bundle limpio, heavy deps (~700KB mapbox gzip) solo en lazy chunks
+
+### Archivos tocados
+- `/app/backend/permissions.py` (+3 helpers)
+- `/app/backend/data_scoping.py` (+commercialization type + _scope_commercialization)
+- `/app/backend/ai_budget.py` (refactor completo: tokens_in/out, email alert, get_ai_usage, threshold endpoint)
+- `/app/backend/routes_badges.py` (NUEVO: 4 badge count endpoints)
+- `/app/backend/routes_dev_batch4_4.py` (track_ai_call en _claude_json + callers)
+- `/app/backend/routes_dev_batch8.py` (track_ai_call en _claude_scenario_narrative + _claude_recommendations)
+- `/app/backend/routes_dev_batch7.py` (track_ai_call en _claude_zone_narrative + _run_engine)
+- `/app/backend/routes_dev_batch5.py` (track_ai_call en _claude_narrative)
+- `/app/backend/narrative_engine.py` (track_ai_call en get_or_generate)
+- `/app/backend/caya_engine.py` (track_ai_call inline)
+- `/app/backend/routes_public.py` (track_ai_call inline property_briefing)
+- `/app/backend/server.py` (+routes_badges + project_documents migration)
+- `/app/frontend/src/i18n/index.js` (namespaces es-MX + en-US)
+
+### SHA antes de este commit: `9185564`
+
+
+---
+
 ## 2026-05-02 — Phase 4 B0 Sub-chunk B · Primitives Set 2 + SmartWizard
 
 ### Componentes creados/reescritos (todos en `frontend/src/components/shared/`)

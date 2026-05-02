@@ -75,11 +75,19 @@ async def _safe_audit_ml(
             pass
 
 
-async def _claude_json(*, system: str, user_text: str, session_id: str, max_chars: int = 4000) -> Optional[Dict]:
-    """Call Claude haiku-4-5 and parse JSON response. Returns None on failure."""
+async def _claude_json(*, system: str, user_text: str, session_id: str, max_chars: int = 4000,
+                       db=None, dev_org_id: str = "default", call_type: str = "generic") -> Optional[Dict]:
+    """Call Claude haiku-4-5 and parse JSON response. Returns None on failure.
+    Pass db + dev_org_id to auto-track in ai_usage_log.
+    """
     if not EMERGENT_LLM_KEY:
         log.warning("[batch4.4] EMERGENT_LLM_KEY not set — claude call skipped")
         return None
+    if db is not None:
+        from ai_budget import is_within_budget
+        if not await is_within_budget(db, dev_org_id):
+            log.warning(f"[batch4.4] dev_org {dev_org_id} over AI budget — skipping call ({call_type})")
+            return None
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         chat = LlmChat(
@@ -89,6 +97,16 @@ async def _claude_json(*, system: str, user_text: str, session_id: str, max_char
         ).with_model("anthropic", CLAUDE_HAIKU_MODEL)
         msg = UserMessage(text=user_text[:max_chars])
         raw = await chat.send_message(msg)
+        # Budget tracking
+        if raw is not None and db is not None:
+            t_in = (len(system) + len(user_text[:max_chars])) // 4
+            t_out = len(raw) // 4
+            try:
+                from ai_budget import track_ai_call
+                await track_ai_call(db, dev_org_id, CLAUDE_HAIKU_MODEL, 0, call_type,
+                                    tokens_in=t_in, tokens_out=t_out)
+            except Exception:
+                pass
         # Strip code fences just in case
         text = (raw or "").strip()
         if text.startswith("```"):
@@ -236,6 +254,7 @@ async def compute_heat_for_lead(db, lead: Dict) -> Dict:
         "client_abandonments": history["abandonments"],
         "velocity_flag": bool(lead.get("velocity_flag")),
     }
+    dev_org_id = lead.get("dev_org_id", "default")
     claude = await _claude_json(
         system=(
             "Eres analista IA de leads inmobiliarios para LATAM. Evalúa el lead 0-100 con base en los factores "
@@ -245,6 +264,7 @@ async def compute_heat_for_lead(db, lead: Dict) -> Dict:
         user_text=f"Lead data: {json.dumps(payload, ensure_ascii=False)}",
         session_id=f"heat_{lead.get('id', '')}",
         max_chars=2000,
+        db=db, dev_org_id=dev_org_id, call_type="heat_score",
     )
     if claude and isinstance(claude.get("score"), int):
         # Blend heuristic + Claude (60% heuristic, 40% claude)
@@ -389,6 +409,7 @@ async def _build_ai_summary(db, lead: Dict) -> Dict:
         user_text=f"Lead context: {json.dumps(payload, ensure_ascii=False, default=str)}",
         session_id=f"ai_summary_{lead.get('id', '')}",
         max_chars=4000,
+        db=db, dev_org_id=lead.get("dev_org_id", "default"), call_type="ai_summary",
     )
 
     if claude and "summary" in claude:

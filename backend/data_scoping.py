@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 def scope_data(data: Dict, user, entity_type: str) -> Dict:
     """Return a scrubbed copy of data per user permission level.
 
-    entity_type: 'lead' | 'project' | 'unit' | 'asesor' | 'client'
+    entity_type: 'lead' | 'project' | 'unit' | 'asesor' | 'client' | 'commercialization'
     """
     if not data:
         return data
@@ -33,6 +33,8 @@ def scope_data(data: Dict, user, entity_type: str) -> Dict:
         return _scope_unit(out, lvl)
     if entity_type in ("asesor", "client"):
         return _scope_contact(out, lvl, user)
+    if entity_type == "commercialization":
+        return _scope_commercialization(out, lvl)
     return out
 
 
@@ -91,4 +93,19 @@ def _scope_contact(data: Dict, lvl: str, user) -> Dict:
         if out.get("advisor_id") != uid:
             for f in ("phone", "email", "whatsapp"):
                 out.pop(f, None)
+    return out
+
+
+_COMMERCIALIZATION_SENSITIVE = {
+    "broker_commission_pct", "internal_target_margin", "reserve_price",
+    "discount_budget_total", "broker_agreements", "co_broker_contacts",
+}
+
+
+def _scope_commercialization(data: Dict, lvl: str) -> Dict:
+    """Only directors and above see full commercialization terms."""
+    out = dict(data)
+    if lvl not in ("developer_director", "inmobiliaria_director"):
+        for f in _COMMERCIALIZATION_SENSITIVE:
+            out.pop(f, None)
     return out

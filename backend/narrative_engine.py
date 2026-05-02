@@ -206,6 +206,18 @@ async def get_or_generate(db, scope: str, entity_id: str, force: bool = False) -
         "output_tokens": out["output_tokens"],
         "cost_usd": out["cost_usd"],
     }
+    # AI budget tracking for narrative engine
+    try:
+        from ai_budget import track_ai_call
+        await track_ai_call(
+            db, "narrative_engine", out["model"],
+            out["input_tokens"] + out["output_tokens"],
+            f"narrative_{scope}",
+            tokens_in=out["input_tokens"],
+            tokens_out=out["output_tokens"],
+        )
+    except Exception:
+        pass
     await db.ie_narratives.insert_one(doc)
     doc.pop("_id", None)
     return {**doc, "cache_hit": False}

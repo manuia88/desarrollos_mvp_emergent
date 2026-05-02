@@ -626,6 +626,7 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
                 project_name=project_name,
                 kpis={"leads": total_leads, "citas": total_citas, "wins": closed_won, "win_rate": win_rate},
                 period=f"{period_from[:10]} a {period_to[:10]}",
+                db=db, dev_org_id=template.get("dev_org_id", "default"),
             )
             story.append(Paragraph(narrative, body))
             story.append(Spacer(1, 0.25 * inch))
@@ -639,7 +640,8 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
     return buf.getvalue()
 
 
-async def _claude_narrative(*, project_name: str, kpis: Dict, period: str) -> str:
+async def _claude_narrative(*, project_name: str, kpis: Dict, period: str,
+                            db=None, dev_org_id: str = "default") -> str:
     """Claude haiku narrative summary for executive section."""
     key = os.environ.get("EMERGENT_LLM_KEY", "")
     if not key:
@@ -655,12 +657,24 @@ async def _claude_narrative(*, project_name: str, kpis: Dict, period: str) -> st
                 "Usa los KPIs provistos. NO menciones que eres una IA."
             ),
         ).with_model("anthropic", "claude-haiku-4-5-20251001")
-        msg = UserMessage(text=(
+        prompt_text = (
             f"Proyecto: {project_name}. Período: {period}. "
             f"KPIs: {json.dumps(kpis)}. Genera el resumen ejecutivo."
-        ))
+        )
+        msg = UserMessage(text=prompt_text)
         text = await chat.send_message(msg)
-        return (text or "")[:1500]
+        result = (text or "")[:1500]
+        # Budget tracking
+        if db is not None and result:
+            t_in = len(prompt_text) // 4
+            t_out = len(result) // 4
+            try:
+                from ai_budget import track_ai_call
+                await track_ai_call(db, dev_org_id, "claude-haiku-4-5-20251001", 0,
+                                    "pdf_report_narrative", tokens_in=t_in, tokens_out=t_out)
+            except Exception:
+                pass
+        return result
     except Exception as e:
         log.warning(f"[batch5] claude narrative failed: {e}")
         return (f"Durante {period} el proyecto {project_name} registró {kpis['leads']} leads totales, "

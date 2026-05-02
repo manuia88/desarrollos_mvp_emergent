@@ -186,6 +186,10 @@ app.include_router(search_prefs_router)
 from ai_budget import router as ai_budget_router, ensure_ai_budget_indexes
 app.include_router(ai_budget_router)
 
+# Phase 4 Batch 0 Sub-chunk C — Badge counters
+from routes_badges import router as badges_router
+app.include_router(badges_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -414,6 +418,33 @@ async def startup():
     # Phase 4 Batch 0 — AI Budget + Preferences indexes
     await ensure_ai_budget_indexes(db)
     await ensure_preferences_indexes(db)
+    # Phase 4 Batch 0 Sub-chunk C — project_documents migration
+    try:
+        await db.project_documents.create_index([("development_id", 1), ("doc_type", 1)])
+        await db.project_documents.create_index("development_id")
+        migrated_count = 0
+        async for dev in db.developments.find(
+            {"documents": {"$exists": True, "$not": {"$size": 0}}}, {"_id": 0, "id": 1, "documents": 1}
+        ):
+            pid = dev.get("id")
+            if not pid:
+                continue
+            for doc in dev.get("documents", []):
+                existing = await db.project_documents.find_one({"development_id": pid, "url": doc.get("url")})
+                if not existing:
+                    await db.project_documents.insert_one({
+                        "development_id": pid,
+                        "doc_type": doc.get("type", "document"),
+                        "name": doc.get("name", ""),
+                        "url": doc.get("url", ""),
+                        "migrated_from": "developments.documents",
+                        "created_at": datetime.now(timezone.utc),
+                    })
+                    migrated_count += 1
+        if migrated_count:
+            logging.info(f"[startup] Migrated {migrated_count} embedded documents to project_documents")
+    except Exception as e:
+        logging.warning(f"[startup] project_documents migration failed: {e}")
     # Phase 4 Batch 0 — project_assets collection setup
     try:
         await db.project_assets.create_index([("development_id", 1), ("asset_type", 1)])

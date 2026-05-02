@@ -512,6 +512,13 @@ async def get_lead_detail(lead_id: str, request: Request):
         result.pop("notes", None)
         result["_conversation_hidden"] = True
 
+    # Apply data scoping
+    try:
+        from data_scoping import scope_data
+        result = scope_data(result, user, "lead")
+    except Exception:
+        pass
+
     result["_permissions"] = {
         "can_move": can_move_lead(user, lead),
         "can_view_full": can_full,
