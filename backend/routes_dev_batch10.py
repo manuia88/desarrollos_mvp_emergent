@@ -152,15 +152,34 @@ async def list_projects_with_stats(request: Request):
     ):
         ie_scores_map[s["zone_id"]] = s["value"]
 
-    # Count active leads per project
+    # Count active leads per project AND leads in last 30d
+    from datetime import timedelta
     leads_agg = {}
+    leads_30d_agg = {}
+    leads_closed_agg = {}
+    since_30d = datetime.now(timezone.utc) - timedelta(days=30)
     TERMINAL_STATUSES = {"cerrado_ganado", "cerrado_perdido", "archivado"}
     async for lead in db.leads.find(
-        {"development_id": {"$in": dev_ids}, "status": {"$nin": list(TERMINAL_STATUSES)}},
-        {"_id": 0, "development_id": 1}
+        {"development_id": {"$in": dev_ids}},
+        {"_id": 0, "development_id": 1, "status": 1, "created_at": 1}
     ):
         did = lead["development_id"]
-        leads_agg[did] = leads_agg.get(did, 0) + 1
+        st = lead.get("status", "")
+        if st not in TERMINAL_STATUSES:
+            leads_agg[did] = leads_agg.get(did, 0) + 1
+        if st == "cerrado_ganado":
+            leads_closed_agg[did] = leads_closed_agg.get(did, 0) + 1
+        created = lead.get("created_at")
+        if created:
+            if isinstance(created, str):
+                try:
+                    created = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                except Exception:
+                    created = None
+            if created and created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            if created and created >= since_30d:
+                leads_30d_agg[did] = leads_30d_agg.get(did, 0) + 1
 
     # Get cover photos from dev_assets
     cover_photos: Dict[str, Optional[str]] = {}
@@ -219,6 +238,21 @@ async def list_projects_with_stats(request: Request):
         # Weekly sales sparkline (last 8 weeks, deterministic from project seed)
         weekly_sales = _generate_weekly_sales(dev["id"], sold_units, stage)
 
+        # leads_30d, conversion_pct, days_listed
+        total_leads_for_dev = leads_agg.get(dev["id"], 0) + leads_closed_agg.get(dev["id"], 0)
+        closed = leads_closed_agg.get(dev["id"], 0)
+        conversion_pct = round(closed / total_leads_for_dev * 100) if total_leads_for_dev else 0
+        # days_listed: use dev.created_at or estimate from stage
+        created_at_raw = dev.get("created_at")
+        if created_at_raw:
+            try:
+                ca = datetime.fromisoformat(str(created_at_raw).replace("Z", "+00:00"))
+                days_listed = (datetime.now(timezone.utc) - ca).days
+            except Exception:
+                days_listed = None
+        else:
+            days_listed = None
+
         colonia_id = dev.get("colonia_id", dev.get("colonia", ""))
         colonia_name = colonia_map.get(colonia_id, dev.get("colonia", colonia_id).replace("_", " ").title())
 
@@ -234,6 +268,9 @@ async def list_projects_with_stats(request: Request):
             "construction_pct": construction_pct,
             "health_score": health,
             "leads_active": leads_agg.get(dev["id"], 0),
+            "leads_30d": leads_30d_agg.get(dev["id"], 0),
+            "conversion_pct": conversion_pct,
+            "days_listed": days_listed,
             "revenue_mtd_est": revenue_mtd_est,
             "weekly_sales": weekly_sales,
             "cover_photo": cover_photos.get(dev["id"]),

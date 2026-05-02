@@ -264,8 +264,32 @@ def start_scheduler(db):
         args=[db], id="unit_holds_release", replace_existing=True,
         misfire_grace_time=300,
     )
+    # Phase 4 Batch 14 — Health Score daily snapshots at 6am MX
+    try:
+        from health_score import take_health_snapshots
+        _scheduler.add_job(
+            take_health_snapshots, CronTrigger(hour=6, minute=0, timezone=TZ),
+            args=[db], id="health_score_snapshots", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_health_score_error", error=str(e))
+
+    # Phase 4 Batch 14 — Weekly brief generation every Monday at 8am MX
+    try:
+        from routes_dev_batch14 import generate_weekly_briefs_for_all
+        _scheduler.add_job(
+            generate_weekly_briefs_for_all, CronTrigger(day_of_week="mon", hour=8, minute=0, timezone=TZ),
+            args=[db], id="weekly_brief_generation", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_weekly_brief_error", error=str(e))
+
     _scheduler.start()
-    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status", "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew", "unit_holds_release"])
+    _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
+          "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",
+          "unit_holds_release", "health_score_snapshots", "weekly_brief_generation"])
     return _scheduler
 
 

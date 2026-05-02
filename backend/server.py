@@ -210,6 +210,11 @@ app.include_router(wizard_router)
 from routes_b13 import (router as b13_router, ensure_b13_indexes)
 app.include_router(b13_router)
 
+# Phase 4 Batch 14 — Health Score + Activity Feed + Notifications + Weekly Brief
+from routes_dev_batch14 import (router as dev_batch14_router, ensure_batch14_indexes)
+from health_score import ensure_health_score_indexes
+app.include_router(dev_batch14_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -535,6 +540,13 @@ async def startup():
             register_diagnostic_jobs(sched, db, app)
         except Exception as e:
             logging.warning(f"[batch0.5] diagnostic scheduler register failed: {e}")
+
+    # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
+    try:
+        await ensure_batch14_indexes(db)
+        await ensure_health_score_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch14] index setup failed: {e}")
 
 
 @app.on_event("shutdown")

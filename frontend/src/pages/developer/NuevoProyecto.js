@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DeveloperLayout from '../../components/shared/DeveloperLayout';
+import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { SmartWizard } from '../../components/shared/SmartWizard';
 import { DragDropZone } from '../../components/shared/DragDropZone';
 import MapboxPicker from '../../components/developer/MapboxPicker';

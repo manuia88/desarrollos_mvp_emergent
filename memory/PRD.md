@@ -3225,3 +3225,54 @@ https://latam-spatial.preview.emergentagent.com
 - `/app/frontend/src/App.js` (+UndoProvider + PrimitivesDemo import + route)
 - `/app/frontend/src/config/navByRole.js` (+Boxes import + "UI Primitivas" nav item)
 - `/app/frontend/package.json` (+start script restaurado)
+
+
+---
+
+## Phase 4 Batch 14 — Health Score + Activity Feed + Notifications + Quick Actions + Setup Checklist
+**Completado: 2026-05-02 · 20/20 pytest passed**
+
+### Sub-Chunk A: Health Score Engine ✅
+- **Service**: `/app/backend/health_score.py` — `compute_health_score(entity_type, entity_id, db, force=False)` → score 0-100, TTL 60min cache in `db.health_scores`
+- **Daily snapshot**: `take_health_snapshots(db)` → APScheduler 6am MX → `db.health_scores_snapshots` (30d retention)
+- **Trend 7d**: compares current score vs snapshot 7 días atrás
+- **Endpoints**:
+  - `GET /api/health-score/{entity_type}/{entity_id}` (cached)
+  - `GET /api/health-score/batch?entity_type=&ids=a,b,c` (hasta 20 entidades)
+  - `POST /api/health-score/{entity_type}/{entity_id}/recompute` (force refresh)
+- **Probes B14**: `health_score_engine` + `weekly_brief_generator` registrados en `probes/health_score.py`
+- **Frontend**: `<HealthScoreWidget entity_type entity_id size=sm|md|lg />` en `components/shared/HealthScoreWidget.js`
+
+### Sub-Chunk B: Project Cards + Activity Feed + Notifications + Setup Checklist ✅
+- **Activity feed**: `db.activities` + `log_activity()` helper + `GET /api/activity/feed` + `POST /api/activity/log`
+- **Notifications mark-read**: `POST /api/notifications/mark-read` (single + bulk + all)
+- **Notifications trigger**: recompute si score <50 → notificación `health_score_alert` a devs
+- **Setup checklist**: `setup_progress(user_id, db)` → 5 items progress bar + `GET /api/panel/setup-progress`
+- **Project cards** (`MisProyectos.js`): diagnostic badge "ATENCIÓN" si health <70, KPIs actualizados (sold/total, leads_30d, conversion_pct, days_listed)
+- **Frontend**: `<ActivityFeed />`, `<SetupChecklist />` en `components/shared/`
+
+### Sub-Chunk C: Quick Actions + Weekly Brief AI ✅
+- **QuickActions**: `config/quickActions.js` con `resolveQuickActions(pathname)` → CTAs por ruta (/panel, /proyectos, /proyectos/:id, /crm)
+- **Weekly brief**: `db.weekly_briefs` + `_generate_weekly_brief()` (Claude Haiku) + APScheduler lunes 8am + `GET /api/panel/weekly-brief` (on-demand si stale)
+- **Dashboard** (`DesarrolladorDashboard.js`): WeeklyBriefWidget + ActivityFeed + SetupChecklist + FloatingQuickActions por ruta
+- **Fallback**: si Claude budget agotado → brief estático fallback (graceful)
+
+### Archivos creados
+- `/app/backend/health_score.py`
+- `/app/backend/routes_dev_batch14.py`
+- `/app/backend/probes/health_score.py`
+- `/app/backend/tests/test_batch14.py`
+- `/app/frontend/src/components/shared/HealthScoreWidget.js`
+- `/app/frontend/src/components/shared/ActivityFeed.js`
+- `/app/frontend/src/components/shared/SetupChecklist.js`
+- `/app/frontend/src/config/quickActions.js`
+
+### Archivos modificados
+- `/app/backend/probes/__init__.py` (+health_score probe import)
+- `/app/backend/scheduler_ie.py` (+health_score_snapshots job + weekly_brief_generation job)
+- `/app/backend/server.py` (+B14 router + health score indexes)
+- `/app/backend/routes_dev_batch10.py` (+leads_30d, conversion_pct, days_listed fields)
+- `/app/frontend/src/pages/developer/DesarrolladorDashboard.js` (rewrite con B14 widgets)
+- `/app/frontend/src/pages/developer/MisProyectos.js` (+diagnostic badge + updated KPIs)
+- `/app/frontend/src/components/shared/FloatingQuickActions.js` (fix lucide import)
+- `/app/frontend/src/pages/developer/NuevoProyecto.js` (fix DeveloperLayout import path)

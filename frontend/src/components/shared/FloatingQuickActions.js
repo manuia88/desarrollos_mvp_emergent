@@ -4,7 +4,7 @@
  * Props: actions=[{ label, icon: Icon, onClick, primary? }]
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from '../../components/icons';
 
 export function FloatingQuickActions({ actions = [], className = '' }) {
   const [open, setOpen] = useState(false);

@@ -135,6 +135,24 @@ function ProjectCard({ project, onClick }) {
         }}>
           {STAGE_LABELS[stage] || stage}
         </span>
+        {/* Diagnostic warning badge */}
+        {(project.health_score || 0) < 70 && (project.health_score || 0) > 0 && (
+          <span
+            data-testid={`diagnostic-badge-${project.id}`}
+            title="Salud del proyecto requiere atención"
+            style={{
+              position: 'absolute', bottom: 8, left: 10,
+              background: 'rgba(245,158,11,0.15)',
+              border: '1px solid rgba(245,158,11,0.35)',
+              color: '#fcd34d',
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
+              padding: '2px 7px', borderRadius: 4,
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            ATENCIÓN
+          </span>
+        )}
         {/* Health Score */}
         <div style={{ position: 'absolute', top: 8, right: 8 }}>
           <HealthScore score={project.health_score || 0} size="sm" />
@@ -169,10 +187,10 @@ function ProjectCard({ project, onClick }) {
 
         {/* Stats strip */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <StatPill icon={<Building size={12} />} label="Disponibles" value={disponibles} />
-          <StatPill icon={<Users size={12} />} label="Leads" value={project.leads_active || 0} />
-          <StatPill icon={<TrendUp size={12} />} label="Ingresos MTD" value={fmtMXN(project.revenue_mtd_est)} />
-          <StatPill icon={<BarChart size={12} />} label="Total" value={`${total} uds`} />
+          <StatPill icon={<Building size={12} />} label="Vendidas/Total" value={`${sold}/${total}`} />
+          <StatPill icon={<Users size={12} />} label="Leads 30d" value={project.leads_30d || project.leads_active || 0} />
+          <StatPill icon={<TrendUp size={12} />} label="Conversión" value={`${Math.round(project.conversion_pct || 0)}%`} />
+          <StatPill icon={<BarChart size={12} />} label="Días listado" value={project.days_listed || '—'} />
         </div>
 
         {/* Weekly sales sparkline */}
