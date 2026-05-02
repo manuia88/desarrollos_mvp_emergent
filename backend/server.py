@@ -1,6 +1,7 @@
 import os
 import uuid
 import bcrypt
+import logging
 import jwt as pyjwt
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -123,6 +124,55 @@ app.include_router(audit_router)
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
+
+# Phase 4 Batch 2 — Dashboards + IE + Construcción + Mapbox tab
+from routes_dev_batch2 import router as dev_batch2_router, ensure_dev_batch2_indexes
+app.include_router(dev_batch2_router)
+
+# Phase 4 Batch 3 — Internal users login + GeoJSON export
+from routes_dev_batch3 import router as dev_batch3_router, ensure_dev_batch3_indexes
+app.include_router(dev_batch3_router)
+
+# Phase 4 Batch 4 — Sales / CRM core (leads pipeline + project_brokers)
+from routes_dev_batch4 import router as dev_batch4_router, ensure_dev_batch4_indexes
+app.include_router(dev_batch4_router)
+
+# Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
+from routes_dev_batch4_1 import router as dev_batch4_1_router, ensure_batch4_1_indexes, seed_dmx_inmobiliaria
+app.include_router(dev_batch4_1_router)
+
+# Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
+from routes_dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
+app.include_router(dev_batch4_2_router)
+
+# Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression
+from routes_dev_batch4_3 import router as dev_batch4_3_router, ensure_batch4_3_indexes, register_batch4_3_jobs
+app.include_router(dev_batch4_3_router)
+
+# Phase 4 Batch 4.4 — AI Engine + Analytics
+from routes_dev_batch4_4 import router as dev_batch4_4_router, ensure_batch4_4_indexes, register_batch4_4_jobs
+app.include_router(dev_batch4_4_router)
+
+# Phase 4 Batch 5 — Dynamic Pricing A/B + Branded PDF Reports
+from routes_dev_batch5 import router as dev_batch5_router, ensure_batch5_indexes, register_batch5_jobs
+app.include_router(dev_batch5_router)
+
+# Phase 4 Batch 6 — Demand Heatmap + Engagement Analytics
+from routes_dev_batch6 import router as dev_batch6_router, ensure_batch6_indexes
+app.include_router(dev_batch6_router)
+
+# Phase 4 Batch 7 — Site Selection AI Standalone
+from routes_dev_batch7 import router as dev_batch7_router, ensure_batch7_indexes
+app.include_router(dev_batch7_router)
+
+# Phase 4 Batch 7.2 — INEGI Real Demographics
+from routes_dev_batch7_2 import router as dev_batch7_2_router, ensure_batch7_2_indexes
+app.include_router(dev_batch7_2_router)
+
+# Phase 4 Batch 8 — Cash Flow Forecast IA
+from routes_dev_batch8 import (router as dev_batch8_router, ensure_batch8_indexes,
+                              daily_active_projects_recalc)
+app.include_router(dev_batch8_router)
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
@@ -310,7 +360,6 @@ async def startup():
     try:
         await load_corpus_cache(db)
     except Exception as e:
-        import logging
         logging.warning(f"rag corpus preload failed: {e}")
     # Phase D2 — Caya indexes
     from caya_engine import ensure_caya_indexes
@@ -325,13 +374,63 @@ async def startup():
     await ensure_audit_log_indexes(db)
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
+    # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
+    await ensure_dev_batch2_indexes(db)
+    # Phase 4 Batch 3 — Internal users + GeoJSON export indexes
+    await ensure_dev_batch3_indexes(db)
+    # Phase 4 Batch 4 — Sales / CRM core indexes
+    await ensure_dev_batch4_indexes(db)
+    # Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
+    await ensure_batch4_1_indexes(db)
+    await seed_dmx_inmobiliaria(db)
+    # Phase 4 Batch 4.2 — Universal LeadKanban + Permission Tiers
+    await ensure_batch4_2_indexes(db)
+    # Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression
+    await ensure_batch4_3_indexes(db)
+    # Phase 4 Batch 4.4 — AI Engine + Analytics
+    await ensure_batch4_4_indexes(db)
+    # Phase 4 Batch 5 — Dynamic Pricing A/B + Branded PDF Reports
+    await ensure_batch5_indexes(db)
+    # Phase 4 Batch 6 — Demand Heatmap + Engagement Analytics
+    await ensure_batch6_indexes(db)
+    # Phase 4 Batch 7 — Site Selection AI Standalone
+    await ensure_batch7_indexes(db)
+    # Phase 4 Batch 7.2 — INEGI Real Demographics
+    await ensure_batch7_2_indexes(db)
+    # Phase 4 Batch 8 — Cash Flow Forecast IA
+    await ensure_batch8_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o
     except Exception as e:
         logging.warning(f"dev_overlays preload failed: {e}")
     # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
-    start_scheduler(db)
+    sched = start_scheduler(db)
+    # Phase 4 Batch 4.3 — register reminder + post-cita jobs on same scheduler
+    if sched:
+        try:
+            register_batch4_3_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"batch4.3 scheduler register failed: {e}")
+        try:
+            register_batch4_4_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"batch4.4 scheduler register failed: {e}")
+        try:
+            register_batch5_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"batch5 scheduler register failed: {e}")
+        # Phase 4 Batch 8 — daily 6am cash-flow recalc for active projects
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+            sched.add_job(
+                daily_active_projects_recalc, CronTrigger(hour=6, minute=0),
+                id="cash_flow_daily_recalc", replace_existing=True,
+                kwargs={"db": db, "app": app}, max_instances=1,
+            )
+            logging.info("[batch8] daily cash-flow recalc scheduled @ 06:00 MX")
+        except Exception as e:
+            logging.warning(f"[batch8] could not schedule daily recalc: {e}")
 
 
 @app.on_event("shutdown")

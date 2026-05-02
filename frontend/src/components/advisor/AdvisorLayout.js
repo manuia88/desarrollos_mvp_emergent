@@ -1,8 +1,9 @@
 // AdvisorLayout — sidebar nav + role gate + header + onboarding gate
 import React, { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
-import { Home, Database, BarChart, Clock, Route, TrendUp, Bookmark, Shield, LogOut, MapPin, Sparkle, MessageSquare } from '../icons';
+import { Home, Database, BarChart, Clock, Route, TrendUp, Bookmark, Shield, LogOut, MapPin, Sparkle, MessageSquare, CalendarCheck, Target } from '../icons';
 import OnboardingGate from './OnboardingGate';
+import CitaNotifBanner from '../shared/CitaNotifBanner';
 import * as api from '../../api/advisor';
 
 const ROLES_OK = new Set(['advisor', 'asesor_admin', 'superadmin']);
@@ -18,6 +19,8 @@ const NAV = [
   { k: 'lb',        to: '/asesor/ranking',      label: 'Ranking',     Icon: Shield },
   { k: 'studio',    to: '/asesor/studio',       label: 'Studio IA',   Icon: Sparkle },
   { k: 'briefings', to: '/asesor/briefings',    label: 'Briefings IE', Icon: MessageSquare },
+  { k: 'citas',     to: '/asesor/citas',         label: 'Citas',        Icon: CalendarCheck },
+  { k: 'leads-dev', to: '/asesor/leads-dev',     label: 'Leads desarrollos', Icon: Target },
 ];
 
 export default function AdvisorLayout({ user, onLogout, children }) {
@@ -127,6 +130,7 @@ export default function AdvisorLayout({ user, onLogout, children }) {
       </aside>
 
       <main data-testid="advisor-main" style={{ padding: '22px 28px 80px', maxWidth: 1400 }}>
+        <CitaNotifBanner />
         {children}
       </main>
 

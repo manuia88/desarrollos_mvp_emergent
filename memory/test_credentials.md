@@ -6,7 +6,14 @@
 |------|-------|----------|--------|
 | superadmin | admin@desarrollosmx.com | Admin2026! | all |
 | advisor | asesor@demo.com | Asesor2026! | `/asesor/*` — CRM Pulppo+ |
-| developer_admin | developer@demo.com | Dev2026! | `/desarrollador/*` (Phase 5, pending) |
+| developer_admin | developer@demo.com | Dev2026! | `/desarrollador/*` — Portal Desarrollador |
+| developer_member (internal_role: comercial) | comercial.test@acme.com | SafePass2026! | `/desarrollador/*` (invited via B3 flow) |
+| developer_member (internal_role: obras) | obras.test@acme.com | ObrasSafe2026! | `/desarrollador/*` (invited via B3 flow) |
+| developer_member (internal_role: marketing) | final.test@acme.com | MktSafe2026! | `/desarrollador/*` (invited via B3 flow) |
+
+Note: The internal-users accounts above were created via Phase 4 Batch 3 activation flow
+(`POST /api/dev/invitations/{token}/accept`) and can log in at `/api/auth/internal/login`
+or the standard `/api/auth/login`.
 
 Use `/api/auth/login` with JSON body `{email, password}` to get cookies, then call any `/api/*` endpoint with `credentials: include`.
 

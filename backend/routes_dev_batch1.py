@@ -29,7 +29,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 log = logging.getLogger("dmx.dev_batch1")
 
@@ -363,8 +363,8 @@ async def list_bulk_jobs(request: Request):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class LocationPayload(BaseModel):
-    lat: float
-    lng: float
+    lat: float = Field(..., ge=-90.0, le=90.0)
+    lng: float = Field(..., ge=-180.0, le=180.0)
     address: Optional[str] = None
     zoom: Optional[float] = 14.0
 
@@ -373,6 +373,14 @@ class LocationPayload(BaseModel):
 async def save_project_location(project_id: str, payload: LocationPayload, request: Request):
     user = await _auth(request)
     db = _db(request)
+    # Capture before state for audit diff
+    before_doc = await db.dev_project_meta.find_one(
+        {"project_id": project_id, "dev_org_id": _tenant(user)}, {"_id": 0}
+    )
+    before = (
+        {"lat": before_doc.get("lat"), "lng": before_doc.get("lng"), "zoom": before_doc.get("zoom")}
+        if before_doc else None
+    )
     await db.dev_project_meta.update_one(
         {"project_id": project_id, "dev_org_id": _tenant(user)},
         {"$set": {
@@ -389,10 +397,22 @@ async def save_project_location(project_id: str, payload: LocationPayload, reque
     )
     try:
         from audit_log import log_mutation
-        await log_mutation(db, user, "update", "project_location", project_id,
-                           before=None, after={"lat": payload.lat, "lng": payload.lng}, request=request)
+        from observability import emit_ml_event
+        await log_mutation(
+            db, user, "update", "project_location", project_id,
+            before=before,
+            after={"lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom},
+            request=request,
+        )
+        await emit_ml_event(
+            db, event_type="mapbox_location_set",
+            user_id=user.user_id, org_id=_tenant(user), role=user.role,
+            context={"project_id": project_id},
+            ai_decision={},
+            user_action={"lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom},
+        )
     except Exception: pass
-    return {"ok": True, "project_id": project_id, "lat": payload.lat, "lng": payload.lng}
+    return {"ok": True, "project_id": project_id, "lat": payload.lat, "lng": payload.lng, "zoom": payload.zoom}
 
 
 @router.get("/projects")
@@ -609,6 +629,7 @@ async def create_internal_user(payload: InternalUserCreate, request: Request):
         raise HTTPException(409, "Ya existe un usuario con ese email en tu organización")
 
     activation_token = uuid.uuid4().hex
+    activation_expires_at = (_now() + timedelta(days=7)).isoformat()
     new_user = {
         "id": _uid("diu"),
         "dev_org_id": _tenant(user),
@@ -618,27 +639,39 @@ async def create_internal_user(payload: InternalUserCreate, request: Request):
         "status": "invited",
         "invited_by": user.user_id,
         "activation_token": activation_token,
+        "activation_expires_at": activation_expires_at,
+        "password_hash": None,
+        "last_login_at": None,
+        "user_id": None,
         "ts": _now().isoformat(),
     }
     await db.dev_internal_users.insert_one(dict(new_user))
     new_user.pop("_id", None)
 
-    # Stub: log invite (real email via Resend when RESEND_API_KEY present)
-    invite_url = f"/activar-cuenta?token={activation_token}"
+    # Public activation URL (frontend public page)
+    import os as _os
+    app_url = _os.environ.get("PUBLIC_APP_URL", "").rstrip("/")
+    invite_url = f"{app_url}/aceptar-invitacion/{activation_token}" if app_url else f"/aceptar-invitacion/{activation_token}"
     email_sent = False
-    resend_key = __import__("os").environ.get("RESEND_API_KEY", "")
+    resend_key = _os.environ.get("RESEND_API_KEY", "")
+    # Best-effort: real email via Resend when key present.
     if resend_key:
         try:
             import resend
             resend.api_key = resend_key
+            # Resolve dev_org_name for personalized subject
+            org_name = _tenant(user).replace("_", " ").title()
             resend.Emails.send({
                 "from": "DMX Platform <noreply@desarrollosmx.com>",
                 "to": payload.email.lower(),
-                "subject": f"Invitación a DesarrollosMX — Portal Desarrollador",
+                "subject": f"Invitación a {org_name} — DesarrollosMX",
                 "html": (
-                    f"<h2>Bienvenido a DesarrollosMX</h2>"
-                    f"<p>Has sido invitado como <strong>{payload.role}</strong> por tu organización.</p>"
-                    f"<p><a href='{invite_url}'>Activar cuenta</a></p>"
+                    f"<h2>Has sido invitado a {org_name}</h2>"
+                    f"<p>Fuiste invitado como <strong>{payload.role}</strong> en el Portal Desarrollador de DesarrollosMX.</p>"
+                    f"<p><a href='{invite_url}' style='background:#EC4899;color:#fff;padding:12px 24px;"
+                    f"border-radius:999px;text-decoration:none;font-family:sans-serif'>Activar cuenta</a></p>"
+                    f"<p style='color:#8F897A;font-size:12px'>Este enlace expira el "
+                    f"{activation_expires_at[:10]}. Si no esperabas esta invitación, ignora este correo.</p>"
                 ),
             })
             email_sent = True

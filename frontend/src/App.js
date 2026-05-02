@@ -40,6 +40,8 @@ import AsesorComisiones from './pages/advisor/AsesorComisiones';
 import AsesorRanking from './pages/advisor/AsesorRanking';
 import StudioDashboard from './pages/advisor/StudioDashboard';
 import AsesorBriefings from './pages/advisor/AsesorBriefings';
+import AsesorCitas from './pages/advisor/AsesorCitas';
+import AsesorLeadsDev from './pages/advisor/AsesorLeadsDev';
 
 // Developer portal (Phase 5)
 import DesarrolladorDashboard from './pages/developer/DesarrolladorDashboard';
@@ -52,6 +54,18 @@ import DesarrolladorUsuarios from './pages/developer/DesarrolladorUsuarios';
 import DesarrolladorConfiguracion from './pages/developer/DesarrolladorConfiguracion';
 import DesarrolladorCalendarioSubidas from './pages/developer/DesarrolladorCalendarioSubidas';
 import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
+import DesarrolladorIEDetail from './pages/developer/DesarrolladorIEDetail';
+import DesarrolladorLeads from './pages/developer/DesarrolladorLeads';
+import DesarrolladorCitas from './pages/developer/DesarrolladorCitas';
+import InmobiliariaDashboard from './pages/developer/InmobiliariaDashboard';
+import InmobiliariaAsesores from './pages/developer/InmobiliariaAsesores';
+import InmobiliariaLeads from './pages/developer/InmobiliariaLeads';
+import DesarrolladorCRM from './pages/developer/DesarrolladorCRM';
+import DesarrolladorPricingLab from './pages/developer/DesarrolladorPricingLab';
+import DesarrolladorSiteSelection from './pages/developer/DesarrolladorSiteSelection';
+import DesarrolladorCashFlow from './pages/developer/DesarrolladorCashFlow';
+import AceptarInvitacion from './pages/public/AceptarInvitacion';
+import PublicCitaPage from './pages/public/PublicCitaPage';
 
 // Superadmin (IE Engine Phase A)
 import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
@@ -252,9 +266,20 @@ function AppRouter() {
       <Route path="/asesor/ranking" element={<AdvisorRoute Page={AsesorRanking} />} />
       <Route path="/asesor/studio" element={<AdvisorRoute Page={StudioDashboard} />} />
       <Route path="/asesor/briefings" element={<AdvisorRoute Page={AsesorBriefings} />} />
+      <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
+      <Route path="/asesor/leads-dev" element={<AdvisorRoute Page={AsesorLeadsDev} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
       <Route path="/desarrollador/inventario" element={<AdvisorRoute Page={DesarrolladorInventario} />} />
       <Route path="/desarrollador/desarrollos/:slug/legajo" element={<AdvisorRoute Page={DesarrolladorLegajo} />} />
+      <Route path="/desarrollador/desarrollos/:slug/ie" element={<AdvisorRoute Page={DesarrolladorIEDetail} />} />
+      <Route path="/desarrollador/leads" element={<AdvisorRoute Page={DesarrolladorLeads} />} />
+      <Route path="/desarrollador/citas" element={<AdvisorRoute Page={DesarrolladorCitas} />} />
+      <Route path="/desarrollador/desarrollos/:slug/crm" element={<AdvisorRoute Page={DesarrolladorCRM} />} />
+      <Route path="/desarrollador/desarrollos/:slug/pricing-lab" element={<AdvisorRoute Page={DesarrolladorPricingLab} />} />
+      <Route path="/desarrollador/desarrollos/:slug/cash-flow" element={<AdvisorRoute Page={DesarrolladorCashFlow} />} />
+      <Route path="/desarrollador/site-selection" element={<AdvisorRoute Page={DesarrolladorSiteSelection} />} />
+      <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
+      <Route path="/cita/:token" element={<PublicCitaPage />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
@@ -262,6 +287,9 @@ function AppRouter() {
       <Route path="/desarrollador/usuarios" element={<AdvisorRoute Page={DesarrolladorUsuarios} />} />
       <Route path="/desarrollador/configuracion" element={<AdvisorRoute Page={DesarrolladorConfiguracion} />} />
       <Route path="/desarrollador/calendario-subidas" element={<AdvisorRoute Page={DesarrolladorCalendarioSubidas} />} />
+      <Route path="/inmobiliaria" element={<AdvisorRoute Page={InmobiliariaDashboard} />} />
+      <Route path="/inmobiliaria/asesores" element={<AdvisorRoute Page={InmobiliariaAsesores} />} />
+      <Route path="/inmobiliaria/leads" element={<AdvisorRoute Page={InmobiliariaLeads} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />

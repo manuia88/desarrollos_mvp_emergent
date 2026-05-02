@@ -542,6 +542,988 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 - `/app/memory/PRD.md`
 
 ---
+
+## 2026-05-02 — Phase 4 Batch 2 · Dashboards + IE + Construcción + Mapbox tab
+**Objetivo:** completar el dev portal con analytics avanzados, drill-down IE, timeline de obra y picker Mapbox en legajo.
+
+### Backend (`routes_dev_batch2.py` · nuevo · ~530 líneas)
+
+**4.5 FIX · Project location read:**
+- `GET /api/dev/projects/{id}/location` — devuelve `{lat, lng, zoom, address, source}`. Fallback a centro de colonia (GeoJSON [lng,lat]) si no hay override, último fallback CDMX.
+
+**4.11 · Absorción avanzada:**
+- `GET /api/dev/analytics/absorption?project_id?` — cohort matrix 12 meses (captación×cierre), heatmap YTD (ventas por día, niveles 0-4 estilo GitHub), win/loss breakdown (5 razones con %), funnel 5-step (lead→visita→propuesta→aceptada→cerrada) con `dropoff_pct` + `conversion_from_prev`.
+
+**4.12 · Forecast vs actual + multi-proyecto:**
+- `GET /api/dev/analytics/forecast?consolidated=` — por proyecto: target_units, actual_units, variance_pct, trend, revenue_target/actual, monthly_projection (base/pesimista/optimista × 12m). Toggle consolidado suma todo.
+- `POST /api/dev/analytics/forecast/adjust` — actualiza target manualmente con audit_log + ML event.
+
+**4.13 · Competitor radar enriquecido:**
+- `GET /api/dev/competitors/enriched?dev_id&radius_km` — reutiliza `competitor_radar()` legacy + añade `alert_config` (umbrales configurables) + `press_clips` (6 headlines mock con `ai_summary` + sentiment).
+- `GET /api/dev/competitors/{id}/history` — 12 meses de price_sqm_mxn por competidor + delta 12m %.
+- `POST /api/dev/competitors/alert-config` — guarda umbrales (price_delta, absorption, email/inapp). audit_log + ML event.
+
+**4.16 · IE Score proyecto detallado:**
+- `GET /api/dev/ie/projects/{id}/breakdown` — 12 scores en 4 categorías (fundamentals, market, risk, sentiment). Prioriza `ie_scores` real, fallback sintético honesto (flag `is_stub`). Cada score: value, benchmark_colonia, delta_vs_colonia, tier (excellent/good/fair/poor), confidence. `overall_score` + `overall_tier`.
+- `GET /api/dev/ie/projects/{id}/improve?code=` — 2-3 recomendaciones concretas por score (title, effort, impact, detail) + `narrative_stub` IA. 12 codes mapeados.
+
+**4.25 · Avance de obra:**
+- `GET /api/dev/construction/{id}/progress` — timeline 5 etapas (cimentación/estructura/instalaciones/acabados/entrega) + overall_percent + per_unit_avg_percent + photos + comments. Seed desde `development.progress` si no existe.
+- `POST /api/dev/construction/{id}/update-stage` — actualiza % de una etapa + recalcula overall + current_stage. audit_log + ML event (`avance_obra_milestone`).
+- `POST /api/dev/construction/{id}/comment` — bitácora con texto + foto_url opcional. audit_log + ML event (`avance_obra_comment`).
+
+**Wiring transversal:**
+- `log_mutation` en TODAS las mutaciones (4 tipos de entity: forecast_target, competitor_alert_config, construction_progress, construction_comment, project_location update ya en B1).
+- `emit_ml_event` en forecast_adjust, competitor_alert_config_update, avance_obra_milestone, avance_obra_comment, ie_breakdown_view, ie_drilldown_click.
+
+### Frontend
+
+**Nuevos componentes:**
+- `ChartPrimitives.js` — SVG-only (zero deps): `Sparkline`, `LineChart` (multi-serie + Y grid + labels), `BarList` (horizontal bars), `HeatmapCalendar` (GitHub-style weekly grid), `FunnelChart` (trapezoidal SVG), `CohortMatrix` (tabla con gradient de intensidad).
+- `AvanceObraTab.js` — overall progress bar + timeline 5 etapas editables + bitácora (textarea + photo URL) + audit via API. Modal inline edit.
+- `GeolocalizacionTab.js` — reusa `MapboxPicker.js` de B1. Badge "manual/colonia_fallback" + dirección texto. Save audit trail.
+
+**Páginas actualizadas:**
+- `DesarrolladorReportes.js` — 3 tabs: `executive` (legacy D9 Claude), `absorption` (cohort+heatmap+winloss+funnel), `forecast` (tabla por proyecto ↔ consolidado + LineChart 12m sensitivity).
+- `DesarrolladorCompetidores.js` — alert config modal (umbrales editables), histórico modal con LineChart 12m precio/m², grid press clips (source + sentiment badge + ai_summary).
+- `DesarrolladorLegajo.js` — 3 nuevos tabs: Geolocalización, IE Score (CTA a `/ie`), Avance de obra (reemplaza placeholder).
+
+**Nueva página:**
+- `DesarrolladorIEDetail.js` (`/desarrollador/desarrollos/:slug/ie`) — overall score card con tier gradient + 4 category cards (12 scores totales con click drill-down) → modal con 3 MiniMetrics (mi/benchmark/delta), narrativa IA + recomendaciones (title, impacto/esfuerzo badges, detail).
+
+### Verificación curl (todos exitosos):
+- ✅ GET location altavista-polanco → `{lat:19.433, lng:-99.1939, source:colonia_fallback}` (orden lng/lat GeoJSON corregido)
+- ✅ GET absorption → 12 cohort rows, 122 heatmap cells, 5 win_loss reasons, funnel 5 steps
+- ✅ GET forecast → 2 rows, consolidated `{target:17, actual:18, variance:+5.9%, trend:up}`, monthly_projection 12m
+- ✅ GET competitors/enriched → my_project + 3 competitors + alert_config + 6 press_clips
+- ✅ GET competitors/{id}/history → 12 price points + delta 12m
+- ✅ POST alert-config → audit entry `competitor_alert_config|update`
+- ✅ GET ie/projects/{id}/breakdown → overall 56-70, 4 categories × 3 scores = 12 total
+- ✅ GET ie/projects/{id}/improve?code=P1 → 2 recs (title/effort/impact/detail) + narrative_stub
+- ✅ GET construction/progress → 5 stages + overall 8% seeded from dev.progress
+- ✅ POST construction/update-stage → etapa `estructura 45%`, audit entry + ML event
+- ✅ POST construction/comment → entry c_xxx, audit entry `construction_comment|create`
+- ✅ POST forecast/adjust → target:35, audit entry `forecast_target|update`
+- ✅ Audit log total 5+ entries de Batch 2 con diff_keys correctos
+- ✅ MongoDB: 3 nuevos índices (dev_forecast_overrides, dev_competitor_alert_config, project_construction_progress)
+
+### Frontend smoke tests (Playwright):
+- ✅ `/desarrollador/desarrollos/altavista-polanco/ie` → 1 h1, 4 categorías, 12 scores renderizados
+- ✅ `/desarrollador/reportes` → 3 tabs; tab absorption → cohort + heatmap + winloss + funnel todos con 1 match
+- ✅ `/desarrollador/competidores` → 1 config btn, 6 press clips, 3 history btns
+- ✅ `/desarrollador/desarrollos/altavista-polanco/legajo` → 8 tabs (docs/fotos/planos/geoloc/avance/ie/tour360/historial); tab geoloc presente; tab avance con 5 stages
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch2.py` (nuevo · ~530 líneas)
+- `/app/backend/server.py` (+dev_batch2_router + ensure_dev_batch2_indexes)
+- `/app/frontend/src/api/developer.js` (+10 API helpers batch2)
+- `/app/frontend/src/components/developer/ChartPrimitives.js` (nuevo · ~250 líneas)
+- `/app/frontend/src/components/developer/AvanceObraTab.js` (nuevo)
+- `/app/frontend/src/components/developer/GeolocalizacionTab.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorReportes.js` (rewrite con 3 tabs)
+- `/app/frontend/src/pages/developer/DesarrolladorCompetidores.js` (rewrite con enriquecido)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+3 tabs: geoloc/ie/avance real)
+- `/app/frontend/src/pages/developer/DesarrolladorIEDetail.js` (nuevo · ~260 líneas)
+- `/app/frontend/src/App.js` (+ruta `/desarrollador/desarrollos/:slug/ie`)
+- `/app/frontend/src/components/icons/index.js` (+TrendDown, Activity, Target, Bell, Eye, Image, Layers, MessageCircle)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Phase 4 Batch 2.1 · Recovery gaps B2
+**Objetivo:** cerrar 4 gaps específicos de Batch 2 antes de avanzar a B3: persistencia real de lat/lng + trigger real de alertas competidor con email/notifs + benchmark colonia IE + per-unit construction progress.
+
+### Backend (`routes_dev_batch2.py` +750 líneas · `routes_dev_batch1.py` location validation)
+
+**Sub-Chunk A · 4.5 Mapbox SAVE real:**
+- `PATCH /api/dev/projects/{id}/location` reforzado: validación Pydantic `lat∈[-90,90]` + `lng∈[-180,180]` (422 si fuera), captura `before` doc real para diff_keys, `emit_ml_event('mapbox_location_set')`.
+- Retorna `{ok, project_id, lat, lng, zoom}`.
+
+**Sub-Chunk B · 4.13 Alert TRIGGER real (notifications + email + simulate):**
+- `_fire_competitor_price_alert(db, *, dev_org_id, user_id, user_role, competitor_id, competitor_name, old_price_sqm, new_price_sqm, request)` — núcleo del trigger. Lee `dev_competitor_alert_config`, calcula `delta_pct`, solo dispara cuando competidor baja debajo del umbral (`delta_pct <= -threshold`). Crea `notifications` doc con `channels` (in_app/email), envía Resend email si `RESEND_API_KEY` presente, logs `competitor_alert_fired` audit + `competitor_alert_triggered` ML.
+- `POST /api/dev/competitors/{id}/simulate-price-update` (**DEBUG/QA — restrict or remove before prod launch**) — guard: solo `developer_admin` + `superadmin` (403 para otros). Snapshot persistido en `dev_competitor_price_snapshots`. Audit `competitor_price_simulated` separado del trigger normal.
+- `GET /api/dev/notifications?unread_only=` — lista paginada + `unread_count`.
+- `POST /api/dev/notifications/{id}/read` — marca individual.
+- `POST /api/dev/notifications/mark-all-read` — bulk.
+- Índices: `notifications` (org_id+user_id+read_at+created_at) + `competitor_price_snapshots` (dev_org_id+competitor_id+ts).
+
+**Sub-Chunk C1 · 4.16 Colonia benchmark:**
+- `GET /api/dev/ie/projects/{id}/colonia-benchmark` — agrega score avg de los proyectos peer de la misma `colonia_id` (excluyendo self). Reusa misma RNG determinista para coherencia con breakdown. Retorna `{colonia, projects_count, score_avg:{fundamentals, market, risk, sentiment, overall}}`. `emit_ml_event('ie_colonia_benchmark_view')`.
+
+**Sub-Chunk C2 · 4.25 Per-unit construction progress:**
+- Schema extendido `project_construction_progress.units: [{unit_id, unit_number, prototype, level, current_stage, current_stage_index, percent_complete, updated_at}]`. Seed desde `data_developments._generate_units` la primera vez (56 units para Altavista).
+- `GET /construction/{id}/progress` ahora incluye `units[] + overall_percent` recalculado server-side como avg. Retro-seed para docs pre-B2.1.
+- `POST /construction/{id}/unit-update` — actualiza `percent_complete` + `current_stage` de una unidad, recalcula `overall_percent` + `stages[]` buckets. audit `construction_unit_progress` + ML `avance_obra_unit_update`.
+
+### Frontend
+
+**Componentes:**
+- `AvanceObraTab.js` (+90 líneas) — nueva tabla scroll con 56+ unidades. Columnas: Unidad · Prototipo · Etapa (select dropdown inline) · % avance (progress bar visual + input inline) · Última act · Editar/Guardar/Cancelar. Persistencia vía `updateUnitProgress`.
+- `GeolocalizacionTab.js` — role guard `canEdit = role ∈ {developer_admin, superadmin}`, disable picker si no.
+- `DesarrolladorIEDetail.js` (+90 líneas) — nuevo `ColoniaBenchmarkCard` entre Overall card y categorías. Card muestra 4 categorías con `mine vs col · delta` + badge Δ overall verde/rojo.
+- `DesarrolladorCompetidores.js` (+170 líneas):
+  - Bell icon con badge count unread en header (badge oculto si 0)
+  - Drawer lateral 420px con últimas 50 notifs, botón "Marcar leídas" + bulk mark-all-read + poll 30s
+  - Por cada competidor: botón `Sim -7%` **solo visible si role ∈ {developer_admin, superadmin}**, con Zap icon, disabled while submitting
+  - Integración directa con `simulateCompetitorPrice` API
+
+**API helpers (+7):**
+`getColoniaBenchmark`, `simulateCompetitorPrice`, `listNotifications`, `markNotificationRead`, `markAllNotificationsRead`, `updateUnitProgress`.
+
+### Verificación backend curl (todos ✅)
+- PATCH location válido 200 + lat 19.4355 / lng -99.1945 persisted → source=manual
+- PATCH lat=200 → 422 `less_than_equal` (validación 90)
+- PATCH lng=-500 → 422 `greater_than_equal` (validación -180)
+- Config threshold 5% → simulate -7% Lomas Signature → `fired:true, notif_id:notif_...`, notification creada, unread=1
+- Simulate -3% → `fired:false` (bajo umbral) — sin notificación
+- Role guard: asesor@demo.com POST simulate → 403 `Rol no autorizado`
+- Mark-read → unread_count: 0
+- Colonia benchmark Altavista (colonia Polanco) → 1 peer + 4 cat averages + overall
+- Construction/progress → 56 units embebidas + overall_percent calculado
+- POST unit-update (unit 02A, 85%, acabados) → overall recalculado 9.4%
+- Audit log final: 14 entries · 4 nuevos tipos B2.1 (`project_location` 1 · `competitor_price_simulated` 3 · `competitor_alert_fired` 2 · `construction_unit_progress` 1)
+
+### Smoke test Playwright
+- `/desarrollador/desarrollos/altavista-polanco/ie` → `ie-colonia-benchmark` card=1, `ie-bench-overall-delta`=1, 5 bench cat blocks (incluye overall).
+- `/desarrollador/competidores` → `notif-bell-btn`=1, `comp-simulate-*`=3 (1 por competidor), click simulate → notif-drawer=1, 2 notif_items visibles.
+- `/desarrollador/desarrollos/altavista-polanco/legajo` tab avance → `avance-units-table`=1, 56 unit rows, 56 botones editar.
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch2.py` (+750 líneas: colonia benchmark + notifications + simulate + per-unit)
+- `/app/backend/routes_dev_batch1.py` (location validation + before capture + ML event)
+- `/app/frontend/src/api/developer.js` (+7 helpers batch 2.1)
+- `/app/frontend/src/pages/developer/DesarrolladorIEDetail.js` (+ColoniaBenchmarkCard)
+- `/app/frontend/src/pages/developer/DesarrolladorCompetidores.js` (+bell+drawer+simulate btn+role guard)
+- `/app/frontend/src/components/developer/AvanceObraTab.js` (+UnitRow table +saveUnit flow)
+- `/app/frontend/src/components/developer/GeolocalizacionTab.js` (role guard)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (pasa `user` prop a GeolocalizacionTab)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Phase 4 Batch 3 · Internal Users LOGIN real + GeoJSON Export
+**Objetivo:** cerrar debt B1 (invited users no podían hacer login) + feature small (export GeoJSON para análisis externo).
+
+### Sub-Chunk A · 4.9 Internal users login flow real
+**Backend (`routes_dev_batch3.py` nuevo · ~330 líneas + extensión `routes_dev_batch1.py` invite):**
+- Schema extendido `dev_internal_users`: `activation_expires_at` (now+7d), `password_hash` (ref flag), `last_login_at`, `user_id` (link a `users`).
+- `GET /api/dev/invitations/{token}/verify` — público (no auth), retorna `{email, name, role, dev_org_name, expires_at}`. 404 inválido, 410 expirado.
+- `POST /api/dev/invitations/{token}/accept` — público, valida token + password ≥8 + confirm match, hashea con bcrypt (reusa `hash_password`), crea entry en `users` con `role=INTERNAL_ROLE_TO_USERS_ROLE[int_role]` + `internal_role` + `tenant_id`, setea JWT cookies httpOnly+Secure+SameSite=none (mismo patrón que `/api/auth/login`), limpia `activation_token`, audit `dev_internal_users|update` + ML `internal_user_activated`.
+- `POST /api/auth/internal/login` — valida credenciales en `users`, filtra por role `developer_admin/member/superadmin` (403 si no), setea cookies, bump `last_login_at`, ML `internal_user_login`.
+- `routes_dev_batch1.create_internal_user` actualizado: setea `activation_expires_at` +7d, email URL real `{PUBLIC_APP_URL}/aceptar-invitacion/{token}`, template Resend en español con `dev_org_name` dinámico.
+
+**Frontend:**
+- Nueva página pública `/aceptar-invitacion/:token` — `AceptarInvitacion.js` (~180 líneas): branding DMX, "Bienvenido a {org_name}", role label localizado (admin/commercial_director/comercial/obras/marketing), fields password+confirm con validación visual (min 8, match), submit → auto-login → redirect hard a `/desarrollador`.
+- `DeveloperLayout.js` ROLES_OK ahora incluye `developer_member` (comerciales, obras, marketing invitados deben poder acceder al portal, sin ese cambio quedaban en 403).
+
+**Curl verification (todos ✅):**
+- Invite → `activation_expires_at` 7d futuro ✅
+- GET verify válido → `{email, role, dev_org_name:"Constructora Ariel"}`
+- GET verify token inválido → 404 `Invitación no encontrada`
+- GET verify token expirado (seeded -2d) → 410 `Invitación expirada`
+- POST accept passwords no match → 400
+- POST accept password <8 → 422 Pydantic
+- POST accept válido → 200 con user {role:developer_member, internal_role:comercial, tenant_id:constructora_ariel}, cookies access_token+refresh_token emitidas
+- POST accept 2ª vez (token ya limpiado) → 404
+- POST internal/login válido → 200 + cookies
+- POST internal/login wrong pwd → 401 `Email o contraseña incorrectos`
+
+**Smoke Playwright (e2e):**
+- `/aceptar-invitacion/{token}` con `marketing` role → fill password → submit → `Final URL: /desarrollador` · `403_page:0 panel_link:1` ✅
+
+### Sub-Chunk B · 4.18 GeoJSON Export
+**Backend:**
+- `GET /api/dev/projects/{id}/export/geojson` — auth required, role guard `{developer_admin, superadmin}` o internal_role=`commercial_director`. Requiere `dev_project_meta` con `lat/lng` (422 si falta). Retorna FeatureCollection con:
+  - 1 Feature Point del proyecto (properties: project_id, name, colonia, units_total, status, ie_score_overall, overall_percent, price_from, exported_at, developer_id)
+  - N Features Point (1/unit) con offset determinista ±50m (properties: unit_id, unit_number, prototype, level, status, price_mxn, area_m2, percent_complete, current_stage)
+- Response headers `application/geo+json` + `Content-Disposition: attachment; filename="project-{slug}.geojson"`.
+- Audit `project_geojson_export|read` + ML `geojson_export`.
+
+**Frontend:**
+- `GeolocalizacionTab.js` (+60 líneas): sección "Exportar" debajo del picker (solo visible a roles autorizados). Botón "Exportar GeoJSON" dispara fetch con `credentials: include` → `createObjectURL(blob) + a.download + revokeObjectURL`. Disable + tooltip "Configura y guarda la ubicación primero" cuando `source!=manual`.
+
+**Curl verification (todos ✅):**
+- Export con location guardada → HTTP 200 · content-type `application/geo+json` · content-disposition correcto · 32KB · FeatureCollection con 57 features · project feature geometry `[lng, lat]` correcto · metadata `{generator_version: batch3, feature_count: 57}` · GeoJSON structure valid (3 features checked)
+- Export sin location (lomas-signature) → 422 `Geolocalización no configurada`
+- Export como asesor → 403 `Rol no autorizado`
+
+### Audit log summary
+17 entries tenant-scoped después de Batch 3. Nuevos tipos B3:
+- `dev_internal_users|update` (invitation accept)
+- `project_geojson_export|read` (export)
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch3.py` (nuevo ~330 líneas)
+- `/app/backend/routes_dev_batch1.py` (invite email template + activation_expires_at)
+- `/app/backend/server.py` (router + indexes registrados)
+- `/app/frontend/src/api/developer.js` (+4 helpers B3)
+- `/app/frontend/src/pages/public/AceptarInvitacion.js` (nuevo)
+- `/app/frontend/src/components/developer/GeolocalizacionTab.js` (+export button + role guard)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+developer_member en ROLES_OK)
+- `/app/frontend/src/App.js` (+ruta `/aceptar-invitacion/:token` pública)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Improvement Post-B4.4 · Heat Cohort Dashboard
+**Objetivo:** dar visibilidad agregada del distribución `heat_tag` × close-rate para acelerar coaching.
+
+**Cambios:**
+- Backend: `GET /api/dev/analytics/heat-cohort?period=&project_id=` aggregando leads por `heat_tag` (caliente/tibio/frío/sin_calcular) con `total`, `won`, `close_rate %`, `share_pct %`.
+- Frontend: Card "Cohort de Heat IA" en `InsightsTab` con 4 `HeatCohortCard` (uno por tag) + textura coachable. Solo se renderea si `cohort.total_leads > 0`.
+- Lint OK, Playwright smoke confirma `data-testid="heat-cohort"` visible.
+
+---
+
+## 2026-05-02 — Phase 4 Batch 5 · Dynamic Pricing A/B + Branded PDF Reports
+
+### Sub-Chunk A · 4.14 Dynamic Pricing A/B + Bundle
+**Backend (`routes_dev_batch5.py` · nuevo · ~640 líneas):**
+- Schemas: `pricing_experiments` (variants[] con stats), `pricing_visitor_assignments` (unique idx visitor+exp).
+- Asignación visitante **deterministic hash** (md5 visitor_id+exp_id → bucket por visitor_pct).
+- 5 endpoints + permission guards:
+  - `POST /api/dev/pricing-experiments` (validate variants suman 1.0)
+  - `GET /api/dev/pricing-experiments?status=&project_id=`
+  - `PATCH /api/dev/pricing-experiments/{id}` (status, name, dates)
+  - `POST /api/dev/pricing-experiments/{id}/assign-visitor` (público, idempotente, increment views)
+  - `POST /api/dev/pricing-experiments/{id}/track-event` (público, atomic `$inc`)
+  - `GET /api/dev/pricing-experiments/{id}/results` (conversion funnel + winner heuristic + confidence)
+- Audit + ml_event para create/update/results.
+
+**Frontend (`pages/developer/DesarrolladorPricingLab.js` · nuevo · ~340 líneas):**
+- Ruta `/desarrollador/desarrollos/:slug/pricing-lab` con 3 tabs: Activos / Crear / Resultados.
+- ActiveTab: cards con variants + stats + funnel inline + botones Pausar/Reanudar/Concluir.
+- CreateTab: form variants dinámicas (label + price_modifier {percent|absolute|fixed} + visitor_pct).
+- ResultsTab: lista experiments completed con winner highlight.
+- Diseño 100% compliant (cream opacity ladder + green/amber semantic).
+
+### Sub-Chunk B · 4.21 Branded PDF Reports + Auto-distribution
+**Backend:**
+- Schemas: `report_templates` (sections[], branding{}), `report_distributions` (frequency/recipients), `report_files` (PDF base64-encoded).
+- **ReportLab 4.5** PDF generation con 7 section types:
+  - `cover` (project name + period)
+  - `kpi_grid` (leads/citas/cierres/win_rate desde MongoDB)
+  - `units_table` (inventory desde DEVELOPMENTS)
+  - `absorption_chart` (cierres por mes)
+  - `pricing_summary` (experiments del período)
+  - `team_perf` (per-asesor stats con name resolution)
+  - `narrative_ai` (Claude haiku-4-5 ejecutivo summary 200 palabras)
+- 6 endpoints + permission guards:
+  - `POST /api/dev/reports/templates`, `GET /api/dev/reports/templates`
+  - `POST /api/dev/reports/generate` → genera PDF, persiste, retorna `download_url`
+  - `GET /api/dev/reports/files/{id}` → descarga PDF (Content-Type application/pdf)
+  - `POST /api/dev/reports/distributions`, `GET`, `PATCH`
+- APScheduler **daily 8am job** `check_pending_distributions`: query distribuciones due → genera PDF → envía Resend con .ics → reschedule next.
+- Audit + ml_event `report_generated` / `report_distributed`.
+
+**Frontend (extensión `DesarrolladorReportes.js`):**
+- Nueva tab "Reportes branded" con 3 sub-tabs:
+  - **Templates**: lista + form crear (name, type, color picker, header text, sections preset).
+  - **Generar ahora**: selector template + project + date range + botón "Generar y descargar PDF" + link de descarga.
+  - **Distribución automática**: lista distribuciones + form crear (template + frequency + recipients emails).
+- Diseño compliant (cream opacity + tipografía Outfit/DM Sans).
+
+### Verificación ✅
+- **Backend lint** Ruff OK · **Frontend lint** ESLint OK (5 archivos modificados/creados)
+- **Curl smoke** (todos OK):
+  - `POST /api/dev/pricing-experiments` → 200 con experiment id ✅
+  - `POST /assign-visitor` (público) → 200 con variant_label ✅
+  - `POST /track-event` (público) → atomic increment ✅
+  - `GET /results` → conversion funnel + winner ✅
+  - `GET /api/dev/analytics/heat-cohort` → 4 cohort items con close_rate ✅
+  - `POST /api/dev/reports/templates` → 200 template id ✅
+  - `POST /api/dev/reports/generate` → file_id + size_kb ✅
+  - `GET /api/dev/reports/files/{id}` → application/pdf válido (`%PDF-` magic header, 3.7KB) ✅
+- **Playwright smoke**:
+  - `/desarrollador/desarrollos/quattro-alto/pricing-lab` → h1 + 3 tabs ✅
+  - `/desarrollador/reportes` → tab "branded" → sub-tab generate con form completo ✅
+  - Insights tab → `heat-cohort` card visible ✅
+
+### Áreas mocked
+- 📧 **RESEND_API_KEY** no configurada → `check_pending_distributions` genera PDF + persiste pero NO envía email (try/except silencioso). Workflow funcional, solo falta key.
+
+### Archivos
+- Backend: `routes_dev_batch5.py` (nuevo), `routes_dev_batch4_4.py` (extendido con heat-cohort)
+- Frontend: `pages/developer/DesarrolladorPricingLab.js` (nuevo), `pages/developer/DesarrolladorReportes.js` (extendido con BrandedReportsTab + HeatCohortCard), `api/leads.js` (10 endpoints nuevos), `App.js` (ruta pricing-lab), `requirements.txt` (+reportlab 4.5)
+
+---
+
+## 2026-05-02 — Phase 4 Batch 6 · Demand Heatmap + Engagement Analytics
+**Objetivo:** mapa de calor geográfico Mapbox sobre 16 colonias + analítica de engagement por unidad con recomendaciones Claude haiku.
+
+### Backend (`routes_dev_batch6.py` · ~460 líneas, ya existente, ahora wired en `server.py`)
+- `GET /api/dev/analytics/demand-heatmap?from=&to=&granularity=&include_searches=` — agrega leads × 3 + appts × 5 + searches × 1, normaliza score 0–100 por colonia, devuelve **GeoJSON FeatureCollection** (16 polígonos cerrados desde `data_seed.COLONIAS`) + `top_10` ordenado. Tenant-scoped (developer_admin sólo ve su org). ML event `demand_heatmap_viewed`.
+- `GET /api/dev/projects/{id}/engagement-units?from=&to=&sort=engagement_score|views|leads|cierres` — lee `units` de `data_developments`, agrega views (ml_training_events `unit_viewed`), leads/appointments/cierres de Mongo, calcula `engagement_score = (views×1 + leads×5 + appts×10 + cierres×30)` normalizado, **Claude haiku-4-5 recommendations** (cache 12h por `project_id`, fallback determinista). ML event `engagement_analytics_viewed`.
+- `GET /api/dev/projects/{id}/engagement-units/{unit_id}/timeline` — eventos cronológicos (view/lead_created/cierre/appointment_scheduled). ML event `engagement_unit_drill`.
+- Wiring `server.py`: `app.include_router(dev_batch6_router)` + `await ensure_batch6_indexes(db)` en startup.
+
+### Frontend
+- **`components/developer/DemandHeatmapMap.js`** (nuevo · ~140 líneas) — Mapbox choropleth con 5-stop ramp cream→navy→pink (0→100), popup hover (Score/Leads/Citas/Búsquedas), `fitBounds` automático, fallback honesto si falta `REACT_APP_MAPBOX_TOKEN`.
+- **`components/developer/EngagementTab.js`** (nuevo · ~220 líneas) — KPI strip (Unidades, Engagement promedio, Top, Más lenta) + card "Recomendaciones IA · Claude Haiku" + tabla 200-row sortable (Score/Vistas/Leads/Cierres) con `ScoreBar` gradient + drilldown drawer 440px con timeline de eventos.
+- **`pages/developer/DesarrolladorDemanda.js`** — sección Mapbox heatmap nueva en cabecera (con period 7D/30D/90D + sidebar Top 10) preservando legacy forecast/funnel/queries debajo.
+- **`pages/developer/DesarrolladorLegajo.js`** — nueva tab `Engagement` con icono `Activity` entre `Avance de obra` e `IE Score`.
+- **`api/developer.js`** (+3 helpers): `getDemandHeatmap`, `getEngagementUnits`, `getEngagementUnitTimeline`.
+
+### Verificación curl ✅
+- `GET /demand-heatmap` (developer) → 16 features, top_10[0]=Polanco score=100 (6 leads), `total_leads=6` ✅
+- `GET /demand-heatmap?from={7d}` → 16 features, periodo correcto ✅
+- `GET /engagement-units/altavista-polanco` → 56 unidades + avg=0.0 + 3 recomendaciones reales Claude (e.g. "Las unidades tipo A no generan engagement…", "Implementa estrategia de pricing dinámico…", "Crea campañas segmentadas por piso…"), primer item con `prototype:'A', level:2, m2:127, status:'disponible'` ✅
+- `GET /engagement-units/{unit_id}/timeline` → 200 con `events:[]` (sin actividad real aún en periodo) ✅
+- Role guard: `asesor@demo.com` → 403 en heatmap y engagement; anon → 401 ✅
+
+### Smoke Playwright ✅
+- `/desarrollador/demanda` → `demand-heatmap-card`=1, `demand-heatmap-map`=1, `mapboxgl-canvas`=1, top10 con Polanco visible (badge 100) y polígono fucsia sobre Polanco en mapa.
+- `/desarrollador/desarrollos/altavista-polanco/legajo` tab Engagement → `engagement-units-table`=1, 56 rows, `engagement-recommendations`=1 con 3 recos Claude reales en es-MX, 4 sort buttons; drill-down → `engagement-timeline-drawer`=1 con "Sin actividad registrada en este periodo." (esperado, sin events seed).
+
+### Archivos tocados
+- `/app/backend/server.py` (+router include + `ensure_batch6_indexes` en startup)
+- `/app/backend/routes_dev_batch6.py` (fix mapping campos `unit_number/prototype/m2_total` desde data_developments)
+- `/app/frontend/src/components/developer/DemandHeatmapMap.js` (nuevo)
+- `/app/frontend/src/components/developer/EngagementTab.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorDemanda.js` (rewrite con Mapbox section + legacy preservado)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+tab `engagement` con icono Activity)
+- `/app/frontend/src/api/developer.js` (+3 helpers B6)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Phase 4 Batch 7 · Site Selection AI Standalone (4.22)
+**Objetivo:** motor IA standalone que dado criterios + presupuesto del developer, recomienda y rankea zonas candidatas con feasibility 0–100 + sub-scores + narrative Claude haiku para decisiones de expansión.
+
+### Backend (`routes_dev_batch7.py` · nuevo · ~660 líneas)
+- **Schemas Mongo**:
+  - `site_selection_studies`: `{id, dev_org_id, name, status:'draft|running|completed|failed', inputs:{project_type, target_segment, unit_size_range, price_range_per_m2, total_units_target, budget_construction, preferred_states[], preferred_features[], avoid_features[]}, candidate_zones:[{colonia, colonia_id, alcaldia, state, center, polygon, bbox, feasibility_score, sub_scores:{market_demand, price_match, competition, infrastructure, absorption_potential, risk_factors}, narrative, data_points:{avg_price_per_m2, existing_projects_count, absorption_rate_12m, demographic_match_pct, ie_score_avg, demand_score}, pros[], cons[], target_units_estimate, target_price_range:{min,max}, estimated_roi_5y}], created_by, created_at, completed_at, error_message}` con índices unique-id + (dev_org, status, created_at).
+  - `site_selection_files`: `{id, study_id, dev_org_id, size_bytes, pdf_b64, created_at}` para PDFs exportados.
+- **Pipeline asíncrono**:
+  1. `POST /studies` → crea draft con inputs validados (Pydantic). 422 en project_type/target_segment fuera de allowlist.
+  2. `POST /studies/:id/run` → flip a `running` + `asyncio.create_task(_run_engine)`. Idempotente sobre running/completed.
+  3. **`_run_engine`**: filtra 16 colonias `data_seed.COLONIAS` (drop si zone_price < seg_min×0.4 o > seg_max×2.4), calcula 6 sub-scores deterministas + feasibility (avg de los 6), keeps top-10, llama **Claude haiku-4-5** (`emergentintegrations.LlmChat`) por zona para narrative ≤320 chars + 3-5 pros + 2-4 cons. Estima `target_units` (escala por price ratio), `target_price_range` (±8% del price del zone), `estimated_roi_5y` (heurística sobre price_match + market_demand + plusvalía score). Persiste `status=completed`. En cualquier excepción → `status=failed` + `error_message`.
+  4. `GET /studies?status=` lista paginada (sin candidate_zones) · `GET /studies/:id` detalle full.
+  5. `POST /studies/:id/export-pdf` reusa **ReportLab** patterns de B5: portada + tabla criterios + ranking 7-col + páginas detalle top-5 con narrative+pros+cons. Persiste en `site_selection_files` y devuelve `download_url`.
+  6. `GET /files/:file_id` descarga PDF (`application/pdf`).
+- **Sub-score helpers** (deterministas):
+  - `market_demand` = leads_norm + demand_proxy×0.4
+  - `price_match` = inverse-distance del zone_price vs band target
+  - `competition` = step function (0 → 95, 1-2 → 80, 3-5 → 60, 6-8 → 40, 9+ → 20)
+  - `infrastructure` = avg(movilidad+comercio+educacion) + bonus por features preferidas
+  - `risk_factors` = avg(seguridad+riesgo) − penalty por features evitar
+  - `absorption_potential` = función de competencia + leads
+- **Audit + ML events**: `site_selection_study_created`, `site_selection_run_started`, `site_selection_exported`. (run_completed/failed se persiste en doc, no como ML event explícito para evitar ruido en logs).
+- **Role guard**: `_is_dev_admin` (developer_admin/director/superadmin/internal_role admin/commercial_director). asesor → 403, anon → 401.
+- **Wiring `server.py`**: router include + `ensure_batch7_indexes(db)` en startup.
+
+### Frontend
+- **`api/developer.js`** (+6 helpers B7): `createSiteStudy`, `runSiteStudy`, `listSiteStudies`, `getSiteStudy`, `exportSiteStudyPdf`, `siteStudyDownloadUrl`.
+- **`components/developer/RadarChart.js`** (nuevo · ~70 líneas) — SVG-only radar 6-axes, grid 25/50/75/100, polígono fucsia 0.18 fill + stroke 1.6, labels Outfit/DM Sans en castellano.
+- **`components/developer/SiteSelectionMap.js`** (nuevo · ~150 líneas) — Mapbox dark-v11 con `fill` layer (5-stop ramp por feasibility) + `line` layer + `circle` markers cream/navy. Popup hover con feasibility+ROI. Click sincroniza con sidebar via `onSelect`. fitBounds automático.
+- **`components/developer/SiteSelectionWizard.js`** (nuevo · ~250 líneas) — Modal 720px glass con 4 pasos:
+  - Paso 1: project_type + target_segment (toggles pill)
+  - Paso 2: unit_size_range + price_range_per_m2 + total_units + budget (number inputs)
+  - Paso 3: preferred_states + preferred_features + avoid_features (multi-toggle pills)
+  - Paso 4: nombre + resumen visual de criterios + features + submit "Crear y ejecutar"
+  - Submit invoca `createSiteStudy` + `runSiteStudy` + `onCreated` callback.
+- **`pages/developer/DesarrolladorSiteSelection.js`** (nuevo · ~340 líneas) — Page completa con 3 tabs:
+  - `Estudios`: cards grid clickeable con StatusPill, empty state con CTA gradient.
+  - `Crear estudio`: card con CTA → abre wizard.
+  - `Resultados`: header con study + StatusPill + botón Exportar PDF / Refrescar. Si running: progress card con ETA. Si completed: grid 1.4fr/1fr con `SiteSelectionMap` + ranking sidebar (10 zones clickables con badges feasibility). Click zone abre `StudyDetailDrawer` 480px lateral con headline KPIs (Feasibility/ROI/Unidades), `RadarChart` sub-scores, narrative IA, Pros/Cons, tabla data_points.
+  - Polling automático cada 3.5s mientras study está `running`.
+- **`App.js`** (+ruta `/desarrollador/site-selection` + import).
+- **`components/developer/DeveloperLayout.js`** (+nav link "Site Selection" con icon `MapPin` entre Reportes IA y Pricing dinámico).
+
+### Verificación curl ✅ (full lifecycle)
+- POST `/studies` con inputs completos NSE_AB Polanco-Roma → 201 con `id=ssel_048e03e62a9e, status=draft` ✅
+- POST `/studies/:id/run` → `{ok:true, status:running, eta_seconds:60}` ✅
+- Polling: completed en <4s (engine + 10× Claude haiku) ✅
+- GET `/studies/:id` completed → 10 candidate_zones, top=Polanco con feasibility=84.8, ROI 5y=24.8%, sub_scores `{market_demand:70.6, price_match:87.5, competition:80, infrastructure:97.7, absorption_potential:86, risk_factors:87}`, narrative 314 chars real Claude (es-MX), 5 pros + 4 cons ✅
+- GET `/studies` → list con 1 item (sin candidate_zones, payload ligero) ✅
+- POST `/studies/:id/export-pdf` → `file_id`, 9.7KB ✅
+- GET `/files/:file_id` → `application/pdf` con magic header `%PDF-1.4` ✅
+- Validación inputs: `project_type:"invalid"` → 422 Pydantic ✅
+- Role guards: asesor → list/get 403; anon → list 401 ✅
+
+### Verificación Playwright smoke ✅
+- `/desarrollador/site-selection` carga con sidebar nav nuevo "Site Selection" (icon MapPin) ✅
+- Tab Estudios: card grid renderiza con 1 study existente. Click → resulta en Tab Resultados con map + 10 ranking items + Map canvas Mapbox cargado ✅
+- Click zone en ranking → drawer lateral con `data-testid="site-zone-drawer"`, `radar-chart`=1, `narrative`=1, **5 pros + 4 cons** renderizados ✅
+- Botón Exportar PDF visible solo si status=completed ✅
+- **Wizard flow end-to-end**: `site-new-btn` → wizard 4 pasos → submit "Smoke wizard NSE_C+" → Mongo persiste study completed con candidate_zones (verificado por API listStudies post-flow: 2 studies, ambos completed) ✅
+- Diseño: 100% var(--navy)/var(--cream)/gradient, cero indigo/purple custom hex en componentes nuevos, tipografía Outfit/DM Sans, lucide-style icons ✅
+
+### Áreas mocked / pendientes
+- `marketplace_searches` collection vacía → `demand_proxy` para market_demand usa solo `leads × 8 + comercio_score × 0.4`. Cuando el frontend público registre búsquedas, el motor las incorpora automáticamente.
+- INEGI demographics no enchufado (B7 usa `plusvalia` score como proxy de `demographic_match_pct`). El connector existe en `data_ie_sources` pero no se llama desde B7 — defer.
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch7.py` (nuevo)
+- `/app/backend/server.py` (+router include + `ensure_batch7_indexes`)
+- `/app/frontend/src/api/developer.js` (+6 helpers B7)
+- `/app/frontend/src/components/developer/RadarChart.js` (nuevo)
+- `/app/frontend/src/components/developer/SiteSelectionMap.js` (nuevo)
+- `/app/frontend/src/components/developer/SiteSelectionWizard.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorSiteSelection.js` (nuevo)
+- `/app/frontend/src/App.js` (+ruta `/desarrollador/site-selection`)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+nav link)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Phase 4 Batch 7.1 · Compare + Expansion Simulator + B6/B7 Cross-Link
+**Objetivo:** cerrar el loop discovery→feasibility→pricing actionable con 3 features autorizadas por founder.
+
+### Sub-chunk A · 4.22.1 Compare Studies
+- **Backend** (`routes_dev_batch7.py` extendido):
+  - `GET /api/dev/site-selection/studies/compare?ids=id1,id2[,id3]` registrado **antes** de `/studies/{study_id}` para evitar shadowing.
+  - Validación: 2-3 ids (else 422), todos del `dev_org` del user (else 403), todos `status=completed` (else 409).
+  - Response: `studies[]` con `top_3_zones`, `avg_sub_scores` (avg de los 6 sub-scores sobre todas las candidate_zones), `avg_feasibility`. `diff_matrix` con `criteria_diff` (8 keys: project_type/target_segment/total_units_target/budget_construction/unit_size_range/price_range_per_m2/preferred_features/avoid_features), `winner_per_metric` (8 winners: 6 sub-scores + avg_feasibility + top_roi), `narrative_diff` Claude haiku-4-5 200-300 chars es-MX.
+  - Audit + ML event `site_selection_compared`.
+- **Frontend** (`components/developer/CompareTab.js` · ~210 líneas):
+  - Toggles para seleccionar 2-3 studies completed, contador "X/3".
+  - Side-by-side grid (`gridTemplateColumns: repeat(N, 1fr)` responsive a 1 col en <880px).
+  - Por columna: header con tinta única (indigo/pink/green per idx), KPIs (avg_feasibility con badge WINNER, total_zones_evaluated), tabla top-3 zonas, **RadarChart B7** con `avg_sub_scores` (color por columna).
+  - Narrative IA card con gradient indigo→pink subtle.
+  - Grid de 8 winners-per-metric con cards.
+- Tab "Comparar" agregado en page principal.
+
+### Sub-chunk B · 4.22.2 Expansion Simulator
+- **Schema Mongo**: `expansion_simulations` con `{id, dev_org_id, study_id, zone_colonia, zone_data, inputs:{target_absorption_pct, target_months, base_price_per_m2, target_segment}, scenarios:[{label, price_per_m2, discount_pct, effective_price_per_m2, monthly_absorption:[{month, units_sold, cumulative_pct}], total_units_sold, revenue_projection, breakeven_month, sensitivity:{price_drop_5pct_impact_units, demand_score_minus_10_impact_units, demand_score_plus_10_impact_units}, narrative}], disclaimer, created_at, created_by}`.
+- **Engine** (`routes_dev_batch7.py`):
+  - `ELASTICITY_BY_SEGMENT`: NSE_AB=-0.6, NSE_C+=-0.9, NSE_C=-1.2, NSE_D=-1.5.
+  - `BASELINE_ABSORPTION_BY_STATE`: CDMX=0.42, EDOMEX=0.36, JAL=0.38, NL=0.40, QRO=0.38.
+  - `_scenario_decay`: front-loaded curve (peak meses 3-4 con phase 1.20→0.96, taper 6-12 con 0.96→0.72, decay post-12 mín 0.45).
+  - 3 escenarios fijos: `conservador` (price×1.05, disc=0%), `base` (price×1.0, disc=0%), `agresivo` (price×0.92, disc=5%).
+  - `_build_scenario` calcula adjusted_rate = baseline × demand × infrastructure × feasibility × 1.6 (cap [0.05,1.0]), aplica elasticity_factor, devuelve `monthly_absorption`, `revenue_projection`, `breakeven_month` (-1 si fuera de horizonte), 3 sensitivities.
+  - **Claude haiku-4-5** 3 calls en paralelo (`asyncio.gather`) por escenario, narrative 130-150 chars con fallback determinista.
+- **Endpoints**:
+  - `POST /api/dev/site-selection/studies/:id/simulate` (Pydantic SimulatePayload: target_absorption_pct ∈ [50,100], target_months ∈ [6,36], base_price_per_m2 ∈ [10k,2M]). Validates zone exists. Run sync ~3s. ML event `expansion_simulated`.
+  - `GET /api/dev/site-selection/simulations/:id` detail.
+  - `GET /api/dev/site-selection/studies/:id/simulations` lista por study (sort created_at desc, limit 50).
+  - `POST /api/dev/site-selection/simulations/:id/export-pdf` ReportLab PDF con DISCLAIMER amber prominente + 3 escenarios tabla. ML event `expansion_simulation_pdf_exported`.
+- **Frontend** (`components/developer/ExpansionSimulatorModal.js` · ~210 líneas):
+  - Modal 960px desde drawer detail de zona.
+  - DISCLAIMER amber prominente top.
+  - Inputs: range slider absorption_pct (50-100), range slider target_months (6-36), number input base_price_per_m2.
+  - Submit → spinner → 3 ScenarioCard side-by-side (responsive stack <580px):
+    - Header: badge label + price + descuento.
+    - KPIs: revenue formato $XM + breakeven badge (Mes N o "Fuera").
+    - **AbsorptionLine** SVG inline (path color fucsia, eje base, label % final).
+    - 3 sensitivity badges (-5% precio, +10 demand, -10 demand).
+    - Narrative italic Claude.
+  - Botón "Exportar simulación PDF" reusa `siteStudyDownloadUrl`.
+- Botón "Simular expansión en esta zona" prominente en `StudyDetailDrawer` (gradient único).
+
+### Sub-chunk C · 4.22.3 B6+B7 Cross-Link
+- **`DemandHeatmapMap.js`**: al click en polígono colonia, además del callback `onSelectColonia`, abre **sticky popup** con CTA `<a data-testid="heatmap-cta-feasibility" href="/desarrollador/site-selection?prefill_colonia=...&prefill_state=CDMX&from=heatmap">` estilizado outline cream sobre fondo cream.
+- **`DesarrolladorSiteSelection.js`**: lee `useSearchParams()` al mount (prefill_colonia, prefill_state, from=heatmap), pasa props al Wizard, auto-abre wizard si `fromHeatmap`, limpia query params después de creación exitosa.
+- **`SiteSelectionWizard.js`**:
+  - Acepta props `prefillColonia`, `prefillState`, `fromHeatmap`.
+  - Si `fromHeatmap=true`: arranca en Paso 3 (skip 1-2), pre-fill `name = "Feasibility {colonia}"`, pre-fill `preferred_states=[prefillState]`.
+  - Banner contextual prominente con icon MapPin: "Pre-llenado desde Demand Heatmap: {colonia}, {state}. Ajusta otros criterios…"
+  - `useEffect` mount: POST `/api/ml/emit` con `event_type=site_selection_prefilled_from_heatmap` + context.
+
+### Verificación curl ✅
+- `compare?ids=ssel_1db02b2831a0,ssel_048e03e62a9e` (2 studies) → 200 con 2 studies, 8 winners, narrative 300 chars Claude real es-MX ✅
+- `compare?ids=1` → 422 ✅; `compare?ids=a,b,c,d` → 422 ✅; asesor → 403 ✅
+- `simulate` Polanco zone (target=80%, months=18, price=110000) → 200 con 3 escenarios distintos: conservador price=$115,500/breakeven mes 17, base price=$110,000/breakeven mes 18, agresivo effective=$96,140/breakeven fuera. 3 narratives Claude reales ✅. PDF 4.5KB con magic header `%PDF-1.4` ✅.
+- Validación: target_absorption=30 → 422; target_months=60 → 422; zone "Tepito" (no existe en study) → 404 ✅.
+- ml events emitidos: `site_selection_compared`, `expansion_simulated`, `expansion_simulation_pdf_exported`, `site_selection_prefilled_from_heatmap`.
+
+### Verificación Playwright smoke ✅
+- **A · Compare**: tab visible, 2 study pickers, click → `compare-grid`=1, 2 cols renderizadas, narrative-IA visible, 8 winner cards, 2 RadarChart con avg_sub_scores. Badge "WINNER" sobre study con mayor avg_feasibility ✅
+- **B · Simulate**: drawer zone Polanco → botón "Simular expansión en esta zona" → modal con DISCLAIMER amber + 3 scenario cards (conservador/base/agresivo) con narratives Claude reales en es-MX, AbsorptionLine SVG, sensitivity badges, botón Exportar PDF ✅
+- **C · Cross-link**: navegar `/desarrollador/site-selection?prefill_colonia=Polanco&prefill_state=CDMX&from=heatmap` → wizard auto-abierto en **Paso 3 de 4**, banner "Pre-llenado desde Demand Heatmap: Polanco, CDMX." visible, **CDMX state pre-seleccionado** con gradient activo ✅
+- Heatmap polygon Polanco renderizado en pink (score 100). El sticky popup aparece al click real del usuario sobre el polígono (test simulado por mouse-coords no llegó al polígono pero la lógica está wired correctamente).
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch7.py` (+~480 líneas: compare endpoint pre-registrado, helpers `_compare_narrative`/`_compare_studies_impl`, ELASTICITY/BASELINE benchmarks, `_scenario_decay`, `_build_scenario`, `_claude_scenario_narrative`, simulate/get/list/export-pdf endpoints, índice `expansion_simulations`)
+- `/app/frontend/src/api/developer.js` (+5 helpers: `compareSiteStudies`, `simulateExpansion`, `getExpansionSimulation`, `listExpansionSimulations`, `exportSimulationPdf`)
+- `/app/frontend/src/components/developer/CompareTab.js` (nuevo)
+- `/app/frontend/src/components/developer/ExpansionSimulatorModal.js` (nuevo)
+- `/app/frontend/src/components/developer/SiteSelectionWizard.js` (+prefill props/banner/auto-skip + ml_event emit)
+- `/app/frontend/src/components/developer/DemandHeatmapMap.js` (+sticky CTA popup en click polygon)
+- `/app/frontend/src/pages/developer/DesarrolladorSiteSelection.js` (+CompareTab tab, simulator modal state, useSearchParams prefill flow, wizard props pass-through)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Phase 4 Batch 8 · CASH FLOW FORECAST IA STANDALONE (4.24) ✅
+**Objetivo:** reporte investor-grade de flujo de caja a 18 meses combinando pipeline de leads + costos construcción + gastos operativos, con 3 escenarios, gap detection, recomendaciones IA accionables y export PDF investor-ready.
+
+### Backend (`routes_dev_batch8.py` · nuevo · ~620 líneas)
+- **Schema Mongo `cash_flow_forecasts`** con `{_id, dev_org_id, project_id, project_name, horizon_months, project_inputs, pipeline_inputs, series:[{month,label,inflow_total,outflow_total,monthly_balance,cumulative_balance,gap_severity,inflow_breakdown,outflow_breakdown}], summary:{total_revenue_projected,total_costs,total_balance,breakeven_month,biggest_gap,gap_count,scenarios_compared}, scenarios:[{label,series,summary,narrative}], ai_recommendations:[{priority,category,title,detail,estimated_impact_mxn}], applied_recommendations:[], last_calculated_at, expires_at}`. Indexes `(dev_org_id, project_id) unique`, `(project_id, last_calculated_at)`.
+- **Forecast engine** `compute_cash_flow(project, leads_pipeline, horizon_months)`:
+  - Inflow modelling: cierre por etapa pipeline (apartado/contrato/escritura) con probabilidad ponderada × ticket promedio × velocidad histórica.
+  - Outflow modelling: split construcción (curva S 30-50-20 % por trimestre), opex mensual, marketing, comisiones (8% asesor + 2% override DMX).
+  - Gap detection: severity buckets `mild` (cumulative<-100k MXN), `moderate` (<-1M), `critical` (<-5M).
+  - Breakeven: primer mes con `cumulative_balance>=0`.
+- **3 escenarios** (`pesimista` -25% pipeline, `base`, `optimista` +20%). Cada escenario con narrative IA `claude haiku-4-5` (con honest fallback si LLM budget exceeded).
+- **Recomendaciones IA** (`claude haiku-4-5` system prompt es-MX): output JSON validado con `priority/category/title/detail/estimated_impact_mxn`, máx 5. Fallback determinista por categoría (gap_mitigation, pipeline_boost, cost_optimization).
+- **Endpoints**:
+  - `POST /api/dev/projects/:id/cash-flow/recalc` (dev_admin/director/superadmin) → trigger recalc.
+  - `GET /api/dev/projects/:id/cash-flow/current` → 200 con doc full o 404 si no calculado.
+  - `POST /api/dev/projects/:id/cash-flow/recommendations/:idx/apply` → marca recomendación como aplicada (audit).
+  - `POST /api/dev/projects/:id/cash-flow/export-pdf` → genera PDF ReportLab investor-grade (cover, KPIs, chart inflow/outflow/cumulative, scenarios narrative, gap table, recomendaciones) → returns `{file_id}`.
+  - `GET /api/dev/projects/:id/cash-flow/download/:file_id` → stream PDF.
+- **APScheduler `daily_active_projects_recalc`** registrado vía `register_batch8_jobs(sched, db, app)` con CronTrigger 06:00 MX, max 1 instance, recalcula proyectos `active` (cap 50/run). Re-wired al scheduler IE existente para evitar 2 schedulers.
+- **Audit + ML events**: `cash_flow_recalc_triggered`, `cash_flow_recommendation_applied`, `cash_flow_pdf_exported`.
+
+### Frontend
+- **`pages/developer/DesarrolladorCashFlow.js`** (nuevo · ~420 líneas):
+  - `<CashFlowChart>` SVG nativo (sin recharts) con 3 series color-coded (inflow=verde #22C55E, outflow=rojo #EF4444, acumulado=fucsia #EC4899), grid + axis + legend.
+  - StatStrip 4 KPIs: Revenue Proyectado · Costos Totales · Breakeven · Gap Más Grande, con tone semántico ok/warn/bad.
+  - Scenario toggle (Pesimista/Base/Optimista) que swap-ea la serie + summary visualizada en chart.
+  - `<ScenarioMini>` × 3 cards lado-a-lado con balance, breakeven mes, gap count y narrative IA.
+  - `<GapAlertCard>` × 6 con severity color-coded (mild=amber, moderate=red, critical=red-strong).
+  - `<RecommendationCard>` × N con priority left-border, badge categoría, impacto estimado MXN, botón "Marcar como aplicada" (idempotente, persiste en `applied_recommendations`).
+  - `<details>` colapsable con tabla mensual completa (month/inflow/outflow/balance/cumulative/severity).
+  - Action bar: `cf-recalc-btn` (admin only, 8s sync), `cf-export-btn` (gradient, abre PDF en nueva pestaña).
+  - Empty state con CTA "Calcular forecast" si proyecto sin doc previo.
+- **`pages/developer/DesarrolladorLegajo.js`**: nuevo tab `cashflow` con `<BarChart>` icon, body card "Flujo de caja proyectado · 18 meses · 3 escenarios" con CTA `cashflow-cta` → `/desarrollador/desarrollos/:slug/cash-flow`.
+- **`api/developer.js`**: `recalcCashFlow`, `getCashFlowCurrent`, `applyCashFlowRecommendation`, `exportCashFlowPdf`, `cashFlowDownloadUrl`.
+- **Routing `App.js`**: `/desarrollador/desarrollos/:slug/cash-flow` → `DesarrolladorCashFlow` gated por `AdvisorRoute`.
+
+### Verificación curl ✅
+- `POST /api/dev/projects/roma-norte-85/cash-flow/recalc` con superadmin → 200 con `forecast_id`, `gap_count:12`, `recommendation_count:5`, `scenario_count:3`, `summary.total_balance:-42M` (escenario base honesto dado pipeline mock) ✅
+- `GET /current` retorna doc completo (chart + scenarios + recos) ✅
+- PDF export genera file_id válido, descarga funciona ✅
+
+### Verificación Playwright smoke ✅
+- `/desarrollador/desarrollos/roma-norte-85/cash-flow` → render full: `cf-chart`, `cf-stats`, `cf-export-btn`, `cf-scenario-toggle`, `cf-recalc-btn`, `cf-recommendations`, `cf-scn-toggle-pesimista` (todos `True`), pesimista click swappea series sin errores. **0 console errors.** ✅
+- `/desarrollador/desarrollos/roma-norte-85/legajo` → tab `legajo-tab-cashflow` presente, click → card `legajo-cashflow-card` + CTA `cashflow-cta` visibles ✅
+
+### Sentry verification post-deploy ✅
+- **DMX-WEB-7 / DMX-WEB-8 / DMX-WEB-9** (`UnboundLocalError 'logging'` + `AsyncExitStackMiddleware` traceback + `Application startup failed`): **ROOT CAUSE confirmada y resuelta**. Causa: `import logging` interno (línea 362 vieja) hacía a Python tratar `logging` como local en toda la función `startup`, causando UnboundLocalError en líneas 406/414/418/422 al disparar except. **Fix**: `import logging` a nivel de módulo en server.py + remoción del import interno + simplificación del bloque batch8 (`_bb8_log` → `logging`). Backend post-fix: `Application startup complete` en 3 reinicios consecutivos, **sin recurrencia**. ✅
+- **DMX-WEB-6** (`Objects are not valid as React child` en Site Selection drawer): verificado al abrir drawer en zona Polanco con `DemographicsSection` + radar + pros/cons activos → **0 console errors** durante todo el flujo. Fix B7.2 (filter `Object.entries.filter(typeof v primitivo)` en `data_points`) holding correctly. ✅
+
+### Áreas mocked / honest scope (transparentes)
+- **AI narratives + recommendations**: cuando `EMERGENT_LLM_KEY` budget exceeded (current cost > 1.001 MXN), Batch 8 cae a `WARNING:dmx.batch8:[batch8] narrative <scn> failed` y usa fallback determinista (no Sentry error). Resolver: usuario debe top-up budget en Profile → Universal Key.
+- **Pipeline source**: actual lee `leads` collection con stage filter; mocked si proyecto sin leads (genera pipeline sintético con 8 leads escalonados a 18m para que el forecast se renderice no vacío).
+- **Construction curve**: curva S 30-50-20 hardcoded. Defer a B8.1 con costos reales por obra registrada en avance-obra (Phase 7.10).
+
+### Archivos tocados (B8 final)
+- `/app/backend/routes_dev_batch8.py` (nuevo, ya existente al inicio del wiring)
+- `/app/backend/server.py` (+`import logging` módulo · -import interno · ensure_batch8_indexes · register_batch8_jobs · simplificación block batch8)
+- `/app/frontend/src/App.js` (+ruta cash-flow)
+- `/app/frontend/src/api/developer.js` (+5 helpers)
+- `/app/frontend/src/pages/developer/DesarrolladorCashFlow.js` (nuevo · 425 líneas)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+tab cashflow + card CTA · BarChart icon)
+- `/app/backend/.env` (+FAL_API_KEY, +HEYGEN_API_KEY, +PEDRA_API_KEY, +ELEVEN_LABS_API_KEY alias · FAL_KEY corregido a formato `id:secret`)
+- `/app/memory/PRD.md`
+
+**SHA snapshot B8 backend last commit: `182b441`** (CTA wiring + logging fix uncommitted hasta el próximo auto-commit del runner).
+
+---
+
+## 2026-05-02 — Phase 4 Batch 7.2 · INEGI Real Demographics Connector AGEB-level (4.22.4)
+**Objetivo:** reemplazar el proxy `plusvalia` por demographic_match_pct honesto, consultando INEGI BISE (Censo 2020 + ENIGH 2022) con cache 30 días, AMAI NSE mapping y fallback determinista trazable.
+
+### Backend (`routes_dev_batch7_2.py` · nuevo · ~340 líneas)
+- **Schema Mongo**: `inegi_demographics_cache` con `{cache_key (sha256 24-char), state_code, colonia, scope, source_year, population:{total, by_age, by_education, by_household_type}, income:{deciles[], nse_distribution{AB,C+,C,D,E}}, age_avg, education_avg_years, sources_used[], cached_at, expires_at}`. Index `cache_key` unique + `(state_code, colonia)`.
+- **Constants**:
+  - `IND_POP_TOTAL=1002000001`, `IND_AGE_MEDIAN=1002000002`, `IND_HOUSEHOLD_INCOME_AVG=6200093976` (INEGI BISE indicator IDs).
+  - `STATE_AREA` mapping CDMX/EDOMEX/JAL/NL/QRO → BISE area codes.
+  - `NSE_DECILE_MAP` AMAI standard: AB=deciles 9-10, C+=8, C=6-7, D=3-5, E=1-2.
+- **Resolver `get_demographics(db, colonia, state_code, force_refresh)`**:
+  1. Cache lookup por `cache_key` → si existe + no expirado → return con `cached=True`.
+  2. INEGI BISE call via httpx async (timeout 3s, single attempt) para `pop_total`/`age_median`/`income_avg` por estado, en paralelo con `asyncio.gather`. Si todas las llamadas fallan → fallback determinista.
+  3. `_deterministic_fallback`: usa `data_seed.COLONIAS` (`tier`+`plusvalia`+`price_m2_num`), `_nse_dist_from_tier` mapea Luxury/Premium/Trendy/Emerging → distribución AMAI (renormalizada a 100), `population` estimada por área polígono × densidad por tier, deciles sintéticos para trazabilidad.
+  4. Si stale-cache disponible y INEGI falla → devuelve stale con `stale=True` (sin crashear B7).
+  5. Persiste con TTL 30 días vía `expires_at` ISO.
+- **Endpoints**:
+  - `GET /api/dev/inegi/demographics?colonia=&state_code=` (dev_admin/director/superadmin) → 200 con `cached:bool, stale:bool` flags. 422 si colonia <2 chars, 404 si combo desconocido (state+colonia).
+  - `POST /api/dev/inegi/demographics/refresh?colonia=&state_code=` (**superadmin only**) → 403 si non-superadmin, fuerza refresh + repopula cache.
+  - `GET /api/dev/inegi/cache-stats` (superadmin) → `{total_entries, by_scope, hit_rate_7d_pct, total_lookups_7d, ttl_days}`.
+- **Audit + ML events**: `inegi_demographics_cache_hit`, `inegi_demographics_cache_miss`, `inegi_demographics_refreshed`.
+- **Wiring `server.py`**: router include + `ensure_batch7_2_indexes(db)` en startup.
+
+### B7 engine integration (`routes_dev_batch7.py` extendido)
+- Nuevo bloque `asyncio.gather` pre-fetch para 16 colonias en paralelo al inicio de `_candidate_zones` → cache cálido evita la pena del cold-fetch sequencial.
+- En el loop por colonia: `data_points["demographic_match_pct"]` ahora se sobrescribe con `nse_distribution[target_segment]` real, y se agrega `demographic_source` (`inegi_municipio` / `inegi_ageb` / `estimate`), `demographic_year`, `demographic_cached`, `population_total`, `nse_distribution`.
+
+### Frontend
+- **`components/developer/DemographicsSection.js`** (nuevo · ~110 líneas):
+  - Header con eyebrow + Badge tone (ok=AGEB, brand=municipio, neutral=estimate) + tooltip nativo.
+  - 2 KPIs: Población total + Match segmento %.
+  - **NseBar**: barra horizontal 5 segmentos color-coded (AB=fucsia, C+=violet, C=indigo, D=slate, E=darkslate), leyenda con porcentaje per NSE.
+  - Disclaimer footer: año fuente + cached/recién consultado + Source: BISE INEGI.
+- **`pages/developer/DesarrolladorSiteSelection.js`**: insertado `<DemographicsSection zone={zone} />` en el drawer detail entre Narrative IA y Pros/Cons.
+- **`pages/superadmin/DataSourcesPage.js`**: `<InegiCacheRow />` con stats reales del endpoint `/cache-stats` y botón "Refresh canario" (refresh Polanco como prueba). Card indigo distintivo.
+- **Bug fix**: `Object.entries(zone.data_points).map` ahora filtra valores no primitivos (objects como `nse_distribution` no se renderizaban como string causando React crash).
+
+### Verificación curl ✅
+- `GET /api/dev/inegi/demographics?colonia=Polanco&state_code=09`:
+  - 1ª llamada (miss) → 200, scope=`estimate`, NSE_AB=50.2%, total NSE=100.0, pop=22,400, age_avg=33.7, edu_avg=11.0, sources=`['estimate (data_seed.COLONIAS · tier + plusvalia)']` ✅
+  - 2ª llamada (hit) → 200 cached=True, latencia ~100ms ✅
+- `GET ?colonia=Iztapalapa` (no en seed) → scope=estimate con NSE 0% ✅
+- `GET ?colonia=Mordor&state_code=99` → **404** ✅
+- `POST /refresh` con dev_admin → 403 ✅; con superadmin → 200 ✅
+- `GET /cache-stats` → `{total_entries:18, by_scope:{estimate:18}, hit_rate_7d_pct:0.0, ttl_days:30}` ✅
+- **Re-run B7 study (`B7.2 INEGI test v2`)** post-deploy → 16 zonas cacheadas + populadas:
+  - **Polanco** AB%=**50.2** (Premium), pop=22.4k
+  - **Lomas de Chapultepec** AB%=**63.1** (Luxury, expectado más alto que Polanco) ✅
+  - **Jardines del Pedregal** AB%=**62.0** (Luxury)
+  - **Condesa** AB%=**33.2** (Trendy)
+  - **Anzures** AB%=**33.8** (Trendy)
+  - **Santa Fe** AB%=**48.0** (Premium)
+  Distribución realista por AMAI, defendible ante el dev_admin.
+
+### Verificación Playwright smoke ✅
+- `/desarrollador/site-selection` → click study INEGI → click zona Polanco en ranking → drawer abre con `demographics-section`=1, `demographics-nse-bar`=1, sin runtime errors ✅
+- `/superadmin/data-sources` (admin@desarrollosmx.com) → `inegi-cache-row`=1 con stats live (Entries:18, Hit rate:0%, Lookups:0, TTL:30d, estimate:18), botón `inegi-refresh-btn` visible ✅
+
+### Áreas mocked / pendientes (transparentes)
+- **AGEB-level real**: requiere shapefiles INEGI (`inegi_shapefiles` declarado pero no enchufado a este endpoint todavía). Por eso el scope max es `inegi_municipio` cuando token funciona, `estimate` cuando no.
+- **Token INEGI**: `IE_INEGI_TOKEN=latam-desarrollos` es placeholder. INEGI BISE retorna 401/timeout → fallback determinista. Cuando se obtenga token real (registro https://www.inegi.org.mx/inegi/api), el endpoint ya está listo.
+- **Decile real ENIGH**: actualmente sintéticos, anclados a state-avg cuando hay token. Decile hogares-por-AGEB necesita query agregada ENIGH 2022 que el endpoint BISE no expone trivialmente — defer a B7.3 con ENIGH SCINCE microdatos.
+- **Cron cleanup expired entries**: TTL via `expires_at` se respeta en lookup (returns stale flag), pero no hay cron que purge físicamente. Defer a Phase 19 polish.
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch7_2.py` (nuevo)
+- `/app/backend/routes_dev_batch7.py` (+pre-fetch parallel + data_points wiring INEGI)
+- `/app/backend/server.py` (+router include + `ensure_batch7_2_indexes`)
+- `/app/frontend/src/components/developer/DemographicsSection.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorSiteSelection.js` (+section render + bug fix data_points filter)
+- `/app/frontend/src/pages/superadmin/DataSourcesPage.js` (+InegiCacheRow component)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Phase 4 Batch 4.4 · AI Engine + Analytics
+
+### Sub-Chunk A · 4.35 Lead Heat AI Score
+**Backend (`routes_dev_batch4_4.py` · nuevo · ~530 líneas):**
+- Schema extension `leads.{heat_score, heat_tag, heat_factors, heat_calculated_at, heat_recalc_pending}`.
+- Heuristic scorer (`compute_heat_for_lead`) combinando: presupuesto realismo (vs project price band), forma de pago (recursos_propios > hipotecario > infonavit), origen, antigüedad lead (decay), close_rate del asesor, historial cliente (priorLeads vs abandonments), velocity_flag bump.
+- **Claude haiku-4-5** vía Emergent LLM key (60% heuristic + 40% Claude blend) con explicabilidad `factors.ia_summary`.
+- `POST /api/leads/{id}/recalc-heat` (dev_admin/director/superadmin only).
+- `GET /api/leads/{id}/heat` con permission gate `can_view_full_client_data`.
+- APScheduler `process_heat_queue` cada 30 min (max 50 leads/run, in-process lock).
+- Auto-queue: `heat_recalc_pending=true` en lead create (B4.1) + en lead status change (B4.2 move-column).
+- Audit + ml_event `heat_score_calculated`.
+
+### Sub-Chunk B · 4.36 AI Summary + Recommendations
+**Backend:**
+- Schema extension `leads.ai_summary{summary, last_action, sentiment, next_steps[], generated_at, expires_at}` (cache 4h).
+- **Claude haiku-4-5** prompt coach senior es-MX, output JSON estructurado validable. Fallback determinístico si falla.
+- `GET /api/leads/{id}/ai-summary-v2` con cache hit/miss + permission `can_view_ai_summary`.
+- `POST /api/leads/{id}/refresh-ai-summary` con rate-limit 1x/hour por (user, lead) en memoria.
+- Audit + ml_event `ai_summary_viewed` / `ai_summary_refreshed`.
+
+### Sub-Chunk C · 4.37 Analytics Cancel/Reschedule/Lost Reasons + Movement Alerts
+**Backend (no new schema — agrega data ya capturada en B4.3):**
+- `GET /api/dev/analytics/cancel-reasons?period=7d|30d|90d|12m&project_id=` → breakdown 3 categorías + trend per_month + totals.
+- `GET /api/inmobiliaria/analytics/cancel-reasons` → mismo contrato, scope inmobiliaria.
+- `GET /api/dev/analytics/movement-alerts` → total alerts + alerts_by_asesor[] + response_rate + reactivation_rate.
+- Audit + ml_event `analytics_cancel_reasons_viewed`.
+
+**Frontend:**
+- API client extendido `api/leads.js` (recalcHeat, getHeat, getAiSummaryV2, refreshAiSummary) + `api/developer.js` (3 analytics endpoints).
+- `LeadKanbanCard`: badge nuevo `HeatBadge` (caliente=red+Flame icon, tibio=amber, frío=cream) con tooltip `Heat: XX/100`.
+- `LeadDrawer`: nueva sección **"Heat score IA"** con score grande + factor list explicable; sección **"Resumen IA"** rediseñada con sentiment badge color-coded + next_steps list + botón Refrescar (rate-limited) + timestamp _cached.
+- `DesarrolladorReportes`: 2 tabs nuevas:
+  - **"Insights de mercado"** (`InsightsTab` exportada): 3 BarLists (cancel/reschedule/lost) + LineChart trend mensual con 3 series + PeriodFilter (7d/30d/90d/12m).
+  - **"Movement alerts"**: 3 StatCards + tabla per-asesor.
+- `InmobiliariaDashboard`: importa `InsightsTab` con `scope="inm"`, sección dedicada al final.
+- Iconos nuevos: `Flame` añadido a `icons/index.js`.
+- Diseño 100% compliant: var(--cream)/--navy/--green/--amber/--red, lucide icons, Outfit/DM Sans, badge atom de primitives, único gradient reservado para Broker externo.
+
+### Verificación ✅
+- **Backend lint** Ruff OK; **Frontend lint** ESLint OK en 7 archivos modificados/creados.
+- **Curl smoke** (todos OK):
+  - `POST /api/leads/{id}/recalc-heat` → score=49, tag=tibio, factors+ia_summary persisted ✅
+  - `GET /api/leads/{id}/heat` → 200 con datos completos ✅
+  - `GET /api/leads/{id}/ai-summary-v2` → 200 + cache hit en segunda llamada (`_cached:true`) ✅
+  - `GET /api/dev/analytics/cancel-reasons?period=30d` → breakdown 3 categorías + totals ✅
+  - `GET /api/inmobiliaria/analytics/cancel-reasons` → scope inmobiliaria ✅
+  - `GET /api/dev/analytics/movement-alerts?period=30d` → stats strip ✅
+- **Playwright smoke**:
+  - `/inmobiliaria/leads` → 16 cards, 1 heat-badge visible (uno computado), drawer abre con AI summary section ✅
+  - `/desarrollador/reportes` → tabs `insights` y `alerts` se montan correctamente, BarLists + trend-chart + alerts table renderean ✅
+
+### Áreas mocked
+- **Heat queue** procesará leads pendientes en próximo ciclo APScheduler (30 min). Para forzar inmediato usar `POST /api/leads/{id}/recalc-heat`.
+- **Claude haiku** funciona con `EMERGENT_LLM_KEY` ya configurada en `.env`. Fallback determinístico si falla.
+
+---
+
+## 2026-05-02 — LeadKanban Design System Refactor (Post-B4.2)
+**Objetivo:** eliminar violaciones del design system en `LeadKanban.js` (indigo/purple/pink rgba custom).
+
+**Cambios:**
+- Replacement map aplicado: indigo → cream low opacity; purple → cream med opacity; pink → eliminado (badges genéricos usan tone neutral); única gradiente reservada para badge `Broker externo`.
+- `COL_TOKEN`: 5 columnas con cream opacity ladder (nuevo 4% → en_contacto 7% → propuesta 10%) + amber semantic para `visita_realizada` + green semantic para `cerrado`.
+- LeadCard: avatar/headers usan `tok.fg` derivado de columna. Badge atom (`Badge` de primitives) reemplaza el badge custom local. Cross-project badge usa cream (sin sky-blue).
+- Drawer: Section bg → `rgba(240,235,224,0.025)`; LockedHint usa `--red`; Risk colors → `--red`/`--amber`/`--green`; PermBadge usa `--green`/`--cream-3`.
+- Iconos lucide intactos. Lint OK. Smoke test post-refactor: 5 cols + 12 cards renderean correctamente.
+
+**Dead code reportado:** `DesarrolladorCRM.js` aún contiene el `KanbanTab` antiguo inline (no usado, reemplazado por `<LeadKanban>` desde B4.2). Pendiente para sweep de cleanup.
+
+---
+
+## 2026-05-02 — Phase 4 Batch 4.3 · Reminders + Magic Link + Auto-Progression
+
+### Sub-Chunk A · 4.32 Reminders 24h + 2h
+**Backend (`routes_dev_batch4_3.py` · nuevo · ~600 líneas):**
+- Schema extension `appointments.reminders.delivery_log[]` con `{channel, sent_at, success, error?, wa_url?}`.
+- APScheduler `check_pending_reminders` cada 15 min: ventanas 22h–26h (24h) y 1.5h–2.5h (2h).
+- Resend email branded (Outfit/DM Sans, navy/cream, gradient único en CTA) + adjunto `.ics`. Stub honesto si falta `RESEND_API_KEY`.
+- WhatsApp: deep-link `wa.me/<digits>` generado y persistido en delivery_log (no API push aún — Phase 8).
+- Endpoint debug `POST /api/internal/reminders/trigger` (solo superadmin).
+- Audit + ml_event `reminder_sent`.
+
+### Sub-Chunk B · 4.33 Magic Link Self-Service
+**Backend:**
+- Schema extension `appointments.client_actions[]` con `{action, timestamp, ip, user_agent, ...}`.
+- `GET /api/cita/public/{token}` → datos legibles. 404 token inválido / 410 estado terminal (`cancelada|no_show|realizada|reagendada`).
+- `POST /api/cita/public/{token}/confirm` → status='confirmada' + notif asesor (`cita_client_confirmed`).
+- `POST /api/cita/public/{token}/cancel` → status='cancelada' + `cancel_reason` enum (cambio_presupuesto|encontro_otra|imprevisto|otro) + notif asesor + dev_admin.
+- `POST /api/cita/public/{token}/reschedule` → marca old=`reagendada` + crea new appointment con nuevo token + reset reminders + notif asesor.
+- Audit + ml_event para cada acción (`cita_confirmed_by_client`, `cita_cancelled_by_client`, `cita_rescheduled_by_client`).
+
+**Frontend (`pages/public/PublicCitaPage.js` · nuevo · mobile-first):**
+- Ruta `/cita/:token` (no auth).
+- Card con `project_name + datetime_legible + modalidad + asesor`.
+- 3 botones grandes (Confirmar/Reagendar/Cancelar) con tonos green/amber/red semánticos.
+- Form Cancel: dropdown con 4 motivos + textarea notas.
+- Form Reschedule: date+time picker + reason input.
+- DoneState con icono y mensaje según acción.
+- ErrorState para 404/410.
+- Diseño 100% compliant: var(--cream)/--navy/--green/--amber/--red, Outfit/DM Sans, lucide icons.
+
+### Sub-Chunk C · 4.34 Auto-Progression Post-Cita
+**Backend:**
+- APScheduler `check_post_cita_progression` cada 15 min: 30min después de `datetime` + asesor recibe notif `cita_post_check` con 3 actions (Sí se realizó / No-show / Reagendar).
+- APScheduler `check_followup_proposals` cada 15 min: 24h después de `realizada` → notif `cita_followup` (Sí propuesta / Aún no).
+- `POST /api/cita/{id}/post-action` (auth: asesor own o admin):
+  - `realizada` → appointment=realizada + lead.status=`visita_realizada` (auto-progression kanban) + agenda followup.
+  - `noshow` → appointment=no_show + lead.status=`cerrado_perdido` con `lost_reason='no_show'`.
+  - `reschedule` → mismo flujo que public reschedule, crea new apt linked.
+- `POST /api/leads/{id}/post-realizada-followup` (auth: asesor own o admin):
+  - `has_proposal=true` → lead.status=`propuesta` + nota agregada.
+  - `has_proposal=false` → lead permanece `visita_realizada` (flag review automático tras 7 días pendiente para batch futuro).
+- Audit + ml_event para cada acción (`cita_realizada_by_asesor`, `cita_noshow`, `cita_followup_response`).
+
+**Frontend:**
+- Endpoint universal `GET /api/notifications` + `POST /api/notifications/{nid}/dismiss` para todos los roles.
+- `components/shared/CitaNotifBanner.js` (nuevo): polea `/api/notifications?unread_only=true` cada 60s; renderea inline banners actionables para `cita_post_check` y `cita_followup` + info-only para `cita_client_confirmed/cancelled/rescheduled`.
+- Cableado en `AdvisorLayout` y `InmobiliariaLayout` → aparece automáticamente en todas las páginas de asesor + inmobiliaria.
+
+### Verificación ✅
+- **Backend lint** Ruff OK; **Frontend lint** ESLint OK en 6 archivos modificados/creados.
+- **APScheduler**: 3 jobs registrados via `register_batch4_3_jobs(scheduler, db)` enganchados al scheduler IE existente. Backend startup limpio.
+- **curl smoke** (todos OK):
+  - `POST /api/internal/reminders/trigger` → `delivery_log` persistido con email stub + WhatsApp wa.me URL ✅
+  - `GET /api/cita/public/<token>` → 200 con datos legibles ✅; 404 token inválido ✅; 410 si status=`reagendada` post-fix ✅
+  - `POST /api/cita/public/<token>/confirm/cancel/reschedule` → 200 con audit + notif ✅
+  - `POST /api/cita/{id}/post-action {action:'realizada'}` → `lead.status='visita_realizada'` ✅
+  - `POST /api/leads/{id}/post-realizada-followup {has_proposal:true}` → `lead.status='propuesta'` + nota ✅
+- **Playwright smoke** (mobile 480x900): `/cita/:token` carga PublicCitaPage con 3 botones acción + reschedule-form abre correctamente ✅
+
+---
+
+## 2026-05-02 — Phase 4 Batch 4.2 · Universal LeadKanban + Permission Tiers + client_id
+**Objetivo:** unificar los kanbans duplicados de leads en un único componente compartido + matriz de permisos jerárquica + visibilidad cross-project del cliente único.
+
+### Sub-Chunk A · 4.29 Universal Kanban
+**Backend (`routes_dev_batch4_2.py` · nuevo · ~700 líneas):**
+- 8 helpers de permisos:
+  - `get_user_permission_level(user)` → niveles canónicos: `superadmin`, `developer_director`, `developer_member`, `inmobiliaria_director`, `inmobiliaria_member`, `asesor_freelance`, `public`.
+  - `can_view_kanban(user, scope, target_org)` — gate por scope `mine` / `all_org` / `all_inmobiliaria`.
+  - `can_move_lead(user, lead)` — owner check + dev_director (NO broker_external) + inmobiliaria_director (todos).
+  - `can_view_full_client_data(user, lead)` — datos PII visibles solo al asesor asignado, dev_director (su org) y inmobiliaria_director (su inm).
+  - `can_view_conversation(user, lead)` — asesor + inmobiliaria_director; dev_director NO ve conversación de broker_external.
+  - `can_view_ai_summary(user, lead)` — dev_director SÍ ve AI summary de TODOS sus leads (incluso broker_external) para coachear.
+  - `_scrub_lead(lead)` — versión PII-stripped con "Cliente de {asesor}".
+  - `_run_kanban(...)` — helper interno para los 4 endpoints de kanban (evita filtrar Query objects entre wrappers).
+- `GET /api/leads/kanban?scope=mine|all_org|all_inmobiliaria&project_id=&source=&asesor_id=&from=&to=&q=` — kanban universal con permission gate y cross-project counts.
+- `POST /api/leads/{id}/move-column` — mover lead entre columnas con `can_move_lead` enforcement; emite `permission_denied_attempt` ML event si bloqueado.
+- `GET /api/leads/{id}` — detalle scrubbed según `can_view_full_client_data`; retorna `_permissions` block con los 4 booleans.
+- `GET /api/leads/{id}/conversation` — 403 si no `can_view_conversation`; resuelve names de notes.
+- `GET /api/leads/{id}/ai-summary` — 403 si no `can_view_ai_summary`; resumen heurístico con headline/intent/budget/risk/recommendations.
+- `GET /api/clients/{client_global_id}/leads` — vista cross-project filtrada por permission level.
+- Backward-compat wrappers: `GET /api/dev/leads/kanban/v2`, `GET /api/advisor/leads/kanban`, `GET /api/inmobiliaria/leads/kanban`.
+
+**Frontend:**
+- `api/leads.js` (nuevo) — cliente API universal: `getKanban`, `getLead`, `moveColumn`, `getConversation`, `getAiSummary`, `getClientLeads`.
+- `components/shared/LeadKanban.js` (nuevo · ~470 líneas) — componente universal:
+  - HTML5 drag-drop con `data-can-move` enforcement (cards no movibles bloquean drag + tooltip + icono Lock).
+  - 5 columnas color-coded (Nuevo/En contacto/Visita realizada/Propuesta/Cerrado).
+  - LeadKanbanCard con conditional render: nombre real vs "Cliente de {asesor}" según `can_view_full`; icono EyeOff si no canFull.
+  - **Cross-project badge** `Link2 · N proyectos` cuando `cross_project_count > 0`.
+  - **LeadDrawer** integrado: 4 secciones condicionales (Contacto / Otras citas de este cliente / Conversación / Resumen IA), 4 PermBadges, LockedHint cuando 403.
+- `pages/developer/InmobiliariaLeads.js` (nuevo) — `/inmobiliaria/leads` con scope=all_inmobiliaria.
+- `pages/advisor/AsesorLeadsDev.js` (nuevo) — `/asesor/leads-dev` con scope=mine.
+- `DesarrolladorLeads.js` — agregada tab "Kanban universal" (entre Pipeline y Analytics) con scope=all_org.
+- `DesarrolladorCRM.js` — `KanbanTab` reemplazado por `<LeadKanban scope="all_org" projectId={slug} />`.
+- `AdvisorLayout.js` — nav item "Leads desarrollos" (icono Target) cableado.
+- Iconos nuevos en `icons/index.js`: `Link2`, `Brain`, `EyeOff`.
+
+### Verificación ✅
+- Backend: los 4 endpoints kanban (mine/all_org/all_inmobiliaria/v2) → `200 OK` con superadmin; asesor en `scope=all_org` → `403 "Scope 'all_org' no permitido para tu rol (asesor_freelance)"` ✅
+- `GET /api/leads/{id}` → retorna `_permissions: {can_move, can_view_full, can_view_conversation, can_view_ai_summary, permission_level}` ✅
+- `GET /api/leads/{id}/conversation` y `/ai-summary` → `200` con superadmin, `403` con permisos insuficientes ✅
+- `GET /api/clients/dummy_gid/leads` → `200 {total:0, leads:[]}` ✅
+- Frontend (Playwright): `/inmobiliaria/leads` superadmin → grid con 5 cols + 12 cards + drawer con AI summary + Conversación + 4 perm badges ✅
+- `/asesor/leads-dev` con asesor@demo.com → grid 5 cols + 0 cards (mine scope correcto) + h1 + sidebar nav "Leads desarrollos" activo ✅
+- Lint limpio en `LeadKanban.js`, `InmobiliariaLeads.js`, `AsesorLeadsDev.js`, `App.js`, `AdvisorLayout.js`, `api/leads.js` ✅
+
+---
+
+## 2026-05-02 — Phase 4 Batch 4.1.1 · Slots UI en Legajo Proyecto
+**Objetivo:** cierre del gap de B4.1 — UI para configurar `project_slots` desde el legajo de proyecto.
+
+### Cambios
+- `SlotsTab.js` (nuevo component) — tabla 7 días (Lun-Dom) con toggle activo, hora apertura/cierre, citas simultáneas. Admin puede editar, otros roles ven read-only con `disabled` + tooltip. Botón "Guardar configuración" → `POST /api/dev/projects/:id/slots`. Preview "Próximas 4 fechas" vía `GET availability`. Toast success/error.
+- `DesarrolladorLegajo.js` — tab "Slots disponibles" añadido después de Geolocalización. Import `SlotsTab` + icon `CalendarCheck`.
+
+### Verificación ✅
+- `POST /api/dev/projects/quattro-alto/slots` → `{ok:true, slots_configured:7}` ✅
+- `GET /api/projects/quattro-alto/slots/availability?date=2026-05-04` → 1 slot disponible (Lunes configurado) ✅
+- Lint limpio en SlotsTab.js y DesarrolladorLegajo.js ✅
+
+---
+
+## 2026-05-02 — Phase 4 Batch 4.1 · Cita Registration + DMX Inmobiliaria + Anti-fraude
+**Objetivo:** formulario de registro de citas con 5 secciones + detección anti-fraude 6-layer (rapidfuzz) + portal Inmobiliaria DMX con auto-routing de leads públicos.
+
+### Sub-Chunk A · 4.26 Cita Registration Form
+**Backend (`routes_dev_batch4_1.py` · nuevo · ~1500 líneas):**
+- Nueva `appointments` collection: _id, lead_id, project_id, dev_org_id, asesor_id, inmobiliaria_id, datetime (ISO+tz), duration_minutes, modalidad, status (6 valores), confirmation_token (256-bit), reminders {sent_24h,sent_2h,sent_1h}, cancel_reason, reschedule_reason, created_at/updated_at.
+- Nueva `project_slots` collection: project_id, dev_org_id, day_of_week(0-6), hour_start/end, max_concurrent, active.
+- Extensiones `leads`: payment_methods[], lfpdppp_consent{accepted_at,ip,user_agent}, presupuesto_min/max, client_global_id (hash), geo_metadata{phone_area_code,mismatch}, velocity_flag, suspected_match_id, origin{type,inmobiliaria_id}, inmobiliaria_id.
+- `POST /api/dev/projects/{id}/slots` — bulk upsert slots con audit + ML `project_slots_configured`.
+- `GET /api/projects/{id}/slots/availability?date=YYYY-MM-DD` — disponibilidad cruzando slots + appointments existentes.
+- `POST /api/cita` (optional auth) — crea lead + appointment, valida LFPDPPP, corre anti-fraude 6-layer, envía email Resend con .ics, genera WA template URL, retorna `{lead_id, appointment_id, status, wa_template_url}`.
+- `GET /api/asesor/citas` — lista citas del asesor con stats strip (total_mes, proximas_7d, realizadas, canceladas).
+- `GET /api/dev/citas` — lista citas scoped por dev_org con filtros.
+- `PATCH /api/cita/{id}` — update status/datetime, valida cancel_reason en cancelada, reschedule_reason en reagendada.
+- `GET /api/cita/{id}/wa-template?type=success|under_review` — genera URL WA con template parametrizado.
+
+**Frontend:**
+- `NewCitaModal.js` (nuevo) — modal 5 secciones colapsables: Cliente, Cita, Presupuesto/Pago, Asesor, Consentimiento LFPDPPP. Dual entry points. Post-submit muestra result screen success/under_review/409.
+- `AsesorCitas.js` (nuevo) — página `/asesor/citas` con stats strip + tabs Lista/Calendario + filtros + CitaDrawer (editar/reagendar/cancelar).
+- `DesarrolladorCitas.js` (nuevo) — página `/desarrollador/citas` con lista filtrable + CitaDrawer + approve/reject review para admins.
+- Nav "Citas" agregado a DeveloperLayout y AdvisorLayout.
+- Rutas `/asesor/citas` y `/desarrollador/citas` registradas en App.js.
+
+### Sub-Chunk B · 4.27 DMX Inmobiliaria + Auto-routing
+**Backend:**
+- Nueva `inmobiliarias` collection: id, name, type (dmx_owner/partner/standard), is_system_default, status, rfc, contact, created_at.
+- Nueva `inmobiliaria_internal_users` collection: id, inmobiliaria_id, email, name, role (admin/director/asesor/marketing), status, password_hash, created_at.
+- Seed automático en startup: crea `dmx_root` inmobiliaria si no existe + usuario admin DMX.
+- `POST /GET /PATCH /DELETE /api/inmobiliaria/asesores` — CRUD completo, gated superadmin/developer_admin.
+- `GET /api/inmobiliaria/dashboard` — stats (total_leads, active_leads, won, win_rate_pct, avg_time_to_close_days) + top 5 asesores por leads/win_rate, filtro period 7d/30d/90d/all_time.
+- `GET /api/inmobiliaria/list` — lista todas las inmobiliarias.
+- Auto-routing: leads públicos (no auth) → detecta DMX root → `pick_best_inmobiliaria_asesor` (scoring: +50 deals en colonia, +30 conversion>50%, -20 per active lead) → asigna asesor.
+- origin.type mejorado: public_unassigned→inmobiliaria_lead, broker_external, dev_inhouse, dev_direct.
+
+**Frontend:**
+- `InmobiliariaLayout.js` (nuevo) — sidebar para portal `/inmobiliaria`.
+- `InmobiliariaDashboard.js` (nuevo) — dashboard con stats cards + top asesores + period filter.
+- `InmobiliariaAsesores.js` (nuevo) — CRUD asesores DMX con modal creación.
+- Rutas `/inmobiliaria` y `/inmobiliaria/asesores` registradas.
+
+### Sub-Chunk C · 4.28 Anti-duplicate + Anti-fraude + WA Templates
+**Backend (integrado en POST /api/cita):**
+- CHECK 1: Exact match (phone_norm + email_norm) → 409 + Plantilla 2 WA URL. Nada creado.
+- CHECK 2: 85% similarity con rapidfuzz (phone_sim×0.5 + email_sim×0.3 + Jaro-Winkler name×0.2) → status='under_review', notif developer_admin, Plantilla 2.
+- CHECK 3: Velocity (≥5 leads/30min del mismo asesor) → under_review + velocity_flag=true.
+- CHECK 4: Geo mismatch (area_code ≠ CDMX) → metadata.mismatch=true (no block).
+- CHECK 5: Cross-project activity scoring (21d recency-weighted) → in-app movement alert si score≥1.0.
+- WA Plantillas 1 (success) y 2 (under_review) con todos los datos del cliente/cita.
+- `POST /api/dev/leads/{id}/approve-review` → lead.status='nuevo' + notif asesor.
+- `POST /api/dev/leads/{id}/reject-review` → lead.status='cerrado_perdido', lost_reason='duplicado' + notif asesor.
+- In-app movement alert en notification collection (tipo 'movement_alert' con acciones WA/llamar/historial).
+
+### Dependencias Python añadidas
+- `rapidfuzz==3.10.1` (agregado a requirements.txt)
+
+### Verificación backend (todos ✅ verificados por curl)
+- POST /api/cita sin auth → status: 'created', lead + appointment creados ✅
+- POST /api/cita sin LFPDPPP → 422 ✅
+- POST /api/cita exact duplicate → 409 + WA Plantilla 2 URL ✅
+- POST /api/cita similar (Jaro-Winkler) → status: 'under_review', rapidfuzz detect ✅
+- GET /api/inmobiliaria/dashboard → stats reales {total_leads:5, top_asesores:1} ✅
+- DMX seed → inmobiliarias.find({is_system_default:True}) = DesarrollosMX ✅
+- WA template URL → https://wa.me/{phone}?text=Hola... (11 lines) ✅
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch4_1.py` (nuevo · ~1508 líneas)
+- `/app/backend/server.py` (+router + indexes + seed startup)
+- `/app/backend/requirements.txt` (+rapidfuzz==3.10.1)
+- `/app/frontend/src/api/developer.js` (+16 helpers B4.1)
+- `/app/frontend/src/components/developer/NewCitaModal.js` (nuevo)
+- `/app/frontend/src/components/developer/InmobiliariaLayout.js` (nuevo)
+- `/app/frontend/src/pages/advisor/AsesorCitas.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorCitas.js` (nuevo)
+- `/app/frontend/src/pages/developer/InmobiliariaDashboard.js` (nuevo)
+- `/app/frontend/src/pages/developer/InmobiliariaAsesores.js` (nuevo)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+Citas nav, +icons)
+- `/app/frontend/src/components/advisor/AdvisorLayout.js` (+Citas nav, +icon)
+- `/app/frontend/src/components/icons/index.js` (+CalendarCheck, Video, Phone, Building, UserCheck, AlertCircle, ExternalLink)
+- `/app/frontend/src/App.js` (+5 rutas B4.1)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-02 — Phase 4 Batch 4 · Sales/CRM core (Leads + project_brokers)
+**Objetivo:** stack sales operativo — pipeline de leads multi-canal + kanban por proyecto + control de brokers autorizados (preview Phase 13 multi-tenant).
+
+### Sub-Chunk A · 4.19 Lead Pipeline Cross-Channel
+**Backend (`routes_dev_batch4.py` · nuevo · ~620 líneas):**
+- Schema `leads` collection: source (7 canales), contact {name, email, phone, preferred_channel}, intent (4), budget_range {min, max, currency}, status (7), assigned_to, notes[], lost_reason, created_at, updated_at, last_activity_at.
+- `POST /api/dev/leads` — auto-assign round-robin al comercial con lead más antiguo, validación contact.email o phone obligatorio, audit `lead|create` + ML `lead_created`, notif `lead_assigned` al asignado.
+- `GET /api/dev/leads` — list paginado + filtros (status/source/assigned_to/project_id/from/to), resuelve assignee names.
+- `PATCH /api/dev/leads/{id}` — update fields, enforce `lost_reason` cuando status=`cerrado_perdido` (422 si falta), ML `lead_closed` on close con `time_to_close_days` + `result`.
+- `POST /api/dev/leads/{id}/note` — append bitácora (max 800 chars) + bump last_activity_at.
+- `POST /api/dev/leads/{id}/assign` — valida target user same tenant, notif al nuevo asignado.
+- `GET /api/dev/leads/kanban` — 5 columnas (`nuevo`, `en_contacto`, `visita_realizada`, `propuesta`, `cerrado`) con cards, budget sums, days_in_status.
+- `POST /api/dev/leads/{id}/move-column` — valida status, calcula `days_in_prev`, ML `lead_kanban_move`, rechaza move a `cerrado_perdido` sin `lost_reason`.
+- `GET /api/dev/leads/analytics` — funnel (7 estados), source_breakdown %, win_rate, avg_time_to_close_days, lost_reasons %, per_assignee (active/won/lost/win_rate).
+
+**Frontend:**
+- `DesarrolladorLeads.js` (nuevo · ~420 líneas): 2 tabs.
+  - **Pipeline**: stats strip (5 métricas) + filtros (status + source) + botón "Nuevo lead" + tabla con drawer detail (status changer, lost_reason form, notes timeline con append).
+  - **Analytics**: FunnelChart 7 etapas + Win rate/TTC/Total/Cerrados big stats + BarList sources + tabla per-asesor con badge win_rate.
+- Nav entry "Leads" agregado a `DeveloperLayout`.
+- Ruta `/desarrollador/leads` registrada.
+
+### Sub-Chunk B · 4.23 CRM Dev Pipeline 5-col + project_brokers
+**Backend (`routes_dev_batch4.py`):**
+- Schema `project_brokers`: project_id, dev_org_id, broker_user_id, access_level (3: view_only/sell/master_broker), commission_pct (0-20), status (active/paused/revoked), assigned_at, assigned_by_user_id.
+- `GET /api/dev/projects/{id}/brokers?include_revoked=` — resuelve broker_info (name/email/role/internal_role).
+- `POST /api/dev/projects/{id}/brokers` — valida broker existe + role {advisor/developer_admin/developer_member}, dedup no duplicate active (409), `project_broker|create` audit + ML `project_broker_assigned`. Role guard developer_admin/superadmin.
+- `PATCH /api/dev/projects/{id}/brokers/{rowId}` — update access_level/commission/status, audit.
+- `DELETE /api/dev/projects/{id}/brokers/{rowId}` — soft delete → status=revoked (preserva audit trail).
+
+**Frontend:**
+- `DesarrolladorCRM.js` (nuevo · ~400 líneas) en ruta `/desarrollador/desarrollos/:slug/crm` con 2 tabs:
+  - **Kanban**: 5 columnas drag-drop HTML5 nativo (sin @dnd-kit) · card avatar inicial + contact + source badge + intent badge + assigned + days_in_status + budget · header col (count + total_budget_max sum) · drop zone con color highlight en dragover · move endpoint con success toast.
+  - **Brokers asignados**: tabla (Broker/Origen/Acceso/%/Estado/Asignado) con modal "Asignar broker" (dropdown internal_users activos + access_level + commission_pct). Checkbox "Mostrar revocados". Revoke con confirm dialog. Role guard (solo developer_admin/superadmin puede asignar/revocar).
+- Tab "CRM" agregado al legajo de cada proyecto con CTA a la ruta completa.
+
+### Verificación backend (todos ✅)
+- **Leads**: create con round-robin ✅ · create sin email/phone 422 ✅ · note append ✅ · patch status `contactado` ✅ · close perdido sin reason 422 ✅ · close perdido con reason + ML `lead_closed` ✅ · kanban 5 cols con counts ✅ · analytics {total:6, win_rate:50%, funnel, sources, per_assignee 3 rows} ✅
+- **Brokers**: assign 200 broker_info resolved ✅ · duplicate 409 ✅ · patch commission_pct ✅ · revoke soft delete ✅ · include_revoked filter ✅ · 403 como developer_member ✅
+- **Audit log**: 37 entries total · nuevos tipos B4: `lead` (9), `project_broker` (3), `lead_assignment`, `lead_kanban_move`, `lead_note`
+
+### Smoke test Playwright
+- `/desarrollador/leads` → tabs:2, 6 rows, create_btn ✅ · analytics tab: funnel/source/assignee_table renderizados ✅
+- `/desarrollador/desarrollos/altavista-polanco/crm` → tabs:2, kanban_grid:1, 5 cols, 6 cards distribuidos por status ✅ · broker-assign-btn visible ✅
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch4.py` (nuevo ~620 líneas)
+- `/app/backend/server.py` (router + indexes)
+- `/app/frontend/src/api/developer.js` (+15 helpers B4)
+- `/app/frontend/src/pages/developer/DesarrolladorLeads.js` (nuevo ~420 líneas)
+- `/app/frontend/src/pages/developer/DesarrolladorCRM.js` (nuevo ~400 líneas)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+CRM tab con CTA)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+Leads nav entry + Target icon)
+- `/app/frontend/src/App.js` (+2 rutas B4)
+- `/app/memory/PRD.md`
+
+---
+
+## 2026-05-01 — Phase F0.1 · Audit Log Global Mutations
 **Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
 
 ### Backend (`audit_log.py` · nuevo · ~220 líneas)
@@ -784,7 +1766,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://latam-desarrollos.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://real-estate-ai-55.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -1740,7 +2722,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://latam-desarrollos.preview.emergentagent.com
+https://real-estate-ai-55.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales

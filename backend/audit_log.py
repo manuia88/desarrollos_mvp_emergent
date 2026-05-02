@@ -150,8 +150,13 @@ async def log_mutation(
             "request_id": str(uuid.uuid4().hex[:12]),
         }
 
-        # Fire-and-forget
-        asyncio.create_task(db.audit_log.insert_one(doc))
+        # Fire-and-forget — wrap in coroutine for asyncio.create_task compatibility
+        async def _persist():
+            try:
+                await db.audit_log.insert_one(doc)
+            except Exception as ex:
+                log.warning(f"[audit] persist failed: {ex}")
+        asyncio.create_task(_persist())
 
     except Exception as exc:
         log.warning(f"[audit] log_mutation failed (silent): {exc}")
