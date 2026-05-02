@@ -16,8 +16,11 @@ import AmenidadesTab from '../../components/developer/AmenidadesTab';
 import LegalTab from '../../components/developer/LegalTab';
 import ComercializacionTab from '../../components/developer/ComercializacionTab';
 import BulkUploadModal from '../../components/developer/BulkUploadModal';
+import DiagnosticReportContent from '../../components/developer/DiagnosticReportContent';
+import { EntityDrawer } from '../../components/shared/EntityDrawer';
 import { getProjectSummary } from '../../api/developer';
-import { ChevronRight, Building } from '../../components/icons';
+import { getLatestDiagnostic } from '../../api/diagnostic';
+import { ChevronRight, Building, Activity } from '../../components/icons';
 
 const STAGE_LABELS = {
   preventa: 'Preventa',
@@ -182,6 +185,24 @@ export default function ProyectoDetail({ user, onLogout }) {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   const activeTab = searchParams.get('tab') || 'ventas';
+  const diagnosticOpen = searchParams.get('diagnostic') === 'open';
+  const [diagBadge, setDiagBadge] = useState(null);
+
+  // Load diagnostic badge count
+  useEffect(() => {
+    getLatestDiagnostic(slug).then(d => {
+      if (!d.never_run) {
+        setDiagBadge({ failed: d.failed || 0, criticals: d.criticals || 0 });
+      } else setDiagBadge({ failed: 0, criticals: 0, never: true });
+    }).catch(() => setDiagBadge(null));
+  }, [slug]);
+
+  const setDiagnosticOpen = (open) => {
+    const next = new URLSearchParams(searchParams);
+    if (open) next.set('diagnostic', 'open');
+    else next.delete('diagnostic');
+    setSearchParams(next, { replace: true });
+  };
 
   const setTab = (key) => {
     const next = new URLSearchParams(searchParams);
@@ -269,6 +290,36 @@ export default function ProyectoDetail({ user, onLogout }) {
             <div style={{ textAlign: 'center' }}>
               <HealthScore score={summary?.health_score || 0} size="md" />
             </div>
+            <button
+              data-testid="diagnostic-btn"
+              onClick={() => setDiagnosticOpen(true)}
+              title="Ejecutar diagnóstico del proyecto"
+              style={{
+                position: 'relative',
+                background: diagBadge?.criticals > 0 ? 'rgba(239,68,68,0.12)' :
+                            diagBadge?.failed > 0 ? 'rgba(245,158,11,0.10)' :
+                            'rgba(240,235,224,0.08)',
+                color: diagBadge?.criticals > 0 ? '#ef4444' :
+                       diagBadge?.failed > 0 ? '#f59e0b' : 'var(--cream)',
+                border: `1px solid ${diagBadge?.criticals > 0 ? 'rgba(239,68,68,0.3)' :
+                                     diagBadge?.failed > 0 ? 'rgba(245,158,11,0.25)' :
+                                     'rgba(240,235,224,0.16)'}`,
+                borderRadius: 8, padding: '7px 12px', fontSize: 12,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <Activity size={13} />
+              Diagnóstico
+              {diagBadge && !diagBadge.never && diagBadge.failed > 0 && (
+                <span style={{
+                  background: diagBadge.criticals > 0 ? '#ef4444' : '#f59e0b',
+                  color: 'white', fontSize: 9, fontWeight: 700,
+                  padding: '1px 5px', borderRadius: 8, marginLeft: 2,
+                }}>
+                  {diagBadge.failed}
+                </span>
+              )}
+            </button>
             <button
               data-testid="edit-proyecto-btn"
               style={{
@@ -369,6 +420,19 @@ export default function ProyectoDetail({ user, onLogout }) {
 
         {/* Cmd+P Project Switcher */}
         <ProjectSwitcher currentSlug={slug} onSwitch={handleSwitchProject} />
+
+        {/* Phase 4 Batch 0.5 — Diagnostic Drawer */}
+        <EntityDrawer
+          isOpen={diagnosticOpen}
+          onClose={() => setDiagnosticOpen(false)}
+          title="Diagnóstico del proyecto"
+          entity_type="diagnostic_report"
+          user={user}
+          width={600}
+          body={diagnosticOpen ? (
+            <DiagnosticReportContent devId={slug} user={user} />
+          ) : null}
+        />
       </div>
     </DeveloperLayout>
   );

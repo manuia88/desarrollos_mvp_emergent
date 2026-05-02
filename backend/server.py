@@ -196,6 +196,12 @@ app.include_router(ai_budget_router)
 from routes_badges import router as badges_router
 app.include_router(badges_router)
 
+# Phase 4 Batch 0.5 — Diagnostic Engine + Observability
+from routes_diagnostic import (router as diagnostic_router,
+                                register_diagnostic_jobs)
+from diagnostic_engine import ensure_diagnostic_indexes
+app.include_router(diagnostic_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -426,6 +432,8 @@ async def startup():
     # Phase 4 Batch 0 — AI Budget + Preferences indexes
     await ensure_ai_budget_indexes(db)
     await ensure_preferences_indexes(db)
+    # Phase 4 Batch 0.5 — Diagnostic Engine indexes
+    await ensure_diagnostic_indexes(db)
     # Phase 4 Batch 0 Sub-chunk C — project_documents migration
     try:
         await db.project_documents.create_index([("development_id", 1), ("doc_type", 1)])
@@ -510,6 +518,11 @@ async def startup():
             logging.info("[batch8] daily cash-flow recalc scheduled @ 06:00 MX")
         except Exception as e:
             logging.warning(f"[batch8] could not schedule daily recalc: {e}")
+        # Phase 4 Batch 0.5 — Diagnostic daily scheduler
+        try:
+            register_diagnostic_jobs(sched, db, app)
+        except Exception as e:
+            logging.warning(f"[batch0.5] diagnostic scheduler register failed: {e}")
 
 
 @app.on_event("shutdown")

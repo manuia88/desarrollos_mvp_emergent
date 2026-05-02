@@ -81,6 +81,8 @@ const SuperadminDrivePage        = lazy(() => import('./pages/superadmin/Superad
 const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
 const AuditLogPage               = lazy(() => import('./pages/superadmin/AuditLogPage'));
 const PrimitivesDemo             = lazy(() => import('./pages/superadmin/PrimitivesDemo'));
+const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
+const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDiagnostics'));
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -321,6 +323,8 @@ function AppRouter() {
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
       <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
+      <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
+      <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>

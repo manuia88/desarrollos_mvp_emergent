@@ -469,6 +469,92 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+---
+
+## 2026-05-02 — Phase 4 Batch 0.5 · Diagnostic Engine + Observability
+
+### Sub-chunk A ✅ — Backend Diagnostic Engine
+- `/app/backend/diagnostic_engine.py`: `Probe` base class, `ProbeResult` dataclass, `PROBE_REGISTRY`, `functional_probe()`, `run_diagnostics()`, `ai_recommend_for_failure()` (Claude Haiku via `track_ai_call` + cache 24h), `register_auto_fix()`, `ensure_diagnostic_indexes()`.
+- `/app/backend/probes/` package con 9 módulos y **30 probes totales**:
+  - **schema** (5): project_required_fields / units_required_fields / assets_orphan / documents_orphan / commercialization_valid
+  - **ie_engine** (4): ie_score_recent / heat_score_per_lead / ai_summary_cache / narratives_generation
+  - **marketplace** (3): public_listing / public_endpoints_200 / asset_urls_resolve
+  - **cross_portal** (4): asesor_brokers / inhouse_preassign / inmobiliaria / tracking_attribution
+  - **engagement** (3): posthog_emit / audit_mutations / badge_counters
+  - **ai_integrations** (3): claude_budget / cash_flow / site_studies
+  - **integrations_external** (4): sentry / resend / mapbox / inegi
+  - **performance** (2): heavy_endpoints_under_2s / bundle_initial_size
+  - **notifications** (2): notifications_writeable / bell_counter
+- Error types (10): schema_integrity, wiring_broken, sync_failure, stale_data, ai_failure, permission_issue, performance, integration_external, data_quality, orphan_record.
+- Recurrence tracker: `probe_recurrence` collection (unique `(probe_id, project_id)`) actualizado en cada fail.
+
+### Backend endpoints (`routes_diagnostic.py`)
+- `POST /api/dev/projects/:id/diagnostic/run` — scope (all|critical|specific_modules) + modules filter.
+- `GET /api/dev/projects/:id/diagnostic/latest` + `/history?limit=N`.
+- `POST /api/dev/projects/:id/diagnostic/auto-fix/:action_id` — 6 handlers registrados (seed_default_commercialization, cleanup_orphan_assets, recompute_ie_score, recompute_lead_heat, recompute_cash_flow, generate_narratives).
+- `POST /api/dev/projects/:id/diagnostic/ai-recommend` — Claude Haiku suggestion con cache 24h.
+- `POST /api/diagnostic/user/:user_id/run` — 12 probes user-level (auth self o superadmin).
+- `GET /api/diagnostic/user/:user_id/latest`.
+- `POST /api/diagnostic/problem-reports` — crea reporte + auto-ejecuta user-diagnostic + snapshot audit trail 50 entries + notif a superadmins.
+- `GET/PATCH /api/superadmin/problem-reports[/:id]` — con filtro `status`.
+- `GET /api/superadmin/system-map` — nodos de módulos con pass_pct_7d + health color + edges dependencia.
+- `GET /api/superadmin/probe-recurrence` — errores cross-projects rankeados por recurrence.
+- `GET /api/superadmin/diagnostics/per-org` — dashboard por dev_org.
+- `GET /api/dev/diagnostic/probe-registry` — inventario de probes registrados.
+
+### Schedulers
+- Daily 06:15 MX (APScheduler cron): re-ejecuta diagnostic para todos los proyectos activos y detecta drift (`_daily_active_projects_diag`).
+- Audit + ml_events: `diagnostic_run`, `auto_fix_applied`, `system_map_viewed`, `user_problem_reported`.
+
+### Sub-chunk B ✅ — Diagnostic Report UI
+- `DiagnosticReportContent` (EntityDrawer body, 600px): header con timestamp + botón "Ejecutar ahora" + "Exportar JSON" · KPIStrip (Total/Pass/Fail/Críticos) · filter chips severidad + módulo · probes agrupadas con color-coding (Pass verde / Warning amber / Fail red) · click probe → expandir con Tipo error, Ubicación, Recomendación, Recurrence, botones [Aplicar fix] + [Recomendar con IA].
+- Botón "Diagnóstico" en `ProyectoDetail` header con badge contador (rojo si criticals, amber si fails, cream si OK), deep-link `?diagnostic=open`.
+- Notificación in-app: al detectar ≥1 critical → crea notifs para developer_admin/director del org (dedup 1/día).
+
+### Sub-chunk C ✅ — Superadmin System Map
+- `/superadmin/system-map` (auth superadmin): SystemGraph SVG con 9 nodos (módulos) en layout radial, tamaño ∝ probe_count, color por health (green ≥90% / amber 70-90% / red <70%), edges = data flow deps · click nodo → filtra tabla recurrence.
+- KPIStrip global: Total probes 7d · Pass rate · Críticos abiertos · Top problemático.
+- Recurrence table: probe_id, módulo, error_type, severity, #, projects afectados, último.
+- Per-org dashboard: runs_7d, projects, pass_rate, criticals_open.
+
+### Sub-chunk D ✅ — User-level diagnostic + Report Problem
+- `ReportProblemButton` floating (rojo bottom-right, z=900) en `PortalLayout` (cubre todos los portales autenticados). Modal con textarea descripción + auto-captura `current_url`. Submit → corre user-diagnostic + snapshot audit_log últimos 50 + crea reporte + notif a superadmins.
+- 12 probes user-level: user_exists, user_role_valid, user_session_valid, user_preferences_load, saved_searches_healthy, asesor_brokers_active (condicional), asesor_has_leads, user_org_linked, calendar_oauth_valid, no_recent_audit_errors, user_events_tracked, notifications_stack_ok. (Sentry MCP lookup stub con hook preparado.)
+- `/superadmin/user-diagnostics`: KPIStrip (Total/Open/Investigating/Resolved) + filtros status + lista + drawer detail con audit trail + buttons "Marcar investigando" / "Resolver" + notes.
+
+### Colecciones + índices
+- `project_diagnostics` (unique `id`, idx `(project_id, run_at desc)` + `(dev_org_id, run_at desc)`)
+- `probe_recurrence` (unique `(probe_id, project_id)`, idx `recurrence_count desc`)
+- `user_diagnostics` (idx `(user_id, run_at desc)`)
+- `user_problem_reports` (unique `id`, idx `(status, created_at desc)`)
+- `user_problem_screenshots` (heavy storage sep.)
+- `diagnostic_ai_cache` (unique `sig`, TTL 86400s)
+
+### Smoke tests (2026-05-02)
+- ✅ `/api/dev/diagnostic/probe-registry` returns 30 probes, 9 modules.
+- ✅ `POST /diagnostic/run` corre en <200ms, persiste doc correctamente.
+- ✅ System map visual + KPI strip + módulo nodes con health colors correcto.
+- ✅ Report Problem modal abre desde floating button, textarea + auto-capture URL.
+- ✅ User-level diagnostic corre 12 probes, detecta 2 warnings honestos.
+- ✅ Auto-fix `seed_default_commercialization` persiste correctamente.
+- ✅ AI-assisted recommendation wired (cache 24h).
+- ✅ Notificación critical fail deduplicada 1/día.
+- ✅ Test file: `/app/backend/tests/test_batch05.py`.
+
+### Guardrails respetados
+- ✅ Solo Batch 0.5 — 4 sub-chunks, scope-locked.
+- ✅ Backward-compat 100% — no routes anteriores tocadas.
+- ✅ Probes idempotentes (solo lecturas + update recurrence).
+- ✅ Auto-fix actions logged vía audit + ml_event.
+- ✅ Reuse primitives: EntityDrawer (con nuevo prop `body`), KPIStrip, HealthScore, notifications, track_ai_call, icons (Activity, AlertTriangle, Check, Sparkle agregados).
+- ✅ Zero emoji, 100% es-MX, fuentes Outfit/DM Sans.
+
+### Mocked / pending
+- 🟡 Sentry MCP lookup para eventos user-specific (stub honesto).
+- 🟡 Recommendations PDF export (solo JSON por ahora).
+- 🟡 Screenshot capture via html2canvas (payload `screenshot_data_url` ya aceptado por API, frontend puede plug-in lib después).
+
+
 ## 2026-05-01 — Phase F0.11 · Sentry + PostHog + ML events (observability)
 **Objetivo:** wiring completo de observability + seed infra para Phase 17 (ML continuous training).
 

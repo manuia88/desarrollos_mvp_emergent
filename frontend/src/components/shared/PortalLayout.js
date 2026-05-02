@@ -15,6 +15,7 @@ import { useNavigate, useLocation, Link, NavLink } from 'react-router-dom';
 import { navByRole } from '../../config/navByRole';
 import { UniversalSearch } from './UniversalSearch';
 import { NotificationsBell } from './NotificationsBell';
+import ReportProblemButton from './ReportProblemButton';
 import {
   ChevronDown, ChevronRight, Menu, X, Search, LogOut, User,
   ChevronLeft,
@@ -336,6 +337,9 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
       {searchOpen && (
         <UniversalSearch onClose={() => setSearchOpen(false)} user={user} />
       )}
+
+      {/* Phase 4 Batch 0.5 — Report Problem floating button */}
+      <ReportProblemButton user={user} />
     </div>
   );
 }
