@@ -24,7 +24,7 @@
 | Phase | Status | Estimado |
 |---|---|---|
 | Phase 4 Dev Module (original v1) | ✅ shipped 16 batches | ~78h |
-| Phase 4 Dev REFACTOR | 🟡 9/16 shipped (B0/B0.5/B10/B11/B12/B13/B14/B15/B16), 7 pending | ~157h total |
+| Phase 4 Dev REFACTOR | 🟡 10/16 shipped (B0/B0.5/B10-B17), 6 pending | ~157h total |
 | Phase 1 Marketplace gaps | 🟡 pending | ~30h |
 | Phase 2 Comprador | 🟡 pending | ~12-14h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
@@ -60,12 +60,12 @@
 | ✅ B14 | Health Score + Project cards + Activity feed + Notifications + Setup checklist + Weekly Brief AI | 10 | 20/20 pytest · Health engine 4 components · APScheduler snapshots 6am + weekly brief lunes 8am · 2 probes B0.5 |
 | ✅ B15 | Google Calendar OAuth + Availability Engine + Auto-assign | 8 | 38/38 pytest · CalendarProvider ABC + Google real + Microsoft stub · 3 policies · cache 5min · APScheduler refresh 30min · 2 probes B0.5 |
 | ✅ B16 | AI Suggestions Inline + Smart Empty States + Public Booking Page | 6 | 12/12 pytest · Claude Haiku + cache 24h + fallback determinístico · 5 entity_types · 10 empty contexts · /reservar/{slug} + UTM + WhatsApp stub |
+| ✅ B17 | SortableList + Inline edit genérico + FilterChipsBar enhanced + Undo server-side | 7 | 13/13 pytest · 50/50 regresión · 30+ campos whitelisted 8 entity_types · undo_log TTL 10min · 7+ mutations wired · Kanban+Documents HTML5 conservados |
 
-### Pendientes (~47h restantes)
+### Pendientes (~40h restantes)
 
 | # | Batch | h | Foco |
 |---|---|---|---|
-| 🟡 B17 | Drag-drop universal + Inline edit + Filter chips + Undo system | 7 | |
 | 🟡 B18 | Vista planta 2.0 + Density toggle + Project switcher topbar | 5 | |
 | 🟡 B19 | Onboarding tour + Personalization + Cross-portal feedback + Keyboard shortcuts + Modo presentación | 7 | |
 | 🟡 B20 | Asesor metrics + Links tracking + Conversion funnel + Sankey | 8 | PostHog UTM funnel ficha→reservar→confirmación · AI budget suggestion per campaña · Sankey atribución |

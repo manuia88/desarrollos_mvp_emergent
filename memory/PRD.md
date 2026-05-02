@@ -2753,8 +2753,15 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B14 — Health Score Engine + Project Cards + Activity Feed + Notifications + Setup Checklist + Quick Actions + Weekly Brief AI (20/20 pytest · 2 probes B0.5 · APScheduler snapshots 6am + weekly brief lunes 8am) | shipped | 10 |
 | ✅ | B15 — Google Calendar OAuth + Availability Engine + Auto-assign Policies (38/38 pytest cumulativo · CalendarProvider ABC + Google real + Microsoft stub · 3 policies round_robin/load_balance/pre_selected · cache 5min · APScheduler refresh 30min · 2 probes B0.5) | shipped | 8 |
 | ✅ | B16 — AI Suggestions Inline + Smart Empty States + Public Booking Page /reservar/{slug} (12/12 pytest · Claude Haiku + cache 24h + fallback determinístico · 5 entity_types · 10 empty state contexts · UTM tracking + WhatsApp stub forward-compat C11) | shipped | 6 |
+| ✅ | B17 — Drag-drop SortableList + Inline edit genérico + FilterChipsBar enhanced + Undo server-side (13/13 pytest · 50/50 regresión · 30+ campos whitelisted en 8 entity_types · undo_log TTL 10min + purge cron · 2 probes B0.5 · 7+ mutaciones wired) | shipped | 7 |
 
-### Pendientes Phase 4 refactor (~47h restantes)
+### Conservative decisions B17 (deferidos a follow-up sweep)
+- FilterChipsBar adopción solo VentasTab. Replicar a CRM leads + Mis proyectos + Inventario + Activity feed + Notifications → mover a B19 o sweep
+- Prototypes reorder UI pendiente (endpoint listo, falta UI cuando exista vista prototypes)
+- Kanban drag-drop mantiene HTML5 (no migración dnd-kit, cross-column complejo)
+- Documents drag-drop HTML5 en `<tr>` (dnd-kit problemático en tablas)
+
+### Pendientes Phase 4 refactor (~40h restantes)
 
 | # | Batch | h |
 | 🟡 | B17 — Drag-drop universal + Inline edit + Filter chips + Undo system | 7 |
