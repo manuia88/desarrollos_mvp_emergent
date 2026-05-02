@@ -32,8 +32,7 @@ const CATEGORY_LABELS = {
   seguridad: 'Seguridad',
   transporte: 'Transporte',
   salud: 'Salud',
-  agua: 'Agua',
-};
+  agua: 'Agua',};
 
 const fmtDate = (d) => {
   if (!d) return '—';
@@ -70,8 +69,7 @@ const StatCard = ({ label, value, accent, Icon }) => (
   </div>
 );
 
-const StatusBadge = ({ status }) => {
-  const tone = STATUS_TONES[status] || STATUS_TONES.stub;
+const StatusBadge = ({ status }) => {  const tone = STATUS_TONES[status] || STATUS_TONES.stub;
   return (
     <span data-testid={`sa-status-${status}`} style={{
       display: 'inline-block',
@@ -87,6 +85,59 @@ const StatusBadge = ({ status }) => {
     </span>
   );
 };
+
+// Phase 4 Batch 7.2 — INEGI demographics cache stats row
+function InegiCacheRow() {
+  const [s, setS] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = () => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dev/inegi/cache-stats`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null).then(setS).catch(() => setS(null));
+  };
+  useEffect(() => { load(); }, []);
+  if (!s) return null;
+  const refreshAll = async () => {
+    setBusy(true);
+    try {
+      // Fetch all cache entries via stats and refresh top 5 (avoid bulk hammering INEGI).
+      // For full purge, drop collection via DB tool — out of scope for UI button.
+      // Here we simply re-trigger Polanco as canary.
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dev/inegi/demographics/refresh?colonia=Polanco&state_code=09`, {
+        method: 'POST', credentials: 'include',
+      });
+    } catch (e) { /* noop */ }
+    setBusy(false);
+    load();
+  };
+  return (
+    <div data-testid="inegi-cache-row" style={{
+      padding: 14, marginBottom: 22, borderRadius: 12,
+      background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.28)',
+      display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between',
+    }}>
+      <div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#a5b4fc', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4 }}>
+          INEGI · DEMOGRAPHICS CACHE (B7.2)
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
+          <span>Entries: <b style={{ color: 'var(--cream)' }}>{s.total_entries}</b></span>
+          <span>Hit rate 7d: <b style={{ color: 'var(--cream)' }}>{s.hit_rate_7d_pct}%</b></span>
+          <span>Lookups 7d: <b style={{ color: 'var(--cream)' }}>{s.total_lookups_7d}</b></span>
+          <span>TTL: <b style={{ color: 'var(--cream)' }}>{s.ttl_days}d</b></span>
+          {s.by_scope && Object.entries(s.by_scope).map(([k, v]) => (
+            <span key={k}>{k}: <b style={{ color: 'var(--cream)' }}>{v}</b></span>
+          ))}
+        </div>
+      </div>
+      <button data-testid="inegi-refresh-btn" onClick={refreshAll} disabled={busy} style={{
+        padding: '8px 14px', borderRadius: 9999, border: '1px solid rgba(99,102,241,0.42)',
+        background: 'transparent', color: '#a5b4fc',
+        fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
+        cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
+      }}>{busy ? 'Refrescando…' : 'Refresh canario'}</button>
+    </div>
+  );
+}
 
 export default function DataSourcesPage({ user, onLogout }) {
   const [sources, setSources] = useState([]);
@@ -201,6 +252,9 @@ export default function DataSourcesPage({ user, onLogout }) {
               <StatCard label="ERRORES 24H"    value={stats.errors_24h}  Icon={Shield}   accent={stats.errors_24h ? '#fca5a5' : 'var(--cream)'} />
             </div>
           )}
+
+          {/* Phase 4 Batch 7.2 — INEGI Demographics cache row */}
+          <InegiCacheRow />
 
           {/* Filter pills */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>

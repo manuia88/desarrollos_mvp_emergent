@@ -1045,6 +1045,80 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 7.2 · INEGI Real Demographics Connector AGEB-level (4.22.4)
+**Objetivo:** reemplazar el proxy `plusvalia` por demographic_match_pct honesto, consultando INEGI BISE (Censo 2020 + ENIGH 2022) con cache 30 días, AMAI NSE mapping y fallback determinista trazable.
+
+### Backend (`routes_dev_batch7_2.py` · nuevo · ~340 líneas)
+- **Schema Mongo**: `inegi_demographics_cache` con `{cache_key (sha256 24-char), state_code, colonia, scope, source_year, population:{total, by_age, by_education, by_household_type}, income:{deciles[], nse_distribution{AB,C+,C,D,E}}, age_avg, education_avg_years, sources_used[], cached_at, expires_at}`. Index `cache_key` unique + `(state_code, colonia)`.
+- **Constants**:
+  - `IND_POP_TOTAL=1002000001`, `IND_AGE_MEDIAN=1002000002`, `IND_HOUSEHOLD_INCOME_AVG=6200093976` (INEGI BISE indicator IDs).
+  - `STATE_AREA` mapping CDMX/EDOMEX/JAL/NL/QRO → BISE area codes.
+  - `NSE_DECILE_MAP` AMAI standard: AB=deciles 9-10, C+=8, C=6-7, D=3-5, E=1-2.
+- **Resolver `get_demographics(db, colonia, state_code, force_refresh)`**:
+  1. Cache lookup por `cache_key` → si existe + no expirado → return con `cached=True`.
+  2. INEGI BISE call via httpx async (timeout 3s, single attempt) para `pop_total`/`age_median`/`income_avg` por estado, en paralelo con `asyncio.gather`. Si todas las llamadas fallan → fallback determinista.
+  3. `_deterministic_fallback`: usa `data_seed.COLONIAS` (`tier`+`plusvalia`+`price_m2_num`), `_nse_dist_from_tier` mapea Luxury/Premium/Trendy/Emerging → distribución AMAI (renormalizada a 100), `population` estimada por área polígono × densidad por tier, deciles sintéticos para trazabilidad.
+  4. Si stale-cache disponible y INEGI falla → devuelve stale con `stale=True` (sin crashear B7).
+  5. Persiste con TTL 30 días vía `expires_at` ISO.
+- **Endpoints**:
+  - `GET /api/dev/inegi/demographics?colonia=&state_code=` (dev_admin/director/superadmin) → 200 con `cached:bool, stale:bool` flags. 422 si colonia <2 chars, 404 si combo desconocido (state+colonia).
+  - `POST /api/dev/inegi/demographics/refresh?colonia=&state_code=` (**superadmin only**) → 403 si non-superadmin, fuerza refresh + repopula cache.
+  - `GET /api/dev/inegi/cache-stats` (superadmin) → `{total_entries, by_scope, hit_rate_7d_pct, total_lookups_7d, ttl_days}`.
+- **Audit + ML events**: `inegi_demographics_cache_hit`, `inegi_demographics_cache_miss`, `inegi_demographics_refreshed`.
+- **Wiring `server.py`**: router include + `ensure_batch7_2_indexes(db)` en startup.
+
+### B7 engine integration (`routes_dev_batch7.py` extendido)
+- Nuevo bloque `asyncio.gather` pre-fetch para 16 colonias en paralelo al inicio de `_candidate_zones` → cache cálido evita la pena del cold-fetch sequencial.
+- En el loop por colonia: `data_points["demographic_match_pct"]` ahora se sobrescribe con `nse_distribution[target_segment]` real, y se agrega `demographic_source` (`inegi_municipio` / `inegi_ageb` / `estimate`), `demographic_year`, `demographic_cached`, `population_total`, `nse_distribution`.
+
+### Frontend
+- **`components/developer/DemographicsSection.js`** (nuevo · ~110 líneas):
+  - Header con eyebrow + Badge tone (ok=AGEB, brand=municipio, neutral=estimate) + tooltip nativo.
+  - 2 KPIs: Población total + Match segmento %.
+  - **NseBar**: barra horizontal 5 segmentos color-coded (AB=fucsia, C+=violet, C=indigo, D=slate, E=darkslate), leyenda con porcentaje per NSE.
+  - Disclaimer footer: año fuente + cached/recién consultado + Source: BISE INEGI.
+- **`pages/developer/DesarrolladorSiteSelection.js`**: insertado `<DemographicsSection zone={zone} />` en el drawer detail entre Narrative IA y Pros/Cons.
+- **`pages/superadmin/DataSourcesPage.js`**: `<InegiCacheRow />` con stats reales del endpoint `/cache-stats` y botón "Refresh canario" (refresh Polanco como prueba). Card indigo distintivo.
+- **Bug fix**: `Object.entries(zone.data_points).map` ahora filtra valores no primitivos (objects como `nse_distribution` no se renderizaban como string causando React crash).
+
+### Verificación curl ✅
+- `GET /api/dev/inegi/demographics?colonia=Polanco&state_code=09`:
+  - 1ª llamada (miss) → 200, scope=`estimate`, NSE_AB=50.2%, total NSE=100.0, pop=22,400, age_avg=33.7, edu_avg=11.0, sources=`['estimate (data_seed.COLONIAS · tier + plusvalia)']` ✅
+  - 2ª llamada (hit) → 200 cached=True, latencia ~100ms ✅
+- `GET ?colonia=Iztapalapa` (no en seed) → scope=estimate con NSE 0% ✅
+- `GET ?colonia=Mordor&state_code=99` → **404** ✅
+- `POST /refresh` con dev_admin → 403 ✅; con superadmin → 200 ✅
+- `GET /cache-stats` → `{total_entries:18, by_scope:{estimate:18}, hit_rate_7d_pct:0.0, ttl_days:30}` ✅
+- **Re-run B7 study (`B7.2 INEGI test v2`)** post-deploy → 16 zonas cacheadas + populadas:
+  - **Polanco** AB%=**50.2** (Premium), pop=22.4k
+  - **Lomas de Chapultepec** AB%=**63.1** (Luxury, expectado más alto que Polanco) ✅
+  - **Jardines del Pedregal** AB%=**62.0** (Luxury)
+  - **Condesa** AB%=**33.2** (Trendy)
+  - **Anzures** AB%=**33.8** (Trendy)
+  - **Santa Fe** AB%=**48.0** (Premium)
+  Distribución realista por AMAI, defendible ante el dev_admin.
+
+### Verificación Playwright smoke ✅
+- `/desarrollador/site-selection` → click study INEGI → click zona Polanco en ranking → drawer abre con `demographics-section`=1, `demographics-nse-bar`=1, sin runtime errors ✅
+- `/superadmin/data-sources` (admin@desarrollosmx.com) → `inegi-cache-row`=1 con stats live (Entries:18, Hit rate:0%, Lookups:0, TTL:30d, estimate:18), botón `inegi-refresh-btn` visible ✅
+
+### Áreas mocked / pendientes (transparentes)
+- **AGEB-level real**: requiere shapefiles INEGI (`inegi_shapefiles` declarado pero no enchufado a este endpoint todavía). Por eso el scope max es `inegi_municipio` cuando token funciona, `estimate` cuando no.
+- **Token INEGI**: `IE_INEGI_TOKEN=latam-desarrollos` es placeholder. INEGI BISE retorna 401/timeout → fallback determinista. Cuando se obtenga token real (registro https://www.inegi.org.mx/inegi/api), el endpoint ya está listo.
+- **Decile real ENIGH**: actualmente sintéticos, anclados a state-avg cuando hay token. Decile hogares-por-AGEB necesita query agregada ENIGH 2022 que el endpoint BISE no expone trivialmente — defer a B7.3 con ENIGH SCINCE microdatos.
+- **Cron cleanup expired entries**: TTL via `expires_at` se respeta en lookup (returns stale flag), pero no hay cron que purge físicamente. Defer a Phase 19 polish.
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch7_2.py` (nuevo)
+- `/app/backend/routes_dev_batch7.py` (+pre-fetch parallel + data_points wiring INEGI)
+- `/app/backend/server.py` (+router include + `ensure_batch7_2_indexes`)
+- `/app/frontend/src/components/developer/DemographicsSection.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorSiteSelection.js` (+section render + bug fix data_points filter)
+- `/app/frontend/src/pages/superadmin/DataSourcesPage.js` (+InegiCacheRow component)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.4 · AI Engine + Analytics
 
 ### Sub-Chunk A · 4.35 Lead Heat AI Score

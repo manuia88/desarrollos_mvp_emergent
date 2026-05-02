@@ -349,6 +349,18 @@ async def _candidate_zones(db, inputs: StudyInputs) -> List[Dict]:
     pref = inputs.preferred_features or []
     avoid = inputs.avoid_features or []
 
+    # Phase 4 Batch 7.2 — pre-fetch INEGI demographics in parallel (cache-first).
+    try:
+        from routes_dev_batch7_2 import get_demographics
+        demo_results = await asyncio.gather(
+            *[get_demographics(db, colonia=col["name"], state_code="09") for col in COLONIAS],
+            return_exceptions=True,
+        )
+        demo_by_colonia = {COLONIAS[i]["name"]: (demo_results[i] if not isinstance(demo_results[i], Exception) else None)
+                           for i in range(len(COLONIAS))}
+    except Exception:
+        demo_by_colonia = {}
+
     zones = []
     for col in COLONIAS:
         zone_price = col.get("price_m2_num", 50_000)
@@ -383,6 +395,24 @@ async def _candidate_zones(db, inputs: StudyInputs) -> List[Dict]:
             "ie_score_avg": round(ie_avg, 1),
             "demand_score": round(demand_proxy, 1),
         }
+
+        # Phase 4 Batch 7.2 — INEGI Real Demographics:
+        # replace plusvalia proxy with real (or honestly-flagged estimate) NSE
+        demo = demo_by_colonia.get(col["name"])
+        if demo:
+            try:
+                nse = (demo.get("income") or {}).get("nse_distribution") or {}
+                seg_key = inputs.target_segment.replace("NSE_", "")
+                seg_pct = float(nse.get(seg_key, 0) or 0)
+                if seg_pct > 0:
+                    data_points["demographic_match_pct"] = round(seg_pct, 1)
+                data_points["demographic_source"] = demo.get("scope", "estimate")
+                data_points["demographic_year"] = demo.get("source_year", 2020)
+                data_points["demographic_cached"] = bool(demo.get("cached", False))
+                data_points["population_total"] = (demo.get("population") or {}).get("total", 0)
+                data_points["nse_distribution"] = nse
+            except Exception as e:
+                log.warning(f"[batch7] inegi mapping failed for {col.get('name')}: {e}")
 
         zones.append({
             "_zone_meta": col,

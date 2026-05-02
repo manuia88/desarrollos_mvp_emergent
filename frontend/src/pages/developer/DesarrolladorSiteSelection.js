@@ -13,6 +13,7 @@ import SiteSelectionMap from '../../components/developer/SiteSelectionMap';
 import RadarChart from '../../components/developer/RadarChart';
 import CompareTab from '../../components/developer/CompareTab';
 import ExpansionSimulatorModal from '../../components/developer/ExpansionSimulatorModal';
+import DemographicsSection from '../../components/developer/DemographicsSection';
 
 function StatusPill({ status }) {
   const map = {
@@ -102,6 +103,9 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
           </p>
         </Card>
 
+        {/* Phase 4 Batch 7.2 — INEGI demographics */}
+        <DemographicsSection zone={zone} />
+
         {/* Pros/Cons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
           <Card style={{ padding: 14 }}>
@@ -127,11 +131,13 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
           <div className="eyebrow" style={{ marginBottom: 8 }}>DATA POINTS</div>
           <table style={{ width: '100%', fontFamily: 'DM Sans', fontSize: 12.5, borderCollapse: 'collapse' }}>
             <tbody>
-              {Object.entries(zone.data_points || {}).map(([k, v]) => (
+              {Object.entries(zone.data_points || {})
+                .filter(([k, v]) => typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean')
+                .map(([k, v]) => (
                 <tr key={k} style={{ borderBottom: '1px solid rgba(240,235,224,0.06)' }}>
                   <td style={{ padding: '6px 0', color: 'var(--cream-3)', textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</td>
                   <td style={{ padding: '6px 0', color: 'var(--cream)', textAlign: 'right', fontWeight: 600 }}>
-                    {typeof v === 'number' ? (k.includes('price') ? `$${v.toLocaleString()}` : v) : v}
+                    {typeof v === 'number' ? (k.includes('price') ? `$${v.toLocaleString()}` : v) : String(v)}
                   </td>
                 </tr>
               ))}
