@@ -108,3 +108,26 @@ export const acceptInvitation = (token, b) => post(`/api/dev/invitations/${token
 export const internalLogin = (email, password) => post('/api/auth/internal/login', { email, password });
 export const getProjectGeoJsonUrl = (projectId) => `${process.env.REACT_APP_BACKEND_URL}/api/dev/projects/${projectId}/export/geojson`;
 
+// Phase 4 Batch 4 — Leads + project brokers
+export const createLead = (b) => post('/api/dev/leads', b);
+export const listLeads = (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString();
+  return j(`/api/dev/leads${qs ? `?${qs}` : ''}`);
+};
+export const patchLead = (id, b) => fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dev/leads/${id}`, {
+  method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b),
+}).then(async r => { const d = await r.json(); if (!r.ok) { const e = new Error(d.detail || r.statusText); e.body = d; e.status = r.status; throw e; } return d; });
+export const appendLeadNote = (id, text) => post(`/api/dev/leads/${id}/note`, { text });
+export const assignLead = (id, user_id) => post(`/api/dev/leads/${id}/assign`, { user_id });
+export const moveLeadColumn = (id, target_status) => post(`/api/dev/leads/${id}/move-column`, { target_status });
+export const getLeadsKanban = (projectId) => j(`/api/dev/leads/kanban${projectId ? `?project_id=${projectId}` : ''}`);
+export const getLeadsAnalytics = (projectId) => j(`/api/dev/leads/analytics${projectId ? `?project_id=${projectId}` : ''}`);
+export const listProjectBrokers = (projectId, includeRevoked) => j(`/api/dev/projects/${projectId}/brokers${includeRevoked ? '?include_revoked=true' : ''}`);
+export const assignProjectBroker = (projectId, b) => post(`/api/dev/projects/${projectId}/brokers`, b);
+export const patchProjectBroker = (projectId, rowId, b) => fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dev/projects/${projectId}/brokers/${rowId}`, {
+  method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b),
+}).then(async r => { const d = await r.json(); if (!r.ok) { const e = new Error(d.detail || r.statusText); e.body = d; e.status = r.status; throw e; } return d; });
+export const revokeProjectBroker = (projectId, rowId) => fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dev/projects/${projectId}/brokers/${rowId}`, {
+  method: 'DELETE', credentials: 'include',
+}).then(async r => { const d = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(d.detail || r.statusText); e.body = d; e.status = r.status; throw e; } return d; });
+

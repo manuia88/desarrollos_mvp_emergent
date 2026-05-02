@@ -99,6 +99,7 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
     { k: 'geoloc', label: 'Geolocalización', icon: MapPin },
     { k: 'avance', label: 'Avance de obra', icon: Sparkle },
     { k: 'ie', label: 'IE Score', icon: Target },
+    { k: 'crm', label: 'CRM', icon: ArrowRight },
     { k: 'tour360', label: 'Tour 360°', icon: Camera },
     { k: 'historial', label: 'Histórico unidades', icon: ArrowRight },
   ];
@@ -165,6 +166,26 @@ export default function DesarrolladorLegajo({ user, onLogout }) {
 
       {tab === 'geoloc' && (
         <GeolocalizacionTab devId={slug} user={user} />
+      )}
+
+      {tab === 'crm' && (
+        <Card style={{ padding: 28, textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 48, height: 48, borderRadius: 9999,
+                        background: 'rgba(236,72,153,0.1)', border: '1px solid rgba(236,72,153,0.32)',
+                        marginBottom: 10 }}>
+            <Target size={20} color="#f9a8d4" />
+          </div>
+          <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: '4px 0 8px', letterSpacing: '-0.02em' }}>
+            Pipeline Kanban + Brokers asignados
+          </h3>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', maxWidth: 520, margin: '0 auto', lineHeight: 1.55, marginBottom: 16 }}>
+            Gestiona el flujo de leads de este proyecto en columnas arrastrables y controla qué asesores/brokers están autorizados a venderlo.
+          </p>
+          <Link to={`/desarrollador/desarrollos/${slug}/crm`} className="btn btn-primary" data-testid="crm-cta">
+            Abrir CRM del proyecto <ArrowRight size={12} />
+          </Link>
+        </Card>
       )}
 
       {tab === 'ie' && (

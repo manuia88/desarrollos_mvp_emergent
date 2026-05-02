@@ -765,6 +765,64 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Phase 4 Batch 4 · Sales/CRM core (Leads + project_brokers)
+**Objetivo:** stack sales operativo — pipeline de leads multi-canal + kanban por proyecto + control de brokers autorizados (preview Phase 13 multi-tenant).
+
+### Sub-Chunk A · 4.19 Lead Pipeline Cross-Channel
+**Backend (`routes_dev_batch4.py` · nuevo · ~620 líneas):**
+- Schema `leads` collection: source (7 canales), contact {name, email, phone, preferred_channel}, intent (4), budget_range {min, max, currency}, status (7), assigned_to, notes[], lost_reason, created_at, updated_at, last_activity_at.
+- `POST /api/dev/leads` — auto-assign round-robin al comercial con lead más antiguo, validación contact.email o phone obligatorio, audit `lead|create` + ML `lead_created`, notif `lead_assigned` al asignado.
+- `GET /api/dev/leads` — list paginado + filtros (status/source/assigned_to/project_id/from/to), resuelve assignee names.
+- `PATCH /api/dev/leads/{id}` — update fields, enforce `lost_reason` cuando status=`cerrado_perdido` (422 si falta), ML `lead_closed` on close con `time_to_close_days` + `result`.
+- `POST /api/dev/leads/{id}/note` — append bitácora (max 800 chars) + bump last_activity_at.
+- `POST /api/dev/leads/{id}/assign` — valida target user same tenant, notif al nuevo asignado.
+- `GET /api/dev/leads/kanban` — 5 columnas (`nuevo`, `en_contacto`, `visita_realizada`, `propuesta`, `cerrado`) con cards, budget sums, days_in_status.
+- `POST /api/dev/leads/{id}/move-column` — valida status, calcula `days_in_prev`, ML `lead_kanban_move`, rechaza move a `cerrado_perdido` sin `lost_reason`.
+- `GET /api/dev/leads/analytics` — funnel (7 estados), source_breakdown %, win_rate, avg_time_to_close_days, lost_reasons %, per_assignee (active/won/lost/win_rate).
+
+**Frontend:**
+- `DesarrolladorLeads.js` (nuevo · ~420 líneas): 2 tabs.
+  - **Pipeline**: stats strip (5 métricas) + filtros (status + source) + botón "Nuevo lead" + tabla con drawer detail (status changer, lost_reason form, notes timeline con append).
+  - **Analytics**: FunnelChart 7 etapas + Win rate/TTC/Total/Cerrados big stats + BarList sources + tabla per-asesor con badge win_rate.
+- Nav entry "Leads" agregado a `DeveloperLayout`.
+- Ruta `/desarrollador/leads` registrada.
+
+### Sub-Chunk B · 4.23 CRM Dev Pipeline 5-col + project_brokers
+**Backend (`routes_dev_batch4.py`):**
+- Schema `project_brokers`: project_id, dev_org_id, broker_user_id, access_level (3: view_only/sell/master_broker), commission_pct (0-20), status (active/paused/revoked), assigned_at, assigned_by_user_id.
+- `GET /api/dev/projects/{id}/brokers?include_revoked=` — resuelve broker_info (name/email/role/internal_role).
+- `POST /api/dev/projects/{id}/brokers` — valida broker existe + role {advisor/developer_admin/developer_member}, dedup no duplicate active (409), `project_broker|create` audit + ML `project_broker_assigned`. Role guard developer_admin/superadmin.
+- `PATCH /api/dev/projects/{id}/brokers/{rowId}` — update access_level/commission/status, audit.
+- `DELETE /api/dev/projects/{id}/brokers/{rowId}` — soft delete → status=revoked (preserva audit trail).
+
+**Frontend:**
+- `DesarrolladorCRM.js` (nuevo · ~400 líneas) en ruta `/desarrollador/desarrollos/:slug/crm` con 2 tabs:
+  - **Kanban**: 5 columnas drag-drop HTML5 nativo (sin @dnd-kit) · card avatar inicial + contact + source badge + intent badge + assigned + days_in_status + budget · header col (count + total_budget_max sum) · drop zone con color highlight en dragover · move endpoint con success toast.
+  - **Brokers asignados**: tabla (Broker/Origen/Acceso/%/Estado/Asignado) con modal "Asignar broker" (dropdown internal_users activos + access_level + commission_pct). Checkbox "Mostrar revocados". Revoke con confirm dialog. Role guard (solo developer_admin/superadmin puede asignar/revocar).
+- Tab "CRM" agregado al legajo de cada proyecto con CTA a la ruta completa.
+
+### Verificación backend (todos ✅)
+- **Leads**: create con round-robin ✅ · create sin email/phone 422 ✅ · note append ✅ · patch status `contactado` ✅ · close perdido sin reason 422 ✅ · close perdido con reason + ML `lead_closed` ✅ · kanban 5 cols con counts ✅ · analytics {total:6, win_rate:50%, funnel, sources, per_assignee 3 rows} ✅
+- **Brokers**: assign 200 broker_info resolved ✅ · duplicate 409 ✅ · patch commission_pct ✅ · revoke soft delete ✅ · include_revoked filter ✅ · 403 como developer_member ✅
+- **Audit log**: 37 entries total · nuevos tipos B4: `lead` (9), `project_broker` (3), `lead_assignment`, `lead_kanban_move`, `lead_note`
+
+### Smoke test Playwright
+- `/desarrollador/leads` → tabs:2, 6 rows, create_btn ✅ · analytics tab: funnel/source/assignee_table renderizados ✅
+- `/desarrollador/desarrollos/altavista-polanco/crm` → tabs:2, kanban_grid:1, 5 cols, 6 cards distribuidos por status ✅ · broker-assign-btn visible ✅
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch4.py` (nuevo ~620 líneas)
+- `/app/backend/server.py` (router + indexes)
+- `/app/frontend/src/api/developer.js` (+15 helpers B4)
+- `/app/frontend/src/pages/developer/DesarrolladorLeads.js` (nuevo ~420 líneas)
+- `/app/frontend/src/pages/developer/DesarrolladorCRM.js` (nuevo ~400 líneas)
+- `/app/frontend/src/pages/developer/DesarrolladorLegajo.js` (+CRM tab con CTA)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+Leads nav entry + Target icon)
+- `/app/frontend/src/App.js` (+2 rutas B4)
+- `/app/memory/PRD.md`
+
+---
+
 ## 2026-05-01 — Phase F0.1 · Audit Log Global Mutations
 **Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
 
