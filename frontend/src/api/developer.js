@@ -209,4 +209,22 @@ export const listExpansionSimulations = (studyId) =>
 export const exportSimulationPdf = (simId) =>
   post(`/api/dev/site-selection/simulations/${simId}/export-pdf`);
 
+// Phase 4 Batch 8 — Cash Flow Forecast IA
+export const recalcCashFlow = (projectId, body = {}) =>
+  post(`/api/dev/projects/${projectId}/cash-flow/recalc`, body);
+export const getCashFlowCurrent = (projectId) =>
+  j(`/api/dev/projects/${projectId}/cash-flow/current`);
+export const getCashFlowHistory = (projectId) =>
+  j(`/api/dev/projects/${projectId}/cash-flow/history`);
+export const getCashFlowScenarios = (projectId) =>
+  j(`/api/dev/projects/${projectId}/cash-flow/scenarios`);
+export const getCashFlowRecommendations = (projectId) =>
+  j(`/api/dev/projects/${projectId}/cash-flow/recommendations`);
+export const applyCashFlowRecommendation = (projectId, body) =>
+  post(`/api/dev/projects/${projectId}/cash-flow/recommendations/apply`, body);
+export const exportCashFlowPdf = (projectId) =>
+  post(`/api/dev/projects/${projectId}/cash-flow/export-pdf`);
+export const cashFlowDownloadUrl = (projectId, fileId) =>
+  `${process.env.REACT_APP_BACKEND_URL}/api/dev/projects/${projectId}/cash-flow/files/${fileId}`;
+
 

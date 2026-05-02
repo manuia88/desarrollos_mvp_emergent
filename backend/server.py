@@ -168,6 +168,11 @@ app.include_router(dev_batch7_router)
 from routes_dev_batch7_2 import router as dev_batch7_2_router, ensure_batch7_2_indexes
 app.include_router(dev_batch7_2_router)
 
+# Phase 4 Batch 8 — Cash Flow Forecast IA
+from routes_dev_batch8 import (router as dev_batch8_router, ensure_batch8_indexes,
+                              daily_active_projects_recalc)
+app.include_router(dev_batch8_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -392,6 +397,8 @@ async def startup():
     await ensure_batch7_indexes(db)
     # Phase 4 Batch 7.2 — INEGI Real Demographics
     await ensure_batch7_2_indexes(db)
+    # Phase 4 Batch 8 — Cash Flow Forecast IA
+    await ensure_batch8_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o
@@ -413,6 +420,19 @@ async def startup():
             register_batch5_jobs(sched, db)
         except Exception as e:
             logging.warning(f"batch5 scheduler register failed: {e}")
+        # Phase 4 Batch 8 — daily 6am cash-flow recalc for active projects
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+            sched.add_job(
+                daily_active_projects_recalc, CronTrigger(hour=6, minute=0),
+                id="cash_flow_daily_recalc", replace_existing=True,
+                kwargs={"db": db, "app": app}, max_instances=1,
+            )
+            import logging as _bb8_log
+            _bb8_log.info("[batch8] daily cash-flow recalc scheduled @ 06:00 MX")
+        except Exception as e:
+            import logging as _bb8_log
+            _bb8_log.warning(f"[batch8] could not schedule daily recalc: {e}")
 
 
 @app.on_event("shutdown")
