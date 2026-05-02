@@ -9,6 +9,7 @@ import { FilterChipsBar } from '../shared/FilterChipsBar';
 import FilterPresetsBar from '../shared/FilterPresetsBar';
 import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
+import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
 import { listInventory } from '../../api/developer';
 import { Search, Upload, Eye, Building, Bed, Ruler } from '../../components/icons';
@@ -617,7 +618,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />
           )}
           {activeSubTab === 'planta' && (
-            <VistaDePlanta units={units} user={user} devId={devId} />
+            <VistaPlantaInteractiva units={units} user={user} devId={devId} />
           )}
         </>
       )}

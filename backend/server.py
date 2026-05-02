@@ -238,6 +238,11 @@ from routes_dev_batch18 import (router as dev_batch18_router,
                                   ensure_batch18_indexes)
 app.include_router(dev_batch18_router)
 
+# Phase 4 Batch 18 Sub-B — Floor plan routes
+from routes_floor_view import (router as floor_view_router,
+                                ensure_floor_view_indexes)
+app.include_router(floor_view_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -589,6 +594,12 @@ async def startup():
         await ensure_batch18_indexes(db)
     except Exception as e:
         logging.warning(f"[batch18] index setup failed: {e}")
+
+    # Phase 4 Batch 18 Sub-B — Floor plan view
+    try:
+        await ensure_floor_view_indexes(db)
+    except Exception as e:
+        logging.warning(f"[floor_view] index setup failed: {e}")
 
     # Phase 4 Batch 17 — Undo + Filter presets indexes + purge cron
     try:

@@ -13,7 +13,12 @@ const post = (url, body) => j(url, { method: 'POST', headers: { 'Content-Type': 
 const patch = (url, body) => j(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 const del = (url) => j(url, { method: 'DELETE' });
 
-export const getDashboard = () => j('/api/desarrollador/dashboard');
+// Phase 4 Batch 18 Sub-B — Floor plan endpoints
+export const getProjectFloors = (projectId) => j(`/api/projects/${projectId}/floors`);
+export const getProjectFloorDetail = (projectId, floor) => j(`/api/projects/${projectId}/floors/${floor}`);
+export const putFloorLayout = (projectId, floor, body) =>
+  j(`/api/projects/${projectId}/floors/${floor}/layout`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+export const patchUnitPosition = (unitId, body) => patch(`/api/units/${unitId}/position`, body);
 export const listInventory = (devId) => j(`/api/desarrollador/inventario${devId ? `?dev_id=${devId}` : ''}`);
 export const patchUnitStatus = (b) => patch('/api/desarrollador/inventario/unit-status', b);
 export const getDemand = () => j('/api/desarrollador/demanda');
