@@ -52,3 +52,23 @@ export const recalcHeat = (leadId) => post(`/api/leads/${leadId}/recalc-heat`, {
 export const getHeat = (leadId) => j(`/api/leads/${leadId}/heat`);
 export const getAiSummaryV2 = (leadId) => j(`/api/leads/${leadId}/ai-summary-v2`);
 export const refreshAiSummary = (leadId) => post(`/api/leads/${leadId}/refresh-ai-summary`, {});
+
+// ─── Phase 4 Batch 5 — Pricing A/B + Reports ─────────────────────────────
+export const listPricingExperiments = (params = {}) => {
+  const usp = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => v && usp.append(k, v));
+  const s = usp.toString();
+  return j(`/api/dev/pricing-experiments${s ? `?${s}` : ''}`);
+};
+export const createPricingExperiment = (body) => post('/api/dev/pricing-experiments', body);
+export const patchPricingExperiment = (id, body) => j(`/api/dev/pricing-experiments/${id}`, {
+  method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+});
+export const pricingResults = (id) => j(`/api/dev/pricing-experiments/${id}/results`);
+
+export const listReportTemplates = () => j('/api/dev/reports/templates');
+export const createReportTemplate = (body) => post('/api/dev/reports/templates', body);
+export const generateReport = (body) => post('/api/dev/reports/generate', body);
+export const listReportDistributions = () => j('/api/dev/reports/distributions');
+export const createReportDistribution = (body) => post('/api/dev/reports/distributions', body);
+export const reportDownloadUrl = (fileId) => `${process.env.REACT_APP_BACKEND_URL}/api/dev/reports/files/${fileId}`;

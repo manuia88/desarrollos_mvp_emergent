@@ -614,6 +614,43 @@ async def inm_analytics_cancel_reasons(
     return out
 
 
+@router.get("/api/dev/analytics/heat-cohort")
+async def heat_cohort(request: Request, period: str = Query("30d"), project_id: Optional[str] = None):
+    """Cohort distribution: leads grouped by heat_tag with close-rate per cohort."""
+    user = await _auth(request)
+    if user.role not in ("developer_admin", "developer_director", "superadmin"):
+        raise HTTPException(403, "Rol no autorizado")
+    db = _db(request)
+    org = getattr(user, "tenant_id", None) or "default"
+    f, t = _period_to_dates(period)
+    q: Dict[str, Any] = {"created_at": {"$gte": f, "$lte": t}}
+    if user.role != "superadmin":
+        q["dev_org_id"] = org
+    if project_id:
+        q["project_id"] = project_id
+
+    leads = await db.leads.find(q, {"_id": 0, "heat_tag": 1, "status": 1}).to_list(5000)
+    cohort = {tag: {"total": 0, "won": 0} for tag in ("caliente", "tibio", "frio", "sin_calcular")}
+    for ld in leads:
+        tag = ld.get("heat_tag") or "sin_calcular"
+        if tag not in cohort:
+            tag = "sin_calcular"
+        cohort[tag]["total"] += 1
+        if ld.get("status") == "cerrado_ganado":
+            cohort[tag]["won"] += 1
+
+    total_n = max(len(leads), 1)
+    out = [
+        {"tag": tag,
+         "total": c["total"], "won": c["won"],
+         "close_rate": round(100 * c["won"] / max(c["total"], 1), 1),
+         "share_pct": round(100 * c["total"] / total_n, 1)}
+        for tag, c in cohort.items()
+    ]
+    return {"period": period, "total_leads": len(leads), "cohort": out}
+
+
+
 @router.get("/api/dev/analytics/movement-alerts")
 async def movement_alerts_analytics(request: Request, period: str = Query("30d")):
     user = await _auth(request)

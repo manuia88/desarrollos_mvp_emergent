@@ -4,7 +4,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmt0, fmtMXN, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
-import { Sparkle, BarChart, Target, TrendUp, TrendDown, Activity } from '../../components/icons';
+import { Sparkle, BarChart, Target, TrendUp, TrendDown, Activity, Bookmark, Plus } from '../../components/icons';
+import * as leadsApi from '../../api/leads';
 import {
   CohortMatrix, HeatmapCalendar, BarList, FunnelChart, LineChart, Sparkline,
 } from '../../components/developer/ChartPrimitives';
@@ -15,6 +16,7 @@ const TABS = [
   { k: 'forecast',   label: 'Forecast vs actual', Icon: Target },
   { k: 'insights',   label: 'Insights de mercado', Icon: BarChart },
   { k: 'alerts',     label: 'Movement alerts', Icon: TrendUp },
+  { k: 'branded',    label: 'Reportes branded',  Icon: Bookmark },
 ];
 
 export default function DesarrolladorReportes({ user, onLogout }) {
@@ -61,6 +63,7 @@ export default function DesarrolladorReportes({ user, onLogout }) {
       {tab === 'forecast'   && <ForecastTab onToast={setToast} />}
       {tab === 'insights'   && <InsightsTab scope="dev" onToast={setToast} />}
       {tab === 'alerts'     && <MovementAlertsTab onToast={setToast} />}
+      {tab === 'branded'    && <BrandedReportsTab onToast={setToast} />}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
     </DeveloperLayout>
@@ -397,6 +400,7 @@ function ListBox({ title, items, tone }) {
 export function InsightsTab({ scope = 'dev', onToast }) {
   const [period, setPeriod] = useState('30d');
   const [data, setData] = useState(null);
+  const [cohort, setCohort] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -405,6 +409,9 @@ export function InsightsTab({ scope = 'dev', onToast }) {
     fetcher(period).then(r => setData(r))
       .catch(e => onToast?.({ kind: 'error', text: e.body?.detail || 'Error al cargar insights' }))
       .finally(() => setLoading(false));
+    if (scope === 'dev') {
+      api.getHeatCohort(period).then(setCohort).catch(() => setCohort(null));
+    }
   }, [period, scope, onToast]);
 
   return (
@@ -456,6 +463,20 @@ export function InsightsTab({ scope = 'dev', onToast }) {
               </div>
             )}
           </Card>
+
+          {cohort && cohort.total_leads > 0 && (
+            <Card>
+              <div className="eyebrow" style={{ marginBottom: 12 }}>Cohort de Heat IA · Close rate por temperatura</div>
+              <div data-testid="heat-cohort" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+                {cohort.cohort.map(c => (
+                  <HeatCohortCard key={c.tag} {...c} />
+                ))}
+              </div>
+              <div style={{ marginTop: 14, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.55 }}>
+                {fmt0(cohort.total_leads)} leads creados en el período. Prioriza coaching del asesor sobre los <strong style={{ color: 'var(--cream-2)' }}>calientes</strong> — convierten significativamente más rápido que tibios y fríos.
+              </div>
+            </Card>
+          )}
         </>
       )}
     </div>
@@ -548,3 +569,356 @@ function StatCard({ label, value }) {
     </Card>
   );
 }
+
+function HeatCohortCard({ tag, total, won, close_rate, share_pct }) {
+  const tones = {
+    caliente:     { bg: 'rgba(239,68,68,0.08)',  bd: 'rgba(239,68,68,0.30)',  fg: 'var(--red)' },
+    tibio:        { bg: 'rgba(245,158,11,0.08)', bd: 'rgba(245,158,11,0.30)', fg: 'var(--amber)' },
+    frio:         { bg: 'rgba(240,235,224,0.05)', bd: 'rgba(240,235,224,0.18)', fg: 'var(--cream-3)' },
+    sin_calcular: { bg: 'rgba(240,235,224,0.03)', bd: 'rgba(240,235,224,0.10)', fg: 'var(--cream-3)' },
+  };
+  const t = tones[tag] || tones.frio;
+  return (
+    <div data-testid={`heat-cohort-${tag}`} style={{
+      padding: 14, borderRadius: 12,
+      background: t.bg, border: `1px solid ${t.bd}`,
+      display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: t.fg, textTransform: 'capitalize' }}>
+          {tag.replace('_', ' ')}
+        </div>
+        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'var(--cream-3)' }}>
+          {share_pct}%
+        </div>
+      </div>
+      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)' }}>{total}</div>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: t.fg, fontWeight: 600 }}>
+        {close_rate}% close · {won} cerrados
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// BrandedReportsTab — Phase 4 Batch 5 · 4.21
+// ═════════════════════════════════════════════════════════════════════════════
+function BrandedReportsTab({ onToast }) {
+  const [subtab, setSubtab] = useState('generate');
+  const subtabs = [
+    { k: 'templates',     label: 'Templates' },
+    { k: 'generate',      label: 'Generar ahora' },
+    { k: 'distributions', label: 'Distribución automática' },
+  ];
+  return (
+    <div data-testid="branded-tab" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {subtabs.map(s => (
+          <button key={s.k}
+            data-testid={`br-sub-${s.k}`}
+            onClick={() => setSubtab(s.k)}
+            style={{
+              padding: '6px 12px', borderRadius: 9999, cursor: 'pointer',
+              background: subtab === s.k ? 'rgba(240,235,224,0.10)' : 'transparent',
+              border: `1px solid ${subtab === s.k ? 'rgba(240,235,224,0.30)' : 'var(--border)'}`,
+              color: subtab === s.k ? 'var(--cream)' : 'var(--cream-3)',
+              fontFamily: 'DM Mono, monospace', fontSize: 11, fontWeight: 600,
+            }}>{s.label}</button>
+        ))}
+      </div>
+      {subtab === 'templates'     && <TemplatesSubtab onToast={onToast} />}
+      {subtab === 'generate'      && <GenerateSubtab onToast={onToast} />}
+      {subtab === 'distributions' && <DistributionsSubtab onToast={onToast} />}
+    </div>
+  );
+}
+
+function TemplatesSubtab({ onToast }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState('');
+  const [type, setType] = useState('executive');
+  const [primaryColor, setPrimaryColor] = useState('#06080F');
+  const [headerText, setHeaderText] = useState('DesarrollosMX');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await leadsApi.listReportTemplates();
+      setItems(r.items || []);
+    } catch (e) { onToast?.({ kind: 'error', text: e.body?.detail || 'Error' }); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const submit = async () => {
+    if (!name) return onToast?.({ kind: 'error', text: 'Nombre requerido' });
+    try {
+      await leadsApi.createReportTemplate({
+        name, type,
+        sections: [
+          { type: 'cover', config: {} },
+          { type: 'kpi_grid', config: {} },
+          { type: 'absorption_chart', config: {} },
+          { type: 'team_perf', config: {} },
+          { type: 'narrative_ai', config: {} },
+        ],
+        branding: { primary_color: primaryColor, secondary_color: '#F0EBE0', header_text: headerText, footer_text: 'Confidencial · DesarrollosMX' },
+        default: false,
+      });
+      onToast?.({ kind: 'success', text: 'Template creado' });
+      setShowForm(false); setName('');
+      load();
+    } catch (e) { onToast?.({ kind: 'error', text: e.body?.detail || 'Error' }); }
+  };
+
+  return (
+    <div data-testid="templates-subtab">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Templates</h3>
+        <button data-testid="new-template" onClick={() => setShowForm(s => !s)} style={btnSecRep}>
+          <Plus size={11} /> Nuevo template
+        </button>
+      </div>
+      {showForm && (
+        <Card>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={lblRep}>Nombre</label>
+              <input data-testid="tpl-name" value={name} onChange={e => setName(e.target.value)} style={inpRep} placeholder="Reporte Ejecutivo Mensual" />
+            </div>
+            <div>
+              <label style={lblRep}>Tipo</label>
+              <select data-testid="tpl-type" value={type} onChange={e => setType(e.target.value)} style={inpRep}>
+                <option value="executive">Ejecutivo</option>
+                <option value="marketing">Marketing</option>
+                <option value="financial">Financiero</option>
+                <option value="commercial">Comercial</option>
+              </select>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={lblRep}>Color primario</label>
+                <input data-testid="tpl-color" type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} style={inpRep} />
+              </div>
+              <div>
+                <label style={lblRep}>Header</label>
+                <input value={headerText} onChange={e => setHeaderText(e.target.value)} style={inpRep} />
+              </div>
+            </div>
+            <button data-testid="tpl-submit" onClick={submit} style={btnPriRep}>Crear template</button>
+          </div>
+        </Card>
+      )}
+      {loading ? <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando…</div> :
+        items.length === 0 ? <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12 }}>Sin templates aún</div> : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10, marginTop: 12 }}>
+          {items.map(t => (
+            <Card key={t.id}>
+              <div className="eyebrow" style={{ marginBottom: 4 }}>{t.type}</div>
+              <h4 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', margin: '0 0 6px' }}>{t.name}</h4>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-3)' }}>
+                {t.sections?.length || 0} secciones · {t.default ? 'default' : 'estándar'}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GenerateSubtab({ onToast }) {
+  const [templates, setTemplates] = useState([]);
+  const [tplId, setTplId] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [periodFrom, setPeriodFrom] = useState(() => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [periodTo, setPeriodTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    leadsApi.listReportTemplates().then(r => {
+      setTemplates(r.items || []);
+      if (r.items?.length) setTplId(r.items[0].id);
+    }).catch(() => {});
+  }, []);
+
+  const generate = async () => {
+    if (!tplId) return onToast?.({ kind: 'error', text: 'Selecciona un template' });
+    setBusy(true); setResult(null);
+    try {
+      const r = await leadsApi.generateReport({
+        template_id: tplId,
+        project_id: projectId || null,
+        period_from: new Date(`${periodFrom}T00:00:00Z`).toISOString(),
+        period_to: new Date(`${periodTo}T23:59:59Z`).toISOString(),
+      });
+      setResult(r);
+      onToast?.({ kind: 'success', text: `PDF generado · ${r.size_kb} KB` });
+    } catch (e) { onToast?.({ kind: 'error', text: e.body?.detail || 'Error al generar' }); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Card>
+      <div data-testid="generate-subtab" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <label style={lblRep}>Template</label>
+          <select data-testid="gen-template" value={tplId} onChange={e => setTplId(e.target.value)} style={inpRep}>
+            <option value="">— elige template —</option>
+            {templates.map(t => <option key={t.id} value={t.id}>{t.name} ({t.type})</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={lblRep}>Proyecto (opcional)</label>
+          <input data-testid="gen-project" value={projectId} onChange={e => setProjectId(e.target.value)}
+            placeholder="Ej: quattro-alto (vacío = consolidado)" style={inpRep} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <label style={lblRep}>Desde</label>
+            <input data-testid="gen-from" type="date" value={periodFrom} onChange={e => setPeriodFrom(e.target.value)} style={inpRep} />
+          </div>
+          <div>
+            <label style={lblRep}>Hasta</label>
+            <input data-testid="gen-to" type="date" value={periodTo} onChange={e => setPeriodTo(e.target.value)} style={inpRep} />
+          </div>
+        </div>
+        <button data-testid="gen-submit" onClick={generate} disabled={busy} style={btnPriRep}>
+          {busy ? 'Generando PDF…' : 'Generar y descargar PDF'}
+        </button>
+        {result && (
+          <div data-testid="gen-result" style={{
+            padding: 12, borderRadius: 8,
+            background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)',
+            color: 'var(--green)', fontFamily: 'DM Sans', fontSize: 12,
+          }}>
+            ✓ Reporte listo · {result.size_kb} KB
+            <a href={leadsApi.reportDownloadUrl(result.file_id)} target="_blank" rel="noreferrer"
+              style={{ marginLeft: 12, color: 'var(--cream)', textDecoration: 'underline' }}>
+              Descargar
+            </a>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function DistributionsSubtab({ onToast }) {
+  const [items, setItems] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [tplId, setTplId] = useState('');
+  const [frequency, setFrequency] = useState('monthly');
+  const [emails, setEmails] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [r, ts] = await Promise.all([leadsApi.listReportDistributions(), leadsApi.listReportTemplates()]);
+      setItems(r.items || []);
+      setTemplates(ts.items || []);
+      if (ts.items?.length && !tplId) setTplId(ts.items[0].id);
+    } catch (e) { onToast?.({ kind: 'error', text: e.body?.detail || 'Error' }); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const submit = async () => {
+    const recipients = emails.split(',').map(e => e.trim()).filter(Boolean).map(email => ({ email, role: 'team' }));
+    if (recipients.length === 0) return onToast?.({ kind: 'error', text: 'Agrega al menos 1 email' });
+    try {
+      await leadsApi.createReportDistribution({
+        template_id: tplId, frequency, recipients,
+        day_of_week: frequency === 'weekly' ? 1 : null,
+        day_of_month: frequency === 'monthly' ? 1 : null,
+      });
+      onToast?.({ kind: 'success', text: 'Distribución creada' });
+      setShowForm(false); setEmails('');
+      load();
+    } catch (e) { onToast?.({ kind: 'error', text: e.body?.detail || 'Error' }); }
+  };
+
+  return (
+    <div data-testid="distributions-subtab">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Distribuciones automáticas</h3>
+        <button data-testid="new-dist" onClick={() => setShowForm(s => !s)} style={btnSecRep}>
+          <Plus size={11} /> Nueva distribución
+        </button>
+      </div>
+      {showForm && (
+        <Card>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={lblRep}>Template</label>
+              <select value={tplId} onChange={e => setTplId(e.target.value)} style={inpRep}>
+                {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={lblRep}>Frecuencia</label>
+              <select value={frequency} onChange={e => setFrequency(e.target.value)} style={inpRep}>
+                <option value="weekly">Semanal</option>
+                <option value="monthly">Mensual</option>
+                <option value="quarterly">Trimestral</option>
+              </select>
+            </div>
+            <div>
+              <label style={lblRep}>Destinatarios (emails separados por coma)</label>
+              <textarea data-testid="dist-emails" rows={3} value={emails} onChange={e => setEmails(e.target.value)}
+                placeholder="cliente@empresa.com, partner@empresa.com" style={{ ...inpRep, resize: 'vertical' }} />
+            </div>
+            <button data-testid="dist-submit" onClick={submit} style={btnPriRep}>Crear distribución</button>
+          </div>
+        </Card>
+      )}
+      {loading ? <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>Cargando…</div> :
+        items.length === 0 ? <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12 }}>Sin distribuciones programadas</div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+          {items.map(d => (
+            <Card key={d.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
+                    {d.schedule.frequency} · {d.recipients.length} destinatarios
+                  </div>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-3)' }}>
+                    Próximo: {d.next_scheduled_at?.slice(0, 10) || '—'} · Último: {d.last_sent_at?.slice(0, 10) || 'nunca'}
+                  </div>
+                </div>
+                <Badge tone={d.status === 'active' ? 'ok' : 'warn'}>{d.status}</Badge>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const inpRep = {
+  width: '100%', padding: '8px 10px', borderRadius: 6,
+  background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
+  color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none',
+};
+const lblRep = {
+  fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'var(--cream-3)',
+  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, display: 'block',
+};
+const btnPriRep = {
+  padding: '10px 18px', borderRadius: 9999, cursor: 'pointer',
+  background: 'rgba(240,235,224,0.10)', border: '1px solid rgba(240,235,224,0.30)',
+  color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+};
+const btnSecRep = {
+  padding: '6px 12px', borderRadius: 9999, cursor: 'pointer',
+  background: 'transparent', border: '1px solid var(--border)', color: 'var(--cream-2)',
+  fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500,
+  display: 'inline-flex', alignItems: 'center', gap: 4,
+};
+

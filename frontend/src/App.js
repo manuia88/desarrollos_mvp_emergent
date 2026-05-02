@@ -61,6 +61,7 @@ import InmobiliariaDashboard from './pages/developer/InmobiliariaDashboard';
 import InmobiliariaAsesores from './pages/developer/InmobiliariaAsesores';
 import InmobiliariaLeads from './pages/developer/InmobiliariaLeads';
 import DesarrolladorCRM from './pages/developer/DesarrolladorCRM';
+import DesarrolladorPricingLab from './pages/developer/DesarrolladorPricingLab';
 import AceptarInvitacion from './pages/public/AceptarInvitacion';
 import PublicCitaPage from './pages/public/PublicCitaPage';
 
@@ -272,6 +273,7 @@ function AppRouter() {
       <Route path="/desarrollador/leads" element={<AdvisorRoute Page={DesarrolladorLeads} />} />
       <Route path="/desarrollador/citas" element={<AdvisorRoute Page={DesarrolladorCitas} />} />
       <Route path="/desarrollador/desarrollos/:slug/crm" element={<AdvisorRoute Page={DesarrolladorCRM} />} />
+      <Route path="/desarrollador/desarrollos/:slug/pricing-lab" element={<AdvisorRoute Page={DesarrolladorPricingLab} />} />
       <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
       <Route path="/cita/:token" element={<PublicCitaPage />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />

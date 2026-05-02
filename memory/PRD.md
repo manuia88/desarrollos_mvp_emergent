@@ -765,6 +765,89 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — Improvement Post-B4.4 · Heat Cohort Dashboard
+**Objetivo:** dar visibilidad agregada del distribución `heat_tag` × close-rate para acelerar coaching.
+
+**Cambios:**
+- Backend: `GET /api/dev/analytics/heat-cohort?period=&project_id=` aggregando leads por `heat_tag` (caliente/tibio/frío/sin_calcular) con `total`, `won`, `close_rate %`, `share_pct %`.
+- Frontend: Card "Cohort de Heat IA" en `InsightsTab` con 4 `HeatCohortCard` (uno por tag) + textura coachable. Solo se renderea si `cohort.total_leads > 0`.
+- Lint OK, Playwright smoke confirma `data-testid="heat-cohort"` visible.
+
+---
+
+## 2026-05-02 — Phase 4 Batch 5 · Dynamic Pricing A/B + Branded PDF Reports
+
+### Sub-Chunk A · 4.14 Dynamic Pricing A/B + Bundle
+**Backend (`routes_dev_batch5.py` · nuevo · ~640 líneas):**
+- Schemas: `pricing_experiments` (variants[] con stats), `pricing_visitor_assignments` (unique idx visitor+exp).
+- Asignación visitante **deterministic hash** (md5 visitor_id+exp_id → bucket por visitor_pct).
+- 5 endpoints + permission guards:
+  - `POST /api/dev/pricing-experiments` (validate variants suman 1.0)
+  - `GET /api/dev/pricing-experiments?status=&project_id=`
+  - `PATCH /api/dev/pricing-experiments/{id}` (status, name, dates)
+  - `POST /api/dev/pricing-experiments/{id}/assign-visitor` (público, idempotente, increment views)
+  - `POST /api/dev/pricing-experiments/{id}/track-event` (público, atomic `$inc`)
+  - `GET /api/dev/pricing-experiments/{id}/results` (conversion funnel + winner heuristic + confidence)
+- Audit + ml_event para create/update/results.
+
+**Frontend (`pages/developer/DesarrolladorPricingLab.js` · nuevo · ~340 líneas):**
+- Ruta `/desarrollador/desarrollos/:slug/pricing-lab` con 3 tabs: Activos / Crear / Resultados.
+- ActiveTab: cards con variants + stats + funnel inline + botones Pausar/Reanudar/Concluir.
+- CreateTab: form variants dinámicas (label + price_modifier {percent|absolute|fixed} + visitor_pct).
+- ResultsTab: lista experiments completed con winner highlight.
+- Diseño 100% compliant (cream opacity ladder + green/amber semantic).
+
+### Sub-Chunk B · 4.21 Branded PDF Reports + Auto-distribution
+**Backend:**
+- Schemas: `report_templates` (sections[], branding{}), `report_distributions` (frequency/recipients), `report_files` (PDF base64-encoded).
+- **ReportLab 4.5** PDF generation con 7 section types:
+  - `cover` (project name + period)
+  - `kpi_grid` (leads/citas/cierres/win_rate desde MongoDB)
+  - `units_table` (inventory desde DEVELOPMENTS)
+  - `absorption_chart` (cierres por mes)
+  - `pricing_summary` (experiments del período)
+  - `team_perf` (per-asesor stats con name resolution)
+  - `narrative_ai` (Claude haiku-4-5 ejecutivo summary 200 palabras)
+- 6 endpoints + permission guards:
+  - `POST /api/dev/reports/templates`, `GET /api/dev/reports/templates`
+  - `POST /api/dev/reports/generate` → genera PDF, persiste, retorna `download_url`
+  - `GET /api/dev/reports/files/{id}` → descarga PDF (Content-Type application/pdf)
+  - `POST /api/dev/reports/distributions`, `GET`, `PATCH`
+- APScheduler **daily 8am job** `check_pending_distributions`: query distribuciones due → genera PDF → envía Resend con .ics → reschedule next.
+- Audit + ml_event `report_generated` / `report_distributed`.
+
+**Frontend (extensión `DesarrolladorReportes.js`):**
+- Nueva tab "Reportes branded" con 3 sub-tabs:
+  - **Templates**: lista + form crear (name, type, color picker, header text, sections preset).
+  - **Generar ahora**: selector template + project + date range + botón "Generar y descargar PDF" + link de descarga.
+  - **Distribución automática**: lista distribuciones + form crear (template + frequency + recipients emails).
+- Diseño compliant (cream opacity + tipografía Outfit/DM Sans).
+
+### Verificación ✅
+- **Backend lint** Ruff OK · **Frontend lint** ESLint OK (5 archivos modificados/creados)
+- **Curl smoke** (todos OK):
+  - `POST /api/dev/pricing-experiments` → 200 con experiment id ✅
+  - `POST /assign-visitor` (público) → 200 con variant_label ✅
+  - `POST /track-event` (público) → atomic increment ✅
+  - `GET /results` → conversion funnel + winner ✅
+  - `GET /api/dev/analytics/heat-cohort` → 4 cohort items con close_rate ✅
+  - `POST /api/dev/reports/templates` → 200 template id ✅
+  - `POST /api/dev/reports/generate` → file_id + size_kb ✅
+  - `GET /api/dev/reports/files/{id}` → application/pdf válido (`%PDF-` magic header, 3.7KB) ✅
+- **Playwright smoke**:
+  - `/desarrollador/desarrollos/quattro-alto/pricing-lab` → h1 + 3 tabs ✅
+  - `/desarrollador/reportes` → tab "branded" → sub-tab generate con form completo ✅
+  - Insights tab → `heat-cohort` card visible ✅
+
+### Áreas mocked
+- 📧 **RESEND_API_KEY** no configurada → `check_pending_distributions` genera PDF + persiste pero NO envía email (try/except silencioso). Workflow funcional, solo falta key.
+
+### Archivos
+- Backend: `routes_dev_batch5.py` (nuevo), `routes_dev_batch4_4.py` (extendido con heat-cohort)
+- Frontend: `pages/developer/DesarrolladorPricingLab.js` (nuevo), `pages/developer/DesarrolladorReportes.js` (extendido con BrandedReportsTab + HeatCohortCard), `api/leads.js` (10 endpoints nuevos), `App.js` (ruta pricing-lab), `requirements.txt` (+reportlab 4.5)
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.4 · AI Engine + Analytics
 
 ### Sub-Chunk A · 4.35 Lead Heat AI Score

@@ -171,5 +171,7 @@ export const getInmAnalyticsCancelReasons = (period = '30d', projectId) =>
   j(`/api/inmobiliaria/analytics/cancel-reasons?period=${period}${projectId ? `&project_id=${projectId}` : ''}`);
 export const getDevMovementAlerts = (period = '30d') =>
   j(`/api/dev/analytics/movement-alerts?period=${period}`);
+export const getHeatCohort = (period = '30d', projectId) =>
+  j(`/api/dev/analytics/heat-cohort?period=${period}${projectId ? `&project_id=${projectId}` : ''}`);
 
 
