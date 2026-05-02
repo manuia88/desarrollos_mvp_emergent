@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { Home, Database, BarChart, Clock, Route, TrendUp, Bookmark, Shield, LogOut, MapPin, Sparkle, MessageSquare, CalendarCheck, Target } from '../icons';
 import OnboardingGate from './OnboardingGate';
+import CitaNotifBanner from '../shared/CitaNotifBanner';
 import * as api from '../../api/advisor';
 
 const ROLES_OK = new Set(['advisor', 'asesor_admin', 'superadmin']);
@@ -129,6 +130,7 @@ export default function AdvisorLayout({ user, onLogout, children }) {
       </aside>
 
       <main data-testid="advisor-main" style={{ padding: '22px 28px 80px', maxWidth: 1400 }}>
+        <CitaNotifBanner />
         {children}
       </main>
 

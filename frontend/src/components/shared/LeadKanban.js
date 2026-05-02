@@ -2,31 +2,33 @@
 // Single component used by 4 surfaces: asesor (/asesor/leads-dev), dev (/desarrollador/leads),
 // dev project CRM (/desarrollador/desarrollos/:slug/crm), inmobiliaria (/inmobiliaria/leads).
 //
-// Props:
-//   scope: 'mine' | 'all_org' | 'all_inmobiliaria'
-//   projectId?: string         (filter to a single project)
-//   onToast?: (toast) => void  (parent toast handler)
-//
-// Features:
-// - HTML5 drag-drop column move (disabled per-card if !card.can_move)
-// - Cross-project badge "Link2 · N proyectos" when client_global_id has >0 other active leads
-// - Lead drawer with conditional render: full-data | conversation | ai-summary by permissions
-// - Other appointments of same client section (cross-project list)
-import React, { useEffect, useMemo, useState } from 'react';
+// DESIGN SYSTEM COMPLIANCE:
+// - Only var(--cream), var(--navy), var(--border) and CSS-token semantics (--green/--amber/--red).
+// - NO indigo, NO purple, NO custom rgba beyond opacity ladder of cream.
+// - Badge atom from primitives.js for status/source chips.
+// - Single allowed gradient (var(--grad)) reserved for "Broker externo" badge only.
+import React, { useEffect, useState } from 'react';
 import * as leadsApi from '../../api/leads';
+import { Badge } from '../advisor/primitives';
 import { Link2, Lock, Brain, MessageCircle, X, EyeOff, Sparkle } from '../icons';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
   asesor_referral: 'Asesor', erp_webhook: 'ERP', manual: 'Manual', cita_form: 'Cita',
 };
-const COL_COLOR = {
-  nuevo:            { bg: 'rgba(99,102,241,0.10)',  bd: 'rgba(99,102,241,0.30)',  fg: '#a5b4fc' },
-  en_contacto:      { bg: 'rgba(236,72,153,0.10)',  bd: 'rgba(236,72,153,0.30)',  fg: '#f9a8d4' },
-  visita_realizada: { bg: 'rgba(251,191,36,0.10)',  bd: 'rgba(251,191,36,0.30)',  fg: '#fcd34d' },
-  propuesta:        { bg: 'rgba(139,92,246,0.10)',  bd: 'rgba(139,92,246,0.30)',  fg: '#c4b5fd' },
-  cerrado:          { bg: 'rgba(34,197,94,0.10)',   bd: 'rgba(34,197,94,0.30)',   fg: '#86efac' },
+
+// Column accents — opacity ladder of cream + semantic tokens.
+// nuevo / en_contacto / propuesta → cream opacities (visual progression)
+// visita_realizada → --amber (warning: cita pasada esperando feedback)
+// cerrado → --green (success: closed)
+const COL_TOKEN = {
+  nuevo:            { bg: 'rgba(240,235,224,0.04)', bd: 'rgba(240,235,224,0.12)', fg: 'var(--cream-2)' },
+  en_contacto:      { bg: 'rgba(240,235,224,0.07)', bd: 'rgba(240,235,224,0.18)', fg: 'var(--cream-2)' },
+  visita_realizada: { bg: 'rgba(245,158,11,0.08)',  bd: 'rgba(245,158,11,0.30)',  fg: 'var(--amber)' },
+  propuesta:        { bg: 'rgba(240,235,224,0.10)', bd: 'rgba(240,235,224,0.26)', fg: 'var(--cream)' },
+  cerrado:          { bg: 'rgba(34,197,94,0.08)',   bd: 'rgba(34,197,94,0.30)',   fg: 'var(--green)' },
 };
+
 const COL_TO_DEFAULT_STATUS = {
   nuevo: 'nuevo', en_contacto: 'contactado', visita_realizada: 'visita_realizada',
   propuesta: 'propuesta', cerrado: 'cerrado_ganado',
@@ -77,9 +79,9 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
 
   if (loading || !data) {
     return (
-      <div data-testid="lead-kanban-loading" style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>
-        Cargando kanban…
-      </div>
+      <div data-testid="lead-kanban-loading" style={{
+        padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans',
+      }}>Cargando kanban…</div>
     );
   }
 
@@ -90,7 +92,7 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
         gap: 10, overflowX: 'auto', paddingBottom: 8,
       }}>
         {data.columns.map(col => {
-          const color = COL_COLOR[col.key] || COL_COLOR.nuevo;
+          const tok = COL_TOKEN[col.key] || COL_TOKEN.nuevo;
           const isOver = dragOver === col.key;
           return (
             <div key={col.key}
@@ -100,27 +102,27 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
               onDrop={e => handleDrop(col.key, e)}
               style={{
                 minHeight: 380,
-                background: isOver ? color.bg : 'rgba(13,17,24,0.5)',
-                border: `1px solid ${isOver ? color.bd : 'var(--border)'}`,
+                background: isOver ? tok.bg : 'var(--bg-2)',
+                border: `1px solid ${isOver ? tok.bd : 'var(--border)'}`,
                 borderRadius: 14, padding: 12,
                 display: 'flex', flexDirection: 'column', gap: 8,
                 transition: 'background 0.15s, border-color 0.15s',
               }}>
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '4px 6px', borderBottom: `1px dashed ${color.bd}`,
+                padding: '4px 6px', borderBottom: `1px dashed ${tok.bd}`,
                 paddingBottom: 8, marginBottom: 2,
               }}>
                 <div>
-                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: color.fg }}>{col.label}</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: tok.fg }}>{col.label}</div>
                   <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-3)', marginTop: 2 }}>
                     {col.count} leads · {col.total_budget_max ? fmtMXN(col.total_budget_max) : '—'}
                   </div>
                 </div>
                 <span style={{
                   padding: '2px 8px', borderRadius: 9999,
-                  background: color.bg, border: `1px solid ${color.bd}`,
-                  color: color.fg, fontFamily: 'DM Mono, monospace', fontSize: 10.5, fontWeight: 700,
+                  background: tok.bg, border: `1px solid ${tok.bd}`,
+                  color: tok.fg, fontFamily: 'DM Mono, monospace', fontSize: 10.5, fontWeight: 700,
                 }}>{col.count}</span>
               </div>
               {col.cards.length === 0 && (
@@ -129,7 +131,7 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
                 </div>
               )}
               {col.cards.map(card => (
-                <LeadKanbanCard key={card.id} card={card} colKey={col.key} color={color} onOpen={() => setOpenLeadId(card.id)} />
+                <LeadKanbanCard key={card.id} card={card} colKey={col.key} tok={tok} onOpen={() => setOpenLeadId(card.id)} />
               ))}
             </div>
           );
@@ -150,13 +152,13 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // LeadKanbanCard — conditional render by permissions
 // ═════════════════════════════════════════════════════════════════════════════
-function LeadKanbanCard({ card, colKey, color, onOpen }) {
+function LeadKanbanCard({ card, colKey, tok, onOpen }) {
   const [hover, setHover] = useState(false);
   const canMove = card.can_move !== false;
   const canFull = card.can_view_full !== false;
   const initials = (card.contact_name || 'L').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
   const crossCount = card.cross_project_count || 0;
-  const showLockHint = !canMove;
+  const isBrokerExternal = card.origin_type === 'broker_external';
 
   return (
     <div
@@ -177,13 +179,13 @@ function LeadKanbanCard({ card, colKey, color, onOpen }) {
       style={{
         position: 'relative',
         padding: 10, borderRadius: 10,
-        background: hover ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.025)',
-        border: `1px solid ${hover ? color.bd : 'var(--border)'}`,
+        background: hover ? 'rgba(240,235,224,0.05)' : 'rgba(240,235,224,0.02)',
+        border: `1px solid ${hover ? tok.bd : 'var(--border)'}`,
         cursor: canMove ? 'grab' : 'pointer',
         opacity: canMove ? 1 : 0.92,
         transition: 'background 0.12s, border-color 0.12s',
       }}>
-      {showLockHint && (
+      {!canMove && (
         <div title="Sin permiso para mover" style={{
           position: 'absolute', top: 8, right: 8,
           width: 20, height: 20, display: 'flex',
@@ -196,9 +198,9 @@ function LeadKanbanCard({ card, colKey, color, onOpen }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <div style={{
           width: 28, height: 28, borderRadius: 9999,
-          background: color.bg, border: `1px solid ${color.bd}`,
+          background: tok.bg, border: `1px solid ${tok.bd}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, color: color.fg, flexShrink: 0,
+          fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, color: tok.fg, flexShrink: 0,
         }}>{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
@@ -219,13 +221,22 @@ function LeadKanbanCard({ card, colKey, color, onOpen }) {
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
         <Badge tone="neutral">{SOURCE_LABELS[card.source] || card.source}</Badge>
-        {card.intent && <Badge tone="brand">{card.intent}</Badge>}
+        {card.intent && <Badge tone="neutral">{card.intent}</Badge>}
+        {isBrokerExternal && (
+          /* Single allowed gradient usage: Broker externo badge */
+          <span data-testid={`broker-badge-${card.id}`} style={{
+            padding: '3px 9px', borderRadius: 9999,
+            background: 'var(--grad)', color: '#fff',
+            fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10,
+            textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}>Broker</span>
+        )}
         {crossCount > 0 && (
           <span data-testid={`cross-badge-${card.id}`} style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
             padding: '2px 6px', borderRadius: 9999,
-            background: 'rgba(56,189,248,0.10)', border: '1px solid rgba(56,189,248,0.30)',
-            color: '#7dd3fc', fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700,
+            background: 'rgba(240,235,224,0.06)', border: '1px solid rgba(240,235,224,0.18)',
+            color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 700,
           }}>
             <Link2 size={10} /> {crossCount + 1} proyectos
           </span>
@@ -239,26 +250,11 @@ function LeadKanbanCard({ card, colKey, color, onOpen }) {
         <span>{card.days_in_status != null ? `${card.days_in_status}d` : '—'}</span>
       </div>
       {card.budget_range?.max && (
-        <div style={{ marginTop: 4, fontFamily: 'DM Mono, monospace', fontSize: 10, color: color.fg, fontWeight: 600 }}>
+        <div style={{ marginTop: 4, fontFamily: 'DM Mono, monospace', fontSize: 10, color: tok.fg, fontWeight: 600 }}>
           {fmtMXN(card.budget_range.max)}
         </div>
       )}
     </div>
-  );
-}
-
-function Badge({ tone = 'neutral', children }) {
-  const tones = {
-    neutral: { bg: 'rgba(255,255,255,0.05)', bd: 'rgba(255,255,255,0.10)', fg: 'var(--cream-2)' },
-    brand:   { bg: 'rgba(236,72,153,0.10)',  bd: 'rgba(236,72,153,0.30)',  fg: '#f9a8d4' },
-  };
-  const t = tones[tone] || tones.neutral;
-  return (
-    <span style={{
-      padding: '2px 6px', borderRadius: 9999,
-      background: t.bg, border: `1px solid ${t.bd}`, color: t.fg,
-      fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 600,
-    }}>{children}</span>
   );
 }
 
@@ -282,11 +278,8 @@ function LeadDrawer({ leadId, onClose, onToast }) {
         const r = await leadsApi.getLead(leadId);
         if (!mounted) return;
         setLead(r);
-        // Load conversation
         leadsApi.getConversation(leadId).then(c => mounted && setConv(c)).catch(() => mounted && setConvLocked(true));
-        // Load AI summary
         leadsApi.getAiSummary(leadId).then(a => mounted && setAi(a)).catch(() => mounted && setAiLocked(true));
-        // Load cross-project leads
         if (r.client_global_id) {
           leadsApi.getClientLeads(r.client_global_id).then(cp => {
             if (!mounted) return;
@@ -312,7 +305,7 @@ function LeadDrawer({ leadId, onClose, onToast }) {
       }}>
       <div onClick={e => e.stopPropagation()} style={{
         width: 'min(560px, 100vw)', height: '100vh', overflowY: 'auto',
-        background: 'var(--navy)', borderLeft: '1px solid var(--border)',
+        background: 'var(--bg)', borderLeft: '1px solid var(--border)',
         padding: 24, display: 'flex', flexDirection: 'column', gap: 18,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -335,7 +328,6 @@ function LeadDrawer({ leadId, onClose, onToast }) {
 
         {!loading && lead && (
           <>
-            {/* Permission badge bar */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               <PermBadge active={lead._permissions?.can_view_full} label="Datos cliente" />
               <PermBadge active={lead._permissions?.can_view_conversation} label="Conversación" />
@@ -343,7 +335,6 @@ function LeadDrawer({ leadId, onClose, onToast }) {
               <PermBadge active={lead._permissions?.can_move} label="Mover columna" />
             </div>
 
-            {/* Contact section */}
             <Section title="Contacto" icon={<MessageCircle size={13} />}>
               {lead._scrubbed ? (
                 <div data-testid="lead-drawer-scrubbed" style={{ color: 'var(--cream-3)', fontSize: 12, fontFamily: 'DM Sans' }}>
@@ -360,14 +351,13 @@ function LeadDrawer({ leadId, onClose, onToast }) {
               )}
             </Section>
 
-            {/* Cross-project leads */}
             {crossLeads.length > 0 && (
               <Section title="Otras citas de este cliente" icon={<Link2 size={13} />} testid="lead-drawer-cross">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {crossLeads.map(cl => (
                     <div key={cl.id} data-testid={`cross-lead-${cl.id}`} style={{
                       padding: '8px 10px', borderRadius: 8,
-                      background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.20)',
+                      background: 'rgba(240,235,224,0.04)', border: '1px solid var(--border)',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       fontSize: 11.5, fontFamily: 'DM Sans', color: 'var(--cream-2)',
                     }}>
@@ -377,17 +367,13 @@ function LeadDrawer({ leadId, onClose, onToast }) {
                           {cl.status} · {cl.asesor_name}
                         </div>
                       </div>
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 9999, background: 'rgba(56,189,248,0.12)',
-                        color: '#7dd3fc', fontFamily: 'DM Mono, monospace', fontSize: 10,
-                      }}>{cl.origin_type}</span>
+                      <Badge tone="neutral">{cl.origin_type}</Badge>
                     </div>
                   ))}
                 </div>
               </Section>
             )}
 
-            {/* Conversation section */}
             <Section title="Conversación" icon={<MessageCircle size={13} />} testid="lead-drawer-conversation">
               {convLocked ? (
                 <LockedHint text="Sin permisos para ver la conversación de este lead" />
@@ -400,7 +386,7 @@ function LeadDrawer({ leadId, onClose, onToast }) {
                   {conv.notes.map((n, i) => (
                     <div key={i} style={{
                       padding: 10, borderRadius: 8,
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                      background: 'rgba(240,235,224,0.03)', border: '1px solid var(--border)',
                       fontSize: 12, fontFamily: 'DM Sans', color: 'var(--cream-2)',
                     }}>
                       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-3)', marginBottom: 4 }}>
@@ -413,7 +399,6 @@ function LeadDrawer({ leadId, onClose, onToast }) {
               )}
             </Section>
 
-            {/* AI Summary section */}
             <Section title="Resumen IA" icon={<Brain size={13} />} testid="lead-drawer-ai-summary">
               {aiLocked ? (
                 <LockedHint text="Sin permisos para ver el resumen IA de este lead" />
@@ -434,7 +419,8 @@ function LeadDrawer({ leadId, onClose, onToast }) {
                   <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
                     <strong style={{ color: 'var(--cream-3)' }}>Riesgo:</strong>{' '}
                     <span style={{
-                      color: ai.risk_level === 'alto' ? '#fca5a5' : ai.risk_level === 'medio' ? '#fcd34d' : '#86efac',
+                      color: ai.risk_level === 'alto' ? 'var(--red)' :
+                             ai.risk_level === 'medio' ? 'var(--amber)' : 'var(--green)',
                       fontWeight: 600,
                     }}>{ai.risk_level}</span>
                   </div>
@@ -460,9 +446,9 @@ function PermBadge({ active, label }) {
   return (
     <span style={{
       padding: '3px 8px', borderRadius: 9999,
-      background: active ? 'rgba(34,197,94,0.10)' : 'rgba(120,120,120,0.10)',
-      border: `1px solid ${active ? 'rgba(34,197,94,0.30)' : 'rgba(120,120,120,0.20)'}`,
-      color: active ? '#86efac' : 'var(--cream-3)',
+      background: active ? 'rgba(34,197,94,0.10)' : 'rgba(240,235,224,0.04)',
+      border: `1px solid ${active ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
+      color: active ? 'var(--green)' : 'var(--cream-3)',
       fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 600,
     }}>
       {active ? '✓' : '○'} {label}
@@ -474,7 +460,7 @@ function Section({ title, icon, children, testid }) {
   return (
     <div data-testid={testid} style={{
       padding: 14, borderRadius: 10,
-      background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)',
+      background: 'rgba(240,235,224,0.025)', border: '1px solid var(--border)',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10,
@@ -504,8 +490,8 @@ function LockedHint({ text }) {
     <div data-testid="locked-hint" style={{
       display: 'flex', alignItems: 'center', gap: 8,
       padding: 12, borderRadius: 8,
-      background: 'rgba(252,165,165,0.06)', border: '1px solid rgba(252,165,165,0.20)',
-      color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 11.5,
+      background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.20)',
+      color: 'var(--red)', fontFamily: 'DM Sans', fontSize: 11.5,
     }}>
       <Lock size={13} /> {text}
     </div>

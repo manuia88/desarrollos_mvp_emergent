@@ -62,6 +62,7 @@ import InmobiliariaAsesores from './pages/developer/InmobiliariaAsesores';
 import InmobiliariaLeads from './pages/developer/InmobiliariaLeads';
 import DesarrolladorCRM from './pages/developer/DesarrolladorCRM';
 import AceptarInvitacion from './pages/public/AceptarInvitacion';
+import PublicCitaPage from './pages/public/PublicCitaPage';
 
 // Superadmin (IE Engine Phase A)
 import SuperadminDashboard from './pages/superadmin/SuperadminDashboard';
@@ -272,6 +273,7 @@ function AppRouter() {
       <Route path="/desarrollador/citas" element={<AdvisorRoute Page={DesarrolladorCitas} />} />
       <Route path="/desarrollador/desarrollos/:slug/crm" element={<AdvisorRoute Page={DesarrolladorCRM} />} />
       <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
+      <Route path="/cita/:token" element={<PublicCitaPage />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />

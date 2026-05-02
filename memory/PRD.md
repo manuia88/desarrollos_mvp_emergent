@@ -765,6 +765,81 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ---
 
+## 2026-05-02 — LeadKanban Design System Refactor (Post-B4.2)
+**Objetivo:** eliminar violaciones del design system en `LeadKanban.js` (indigo/purple/pink rgba custom).
+
+**Cambios:**
+- Replacement map aplicado: indigo → cream low opacity; purple → cream med opacity; pink → eliminado (badges genéricos usan tone neutral); única gradiente reservada para badge `Broker externo`.
+- `COL_TOKEN`: 5 columnas con cream opacity ladder (nuevo 4% → en_contacto 7% → propuesta 10%) + amber semantic para `visita_realizada` + green semantic para `cerrado`.
+- LeadCard: avatar/headers usan `tok.fg` derivado de columna. Badge atom (`Badge` de primitives) reemplaza el badge custom local. Cross-project badge usa cream (sin sky-blue).
+- Drawer: Section bg → `rgba(240,235,224,0.025)`; LockedHint usa `--red`; Risk colors → `--red`/`--amber`/`--green`; PermBadge usa `--green`/`--cream-3`.
+- Iconos lucide intactos. Lint OK. Smoke test post-refactor: 5 cols + 12 cards renderean correctamente.
+
+**Dead code reportado:** `DesarrolladorCRM.js` aún contiene el `KanbanTab` antiguo inline (no usado, reemplazado por `<LeadKanban>` desde B4.2). Pendiente para sweep de cleanup.
+
+---
+
+## 2026-05-02 — Phase 4 Batch 4.3 · Reminders + Magic Link + Auto-Progression
+
+### Sub-Chunk A · 4.32 Reminders 24h + 2h
+**Backend (`routes_dev_batch4_3.py` · nuevo · ~600 líneas):**
+- Schema extension `appointments.reminders.delivery_log[]` con `{channel, sent_at, success, error?, wa_url?}`.
+- APScheduler `check_pending_reminders` cada 15 min: ventanas 22h–26h (24h) y 1.5h–2.5h (2h).
+- Resend email branded (Outfit/DM Sans, navy/cream, gradient único en CTA) + adjunto `.ics`. Stub honesto si falta `RESEND_API_KEY`.
+- WhatsApp: deep-link `wa.me/<digits>` generado y persistido en delivery_log (no API push aún — Phase 8).
+- Endpoint debug `POST /api/internal/reminders/trigger` (solo superadmin).
+- Audit + ml_event `reminder_sent`.
+
+### Sub-Chunk B · 4.33 Magic Link Self-Service
+**Backend:**
+- Schema extension `appointments.client_actions[]` con `{action, timestamp, ip, user_agent, ...}`.
+- `GET /api/cita/public/{token}` → datos legibles. 404 token inválido / 410 estado terminal (`cancelada|no_show|realizada|reagendada`).
+- `POST /api/cita/public/{token}/confirm` → status='confirmada' + notif asesor (`cita_client_confirmed`).
+- `POST /api/cita/public/{token}/cancel` → status='cancelada' + `cancel_reason` enum (cambio_presupuesto|encontro_otra|imprevisto|otro) + notif asesor + dev_admin.
+- `POST /api/cita/public/{token}/reschedule` → marca old=`reagendada` + crea new appointment con nuevo token + reset reminders + notif asesor.
+- Audit + ml_event para cada acción (`cita_confirmed_by_client`, `cita_cancelled_by_client`, `cita_rescheduled_by_client`).
+
+**Frontend (`pages/public/PublicCitaPage.js` · nuevo · mobile-first):**
+- Ruta `/cita/:token` (no auth).
+- Card con `project_name + datetime_legible + modalidad + asesor`.
+- 3 botones grandes (Confirmar/Reagendar/Cancelar) con tonos green/amber/red semánticos.
+- Form Cancel: dropdown con 4 motivos + textarea notas.
+- Form Reschedule: date+time picker + reason input.
+- DoneState con icono y mensaje según acción.
+- ErrorState para 404/410.
+- Diseño 100% compliant: var(--cream)/--navy/--green/--amber/--red, Outfit/DM Sans, lucide icons.
+
+### Sub-Chunk C · 4.34 Auto-Progression Post-Cita
+**Backend:**
+- APScheduler `check_post_cita_progression` cada 15 min: 30min después de `datetime` + asesor recibe notif `cita_post_check` con 3 actions (Sí se realizó / No-show / Reagendar).
+- APScheduler `check_followup_proposals` cada 15 min: 24h después de `realizada` → notif `cita_followup` (Sí propuesta / Aún no).
+- `POST /api/cita/{id}/post-action` (auth: asesor own o admin):
+  - `realizada` → appointment=realizada + lead.status=`visita_realizada` (auto-progression kanban) + agenda followup.
+  - `noshow` → appointment=no_show + lead.status=`cerrado_perdido` con `lost_reason='no_show'`.
+  - `reschedule` → mismo flujo que public reschedule, crea new apt linked.
+- `POST /api/leads/{id}/post-realizada-followup` (auth: asesor own o admin):
+  - `has_proposal=true` → lead.status=`propuesta` + nota agregada.
+  - `has_proposal=false` → lead permanece `visita_realizada` (flag review automático tras 7 días pendiente para batch futuro).
+- Audit + ml_event para cada acción (`cita_realizada_by_asesor`, `cita_noshow`, `cita_followup_response`).
+
+**Frontend:**
+- Endpoint universal `GET /api/notifications` + `POST /api/notifications/{nid}/dismiss` para todos los roles.
+- `components/shared/CitaNotifBanner.js` (nuevo): polea `/api/notifications?unread_only=true` cada 60s; renderea inline banners actionables para `cita_post_check` y `cita_followup` + info-only para `cita_client_confirmed/cancelled/rescheduled`.
+- Cableado en `AdvisorLayout` y `InmobiliariaLayout` → aparece automáticamente en todas las páginas de asesor + inmobiliaria.
+
+### Verificación ✅
+- **Backend lint** Ruff OK; **Frontend lint** ESLint OK en 6 archivos modificados/creados.
+- **APScheduler**: 3 jobs registrados via `register_batch4_3_jobs(scheduler, db)` enganchados al scheduler IE existente. Backend startup limpio.
+- **curl smoke** (todos OK):
+  - `POST /api/internal/reminders/trigger` → `delivery_log` persistido con email stub + WhatsApp wa.me URL ✅
+  - `GET /api/cita/public/<token>` → 200 con datos legibles ✅; 404 token inválido ✅; 410 si status=`reagendada` post-fix ✅
+  - `POST /api/cita/public/<token>/confirm/cancel/reschedule` → 200 con audit + notif ✅
+  - `POST /api/cita/{id}/post-action {action:'realizada'}` → `lead.status='visita_realizada'` ✅
+  - `POST /api/leads/{id}/post-realizada-followup {has_proposal:true}` → `lead.status='propuesta'` + nota ✅
+- **Playwright smoke** (mobile 480x900): `/cita/:token` carga PublicCitaPage con 3 botones acción + reschedule-form abre correctamente ✅
+
+---
+
 ## 2026-05-02 — Phase 4 Batch 4.2 · Universal LeadKanban + Permission Tiers + client_id
 **Objetivo:** unificar los kanbans duplicados de leads en un único componente compartido + matriz de permisos jerárquica + visibilidad cross-project del cliente único.
 

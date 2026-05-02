@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { Home, BarChart, Users, Building, Settings, LogOut, MapPin, UserCheck } from '../icons';
+import CitaNotifBanner from '../shared/CitaNotifBanner';
 
 const NAV = [
   { k: 'dashboard', to: '/inmobiliaria', label: 'Dashboard', Icon: Home, end: true },
@@ -81,6 +82,7 @@ export default function InmobiliariaLayout({ user, onLogout, children }) {
       </aside>
 
       <main style={{ padding: '28px 32px', overflowY: 'auto', minHeight: '100vh' }}>
+        <CitaNotifBanner />
         {children}
       </main>
     </div>

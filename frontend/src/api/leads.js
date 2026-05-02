@@ -39,3 +39,10 @@ export const getAiSummary = (leadId) => j(`/api/leads/${leadId}/ai-summary`);
 
 // ─── Cross-project View ───────────────────────────────────────────────────
 export const getClientLeads = (clientGid) => j(`/api/clients/${clientGid}/leads`);
+
+// ─── Phase 4 Batch 4.3 — Cita lifecycle ───────────────────────────────────
+export const citaPostAction = (apptId, action, extra = {}) =>
+  post(`/api/cita/${apptId}/post-action`, { action, ...extra });
+
+export const leadPostRealizadaFollowup = (leadId, has_proposal, notes = null) =>
+  post(`/api/leads/${leadId}/post-realizada-followup`, { has_proposal, notes });
