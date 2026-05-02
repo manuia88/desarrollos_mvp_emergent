@@ -302,9 +302,15 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
     patch = {k: v for k, v in payload.model_dump().items() if v is not None}
     if "phones" in patch:
         patch["phones_norm"] = [_norm_phone(p) for p in patch["phones"]]
+    old_c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
     res = await db.asesor_contactos.update_one({"id": cid, "owner_id": user.user_id}, {"$set": patch})
     if not res.matched_count: raise HTTPException(404, "No encontrado")
     c = await db.asesor_contactos.find_one({"id": cid}, {"_id": 0})
+    # F0.1 — Audit log
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "update", "contacto", cid, before=old_c, after=c, request=request)
+    except Exception: pass
     return c
 
 
@@ -312,7 +318,13 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
 async def delete_contacto(cid: str, request: Request):
     user = await require_advisor(request)
     db = get_db(request)
+    old_c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
     r = await db.asesor_contactos.update_one({"id": cid, "owner_id": user.user_id}, {"$set": {"deleted_at": _now()}})
+    # F0.1 — Audit log
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "delete", "contacto", cid, before=old_c, after=None, request=request)
+    except Exception: pass
     return {"ok": bool(r.matched_count)}
 
 
@@ -637,6 +649,11 @@ async def create_operacion(payload: OperacionIn, request: Request):
     }
     await db.asesor_operaciones.insert_one(dict(item))
     item.pop("_id", None)
+    # F0.1 — Audit log
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "create", "operacion", item["id"], before=None, after=item, request=request)
+    except Exception: pass
     return item
 
 
@@ -666,6 +683,27 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
     # Closure: grant XP + increment cierres
     if payload.status == "cerrada":
         await db.asesor_profiles.update_one({"user_id": user.user_id}, {"$inc": {"xp": 250, "cierres_total": 1}}, upsert=True)
+    # Phase F0.11 — ML training event on status transition
+    try:
+        from observability import emit_ml_event
+        await emit_ml_event(
+            db, event_type="operacion_status_change",
+            user_id=user.user_id, org_id=getattr(user, "tenant_id", None), role=user.role,
+            context={"operacion_id": oid, "contacto_id": op.get("contacto_id"), "dev_id": op.get("dev_id"),
+                     "precio": op.get("precio"), "from_status": cur},
+            ai_decision={},
+            user_action={"to_status": payload.status, "reason": payload.reason or None},
+        )
+    except Exception: pass
+    # F0.1 — Audit log (kanban critical mutation + ML emit trigger)
+    try:
+        from audit_log import log_mutation
+        from observability import emit_ml_event as _emit
+        await log_mutation(db, user, "update", "operacion", oid,
+                           before={"status": cur}, after={"status": payload.status}, request=request)
+        await _emit(db, "mutation_logged", user.user_id, getattr(user, "tenant_id", None), user.role,
+                    context={"entity_type": "operacion", "action": "update"}, ai_decision={}, user_action={})
+    except Exception: pass
     return {"ok": True, "status": payload.status}
 
 
@@ -957,6 +995,18 @@ async def generate_argumentario_rag(payload: ArgumentarioRagIn, request: Request
     out = {k: v for k, v in result.items() if k != "_id"}
     out["generated_at"] = out["generated_at"].isoformat()
     out["expires_at"] = out["expires_at"].isoformat()
+    # Phase F0.11 — ML training seed for RAG quality
+    try:
+        from observability import emit_ml_event
+        await emit_ml_event(
+            db, event_type="argumentario_rag_generated",
+            user_id=user.user_id, org_id=getattr(user, "tenant_id", None), role=user.role,
+            context={"contact_id": payload.contact_id, "development_id": payload.development_id,
+                     "rag_chunks_count": len(chunks), "cost_usd": result["cost_usd"]},
+            ai_decision={"hook": result["hook"][:120], "citations_count": len(citations)},
+            user_action={},
+        )
+    except Exception: pass
     return {**out, "cache_hit": False}
 
 

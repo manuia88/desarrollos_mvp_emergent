@@ -373,6 +373,238 @@ Endpoints asesor (Fase 4, gated por role `advisor|asesor_admin|superadmin`):
 
 ---
 
+## 2026-05-01 — Phase F0.11 · Sentry + PostHog + ML events (observability)
+**Objetivo:** wiring completo de observability + seed infra para Phase 17 (ML continuous training).
+
+### Backend (`observability.py` · 260 líneas · nuevo)
+- **Sentry SDK** init antes de FastAPI app (auto-instrumentación): `traces_sample_rate=0.1`, `profiles_sample_rate=0.1`, replay on-error 1.0, integraciones FastApi + Starlette + Logging. Release + environment taggeados. `send_default_pii=false`.
+- **`sentry_tag_user(user_dict)`** inyectado en `get_current_user` (server.py) → cada request lleva tags `role`, `tenant_id`, `org_id` y user.id/email en el scope Sentry → issues filtrables por tenant.
+- **PostHog** init con `sync_mode=False` + host `us.i.posthog.com`. Helpers `capture_event()` + `identify_user()`.
+- **`emit_ml_event(db, event_type, user_id, org_id, role, context, ai_decision, user_action)`** — unified emitter que persiste en Mongo `ml_training_events` + mirror a PostHog con prefijo `dmx_ml_*` para filtrado.
+- **Schema bare-bones `ml_training_events`**: `{id, event_type, user_id, org_id, role, context:{}, ai_decision:{}, user_action:{}, ts}` con indexes en `event_type`, `user_id`, `org_id`, `ts desc`.
+- **Graceful no-op** cuando keys vacías: `_sentry_initialized=False`, `_posthog_client=None` → todos los helpers devuelven silenciosamente sin romper app.
+
+### Endpoints
+- `POST /api/ml/emit` — cualquier user autenticado; stamp automático de user_id/org_id/role.
+- `POST /api/_internal/test-sentry` — solo superadmin; lanza `RuntimeError` con timestamp + user_id para validar pipeline Sentry end-to-end.
+- `GET /api/_internal/observability/status` — counts para UI cards + flags enabled/disabled + links dashboards.
+
+### ML event triggers wired (alimentan Phase 17)
+- `routes_advisor.update_op_status` → `operacion_status_change` con from/to status + precio + contacto_id + dev_id.
+- `routes_advisor.generate_argumentario_rag` → `argumentario_rag_generated` con rag_chunks_count + cost_usd + hook preview.
+- (Futuro — escala C11: Caya hand_off, briefing IE feedback, compliance badge upgrade, etc.)
+
+### Frontend (`observability.js` · 110 líneas · `SuperadminObservabilityPage.js` · 180 líneas)
+- **`initObservability()`** en `index.js` bootstrap (antes de ReactDOM.render):
+  - Sentry React: `browserTracingIntegration` + `replayIntegration` · sample 0.1 · replay-on-error 1.0.
+  - PostHog JS: `autocapture: true` · `capture_pageview/pageleave` · `person_profiles: identified_only`.
+- **`identifyUser(u)`** invocado post-login (modal `onSuccess` + `checkAuth` en refresh) → Sentry setUser + setTags role/tenant_id/org_id + PostHog identify con properties role/org_id/email/name.
+- **`resetUser()`** en logout → Sentry.setUser(null) + posthog.reset().
+- **`emitMlEvent({event_type, context, ai_decision, user_action})`** helper compartido que mirror a PostHog client-side + POST `/api/ml/emit` (doble mirror por defensa).
+- **`/superadmin/observability`** (nueva página + nav link con AlertTriangle icon):
+  - 3 cards: Sentry status (Conectado/Stub) · PostHog status · ML events 24h count con breakdown top-4 por `event_type`.
+  - 3 botones acción: Actualizar · Forzar error (Sentry) · Emitir ml_event test.
+  - Banner footer con env + sample rates + autocapture flag.
+
+### Verificación end-to-end
+- ✅ Sentry **enabled** via `/api/_internal/observability/status` return `{enabled:true}`.
+- ✅ PostHog **enabled** con host `https://us.i.posthog.com`.
+- ✅ `POST /api/_internal/test-sentry` retorna HTTP 500 con stacktrace visible en backend.err.log (sentry_sdk.integrations.fastapi wrapea el handler → el SDK intercepta + envía a dashboard Sentry).
+- ✅ `POST /api/ml/emit` persiste en Mongo (`ml_events 24h: 2 types: {observability_smoke: 1, test_smoke: 1}` tras 2 llamadas).
+- ✅ PostHog recibe mirror `dmx_ml_*` events server-side + client-side.
+- ✅ Lint clean (frontend + backend).
+- ✅ Backend startup limpio con Sentry + PostHog inicializados.
+
+### Keys en .env
+Backend `/app/backend/.env`:
+```
+SENTRY_DSN=https://1036522abd...@o45112...ingest.us.sentry.io/45112...
+SENTRY_TOKEN=sntryu_ff9e2952...
+POSTHOG_KEY=phc_QuzLBkPBL4fzm...
+POSTHOG_HOST=https://us.i.posthog.com
+```
+Frontend `/app/frontend/.env`:
+```
+REACT_APP_SENTRY_DSN=https://1036522abd...@o45112...ingest.us.sentry.io/45112...
+REACT_APP_POSTHOG_KEY=phc_QuzLBkPBL4fzm...
+REACT_APP_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+### Archivos tocados
+- `/app/backend/observability.py` (nuevo · 260 líneas)
+- `/app/backend/server.py` (init_sentry + init_posthog antes de FastAPI + sentry_tag_user en get_current_user + identify_user post-login + router mount + ensure_ml_indexes startup)
+- `/app/backend/routes_advisor.py` (+ emit_ml_event en update_op_status + argumentario-rag)
+- `/app/backend/.env` (+SENTRY_DSN + SENTRY_TOKEN + POSTHOG_KEY + POSTHOG_HOST)
+- `/app/backend/requirements.txt` (sentry-sdk[fastapi] 2.20 + posthog 3.7 via pip)
+- `/app/frontend/src/observability.js` (nuevo · 110 líneas)
+- `/app/frontend/src/index.js` (initObservability bootstrap)
+- `/app/frontend/src/App.js` (identifyUser post-login + resetUser en logout + checkAuth)
+- `/app/frontend/src/pages/superadmin/SuperadminObservabilityPage.js` (nuevo · 180 líneas)
+- `/app/frontend/src/components/superadmin/SuperadminLayout.js` (+nav Observability)
+- `/app/frontend/src/App.js` (+route /superadmin/observability)
+- `/app/frontend/.env` (+REACT_APP_SENTRY_DSN + REACT_APP_POSTHOG_KEY + REACT_APP_POSTHOG_HOST)
+- `/app/frontend/package.json` (@sentry/react 8.49 + posthog-js 1.205 via yarn)
+- `/app/memory/PRD.md`
+
+### Phase 17 seeds activos
+`ml_training_events` ya recibe events reales. Cuando se implemente training continuo, el corpus estará ahí con schema consistente (context/ai_decision/user_action) desde hoy.
+
+### Source maps upload (bonus · pendiente)
+Sentry CLI hook para subir source maps en cada deploy frontend. Script listo para agregar a `package.json`:
+```
+"scripts": {
+  "sentry:release": "sentry-cli releases new -p dmx-frontend $DMX_RELEASE && sentry-cli releases files $DMX_RELEASE upload-sourcemaps build/static/js --url-prefix '~/static/js' && sentry-cli releases finalize $DMX_RELEASE"
+}
+```
+Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/project slugs. Lo dejamos documentado hasta integración CI.
+
+---
+
+
+## 2026-05-01 — Phase 4 Batch 1 · Dev Portal Foundation + Upload Ready
+**Objetivo:** Fundaciones del portal del desarrollador para datos reales. Founder puede subir proyectos reales después de este batch.
+
+### Backend (`routes_dev_batch1.py` · nuevo · ~1000 líneas)
+
+**4.1 Bulk Upload Excel/CSV:**
+- `POST /api/dev/bulk-upload/parse` — pandas parse CSV/xlsx, validación por fila, preview 100 filas, retorna `{total_rows, valid_rows, error_rows, detected_columns, preview}`
+- `POST /api/dev/bulk-upload/commit` — upsert validados a `developer_unit_overrides`, crea `bulk_upload_jobs` entry, audit_log + ML event
+- `GET /api/dev/bulk-upload/jobs` — historial de uploads
+
+**4.5 Geolocalización:**
+- `PATCH /api/dev/projects/:id/location` — guarda lat/lng/zoom en `dev_project_meta`
+- `GET /api/dev/projects` — lista proyectos con metadata de ubicación
+
+**4.7 Unit Holds (Apartado temporal):**
+- `POST /api/dev/units/:id/hold` — crea hold (1/24/48/72h), auto-marca unidad como "apartado"
+- `DELETE /api/dev/units/:id/hold` — libera hold, restaura "disponible"
+- `GET /api/dev/units/:id/hold` — estado actual + `remaining_seconds`
+- `GET /api/dev/holds` — lista holds activos por org
+- `auto_release_expired_holds` — cron job APScheduler cada 30min
+
+**4.9 + Phase 14 Dev Slice (Internal Users):**
+- `GET/POST /api/dev/internal-users` — lista/invita usuarios del equipo
+- `PATCH /api/dev/internal-users/:id` — actualiza rol/estado
+- `DELETE /api/dev/internal-users/:id` — deshabilita
+- `PATCH /api/dev/org/settings` — toggle `allow_external_inventory` + otros settings
+- Roles: `admin|commercial_director|comercial|obras|marketing`
+- Invitación genera `activation_token` + envío email via Resend (stub si no hay RESEND_API_KEY)
+
+**4.10 ERP Webhook Stubs:**
+- `GET/POST /api/dev/erp-webhooks` — config providers (EasyBroker, Salesforce, HubSpot, Pipedrive, GHL)
+- `POST /api/dev/erp-webhooks/:provider/event` — receiver stub honesto (log en `erp_webhook_events`, 200 siempre)
+- `GET /api/dev/erp-webhooks/:provider/events` — últimos eventos
+- API keys encriptadas con Fernet
+
+**4.15 Content Calendar:**
+- `POST /api/dev/content/upload` — submit pending
+- `GET /api/dev/content` — lista filtrable por status/type/project
+- `POST /api/dev/content/:id/approve|reject` — director action
+- `POST /api/dev/content/:id/publish` — published (solo approved)
+
+### Frontend (nuevas páginas + componentes)
+- **`BulkUploadModal.js`** — drag&drop zone + parse preview table (error highlighting rojo) + commit con override mode selector
+- **`MapboxPicker.js`** — click-to-set marker draggable + save lat/lng + token-missing fallback
+- **`DesarrolladorInventario.js`** (actualizado) — Bulk Upload button + Hold buttons per unit + CountdownBadge timer + release hold
+- **`DesarrolladorUsuarios.js`** — tabla team + invite modal + edit role/status + disable
+- **`DesarrolladorConfiguracion.js`** — org settings toggles + ERP integrations grid + test ping + ver eventos
+- **`DesarrolladorCalendarioSubidas.js`** — kanban 4 cols (pending/approved/published/rejected) + upload modal + MapboxPicker integrado
+- **`DeveloperLayout.js`** actualizado con nav items: Equipo, Contenido, Configuración
+
+### Verificación curl (todos exitosos):
+- ✅ Bulk parse CSV: 5 filas, 4 válidas, 1 error detectado correctamente
+- ✅ Bulk commit: 2 unidades committed, job_id generado, audit_log entry
+- ✅ Unit hold: hold creado, expires_at calculado, unit marcada "apartado"
+- ✅ Internal user: invitado con activation_token y invite_url
+- ✅ ERP webhook config: easybroker configurado con receiver URL
+- ✅ ERP stub receiver: POST recibido, event_id generado, stub:true
+- ✅ Content upload → approve: status "approved" correcto
+- ✅ Audit log: 9+ entries creados de batch1 + audit_log scope func
+- ✅ MongoDB: 11 índices en 5 colecciones nuevas
+- ✅ openpyxl 3.1.5 instalado + requirements.txt actualizado
+- ✅ Frontend: webpack compiled sin errores (1 warning webpack no crítico)
+
+### Archivos tocados
+- `/app/backend/routes_dev_batch1.py` (nuevo · ~1000 líneas)
+- `/app/backend/server.py` (+dev_batch1_router + ensure_dev_batch1_indexes)
+- `/app/backend/scheduler_ie.py` (+unit_holds_release cron cada 30min)
+- `/app/backend/requirements.txt` (+openpyxl 3.1.5)
+- `/app/frontend/src/api/developer.js` (+30 API helpers batch1)
+- `/app/frontend/src/components/developer/BulkUploadModal.js` (nuevo)
+- `/app/frontend/src/components/developer/MapboxPicker.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorInventario.js` (actualizado: bulk upload + holds)
+- `/app/frontend/src/pages/developer/DesarrolladorUsuarios.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorConfiguracion.js` (nuevo)
+- `/app/frontend/src/pages/developer/DesarrolladorCalendarioSubidas.js` (nuevo)
+- `/app/frontend/src/components/developer/DeveloperLayout.js` (+Equipo + Contenido + Configuración nav)
+- `/app/frontend/src/components/icons/index.js` (+Users + Settings + Plus)
+- `/app/frontend/src/App.js` (+3 rutas developer)
+- `/app/memory/PRD.md`
+
+---
+**Objetivo:** trazabilidad transversal de todas las mutaciones críticas. Prerrequisito para Phase 13/14 (multi-tenant whitelist) + GDPR (F0.6).
+
+### Backend (`audit_log.py` · nuevo · ~220 líneas)
+- **`log_mutation(db, actor, action, entity_type, entity_id, before, after, request)`** — fire-and-forget async Mongo insert (`asyncio.create_task`). Nunca levanta excepción. Calcula `diff_keys` automáticamente. Extrae `ip` + `user_agent` + `route` del objeto `Request`.
+- **`ensure_audit_log_indexes`** — 4 índices: `(actor.tenant_id, ts desc)`, `(entity_type, entity_id, ts desc)`, `(actor.user_id, ts desc)`, `(ts desc)`.
+- **`_scope_filter(user)`** — multi-tenant query guard:
+  - `superadmin` → sin filtro (ve todo).
+  - `developer_admin / inmobiliaria_admin / asesor_admin` → filtra por `actor.org_id == user.tenant_id`.
+  - `advisor / asesor` → filtra por `actor.user_id == user.user_id`.
+
+### Schema `audit_log`
+`{id, ts, actor:{user_id,role,org_id,tenant_id,name}, action: create|update|delete|revert, entity_type, entity_id, before:{}, after:{}, diff_keys:[], ip, user_agent, route, request_id}`
+
+### 3 Endpoints
+- `GET /api/audit/log?entity_type=&actor_user_id=&action=&from=&to=&page=&limit=` → lista paginada (filtra por scope del rol).
+- `GET /api/audit/log/entity/{entity_type}/{entity_id}` → trail completo de ese entity.
+- `GET /api/audit/log/stats` → counts 24h por action + top entity_types.
+
+### Wiring en 8 rutas críticas
+| Ruta | Archivo | action |
+|------|---------|--------|
+| `update_op_status` (kanban) | routes_advisor.py | update + ML emit |
+| `create_operacion` | routes_advisor.py | create |
+| `patch_contacto` | routes_advisor.py | update |
+| `delete_contacto` | routes_advisor.py | delete |
+| `patch_unit_status` | routes_developer.py | update + ML emit |
+| `upload_document` | routes_documents.py | create |
+| `sync_apply` | routes_documents.py | update |
+| `sync_revert` | routes_documents.py | revert + ML emit |
+
+### Frontend (`AuditLogPage.js` · 340 líneas · nuevo)
+- Tabla filtrable: fecha · actor (name+role badge) · acción badge (color-coded) · entity_type · campos diff pills · IP.
+- Filtros: entity_type select · action select · actor_user_id text · date range from/to.
+- Paginación con ChevronLeft/ChevronRight.
+- **Drawer** lateral 600px: meta-grid (actor/rol/tenant/fecha/ip/ruta) + diff_keys pills + JSON diff before/after con resaltado rojo/verde por campo modificado.
+- Stats strip 24h: total + breakdown por acción.
+- Nav link "Audit Log" en SuperadminLayout + ruta `/superadmin/audit-log` en App.js.
+
+### Verificación curl
+- ✅ Kanban move `propuesta → oferta_aceptada` → `audit_log` entry: `{action:update, entity_type:operacion, diff_keys:['status'], before:{status:propuesta}, after:{status:oferta_aceptada}, ip:real}`.
+- ✅ `GET /api/audit/log/stats` → `{total_24h:3, by_action:{update:3}, top_entities:[{operacion,contacto,unit}]}`.
+- ✅ `GET /api/audit/log/entity/operacion/op_xxx` → trail count: 1.
+- ✅ **Multi-tenant guard**: dev_admin (constructora_ariel) ve 1 record (sólo su unit update). Superadmin ve todos (3 records). Prueba "org A no ve logs de org B" ✅.
+- ✅ **MongoDB indexes**: 4 índices creados (`actor.tenant_id_1_ts_-1`, `entity_type_1_entity_id_1_ts_-1`, `actor.user_id_1_ts_-1`, `ts_-1`).
+- ✅ Backend startup limpio (0 errores, 0 excepciones).
+
+### Archivos tocados
+- `/app/backend/audit_log.py` (nuevo · 220 líneas)
+- `/app/backend/server.py` (+audit_router mount + ensure_audit_log_indexes en startup)
+- `/app/backend/routes_advisor.py` (+log_mutation en update_op_status + create_operacion + patch_contacto + delete_contacto)
+- `/app/backend/routes_developer.py` (+log_mutation en patch_unit_status)
+- `/app/backend/routes_documents.py` (+log_mutation en upload_document + sync_apply + sync_revert)
+- `/app/frontend/src/api/audit.js` (nuevo · fetchAuditLog + fetchEntityTrail + fetchAuditStats)
+- `/app/frontend/src/pages/superadmin/AuditLogPage.js` (nuevo · 340 líneas)
+- `/app/frontend/src/components/superadmin/SuperadminLayout.js` (+nav Audit Log + ClipboardList icon)
+- `/app/frontend/src/components/icons/index.js` (+ClipboardList icon)
+- `/app/frontend/src/App.js` (+route /superadmin/audit-log)
+- `/app/memory/PRD.md`
+
+---
+
+
+
 ## 2026-05-01 — Phase 7.9 (complement) + 7.11 upgrade · Status histórico + Drive Webhooks
 Cierre de Phase 7 al 100% con 2 mejoras complementarias.
 
@@ -552,7 +784,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://propiedades-next.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://latam-desarrollos.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -1508,7 +1740,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://propiedades-next.preview.emergentagent.com
+https://latam-desarrollos.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales

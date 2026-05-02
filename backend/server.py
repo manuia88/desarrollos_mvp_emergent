@@ -15,6 +15,11 @@ from pydantic import BaseModel
 
 load_dotenv()
 
+# Phase F0.11 — Sentry MUST init before FastAPI app for auto-instrumentation.
+from observability import init_sentry, init_posthog
+init_sentry()
+init_posthog()
+
 from data_seed import COLONIAS as SEED_COLONIAS, COLONIAS_BY_ID, PROPERTIES as SEED_PROPERTIES
 from data_developments import (
     DEVELOPMENTS, DEVELOPMENTS_BY_ID, ALL_UNITS,
@@ -107,6 +112,18 @@ from units_history import router as uh_router, dev_alias as uh_dev_alias, ensure
 app.include_router(uh_router)
 app.include_router(uh_dev_alias)
 
+# Phase F0.11 — Observability
+from observability import router as obs_router, ensure_ml_indexes as ensure_ml_indexes_fn
+app.include_router(obs_router)
+
+# Phase F0.1 — Audit Log
+from audit_log import router as audit_router, ensure_audit_log_indexes
+app.include_router(audit_router)
+
+# Phase 4 Batch 1 — Dev Portal Foundation
+from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
+app.include_router(dev_batch1_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -170,7 +187,13 @@ async def get_current_user(request: Request) -> Optional[UserOut]:
                     await db.user_sessions.delete_one({"session_token": session_token})
                     return None
             user_doc = await db.users.find_one({"user_id": sess["user_id"]}, {"_id": 0})
-            if user_doc: return UserOut(**user_doc)
+            if user_doc: 
+                u = UserOut(**user_doc)
+                try:
+                    from observability import sentry_tag_user
+                    sentry_tag_user(u.model_dump())
+                except Exception: pass
+                return u
 
     # 2. Check JWT access_token cookie (email/password path)
     access_token = request.cookies.get("access_token")
@@ -185,7 +208,12 @@ async def get_current_user(request: Request) -> Optional[UserOut]:
             user_doc = await db.users.find_one({"user_id": payload["sub"]}, {"_id": 0})
             if user_doc:
                 user_doc.pop("password_hash", None)
-                return UserOut(**user_doc)
+                u = UserOut(**user_doc)
+                try:
+                    from observability import sentry_tag_user
+                    sentry_tag_user(u.model_dump())
+                except Exception: pass
+                return u
         except Exception:
             return None
     return None
@@ -291,6 +319,12 @@ async def startup():
     await ensure_drive_indexes(db)
     # Phase 7.9 — units history indexes
     await ensure_units_history_indexes(db)
+    # Phase F0.11 — ML training events indexes
+    await ensure_ml_indexes_fn(db)
+    # Phase F0.1 — Audit log indexes
+    await ensure_audit_log_indexes(db)
+    # Phase 4 Batch 1 — Dev Portal indexes
+    await ensure_dev_batch1_indexes(db)
     try:
         async for o in db.dev_overlays.find({}, {"_id": 0}):
             _dev_overlay_cache[o["development_id"]] = o
@@ -338,7 +372,14 @@ async def login(payload: LoginIn, response: Response):
     response.set_cookie("access_token",  access,  httponly=True, secure=True, samesite="none", max_age=28800)
     response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000)
     user_doc.pop("_id", None); user_doc.pop("password_hash", None)
-    return {"user": UserOut(**user_doc)}
+    uo = UserOut(**user_doc)
+    # Phase F0.11 — PostHog identify + login event
+    try:
+        from observability import identify_user, capture_event
+        identify_user(uo.model_dump())
+        capture_event(uo.user_id, "user_logged_in", {"method": "password", "role": uo.role})
+    except Exception: pass
+    return {"user": uo}
 
 @app.post("/api/auth/session")  # Google OAuth
 async def create_session(payload: SessionCreate, response: Response):

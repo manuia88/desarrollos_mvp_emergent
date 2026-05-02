@@ -1,17 +1,20 @@
 // DeveloperLayout — sidebar nav for developer portal
 import React from 'react';
 import { Link, NavLink, useLocation, Navigate } from 'react-router-dom';
-import { Home, Database, BarChart, Sparkle, Radio, LogOut, MapPin } from '../icons';
+import { Home, Database, BarChart, Sparkle, Radio, LogOut, MapPin, Users, Settings, Calendar } from '../icons';
 
 const ROLES_OK = new Set(['developer_admin', 'superadmin']);
 
 const NAV = [
-  { k: 'dashboard',    to: '/desarrollador',              label: 'Panel',           Icon: Home,     end: true },
-  { k: 'inv',          to: '/desarrollador/inventario',   label: 'Inventario',      Icon: Database },
-  { k: 'dem',          to: '/desarrollador/demanda',      label: 'Demanda',         Icon: MapPin },
-  { k: 'rep',          to: '/desarrollador/reportes',     label: 'Reportes IA',     Icon: Sparkle },
-  { k: 'price',        to: '/desarrollador/pricing',      label: 'Pricing dinámico', Icon: BarChart },
-  { k: 'comp',         to: '/desarrollador/competidores', label: 'Radar',           Icon: Radio },
+  { k: 'dashboard',    to: '/desarrollador',                        label: 'Panel',           Icon: Home,     end: true },
+  { k: 'inv',          to: '/desarrollador/inventario',             label: 'Inventario',      Icon: Database },
+  { k: 'dem',          to: '/desarrollador/demanda',                label: 'Demanda',         Icon: MapPin },
+  { k: 'rep',          to: '/desarrollador/reportes',               label: 'Reportes IA',     Icon: Sparkle },
+  { k: 'price',        to: '/desarrollador/pricing',                label: 'Pricing dinámico', Icon: BarChart },
+  { k: 'comp',         to: '/desarrollador/competidores',           label: 'Radar',           Icon: Radio },
+  { k: 'usuarios',     to: '/desarrollador/usuarios',               label: 'Equipo',          Icon: Users },
+  { k: 'calendario',   to: '/desarrollador/calendario-subidas',     label: 'Contenido',       Icon: Calendar },
+  { k: 'config',       to: '/desarrollador/configuracion',          label: 'Configuración',   Icon: Settings },
 ];
 
 export default function DeveloperLayout({ user, onLogout, children }) {

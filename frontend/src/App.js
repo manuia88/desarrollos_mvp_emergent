@@ -48,6 +48,9 @@ import DesarrolladorDemanda from './pages/developer/DesarrolladorDemanda';
 import DesarrolladorReportes from './pages/developer/DesarrolladorReportes';
 import DesarrolladorLegajo from './pages/developer/DesarrolladorLegajo';
 import DesarrolladorPricing from './pages/developer/DesarrolladorPricing';
+import DesarrolladorUsuarios from './pages/developer/DesarrolladorUsuarios';
+import DesarrolladorConfiguracion from './pages/developer/DesarrolladorConfiguracion';
+import DesarrolladorCalendarioSubidas from './pages/developer/DesarrolladorCalendarioSubidas';
 import DesarrolladorCompetidores from './pages/developer/DesarrolladorCompetidores';
 
 // Superadmin (IE Engine Phase A)
@@ -57,6 +60,8 @@ import DataSourceDetailPage from './pages/superadmin/DataSourceDetailPage';
 import ScoresPage from './pages/superadmin/ScoresPage';
 import DocumentsPage from './pages/superadmin/DocumentsPage';
 import SuperadminDrivePage from './pages/superadmin/SuperadminDrivePage';
+import SuperadminObservabilityPage from './pages/superadmin/SuperadminObservabilityPage';
+import AuditLogPage from './pages/superadmin/AuditLogPage';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -82,8 +87,12 @@ function AuthProvider({ children }) {
   const checkAuth = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/auth/me`, { credentials: 'include' });
-      if (res.ok) setUser(await res.json());
-      else setUser(null);
+      if (res.ok) {
+        const u = await res.json();
+        setUser(u);
+        // Phase F0.11 — identify to Sentry + PostHog
+        try { const { identifyUser } = await import('./observability'); identifyUser(u); } catch {}
+      } else setUser(null);
     } catch {
       setUser(null);
     } finally {
@@ -104,6 +113,8 @@ function AuthProvider({ children }) {
   const logout = async () => {
     await fetch(`${API}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     setUser(null);
+    // Phase F0.11 — reset identity
+    try { const { resetUser } = await import('./observability'); resetUser(); } catch {}
   };
 
   const openAuth = useCallback((mode = 'login') => {
@@ -121,6 +132,8 @@ function AuthProvider({ children }) {
         onSuccess={(u) => {
           setUser(u);
           setAuthOpen(false);
+          // Phase F0.11 — identify after login
+          try { import('./observability').then(m => m.identifyUser(u)); } catch {}
           // Phase: redirect to role-specific portal after login.
           // If URL has ?next=... (set by AdvisorRoute on protected redirect), honour it.
           const params = new URLSearchParams(window.location.search);
@@ -246,6 +259,9 @@ function AppRouter() {
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
       <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
+      <Route path="/desarrollador/usuarios" element={<AdvisorRoute Page={DesarrolladorUsuarios} />} />
+      <Route path="/desarrollador/configuracion" element={<AdvisorRoute Page={DesarrolladorConfiguracion} />} />
+      <Route path="/desarrollador/calendario-subidas" element={<AdvisorRoute Page={DesarrolladorCalendarioSubidas} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />
@@ -254,6 +270,8 @@ function AppRouter() {
       <Route path="/superadmin/scores" element={<AdvisorRoute Page={ScoresPage} />} />
       <Route path="/superadmin/documents" element={<AdvisorRoute Page={DocumentsPage} />} />
       <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
+      <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
+      <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
 
       <Route path="*" element={<LandingPage />} />
     </Routes>

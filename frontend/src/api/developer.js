@@ -11,6 +11,7 @@ const j = async (url, opts = {}) => {
 };
 const post = (url, body) => j(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
 const patch = (url, body) => j(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+const del = (url) => j(url, { method: 'DELETE' });
 
 export const getDashboard = () => j('/api/desarrollador/dashboard');
 export const listInventory = (devId) => j(`/api/desarrollador/inventario${devId ? `?dev_id=${devId}` : ''}`);
@@ -26,3 +27,45 @@ export const getCompetitors = (devId, radius) => {
 };
 export const ackCompetitor = (b) => post('/api/desarrollador/competidores/alert-ack', b);
 export const getAudit = () => j('/api/desarrollador/audit');
+
+// Phase 4 Batch 1 — Bulk Upload
+export const bulkUploadParse = (formData) => j('/api/dev/bulk-upload/parse', { method: 'POST', body: formData });
+export const bulkUploadCommit = (b) => post('/api/dev/bulk-upload/commit', b);
+export const listBulkJobs = () => j('/api/dev/bulk-upload/jobs');
+
+// Phase 4 Batch 1 — Unit Holds
+export const createHold = (unitId, b) => post(`/api/dev/units/${unitId}/hold`, b);
+export const releaseHold = (unitId, devId) => del(`/api/dev/units/${unitId}/hold?dev_id=${devId}`);
+export const getHold = (unitId) => j(`/api/dev/units/${unitId}/hold`);
+export const listHolds = (devId) => j(`/api/dev/holds${devId ? `?dev_id=${devId}` : ''}`);
+
+// Phase 4 Batch 1 — Internal Users
+export const listInternalUsers = () => j('/api/dev/internal-users');
+export const createInternalUser = (b) => post('/api/dev/internal-users', b);
+export const patchInternalUser = (id, b) => patch(`/api/dev/internal-users/${id}`, b);
+export const deleteInternalUser = (id) => del(`/api/dev/internal-users/${id}`);
+
+// Phase 4 Batch 1 — Org Settings
+export const getOrgSettings = () => j('/api/dev/org/settings');
+export const patchOrgSettings = (b) => patch('/api/dev/org/settings', b);
+
+// Phase 4 Batch 1 — ERP Webhooks
+export const listErpWebhooks = () => j('/api/dev/erp-webhooks');
+export const createErpWebhook = (b) => post('/api/dev/erp-webhooks', b);
+export const patchErpWebhook = (id, b) => patch(`/api/dev/erp-webhooks/${id}`, b);
+export const listErpEvents = (provider) => j(`/api/dev/erp-webhooks/${provider}/events`);
+
+// Phase 4 Batch 1 — Content Calendar
+export const submitContent = (b) => post('/api/dev/content/upload', b);
+export const listContent = (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([,v]) => v)).toString();
+  return j(`/api/dev/content${qs ? `?${qs}` : ''}`);
+};
+export const approveContent = (id, b) => post(`/api/dev/content/${id}/approve`, b || {});
+export const rejectContent = (id, b) => post(`/api/dev/content/${id}/reject`, b || {});
+export const publishContent = (id) => post(`/api/dev/content/${id}/publish`);
+
+// Phase 4 Batch 1 — Geolocation
+export const saveProjectLocation = (projectId, b) => patch(`/api/dev/projects/${projectId}/location`, b);
+export const listProjects = () => j('/api/dev/projects');
+
