@@ -794,8 +794,9 @@ function GenerateSubtab({ onToast }) {
             padding: 12, borderRadius: 8,
             background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.30)',
             color: 'var(--green)', fontFamily: 'DM Sans', fontSize: 12,
+            display: 'flex', alignItems: 'center', gap: 6,
           }}>
-            ✓ Reporte listo · {result.size_kb} KB
+            <Check size={13} /> Reporte listo · {result.size_kb} KB
             <a href={leadsApi.reportDownloadUrl(result.file_id)} target="_blank" rel="noreferrer"
               style={{ marginLeft: 12, color: 'var(--cream)', textDecoration: 'underline' }}>
               Descargar

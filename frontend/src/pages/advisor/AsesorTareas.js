@@ -4,6 +4,7 @@ import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, relDate, isOverdue } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
 import { Clock } from '../../components/icons';
+import { Check } from 'lucide-react';
 import SortableList from '../../components/shared/SortableList';
 import { reorderTareas } from '../../api/batch17';
 import { useServerUndo } from '../../components/shared/UndoSnackbar';
@@ -101,7 +102,7 @@ export default function AsesorTareas({ user, onLogout }) {
                               <Badge tone={t.prioridad === 'alta' ? 'bad' : t.prioridad === 'baja' ? 'neutral' : 'warn'}>{t.prioridad}</Badge>
                             </div>
                           </div>
-                          <button onClick={() => complete(t.id)} data-testid={`tarea-done-${t.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: 10 }}>✓</button>
+                          <button onClick={() => complete(t.id)} data-testid={`tarea-done-${t.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '4px 8px' }}><Check size={11} /></button>
                         </div>
                       </div>
                     ))}

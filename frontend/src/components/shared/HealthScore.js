@@ -83,7 +83,6 @@ export function HealthScore({
         </svg>
         <div
           className="absolute inset-0 flex flex-col items-center justify-center leading-none"
-          style={{ transform: 'rotate(0deg)' }}
         >
           <span className="font-bold tabular-nums" style={{ fontSize: numSize, color, lineHeight: 1.1 }}>
             {Math.round(score)}
@@ -95,7 +94,7 @@ export function HealthScore({
       {/* Breakdown popover */}
       {open && (
         <div
-          className="absolute top-full mt-2 z-50 w-[220px] rounded-xl bg-[#131722] border border-[rgba(240,235,224,0.12)] shadow-2xl p-3"
+          className="absolute top-full mt-2 z-50 w-[220px] rounded-xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] p-3"
           data-testid="health-score-breakdown"
         >
           <p className="text-[rgba(240,235,224,0.4)] text-[10px] uppercase tracking-widest mb-2.5">

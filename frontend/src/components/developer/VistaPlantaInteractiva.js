@@ -22,9 +22,10 @@ import { FilterChipsBar } from '../shared/FilterChipsBar';
 import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
 import { SmartEmptyState } from '../shared/SmartEmptyState';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { useDensity } from '../../hooks/useDensity';
 import {
-  ZoomIn, ZoomOut, Maximize2, Edit3, Upload, Save, X,
-  ChevronDown, Layers,
+  ZoomIn, ZoomOut, Maximize2, Edit3, Upload, X,
 } from 'lucide-react';
 import {
   getProjectFloors,
@@ -32,6 +33,9 @@ import {
   putFloorLayout,
   patchUnitPosition,
 } from '../../api/developer';
+
+// Max background image size (frontend mirror of backend cap; B18.5)
+const MAX_BG_BYTES = 500 * 1024;
 
 // ─── Status color config ────────────────────────────────────────────────────
 const STATUS_CFG = {
@@ -43,13 +47,6 @@ const STATUS_CFG = {
 };
 
 const fmtM = (v) => v == null ? null : `$${(v / 1_000_000).toFixed(1)}M`;
-
-// ─── Density helper ─────────────────────────────────────────────────────────
-function getDensity() {
-  if (document.body.classList.contains('density-compact'))   return 'compact';
-  if (document.body.classList.contains('density-spacious'))  return 'spacious';
-  return 'comfortable';
-}
 
 // ─── UnitRect SVG primitive ─────────────────────────────────────────────────
 function UnitRect({ unit, editMode, onSelect, onHover, onDragStart, onResizeStart, density }) {
@@ -89,10 +86,10 @@ function UnitRect({ unit, editMode, onSelect, onHover, onDragStart, onResizeStar
         rx={5}
         fill={cfg.bg}
         stroke={hovered ? cfg.color : `${cfg.border}80`}
-        strokeWidth={hovered ? 2 : 1.5}
+        strokeWidth={hovered ? 2.5 : 1.5}
         style={{
-          transition: 'stroke 0.1s',
-          transform: hovered && !editMode ? `translate(${x + width / 2}px, ${y + height / 2}px) scale(1.05) translate(${-(x + width / 2)}px, ${-(y + height / 2)}px)` : undefined,
+          transition: 'stroke 0.15s, stroke-width 0.15s, opacity 0.15s',
+          opacity: hovered && !editMode ? 1 : 0.92,
         }}
         onMouseDown={editMode ? (e) => { e.stopPropagation(); onDragStart?.(e, unit.id, 'move'); } : undefined}
       />
@@ -240,8 +237,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
 
   const svgRef = useRef(null);
   const containerRef = useRef(null);
-  const density = getDensity();
-  const isMobile = () => window.innerWidth <= 768;
+  const { density } = useDensity();
+  const isMobileViewport = useIsMobile(768);
 
   const isAdmin = user?.role === 'developer_admin' || user?.role === 'superadmin';
 
@@ -355,6 +352,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
           await patchUnitPosition(dragState.unitId, {
             ...unit.position,
             floor_number: selectedFloor,
+            project_id: devId,
           });
           // Mark as no longer auto-positioned
           setDisplayUnits(prev => prev.map(u =>
@@ -388,10 +386,12 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
 
   useEffect(() => {
     const el = svgRef.current;
-    if (!el) return;
+    if (!el) return undefined;
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
-  }, [handleWheel]);
+    // displayUnits.length is included so the listener attaches once the SVG mounts
+    // (initial render returns a fallback DIV when displayUnits is empty).
+  }, [handleWheel, displayUnits.length]);
 
   // ─── Touch pinch-zoom ────────────────────────────────────────────────────
   const handleTouchStart = useCallback((e) => {
@@ -530,7 +530,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
   }
 
   const bgUrl = floorData?.layout?.svg_background_url;
-  const mobile = isMobile();
+  const mobile = isMobileViewport;
 
   return (
     <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

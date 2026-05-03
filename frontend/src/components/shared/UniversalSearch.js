@@ -121,7 +121,7 @@ export function UniversalSearch({ onClose, user }) {
       data-testid="universal-search-modal"
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-      <div className="relative w-full max-w-xl mx-4 rounded-2xl bg-[#0f1320] border border-[rgba(240,235,224,0.12)] shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-xl mx-4 rounded-2xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] overflow-hidden">
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(240,235,224,0.08)]">
           <Search size={17} className="text-[rgba(240,235,224,0.4)] shrink-0" />

@@ -17,6 +17,7 @@ import { HealthScoreWidget } from './HealthScoreWidget';
 import { SmartEmptyState } from './SmartEmptyState';
 import { pushRecentProject, getMyPreferences } from '../../api/preferences18';
 import { listProjectsWithStats } from '../../api/developer';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,10 +29,6 @@ function useDebounce(value, delay) {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
-}
-
-function isMobile() {
-  return window.innerWidth <= 430;
 }
 
 // ─── Single project item row ──────────────────────────────────────────────────
@@ -261,10 +258,10 @@ export function ProjectSwitcher({ user }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  // Cmd+P / Ctrl+P shortcut
+  // Cmd+/ / Ctrl+/ shortcut (B18.5: was Cmd+P, conflicted with native print dialog)
   useEffect(() => {
     const handler = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
         setOpen(o => !o);
       }
@@ -293,7 +290,7 @@ export function ProjectSwitcher({ user }) {
     navigate(`/desarrollador/proyectos/${projectId}`);
   }, [navigate]);
 
-  const mobile = isMobile();
+  const mobile = useIsMobile(430);
 
   // ─── Trigger button ─────────────────────────────────────────────────────
   const triggerButton = (
@@ -308,7 +305,7 @@ export function ProjectSwitcher({ user }) {
         cursor: 'pointer', transition: 'all 0.15s',
         maxWidth: 220,
       }}
-      title="Cambiar proyecto (Cmd+P)"
+      title="Cambiar proyecto (Cmd+/)"
     >
       <Building size={13} color={open ? '#818CF8' : 'rgba(240,235,224,0.5)'} style={{ flexShrink: 0 }} />
       <span style={{

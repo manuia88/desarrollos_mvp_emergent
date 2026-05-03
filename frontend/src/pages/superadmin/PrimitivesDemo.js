@@ -316,7 +316,7 @@ export default function PrimitivesDemo({ user, onLogout }) {
             accept="image/*,.pdf"
             maxSizeMB={5}
             maxFiles={4}
-            onUpload={(files) => console.log('Archivos:', files.map(f => f.name))}
+            onUpload={() => { /* Demo upload — no-op */ }}
             data-testid="demo-drag-drop"
           />
         </Section>

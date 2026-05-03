@@ -135,7 +135,7 @@ def test_patch_unit_position_persists(admin):
 
     r = admin.patch(
         f"/api/units/{uid}/position",
-        json={"x": 123, "y": 456, "width": 90, "height": 70, "floor_number": TEST_FLOOR},
+        json={"x": 123, "y": 456, "width": 90, "height": 70, "floor_number": TEST_FLOOR, "project_id": TEST_PROJECT},
     )
     assert r.status_code == 200, r.text
     assert r.json()["ok"] is True

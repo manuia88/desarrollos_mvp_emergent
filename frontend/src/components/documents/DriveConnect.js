@@ -187,8 +187,8 @@ export default function DriveConnect({ devId, role = 'developer_admin' }) {
               {conn.status === 'error' ? <AlertTriangle size={11} /> : <CheckCircle size={11} />}
               Drive conectado · sync {fmtAgo(conn.last_sync_at)}
             </span>
-            <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--cream-3)' }}>
-              📁 {conn.folder_name || conn.folder_id}
+            <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'var(--cream-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Folder size={11} /> {conn.folder_name || conn.folder_id}
             </span>
             <button onClick={onSyncNow} disabled={busy} data-testid="drive-sync-now" style={btnGlass}>
               <RefreshCw size={11} /> {busy ? 'Sincronizando…' : 'Sincronizar ahora'}
