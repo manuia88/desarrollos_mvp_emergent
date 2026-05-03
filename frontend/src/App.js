@@ -103,6 +103,9 @@ const PreferenciasPage           = lazy(() => import('./pages/configuracion/Pref
 // Phase 4 Batch 19 — Branding page
 const BrandingPage               = lazy(() => import('./pages/configuracion/BrandingPage'));
 
+// Phase 4 Batch 21 Sub-A — Team metrics
+const MetricasEquipo             = lazy(() => import('./pages/developer/MetricasEquipo'));
+
 const API = process.env.REACT_APP_BACKEND_URL;
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
@@ -365,6 +368,9 @@ function AppRouter() {
 
       {/* Phase 4 Batch 19 — Branding */}
       <Route path="/configuracion/branding" element={<AdvisorRoute Page={BrandingPage} />} />
+
+      {/* Phase 4 Batch 21 Sub-A — Team metrics */}
+      <Route path="/desarrollador/crm/metricas-equipo" element={<AdvisorRoute Page={MetricasEquipo} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>
