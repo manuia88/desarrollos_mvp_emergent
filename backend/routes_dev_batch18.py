@@ -151,17 +151,20 @@ async def patch_my_preferences(payload: PreferencesPatch, request: Request):
     if len(updates) == 1:  # only updated_at → nothing to do
         return {"ok": True, "updated": []}
 
+    # Find top-level parent keys that have dot-notation descendants in updates
+    # to avoid MongoDB conflict between parent key and child key in same operation.
+    _dot_parents = {k.split(".")[0] for k in updates if "." in k}
+
     await db.user_preferences.update_one(
         {"user_id": user.user_id},
         {
             "$set": updates,
             "$setOnInsert": {
                 "user_id": user.user_id,
-                # Exclude any key that is a prefix of a dot-notation key already in $set
+                # Exclude keys already in $set AND keys that are parents of dot-notation $set keys
                 **{
                     k: v for k, v in DEFAULTS.items()
-                    if k not in updates
-                    and not any(uk.startswith(k + ".") for uk in updates)
+                    if k not in updates and k not in _dot_parents
                 },
             },
         },
