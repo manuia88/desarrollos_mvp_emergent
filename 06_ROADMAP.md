@@ -24,7 +24,7 @@
 | Phase | Status | Estimado |
 |---|---|---|
 | Phase 4 Dev Module (original v1) | ✅ shipped 16 batches | ~78h |
-| Phase 4 Dev REFACTOR | 🟡 11/16 shipped (B0/B0.5/B10-B18), 5 pending | ~157h total |
+| Phase 4 Dev REFACTOR | 🟡 13/16 shipped (B0/B0.5/B10-B19), 4 pending | ~157h total |
 | Phase 1 Marketplace gaps | 🟡 pending | ~30h |
 | Phase 2 Comprador | 🟡 pending | ~12-14h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
@@ -63,12 +63,13 @@
 | ✅ B17 | SortableList + Inline edit genérico + FilterChipsBar enhanced + Undo server-side | 7 | 13/13 pytest · 50/50 regresión · 30+ campos whitelisted 8 entity_types · undo_log TTL 10min · 7+ mutations wired · Kanban+Documents HTML5 conservados |
 | ✅ B18 | Density Toggle + Project Switcher topbar + Vista Planta 2.0 Interactiva | 5 | Sub-A 7/7 + Sub-B 8/8 pytest · `useDensity` + 3 CSS vars · ProjectSwitcher Cmd+P + recent FIFO · SVG canvas zoom/pan/pinch · UnitRect density-aware · edit mode drag+resize+upload · mobile bottom sheet |
 | ✅ B18.5 | Fix-Pass (19 bugs B18 + 5 design violations) | 3 | 21/21 pytest · 3 críticos (getDashboard restore + project_id explicit + Cmd+P→Cmd+/) + 7 high + 5 design (shadow-2xl→border+backdrop, emojis→SVG, scale/rotate→translateY, console.log, focus-visible global) + migration script · PR #5 |
+| ✅ B19 | Onboarding tour + Keyboard shortcuts + Help dialog + Personalization brand + Cross-portal sync + Modo presentación | 7 | 17/17 pytest · react-joyride + 5 tours + useTour + useKeyboardShortcuts (12 shortcuts) + KeyboardHelpDialog · branding org schema + 4 endpoints + cross_portal_events polling · usePresentationMode + anonymize hash + 5 vistas wired |
+| ✅ B19.5 | Fix-Pass (Branding 100% + PII completar) | 1.5 | 22/22 pytest · branding_helpers compartido · PDF reportes + email templates + public booking con dev_branding · DesarrolladorLeads PII anonymize + DesarrolladorPricing pricing-blur · bonus /desarrollador/leads route restored · SHA 5e547b5 |
 
-### Pendientes (~35h restantes)
+### Pendientes (~28h restantes)
 
 | # | Batch | h | Foco |
 |---|---|---|---|
-| 🟡 B19 | Onboarding tour + Personalization + Cross-portal feedback + Keyboard shortcuts + Modo presentación | 7 | |
 | 🟡 B20 | Asesor metrics + Links tracking + Conversion funnel + Sankey | 8 | PostHog UTM funnel ficha→reservar→confirmación · AI budget suggestion per campaña · Sankey atribución |
 | 🟡 B21 | Dev CRM > Métricas equipo aggregated | 5 | |
 | 🟡 B22 | Insights tab dentro proyecto | 9 | Engagement actor split + Cash Flow + Comparables + IA con sub-tabs |
