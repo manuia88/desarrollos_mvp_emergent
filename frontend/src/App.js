@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { UndoProvider } from './components/shared/UndoSnackbar';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { PresentationModeProvider } from './hooks/usePresentationMode';
 
 // Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
@@ -98,6 +99,9 @@ const AutoAssignments            = lazy(() => import('./pages/developer/AutoAssi
 
 // Phase 4 Batch 18 Sub-A — Density + Preferences page
 const PreferenciasPage           = lazy(() => import('./pages/configuracion/PreferenciasPage'));
+
+// Phase 4 Batch 19 — Branding page
+const BrandingPage               = lazy(() => import('./pages/configuracion/BrandingPage'));
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -359,6 +363,9 @@ function AppRouter() {
       {/* Phase 4 Batch 18 Sub-A — Density + Preferences */}
       <Route path="/configuracion/preferencias" element={<AdvisorRoute Page={PreferenciasPage} />} />
 
+      {/* Phase 4 Batch 19 — Branding */}
+      <Route path="/configuracion/branding" element={<AdvisorRoute Page={BrandingPage} />} />
+
       <Route path="*" element={<FallbackRoute />} />
     </Routes>
     </Suspense>
@@ -478,10 +485,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <UndoProvider>
-        <AuthProvider>
-          <CustomCursor />
-          <AppRouter />
-        </AuthProvider>
+        <PresentationModeProvider>
+          <AuthProvider>
+            <CustomCursor />
+            <AppRouter />
+          </AuthProvider>
+        </PresentationModeProvider>
       </UndoProvider>
     </BrowserRouter>
   );

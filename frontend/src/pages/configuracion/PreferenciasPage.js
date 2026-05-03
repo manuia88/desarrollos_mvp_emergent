@@ -5,10 +5,14 @@
  * B18.5: wrapped in PortalLayout so users keep the portal nav/topbar context.
  */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMyPreferences, patchMyPreferences } from '../../api/preferences18';
 import { invalidateDensityCache } from '../../hooks/useDensity';
 import { PortalLayout } from '../../components/shared/PortalLayout';
-import { Check } from 'lucide-react';
+import { usePresentationMode } from '../../hooks/usePresentationMode';
+import { useTour } from '../../hooks/useTour';
+import { getFirstLoginTourId } from '../../config/tours';
+import { Check, Monitor } from 'lucide-react';
 
 const DENSITIES = [
   {
@@ -74,6 +78,12 @@ export default function PreferenciasPage({ user, onLogout }) {
   const [saving, setSaving] = useState(null);
   const [saved, setSaved] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Presentation mode state
+  const { isActive: pmActive, config: pmConfig, toggle: pmToggle, setConfig: pmSetConfig } = usePresentationMode();
+
+  // Tour restart
+  const { startTour } = useTour(user);
 
   useEffect(() => {
     getMyPreferences()
@@ -249,6 +259,123 @@ export default function PreferenciasPage({ user, onLogout }) {
             </span>
           </div>
         )}
+
+        {/* ─── Presentation Mode Section (B19 Sub-C) ────────────────────────── */}
+        <div style={{ marginTop: 48 }}>
+          <div style={{ marginBottom: 24 }}>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Modo Presentación · Cmd+Shift+P</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: 0, marginBottom: 8 }}>
+              Modo Presentación
+            </h2>
+            <p style={{ color: 'var(--cream-2)', fontSize: 13, lineHeight: 1.6, margin: 0, maxWidth: 520 }}>
+              Para mostrar el portal a clientes o inversionistas sin exponer datos sensibles (PII, precios internos, notas).
+            </p>
+          </div>
+
+          <div style={{
+            background: 'rgba(240,235,224,0.03)', border: '1px solid rgba(240,235,224,0.1)',
+            borderRadius: 14, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18,
+          }}>
+
+            {/* Main activate button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 4 }}>
+                  {pmActive ? 'Modo Presentación activo' : 'Modo Presentación inactivo'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>
+                  Activa con <kbd style={{ padding: '1px 5px', borderRadius: 4, background: 'rgba(240,235,224,0.1)', border: '1px solid rgba(240,235,224,0.2)', fontFamily: 'DM Mono', fontSize: 10 }}>Cmd+Shift+P</kbd>
+                </div>
+              </div>
+              <button
+                data-testid="presentation-mode-toggle-btn"
+                onClick={pmToggle}
+                style={{
+                  padding: '9px 18px', borderRadius: 9999,
+                  background: pmActive ? 'rgba(34,197,94,0.15)' : 'rgba(99,102,241,0.12)',
+                  border: `1px solid ${pmActive ? 'rgba(34,197,94,0.4)' : 'rgba(99,102,241,0.35)'}`,
+                  color: pmActive ? 'var(--green)' : 'var(--cream)',
+                  fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s',
+                }}
+              >
+                <Monitor size={14} />
+                {pmActive ? 'Desactivar' : 'Activar ahora'}
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid rgba(240,235,224,0.08)' }} />
+
+            {/* Config toggles */}
+            {[
+              { field: 'anonymize_pii', label: 'Anonimizar datos de contacto', desc: 'Nombres, email y teléfono de leads → "Lead 001"', defaultOn: true },
+              { field: 'hide_pricing', label: 'Ocultar precios', desc: 'Precios de unidades y comisiones quedan borrosos', defaultOn: false },
+              { field: 'hide_internal_notes', label: 'Ocultar notas internas', desc: 'Notas y comentarios internos del equipo no se muestran', defaultOn: true },
+            ].map(({ field, label, desc, defaultOn }) => {
+              const val = pmConfig[field] !== undefined ? pmConfig[field] : defaultOn;
+              return (
+                <div key={field} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cream-2)', marginBottom: 3 }}>{label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>{desc}</div>
+                  </div>
+                  <button
+                    data-testid={`pm-toggle-${field}`}
+                    onClick={() => pmSetConfig({ [field]: !val })}
+                    style={{
+                      width: 44, height: 24, borderRadius: 12, border: 'none',
+                      background: val ? 'rgba(99,102,241,0.55)' : 'rgba(240,235,224,0.12)',
+                      cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute', top: 3, left: val ? 22 : 3,
+                      width: 18, height: 18, borderRadius: 9,
+                      background: 'white', transition: 'left 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    }} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ─── Tour onboarding restart ────────────────────────────────────────── */}
+        <div style={{ marginTop: 40 }}>
+          <div style={{ marginBottom: 16 }}>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Onboarding</div>
+            <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: 0, marginBottom: 4 }}>
+              Tour de bienvenida
+            </h2>
+          </div>
+          <div style={{
+            background: 'rgba(240,235,224,0.03)', border: '1px solid rgba(240,235,224,0.1)',
+            borderRadius: 12, padding: '16px 20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <p style={{ fontSize: 13, color: 'var(--cream-2)', margin: 0, lineHeight: 1.6 }}>
+              Volver a ver el tour de onboarding para tu rol.
+            </p>
+            <button
+              data-testid="restart-tour-btn"
+              onClick={() => {
+                const tourId = getFirstLoginTourId(user?.role || 'developer_admin');
+                if (tourId) startTour(tourId);
+              }}
+              style={{
+                padding: '8px 16px', borderRadius: 9999, whiteSpace: 'nowrap',
+                background: 'rgba(240,235,224,0.08)', border: '1px solid rgba(240,235,224,0.2)',
+                color: 'var(--cream-2)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
+                cursor: 'pointer', flexShrink: 0, marginLeft: 16,
+              }}
+            >
+              Volver a ver tour
+            </button>
+          </div>
+        </div>
+
         </div>
 
         <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }`}</style>

@@ -11,6 +11,8 @@ import { SetupChecklist } from '../../components/shared/SetupChecklist';
 import { FloatingQuickActions } from '../../components/shared/FloatingQuickActions';
 import { resolveQuickActions } from '../../config/quickActions';
 import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar, Building } from '../../components/icons';
+import { usePresentationMode } from '../../hooks/usePresentationMode';
+import { blurPriceCSS } from '../../lib/anonymize';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -109,6 +111,9 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
   const [data, setData] = useState(null);
   const [syncPending, setSyncPending] = useState({ count: 0, items: [] });
 
+  // B19 Sub-C — Presentation mode
+  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
+
   useEffect(() => {
     api.getDashboard().then(setData).catch(() => setData(null));
     docsApi.getSyncPending('developer').then(setSyncPending).catch(() => {});
@@ -151,8 +156,8 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
               <Stat label="Reservadas" value={data.units_reserved} accent="#fcd34d" />
               <Stat label="Vendidas" value={data.units_sold} accent="#86efac" />
               <Stat label="Absorción" value={`${data.absorption_pct}%`} />
-              <Stat label="Ingresos cerrados" value={fmtMXN(data.revenue_booked)} accent="#86efac" />
-              <Stat label="Pipeline reservado" value={fmtMXN(data.revenue_pipeline)} accent="#fcd34d" />
+              <Stat label="Ingresos cerrados" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtMXN(data.revenue_booked)}</span>} accent="#86efac" />
+              <Stat label="Pipeline reservado" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtMXN(data.revenue_pipeline)}</span>} accent="#fcd34d" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }} className="ddash-grid">

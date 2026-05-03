@@ -17,6 +17,13 @@ import { UniversalSearch } from './UniversalSearch';
 import { NotificationsBell } from './NotificationsBell';
 import ReportProblemButton from './ReportProblemButton';
 import { useDensity } from '../../hooks/useDensity';
+import { usePresentationMode } from '../../hooks/usePresentationMode';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useTour } from '../../hooks/useTour';
+import { useBranding } from '../../hooks/useBranding';
+import { useCrossPortalEvents } from '../../hooks/useCrossPortalEvents';
+import KeyboardHelpDialog from './KeyboardHelpDialog';
+import Joyride from 'react-joyride';
 import {
   ChevronDown, ChevronRight, Menu, X, Search, LogOut, User,
   ChevronLeft, Settings,
@@ -121,10 +128,40 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
   const [badges, setBadges] = useState({});
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const userMenuRef = useRef(null);
 
   // Phase 4 Batch 18 Sub-A — apply density class to <body>
   useDensity();
+
+  // Phase 4 Batch 19 Sub-C — Presentation Mode
+  const { isActive: isPresentationMode, toggle: togglePresentation } = usePresentationMode();
+
+  // Phase 4 Batch 19 Sub-B — Org Branding
+  const { branding } = useBranding(!!user);
+
+  // Phase 4 Batch 19 Sub-A — Onboarding Tour
+  const { run: tourRun, steps: tourSteps, stepIndex: tourStep, handleJoyrideCallback, startTour } = useTour(user);
+
+  // Phase 4 Batch 19 Sub-A — Keyboard shortcuts (centralized)
+  useKeyboardShortcuts([
+    { combo: 'mod+k',       handler: () => setSearchOpen(true) },
+    { combo: '?',            handler: () => setHelpOpen(true) },
+    { combo: 'mod+b',       handler: () => setCollapsed(c => !c) },
+    { combo: 'mod+shift+p', handler: togglePresentation },
+    { combo: 'g h',         handler: () => navigate('/desarrollador') },
+    { combo: 'g p',         handler: () => navigate('/desarrollador/proyectos') },
+    { combo: 'g c',         handler: () => navigate('/desarrollador/crm') },
+    { combo: 'g l',         handler: () => navigate('/desarrollador/crm?tab=pipeline') },
+    { combo: 'Escape',      handler: () => {
+      if (helpOpen) setHelpOpen(false);
+      if (searchOpen) setSearchOpen(false);
+      if (userMenuOpen) setUserMenuOpen(false);
+    }},
+  ]);
+
+  // Phase 4 Batch 19 Sub-B — Cross-portal events polling
+  useCrossPortalEvents(!!user);
 
   const tiers = navByRole[role] || navByRole['buyer'] || [];
 
@@ -145,17 +182,8 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
     return () => clearInterval(interval);
   }, [role]);
 
-  // Global Cmd+K shortcut
-  useEffect(() => {
-    const handler = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+  // Global Cmd+K shortcut — now handled by useKeyboardShortcuts in main layout
+  // (kept as no-op to not remove the useEffect cleanup)
 
   // Close user menu on outside click
   useEffect(() => {
@@ -246,9 +274,100 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
 
   return (
     <div className="flex h-screen bg-[var(--navy)] overflow-hidden" data-testid="portal-layout">
+      {/* Presentation Mode Badge */}
+      {isPresentationMode && (
+        <div className="presentation-badge" data-testid="presentation-badge">
+          Modo presentación · {typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent) ? '⌘' : 'Ctrl'}+Shift+P para salir
+        </div>
+      )}
+
+      {/* Joyride Tour */}
+      {tourSteps.length > 0 && (
+        <Joyride
+          steps={tourSteps}
+          run={tourRun}
+          stepIndex={tourStep}
+          callback={handleJoyrideCallback}
+          continuous
+          showProgress
+          showSkipButton
+          disableScrolling={false}
+          locale={{
+            back: 'Anterior',
+            close: 'Cerrar',
+            last: 'Finalizar',
+            next: 'Siguiente',
+            skip: 'Saltar tour',
+          }}
+          styles={{
+            options: {
+              primaryColor: '#6366F1',
+              backgroundColor: 'rgba(13,16,23,0.97)',
+              textColor: '#F0EBE0',
+              arrowColor: 'rgba(13,16,23,0.97)',
+              overlayColor: 'rgba(0,0,0,0.55)',
+              zIndex: 8000,
+            },
+            tooltip: {
+              borderRadius: 16,
+              border: '1px solid rgba(255,255,255,0.16)',
+              backdropFilter: 'blur(24px)',
+              padding: '20px 24px',
+            },
+            tooltipTitle: {
+              fontFamily: 'Outfit',
+              fontWeight: 800,
+              fontSize: 16,
+              color: '#F0EBE0',
+            },
+            tooltipContent: {
+              fontFamily: 'DM Sans',
+              fontSize: 14,
+              color: 'rgba(240,235,224,0.7)',
+              paddingTop: 6,
+            },
+            buttonNext: {
+              borderRadius: 9999,
+              fontFamily: 'DM Sans',
+              fontWeight: 700,
+              background: '#6366F1',
+              color: '#fff',
+              border: 'none',
+              padding: '8px 18px',
+            },
+            buttonSkip: {
+              borderRadius: 9999,
+              fontFamily: 'DM Sans',
+              fontSize: 12,
+              color: 'rgba(240,235,224,0.45)',
+              background: 'none',
+            },
+            buttonBack: {
+              borderRadius: 9999,
+              fontFamily: 'DM Sans',
+              fontSize: 12,
+              color: 'rgba(240,235,224,0.55)',
+              background: 'none',
+            },
+          }}
+        />
+      )}
+
+      {/* Keyboard Help Dialog */}
+      {helpOpen && (
+        <KeyboardHelpDialog
+          onClose={() => setHelpOpen(false)}
+          onRestartTour={user ? () => {
+            const { getFirstLoginTourId } = require('../../config/tours');
+            const tid = getFirstLoginTourId(user.role);
+            if (tid) startTour(tid);
+          } : undefined}
+        />
+      )}
+
       {/* Desktop sidebar */}
       <aside
-        className={`hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${collapsed ? 'w-[56px]' : 'w-[220px]'}`}
+        className={`sidebar-portal hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${collapsed ? 'w-[56px]' : 'w-[220px]'}`}
         data-testid="portal-sidebar"
       >
         {sidebarContent}
@@ -283,6 +402,18 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
           {/* Project switcher slot */}
           {projectSwitcherSlot && (
             <div className="shrink-0">{projectSwitcherSlot}</div>
+          )}
+
+          {/* Org logo (if branding configured) */}
+          {branding?.logo_url && !collapsed && (
+            <div className="hidden md:flex items-center shrink-0 ml-1 mr-1">
+              <img
+                src={branding.logo_url.startsWith('/api') ? `${process.env.REACT_APP_BACKEND_URL}${branding.logo_url}` : branding.logo_url}
+                alt={branding.display_name || 'Logo'}
+                style={{ height: 26, maxWidth: 80, objectFit: 'contain' }}
+                data-testid="topbar-org-logo"
+              />
+            </div>
           )}
 
           {/* Search trigger */}

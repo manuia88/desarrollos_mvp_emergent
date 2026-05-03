@@ -6,6 +6,8 @@ import BulkUploadModal from '../../components/developer/BulkUploadModal';
 import * as api from '../../api/developer';
 import { Link } from 'react-router-dom';
 import { FileText, ArrowRight, Upload, Clock, X } from '../../components/icons';
+import { usePresentationMode } from '../../hooks/usePresentationMode';
+import { blurPriceCSS } from '../../lib/anonymize';
 
 const STATUSES = ['disponible', 'apartado', 'reservado', 'vendido', 'bloqueado'];
 const TONE = { disponible: 'ok', apartado: 'warn', reservado: 'pink', vendido: 'neutral', bloqueado: 'bad' };
@@ -54,6 +56,9 @@ export default function DesarrolladorInventario({ user, onLogout }) {
   const [showBulk, setShowBulk] = useState(false);
   const [holdModal, setHoldModal] = useState(null); // { unit, dev_id }
   const [holdHours, setHoldHours] = useState(24);
+
+  // B19 Sub-C — Presentation mode
+  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
   const [holdReason, setHoldReason] = useState('');
   const [holdLoading, setHoldLoading] = useState(false);
   const [holds, setHolds] = useState({}); // unit_id → hold
@@ -192,7 +197,12 @@ export default function DesarrolladorInventario({ user, onLogout }) {
                           <td style={{ padding: '10px 14px', color: 'var(--cream-3)', fontSize: 12 }}>{u.level}</td>
                           <td style={{ padding: '10px 14px', color: 'var(--cream-2)', fontSize: 12 }}>{u.m2_total}</td>
                           <td style={{ padding: '10px 14px', color: 'var(--cream-3)', fontSize: 12 }}>{u.bedrooms}</td>
-                          <td style={{ padding: '10px 14px', color: 'var(--cream)', fontFamily: 'Outfit', fontWeight: 700, fontSize: 13 }}>{fmtMXN(u.price)}</td>
+                          <td style={{ padding: '10px 14px', color: 'var(--cream)', fontFamily: 'Outfit', fontWeight: 700, fontSize: 13 }}>
+                            <span
+                              className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''}
+                              onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}
+                            >{fmtMXN(u.price)}</span>
+                          </td>
                           <td style={{ padding: '10px 14px' }}>
                             <Badge tone={TONE[u.status]}>{u.status}</Badge>
                             {u.overridden && <span style={{ marginLeft: 6, fontFamily: 'DM Sans', fontSize: 9.5, color: '#fcd34d' }}>· override</span>}

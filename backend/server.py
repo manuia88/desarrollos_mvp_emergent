@@ -238,6 +238,11 @@ from routes_dev_batch18 import (router as dev_batch18_router,
                                   ensure_batch18_indexes)
 app.include_router(dev_batch18_router)
 
+# Phase 4 Batch 19 — Tours + Branding + Cross-portal + Presentation Mode
+from routes_dev_batch19 import (router as dev_batch19_router,
+                                 ensure_batch19_indexes)
+app.include_router(dev_batch19_router)
+
 # Phase 4 Batch 18 Sub-B — Floor plan routes
 from routes_floor_view import (router as floor_view_router,
                                 ensure_floor_view_indexes)
@@ -594,6 +599,12 @@ async def startup():
         await ensure_batch18_indexes(db)
     except Exception as e:
         logging.warning(f"[batch18] index setup failed: {e}")
+
+    # Phase 4 Batch 19 — Tours + Branding + Presentation Mode
+    try:
+        await ensure_batch19_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch19] index setup failed: {e}")
 
     # Phase 4 Batch 18 Sub-B — Floor plan view
     try:

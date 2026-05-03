@@ -30,6 +30,16 @@ DEFAULTS: dict = {
     "recent_project_ids": [],
     "sidebar_collapsed": False,
     "theme": "dark",
+    # Batch 19 Sub-A — Tours
+    "tours_completed": [],
+    "tours_dismissed": [],
+    # Batch 19 Sub-C — Presentation Mode
+    "presentation_mode": {
+        "active": False,
+        "anonymize_pii": True,
+        "hide_pricing": False,
+        "hide_internal_notes": True,
+    },
 }
 
 
@@ -79,12 +89,20 @@ async def get_my_preferences(request: Request):
 
 # ─── PATCH /api/preferences/me ────────────────────────────────────────────────
 
+class PresentationModeSubfield(BaseModel):
+    active: Optional[bool] = None
+    anonymize_pii: Optional[bool] = None
+    hide_pricing: Optional[bool] = None
+    hide_internal_notes: Optional[bool] = None
+
+
 class PreferencesPatch(BaseModel):
     density: Optional[str] = None
     last_project_id: Optional[str] = None
     recent_project_ids: Optional[List[str]] = None
     sidebar_collapsed: Optional[bool] = None
     theme: Optional[str] = None
+    presentation_mode: Optional[PresentationModeSubfield] = None
 
 
 @router.patch("/api/preferences/me")
@@ -118,6 +136,18 @@ async def patch_my_preferences(payload: PreferencesPatch, request: Request):
             raise HTTPException(422, f"theme must be one of {sorted(THEME_VALUES)}")
         updates["theme"] = payload.theme
 
+    if payload.presentation_mode is not None:
+        pm = payload.presentation_mode
+        # Merge into sub-document using dot notation
+        if pm.active is not None:
+            updates["presentation_mode.active"] = pm.active
+        if pm.anonymize_pii is not None:
+            updates["presentation_mode.anonymize_pii"] = pm.anonymize_pii
+        if pm.hide_pricing is not None:
+            updates["presentation_mode.hide_pricing"] = pm.hide_pricing
+        if pm.hide_internal_notes is not None:
+            updates["presentation_mode.hide_internal_notes"] = pm.hide_internal_notes
+
     if len(updates) == 1:  # only updated_at → nothing to do
         return {"ok": True, "updated": []}
 
@@ -127,8 +157,12 @@ async def patch_my_preferences(payload: PreferencesPatch, request: Request):
             "$set": updates,
             "$setOnInsert": {
                 "user_id": user.user_id,
-                # Only set these on new doc creation; exclude any key already in $set
-                **{k: v for k, v in DEFAULTS.items() if k not in updates},
+                # Exclude any key that is a prefix of a dot-notation key already in $set
+                **{
+                    k: v for k, v in DEFAULTS.items()
+                    if k not in updates
+                    and not any(uk.startswith(k + ".") for uk in updates)
+                },
             },
         },
         upsert=True,

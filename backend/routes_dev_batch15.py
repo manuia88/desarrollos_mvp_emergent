@@ -29,7 +29,7 @@ log = logging.getLogger("dmx.batch15")
 router = APIRouter(tags=["batch15"])
 
 FRONTEND_BASE = os.environ.get("REACT_APP_FRONTEND_URL",
-                                "https://compacto-nav.preview.emergentagent.com")
+                                "https://dmx-keys.preview.emergentagent.com")
 
 
 def _now():
