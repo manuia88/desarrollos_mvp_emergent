@@ -62,6 +62,7 @@
 | ✅ B16 | AI Suggestions Inline + Smart Empty States + Public Booking Page | 6 | 12/12 pytest · Claude Haiku + cache 24h + fallback determinístico · 5 entity_types · 10 empty contexts · /reservar/{slug} + UTM + WhatsApp stub |
 | ✅ B17 | SortableList + Inline edit genérico + FilterChipsBar enhanced + Undo server-side | 7 | 13/13 pytest · 50/50 regresión · 30+ campos whitelisted 8 entity_types · undo_log TTL 10min · 7+ mutations wired · Kanban+Documents HTML5 conservados |
 | ✅ B18 | Density Toggle + Project Switcher topbar + Vista Planta 2.0 Interactiva | 5 | Sub-A 7/7 + Sub-B 8/8 pytest · `useDensity` + 3 CSS vars · ProjectSwitcher Cmd+P + recent FIFO · SVG canvas zoom/pan/pinch · UnitRect density-aware · edit mode drag+resize+upload · mobile bottom sheet |
+| ✅ B18.5 | Fix-Pass (19 bugs B18 + 5 design violations) | 3 | 21/21 pytest · 3 críticos (getDashboard restore + project_id explicit + Cmd+P→Cmd+/) + 7 high + 5 design (shadow-2xl→border+backdrop, emojis→SVG, scale/rotate→translateY, console.log, focus-visible global) + migration script · PR #5 |
 
 ### Pendientes (~35h restantes)
 
