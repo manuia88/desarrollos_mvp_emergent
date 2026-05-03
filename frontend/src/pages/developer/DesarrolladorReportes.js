@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmt0, fmtMXN, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
-import { Sparkle, BarChart, Target, TrendUp, TrendDown, Activity, Bookmark, Plus } from '../../components/icons';
+import { Sparkle, BarChart, Target, TrendUp, TrendDown, Activity, Bookmark, Plus, Check } from '../../components/icons';
 import * as leadsApi from '../../api/leads';
 import {
   CohortMatrix, HeatmapCalendar, BarList, FunnelChart, LineChart, Sparkline,
