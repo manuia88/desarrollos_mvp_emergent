@@ -55,10 +55,11 @@ function RoleCard({ role, data }) {
   return (
     <div
       data-testid={`tour-card-${role}`}
+      className="rounded-2xl"
       style={{
         background: 'rgba(240,235,224,0.03)',
         border: '1px solid rgba(240,235,224,0.1)',
-        borderRadius: 14, padding: '18px 20px',
+        padding: '18px 20px',
         display: 'flex', flexDirection: 'column', gap: 14,
       }}
     >
@@ -198,7 +199,7 @@ export default function TourCompletionAnalytics() {
       )}
 
       {error && (
-        <div style={{ padding: '14px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, color: 'var(--red)', fontSize: 13 }}>
+        <div className="rounded-xl" style={{ padding: '14px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--red)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -217,10 +218,9 @@ export default function TourCompletionAnalytics() {
               gap: 12, marginBottom: 24,
             }}
           >
-            <div data-testid="kpi-global-rate" style={{
+            <div data-testid="kpi-global-rate" className="rounded-xl" style={{
               padding: '14px 16px',
               background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
-              borderRadius: 12,
             }}>
               <div style={{ fontSize: 10.5, color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
                 Completion global
@@ -233,10 +233,9 @@ export default function TourCompletionAnalytics() {
               </div>
             </div>
 
-            <div data-testid="kpi-worst-roles" style={{
+            <div data-testid="kpi-worst-roles" className="rounded-xl" style={{
               padding: '14px 16px',
               background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)',
-              borderRadius: 12,
             }}>
               <div style={{ fontSize: 10.5, color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
                 Menor adopción
@@ -256,10 +255,9 @@ export default function TourCompletionAnalytics() {
               ))}
             </div>
 
-            <div data-testid="kpi-most-dismissed" style={{
+            <div data-testid="kpi-most-dismissed" className="rounded-xl" style={{
               padding: '14px 16px',
               background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.2)',
-              borderRadius: 12,
             }}>
               <div style={{ fontSize: 10.5, color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
                 Más dismiss
