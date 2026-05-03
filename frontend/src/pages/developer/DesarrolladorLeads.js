@@ -7,6 +7,8 @@ import * as api from '../../api/developer';
 import LeadKanban from '../../components/shared/LeadKanban';
 import { Activity, Target, Plus, X, Sparkle, MessageCircle } from '../../components/icons';
 import { BarList, FunnelChart } from '../../components/developer/ChartPrimitives';
+import { usePresentationMode } from '../../hooks/usePresentationMode';
+import { anonymizeLead, piiCSS, internalOnlyCSS } from '../../lib/anonymize';
 
 const STATUS_LABELS = {
   nuevo: 'Nuevo', contactado: 'Contactado', visita_agendada: 'Visita agendada',
@@ -86,6 +88,9 @@ function PipelineTab({ onToast, currentUser }) {
   const [openLead, setOpenLead] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
 
+  // B19.5 — PII anonymize for presentation mode
+  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
+
   const load = async () => {
     setLoading(true);
     try {
@@ -150,13 +155,20 @@ function PipelineTab({ onToast, currentUser }) {
               {!loading && data.items.length === 0 && (
                 <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Sin leads. Crea el primero.</td></tr>
               )}
-              {!loading && data.items.map(l => (
+              {!loading && data.items.map(l => {
+                const displayLead = (pmActive && pmConfig.anonymize_pii) ? anonymizeLead({ ...l, _id: l.id }) : l;
+                return (
                 <tr key={l.id} data-testid={`lead-row-${l.id}`} onClick={() => setOpenLead(l)}
                     style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                   <td style={tdStyle}>
-                    <div style={{ fontWeight: 600, color: 'var(--cream)' }}>{l.contact.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>
-                      {l.contact.email || l.contact.phone}
+                    <div style={{ fontWeight: 600, color: 'var(--cream)' }}
+                         className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}
+                         data-testid={`lead-table-name-${l.id}`}>
+                      {displayLead.nombre || displayLead.contact?.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--cream-3)' }}
+                         className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}>
+                      {displayLead.email || displayLead.contact?.email || displayLead.telefono || displayLead.contact?.phone}
                     </div>
                   </td>
                   <td style={tdStyle}>
@@ -180,7 +192,8 @@ function PipelineTab({ onToast, currentUser }) {
                     {new Date(l.last_activity_at).toLocaleDateString('es-MX')}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -198,6 +211,10 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState(lead.notes || []);
+
+  // B19.5 — Presentation mode PII anonymize
+  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
+  const displayLead = (pmActive && pmConfig.anonymize_pii) ? anonymizeLead({ ...lead, _id: lead.id }) : lead;
 
   const isClosedLost = status === 'cerrado_perdido';
 
@@ -234,10 +251,19 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
           <div>
             <div className="eyebrow">LEAD DETALLE</div>
             <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: '4px 0 2px', letterSpacing: '-0.02em' }}>
-              {lead.contact.name}
+              <span className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}>
+                {displayLead.nombre || displayLead.contact?.name}
+              </span>
             </h3>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-              {lead.contact.email} · {lead.contact.phone || '—'} · {SOURCE_LABELS[lead.source]}
+              <span className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}>
+                {displayLead.email || lead.contact?.email}
+              </span>
+              {' · '}
+              <span className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}>
+                {displayLead.telefono || lead.contact?.phone || '—'}
+              </span>
+              {' · '}{SOURCE_LABELS[lead.source]}
             </div>
           </div>
           <button onClick={onClose} data-testid="lead-drawer-close" style={{ background: 'transparent', border: 'none', color: 'var(--cream-3)', cursor: 'pointer' }}>
@@ -285,8 +311,9 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
           <Row label="Creado" value={new Date(lead.created_at).toLocaleString('es-MX')} />
         </div>
 
-        {/* Notes */}
-        <div style={sectionStyle}>
+        {/* Notes — internal-only in presentation mode */}
+        <div style={sectionStyle} className={pmActive && pmConfig.hide_internal_notes ? internalOnlyCSS : ''}
+             data-testid="lead-notes-section">
           <div className="eyebrow" style={{ marginBottom: 8 }}>BITÁCORA · {notes.length} notas</div>
           <textarea
             data-testid="lead-note-input"

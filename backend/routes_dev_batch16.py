@@ -40,6 +40,21 @@ def _whatsapp_stub(phone: str, text: str, context: Dict[str, Any] = None) -> Dic
             "to": phone, "body": text, "context": context or {}}
 
 
+async def _get_dev_branding(db, tenant_id: str) -> Dict[str, Any]:
+    """B19.5 — Get org branding for the developer org, fallback to DMX defaults."""
+    try:
+        from branding_helpers import get_org_branding
+        return await get_org_branding(db, tenant_id or "dmx")
+    except Exception:
+        return {
+            "logo_url": None,
+            "primary_color": "#06080F",
+            "accent_color": "#F4E9D8",
+            "display_name": "DesarrollosMX",
+            "tagline": None,
+        }
+
+
 # ─── A. Project booking info ─────────────────────────────────────────────────
 
 @router.get("/api/public/projects/{slug}/booking")
@@ -103,6 +118,8 @@ async def get_public_booking_info(slug: str, request: Request):
         "pool_size": pool_size,
         "slot_duration_min": (policy or {}).get("slot_duration_min", 60),
         "policy_type": (policy or {}).get("policy_type", "round_robin"),
+        # B19.5 — org branding for public booking page
+        "dev_branding": await _get_dev_branding(db, proj_pub.get("developer_id") or proj_pub.get("dev_org_id") or "dmx"),
     }
 
 

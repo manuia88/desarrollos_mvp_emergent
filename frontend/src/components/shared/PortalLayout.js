@@ -23,7 +23,7 @@ import { useTour } from '../../hooks/useTour';
 import { useBranding } from '../../hooks/useBranding';
 import { useCrossPortalEvents } from '../../hooks/useCrossPortalEvents';
 import KeyboardHelpDialog from './KeyboardHelpDialog';
-import Joyride from 'react-joyride';
+import { Joyride } from 'react-joyride';
 import {
   ChevronDown, ChevronRight, Menu, X, Search, LogOut, User,
   ChevronLeft, Settings,

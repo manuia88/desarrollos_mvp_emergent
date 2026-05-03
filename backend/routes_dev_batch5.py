@@ -422,6 +422,23 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
     from reportlab.lib import colors
 
     branding = template.get("branding") or {}
+
+    # Load org branding from DB (B19.5 — override template branding with live org branding)
+    try:
+        from branding_helpers import get_org_branding, logo_url_to_local_path
+        org_branding = await get_org_branding(db, org_id if org_id != "default" else "dmx")
+        if org_branding.get("primary_color"):
+            branding["primary_color"] = org_branding["primary_color"]
+        if org_branding.get("accent_color"):
+            branding["secondary_color"] = org_branding["accent_color"]
+        if not branding.get("header_text") and org_branding.get("display_name"):
+            branding["header_text"] = org_branding["display_name"]
+        _logo_path = logo_url_to_local_path(org_branding.get("logo_url"))
+        _org_tagline = org_branding.get("tagline") or ""
+    except Exception:
+        _logo_path = None
+        _org_tagline = ""
+
     primary = HexColor(branding.get("primary_color", "#06080F"))
     secondary = HexColor(branding.get("secondary_color", "#F0EBE0"))
 
@@ -481,7 +498,18 @@ async def _build_pdf(db, *, template: Dict, project_id: Optional[str], period_fr
         stype = sec.get("type")
 
         if stype == "cover":
+            # B19.5 — render org logo if available
+            if _logo_path:
+                try:
+                    from reportlab.platypus import Image as RLImage
+                    logo_img = RLImage(_logo_path, width=1.5 * inch, height=0.45 * inch, kind='proportional')
+                    story.append(logo_img)
+                    story.append(Spacer(1, 0.1 * inch))
+                except Exception:
+                    pass
             story.append(Paragraph(branding.get("header_text") or "DesarrollosMX", eyebrow))
+            if _org_tagline:
+                story.append(Paragraph(_org_tagline, small))
             story.append(Paragraph(template.get("name", "Reporte"), h1))
             story.append(Paragraph(f"<b>Proyecto:</b> {project_name}", body))
             story.append(Paragraph(f"<b>Período:</b> {period_from[:10]} → {period_to[:10]}", body))

@@ -107,7 +107,15 @@ export default function PublicBookingPage() {
           return;
         }
         const data = await res.json();
-        if (active) setInfo(data);
+        if (active) {
+          setInfo(data);
+          // B19.5 — apply org branding CSS vars locally (no global contamination)
+          const b = data.dev_branding;
+          if (b) {
+            if (b.primary_color) document.documentElement.style.setProperty('--page-primary', b.primary_color);
+            if (b.accent_color)  document.documentElement.style.setProperty('--page-accent',  b.accent_color);
+          }
+        }
       } catch {
         if (active) setError('Error de red');
       } finally {
@@ -283,14 +291,30 @@ export default function PublicBookingPage() {
   }
 
   // ─── Header (shared) ────────────────────────────────────────────
+  const b = info.dev_branding || {};
+  const pagePrimary = b.primary_color || '#06080F';
+  const pageAccent  = b.accent_color  || '#F4E9D8';
+  const orgName     = b.display_name  || info.developer?.name || 'DesarrollosMX';
+
   const Header = (
     <div data-testid="public-booking-header" style={{ marginBottom: 24 }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase',
-        color: 'rgba(240,235,224,0.5)', marginBottom: 10,
-      }}>
-        <Building size={14} /> {info.developer?.name || 'DesarrollosMX'}
+      {/* B19.5 — Org logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        {b.logo_url ? (
+          <img
+            src={b.logo_url.startsWith('/api') ? `${API}${b.logo_url}` : b.logo_url}
+            alt={orgName}
+            data-testid="public-booking-org-logo"
+            style={{ height: 32, maxWidth: 100, objectFit: 'contain' }}
+          />
+        ) : null}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase',
+          color: 'rgba(240,235,224,0.5)',
+        }}>
+          <Building size={14} /> {orgName}
+        </div>
       </div>
       <h1 style={{
         fontFamily: 'Outfit', fontSize: 32, fontWeight: 700,
@@ -298,6 +322,11 @@ export default function PublicBookingPage() {
       }}>
         Agenda tu visita — {info.name}
       </h1>
+      {b.tagline && (
+        <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.55)', marginBottom: 6, fontStyle: 'italic' }}>
+          {b.tagline}
+        </div>
+      )}
       {info.address && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
@@ -509,14 +538,14 @@ export default function PublicBookingPage() {
               padding: '12px 22px', borderRadius: 9999,
               background: submitting
                 ? 'rgba(240,235,224,0.4)'
-                : 'linear-gradient(135deg, #6366F1, #EC4899)',
-              color: '#fff',
+                : pagePrimary !== '#06080F' ? pagePrimary : 'linear-gradient(90deg, #6366F1, #EC4899)',
+              color: pagePrimary !== '#06080F' ? pageAccent : '#fff',
               border: 0, cursor: submitting ? 'not-allowed' : 'pointer',
               fontWeight: 700, fontSize: 14,
               display: 'flex', alignItems: 'center', gap: 6,
             }}
           >
-            {submitting ? 'Agendando…' : 'Confirmar reserva'}
+            {submitting ? 'Agendando…' : 'Confirmar visita'}
             {!submitting && <ArrowRight size={14} />}
           </button>
         </div>
@@ -527,6 +556,22 @@ export default function PublicBookingPage() {
         }}>
           Al agendar aceptas compartir tus datos con el desarrollador para la gestión de la visita.
         </p>
+
+        {/* B19.5 — Org footer */}
+        <div data-testid="public-booking-footer" style={{
+          marginTop: 28, paddingTop: 16,
+          borderTop: '1px solid rgba(240,235,224,0.07)',
+          textAlign: 'center', fontFamily: 'DM Sans',
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(240,235,224,0.55)' }}>
+            {orgName}
+          </div>
+          {b.tagline && (
+            <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.3)', marginTop: 3 }}>
+              {b.tagline}
+            </div>
+          )}
+        </div>
       </div>
     </Shell>
   );

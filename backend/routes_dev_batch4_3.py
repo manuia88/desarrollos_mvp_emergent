@@ -127,13 +127,15 @@ async def _build_ics(apt: Dict, project_name: str, contact_name: str) -> str:
 
 
 def _reminder_email_html(*, contact_name: str, project_name: str, fecha_legible: str,
-                         modalidad: str, asesor_name: str, magic_url: str, window: str) -> str:
+                         modalidad: str, asesor_name: str, magic_url: str, window: str,
+                         org_branding: Optional[Dict] = None) -> str:
+    from branding_helpers import email_header_html, email_footer_html
+    header_html = email_header_html(org_branding)
+    footer_html = email_footer_html(org_branding)
     intro = "tu cita es mañana" if window == "24h" else "tu cita es en 2 horas"
     return f"""
     <div style="font-family: 'DM Sans', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; background: #06080F; color: #F0EBE0;">
-      <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 20px;">
-        <h1 style="font-family: 'Outfit', Arial, sans-serif; font-weight: 800; font-size: 22px; margin: 0; color: #F0EBE0;">DesarrollosMX</h1>
-      </div>
+      {header_html}
       <p style="margin: 0 0 12px; font-size: 14px; line-height: 1.6;">Hola <strong>{contact_name}</strong>,</p>
       <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6;">Te recordamos que {intro} en <strong>{project_name}</strong>.</p>
       <table style="width: 100%; border-collapse: collapse; background: rgba(240,235,224,0.04); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
@@ -143,8 +145,8 @@ def _reminder_email_html(*, contact_name: str, project_name: str, fecha_legible:
         <tr><td style="padding: 8px 12px; color: rgba(240,235,224,0.62); font-size: 12px;">Asesor</td><td style="padding: 8px 12px;">{asesor_name}</td></tr>
       </table>
       <p style="margin: 0 0 16px; font-size: 13px; line-height: 1.6;">¿Necesitas confirmar, reagendar o cancelar?</p>
-      <a href="{magic_url}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #6366F1, #EC4899); color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 14px;">Gestionar mi cita</a>
-      <p style="margin: 22px 0 0; font-size: 11px; color: rgba(240,235,224,0.32);">Este recordatorio fue enviado automáticamente por DesarrollosMX. Si no agendaste esta cita, ignora este mensaje.</p>
+      <a href="{magic_url}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(90deg, #6366F1, #EC4899); color: #fff; text-decoration: none; border-radius: 9999px; font-weight: 700; font-size: 14px;">Gestionar mi cita</a>
+      {footer_html}
     </div>
     """
 
@@ -190,6 +192,13 @@ async def _send_reminder(db, apt: Dict, window: str) -> Dict[str, Any]:
                 import resend
                 resend.api_key = resend_key
                 ics = await _build_ics(apt, project_name, contact_name)
+                # B19.5 — load org branding for email footer
+                _org_branding = None
+                try:
+                    from branding_helpers import get_org_branding
+                    _org_branding = await get_org_branding(db, apt.get("dev_org_id") or "dmx")
+                except Exception:
+                    pass
                 resend.Emails.send({
                     "from": "citas@desarrollosmx.com",
                     "to": [contact_email],
@@ -198,6 +207,7 @@ async def _send_reminder(db, apt: Dict, window: str) -> Dict[str, Any]:
                         contact_name=contact_name, project_name=project_name,
                         fecha_legible=fecha_legible, modalidad=apt.get("modalidad", "presencial"),
                         asesor_name=asesor_name, magic_url=magic_url, window=window,
+                        org_branding=_org_branding,
                     ),
                     "attachments": [{
                         "filename": f"cita-{re.sub(r'[^a-z0-9]', '-', project_name.lower())}.ics",

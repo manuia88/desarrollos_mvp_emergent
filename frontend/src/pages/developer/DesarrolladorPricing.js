@@ -1,10 +1,12 @@
 // /desarrollador/pricing — D4 Dynamic Pricing AI
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import * as docsApi from '../../api/documents';
 import { Sparkle, AlertTriangle } from '../../components/icons';
+import { usePresentationMode } from '../../hooks/usePresentationMode';
+import { blurPriceCSS } from '../../lib/anonymize';
 
 export default function DesarrolladorPricing({ user, onLogout }) {
   const [items, setItems] = useState([]);
@@ -12,6 +14,15 @@ export default function DesarrolladorPricing({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [warnings, setWarnings] = useState({ blocked_count: 0, blocked: [] });
+
+  // B19.5 — Presentation Mode pricing-blur
+  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
+
+  const revealPrice = useCallback((e) => {
+    if (!pmActive || !pmConfig.hide_pricing) return;
+    e.currentTarget.classList.add('revealed');
+    setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000);
+  }, [pmActive, pmConfig.hide_pricing]);
 
   const load = async () => {
     setLoading(true);
@@ -110,10 +121,20 @@ export default function DesarrolladorPricing({ user, onLogout }) {
                       <Badge tone={s.status === 'pending' ? 'warn' : s.status === 'approved' ? 'brand' : s.status === 'applied' ? 'ok' : 'neutral'}>{s.status}</Badge>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', textDecoration: 'line-through' }}>
+                      <div
+                        className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''}
+                        onClick={revealPrice}
+                        style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', textDecoration: 'line-through' }}
+                        data-testid={`price-current-${s.id}`}
+                      >
                         {fmtMXN(s.current_price)}
                       </div>
-                      <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)', letterSpacing: '-0.018em' }}>
+                      <div
+                        className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''}
+                        onClick={revealPrice}
+                        style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)', letterSpacing: '-0.018em' }}
+                        data-testid={`price-suggested-${s.id}`}
+                      >
                         → {fmtMXN(s.suggested_price)}
                       </div>
                     </div>
