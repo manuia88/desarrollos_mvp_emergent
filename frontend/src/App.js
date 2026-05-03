@@ -317,7 +317,7 @@ function AppRouter() {
 
       {/* Legacy backward-compat redirects */}
       <Route path="/desarrollador/inventario" element={<Navigate to="/desarrollador/proyectos" replace />} />
-      <Route path="/desarrollador/leads" element={<Navigate to="/desarrollador/crm?tab=pipeline" replace />} />
+      <Route path="/desarrollador/leads" element={<AdvisorRoute Page={DesarrolladorLeads} />} />
       <Route path="/desarrollador/citas" element={<Navigate to="/desarrollador/crm?tab=citas" replace />} />
       <Route path="/desarrollador/calendario-subidas" element={<Navigate to="/desarrollador/proyectos" replace />} />
 

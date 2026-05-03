@@ -350,26 +350,43 @@ export default function PublicBookingPage() {
       <Shell>
         {Header}
         {!info.booking_enabled ? (
-          <div data-testid="public-booking-disabled" style={{
-            padding: 32, borderRadius: 16,
-            background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.28)',
-          }}>
-            <h3 style={{ fontFamily: 'Outfit', margin: '0 0 8px' }}>Agenda temporalmente no disponible</h3>
-            <p style={{ color: 'rgba(240,235,224,0.65)', margin: 0, fontSize: 14 }}>
-              Este proyecto aún no tiene asesores configurados para agendar visitas públicas.
-              Te invitamos a explorar la ficha pública y contactar al desarrollador directamente.
-            </p>
-            <button
-              onClick={() => navigate(`/desarrollo/${slug}`)}
-              data-testid="public-booking-go-dev"
-              style={{
-                marginTop: 16, padding: '10px 18px', borderRadius: 9999,
-                background: 'var(--cream)', color: 'var(--bg)',
-                border: 0, cursor: 'pointer', fontWeight: 600,
-              }}
-            >
-              Ver ficha completa
-            </button>
+          <div>
+            <div data-testid="public-booking-disabled" style={{
+              padding: 32, borderRadius: 16,
+              background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.28)',
+            }}>
+              <h3 style={{ fontFamily: 'Outfit', margin: '0 0 8px' }}>Agenda temporalmente no disponible</h3>
+              <p style={{ color: 'rgba(240,235,224,0.65)', margin: 0, fontSize: 14 }}>
+                Este proyecto aún no tiene asesores configurados para agendar visitas públicas.
+                Te invitamos a explorar la ficha pública y contactar al desarrollador directamente.
+              </p>
+              <button
+                onClick={() => navigate(`/desarrollo/${slug}`)}
+                data-testid="public-booking-go-dev"
+                style={{
+                  marginTop: 16, padding: '10px 18px', borderRadius: 9999,
+                  background: 'var(--cream)', color: 'var(--bg)',
+                  border: 0, cursor: 'pointer', fontWeight: 600,
+                }}
+              >
+                Ver ficha completa
+              </button>
+            </div>
+            {/* B19.5 — Org branding footer always visible */}
+            <div data-testid="public-booking-footer" style={{
+              marginTop: 28, paddingTop: 16,
+              borderTop: '1px solid rgba(240,235,224,0.07)',
+              textAlign: 'center', fontFamily: 'DM Sans',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(240,235,224,0.55)' }}>
+                {orgName}
+              </div>
+              {b.tagline && (
+                <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.3)', marginTop: 3 }}>
+                  {b.tagline}
+                </div>
+              )}
+            </div>
           </div>
         ) : slotsLoading ? (
           <div data-testid="public-booking-slots-loading" style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.45)' }}>
