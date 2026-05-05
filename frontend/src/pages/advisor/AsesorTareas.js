@@ -4,6 +4,7 @@ import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, relDate, isOverdue } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
 import { Clock } from '../../components/icons';
+import { Check } from 'lucide-react';
 import SortableList from '../../components/shared/SortableList';
 import { reorderTareas } from '../../api/batch17';
 import { useServerUndo } from '../../components/shared/UndoSnackbar';
@@ -77,7 +78,7 @@ export default function AsesorTareas({ user, onLogout }) {
             {SCOPES.map(s => {
               const col = sortCol(all.filter(t => s.types.includes(t.tipo)));
               return (
-                <div key={s.k} data-testid={`tareas-col-${s.k}`} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 14 }}>
+                <div key={s.k} data-testid={`tareas-col-${s.k}`} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 'var(--d-pad-item, 14px)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div className="eyebrow">{s.label}</div>
                     <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream-2)' }}>{col.length}</span>
@@ -85,7 +86,7 @@ export default function AsesorTareas({ user, onLogout }) {
                   {col.length === 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', padding: 16, textAlign: 'center' }}>Sin pendientes</div>
                     : col.map(t => (
                       <div key={t.id} data-testid={`tarea-${t.id}`} style={{
-                        padding: 12, marginBottom: 8,
+                        padding: 'var(--d-pad-item, 12px)', marginBottom: 8,
                         background: isOverdue(t.due_at) ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
                         border: `1px solid ${isOverdue(t.due_at) ? 'rgba(239,68,68,0.32)' : 'var(--border)'}`,
                         borderRadius: 12,
@@ -101,7 +102,7 @@ export default function AsesorTareas({ user, onLogout }) {
                               <Badge tone={t.prioridad === 'alta' ? 'bad' : t.prioridad === 'baja' ? 'neutral' : 'warn'}>{t.prioridad}</Badge>
                             </div>
                           </div>
-                          <button onClick={() => complete(t.id)} data-testid={`tarea-done-${t.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: 10 }}>✓</button>
+                          <button onClick={() => complete(t.id)} data-testid={`tarea-done-${t.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '4px 8px' }}><Check size={11} /></button>
                         </div>
                       </div>
                     ))}
