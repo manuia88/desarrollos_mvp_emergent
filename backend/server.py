@@ -253,6 +253,12 @@ from routes_floor_view import (router as floor_view_router,
                                 ensure_floor_view_indexes)
 app.include_router(floor_view_router)
 
+# Phase 4 Batch 21 Sub-B/C — Team Productivity + Aggregated Metrics
+from routes_team_productivity import router as team_productivity_router
+from routes_team_aggregated import router as team_aggregated_router
+app.include_router(team_productivity_router)
+app.include_router(team_aggregated_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()

@@ -134,8 +134,10 @@ function RoleCard({ role, data }) {
   );
 }
 
-export default function TourCompletionAnalytics() {
-  const [period, setPeriod] = useState('30d');
+export default function TourCompletionAnalytics({ period: controlledPeriod } = {}) {
+  const [internalPeriod, setPeriod] = useState('30d');
+  const period = controlledPeriod ?? internalPeriod;
+  const isControlled = controlledPeriod != null;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -171,8 +173,8 @@ export default function TourCompletionAnalytics() {
   return (
     <div data-testid="tour-completion-analytics">
 
-      {/* Filter chips (B17 pattern) */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+      {/* Filter chips (B17 pattern) — hidden cuando period viene de prop (controlado por page topbar) */}
+      {!isControlled && <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
         {PERIODS.map(p => (
           <button
             key={p.key}
@@ -190,7 +192,7 @@ export default function TourCompletionAnalytics() {
             {p.label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {loading && (
         <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>

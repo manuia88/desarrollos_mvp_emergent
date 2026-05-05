@@ -1,5 +1,5 @@
 /**
- * Batch 21 Sub-A — Metrics API helpers
+ * Phase 4 Batch 21 — Team metrics API.
  */
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -12,6 +12,16 @@ const j = async (url, opts = {}) => {
   return r.json();
 };
 
-/** GET /api/metrics/tour-completion?period=30d */
+/** Sub-A · GET /api/metrics/tour-completion?period=30d */
 export const getTourCompletion = (period = '30d') =>
   j(`/api/metrics/tour-completion?period=${period}`);
+
+/** Sub-B · GET /api/metrics/team-productivity?period=30d */
+export const getTeamProductivity = (period = '30d') =>
+  j(`/api/metrics/team-productivity?period=${period}`);
+
+/** Sub-C · GET /api/metrics/team-aggregated?period=30d */
+export const getTeamAggregated = (period = '30d') =>
+  j(`/api/metrics/team-aggregated?period=${period}`);
+
+export default { getTourCompletion, getTeamProductivity, getTeamAggregated };

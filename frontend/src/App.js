@@ -69,6 +69,8 @@ const DesarrolladorCashFlow          = lazy(() => import('./pages/developer/Desa
 const MisProyectos                   = lazy(() => import('./pages/developer/MisProyectos'));
 const ProyectoDetail                 = lazy(() => import('./pages/developer/ProyectoDetail'));
 const DesarrolladorCRMShell          = lazy(() => import('./pages/developer/DesarrolladorCRMShell'));
+// Phase 4 Batch 21 — Métricas del equipo
+const MetricasEquipo                 = lazy(() => import('./pages/developer/MetricasEquipo'));
 const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
 const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
 const PublicBookingPage              = lazy(() => import('./pages/public/PublicBookingPage'));
@@ -316,6 +318,7 @@ function AppRouter() {
       <Route path="/desarrollador/proyectos" element={<AdvisorRoute Page={MisProyectos} />} />
       <Route path="/desarrollador/proyectos/:slug" element={<AdvisorRoute Page={ProyectoDetail} />} />
       <Route path="/desarrollador/crm" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
+      <Route path="/desarrollador/metricas-equipo" element={<AdvisorRoute Page={MetricasEquipo} />} />
       <Route path="/desarrollador/mensajes" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
 
       {/* Legacy backward-compat redirects */}
