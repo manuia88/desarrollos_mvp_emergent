@@ -70,6 +70,11 @@ const ProyectoDetail                 = lazy(() => import('./pages/developer/Proy
 const DesarrolladorCRMShell          = lazy(() => import('./pages/developer/DesarrolladorCRMShell'));
 // Phase 4 Batch 21 — Métricas del equipo
 const MetricasEquipo                 = lazy(() => import('./pages/developer/MetricasEquipo'));
+// Phase 4 Batch 20 — Asesor metrics + tracking links + funnel + sankey
+const AsesorMetricas                 = lazy(() => import('./pages/asesor/AsesorMetricas'));
+const AsesorLinks                    = lazy(() => import('./pages/asesor/AsesorLinks'));
+const AsesoresMetrics                = lazy(() => import('./pages/developer/AsesoresMetrics'));
+const CrmFunnel                      = lazy(() => import('./pages/developer/CrmFunnel'));
 const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
 const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
 const PublicBookingPage              = lazy(() => import('./pages/public/PublicBookingPage'));
@@ -309,6 +314,10 @@ function AppRouter() {
       <Route path="/desarrollador/proyectos/:slug" element={<AdvisorRoute Page={ProyectoDetail} />} />
       <Route path="/desarrollador/crm" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
       <Route path="/desarrollador/metricas-equipo" element={<AdvisorRoute Page={MetricasEquipo} />} />
+      <Route path="/desarrollador/crm/asesores-metrics" element={<AdvisorRoute Page={AsesoresMetrics} />} />
+      <Route path="/desarrollador/crm/funnel" element={<AdvisorRoute Page={CrmFunnel} />} />
+      <Route path="/asesor/metricas" element={<AdvisorRoute Page={AsesorMetricas} />} />
+      <Route path="/asesor/links" element={<AdvisorRoute Page={AsesorLinks} />} />
       <Route path="/desarrollador/mensajes" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
 
       {/* Legacy backward-compat redirects */}

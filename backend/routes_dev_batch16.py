@@ -158,6 +158,7 @@ class PublicBookIn(BaseModel):
     utm_medium: Optional[str] = ""
     utm_campaign: Optional[str] = ""
     notes: Optional[str] = ""
+    ref: Optional[str] = ""  # tracking link slug (Batch 20)
 
 
 @router.post("/api/public/projects/{slug}/book")
@@ -260,11 +261,22 @@ async def post_public_book(slug: str, body: PublicBookIn, request: Request):
                 "slot": body.slot_start,
                 "utm_source": body.utm_source or "",
                 "utm_campaign": body.utm_campaign or "",
+                "ref": body.ref or "",
             },
             ai_decision={}, user_action={"action": "book"},
         )
     except Exception:
         pass
+
+    # Phase 4 Batch 20 — attribute booking to tracking link if ref present
+    if body.ref:
+        try:
+            from routes_tracking_links import attribute_booking_to_link
+            await attribute_booking_to_link(
+                db, body.ref, result["appointment_id"], lead_id,
+            )
+        except Exception as e:
+            log.warning(f"[batch20] link attribution failed: {e}")
 
     return {
         "ok": True,
@@ -280,4 +292,5 @@ async def post_public_book(slug: str, body: PublicBookIn, request: Request):
         "confirmation": {
             "whatsapp": wa_result,
         },
+        "ref": body.ref or "",
     }

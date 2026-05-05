@@ -15,6 +15,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Check, MapPin, Building, ArrowRight, ArrowLeft } from '../../components/icons';
+import { trackFunnelEvent } from '../../lib/funnelTracker';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -78,6 +79,7 @@ export default function PublicBookingPage() {
     utm_source: searchParams.get('utm_source') || '',
     utm_medium: searchParams.get('utm_medium') || '',
     utm_campaign: searchParams.get('utm_campaign') || '',
+    ref: searchParams.get('ref') || '',
   }), [searchParams]);
 
   const [info, setInfo] = useState(null);
@@ -107,7 +109,11 @@ export default function PublicBookingPage() {
           return;
         }
         const data = await res.json();
-        if (active) setInfo(data);
+        if (active) {
+          setInfo(data);
+          // Phase 4 Batch 20 — funnel tracking on mount
+          trackFunnelEvent('view_ficha', slug, { stage: 'mount' });
+        }
       } catch {
         if (active) setError('Error de red');
       } finally {
@@ -176,6 +182,7 @@ export default function PublicBookingPage() {
       const data = await res.json();
       setConfirmation(data);
       setStep('done');
+      trackFunnelEvent('booking_confirmed', slug, { appointment_id: data.appointment_id });
     } catch {
       setSubmitError('Error de red');
     } finally {
@@ -381,7 +388,7 @@ export default function PublicBookingPage() {
                       <button
                         key={s.slot_start}
                         data-testid={`public-booking-slot-${s.slot_start}`}
-                        onClick={() => setSelected(s)}
+                        onClick={() => { setSelected(s); trackFunnelEvent('slot_picked', slug, { slot: s.slot_start }); }}
                         style={{
                           padding: '8px 14px', borderRadius: 9999,
                           background: isSel ? 'var(--cream)' : 'rgba(240,235,224,0.06)',
@@ -452,7 +459,8 @@ export default function PublicBookingPage() {
           <input
             data-testid="public-booking-name"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => { setForm({ ...form, name: e.target.value }); }}
+            onBlur={() => { if (form.name.trim()) trackFunnelEvent('form_filled', slug, { field: 'name' }); }}
             placeholder="Tu nombre"
             style={inputStyle}
           />
