@@ -70,5 +70,52 @@
     "unauthorized": "No autorizado",
     "forbidden": "Acceso denegado",
     "serverError": "Error del servidor"
+  },
+  "batch20": {
+    "metrics": {
+      "title": "Mi panel de rendimiento",
+      "pipeline": "Pipeline",
+      "leadsActive": "Leads activos",
+      "conversion": "Conversión",
+      "responseTime": "Tiempo de respuesta",
+      "citasBooked": "Citas agendadas",
+      "rankCard": "Posición en el equipo",
+      "vsTeamAvg": "vs promedio del equipo",
+      "emptyTitle": "Sin métricas todavía",
+      "emptyBody": "Tu primer lead activará el dashboard. Comparte tu link público o crea uno desde Mis links."
+    },
+    "links": {
+      "title": "Mis links de tracking",
+      "newLink": "Nuevo link",
+      "createLink": "Generar link + QR",
+      "project": "Proyecto",
+      "utmSource": "Fuente UTM",
+      "utmMedium": "Medio UTM",
+      "campaign": "Campaña",
+      "expiresOn": "Expira",
+      "copyUrl": "Copiar URL",
+      "downloadQr": "Descargar QR",
+      "deactivate": "Desactivar",
+      "emptyTitle": "Crea tu primer link",
+      "emptyBody": "Compártelo en WhatsApp, ads o flyers QR. Cada click queda atribuido a ti."
+    },
+    "funnel": {
+      "tabFunnel": "Funnel",
+      "tabSankey": "Sankey",
+      "stages": {
+        "view_ficha": "Ver ficha",
+        "click_reservar": "Click reservar",
+        "slot_picked": "Slot elegido",
+        "form_filled": "Formulario completo",
+        "booking_confirmed": "Reserva confirmada",
+        "visit_completed": "Visita completada"
+      },
+      "drop": "drop",
+      "globalConversion": "conversión global",
+      "breakdownTitle": "Breakdown por fuente UTM",
+      "aiSuggestion": "Sugerencia IA",
+      "emptyTitle": "Sin eventos en el funnel",
+      "emptyBody": "Cuando los visitantes interactúen con la ficha pública, verás cada etapa aquí."
+    }
   }
 }

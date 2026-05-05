@@ -259,6 +259,17 @@ from routes_team_aggregated import router as team_aggregated_router
 app.include_router(team_productivity_router)
 app.include_router(team_aggregated_router)
 
+# Phase 4 Batch 20 — Asesor metrics + Tracking links + Funnel/Sankey
+from routes_asesor_metrics import (router as asesor_metrics_router,
+                                     ensure_asesor_metrics_indexes)
+from routes_tracking_links import (router as tracking_links_router,
+                                     ensure_tracking_links_indexes)
+from routes_funnel import (router as funnel_router, ensure_funnel_indexes)
+from scheduler_asesor_snapshots import schedule_daily_snapshots
+app.include_router(asesor_metrics_router)
+app.include_router(tracking_links_router)
+app.include_router(funnel_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -642,6 +653,16 @@ async def startup():
             logging.info("[batch17] undo purge cron scheduled @ :07 hourly")
     except Exception as e:
         logging.warning(f"[batch17] index/cron setup failed: {e}")
+
+    # Phase 4 Batch 20 — Asesor metrics + Tracking + Funnel indexes + 6am snapshots
+    try:
+        await ensure_asesor_metrics_indexes(db)
+        await ensure_tracking_links_indexes(db)
+        await ensure_funnel_indexes(db)
+        if sched:
+            schedule_daily_snapshots(sched, db)
+    except Exception as e:
+        logging.warning(f"[batch20] setup failed: {e}")
 
 
 @app.on_event("shutdown")
