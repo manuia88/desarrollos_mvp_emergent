@@ -3404,3 +3404,11 @@ Auth: roles `developer_admin|developer_director|developer_member|inmobiliaria_ad
 - Microsoft OAuth activation (P2)
 - ML Observability feedback acceptance rate (P2)
 - Studio Wave 1.5 timeline + export presets (P2)
+
+### Enhancement post-22 — Export Comparables (CSV + PDF) ✅
+**Completado: 2026-05-05 · 19/19 pytest passed (4 nuevos)**
+
+- `GET /api/dev/projects/{id}/insights/comparables/export?format=csv|pdf&top_n=N` (auth dev roles)
+- **CSV**: UTF-8 BOM, headers en español, snapshot del proyecto + tabla comparables con deltas con signo (`Δ Precio/m²`, `Δ Health`, `Δ Velocidad`, `Δ Días`)
+- **PDF**: ReportLab landscape letter — eyebrow "DESARROLLOSMX · INSIGHTS", título proyecto, tabla snapshot navy + tabla comparables con grid cream/white, footer explicativo de Δ
+- **Frontend**: dos botones `data-testid="comp-export-csv"` (outline) y `comp-export-pdf` (gradient pill) en el header de Comparables, descarga via blob, estado disabled cuando no hay comparables, manejo de error inline. Helpers `exportComparablesUrl` + `downloadComparables` en `api/insights.js`.

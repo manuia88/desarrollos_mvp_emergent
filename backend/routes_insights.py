@@ -1,10 +1,13 @@
 """Phase 4 Batch 22 · routes — Project Insights endpoints."""
 from __future__ import annotations
+import csv
+import io
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import Response
 
 from services.insights_engagement import get_engagement_split
 from services.insights_comparables import find_comparables
@@ -160,6 +163,205 @@ async def get_comparables(project_id: str, request: Request,
     db = _db(request)
     await _project_or_404(db, project_id)
     return await find_comparables(db, project_id, top_n=top_n)
+
+
+# ─── Comparables export (CSV / PDF) ──────────────────────────────────────────
+
+def _fmt_pct(v):
+    if v is None:
+        return "0.0%"
+    return f"{'+' if v > 0 else ''}{v:.1f}%"
+
+
+def _build_comparables_csv(payload: Dict[str, Any]) -> bytes:
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    cur = payload.get("current") or {}
+    w.writerow([
+        f"Comparables · {cur.get('name', '')}",
+        f"Zona: {payload.get('alcaldia', '')}",
+        f"Generado: {datetime.now(timezone.utc).isoformat()}",
+    ])
+    w.writerow([])
+    w.writerow([
+        "Tu proyecto", "Precio/m²", "Health", "Velocidad/mes", "Días listado",
+        "Unidades vendidas", "Inventario",
+    ])
+    w.writerow([
+        cur.get("name", ""), cur.get("price_per_m2", 0),
+        cur.get("health_score", 0), cur.get("sale_velocity_per_month", 0),
+        cur.get("days_listed", 0), cur.get("units_sold", 0),
+        cur.get("total_units", 0),
+    ])
+    w.writerow([])
+    w.writerow([
+        "Comparable", "Colonia", "Similitud",
+        "Precio/m²", "Δ Precio/m²",
+        "Health", "Δ Health",
+        "Velocidad", "Δ Velocidad",
+        "Días listado", "Δ Días",
+    ])
+    for c in payload.get("comparables") or []:
+        d = c.get("delta_vs_current") or {}
+        w.writerow([
+            c.get("name", ""), c.get("colonia", ""),
+            c.get("similarity_score", 0),
+            c.get("price_per_m2", 0), _fmt_pct(d.get("price_per_m2_pct")),
+            c.get("health_score", 0), _fmt_pct(d.get("health_pct")),
+            c.get("sale_velocity_per_month", 0), _fmt_pct(d.get("velocity_pct")),
+            c.get("days_listed", 0), _fmt_pct(d.get("days_listed_pct")),
+        ])
+    return buf.getvalue().encode("utf-8-sig")
+
+
+def _build_comparables_pdf(payload: Dict[str, Any]) -> bytes:
+    from reportlab.lib.pagesizes import letter, landscape
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib import colors
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(letter),
+                            leftMargin=0.5 * inch, rightMargin=0.5 * inch,
+                            topMargin=0.55 * inch, bottomMargin=0.5 * inch)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "title", parent=styles["Title"], fontSize=18,
+        textColor=HexColor("#06080F"), spaceAfter=4, fontName="Helvetica-Bold",
+    )
+    eyebrow = ParagraphStyle(
+        "eyebrow", parent=styles["Normal"], fontSize=8,
+        textColor=HexColor("#6366F1"), spaceAfter=2, fontName="Helvetica-Bold",
+    )
+    sub_style = ParagraphStyle(
+        "sub", parent=styles["Normal"], fontSize=10,
+        textColor=HexColor("#4B5563"), spaceAfter=14,
+    )
+
+    cur = payload.get("current") or {}
+    story = [
+        Paragraph("DESARROLLOSMX · INSIGHTS", eyebrow),
+        Paragraph(f"Comparables — {cur.get('name', 'Proyecto')}", title_style),
+        Paragraph(
+            f"Zona de referencia: {payload.get('alcaldia', '—')} · "
+            f"Generado: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
+            sub_style,
+        ),
+    ]
+
+    # Current snapshot
+    cur_data = [
+        ["Tu proyecto", "Precio/m²", "Health", "Velocidad/mes",
+         "Días listado", "Vendidas", "Inventario"],
+        [
+            cur.get("name", "—"),
+            f"${(cur.get('price_per_m2') or 0):,.0f}",
+            f"{cur.get('health_score', 0)}/100",
+            f"{cur.get('sale_velocity_per_month', 0)}",
+            f"{cur.get('days_listed', 0)}",
+            f"{cur.get('units_sold', 0)}",
+            f"{cur.get('total_units', 0)}",
+        ],
+    ]
+    t_cur = Table(cur_data, hAlign="LEFT")
+    t_cur.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), HexColor("#6366F1")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
+        ("BACKGROUND", (0, 1), (-1, 1), HexColor("#F0EBE0")),
+        ("FONTSIZE", (0, 1), (-1, 1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("GRID", (0, 0), (-1, -1), 0.4, HexColor("#9CA3AF")),
+    ]))
+    story.append(t_cur)
+    story.append(Spacer(1, 16))
+
+    # Comparables
+    comps = payload.get("comparables") or []
+    if comps:
+        story.append(Paragraph(
+            f"<b>Top {len(comps)} comparables</b> · ordenados por similitud", sub_style,
+        ))
+        header = ["Proyecto", "Colonia", "Similitud",
+                  "Precio/m²", "Δ", "Health", "Δ",
+                  "Velocidad", "Δ", "Días", "Δ"]
+        rows = [header]
+        for c in comps:
+            d = c.get("delta_vs_current") or {}
+            rows.append([
+                c.get("name", ""),
+                c.get("colonia", "") or "—",
+                f"{c.get('similarity_score', 0):.0f}",
+                f"${(c.get('price_per_m2') or 0):,.0f}",
+                _fmt_pct(d.get("price_per_m2_pct")),
+                f"{c.get('health_score', 0)}",
+                _fmt_pct(d.get("health_pct")),
+                f"{c.get('sale_velocity_per_month', 0)}",
+                _fmt_pct(d.get("velocity_pct")),
+                f"{c.get('days_listed', 0)}",
+                _fmt_pct(d.get("days_listed_pct")),
+            ])
+        t = Table(rows, hAlign="LEFT", repeatRows=1)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), HexColor("#06080F")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#F0EBE0")),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, HexColor("#F9F7F2")]),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("GRID", (0, 0), (-1, -1), 0.3, HexColor("#D1D5DB")),
+        ]))
+        story.append(t)
+    else:
+        story.append(Paragraph(
+            "No se encontraron proyectos comparables en la zona.",
+            styles["Italic"],
+        ))
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph(
+        '<font color="#9CA3AF" size="8">Δ = variación porcentual del comparable '
+        'respecto a tu proyecto. Negativo significa que el comparable está por '
+        'debajo en esa métrica. Generado por DesarrollosMX · Spatial Decision '
+        'Intelligence Platform.</font>',
+        styles["Normal"],
+    ))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+@router.get("/api/dev/projects/{project_id}/insights/comparables/export")
+async def export_comparables(
+    project_id: str, request: Request,
+    format: str = Query("csv", pattern="^(csv|pdf)$"),
+    top_n: int = Query(5, ge=1, le=10),
+):
+    await _auth_dev(request)
+    db = _db(request)
+    await _project_or_404(db, project_id)
+    payload = await find_comparables(db, project_id, top_n=top_n)
+
+    safe = "".join(ch if ch.isalnum() or ch in "-_" else "_"
+                    for ch in (project_id or "comparables"))
+    if format == "csv":
+        data = _build_comparables_csv(payload)
+        return Response(
+            content=data, media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition":
+                     f'attachment; filename="comparables-{safe}.csv"'},
+        )
+    pdf = _build_comparables_pdf(payload)
+    return Response(
+        content=pdf, media_type="application/pdf",
+        headers={"Content-Disposition":
+                 f'attachment; filename="comparables-{safe}.pdf"'},
+    )
 
 
 # ─── AI Insights ─────────────────────────────────────────────────────────────

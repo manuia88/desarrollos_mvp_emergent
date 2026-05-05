@@ -34,6 +34,28 @@ export const getInsightsRecommendations = (projectId) =>
 export const getInsightsNarrative = (projectId, period = '30d', force = false) =>
   j(`/api/dev/projects/${projectId}/insights/ai/narrative?period=${period}${force ? '&force=true' : ''}`);
 
+export const exportComparablesUrl = (projectId, format = 'csv', topN = 5) => {
+  const API_BASE = process.env.REACT_APP_BACKEND_URL;
+  return `${API_BASE}/api/dev/projects/${projectId}/insights/comparables/export?format=${format}&top_n=${topN}`;
+};
+
+export async function downloadComparables(projectId, format = 'csv', topN = 5) {
+  const url = exportComparablesUrl(projectId, format, topN);
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `HTTP ${res.status}`);
+  }
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `comparables-${projectId}.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
 export default {
   getInsightsResumen,
   getInsightsEngagement,

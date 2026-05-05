@@ -171,3 +171,44 @@ def test_predictions_cache_idempotent(dev):
     items1 = r1.json().get("items", [])
     items2 = r2.json().get("items", [])
     assert len(items1) == len(items2)
+
+
+# ─── Comparables export (CSV / PDF) ──────────────────────────────────────────
+
+def test_export_csv(dev):
+    r = dev.get(
+        f"/api/dev/projects/{PROJECT_ID}/insights/comparables/export"
+        f"?format=csv&top_n=3"
+    )
+    assert r.status_code == 200, r.text
+    assert "text/csv" in r.headers.get("content-type", "")
+    assert "attachment" in r.headers.get("content-disposition", "").lower()
+    body = r.content.decode("utf-8-sig")
+    assert "Tu proyecto" in body
+    assert "Comparable" in body
+    assert "Δ Precio/m²" in body or "Precio/m" in body
+
+
+def test_export_pdf(dev):
+    r = dev.get(
+        f"/api/dev/projects/{PROJECT_ID}/insights/comparables/export"
+        f"?format=pdf&top_n=3"
+    )
+    assert r.status_code == 200, r.text
+    assert r.headers.get("content-type") == "application/pdf"
+    assert r.content[:5] == b"%PDF-"
+    assert len(r.content) > 1000  # non-trivial PDF
+
+
+def test_export_invalid_format(dev):
+    r = dev.get(
+        f"/api/dev/projects/{PROJECT_ID}/insights/comparables/export?format=xls"
+    )
+    assert r.status_code == 422
+
+
+def test_export_requires_dev_role(asesor):
+    r = asesor.get(
+        f"/api/dev/projects/{PROJECT_ID}/insights/comparables/export?format=csv"
+    )
+    assert r.status_code == 403

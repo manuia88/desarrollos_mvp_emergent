@@ -3,8 +3,8 @@
  * Tabla de proyectos comparables + delta vs current.
  */
 import React, { useEffect, useState } from 'react';
-import { getInsightsComparables } from '../../../api/insights';
-import { TrendUp, TrendDown } from '../../icons';
+import { getInsightsComparables, downloadComparables } from '../../../api/insights';
+import { TrendUp, TrendDown, Download } from '../../icons';
 
 const fmtM = (v) => {
   if (!v) return '—';
@@ -39,6 +39,8 @@ export default function InsightsComparables({ projectId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
+  const [exporting, setExporting] = useState(null); // 'csv' | 'pdf' | null
+  const [exportErr, setExportErr] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +51,17 @@ export default function InsightsComparables({ projectId }) {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [projectId, topN]);
+
+  const handleExport = async (format) => {
+    setExporting(format); setExportErr(null);
+    try {
+      await downloadComparables(projectId, format, topN);
+    } catch (e) {
+      setExportErr(e.message || 'Error al exportar');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   if (loading) return (
     <div data-testid="comp-loading" style={{ padding: 24, color: 'var(--cream-3)' }}>Buscando comparables…</div>
@@ -70,23 +83,66 @@ export default function InsightsComparables({ projectId }) {
             : <>Comparables similares.</>
           }
         </div>
-        <div data-testid="comp-topn" style={{ display: 'flex', gap: 6 }}>
-          {[3, 5, 10].map(n => (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div data-testid="comp-topn" style={{ display: 'flex', gap: 6 }}>
+            {[3, 5, 10].map(n => (
+              <button
+                key={n}
+                data-testid={`comp-topn-${n}`}
+                onClick={() => setTopN(n)}
+                style={{
+                  padding: '4px 12px', borderRadius: 9999,
+                  border: '1px solid rgba(240,235,224,0.14)',
+                  background: topN === n ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
+                  color: topN === n ? '#fff' : 'var(--cream-2)',
+                  fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer',
+                }}>Top {n}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
             <button
-              key={n}
-              data-testid={`comp-topn-${n}`}
-              onClick={() => setTopN(n)}
+              data-testid="comp-export-csv"
+              onClick={() => handleExport('csv')}
+              disabled={!!exporting || (data?.comparables?.length ?? 0) === 0}
               style={{
                 padding: '4px 12px', borderRadius: 9999,
-                border: '1px solid rgba(240,235,224,0.14)',
-                background: topN === n ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
-                color: topN === n ? '#fff' : 'var(--cream-2)',
+                border: '1px solid rgba(240,235,224,0.16)',
+                background: 'transparent', color: 'var(--cream-2)',
                 fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 600,
-                cursor: 'pointer',
-              }}>Top {n}</button>
-          ))}
+                cursor: exporting ? 'wait' : 'pointer',
+                opacity: exporting === 'csv' ? 0.6 : 1,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}>
+              <Download size={10} /> {exporting === 'csv' ? 'CSV…' : 'CSV'}
+            </button>
+            <button
+              data-testid="comp-export-pdf"
+              onClick={() => handleExport('pdf')}
+              disabled={!!exporting || (data?.comparables?.length ?? 0) === 0}
+              style={{
+                padding: '4px 12px', borderRadius: 9999,
+                border: 'none',
+                background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                color: '#fff',
+                fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 600,
+                cursor: exporting ? 'wait' : 'pointer',
+                opacity: exporting === 'pdf' ? 0.7 : 1,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}>
+              <Download size={10} /> {exporting === 'pdf' ? 'PDF…' : 'PDF'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {exportErr && (
+        <div data-testid="comp-export-error" style={{
+          padding: '8px 12px', borderRadius: 10,
+          background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)',
+          color: '#fca5a5', fontSize: 12, fontFamily: 'DM Sans',
+        }}>{exportErr}</div>
+      )}
 
       {/* Current row */}
       {cur.id && (
