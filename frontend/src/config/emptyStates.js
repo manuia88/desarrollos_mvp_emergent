@@ -86,6 +86,11 @@ export const EMPTY_STATES = {
         testId: 'empty-cta-browse-dev', primary: true },
     ],
   },
+  tour_analytics_empty: {
+    title: 'Sin datos de tours',
+    body: 'Necesita usuarios activos primero. Cuando los usuarios inicien los tours de onboarding, los datos de completion aparecerán aquí.',
+    ctas: [],
+  },
 };
 
 export function getEmptyState(contextKey) {

@@ -44,7 +44,7 @@ function CountdownBar({ timeout, startAt }) {
 function SnackItem({ item, onUndo, onDismiss }) {
   return (
     <div
-      className="pointer-events-auto w-[320px] rounded-xl bg-[#161d30] border border-[rgba(240,235,224,0.14)] shadow-2xl px-4 py-3"
+      className="pointer-events-auto w-[320px] rounded-xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] px-4 py-3"
       style={{ animation: 'fadeInUp 0.2s ease-out' }}
       data-testid={`undo-snackbar-${item.id}`}
     >
