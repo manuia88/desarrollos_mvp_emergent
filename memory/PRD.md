@@ -2760,6 +2760,7 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B19.5 — Fix-Pass (Branding 100% + PII completar) (22/22 pytest · branding_helpers.py compartido · PDF reportes con logo+colors · email templates footer org · public booking /reservar/{slug} con dev_branding · DesarrolladorLeads tabla PII anonymize · DesarrolladorPricing pricing-blur · bonus fix /desarrollador/leads route restored · SHA 5e547b5) | shipped | 1.5 |
 | ✅ | B21 — Métricas Equipo Aggregated (Sub-A: Tour Completion Analytics PR #6 baed96b · Sub-B/C: Productividad ConfidenceRatio + TeamAggregatedTable PR #7 01e3006) (13/13 pytest Sub-B/C + 28/28 cumulativo · 2 endpoints nuevos `/api/metrics/team-productivity` + `/api/metrics/team-aggregated` · ProductivityWidget + TeamAggregatedTable + filter chip período compartido topbar 3 secciones · TourCompletionAnalytics extendido con `period` prop controlado) | shipped | 5 |
 | ✅ | B20 — Asesor Metrics + Tracking Links + QR + Conversion Funnel + Sankey + AI Suggestions (PR #8 51bb90f) (18/18 pytest + 37/37 regresión · Sub-A: 3 endpoints asesor-metrics + 4 endpoints tracking-links con 8-char slug + QR base64 + cookie 30d ref + APScheduler 6am snapshots + notification trigger activity_score >20pp drop · Sub-B: POST /funnel/event público + 3 GET endpoints + sankey_data 4-niveles + Claude Haiku AI suggestion cost-gated >100 events cache 24h · Frontend: 4 pages + funnelTracker auto-wired PublicBookingPage en 5 hitos + @nivo/sankey + design system 100%) | shipped | 8 |
+| ✅ | B22 — Insights Tab dentro Proyecto · 5 sub-tabs (PR #9 ea08e79) (15/15 pytest · Resumen: KPIs+HealthScore+sparkline+narrative Haiku · Engagement actor split asesor/cliente + top units + 24h histogram · Cash Flow wrapper B8 (no duplicar) · Comparables top N similar + delta vs current · IA: 3 predicciones Sonnet + 5 recomendaciones priority + narrativa larga, cache 24h · 6 endpoints + 3 services + 6 components + URL sync sub-tabs) | shipped | 9 |
 
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
@@ -2780,11 +2781,10 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 - VistaDePlanta legacy queda en VentasTab.js sin uso (backward compat)
 - Upload plano arquitectónico actualmente base64. Migrar a S3/GCS en sweep H2
 
-### Pendientes Phase 4 refactor (~15h restantes — solo B22 + B23)
+### Pendientes Phase 4 refactor (~6h restantes — solo B23)
 
 | # | Batch | h |
 | 🟡 | B21 — Dev CRM > Métricas equipo (aggregated) | 5 |
-| 🟡 | B22 — Insights tab dentro proyecto (Engagement actor split + Cash Flow + Comparables + IA con sub-tabs) | 9 |
 | 🟡 | B23 — AI Copilot lateral toggleable Cmd+/ | 6 |
 
 ### Estructura navegación final (post B10-B11)
