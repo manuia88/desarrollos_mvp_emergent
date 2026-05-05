@@ -233,6 +233,12 @@ from routes_dev_batch17 import (router as dev_batch17_router,
                                   purge_expired_undo_log)
 app.include_router(dev_batch17_router)
 
+# Phase 4 Batch 21 — Team Productivity + Aggregated Metrics
+from routes_team_productivity import router as team_productivity_router
+from routes_team_aggregated import router as team_aggregated_router
+app.include_router(team_productivity_router)
+app.include_router(team_aggregated_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
