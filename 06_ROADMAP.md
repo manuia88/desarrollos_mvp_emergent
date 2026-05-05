@@ -24,7 +24,7 @@
 | Phase | Status | Estimado |
 |---|---|---|
 | Phase 4 Dev Module (original v1) | ✅ shipped 16 batches | ~78h |
-| Phase 4 Dev REFACTOR | 🟡 14/16 shipped (B0/B0.5/B10-B19/B21), 3 pending (B20/B22/B23) | ~157h total |
+| Phase 4 Dev REFACTOR | 🟡 15/16 shipped (B0/B0.5/B10-B21), 2 pending (B22/B23) | ~157h total |
 | Phase 1 Marketplace gaps | 🟡 pending | ~30h |
 | Phase 2 Comprador | 🟡 pending | ~12-14h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
@@ -67,11 +67,11 @@
 | ✅ B19.5 | Fix-Pass (Branding 100% + PII completar) | 1.5 | 22/22 pytest · branding_helpers compartido · PDF reportes + email templates + public booking con dev_branding · DesarrolladorLeads PII anonymize + DesarrolladorPricing pricing-blur · bonus /desarrollador/leads route restored · SHA 5e547b5 |
 | ✅ B21 | Métricas Equipo Aggregated (Tour Completion + Productividad ConfidenceRatio + Tabla aggregated) | 5 | 13/13 Sub-B/C + 28/28 cumulativo pytest · 2 endpoints nuevos team-productivity + team-aggregated · ProductivityWidget + TeamAggregatedTable + TourCompletionAnalytics extended con period prop controlable · PR #6 + #7 mergeados |
 
-### Pendientes (~28h restantes)
+### Pendientes (~15h restantes — solo B22 + B23)
 
 | # | Batch | h | Foco |
 |---|---|---|---|
-| 🟡 B20 | Asesor metrics + Links tracking + Conversion funnel + Sankey | 8 | PostHog UTM funnel ficha→reservar→confirmación · AI budget suggestion per campaña · Sankey atribución |
+| ✅ B20 | Asesor Metrics + Tracking Links + QR + Conversion Funnel + Sankey + AI Suggestions | 8 | 18/18 + 37/37 regresión · 3 routes asesor-metrics + 4 routes tracking-links + 5 endpoints funnel + sankey_data 4-niveles · Claude Haiku AI suggestion cost-gated >100 events · 4 pages frontend + funnelTracker en 5 hitos + @nivo/sankey · PR #8 |
 | 🟡 B22 | Insights tab dentro proyecto | 9 | Engagement actor split + Cash Flow + Comparables + IA con sub-tabs |
 | 🟡 B23 | AI Copilot lateral toggleable Cmd+/ | 6 | |
 

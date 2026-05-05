@@ -2759,6 +2759,7 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B19 — Onboarding Tour + Keyboard Shortcuts + Help dialog + Personalization Brand + Cross-portal Sync Feedback + Modo Presentación (17/17 pytest · Sub-A: react-joyride + 5 tours + useTour + useKeyboardShortcuts + KeyboardHelpDialog + 12 shortcuts · Sub-B: branding org schema + 4 endpoints + cross_portal_events polling + crossPortalToast · Sub-C: usePresentationMode + anonymize.js hash determinístico + presentation.css + wired 5 vistas + badge cream) | shipped | 7 |
 | ✅ | B19.5 — Fix-Pass (Branding 100% + PII completar) (22/22 pytest · branding_helpers.py compartido · PDF reportes con logo+colors · email templates footer org · public booking /reservar/{slug} con dev_branding · DesarrolladorLeads tabla PII anonymize · DesarrolladorPricing pricing-blur · bonus fix /desarrollador/leads route restored · SHA 5e547b5) | shipped | 1.5 |
 | ✅ | B21 — Métricas Equipo Aggregated (Sub-A: Tour Completion Analytics PR #6 baed96b · Sub-B/C: Productividad ConfidenceRatio + TeamAggregatedTable PR #7 01e3006) (13/13 pytest Sub-B/C + 28/28 cumulativo · 2 endpoints nuevos `/api/metrics/team-productivity` + `/api/metrics/team-aggregated` · ProductivityWidget + TeamAggregatedTable + filter chip período compartido topbar 3 secciones · TourCompletionAnalytics extendido con `period` prop controlado) | shipped | 5 |
+| ✅ | B20 — Asesor Metrics + Tracking Links + QR + Conversion Funnel + Sankey + AI Suggestions (PR #8 51bb90f) (18/18 pytest + 37/37 regresión · Sub-A: 3 endpoints asesor-metrics + 4 endpoints tracking-links con 8-char slug + QR base64 + cookie 30d ref + APScheduler 6am snapshots + notification trigger activity_score >20pp drop · Sub-B: POST /funnel/event público + 3 GET endpoints + sankey_data 4-niveles + Claude Haiku AI suggestion cost-gated >100 events cache 24h · Frontend: 4 pages + funnelTracker auto-wired PublicBookingPage en 5 hitos + @nivo/sankey + design system 100%) | shipped | 8 |
 
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
@@ -2779,10 +2780,9 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 - VistaDePlanta legacy queda en VentasTab.js sin uso (backward compat)
 - Upload plano arquitectónico actualmente base64. Migrar a S3/GCS en sweep H2
 
-### Pendientes Phase 4 refactor (~28h restantes)
+### Pendientes Phase 4 refactor (~15h restantes — solo B22 + B23)
 
 | # | Batch | h |
-| 🟡 | B20 — Asesor metrics module + Links tracking generator + Conversion funnel portal público (PostHog UTM funnel: ficha→reservar→confirmación · AI suggestion budget per campaña) + Sankey atribución | 8 |
 | 🟡 | B21 — Dev CRM > Métricas equipo (aggregated) | 5 |
 | 🟡 | B22 — Insights tab dentro proyecto (Engagement actor split + Cash Flow + Comparables + IA con sub-tabs) | 9 |
 | 🟡 | B23 — AI Copilot lateral toggleable Cmd+/ | 6 |
