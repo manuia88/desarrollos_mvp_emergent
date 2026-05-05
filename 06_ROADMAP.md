@@ -24,7 +24,7 @@
 | Phase | Status | Estimado |
 |---|---|---|
 | Phase 4 Dev Module (original v1) | ✅ shipped 16 batches | ~78h |
-| Phase 4 Dev REFACTOR | 🟡 13/16 shipped (B0/B0.5/B10-B19), 4 pending | ~157h total |
+| Phase 4 Dev REFACTOR | 🟡 14/16 shipped (B0/B0.5/B10-B19/B21), 3 pending (B20/B22/B23) | ~157h total |
 | Phase 1 Marketplace gaps | 🟡 pending | ~30h |
 | Phase 2 Comprador | 🟡 pending | ~12-14h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
@@ -34,7 +34,7 @@
 | Phase 8 WhatsApp + Coms | 🟡 pending | ~15h |
 | Phase 10 Caya + A11 | 🟡 pending | ~26h |
 | Phase 11 Dubai | 🟡 pending | ~38h |
-| **Phase Y DMX Intelligence Platform** (reemplaza Phase 17) | 🟡 pending | ~102h |
+| **Phase Y DMX Intelligence Platform** (reemplaza Phase 17) | 🟡 pending | ~107h |
 | **Phase Z Superadmin Data Intelligence Layer** (NUEVO 2026-05-02) | 🟡 pending | ~72h |
 | Phase 19 Buyer Coach + Mortgage | 🟡 pending | ~14h |
 | Phase 20 Polish + Launch | 🟡 pending | ~23h |
@@ -65,14 +65,13 @@
 | ✅ B18.5 | Fix-Pass (19 bugs B18 + 5 design violations) | 3 | 21/21 pytest · 3 críticos (getDashboard restore + project_id explicit + Cmd+P→Cmd+/) + 7 high + 5 design (shadow-2xl→border+backdrop, emojis→SVG, scale/rotate→translateY, console.log, focus-visible global) + migration script · PR #5 |
 | ✅ B19 | Onboarding tour + Keyboard shortcuts + Help dialog + Personalization brand + Cross-portal sync + Modo presentación | 7 | 17/17 pytest · react-joyride + 5 tours + useTour + useKeyboardShortcuts (12 shortcuts) + KeyboardHelpDialog · branding org schema + 4 endpoints + cross_portal_events polling · usePresentationMode + anonymize hash + 5 vistas wired |
 | ✅ B19.5 | Fix-Pass (Branding 100% + PII completar) | 1.5 | 22/22 pytest · branding_helpers compartido · PDF reportes + email templates + public booking con dev_branding · DesarrolladorLeads PII anonymize + DesarrolladorPricing pricing-blur · bonus /desarrollador/leads route restored · SHA 5e547b5 |
-| 🟡 B21 Sub-A | Tour Completion Analytics | 1.5 | 28/28 pytest · endpoint /api/metrics/tour-completion + page MetricasEquipo + TourCompletionAnalytics 4 cards per role · PR #6 · Sub-B + Sub-C pendientes |
+| ✅ B21 | Métricas Equipo Aggregated (Tour Completion + Productividad ConfidenceRatio + Tabla aggregated) | 5 | 13/13 Sub-B/C + 28/28 cumulativo pytest · 2 endpoints nuevos team-productivity + team-aggregated · ProductivityWidget + TeamAggregatedTable + TourCompletionAnalytics extended con period prop controlable · PR #6 + #7 mergeados |
 
 ### Pendientes (~28h restantes)
 
 | # | Batch | h | Foco |
 |---|---|---|---|
 | 🟡 B20 | Asesor metrics + Links tracking + Conversion funnel + Sankey | 8 | PostHog UTM funnel ficha→reservar→confirmación · AI budget suggestion per campaña · Sankey atribución |
-| 🟡 B21 | Dev CRM > Métricas equipo aggregated | 5 | |
 | 🟡 B22 | Insights tab dentro proyecto | 9 | Engagement actor split + Cash Flow + Comparables + IA con sub-tabs |
 | 🟡 B23 | AI Copilot lateral toggleable Cmd+/ | 6 | |
 
@@ -98,7 +97,7 @@ SIDEBAR DEV (3 tiers collapsible)
 
 ## 3. Phase Y — DMX Intelligence Platform
 
-**~102h · 6 sub-phases · post-B23 (después de Phase 4 refactor)**
+**~107h · 6 sub-phases · post-B23 (después de Phase 4 refactor)**
 
 Fusión de Phase 17 ML training original + agentic features (concept Accio-inspired, sin browser scraping).
 
@@ -109,7 +108,7 @@ Fusión de Phase 17 ML training original + agentic features (concept Accio-inspi
 | Y.0 | Opt-in controls + Permission tiers T1-T4 + Master switch IA + Simulation mode | 8 |
 | Y.1 | Director Agent + Memory layer (vector embeddings) + Event collectors universales | 25 |
 | Y.2 | 5 sub-agents especializados (Pricing · Marketing · Lead · Construction · Compliance) + Per-user ML classifiers fusion | 25 |
-| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling | 20 |
+| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling + **Reply Classifier inbound** (clasifica intent en WA/email entrantes + auto-draft response + confidence threshold human-in-loop, inspirado Teckel AI Atlas) | 25 |
 | Y.4 | Adaptive features per-user/org (Caya style · Match weights · Argumentario tone · Briefing per-segment) | 15 |
 | Y.5 | Agent observability + Audit replay UI + ML accuracy metrics | 9 |
 

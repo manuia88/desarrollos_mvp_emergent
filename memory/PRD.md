@@ -2758,7 +2758,14 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 | ✅ | B18.5 — Fix-Pass (19 bugs B18 + 5 design violations cleared) (21/21 pytest · 3 críticos: getDashboard restore + project_id explicit en PATCH unit position + Cmd+P→Cmd+/ · 7 high: useIsMobile reactive hook + useDensity reactive consumer + bg upload validation 500KB + floor_number validation + dropdown reorder + PreferenciasPage in PortalLayout + wheel listener deps · 5 design: shadow-2xl→border+backdrop · emojis→SVG icons · scale/rotate→translateY · console.log removal · focus-visible+reduced-motion global · migration script DB cleanup · PR #5) | shipped | 3 |
 | ✅ | B19 — Onboarding Tour + Keyboard Shortcuts + Help dialog + Personalization Brand + Cross-portal Sync Feedback + Modo Presentación (17/17 pytest · Sub-A: react-joyride + 5 tours + useTour + useKeyboardShortcuts + KeyboardHelpDialog + 12 shortcuts · Sub-B: branding org schema + 4 endpoints + cross_portal_events polling + crossPortalToast · Sub-C: usePresentationMode + anonymize.js hash determinístico + presentation.css + wired 5 vistas + badge cream) | shipped | 7 |
 | ✅ | B19.5 — Fix-Pass (Branding 100% + PII completar) (22/22 pytest · branding_helpers.py compartido · PDF reportes con logo+colors · email templates footer org · public booking /reservar/{slug} con dev_branding · DesarrolladorLeads tabla PII anonymize · DesarrolladorPricing pricing-blur · bonus fix /desarrollador/leads route restored · SHA 5e547b5) | shipped | 1.5 |
-| 🟡 | B21 Sub-A — Tour Completion Analytics (28/28 pytest · endpoint /api/metrics/tour-completion + page MetricasEquipo + TourCompletionAnalytics component 4 cards per role + 5 fixes inline borderRadius compliance · PR #6 mergeado · Sub-B + Sub-C pendientes) | shipped parcial | 1.5 |
+| ✅ | B21 — Métricas Equipo Aggregated (Sub-A: Tour Completion Analytics PR #6 baed96b · Sub-B/C: Productividad ConfidenceRatio + TeamAggregatedTable PR #7 01e3006) (13/13 pytest Sub-B/C + 28/28 cumulativo · 2 endpoints nuevos `/api/metrics/team-productivity` + `/api/metrics/team-aggregated` · ProductivityWidget + TeamAggregatedTable + filter chip período compartido topbar 3 secciones · TourCompletionAnalytics extendido con `period` prop controlado) | shipped | 5 |
+
+### Conservative decisions B21 Sub-B/C
+- emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
+- TourCompletionAnalytics extendido con prop `period` controlable (controlled mode oculta filter chips internos cuando page topbar lo controla)
+- timeseries 90d en drawer Sub-C = mock determinístico (endpoint real `/api/metrics/asesor/{id}/timeseries` defer)
+- conversion_rate_pct denominador = leads creados en período (NaN avoidance: 0.0% si 0 leads)
+- field fallbacks en db.leads/appointments: expected_value→budget→expected_price→0 ; asesor_assigned→asesor_id
 
 ### Conservative decisions B17 (deferidos a follow-up sweep)
 - FilterChipsBar adopción solo VentasTab. Replicar a CRM leads + Mis proyectos + Inventario + Activity feed + Notifications → mover a B19 o sweep
@@ -2807,7 +2814,7 @@ SIDEBAR DEV (3 tiers collapsible)
 - i18n infrastructure (es-MX default + en-US ready) — auto-detection rejected
 
 ═══════════════════════════════════════════════════════════
-## Phase Y — DMX Intelligence Platform (~102h, post-Phase 4)
+## Phase Y — DMX Intelligence Platform (~107h, post-Phase 4)
 ═══════════════════════════════════════════════════════════
 
 Reemplaza Phase 17 ML training original. Fusión Phase 17 + agentic features (Accio-inspired).
@@ -2819,7 +2826,7 @@ Reemplaza Phase 17 ML training original. Fusión Phase 17 + agentic features (Ac
 | Y.0 | Opt-in controls + Permission tiers T1-T4 + Master switch IA + Simulation mode | 8 |
 | Y.1 | Director Agent + Memory layer (vector embeddings) + Event collectors universales | 25 |
 | Y.2 | 5 sub-agents especializados (Pricing · Marketing · Lead · Construction · Compliance) + Per-user ML classifiers fusion | 25 |
-| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling | 20 |
+| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling + **Reply Classifier inbound** (clasifica intent en WA/email entrantes + auto-draft response + confidence threshold human-in-loop) | 25 |
 | Y.4 | Adaptive features per-user/org (Caya style · Match weights · Argumentario tone · Briefing per-segment) | 15 |
 | Y.5 | Agent observability + Audit replay UI + ML accuracy metrics | 9 |
 
