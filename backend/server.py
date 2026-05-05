@@ -265,10 +265,12 @@ from routes_asesor_metrics import (router as asesor_metrics_router,
 from routes_tracking_links import (router as tracking_links_router,
                                      ensure_tracking_links_indexes)
 from routes_funnel import (router as funnel_router, ensure_funnel_indexes)
+from routes_insights import router as insights_router
 from scheduler_asesor_snapshots import schedule_daily_snapshots
 app.include_router(asesor_metrics_router)
 app.include_router(tracking_links_router)
 app.include_router(funnel_router)
+app.include_router(insights_router)
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
