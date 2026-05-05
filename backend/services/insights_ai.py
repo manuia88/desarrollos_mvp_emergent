@@ -67,6 +67,20 @@ async def _build_context(db, project_id: str) -> Dict[str, Any]:
     p = await db.projects.find_one(
         {"$or": [{"id": project_id}, {"slug": project_id}]}, {"_id": 0},
     ) or {}
+    if not p:
+        try:
+            from data_developments import DEVELOPMENTS_BY_ID
+            dev = DEVELOPMENTS_BY_ID.get(project_id)
+            if dev:
+                p = {
+                    "name": dev.get("name", project_id),
+                    "stage": dev.get("stage"),
+                    "colonia": dev.get("colonia"),
+                    "segmento": dev.get("segmento") or dev.get("segment"),
+                    "price_from": dev.get("price_from") or dev.get("price_min"),
+                }
+        except Exception:
+            pass
     units_count = await db.units.count_documents({"project_id": project_id})
     units_sold = await db.units.count_documents(
         {"project_id": project_id, "status": {"$in": ["vendido", "vendida"]}}

@@ -79,6 +79,23 @@ async def find_comparables(db, project_id: str, top_n: int = 5) -> Dict[str, Any
         {"$or": [{"id": project_id}, {"slug": project_id}]}, {"_id": 0},
     )
     if not current:
+        try:
+            from data_developments import DEVELOPMENTS_BY_ID
+            dev = DEVELOPMENTS_BY_ID.get(project_id)
+            if dev:
+                current = {
+                    "id": project_id, "slug": project_id,
+                    "name": dev.get("name", project_id),
+                    "colonia": dev.get("colonia"),
+                    "municipio": dev.get("municipio") or dev.get("alcaldia"),
+                    "segmento": dev.get("segmento") or dev.get("segment"),
+                    "price_from": dev.get("price_from") or dev.get("price_min"),
+                    "total_units": dev.get("total_units") or dev.get("units_total"),
+                    "created_at": dev.get("created_at") or dev.get("listed_at"),
+                }
+        except Exception:
+            pass
+    if not current:
         return {"current": None, "comparables": [], "alcaldia": ""}
 
     candidates_q: Dict[str, Any] = {
@@ -89,6 +106,33 @@ async def find_comparables(db, project_id: str, top_n: int = 5) -> Dict[str, Any
         "id": {"$ne": current.get("id")},
     }
     candidates = await db.projects.find(candidates_q, {"_id": 0}).limit(50).to_list(50)
+
+    # Legacy fallback: include DEVELOPMENTS in same alcaldia/colonia
+    try:
+        from data_developments import DEVELOPMENTS
+        for dev in DEVELOPMENTS:
+            did = dev.get("id") or dev.get("slug")
+            if not did or did == current.get("id"):
+                continue
+            if did in {c.get("id") for c in candidates}:
+                continue
+            same_col = dev.get("colonia") and dev.get("colonia") == current.get("colonia")
+            same_mun = (dev.get("municipio") or dev.get("alcaldia")) and (
+                (dev.get("municipio") or dev.get("alcaldia")) == current.get("municipio")
+            )
+            if same_col or same_mun:
+                candidates.append({
+                    "id": did, "slug": did,
+                    "name": dev.get("name", did),
+                    "colonia": dev.get("colonia"),
+                    "municipio": dev.get("municipio") or dev.get("alcaldia"),
+                    "segmento": dev.get("segmento") or dev.get("segment"),
+                    "price_from": dev.get("price_from") or dev.get("price_min"),
+                    "total_units": dev.get("total_units") or dev.get("units_total"),
+                    "created_at": dev.get("created_at") or dev.get("listed_at"),
+                })
+    except Exception:
+        pass
 
     scored = []
     for c in candidates:

@@ -15,6 +15,7 @@ import ContenidoTab from '../../components/developer/ContenidoTab';
 import AmenidadesTab from '../../components/developer/AmenidadesTab';
 import LegalTab from '../../components/developer/LegalTab';
 import ComercializacionTab from '../../components/developer/ComercializacionTab';
+import InsightsTab from '../../components/developer/insights/InsightsTab';
 import BulkUploadModal from '../../components/developer/BulkUploadModal';
 import DiagnosticReportContent from '../../components/developer/DiagnosticReportContent';
 import { EntityDrawer } from '../../components/shared/EntityDrawer';
@@ -418,10 +419,7 @@ export default function ProyectoDetail({ user, onLogout }) {
             <ComercializacionTab devId={slug} user={user} />
           )}
           {activeTab === 'insights' && (
-            <PlaceholderTab
-              tabLabel="Insights"
-              phase="B22"
-            />
+            <InsightsTab projectId={slug} user={user} />
           )}
         </div>
 

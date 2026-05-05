@@ -1,4 +1,58 @@
 {
+  "insights": {
+    "tab": "Insights",
+    "subtabs": {
+      "resumen": "Resumen",
+      "engagement": "Engagement",
+      "cashflow": "Cash Flow",
+      "comparables": "Comparables",
+      "ia": "IA"
+    },
+    "resumen": {
+      "kpi_units_sold": "Unidades vendidas",
+      "kpi_leads_30d": "Leads (30d)",
+      "kpi_conversion": "Conversión",
+      "kpi_days_listed": "Días listado",
+      "kpi_gmv": "GMV cerrado",
+      "health_score": "Health Score",
+      "trend_30d": "Tendencia 30d",
+      "summary_title": "Resumen ejecutivo · IA"
+    },
+    "engagement": {
+      "asesor": "Asesor",
+      "cliente": "Cliente",
+      "top_units_asesor": "Top unidades · Asesor",
+      "top_units_cliente": "Top unidades · Cliente",
+      "hour_distribution": "Distribución horaria · 24h",
+      "conv_asesor": "Conv. Asesor",
+      "conv_cliente": "Conv. Cliente",
+      "empty": "Sin eventos de engagement en este periodo."
+    },
+    "comparables": {
+      "title_zone": "Mostrando hasta {topN} proyectos similares en {zone}.",
+      "your_project": "Tu proyecto",
+      "no_results": "No se encontraron proyectos comparables en la zona."
+    },
+    "ia": {
+      "header": "Insights generados por Claude (cache 24h)",
+      "regenerate": "Regenerar",
+      "regenerating": "Regenerando…",
+      "predictions": "Predicciones",
+      "recommendations": "Recomendaciones",
+      "narrative": "Narrativa 30d",
+      "priority_high": "Alta",
+      "priority_med": "Media",
+      "priority_low": "Baja",
+      "expected_impact": "Impacto esperado: +{pct}%"
+    },
+    "cashflow": {
+      "loading": "Cargando flujo de caja…",
+      "empty_title": "Aún no hay forecast calculado",
+      "empty_sub": "Genera tu primer reporte de flujo de caja con escenarios IA.",
+      "open_full": "Abrir Cash Flow completo",
+      "view_full": "Ver reporte completo"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "inventario": "Inventario",

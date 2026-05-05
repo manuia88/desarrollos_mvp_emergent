@@ -38,16 +38,35 @@ async def _project_or_404(db, project_id: str):
     p = await db.projects.find_one(
         {"$or": [{"id": project_id}, {"slug": project_id}]}, {"_id": 0},
     )
-    if not p:
-        raise HTTPException(404, "Proyecto no encontrado")
-    return p
+    if p:
+        return p
+    # Legacy fallback: data_developments seed
+    try:
+        from data_developments import DEVELOPMENTS_BY_ID
+        dev = DEVELOPMENTS_BY_ID.get(project_id)
+        if dev:
+            return {
+                "id": project_id,
+                "slug": project_id,
+                "name": dev.get("name", project_id),
+                "colonia": dev.get("colonia"),
+                "municipio": dev.get("municipio") or dev.get("alcaldia"),
+                "stage": dev.get("stage"),
+                "segmento": dev.get("segmento") or dev.get("segment"),
+                "price_from": dev.get("price_from") or dev.get("price_min"),
+                "total_units": dev.get("total_units") or dev.get("units_total"),
+                "created_at": dev.get("created_at") or dev.get("listed_at"),
+            }
+    except Exception:
+        pass
+    raise HTTPException(404, "Proyecto no encontrado")
 
 
 # ─── Resumen ─────────────────────────────────────────────────────────────────
 
 @router.get("/api/dev/projects/{project_id}/insights/resumen")
 async def get_resumen(project_id: str, request: Request):
-    user = await _auth_dev(request)
+    await _auth_dev(request)
     db = _db(request)
     proj = await _project_or_404(db, project_id)
 

@@ -3356,3 +3356,51 @@ https://latam-spatial.preview.emergentagent.com
 ### Activación Microsoft (futuro)
 Registrar MicrosoftCalendarProvider real en PROVIDERS + agregar redirect URI. Sin tocar policies/availability/métricas.
 
+
+---
+
+## Phase 4 Batch 22 — Insights Tab dentro Proyecto (5 sub-tabs)
+**Completado: 2026-05-05 · 15/15 pytest passed · 6 endpoints REST + 6 componentes React**
+
+### Sub-tabs implementados
+1. **Resumen** — KPIs (vendido, leads30d, conversión%, días listado, GMV) + Health Score + sparkline tendencia 30d + narrativa ejecutiva (Claude Haiku ≤80 palabras)
+2. **Engagement** — Actor split asesor vs cliente (barra apilada) + top 5 unidades por actor + histograma 24h + tasa de conversión visita→cita por actor; chips 7d/30d/90d
+3. **Cash Flow** — Wrapper compacto del Forecast B8 (reusa `getCashFlowCurrent`, `CashFlowChart` mini) + link a página completa; sin duplicar lógica backend
+4. **Comparables** — Top N (3/5/10) proyectos similares por colonia/municipio + similitud score (0-100) + tabla delta vs current (price/m², health, velocity, días) — soporta legacy `DEVELOPMENTS` + `db.projects`
+5. **IA** — Predicciones Claude Sonnet (3 items con confidence bar) + Recomendaciones (5 items priority high/med/low + impacto%) + Narrativa larga 30d. Cache 24h en `db.ai_suggestions` con `entity_type=project_insight`. Fallback determinístico si AI budget agotado. Botón regenerar con `force=true`.
+
+### Endpoints
+- `GET /api/dev/projects/{id}/insights/resumen`
+- `GET /api/dev/projects/{id}/insights/engagement?period=7d|30d|90d`
+- `GET /api/dev/projects/{id}/insights/comparables?top_n=3..10`
+- `GET /api/dev/projects/{id}/insights/ai/predictions`
+- `GET /api/dev/projects/{id}/insights/ai/recommendations`
+- `GET /api/dev/projects/{id}/insights/ai/narrative?period=...&force=bool`
+
+Auth: roles `developer_admin|developer_director|developer_member|inmobiliaria_admin|asesor_admin|superadmin`. Asesor regular bloqueado (403).
+
+### Archivos creados
+- `/app/backend/routes_insights.py`
+- `/app/backend/services/insights_engagement.py`
+- `/app/backend/services/insights_comparables.py`
+- `/app/backend/services/insights_ai.py`
+- `/app/backend/tests/test_batch22.py`
+- `/app/frontend/src/api/insights.js`
+- `/app/frontend/src/components/developer/insights/InsightsTab.js`
+- `/app/frontend/src/components/developer/insights/InsightsResumen.js`
+- `/app/frontend/src/components/developer/insights/InsightsEngagement.js`
+- `/app/frontend/src/components/developer/insights/InsightsCashFlow.js`
+- `/app/frontend/src/components/developer/insights/InsightsComparables.js`
+- `/app/frontend/src/components/developer/insights/InsightsIA.js`
+
+### Archivos modificados
+- `/app/backend/server.py` (+ `routes_insights` router)
+- `/app/frontend/src/pages/developer/ProyectoDetail.js` (PlaceholderTab → InsightsTab)
+- `/app/frontend/src/i18n/locales/es-MX/common.json` (+ namespace `insights.*`)
+
+### Backlog post-22
+- WhatsApp Business real via whatsapp-web.js QR (P1)
+- Phase 7.10 Avance-Obra ↔ Cash Flow outflows (P1)
+- Microsoft OAuth activation (P2)
+- ML Observability feedback acceptance rate (P2)
+- Studio Wave 1.5 timeline + export presets (P2)
