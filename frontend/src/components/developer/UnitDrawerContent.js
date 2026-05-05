@@ -90,17 +90,18 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
       .finally(() => setLoading(false));
   }, [devId, unit]);
 
-  if (!unit) return null;
-  const st = STATUS_CONFIG[unit.status] || STATUS_CONFIG.disponible;
-  const area = unit.area_total || unit.area;
-  const priceM2 = unit.price && area ? Math.round(unit.price / area) : null;
-
   // Batch 17 — saver via generic inline endpoint (adds activity log + undo)
-  const unitId = unit.id || unit.unit_id || unit.unit_number;
+  // Hook MUST be called before any early return to satisfy rules-of-hooks.
+  const unitId = unit?.id || unit?.unit_id || unit?.unit_number;
   const inlineSave = useInlineSaver('unit', unitId, {
     onUpdated: () => onUnitUpdated?.(),
     toastMessage: 'Unidad actualizada',
   });
+
+  if (!unit) return null;
+  const st = STATUS_CONFIG[unit.status] || STATUS_CONFIG.disponible;
+  const area = unit.area_total || unit.area;
+  const priceM2 = unit.price && area ? Math.round(unit.price / area) : null;
 
   const handleSave = async (field, value) => {
     setSaving(true);

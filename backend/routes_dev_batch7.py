@@ -608,7 +608,7 @@ async def get_study(study_id: str, request: Request):
 # ─────────────────────────────────────────────────────────────────────────────
 # PDF Export (reuses ReportLab patterns from B5)
 # ─────────────────────────────────────────────────────────────────────────────
-def _build_study_pdf(study: Dict) -> bytes:
+def _build_study_pdf(study: Dict, org_branding: Optional[Dict] = None) -> bytes:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.colors import HexColor
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -616,7 +616,16 @@ def _build_study_pdf(study: Dict) -> bytes:
     from reportlab.lib.units import inch
     from reportlab.lib import colors
 
-    primary = HexColor("#06080F")
+    b = {**(org_branding or {})}
+    primary = HexColor(b.get("primary_color", "#06080F"))
+    accent_hex = b.get("accent_color", "#F0EBE0")
+    org_name = b.get("display_name", "DesarrollosMX")
+    logo_path = None
+    try:
+        from branding_helpers import logo_url_to_local_path
+        logo_path = logo_url_to_local_path(b.get("logo_url"))
+    except Exception:
+        pass
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter, leftMargin=0.6 * inch, rightMargin=0.6 * inch,
                             topMargin=0.6 * inch, bottomMargin=0.6 * inch)
@@ -634,7 +643,16 @@ def _build_study_pdf(study: Dict) -> bytes:
 
     inputs = study.get("inputs") or {}
     story: List = []
-    story.append(Paragraph("DESARROLLOSMX · SITE SELECTION AI", eyebrow))
+    # B19.5 — render org logo if available
+    if logo_path:
+        try:
+            from reportlab.platypus import Image as RLImage
+            logo_img = RLImage(logo_path, width=1.5 * inch, height=0.45 * inch, kind='proportional')
+            story.append(logo_img)
+            story.append(Spacer(1, 0.1 * inch))
+        except Exception:
+            pass
+    story.append(Paragraph(f"{org_name.upper()} · SITE SELECTION AI", eyebrow))
     story.append(Paragraph(study.get("name", "Estudio"), h1))
     story.append(Paragraph(f"Generado: {study.get('completed_at', '')[:19]}", small))
     story.append(Spacer(1, 0.18 * inch))
@@ -739,7 +757,14 @@ async def export_study_pdf(study_id: str, request: Request):
     if study.get("status") != "completed":
         raise HTTPException(409, "El estudio no está completado")
 
-    pdf_bytes = _build_study_pdf(study)
+    # B19.5 — load org branding for PDF header
+    try:
+        from branding_helpers import get_org_branding
+        org_branding = await get_org_branding(db, org)
+    except Exception:
+        org_branding = None
+
+    pdf_bytes = _build_study_pdf(study, org_branding=org_branding)
     file_id = _uid("sselpdf")
     await db.site_selection_files.insert_one({
         "id": file_id, "study_id": study_id, "dev_org_id": org,
