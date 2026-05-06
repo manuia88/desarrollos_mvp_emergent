@@ -1,5 +1,53 @@
 # DesarrollosMX — CHANGELOG
 
+## Batch 34 — Phase 4 Smart Match + "Tu Día Hoy" (2026-05-06)
+
+### Sub-A: Smart Match Lead-to-Asesor (~4h)
+- **NEW** `services/lead_to_asesor_match.py` — algoritmo 5-component weighted total 100:
+  - Zona expertise (30): deals zona/colonia 12m / max equipo
+  - Price range match (25): cercanía log10 avg_deal_price vs budget lead (saved_searches B25)
+  - Intent type match (20): conversion ratio del asesor en lead_type vs su mejor tipo
+  - Response time score (15): linear scale (rt<4h=100, rt>24h=0) desde asesor_metrics_snapshots B20
+  - Capacity score (10): inverso leads_active/20
+  - Top 3 reasons via Claude Haiku ≤30 palabras (cost-gated, solo para winner). Fallback heurístico.
+- **NEW** Schema `db.lead_match_scores` `{match_id, lead_id, project_id?, candidates [{asesor_id, match_pct, score_breakdown {5}, top_3_reasons}], winner_asesor_id, computed_at, ttl 60min}`
+- **EDIT** `availability.py` (B15) — `assign_appointment` extendido con `policy_type='smart_match'` que llama compute_match con asesor_pool de policy y asigna winner. Fallback safe a load_balance si match falla.
+- **EDIT** `routes_dev_batch15.py` — validation policy_type acepta `'smart_match'`.
+- **EDIT** `pages/developer/CitasPolicies.js` — option "Smart Match (IA)" + info card explicando 5 señales con porcentajes.
+
+### Sub-B: "Tu Día Hoy" Daily Feed (~3h)
+- **NEW** `services/asesor_daily_feed.py` — para cada lead asignado al asesor: pull client_insights B33, calcular `priority_score = health × (1 + trend_7d/100)`, filtra leads con next_action válida (call/whatsapp/email/schedule_visit), top N por priority desc.
+- **NEW** Schema `db.asesor_daily_feed_cache` `{asesor_id (PK), generated_at, ttl 60min, items [{lead_id, lead_name, heat_score, momentum_signed_pct, recommended_action {type, label, payload}, reason_text, priority_score}], total_leads_evaluated}`
+- **NEW** `execute_action` 1-click: whatsapp → wa.me link con mensaje pre-poblado · email → send_resend con HTML branded · call → log activity · schedule_visit → redirect /asesor/citas · log_activity B14 'daily_feed_action_*'.
+- **NEW** `components/asesor/AsesorDailyFeed.js` — header con greeting horario + count + refresh manual + "Ver todos" link · 5 cards horizontales con HeatRing 44px (color por banda + trend signed badge) · reason text 80 chars · CTA gradient grande min-w 140px · transition translateY(-4px) opacity 0.6 al ejecutar · toast "Email enviado / Acción registrada" · auto-refresh hourly via setInterval · empty state custom · mobile responsive.
+- **EDIT** `pages/asesor/AsesorMetricas.js` — montaje `<AsesorDailyFeed user={user} />` arriba de filtros como widget top.
+
+### Routes (`routes_lead_match.py`)
+- POST `/api/lead-match/compute` (auth admin)
+- GET `/api/lead-match/{match_id}` (auth)
+- GET `/api/lead-match/lead/{lead_id}/recent` (auth)
+- GET `/api/asesor/daily-feed?force_refresh=&top_n=` (auth asesor)
+- POST `/api/asesor/daily-feed/{lead_id}/execute` body{action_type} (auth asesor)
+
+### Wiring
+- `server.py` — registra router + ensure indexes (lead_match_scores + asesor_daily_feed_cache).
+- `api/asesor_match.js` — 5 helpers fetch.
+- `i18n/common.json` — 2 secciones (daily_feed + smart_match).
+
+### Tests curl-validated
+- `POST /api/lead-match/compute` lead_6521d25fb086+quattro-alto → 2 candidates, winner Ana 32.5% match, Claude Haiku generó 3 razones coherentes ("Ana tiene capacidad disponible (20 slots libres)…") ✅
+- `GET /api/asesor/daily-feed` (force_refresh) → 5 items rankeados por priority con heat+momentum+action_type ✅
+- `GET /api/asesor/daily-feed` (cached) → from_cache=true (no consume Claude) ✅
+- `POST /api/asesor/daily-feed/{lead_id}/execute` action=whatsapp → executed=true + redirect_url generado ✅
+- routes_dev_batch15 valida `policy_type='smart_match'` correctamente ✅
+
+### Build & Lint
+- `yarn build` limpio
+- `ruff` 0 · `eslint` 0
+- ÚLTIMO Phase 3 Asesor batch — release-ready
+
+---
+
 ## Batch 33 — Phase 4 Asesor Daily Tools (2026-05-06)
 
 ### Sub-A: Calendar Bidirectional (~2h)

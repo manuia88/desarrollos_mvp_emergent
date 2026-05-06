@@ -26,6 +26,11 @@
 - Cliente Insights tab inline en EntityDrawer (Claude Haiku next-action + sentiment) ✅
 - Cache permanente briefing · cache 30min insights ✅
 
+## P0 — Phase 4 Asesor (Batches 32/33/34) — COMPLETADO ✅
+- Batch 32: Identity (Endorsements + LinkedIn + DISC + Trust Score) ✅
+- Batch 33: Daily Tools (Calendar bidi + Visit briefing + Client insights) ✅
+- Batch 34: Smart Match Lead-to-Asesor + "Tu Día Hoy" feed ✅
+
 ## P1 — Próximas tareas
 - [ ] Phase 7.10: Tab Avance de Obra
 - [ ] WhatsApp Business real integration (`whatsapp-web.js` + Caya UI)

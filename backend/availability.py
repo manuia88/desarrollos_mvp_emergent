@@ -291,6 +291,37 @@ async def assign_appointment(
         asesor_id = preferred if preferred in available_ids else available_ids[0]
     elif policy_type == "load_balance":
         asesor_id = await _select_asesor_load_balance(db, available_ids)
+    elif policy_type == "smart_match":
+        # Phase 4 Batch 34 — IA matching por expertise
+        try:
+            from services.lead_to_asesor_match import compute_match
+            match = await compute_match(
+                db, lead_id=lead_id, project_id=project_id,
+                asesor_pool=available_ids,
+            )
+            winner = match.get("winner_asesor_id")
+            asesor_id = winner if winner in available_ids else available_ids[0]
+            # Log smart_match assignment
+            try:
+                from routes_dev_batch14 import log_activity
+                await log_activity(
+                    db, actor_id="system", actor_type="system",
+                    action="smart_match_assigned",
+                    entity_id=match.get("match_id", ""),
+                    entity_type="lead_match",
+                    metadata={
+                        "lead_id": lead_id, "project_id": project_id,
+                        "winner": asesor_id,
+                        "score": (match.get("candidates") or [{}])[0].get("match_pct", 0),
+                    },
+                )
+            except Exception:
+                pass
+        except Exception as e:
+            # Fallback safe a load_balance
+            import logging as _log
+            _log.warning(f"[batch34] smart_match failed: {e}, fallback load_balance")
+            asesor_id = await _select_asesor_load_balance(db, available_ids)
     else:  # round_robin (default)
         asesor_id = await _select_asesor_round_robin(db, project_id, available_ids)
 

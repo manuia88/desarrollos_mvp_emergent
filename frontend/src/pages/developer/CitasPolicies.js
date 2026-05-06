@@ -14,6 +14,7 @@ const POLICY_OPTIONS = [
   { value: 'round_robin', label: 'Round Robin', desc: 'Rotación FIFO entre asesores del pool' },
   { value: 'load_balance', label: 'Balance de carga', desc: 'Asesor con menos citas hoy gana' },
   { value: 'pre_selected', label: 'Pre-seleccionado', desc: 'El asesor del lead tiene prioridad' },
+  { value: 'smart_match', label: 'Smart Match (IA)', desc: 'Match por expertise, response time y capacidad' },
 ];
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -162,6 +163,16 @@ function ProjectPolicyForm({ project, asesoresWithGoogle }) {
                 </button>
               ))}
             </div>
+            {policy.policy_type === 'smart_match' && (
+              <div data-testid="smart-match-info" style={{
+                marginTop: 12, padding: 12, borderRadius: 12,
+                background: 'rgba(99,102,241,0.08)',
+                border: '1px solid rgba(99,102,241,0.25)',
+                fontSize: 12, color: 'var(--cream-2, #c7d2fe)', lineHeight: 1.6,
+              }}>
+                El sistema asignará automáticamente al asesor con mejor track record para cada lead, combinando 5 señales: expertise en zona (30%), match de presupuesto (25%), tipo de lead (20%), tiempo de respuesta (15%) y capacidad disponible (10%).
+              </div>
+            )}
           </div>
 
           {/* Asesor pool — only google-connected */}

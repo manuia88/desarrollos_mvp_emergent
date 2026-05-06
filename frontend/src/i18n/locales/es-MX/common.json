@@ -518,6 +518,32 @@
       "action_email": "Enviar email",
       "action_schedule_visit": "Agendar visita",
       "refresh": "Refrescar"
+    },
+    "daily_feed": {
+      "eyebrow": "TU DÍA HOY",
+      "greeting_morning": "Buenos días",
+      "greeting_afternoon": "Buenas tardes",
+      "greeting_night": "Buenas noches",
+      "high_impact_actions": "{count} acciones high-impact",
+      "no_actions": "Sin acciones pendientes",
+      "refresh": "Refrescar",
+      "see_all": "Ver todos",
+      "empty_title": "Sin acciones críticas hoy",
+      "empty_subtitle": "Tu pipeline está al día. Buen trabajo.",
+      "action_call": "Llamar ahora",
+      "action_whatsapp": "Mandar WA",
+      "action_email": "Enviar email",
+      "action_schedule_visit": "Agendar visita",
+      "processing": "Procesando…",
+      "email_sent": "Email enviado",
+      "action_logged": "Acción registrada"
+    },
+    "smart_match": {
+      "option_label": "Smart Match (IA)",
+      "option_desc": "Match por expertise, response time y capacidad",
+      "info_card": "El sistema asignará automáticamente al asesor con mejor track record para cada lead, combinando 5 señales: expertise en zona (30%), match de presupuesto (25%), tipo de lead (20%), tiempo de respuesta (15%) y capacidad disponible (10%).",
+      "top_3_reasons": "Razones del match",
+      "match_pct": "Match {pct}%"
     }
   }
 }

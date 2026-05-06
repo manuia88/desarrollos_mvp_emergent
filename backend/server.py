@@ -304,6 +304,10 @@ app.include_router(asesor_identity_router)
 from routes_asesor_daily_tools import router as asesor_daily_tools_router
 app.include_router(asesor_daily_tools_router)
 
+# Phase 4 Batch 34 — Smart Match Lead-to-Asesor + Daily Feed
+from routes_lead_match import router as lead_match_router
+app.include_router(lead_match_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -765,6 +769,15 @@ async def startup():
         await ensure_client_insights_indexes(db)
     except Exception as e:
         logging.warning(f"[batch33] daily tools indexes failed: {e}")
+
+    # Phase 4 Batch 34 — Smart Match + Daily Feed indexes
+    try:
+        from services.lead_to_asesor_match import ensure_lead_match_indexes
+        await ensure_lead_match_indexes(db)
+        from services.asesor_daily_feed import ensure_daily_feed_indexes
+        await ensure_daily_feed_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch34] indexes failed: {e}")
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:
