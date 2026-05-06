@@ -260,7 +260,18 @@ Breakpoints: mobile `<640`, tablet `640–960`, desktop `>960`.
 - [ ] Contrast ratio ≥4.5:1 texto / ≥3:1 elementos UI.
 - [ ] Focus visible en todos los interactivos.
 
-## 12. Inspiraciones (referencias creativas, NO copiar literal)
+## 12a. Patterns visuales disponibles (úsalos si quieres, como quieras)
+
+Patterns visuales que existen como referencia. No son obligatorios. Úsalos donde tengan sentido, combínalos, modifícalos, o ignóralos:
+
+- **Property cards con carousel + scores + footer asesor** — cards de propiedades con galería swipeable, badges de momentum, scores compactos y CTA al asesor.
+- **Radar comparator** — comparador visual de 2+ entidades sobre N ejes con polígonos superpuestos.
+- **Score tile con layer switcher + sparkline** — card de colonia con score grande + tabs de capa + 24-meses sparkline + facts.
+- **Ticker Bloomberg-style** — barra horizontal infinita con valores + deltas verde/rojo en vivo.
+
+Para etiquetar capas/categorías compactas (ej. dimensiones de score): **usa iconos + label corto en español**, decide tú cuáles iconos y qué labels. Cero acrónimos crípticos. Cero emojis.
+
+## 12b. Inspiraciones externas (referencias creativas)
 
 Para cuando necesites inspiración para componentes complejos:
 

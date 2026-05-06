@@ -1,0 +1,103 @@
+/**
+ * Batch 18 Sub-A — Density System
+ *
+ * 3 modes applied via body class by useDensity hook:
+ *   body.density-comfortable  (default — current paddings)
+ *   body.density-compact      (paddings -25%, font -1px, row height -8px)
+ *   body.density-spacious     (paddings +30%, font +1px, row height +12px)
+ *
+ * CSS custom properties are consumed by density-aware components via
+ * var(--d-*) in inline styles. Direct CSS overrides handle Tailwind-based
+ * components (EntityDrawer sections, table rows).
+ */
+
+/* ─── Comfortable (default, current paddings) ──────────────────────────── */
+body,
+body.density-comfortable {
+  --d-pad-card:     14px 16px;   /* project card body */
+  --d-pad-item:     12px;        /* list item / tarea card */
+  --d-pad-kanban:   10px;        /* kanban lead card */
+  --d-pad-drawer:   20px;        /* drawer section horiz padding */
+  --d-gap:          12px;        /* column / row gap */
+  --d-gap-grid:     18px;        /* project cards grid gap */
+  --d-font-xs:      10px;
+  --d-font-sm:      12px;
+  --d-font-md:      13px;
+  --d-font-lg:      14px;
+  --d-row-h:        40px;        /* table row min-height */
+  --d-card-cover-h: 130px;       /* project card cover image height */
+  --d-cell-pad:     10px 14px;   /* table cell padding */
+}
+
+/* ─── Compact (-25% paddings, -1px font, -8px row height) ──────────────── */
+body.density-compact {
+  --d-pad-card:     10.5px 12px;
+  --d-pad-item:     9px;
+  --d-pad-kanban:   7.5px;
+  --d-pad-drawer:   15px;
+  --d-gap:          9px;
+  --d-gap-grid:     13.5px;
+  --d-font-xs:      9px;
+  --d-font-sm:      11px;
+  --d-font-md:      12px;
+  --d-font-lg:      13px;
+  --d-row-h:        32px;
+  --d-card-cover-h: 97.5px;
+  --d-cell-pad:     7.5px 10.5px;
+}
+
+/* ─── Spacious (+30% paddings, +1px font, +12px row height) ────────────── */
+body.density-spacious {
+  --d-pad-card:     18.2px 20.8px;
+  --d-pad-item:     15.6px;
+  --d-pad-kanban:   13px;
+  --d-pad-drawer:   26px;
+  --d-gap:          15.6px;
+  --d-gap-grid:     23.4px;
+  --d-font-xs:      11px;
+  --d-font-sm:      13px;
+  --d-font-md:      14px;
+  --d-font-lg:      15px;
+  --d-row-h:        52px;
+  --d-card-cover-h: 169px;
+  --d-cell-pad:     13px 18.2px;
+}
+
+/* ─── Smooth transition on density change ───────────────────────────────── */
+.density-aware {
+  transition: padding 0.18s ease, gap 0.18s ease;
+}
+
+/* ─── EntityDrawer section padding overrides ────────────────────────────── */
+body.density-compact [data-density-drawer-section] {
+  padding-left:   15px !important;
+  padding-right:  15px !important;
+  padding-top:    10px !important;
+  padding-bottom: 10px !important;
+}
+body.density-spacious [data-density-drawer-section] {
+  padding-left:   26px !important;
+  padding-right:  26px !important;
+  padding-top:    16px !important;
+  padding-bottom: 20px !important;
+}
+
+/* ─── Table rows density (density-table class) ──────────────────────────── */
+body.density-compact .density-table td,
+body.density-compact .density-table th {
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+}
+body.density-spacious .density-table td,
+body.density-spacious .density-table th {
+  padding: 13px 18px !important;
+  font-size: 13px !important;
+}
+
+/* ─── Kanban column gap density ─────────────────────────────────────────── */
+body.density-compact .density-kanban-grid {
+  gap: 8px !important;
+}
+body.density-spacious .density-kanban-grid {
+  gap: 15px !important;
+}

@@ -115,9 +115,9 @@ export function FilterChipsBar({
       )}
       <style>{`
         @keyframes chipPop {
-          0% { transform: scale(0.92); opacity: 0.4; }
-          60% { transform: scale(1.05); opacity: 1; }
-          100% { transform: scale(1.02); opacity: 1; }
+          0%   { transform: translateY(2px); opacity: 0.4; }
+          60%  { transform: translateY(-1px); opacity: 1; }
+          100% { transform: translateY(0); opacity: 1; }
         }
       `}</style>
     </div>

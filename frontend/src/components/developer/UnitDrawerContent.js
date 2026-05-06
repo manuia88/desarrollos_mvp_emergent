@@ -1,7 +1,6 @@
 /**
  * Phase 4 Batch 11 — Sub-chunk C
  * UnitDrawerContent — 7 secciones colapsables para drawer de unidad
- * Phase 4 Batch 29 — Tab Chat para asesor
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -10,9 +9,7 @@ import {
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
 import useInlineSaver from '../../hooks/useInlineSaver';
-import { ChevronRight, TrendUp, BarChart, Users, Building, FileText, Star, MessageSquare } from '../../components/icons';
-import ChatThread from '../comprador/ChatThread';
-import { fetchThreads, startThread } from '../../api/chat';
+import { ChevronRight, TrendUp, BarChart, Users, Building, FileText, Star } from '../../components/icons';
 
 const fmtMXN = (v) => {
   if (!v || v === 0) return '—';
@@ -83,13 +80,6 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const isAdmin = user?.role === 'developer_admin' || user?.role === 'superadmin';
-  const unitId = unit?.id || unit?.unit_id || unit?.unit_number || '';
-
-  // Batch 17 — saver via generic inline endpoint (adds activity log + undo)
-  const inlineSave = useInlineSaver('unit', unitId, {
-    onUpdated: () => onUnitUpdated?.(),
-    toastMessage: 'Unidad actualizada',
-  });
 
   useEffect(() => {
     if (!unit) return;
@@ -99,6 +89,14 @@ function EstadoPrecioSection({ unit, devId, user, onUnitUpdated }) {
       .catch(() => setPriceData(null))
       .finally(() => setLoading(false));
   }, [devId, unit]);
+
+  // Batch 17 — saver via generic inline endpoint (adds activity log + undo)
+  // Hook MUST be called before any early return to satisfy rules-of-hooks.
+  const unitId = unit?.id || unit?.unit_id || unit?.unit_number;
+  const inlineSave = useInlineSaver('unit', unitId, {
+    onUpdated: () => onUnitUpdated?.(),
+    toastMessage: 'Unidad actualizada',
+  });
 
   if (!unit) return null;
   const st = STATUS_CONFIG[unit.status] || STATUS_CONFIG.disponible;
@@ -532,95 +530,6 @@ function DrawerFooter({ unit, devId, user, onClose, onUnitUpdated }) {
   );
 }
 
-// ─── Chat Section (Asesor — Batch 29) ─────────────────────────────────────
-function ChatSection({ unit, user }) {
-  const [threads, setThreads] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    fetchThreads()
-      .then(list => {
-        // Filter threads related to this unit's development
-        const relevant = list.filter(t =>
-          !unit.development_id ||
-          t.project_id === unit.development_id ||
-          !t.project_id
-        );
-        setThreads(relevant);
-        if (relevant.length > 0) setSelected(relevant[0]);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [unit.development_id]);
-
-  if (loading) {
-    return <div style={{ fontSize: 12, color: 'var(--cream-3)', padding: '8px 0' }}>Cargando conversaciones…</div>;
-  }
-
-  if (threads.length === 0) {
-    return (
-      <div style={{
-        padding: '20px 0', textAlign: 'center',
-        fontFamily: 'DM Sans', fontSize: 13,
-        color: 'rgba(240,235,224,0.4)',
-      }}>
-        <MessageSquare size={22} color="rgba(99,102,241,0.5)" style={{ display: 'block', margin: '0 auto 8px' }} />
-        Sin conversaciones para esta unidad
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: 4 }}>
-      {/* Thread selector */}
-      {threads.length > 1 && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-          {threads.map(t => (
-            <button
-              key={t.thread_id}
-              onClick={() => setSelected(t)}
-              style={{
-                padding: '4px 10px', borderRadius: 9999, cursor: 'pointer',
-                background: selected?.thread_id === t.thread_id
-                  ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
-                border: selected?.thread_id === t.thread_id
-                  ? '1px solid rgba(99,102,241,0.35)' : '1px solid rgba(240,235,224,0.12)',
-                fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
-                color: selected?.thread_id === t.thread_id
-                  ? 'rgba(165,180,252,0.9)' : 'rgba(240,235,224,0.5)',
-              }}
-            >
-              {t.counterpart?.name || 'Comprador'}
-              {t.unread_count > 0 && (
-                <span style={{
-                  marginLeft: 5, minWidth: 14, height: 14,
-                  borderRadius: 9999, padding: '0 3px',
-                  background: '#EC4899',
-                  fontFamily: 'DM Sans', fontSize: 8, fontWeight: 800,
-                  color: '#fff', verticalAlign: 'middle',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {t.unread_count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-      <div style={{ height: 340 }}>
-        <ChatThread
-          thread={selected}
-          userRole="asesor"
-          userId={user?.user_id}
-          onClose={null}
-        />
-      </div>
-    </div>
-  );
-}
-
 // ─── Main UnitDrawerContent ───────────────────────────────────────────────
 export default function UnitDrawerContent({ unit, devId, user, onUnitUpdated }) {
   if (!unit) return null;
@@ -663,10 +572,6 @@ export default function UnitDrawerContent({ unit, devId, user, onUnitUpdated }) 
 
       <DrawerSection id="documentos" title="Documentos y assets">
         <DocumentosSection unit={unit} devId={devId} />
-      </DrawerSection>
-
-      <DrawerSection id="chat" title="Chat con comprador">
-        <ChatSection unit={unit} user={user} />
       </DrawerSection>
 
       <DrawerFooter unit={unit} devId={devId} user={user} onUnitUpdated={onUnitUpdated} />
