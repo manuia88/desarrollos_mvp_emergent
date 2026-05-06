@@ -7,6 +7,9 @@ import { Clock } from '../../components/icons';
 import SortableList from '../../components/shared/SortableList';
 import { reorderTareas } from '../../api/batch17';
 import { useServerUndo } from '../../components/shared/UndoSnackbar';
+import VisitAutoPrepCard from '../../components/asesor/VisitAutoPrepCard';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const SCOPES = [
   { k: 'property', label: 'Propiedades', types: ['property', 'capture', 'search'] },
@@ -19,13 +22,36 @@ export default function AsesorTareas({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [toast, setToast] = useState(null);
+  const [upcomingAppts, setUpcomingAppts] = useState([]);
   const { showServerUndo } = useServerUndo();
 
   const load = async () => {
     setLoading(true);
     try { setAll(await api.listTareas()); } finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+
+  // Phase 4 Batch 33 — load upcoming appointments (próx 24h) para Visit Auto-prep
+  const loadUpcomingAppts = async () => {
+    try {
+      const r = await fetch(`${API_URL}/api/asesor/citas?status=agendada&limit=10`,
+        { credentials: 'include' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const items = Array.isArray(data) ? data : (data.items || []);
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const upcoming = items.filter(a => {
+        const t = new Date(a.datetime || a.scheduled_at);
+        return t >= now && t <= tomorrow;
+      }).slice(0, 5);
+      setUpcomingAppts(upcoming);
+    } catch {}
+  };
+
+  useEffect(() => {
+    load();
+    loadUpcomingAppts();
+  }, []);
 
   const complete = async (id) => {
     try { await api.completeTarea(id); setToast({ kind: 'success', text: '+5 XP — Tarea completada' }); load(); } catch { setToast({ kind: 'error', text: 'Error' }); }
@@ -70,6 +96,21 @@ export default function AsesorTareas({ user, onLogout }) {
         sub="Organizadas por propiedades, clientes y generales. Las vencidas aparecen primero."
         actions={<button onClick={() => setShowNew(true)} data-testid="new-tarea-btn" className="btn btn-primary">+ Nueva tarea</button>}
       />
+
+      {/* Phase 4 Batch 33 — Visit Auto-prep cards para citas próximas */}
+      {upcomingAppts.length > 0 && (
+        <div data-testid="upcoming-appts-section" style={{
+          display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16,
+        }}>
+          <div style={{
+            fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--cream-3)',
+          }}>Citas próximas con briefing AI</div>
+          {upcomingAppts.map((a) => (
+            <VisitAutoPrepCard key={a.id || a.appointment_id} appointment={a} />
+          ))}
+        </div>
+      )}
 
       {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : (

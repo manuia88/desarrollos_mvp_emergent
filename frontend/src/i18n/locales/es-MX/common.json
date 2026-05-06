@@ -474,6 +474,50 @@
       "not_found": "Perfil no encontrado",
       "home_link": "← DesarrollosMX",
       "loading": "Cargando perfil…"
+    },
+    "calendar_bidi": {
+      "eyebrow": "SINCRONIZACIÓN BIDIRECCIONAL",
+      "title": "Recibir cambios desde Google Calendar",
+      "subtitle": "Cuando crees o edites eventos directamente en Google, DMX los importará automáticamente como citas.",
+      "status_active": "Webhook activo",
+      "status_polling": "Polling cada 30 min",
+      "status_error": "Error · usando polling",
+      "status_off": "Inactivo",
+      "activate": "Activar sync bidireccional",
+      "deactivate": "Desactivar sync",
+      "force_now": "Forzar sync ahora",
+      "last_sync": "Último sync: {time} · {count} eventos"
+    },
+    "auto_prep": {
+      "eyebrow": "PRÓXIMA VISITA",
+      "see_briefing": "Ver briefing",
+      "hide_briefing": "Ocultar briefing",
+      "generating": "Generando briefing con IA…",
+      "about_lead": "Sobre el lead",
+      "objections": "3 objeciones probables",
+      "talking_points": "Tus talking points",
+      "closing": "Cierre sugerido",
+      "comparables": "Comparables relacionados",
+      "regenerate": "Regenerar",
+      "briefings_section": "Citas próximas con briefing AI"
+    },
+    "client_insights": {
+      "eyebrow": "INSIGHTS DEL LEAD",
+      "next_action": "Próxima acción sugerida",
+      "activity_30d": "Actividad últimos 30 días",
+      "attribution": "De dónde vino",
+      "top_views": "Lo que vio",
+      "top_favoritos": "Sus favoritos",
+      "conversations": "Conversaciones",
+      "no_activity": "Lead sin actividad reciente.",
+      "sentiment_positivo": "positivo",
+      "sentiment_neutral": "neutral",
+      "sentiment_negativo": "negativo",
+      "action_call": "Llamar ahora",
+      "action_whatsapp": "WhatsApp ahora",
+      "action_email": "Enviar email",
+      "action_schedule_visit": "Agendar visita",
+      "refresh": "Refrescar"
     }
   }
 }

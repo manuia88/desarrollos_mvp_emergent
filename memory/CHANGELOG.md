@@ -1,5 +1,56 @@
 # DesarrollosMX — CHANGELOG
 
+## Batch 33 — Phase 4 Asesor Daily Tools (2026-05-06)
+
+### Sub-A: Calendar Bidirectional (~2h)
+- **NEW** `services/calendar_bidirectional.py` — Google Calendar `events.watch` (webhook 7-day life), polling fallback APScheduler 30min, auto-renew daily 03:00 (RENEW_BEFORE 1d), idempotent upsert en `db.appointments` con `synced_from_external=true` + `external_event_id`. Detección match by external_event_id para edits. Graceful: si OAuth no conectado o webhook falla → status='polling' o 'error' fallback automático.
+- **NEW** Schema `db.calendar_webhook_subscriptions` `{asesor_id, channel_id, resource_id, expiration_at, status active|polling|error|off, last_event_synced_at}`
+- **EDIT** `db.appointments` schema soporta `synced_from_external` + `external_event_id` (sparse index).
+- **EDIT** `pages/advisor/CalendarSettings.js` — sección nueva `BidirectionalSyncCard` con toggle activar/desactivar + status badge (verde activo · ámbar polling · rojo error · gris off) + last sync timestamp + botón "Forzar sync ahora". Solo aparece cuando google_conn.status === 'active'.
+
+### Sub-B: Visit Auto-prep (~3h)
+- **NEW** `services/visit_auto_prep.py` — Claude Sonnet 4.5 con context aggregation 7-source (lead + saved_searches + favoritos + buyer_history + chat_threads + health_score + lead_attribution + project + comparables). Argumentario RAG B31 top 5 objeciones. Output JSON estructurado: lead_summary ≤100 palabras, top_3_objections (objection+script), top_3_talking_points, closing_recommendation, related_comparables IDs, data_sources. ai_budget gating + JSON parsing robusto (extracción ```json blocks). Cache permanente. Fallback heurístico si Claude falla.
+- **NEW** Schema `db.visit_briefings` `{briefing_id, appointment_id (unique), asesor_id, lead_id, project_id, generated_at, content {...}, viewed_at?}`
+- **NEW** APScheduler cron 1h: `auto_generate_upcoming_briefings` — para citas próximas 24h sin briefing → genera + log_activity B14 'visit_briefing_ready'.
+- **NEW** `components/asesor/VisitAutoPrepCard.js` — card expandible con header colapsado (lead+project+hora+CTA gradient) y body 4 secciones (Sobre el lead · 3 Objeciones con scripts · Talking points · Cierre destacado gradient · Comparables chips). Loading spinner si está generando · Mark viewed automático · Regenerate button.
+- **EDIT** `pages/advisor/AsesorTareas.js` — section "Citas próximas con briefing AI" arriba de las 3 columnas; carga `/api/asesor/citas` filtra próximas 24h y monta VisitAutoPrepCard por cada una.
+
+### Sub-C: Client Insights (~3h)
+- **NEW** `services/client_insights.py` — aggregate B13/B14/B22/B25/B28/B29: timeline 30d combinado (history + favoritos + chats), top vistas/favoritos, attribution, health trend 7d signed, chat sentiment Claude Haiku (positivo/neutral/negativo) con fallback heurístico keyword-based, recommended_next_action Claude Haiku ≤25 palabras con detección de action_type (call/whatsapp/email/schedule_visit). Cache 30min en `db.client_insights_cache`.
+- **NEW** Schema `db.client_insights_cache` `{lead_id (PK), name, health, activity_30d, timeline, attribution, top_views, top_favoritos, chat, next_action, computed_at}`
+- **NEW** `components/asesor/ClientInsightsTab.js` — Heat ring + trend signed + 7 sections (next_action gradient destacado con CTA "Hacer ahora", Activity 30d timeline vertical chips, Attribution multi-touch, Lo que vio top 5, Sus favoritos top 5, Conversaciones con sentiment badge + last message quote, refresh button cuando from_cache).
+- **EDIT** `components/shared/EntityDrawer.js` — nuevo prop `entity_id`; cuando `entity_type === 'lead'` && entity_id presente, **inyecta automáticamente** sección "Insights" al inicio del array sections con `<ClientInsightsTab leadId={entity_id} />`.
+
+### Routes (`routes_asesor_daily_tools.py`)
+- POST `/api/asesor/calendar/webhook/subscribe` (auth)
+- DELETE `/api/asesor/calendar/webhook/subscribe` (auth)
+- POST `/api/asesor/calendar/webhook/callback` (público, headers X-Goog-*)
+- GET `/api/asesor/calendar/sync-status` (auth)
+- POST `/api/asesor/calendar/sync-now` (auth, force polling)
+- POST `/api/asesor/visit-briefing/generate` (auth)
+- GET `/api/asesor/visit-briefing/{appt_id}` (auth, ownership check)
+- POST `/api/asesor/visit-briefing/{briefing_id}/viewed` (auth)
+- GET `/api/asesor/lead/{lead_id}/insights` (auth)
+
+### Wiring
+- `server.py` — registra router + ensure_indexes 3 colecciones + APScheduler 3 jobs (b33_calendar_polling 30min · b33_webhook_renew daily 03:00 · b33_visit_briefing_cron 60min).
+- `api/asesor_daily.js` — 9 helpers fetch.
+- `i18n/common.json` — 3 secciones nuevas (calendar_bidi · auto_prep · client_insights).
+
+### Tests curl-validated
+- `POST /api/asesor/calendar/webhook/subscribe` → status=polling (sin OAuth Google) ✅ graceful fallback
+- `POST /api/asesor/visit-briefing/generate` apt_2417d50f3919 → Claude Sonnet 4.5 generó briefing con 3 objeciones+scripts, 3 talking points, closing_recommendation ✅
+- `GET /api/asesor/visit-briefing/{appt}` → fetch cached ✅
+- `GET /api/asesor/lead/{lead_id}/insights` → shape completo con next_action whatsapp + sentiment + health 0/0 ✅
+- 2da llamada insights → from_cache=true (no consume Claude) ✅
+
+### Build & Lint
+- `yarn build` limpio
+- `ruff` 0 issues
+- `eslint` 0 issues
+
+---
+
 ## Batch 32 — Phase 4 Asesor Identity (2026-05-06)
 
 ### Sub-A: Endorsements + LinkedIn Import

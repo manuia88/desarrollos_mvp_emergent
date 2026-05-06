@@ -20,6 +20,12 @@
 - Trust Score 6-component formula (cap 100) + cache 4h + re-compute hooks ✅
 - Public profile `/asesor-publico/:id` sin auth con hero + endorsements + trust + projects + WhatsApp CTA ✅
 
+## P0 — Phase 4 Asesor Daily Tools — COMPLETADO (Batch 33 ✅)
+- Calendar bidireccional (Google webhook + polling fallback + auto-renew) ✅
+- Visit Auto-prep AI con APScheduler 1h cron (Claude Sonnet 4.5 + 7-source aggregation) ✅
+- Cliente Insights tab inline en EntityDrawer (Claude Haiku next-action + sentiment) ✅
+- Cache permanente briefing · cache 30min insights ✅
+
 ## P1 — Próximas tareas
 - [ ] Phase 7.10: Tab Avance de Obra
 - [ ] WhatsApp Business real integration (`whatsapp-web.js` + Caya UI)
