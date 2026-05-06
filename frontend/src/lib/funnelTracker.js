@@ -50,4 +50,30 @@ export async function trackFunnelEvent(eventType, projectId, metadata = {}) {
   } catch {}
 }
 
-export default { trackFunnelEvent };
+// ─── Phase 4 Batch 28 — Buyer view tracking (autenticado) ──────────────────
+// Si hay sesión activa de comprador, además de funnel_event registramos la
+// vista en /api/comprador/history para alimentar /comprador/historial y los
+// 5 thumbnails "Recientes" del dashboard.
+export async function trackBuyerView(itemType, itemId, source = 'marketplace') {
+  if (!itemType || !itemId) return;
+  try {
+    await fetch(`${API}/api/comprador/history`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({ item_type: itemType, item_id: itemId, source }),
+    });
+  } catch {}
+}
+
+// Convenience helper que dispara ambos: funnel event + buyer view.
+export async function trackPropertyView(projectId, source = 'marketplace', metadata = {}) {
+  if (!projectId) return;
+  // Funnel siempre (anónimo + autenticado)
+  trackFunnelEvent('view_property', projectId, metadata);
+  // Buyer history (auth-gated por cookie; 401 silencioso si no logueado)
+  trackBuyerView('project', projectId, source);
+}
+
+export default { trackFunnelEvent, trackBuyerView, trackPropertyView };

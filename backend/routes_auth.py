@@ -181,3 +181,195 @@ async def logout(request: Request, response: Response):
     response.delete_cookie("access_token", path="/", samesite="none", secure=True)
     response.delete_cookie("refresh_token", path="/", samesite="none", secure=True)
     return {"message": "Sesión cerrada"}
+
+
+# ─── Phase 4 Batch 28 — Magic Link auth (buyer portal) ────────────────────────
+
+import secrets as _secrets
+import hashlib as _hashlib
+from collections import defaultdict as _dd, deque as _dq
+import time as _time
+
+class MagicLinkRequestIn(BaseModel):
+    email: str
+    name: Optional[str] = None
+
+_ML_RATE = _dd(_dq)
+
+
+def _ml_check_rate(ip: str, limit: int = 5) -> bool:
+    key = _hashlib.sha256(ip.encode()).hexdigest()[:16]
+    now = _time.monotonic()
+    win = _ML_RATE[key]
+    while win and now - win[0] > 60:
+        win.popleft()
+    if len(win) >= limit:
+        return False
+    win.append(now)
+    return True
+
+
+def _ml_get_ip(request: Request) -> str:
+    fwd = request.headers.get("X-Forwarded-For")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _ml_frontend_base() -> str:
+    """Best-effort base url para el link (lee env var si existe)."""
+    base = os.environ.get("FRONTEND_BASE_URL") or os.environ.get("PUBLIC_BASE_URL") or ""
+    if base:
+        return base.rstrip("/")
+    return ""
+
+
+@router.post("/api/auth/comprador/magic-link/request")
+async def request_magic_link(payload: MagicLinkRequestIn, request: Request):
+    """Envía un magic-link al email. Crea user role=buyer si no existe (lo materializa el verify)."""
+    if not _ml_check_rate(_ml_get_ip(request), 5):
+        raise HTTPException(429, "Demasiadas solicitudes. Intenta en 1 minuto.")
+
+    email = (payload.email or "").strip().lower()
+    if not email or "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(400, "Email inválido")
+    if len(email) > 200:
+        raise HTTPException(400, "Email demasiado largo")
+
+    db = _db(request)
+    token = _secrets.token_urlsafe(24)
+    token_hash = _hashlib.sha256(token.encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=15)
+
+    # Guardar token (única doc por email para invalidar previos)
+    await db.magic_link_tokens.update_one(
+        {"email": email},
+        {"$set": {
+            "email": email,
+            "token_hash": token_hash,
+            "expires_at": expires_at,
+            "name_hint": (payload.name or "").strip()[:120] or None,
+            "used": False,
+            "created_at": now,
+        }},
+        upsert=True,
+    )
+
+    # Construir URL al frontend.
+    # Estrategia: 1) FRONTEND_BASE_URL/PUBLIC_BASE_URL env, 2) header Origin del request,
+    # 3) X-Forwarded-Host/Proto, 4) fallback al host del request (último recurso, puede
+    # ser interno detrás de un ingress y no funcionar para el usuario).
+    base = _ml_frontend_base()
+    if not base:
+        origin = request.headers.get("origin", "")
+        if origin and origin.startswith(("http://", "https://")):
+            base = origin.rstrip("/")
+    if not base:
+        proto = request.headers.get("X-Forwarded-Proto") or request.url.scheme
+        host = request.headers.get("X-Forwarded-Host") or request.headers.get("host", "")
+        if host:
+            base = f"{proto}://{host}"
+    link = f"{base}/login-comprador?token={token}" if base else f"/login-comprador?token={token}"
+
+    # Enviar email
+    email_sent = False
+    try:
+        from services.lead_capture import _send_email
+        html = f"""<!DOCTYPE html><html lang="es"><body style="background:#06080F;font-family:'DM Sans',Arial;padding:32px 20px;max-width:560px;margin:0 auto;">
+          <div style="text-align:center;margin-bottom:22px;">
+            <div style="display:inline-block;padding:7px 18px;background:linear-gradient(90deg,#6366F1,#EC4899);border-radius:9999px;color:#fff;font-weight:700;font-size:12px;">DesarrollosMX</div>
+          </div>
+          <h1 style="font-family:Outfit,Arial;font-weight:800;font-size:22px;color:#F0EBE0;margin:0 0 12px;letter-spacing:-0.02em;">Tu acceso seguro</h1>
+          <p style="color:rgba(240,235,224,0.65);font-size:14px;line-height:1.6;margin:0 0 22px;">
+            Haz clic en el botón para entrar a tu cuenta. Este enlace expira en 15 minutos.
+          </p>
+          <div style="text-align:center;margin:18px 0;">
+            <a href="{link}" style="display:inline-block;padding:13px 28px;background:linear-gradient(90deg,#6366F1,#EC4899);border-radius:9999px;color:#fff;font-weight:700;font-size:14px;text-decoration:none;">
+              Entrar a DesarrollosMX
+            </a>
+          </div>
+          <p style="color:rgba(240,235,224,0.40);font-size:11px;margin:22px 0 0;">
+            Si no solicitaste este link, ignora este correo. Tu cuenta sigue protegida.
+          </p>
+        </body></html>"""
+        email_sent = await _send_email(
+            to=email,
+            subject="Tu acceso a DesarrollosMX",
+            html=html,
+        )
+    except Exception as ex:
+        log.warning(f"[magic_link] email failed: {ex}")
+
+    # Devolver token raw cuando el email no se pudo enviar para que el frontend
+    # pueda construir el link con su propio origin (ingress puede reescribir host).
+    response = {"sent": True, "email_sent": email_sent, "expires_in_minutes": 15}
+    if not email_sent:
+        response["debug_token"] = token
+        response["debug_link"] = link  # legacy/fallback
+    return response
+
+
+@router.get("/api/auth/comprador/magic-link/verify")
+async def verify_magic_link(token: str, request: Request, response: Response):
+    from server import create_access_token, create_refresh_token
+    if not token or len(token) > 200:
+        raise HTTPException(400, "Token inválido")
+
+    db = _db(request)
+    token_hash = _hashlib.sha256(token.encode()).hexdigest()
+    doc = await db.magic_link_tokens.find_one({"token_hash": token_hash}, {"_id": 0})
+    if not doc:
+        raise HTTPException(401, "Token inválido o ya usado")
+
+    if doc.get("used"):
+        raise HTTPException(401, "Este link ya fue usado")
+
+    expires = doc.get("expires_at")
+    if isinstance(expires, datetime):
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires < datetime.now(timezone.utc):
+            raise HTTPException(401, "Link expirado · solicita uno nuevo")
+
+    email = doc["email"]
+
+    # Find or create user
+    user_doc = await db.users.find_one({"email": email}, {"_id": 0})
+    is_new = user_doc is None
+    if is_new:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        await db.users.insert_one({
+            "user_id": user_id, "email": email,
+            "name": doc.get("name_hint") or email.split("@")[0],
+            "role": "buyer", "tenant_id": None,
+            "onboarded": True,
+            "created_at": datetime.now(timezone.utc),
+            "auth_method": "magic_link",
+        })
+        user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    else:
+        user_id = user_doc["user_id"]
+        # Si el user existe y estaba soft-deleted, NO lo restauramos automáticamente:
+        # el usuario debe cancelar la eliminación de forma explícita desde el portal
+        # (POST /api/comprador/privacy/cancel-delete) durante el período de gracia.
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": {"last_login_at": datetime.now(timezone.utc)}},
+        )
+
+    # Mark token as used
+    await db.magic_link_tokens.update_one(
+        {"token_hash": token_hash},
+        {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}},
+    )
+
+    # Issue cookies (mismo formato que login con password)
+    access = create_access_token(user_id, email)
+    refresh = create_refresh_token(user_id)
+    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=28800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000)
+
+    user_doc.pop("_id", None)
+    user_doc.pop("password_hash", None)
+    return {"user": UserOut(**user_doc), "is_new": is_new}

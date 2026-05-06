@@ -221,6 +221,16 @@ async def save_search_endpoint(body: SaveSearchRequest, request: Request):
     ip_hash = _h.sha256(ip.encode()).hexdigest()[:20]
     db = _get_db(request)
 
+    # B28: si hay user autenticado, lincear saved_search al user_id
+    user_id_link = None
+    try:
+        from server import get_current_user
+        u = await get_current_user(request)
+        if u:
+            user_id_link = u.user_id
+    except Exception:
+        user_id_link = None
+
     from services.saved_searches import save_search
     result = await save_search(
         db=db,
@@ -228,6 +238,7 @@ async def save_search_endpoint(body: SaveSearchRequest, request: Request):
         filters=body.filters,
         alert_frequency=body.alert_frequency,
         ip_hash=ip_hash,
+        user_id=user_id_link,
     )
 
     return result

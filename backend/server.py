@@ -294,6 +294,10 @@ from routes_share_meta import router as share_meta_router
 app.include_router(marketplace_calc_router)
 app.include_router(share_meta_router)
 
+# Phase 4 Batch 28 — Portal Comprador (autenticado)
+from routes_comprador import router as comprador_router
+app.include_router(comprador_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
