@@ -2784,6 +2784,16 @@ Foundation production-ready para Phase Y (Intelligence Platform) + Phase Z (Data
 **Total Phase 1: 33.5h (vs estimado 30h, +12% sobre presupuesto por share-link enhancement añadido en B27).**
 **Commit consolidado:** PR #11 (45 archivos, 10,723 LOC).
 
+═══════════════════════════════════════════════════════════
+## 🟡 Phase 2 Portal Comprador Autenticado (en progreso 2026-05-06)
+═══════════════════════════════════════════════════════════
+
+| # | Batch | Status | h |
+|---|---|---|---|
+| ✅ | B28 — Foundations (Magic Link auth 24-byte + 15min expires + rate limit 5/min · Dashboard /comprador con 4 widgets + completion bar · Saved searches enhanced dual-mode anonymous/authenticated · Favoritos con tags · Histórico TTL 90d + dedup 60s · Privacy LFPDPPP-compliant 5 consents + export JSON + soft-delete 30d grace) (PR #12 10121a8 · 19 nuevos pytest + 64 regresión = 83/83) | shipped | 7 |
+| 🟡 | B29 — Engagement (2.3 Smart alerts push/email/WA · 2.4 Comparador premium · 2.6 Chat asesor in-app) | pending | 6.5 |
+| 🟡 | B30 — Wrapped + Polish (2.5 Wrapped mensual + Smart Match score B28 enhancement) | pending | 3 |
+
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
 - TourCompletionAnalytics extendido con prop `period` controlable (controlled mode oculta filter chips internos cuando page topbar lo controla)
