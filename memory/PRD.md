@@ -2082,7 +2082,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://copilot-preview-10.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://latam-realstate.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -3046,7 +3046,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://copilot-preview-10.preview.emergentagent.com
+https://latam-realstate.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
