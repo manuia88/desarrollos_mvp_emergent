@@ -2802,6 +2802,17 @@ Foundation production-ready para Phase Y (Intelligence Platform) + Phase Z (Data
 
 Portal Comprador completo: Magic Link auth · Dashboard 5 widgets · Saved searches · Favoritos · Histórico · Privacy LFPDPPP · Smart Alerts · Comparador Premium · Chat asesor · Wrapped Mensual + Anual · Smart Match Widget.
 
+═══════════════════════════════════════════════════════════
+## 🟡 Phase 3 Asesor Portal (en progreso 2026-05-06)
+═══════════════════════════════════════════════════════════
+
+| # | Batch | Status | h |
+|---|---|---|---|
+| ✅ | B31 — Asesor Tools (Briefing Tráfico+Clima Mapbox Directions + Open-Meteo + cache 15min + fallback Haversine · Argumentario AI RAG drawer 32 KB seed objeciones/cierres/comparaciones/producto + embeddings 1536-dim cosine + Claude Sonnet 4.5 ≤180 palabras + FAB global AdvisorLayout) (PR #14) | shipped | 6 |
+| 🟡 | B32 — Asesor Identity (Endorsements + LinkedIn · Trust Score + DISC inline) | pending | 4 |
+| 🟡 | B33 — Team Mgmt + Pipeline (Calendar bidireccional · Asesor Admin team · Pipeline custom etapas) | pending | 8 |
+| 🟡 | B34 — Lead-to-Asesor Smart Match (reusa colonia_quiz B26 + asesor_metrics B20) | pending | 4 |
+
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
 - TourCompletionAnalytics extendido con prop `period` controlable (controlled mode oculta filter chips internos cuando page topbar lo controla)
