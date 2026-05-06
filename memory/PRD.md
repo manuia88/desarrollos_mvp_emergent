@@ -2791,8 +2791,16 @@ Foundation production-ready para Phase Y (Intelligence Platform) + Phase Z (Data
 | # | Batch | Status | h |
 |---|---|---|---|
 | ✅ | B28 — Foundations (Magic Link auth 24-byte + 15min expires + rate limit 5/min · Dashboard /comprador con 4 widgets + completion bar · Saved searches enhanced dual-mode anonymous/authenticated · Favoritos con tags · Histórico TTL 90d + dedup 60s · Privacy LFPDPPP-compliant 5 consents + export JSON + soft-delete 30d grace) (PR #12 10121a8 · 19 nuevos pytest + 64 regresión = 83/83) | shipped | 7 |
-| 🟡 | B29 — Engagement (2.3 Smart alerts push/email/WA · 2.4 Comparador premium · 2.6 Chat asesor in-app) | pending | 6.5 |
-| 🟡 | B30 — Wrapped + Polish (2.5 Wrapped mensual + Smart Match score B28 enhancement) | pending | 3 |
+| ✅ | B29 — Engagement (Smart alerts 4 types × 3 channels email/push/WA stub + APScheduler instant/daily/weekly · Comparador premium buyer_tier con 5 métricas adicionales + sparklines histórico + momentum + ROI + plusvalia + demand heat · Chat asesor in-app real-time-ish polling 30s + threads idempotent + mark-read bidirectional + unread badge sidebar) (PR #13) | shipped | 6.5 |
+| ✅ | B30 — Wrapped + Smart Match (Wrapped mensual storytelling 7 cards Spotify-style + narrative Claude Haiku + opt-in anual diciembre Sonnet · APScheduler 1ro mes 6am · Share-link reusa B27 og:image · Smart Match Widget reusa colonia_quiz B26 zero duplicación + cache 24h · PRICE_HISTORY_REAL_DATA toggle backward-compat B29) (PR #13) | shipped | 5 |
+
+═══════════════════════════════════════════════════════════
+## ✅ Phase 2 Comprador Autenticado 100% COMPLETO (2026-05-06)
+═══════════════════════════════════════════════════════════
+3 batches shipped (~18.5h vs estimado 16.5h, +12% por enhancements Smart Match + sparklines toggle).
+**Commit consolidado:** PR #13 (33 archivos, 5515 LOC).
+
+Portal Comprador completo: Magic Link auth · Dashboard 5 widgets · Saved searches · Favoritos · Histórico · Privacy LFPDPPP · Smart Alerts · Comparador Premium · Chat asesor · Wrapped Mensual + Anual · Smart Match Widget.
 
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
