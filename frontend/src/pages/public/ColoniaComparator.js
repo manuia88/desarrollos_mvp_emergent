@@ -4,14 +4,273 @@
  * lado-a-lado con highlights del ganador por métrica + export PDF.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import { useAuth } from '../../App';
-import { fetchColonias, compareEntities, downloadComparePdf } from '../../api/marketplace';
+import { fetchColonias, compareEntities, compareEntitiesBuyer, downloadComparePdf, downloadComparePdfBuyer } from '../../api/marketplace';
 import { X, Plus, Download, ArrowRight, Sparkle } from '../../components/icons';
 import ShareLinkButton from '../../components/marketplace/ShareLinkButton';
 
 const MAX_SLOTS = 3;
+
+// ─── Premium sections (buyer tier) ─────────────────────────────────────────────
+
+function Sparkline({ data, color = '#6366F1' }) {
+  if (!data || data.length < 2) return null;
+  const vals = data.map(d => d.valor || 0).filter(Boolean);
+  if (!vals.length) return null;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const W = 160, H = 48;
+  const pts = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * W;
+    const y = H - ((d.valor - min) / range) * (H - 8) - 4;
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function PremiumSectionRow({ label, badge = 'PREMIUM', children, blurred = false, onLogin }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10,
+      }}>
+        <div style={{
+          fontFamily: 'Outfit', fontWeight: 800, fontSize: 14,
+          color: 'var(--cream, #F0EBE0)', letterSpacing: '-0.01em',
+        }}>
+          {label}
+        </div>
+        <span style={{
+          padding: '2px 8px', borderRadius: 9999,
+          background: 'rgba(240,235,224,0.10)',
+          border: '1px solid rgba(240,235,224,0.20)',
+          fontFamily: 'DM Sans', fontSize: 9, fontWeight: 800,
+          color: '#F0EBE0', letterSpacing: '0.08em',
+        }}>
+          {badge}
+        </span>
+      </div>
+      <div style={{ position: 'relative' }}>
+        {blurred && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 2,
+            backdropFilter: 'blur(8px)',
+            background: 'rgba(6,8,15,0.65)',
+            borderRadius: 12,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 10,
+          }}>
+            <div style={{
+              fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
+              color: 'rgba(240,235,224,0.85)',
+            }}>
+              Inicia sesión para ver más
+            </div>
+            <Link
+              to="/login-comprador"
+              style={{
+                padding: '8px 18px', borderRadius: 9999,
+                background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+                textDecoration: 'none',
+              }}
+              data-testid="premium-login-cta"
+            >
+              Acceder al portal
+            </Link>
+          </div>
+        )}
+        <div style={{
+          padding: '16px 18px', borderRadius: 12,
+          background: 'rgba(13,16,23,0.85)',
+          border: '1px solid rgba(240,235,224,0.08)',
+          filter: blurred ? 'blur(4px)' : 'none',
+        }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PremiumSections({ premium, entities, isBuyer, onLogin }) {
+  if (!entities || entities.length === 0) return null;
+
+  const n = entities.length;
+  const COLORS = ['#6366F1', '#EC4899', '#86efac'];
+
+  return (
+    <div style={{ marginTop: 28 }} data-testid="premium-sections">
+      {/* Histórico de precios */}
+      <PremiumSectionRow label="Histórico de precios" blurred={!isBuyer && !premium} onLogin={onLogin}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${Math.min(n, 3)}, 1fr)`,
+          gap: 16,
+        }}>
+          {(isBuyer && premium ? Array(n).fill(null).map((_, i) => i) : [0, 1, 2].slice(0, n)).map(i => {
+            const entity = entities[i];
+            const hist = premium?.precio_historico_12m?.[i] || [];
+            const lastVal = hist[hist.length - 1]?.valor;
+            return (
+              <div key={entity?.id || i}>
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
+                  color: 'rgba(240,235,224,0.55)', marginBottom: 8,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {entity?.nombre || `Entidad ${i + 1}`}
+                </div>
+                <Sparkline data={hist} color={COLORS[i % COLORS.length]} />
+                {lastVal > 0 && (
+                  <div style={{
+                    fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700,
+                    color: 'var(--cream, #F0EBE0)', marginTop: 6,
+                  }}>
+                    ${lastVal.toLocaleString('es-MX')} / m²
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </PremiumSectionRow>
+
+      {/* Momentum */}
+      <PremiumSectionRow label="Momentum (90d)" blurred={!isBuyer && !premium} onLogin={onLogin}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {entities.map((entity, i) => {
+            const pct = premium?.momentum_signed_pct?.[i] ?? 0;
+            const pos = pct >= 0;
+            return (
+              <div
+                key={entity.id}
+                data-testid={`momentum-${entity.id}`}
+                style={{
+                  flex: 1, minWidth: 100, padding: '12px 16px',
+                  borderRadius: 10,
+                  background: pos ? 'rgba(134,239,172,0.08)' : 'rgba(252,165,165,0.08)',
+                  border: `1px solid ${pos ? 'rgba(134,239,172,0.20)' : 'rgba(252,165,165,0.20)'}`,
+                }}
+              >
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 11,
+                  color: 'rgba(240,235,224,0.55)', marginBottom: 4,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {entity.nombre}
+                </div>
+                <div style={{
+                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 20,
+                  color: pos ? '#86efac' : '#fca5a5',
+                }}>
+                  {pos ? '+' : ''}{pct}%
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </PremiumSectionRow>
+
+      {/* Demand heat */}
+      <PremiumSectionRow label="Heat de demanda (30d)" blurred={!isBuyer && !premium} onLogin={onLogin}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {entities.map((entity, i) => {
+            const visits = premium?.demand_heat_30d?.[i] ?? 0;
+            return (
+              <div
+                key={entity.id}
+                data-testid={`demand-heat-${entity.id}`}
+                style={{
+                  flex: 1, minWidth: 100, padding: '12px 16px',
+                  borderRadius: 10,
+                  background: 'rgba(99,102,241,0.08)',
+                  border: '1px solid rgba(99,102,241,0.20)',
+                }}
+              >
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 11,
+                  color: 'rgba(240,235,224,0.55)', marginBottom: 4,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {entity.nombre}
+                </div>
+                <div style={{
+                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 20,
+                  color: 'rgba(165,180,252,0.95)',
+                }}>
+                  {visits.toLocaleString('es-MX')}
+                </div>
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 10,
+                  color: 'rgba(240,235,224,0.4)', marginTop: 2,
+                }}>
+                  visitas
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </PremiumSectionRow>
+
+      {/* ROI estimado */}
+      <PremiumSectionRow label="ROI estimado" blurred={!isBuyer && !premium} onLogin={onLogin}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {entities.map((entity, i) => {
+            const roi = premium?.roi_estimado_pct?.[i] ?? 0;
+            const pv5 = premium?.plusvalia_5y_pct?.[i] ?? 0;
+            return (
+              <div
+                key={entity.id}
+                data-testid={`roi-${entity.id}`}
+                style={{
+                  flex: 1, minWidth: 100, padding: '12px 16px',
+                  borderRadius: 10,
+                  background: 'rgba(134,239,172,0.06)',
+                  border: '1px solid rgba(134,239,172,0.18)',
+                }}
+              >
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 11,
+                  color: 'rgba(240,235,224,0.55)', marginBottom: 4,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {entity.nombre}
+                </div>
+                <div style={{
+                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 20,
+                  color: '#86efac',
+                }}>
+                  {roi}% anual
+                </div>
+                <div style={{
+                  fontFamily: 'DM Sans', fontSize: 11,
+                  color: 'rgba(134,239,172,0.65)', marginTop: 2,
+                }}>
+                  Plusvalía 5a: +{pv5}%
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </PremiumSectionRow>
+    </div>
+  );
+}
 
 function SlotPicker({ index, value, onPick, onClear, options, entityType }) {
   const [open, setOpen] = useState(false);
@@ -239,11 +498,14 @@ export default function ColoniaComparator() {
   const filledIds = slots.filter(Boolean).map(s => s.id);
   const canCompare = filledIds.length >= 2;
 
+  const isBuyer = user?.role === 'buyer' || user?.role === 'superadmin';
+
   const handleCompare = async () => {
     if (!canCompare) return;
     setLoading(true); setError(null);
     try {
-      const data = await compareEntities(entityType, filledIds);
+      const fn = isBuyer ? compareEntitiesBuyer : compareEntities;
+      const data = await fn(entityType, filledIds);
       setMatrix(data);
     } catch (err) {
       setError(err?.message || 'Error en la comparación');
@@ -257,7 +519,9 @@ export default function ColoniaComparator() {
     if (!canCompare) return;
     setPdfLoading(true);
     try {
-      const blob = await downloadComparePdf(entityType, filledIds);
+      const blob = isBuyer
+        ? await downloadComparePdfBuyer(entityType, filledIds)
+        : await downloadComparePdf(entityType, filledIds);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = 'comparacion_desarrollosmx.pdf';
@@ -498,6 +762,16 @@ export default function ColoniaComparator() {
           }}>
             Selecciona al menos 2 {entityType === 'colonia' ? 'colonias' : 'propiedades'} para comparar.
           </div>
+        )}
+
+        {/* Premium sections — buyer tier */}
+        {matrix && (
+          <PremiumSections
+            premium={matrix.premium}
+            entities={matrix.entities}
+            isBuyer={isBuyer}
+            onLogin={() => openAuth && openAuth('login')}
+          />
         )}
 
         <button
