@@ -24,7 +24,7 @@
 | Phase | Status | Estimado |
 |---|---|---|
 | Phase 4 Dev Module (original v1) | ✅ shipped 16 batches | ~78h |
-| Phase 4 Dev REFACTOR | 🟡 16/16 shipped Sub-A through B22, 1 pending (B23) | ~157h total |
+| Phase 4 Dev REFACTOR | ✅ **100% COMPLETO** (17/17: B0 · B0.5 · B10-B23 + B18.5/B19.5 fix-pass) | ~157h |
 | Phase 1 Marketplace gaps | 🟡 pending | ~30h |
 | Phase 2 Comprador | 🟡 pending | ~12-14h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
@@ -67,13 +67,13 @@
 | ✅ B19.5 | Fix-Pass (Branding 100% + PII completar) | 1.5 | 22/22 pytest · branding_helpers compartido · PDF reportes + email templates + public booking con dev_branding · DesarrolladorLeads PII anonymize + DesarrolladorPricing pricing-blur · bonus /desarrollador/leads route restored · SHA 5e547b5 |
 | ✅ B21 | Métricas Equipo Aggregated (Tour Completion + Productividad ConfidenceRatio + Tabla aggregated) | 5 | 13/13 Sub-B/C + 28/28 cumulativo pytest · 2 endpoints nuevos team-productivity + team-aggregated · ProductivityWidget + TeamAggregatedTable + TourCompletionAnalytics extended con period prop controlable · PR #6 + #7 mergeados |
 
-### Pendientes (~6h restantes — solo B23)
+### ✅ Phase 4 refactor 100% COMPLETO (2026-05-06)
 
 | # | Batch | h | Foco |
 |---|---|---|---|
 | ✅ B20 | Asesor Metrics + Tracking Links + QR + Conversion Funnel + Sankey + AI Suggestions | 8 | 18/18 + 37/37 regresión · 3 routes asesor-metrics + 4 routes tracking-links + 5 endpoints funnel + sankey_data 4-niveles · Claude Haiku AI suggestion cost-gated >100 events · 4 pages frontend + funnelTracker en 5 hitos + @nivo/sankey · PR #8 |
 | ✅ B22 | Insights Tab dentro Proyecto · 5 sub-tabs | 9 | 15/15 pytest · Resumen+HealthScore+narrative Haiku · Engagement actor split · Cash Flow wrapper B8 · Comparables top N · IA Sonnet 3 predicciones+5 recomendaciones+narrativa cache 24h · 6 endpoints + 3 services + 6 components · PR #9 |
-| 🟡 B23 | AI Copilot lateral toggleable Cmd+/ | 6 | |
+| ✅ B23 | AI Copilot Lateral Toggleable (Cmd+J) | 6 | 13/13 pytest · 5 endpoints copilot + context aggregation role-aware + Claude Sonnet 4.5 + transcript 10 msgs + ai_budget gating · Drawer slide-in derecho + floating trigger + Quick Actions + react-markdown + Cmd+J via B19 hook · PR #10 |
 
 ### Estructura navegación final post B10-B11
 
