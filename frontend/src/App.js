@@ -102,6 +102,11 @@ const AsesorBriefingTraffic          = lazy(() => import('./pages/asesor/AsesorB
 const AsesorPerfil                   = lazy(() => import('./pages/asesor/AsesorPerfil'));
 const PerfilAsesor                   = lazy(() => import('./pages/public/PerfilAsesor'));
 
+// Phase 13 Batch 36 — Marketplace Asesor + Whitelist Developer
+const AsesorMiniMarket               = lazy(() => import('./pages/asesor/AsesorMiniMarket'));
+const AsesorInventario               = lazy(() => import('./pages/asesor/AsesorInventario'));
+const DesarrolladorSolicitudes       = lazy(() => import('./pages/developer/DesarrolladorSolicitudes'));
+
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
 const DataSourcesPage            = lazy(() => import('./pages/superadmin/DataSourcesPage'));
@@ -390,6 +395,11 @@ function AppRouter() {
       <Route path="/inmobiliaria/leads" element={<AdvisorRoute Page={InmobiliariaLeads} />} />
       <Route path="/inmobiliaria/alianzas" element={<AdvisorRoute Page={InmobiliariaPartnerships} />} />
       <Route path="/inmobiliaria/signup" element={<InmobiliariaSignup />} />
+
+      {/* Phase 13 Batch 36 — Marketplace Asesor + Whitelist Developer + Auto-Approve */}
+      <Route path="/asesor/mini-market" element={<AdvisorRoute Page={AsesorMiniMarket} />} />
+      <Route path="/asesor/inventario" element={<AdvisorRoute Page={AsesorInventario} />} />
+      <Route path="/desarrollador/solicitudes" element={<AdvisorRoute Page={DesarrolladorSolicitudes} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />

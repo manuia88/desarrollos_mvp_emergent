@@ -7,6 +7,7 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import { Settings, CheckCircle, AlertTriangle, RefreshCw } from '../../components/icons';
+import AutoApproveSettings from '../../components/developer/AutoApproveSettings';
 
 const ERP_PROVIDERS = [
   { id: 'easybroker', label: 'EasyBroker', color: '#22c55e', desc: 'Sincronización de listings y leads' },
@@ -116,6 +117,12 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
           </Card>
 
           {/* ERP Integrations */}
+          <Card>
+
+          {/* Phase 13 Batch 36 — Auto-Approve Settings */}
+          <AutoApproveSettings />
+          </Card>
+
           <Card>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
               <RefreshCw size={16} color="#22c55e" />

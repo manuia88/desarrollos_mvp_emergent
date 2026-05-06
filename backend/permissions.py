@@ -148,3 +148,27 @@ def can_manage_inmobiliaria(user, inmobiliaria_id: str = "") -> bool:
         # Permission check w/o target tenant: just confirms admin role.
         return True
     return getattr(user, "tenant_id", None) == inmobiliaria_id
+
+
+# ─── Phase 13 Batch 36 — Dev Inventory Exclusive Access ───────────────────────
+
+def can_view_dev_inventory_exclusive(user, dev_org_id: str, is_authorized: bool = False) -> bool:
+    """True si el usuario puede ver datos exclusivos del inventario (comisión real,
+    contacto dev, LP completa) del developer especificado.
+
+    Reglas:
+      - superadmin: siempre True
+      - developer_admin con mismo dev_org_id: True
+      - asesor con whitelist approved (is_authorized=True): True
+      - cualquier otro: False
+    """
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    if role == "superadmin":
+        return True
+    if role == "developer_admin":
+        return getattr(user, "tenant_id", None) == dev_org_id
+    if role in ("advisor", "asesor_admin"):
+        return is_authorized
+    return False

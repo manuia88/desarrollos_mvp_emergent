@@ -13,7 +13,7 @@ import {
   Search, Layers, Home,
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
-  MessageSquare, Link,
+  MessageSquare, Link, Store,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -26,6 +26,7 @@ const DEV_NAV = [
       { key: 'dashboard',    to: '/desarrollador',                   label: 'Dashboard',      Icon: LayoutDashboard, end: true },
       { key: 'proyectos',    to: '/desarrollador/proyectos',         label: 'Mis Proyectos',  Icon: Building2,       badge_source: 'projects_health_below_60' },
       { key: 'crm',          to: '/desarrollador/crm',               label: 'CRM',            Icon: ClipboardList,   badge_source: 'crm_unread_leads' },
+      { key: 'solicitudes',  to: '/desarrollador/solicitudes',       label: 'Solicitudes',    Icon: Users,           badge_source: 'whitelist_pending_count' },
       { key: 'mensajes',     to: '/desarrollador/mensajes',          label: 'Mensajes',       Icon: MessageSquare },
     ],
   },
@@ -58,6 +59,8 @@ const ASESOR_NAV = [
     items: [
       { key: 'inicio',       to: '/asesor',                              label: 'Inicio',           Icon: Home, end: true },
       { key: 'perfil',       to: '/asesor/perfil',                       label: 'Mi perfil',        Icon: Shield },
+      { key: 'mini-market',  to: '/asesor/mini-market',                  label: 'Mini Market',      Icon: Store },
+      { key: 'inventario',   to: '/asesor/inventario',                   label: 'Inventario aliados', Icon: Building2 },
       { key: 'contactos',    to: '/asesor/contactos',                    label: 'Contactos',        Icon: Users, badge_source: 'asesor_contacts_new' },
       { key: 'busquedas',    to: '/asesor/busquedas',                    label: 'Búsquedas',        Icon: Search },
       { key: 'citas',        to: '/asesor/citas',                        label: 'Citas',            Icon: CalendarDays, badge_source: 'citas_today' },
