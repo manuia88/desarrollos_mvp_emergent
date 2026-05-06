@@ -1,11 +1,13 @@
 /**
- * CompradorDashboard — Phase 4 Batch 28
- * Hero greeting + perfil completion + 4 widget cards (búsquedas, alertas, favoritos, recientes).
+ * CompradorDashboard — Phase 4 Batch 28 + Batch 30
+ * Hero greeting + perfil completion + 5 widget cards.
+ * Batch 30: SmartMatchWidget agregado como 5to widget.
  */
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchDashboard } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
+import SmartMatchWidget from '../../components/comprador/SmartMatchWidget';
 import { Search, Heart, Clock, Bell, ArrowRight } from '../../components/icons';
 
 function fmtMxn(n) {
@@ -221,6 +223,11 @@ export default function CompradorDashboard() {
               </div>
             )}
           </WidgetCard>
+        </div>
+
+        {/* 5th widget: Smart Match */}
+        <div style={{ marginTop: 18 }}>
+          <SmartMatchWidget />
         </div>
 
         {hasNothing && (

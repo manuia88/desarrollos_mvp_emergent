@@ -275,3 +275,7 @@ export const Filter = icon(
 export const Send = icon(
   <><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></>
 );
+
+export const Award = icon(
+  <><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" /></>
+);

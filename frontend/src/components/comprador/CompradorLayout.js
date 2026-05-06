@@ -7,8 +7,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../App';
 import { logoutComprador } from '../../api/comprador';
-import { Home, Search, Heart, Clock, Shield, Bell, MessageSquare } from '../icons';
+import { Home, Search, Heart, Clock, Shield, Bell, MessageSquare, Award } from '../icons';
 import { fetchUnreadCount } from '../../api/chat';
+import { fetchWrappedList } from '../../api/wrapped';
 
 const NAV_BASE = [
   { to: '/comprador', label: 'Dashboard', icon: Home, end: true },
@@ -17,6 +18,7 @@ const NAV_BASE = [
   { to: '/comprador/historial', label: 'Histórico', icon: Clock },
   { to: '/comprador/alertas', label: 'Alertas', icon: Bell },
   { to: '/comprador/chat', label: 'Chat', icon: MessageSquare, badge: 'chat_unread' },
+  { to: '/comprador/wrapped', label: 'Tu Wrapped', icon: Award, conditional: 'has_wrapped', badge: 'wrapped_new' },
   { to: '/comprador/privacidad', label: 'Privacidad', icon: Shield },
 ];
 
@@ -25,6 +27,7 @@ export default function CompradorLayout({ children }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+  const [wrappedState, setWrappedState] = useState({ hasWrapped: false, hasNew: false });
 
   // Poll unread chat count every 30s
   const loadUnread = useCallback(async () => {
@@ -37,16 +40,31 @@ export default function CompradorLayout({ children }) {
     }
   }, [user]);
 
+  // Check wrapped availability (once on mount)
+  useEffect(() => {
+    if (!user) return;
+    fetchWrappedList()
+      .then(list => {
+        const hasNew = list.some(w => !w.viewed_at);
+        setWrappedState({ hasWrapped: list.length > 0, hasNew });
+      })
+      .catch(() => {});
+  }, [user]);
+
   useEffect(() => {
     loadUnread();
     const interval = setInterval(loadUnread, 30000);
     return () => clearInterval(interval);
   }, [loadUnread]);
 
-  // Build NAV with dynamic badge values
-  const NAV = NAV_BASE.map(item => ({
+  // Build NAV with dynamic badge values + conditional items
+  const NAV = NAV_BASE.filter(item => {
+    if (item.conditional === 'has_wrapped') return wrappedState.hasWrapped;
+    return true;
+  }).map(item => ({
     ...item,
     badgeCount: item.badge === 'chat_unread' ? chatUnread : 0,
+    badgeLabel: item.badge === 'wrapped_new' && wrappedState.hasNew ? 'NUEVO' : null,
   }));
 
   useEffect(() => {
@@ -110,7 +128,7 @@ export default function CompradorLayout({ children }) {
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {NAV.map(({ to, label, icon: Icon, end, badgeCount }) => (
+          {NAV.map(({ to, label, icon: Icon, end, badgeCount, badgeLabel }) => (
             <NavLink
               key={to}
               to={to}
@@ -138,6 +156,16 @@ export default function CompradorLayout({ children }) {
                   padding: '0 4px',
                 }}>
                   {badgeCount}
+                </span>
+              )}
+              {!badgeCount && badgeLabel && (
+                <span data-testid={`nav-badge-label-${label.toLowerCase()}`} style={{
+                  padding: '1px 6px', borderRadius: 9999,
+                  background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  fontFamily: 'DM Sans', fontWeight: 800, fontSize: 8, color: '#fff',
+                  letterSpacing: '0.05em',
+                }}>
+                  {badgeLabel}
                 </span>
               )}
             </NavLink>
@@ -232,7 +260,7 @@ export default function CompradorLayout({ children }) {
             padding: '24px 16px',
             display: 'flex', flexDirection: 'column', gap: 4,
           }}>
-            {NAV.map(({ to, label, icon: Icon, end, badgeCount }) => (
+            {NAV.map(({ to, label, icon: Icon, end, badgeCount, badgeLabel }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -259,6 +287,16 @@ export default function CompradorLayout({ children }) {
                     padding: '0 4px',
                   }}>
                     {badgeCount}
+                  </span>
+                )}
+                {!badgeCount && badgeLabel && (
+                  <span style={{
+                    padding: '1px 6px', borderRadius: 9999,
+                    background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    fontFamily: 'DM Sans', fontWeight: 800, fontSize: 8, color: '#fff',
+                    letterSpacing: '0.05em',
+                  }}>
+                    {badgeLabel}
                   </span>
                 )}
               </NavLink>

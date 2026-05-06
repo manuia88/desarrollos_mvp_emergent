@@ -90,6 +90,8 @@ const CompradorPrivacy               = lazy(() => import('./pages/comprador/Comp
 // Phase 4 Batch 29 — Comprador Engagement
 const CompradorAlertas               = lazy(() => import('./pages/comprador/CompradorAlertas'));
 const CompradorChat                  = lazy(() => import('./pages/comprador/CompradorChat'));
+// Phase 4 Batch 30 — Wrapped + Smart Match
+const CompradorWrapped               = lazy(() => import('./pages/comprador/CompradorWrapped'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -360,6 +362,9 @@ function AppRouter() {
       {/* Phase 4 Batch 29 — Comprador Engagement */}
       <Route path="/comprador/alertas" element={<CompradorAlertas />} />
       <Route path="/comprador/chat" element={<CompradorChat />} />
+      {/* Phase 4 Batch 30 — Wrapped + Smart Match */}
+      <Route path="/comprador/wrapped" element={<CompradorWrapped />} />
+      <Route path="/comprador/wrapped/:yearMonth" element={<CompradorWrapped />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />

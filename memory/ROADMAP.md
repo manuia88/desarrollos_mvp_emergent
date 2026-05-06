@@ -1,5 +1,13 @@
 # DesarrollosMX — ROADMAP
 
+## P0 — Phase 2 Comprador — COMPLETADO (Batches 28-30)
+- Magic Link Auth, Dashboard, Favoritos, Historial, Privacidad LFPDPPP ✅
+- Smart Alerts (4 tipos × 3 canales) ✅
+- Comparador Premium buyer tier (5 métricas) ✅
+- Chat Asesor In-App (polling 30s, mark-read bidireccional) ✅
+- Wrapped Mensual/Anual estilo Spotify ✅
+- Smart Match Widget (reusa colonia_quiz.match_colonias) ✅
+
 ## P1 — Próximas tareas
 - [ ] Phase 7.10: Tab Avance de Obra (integración progreso construcción en fichas proyecto)
 - [ ] WhatsApp Business real integration (`whatsapp-web.js` + Caya UI) — ya hay stubs en buyer_alerts

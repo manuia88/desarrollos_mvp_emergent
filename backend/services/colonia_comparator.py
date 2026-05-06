@@ -1,14 +1,20 @@
 """Phase 4 Batch 26 · services — Colonia/Property 3-way Comparator.
 
 Genera matriz de comparación y PDF con winners.
+Batch 30: toggle PRICE_HISTORY_REAL_DATA para sparklines premium.
 """
 from __future__ import annotations
 
 import io
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.comparator")
+
+# Batch 30: toggle para sparklines premium (default=false → synthetic)
+PRICE_HISTORY_REAL_DATA = os.getenv("PRICE_HISTORY_REAL_DATA", "false").lower() == "true"
+log.info(f"[comparator] PRICE_HISTORY_REAL_DATA={PRICE_HISTORY_REAL_DATA}")
 
 METRIC_LABELS_COLONIA = [
     {"key": "avg_price_m2",        "label": "Precio promedio / m²",  "type": "number",  "higher_is": False},
@@ -178,19 +184,45 @@ async def _build_premium_data(db, entity_type: str, entities: List[Dict[str, Any
     for i, e in enumerate(entities):
         base_price = e.get("avg_price_m2", 0) or e.get("price_from", 0) or 0
 
-        # ── precio_historico_12m: sparkline sintético basado en precio actual + variación
+        # ── precio_historico_12m: real data or synthetic based on toggle ──────
         history = []
         pv_score = (e.get("score_plusvalia") or 50) / 100
         annual_growth = 0.04 + pv_score * 0.08   # 4-12% anual según plusvalía
         monthly_growth = annual_growth / 12
-        for m_offset in range(11, -1, -1):
-            dt = now - timedelta(days=30 * m_offset)
-            price_m = base_price * math.pow(1 + monthly_growth, -(m_offset)) if base_price else 0
-            noise = 1 + (hash(f"{e['id']}{m_offset}") % 100 - 50) / 10000.0
-            history.append({
-                "mes": dt.strftime("%b %y"),
-                "valor": round(price_m * noise, 0),
-            })
+
+        real_data_loaded = False
+        if PRICE_HISTORY_REAL_DATA:
+            try:
+                # Query db.unit_price_history for real data
+                raw_history = await db.unit_price_history.find(
+                    {"development_id": e["id"]},
+                    {"_id": 0, "changed_at": 1, "price_per_m2": 1},
+                ).sort("changed_at", 1).limit(12).to_list(12)
+
+                if len(raw_history) >= 3:
+                    history = [
+                        {
+                            "mes": h["changed_at"].strftime("%b %y") if hasattr(h.get("changed_at"), "strftime") else str(h.get("changed_at", ""))[:7],
+                            "valor": h.get("price_per_m2", 0),
+                        }
+                        for h in raw_history
+                    ]
+                    real_data_loaded = True
+                    log.info(f"[comparator] sparkline source=real entity={e['id']} pts={len(history)}")
+            except Exception as _e:
+                log.debug(f"[comparator] real sparkline query failed: {_e}")
+
+        if not real_data_loaded:
+            # Synthetic fallback (always used when toggle=false or insufficient real data)
+            log.debug(f"[comparator] sparkline source=synthetic entity={e['id']}")
+            for m_offset in range(11, -1, -1):
+                dt = now - timedelta(days=30 * m_offset)
+                price_m = base_price * math.pow(1 + monthly_growth, -(m_offset)) if base_price else 0
+                noise = 1 + (hash(f"{e['id']}{m_offset}") % 100 - 50) / 10000.0
+                history.append({
+                    "mes": dt.strftime("%b %y"),
+                    "valor": round(price_m * noise, 0),
+                })
         precio_historico.append(history)
 
         # ── momentum_signed_pct: % cambio 90d (from score_plusvalia + momentum_label)

@@ -1,5 +1,27 @@
 # DesarrollosMX — CHANGELOG
 
+## Batch 30 — Phase 2 Comprador Wrapped + Smart Match (2026-05-06)
+
+### Sub-A: Wrapped Mensual Automático + Anual Opt-in
+- **NEW** `backend/services/wrapped_generator.py` — generate_monthly_wrapped (Claude Haiku), generate_annual_wrapped (Claude Sonnet), generate_bulk_monthly (scheduler), _notify_wrapped_ready (Resend email)
+- **NEW** `backend/routes_wrapped.py` — 5 endpoints: list, get/generate on-demand, annual-optin, share, og-image, smart-match
+- **NEW** `backend/scheduler_wrapped.py` — APScheduler: 1ro mes 6am mensual + 1 diciembre opt-in anual
+- **NEW** `frontend/api/wrapped.js` — fetch helpers
+- **NEW** `frontend/pages/comprador/CompradorWrapped.js` — 7 storytelling cards estilo Spotify Wrapped (hero, views sparkline, top zona, precio, actividad, narrativa IA, CTA share/anual)
+- **EDIT** `CompradorLayout.js` — nav item "Tu Wrapped" condicional (solo si ≥1 wrapped) + badge NUEVO si unviewed
+
+### Sub-B: Smart Match Widget + Sparklines Real Toggle
+- **NEW** `backend/services/smart_match.py` — compute_buyer_match_score (reusa colonia_quiz.match_colonias), cache 24h en db.smart_match_cache, invalidate_smart_match_cache
+- **EDIT** `services/colonia_comparator.py` — PRICE_HISTORY_REAL_DATA toggle (env var, default=false, forward-compat sin romper B29)
+- **EDIT** `.env.example` — PRICE_HISTORY_REAL_DATA=false
+- **NEW** `frontend/components/comprador/SmartMatchWidget.js` — match ring SVG, top 3 favoritos con match_pct + reasons collapsible, CTA quiz si no hay data
+- **EDIT** `frontend/pages/comprador/CompradorDashboard.js` — SmartMatchWidget como 5to widget
+- **EDIT** `App.js` — rutas /comprador/wrapped + /comprador/wrapped/:yearMonth
+- **EDIT** `icons/index.js` — añade `Award` SVG icon
+- **EDIT** `common.json` — strings comprador.wrapped.* + comprador.smartMatch.*
+
+---
+
 ## Batch 29 — Phase 2 Comprador Engagement (2026-05-06)
 
 ### Sub-A: Smart Alerts
