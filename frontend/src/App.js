@@ -60,6 +60,8 @@ const DesarrolladorCitas             = lazy(() => import('./pages/developer/Desa
 const InmobiliariaDashboard          = lazy(() => import('./pages/developer/InmobiliariaDashboard'));
 const InmobiliariaAsesores           = lazy(() => import('./pages/developer/InmobiliariaAsesores'));
 const InmobiliariaLeads              = lazy(() => import('./pages/developer/InmobiliariaLeads'));
+const InmobiliariaPartnerships       = lazy(() => import('./pages/inmobiliaria/InmobiliariaPartnerships'));
+const InmobiliariaSignup             = lazy(() => import('./pages/auth/InmobiliariaSignup'));
 const DesarrolladorCRM               = lazy(() => import('./pages/developer/DesarrolladorCRM'));
 const DesarrolladorPricingLab        = lazy(() => import('./pages/developer/DesarrolladorPricingLab'));
 const DesarrolladorSiteSelection     = lazy(() => import('./pages/developer/DesarrolladorSiteSelection'));
@@ -386,6 +388,8 @@ function AppRouter() {
       <Route path="/inmobiliaria" element={<AdvisorRoute Page={InmobiliariaDashboard} />} />
       <Route path="/inmobiliaria/asesores" element={<AdvisorRoute Page={InmobiliariaAsesores} />} />
       <Route path="/inmobiliaria/leads" element={<AdvisorRoute Page={InmobiliariaLeads} />} />
+      <Route path="/inmobiliaria/alianzas" element={<AdvisorRoute Page={InmobiliariaPartnerships} />} />
+      <Route path="/inmobiliaria/signup" element={<InmobiliariaSignup />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />

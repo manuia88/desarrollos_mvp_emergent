@@ -308,6 +308,10 @@ app.include_router(asesor_daily_tools_router)
 from routes_lead_match import router as lead_match_router
 app.include_router(lead_match_router)
 
+# Phase 18 Batch 35 — Inmobiliaria entity (Foundation + Portal + Relationships)
+from routes_inmobiliaria import router as inmobiliaria_router
+app.include_router(inmobiliaria_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -517,6 +521,9 @@ async def startup():
     # Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
     await ensure_batch4_1_indexes(db)
     await seed_dmx_inmobiliaria(db)
+    # Phase 18 Batch 35 — Inmobiliaria relationships + AMPI verifications
+    from services.inmobiliaria_relationships import ensure_inmobiliaria_relationship_indexes
+    await ensure_inmobiliaria_relationship_indexes(db)
     # Phase 4 Batch 4.2 — Universal LeadKanban + Permission Tiers
     await ensure_batch4_2_indexes(db)
     # Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression

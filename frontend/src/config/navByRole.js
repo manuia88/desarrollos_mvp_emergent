@@ -107,6 +107,7 @@ const INMOBILIARIA_ADMIN_NAV = [
       { key: 'dashboard',    to: '/inmobiliaria',                        label: 'Dashboard',        Icon: LayoutDashboard, end: true },
       { key: 'leads',        to: '/inmobiliaria/leads',                  label: 'Leads',            Icon: Users, badge_source: 'crm_unread_leads' },
       { key: 'asesores',     to: '/inmobiliaria/asesores',               label: 'Asesores',         Icon: Users },
+      { key: 'alianzas',     to: '/inmobiliaria/alianzas',               label: 'Alianzas',         Icon: Briefcase },
     ],
   },
 ];

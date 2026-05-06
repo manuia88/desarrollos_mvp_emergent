@@ -29,6 +29,43 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 
 ---
 
+
+## 2026-05-06 — Phase 18 Batch 35 · Inmobiliaria Entity (Foundation + Portal + Relationships)
+
+### Backend nuevo
+- `routes_inmobiliaria.py` — POST `/api/auth/inmobiliaria/signup` (público), POST `/api/inmobiliaria/ampi-verify` (público), GET `/api/inmobiliaria/me`, POST `/api/inmobiliaria/users/invite`, GET `/api/inmobiliaria/advisor-relationships`, POST/GET `/api/inmobiliaria/dev-partnerships`, PATCH `/api/inmobiliaria/dev-partnerships/{id}`.
+- `services/ampi_verification.py` — stub formato 8-12 alfanuméricos (real AMPI API → H2). Audit en `db.ampi_verifications`.
+- `services/inmobiliaria_signup.py` — onboarding tenant + admin user (idempotente, rechaza email dup).
+- `services/inmobiliaria_relationships.py` — invitaciones de asesor (token + email Resend) + dev partnerships (status pending|active|paused|terminated, comisión 0-50%, dup-guard, ownership check).
+- `permissions.py` — `can_manage_inmobiliaria(user, inmobiliaria_id)`.
+
+### Schemas nuevos / extendidos
+- `db.inmobiliarias` extendido: `ampi_verified`, `ampi_id`, `ampi_expires_at`, `ampi_manual_review`, `created_by_user_id`.
+- `db.inmobiliaria_advisor_relationships` `{rel_id, inmobiliaria_id, asesor_id?, asesor_email, asesor_name, role, status, activation_token, invited_by_user_id, invited_at, accepted_at?}`.
+- `db.inmobiliaria_dev_partnerships` `{partnership_id, inmobiliaria_id, dev_org_id, dev_org_name?, commission_pct?, notes?, status, created_by_user_id, created_at, updated_at}`.
+- `db.ampi_verifications` `{inmobiliaria_id, ampi_id, valid, manual_review_required, reason, expires_at, raw_input_hash, created_at}`.
+
+### Frontend
+- `pages/auth/InmobiliariaSignup.js` (público) — wizard 3 pasos (Empresa → AMPI inline verify → Admin). Auto-login + redirect `/inmobiliaria` post-signup.
+- `pages/inmobiliaria/InmobiliariaPartnerships.js` — CRUD alianzas + transiciones de estado inline.
+- `api/inmobiliaria.js` — helpers verifyAmpiId, inmobiliariaSignup, getInmobiliariaMe, inviteAdvisor, listAdvisorRelationships, createDevPartnership, listDevPartnerships, updateDevPartnershipStatus.
+- Routes en `App.js`: `/inmobiliaria/signup` (público), `/inmobiliaria/alianzas` (auth).
+- `config/navByRole.js` — añadido item "Alianzas" (Briefcase) en INMOBILIARIA_ADMIN_NAV.
+
+### Reuso
+- `log_activity` (routes_dev_batch14) en signup/invite/partnership mutations.
+- `_send_email` (services.lead_capture) para email de invitación de asesor.
+- `InmobiliariaLayout` (developer/) reutilizado tal cual (DRY).
+
+### Testing manual ✅ (curl + screenshot)
+- AMPI verify formato (X→inválido, AMPI12345→válido).
+- Signup E2E (creates tenant + user_id + cookies + ampi_result), rechaza email dup, rechaza AMPI mal formato, inputs Pydantic validados.
+- Login post-signup → cookies persisten → `/api/inmobiliaria/me` retorna inmobiliaria + counters {advisors_active=1, partnerships=1}.
+- Invite asesor + dup-guard, list relationships (pending visible).
+- Partnership create + dup-guard + PATCH pending→active.
+- 401 sin cookies, 403 si rol incorrecto.
+- Render: signup público (3 pasos visibles, gradient brand, rounded-full, sin emojis) + Alianzas portal con sidebar nav y row activa.
+
 ## Arquitectura implementada
 
 ### Backend `/app/backend/`

@@ -128,3 +128,23 @@ def can_view_engagement_metrics(user) -> bool:
     lvl = get_user_permission_level(user)
     return lvl in ("superadmin", "developer_director", "developer_member",
                    "inmobiliaria_director")
+
+
+# ─── Phase 18 Batch 35 — Inmobiliaria entity scoping ──────────────────────────
+
+def can_manage_inmobiliaria(user, inmobiliaria_id: str = "") -> bool:
+    """True if user can mutate inmobiliaria settings, invite asesores, manage
+    dev partnerships. superadmin always can; inmobiliaria_admin can only on
+    their own tenant.
+    """
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    if role == "superadmin":
+        return True
+    if role != "inmobiliaria_admin":
+        return False
+    if not inmobiliaria_id:
+        # Permission check w/o target tenant: just confirms admin role.
+        return True
+    return getattr(user, "tenant_id", None) == inmobiliaria_id

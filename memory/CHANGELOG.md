@@ -1,5 +1,45 @@
 # DesarrollosMX — CHANGELOG
 
+## Batch 35 — Phase 18 Inmobiliaria Entity (Foundation + Portal + Relationships) (2026-05-06)
+
+### Sub-A: Backend Foundation
+- **NEW** `services/ampi_verification.py` — `validate_ampi_id(raw)` valida formato 8-12 alfanuméricos (regex), retorna `{valid, ampi_id, expires_at, holder_name, manual_review_required, reason}`. Persiste audit trail en `db.ampi_verifications` via `record_verification`. Real AMPI API → defer H2.
+- **NEW** `services/inmobiliaria_signup.py` — `signup_inmobiliaria(db, ...)` crea tenant + user + mirror entry idempotente: `db.inmobiliarias` (type='broker', `ampi_verified`, `ampi_manual_review`, `brokers_count`, `created_by_user_id`), `db.users` (role='inmobiliaria_admin', tenant_id=inm_id), `db.inmobiliaria_internal_users` (role='admin', user_id link). Rechaza email duplicado.
+- **NEW** `services/inmobiliaria_relationships.py`:
+  - `invite_advisor` → `db.inmobiliaria_advisor_relationships` `{rel_id, asesor_email, role, status='pending', activation_token}` + mirror pending en `inmobiliaria_internal_users` (rechaza dup).
+  - `create_dev_partnership` → `db.inmobiliaria_dev_partnerships` `{partnership_id, dev_org_id, dev_org_name, commission_pct (0-50), notes, status='pending'}` (rechaza dup activa).
+  - `update_dev_partnership_status` → transición pending|active|paused|terminated.
+  - `ensure_inmobiliaria_relationship_indexes` (rel_id PK, partnership_id PK, activation_token unique sparse, ampi_verifications by inm_id+date).
+- **NEW** `routes_inmobiliaria.py` — endpoints:
+  - `POST /api/auth/inmobiliaria/signup` (público, set-cookie access+refresh)
+  - `POST /api/inmobiliaria/ampi-verify` (público, format check)
+  - `GET /api/inmobiliaria/me` (auth admin, devuelve inmobiliaria + counters {advisors_active|pending, partnerships_active|pending})
+  - `POST /api/inmobiliaria/users/invite` (auth admin, manda email Resend branded con activation_token)
+  - `GET /api/inmobiliaria/advisor-relationships?status=` (auth admin)
+  - `POST /api/inmobiliaria/dev-partnerships` (auth admin)
+  - `GET /api/inmobiliaria/dev-partnerships?status=` (auth admin)
+  - `PATCH /api/inmobiliaria/dev-partnerships/{id}` body{status} (auth admin, valida ownership)
+- **EDIT** `permissions.py` — `can_manage_inmobiliaria(user, inmobiliaria_id)` (superadmin always, inmobiliaria_admin limited a su tenant_id).
+- **EDIT** `server.py` — wire `routes_inmobiliaria` + `ensure_inmobiliaria_relationship_indexes` en startup.
+- **REUSE** `log_activity` (routes_dev_batch14) en cada mutación (signup, invite, partnership create/patch); `_send_email` (services.lead_capture) para email de invitación.
+
+### Sub-B: Portal + Relationships UI
+- **NEW** `api/inmobiliaria.js` — `verifyAmpiId`, `inmobiliariaSignup`, `getInmobiliariaMe`, `inviteAdvisor`, `listAdvisorRelationships`, `createDevPartnership`, `listDevPartnerships`, `updateDevPartnershipStatus`.
+- **NEW** `pages/auth/InmobiliariaSignup.js` (público, sin auth) — wizard 3 pasos: Empresa (nombre, RFC, año, tel) → Verificación AMPI (verificar inline antes de continuar; saltable) → Admin (nombre, email, password ≥8). StepDot con check/gradient activo, botón "Verificar" inline AMPI, errores rojos, CTA gradient pill "Crear inmobiliaria". Tras éxito llama `auth.checkAuth()` → navega a `/inmobiliaria`.
+- **NEW** `pages/inmobiliaria/InmobiliariaPartnerships.js` (auth `inmobiliaria_admin`/`inmobiliaria_director`) — header "Alianzas con Desarrolladores" + chips filtro (Todas|Pendiente|Activa|En pausa|Terminada) + lista cards con Briefcase icon, dev_org_name/id, comisión%, notes, StatusBadge color-coded, action pills inline (Activar→Pausar→Reanudar→Terminar) según status. Modal CreateModal full-form. Empty state con icon centrado.
+- **EDIT** `App.js` — lazy import + Routes `/inmobiliaria/alianzas` (protected) y `/inmobiliaria/signup` (público).
+- **EDIT** `config/navByRole.js` — `INMOBILIARIA_ADMIN_NAV` añadido item "Alianzas" con `Briefcase` icon.
+
+### Schemas nuevos
+- `db.inmobiliarias` — extendido con `ampi_verified`, `ampi_id`, `ampi_expires_at`, `ampi_manual_review`, `created_by_user_id` (signup público); existente `dmx_root` intacto (is_system_default).
+- `db.inmobiliaria_advisor_relationships` — `{rel_id, inmobiliaria_id, asesor_id?, asesor_email, asesor_name, role, status, activation_token, invited_by_user_id, invited_at, accepted_at?}`.
+- `db.inmobiliaria_dev_partnerships` — `{partnership_id, inmobiliaria_id, dev_org_id, dev_org_name?, commission_pct?, notes?, status, created_by_user_id, created_at, updated_at}`.
+- `db.ampi_verifications` — audit trail `{inmobiliaria_id, ampi_id, valid, manual_review_required, reason, expires_at, raw_input_hash, created_at}`.
+
+### Testing manual ✅
+- AMPI verify (inválido/válido), Signup (E2E + dup email + bad AMPI), `/me`, invite asesor (+dup guard), list relationships, create partnership (+dup guard), list partnerships, PATCH status, login post-signup, /api/inmobiliaria/me con counters, page render screenshot OK (signup público + portal alianzas con asesor logueado).
+
+
 ## Batch 34 — Phase 4 Smart Match + "Tu Día Hoy" (2026-05-06)
 
 ### Sub-A: Smart Match Lead-to-Asesor (~4h)
