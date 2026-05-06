@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 log = logging.getLogger("dmx.auth")
@@ -373,3 +373,65 @@ async def verify_magic_link(token: str, request: Request, response: Response):
     user_doc.pop("_id", None)
     user_doc.pop("password_hash", None)
     return {"user": UserOut(**user_doc), "is_new": is_new}
+
+
+# ─── Phase 14 Batch 37 — In-house Invitation Accept ───────────────────────────
+
+class AcceptInvitationIn(BaseModel):
+    token: str = Field(..., min_length=10)
+    name: str = Field(..., min_length=2, max_length=100)
+    password: Optional[str] = Field(None, min_length=8)
+
+
+@router.post("/api/auth/in-house/accept-invitation")
+async def accept_in_house_invitation(
+    payload: AcceptInvitationIn,
+    response: Response,
+    request: Request,
+):
+    db = request.app.state.db
+    from server import hash_password, create_access_token, create_refresh_token
+    from services.internal_users import accept_invitation
+
+    password_hash = None
+    if payload.password:
+        password_hash = hash_password(payload.password)
+
+    try:
+        user_doc = await accept_invitation(
+            db, payload.token, payload.name, password_hash,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    if not user_doc:
+        raise HTTPException(500, "Error al crear el usuario")
+
+    user_id = user_doc.get("user_id")
+    email = user_doc.get("email", "")
+    access = create_access_token(user_id, email)
+    refresh = create_refresh_token(user_id)
+    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=28800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000)
+
+    user_doc.pop("_id", None)
+    user_doc.pop("password_hash", None)
+
+    # Determine redirect based on org_type
+    org_type_hint = ""
+    try:
+        u_full = await db.users.find_one({"user_id": user_id}, {"_id": 0, "role": 1})
+        if u_full:
+            role = u_full.get("role", "")
+            if role.startswith("inmobiliaria"):
+                org_type_hint = "inmobiliaria"
+            elif role.startswith("developer"):
+                org_type_hint = "dev"
+    except Exception:
+        pass
+
+    return {
+        "user": UserOut(**user_doc),
+        "org_type": org_type_hint,
+        "redirect": "/inmobiliaria" if org_type_hint == "inmobiliaria" else "/desarrollador",
+    }

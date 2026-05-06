@@ -316,6 +316,10 @@ app.include_router(inmobiliaria_router)
 from routes_advisor_whitelist import router as whitelist_router
 app.include_router(whitelist_router)
 
+# Phase 14 Batch 37 — Internal Users + Mini Market + Cross-Org Partnerships
+from routes_internal_users import router as internal_users_router
+app.include_router(internal_users_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -796,6 +800,15 @@ async def startup():
         await ensure_whitelist_indexes(db)
     except Exception as e:
         logging.warning(f"[batch36] whitelist indexes failed: {e}")
+
+    # Phase 14 Batch 37 — Internal Users + Cross-Org Partnerships indexes
+    try:
+        from services.internal_users import ensure_invitation_indexes
+        await ensure_invitation_indexes(db)
+        from services.cross_org_partnerships import ensure_cross_partnership_indexes
+        await ensure_cross_partnership_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch37] indexes failed: {e}")
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:

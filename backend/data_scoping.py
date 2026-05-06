@@ -102,6 +102,21 @@ def scope_dev_projects_for_asesor(
     return result
 
 
+# ─── Phase 14 Batch 37 — In-house User Scoping ────────────────────────────────
+
+def filter_projects_for_in_house_user(
+    projects: List[Dict],
+    assigned_projects: List[str],
+) -> List[Dict]:
+    """Filter project list to only assigned_projects (if set).
+    If assigned_projects is empty, returns all projects unchanged.
+    """
+    if not assigned_projects:
+        return projects
+    assigned_set = set(assigned_projects)
+    return [p for p in projects if p.get("id") in assigned_set]
+
+
 # ─── Private helpers ───────────────────────────────────────────────────────────
 
 _LEAD_PRIVATE_FIELDS = {
