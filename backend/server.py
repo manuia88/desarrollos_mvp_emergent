@@ -296,6 +296,10 @@ from routes_argumentario import router as argumentario_router
 app.include_router(briefing_traffic_router)
 app.include_router(argumentario_router)
 
+# Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
+from routes_asesor_identity import router as asesor_identity_router
+app.include_router(asesor_identity_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -733,6 +737,19 @@ async def startup():
             logging.info(f"[batch31] argumentario seeded {inserted} entries")
     except Exception as e:
         logging.warning(f"[batch31] argumentario init failed: {e}")
+
+    # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust)
+    try:
+        from services.endorsements import ensure_endorsement_indexes
+        await ensure_endorsement_indexes(db)
+        from services.linkedin_import import ensure_linkedin_indexes
+        await ensure_linkedin_indexes(db)
+        from services.disc_test import ensure_disc_indexes
+        await ensure_disc_indexes(db)
+        from services.trust_score import ensure_trust_score_indexes
+        await ensure_trust_score_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch32] asesor_identity indexes failed: {e}")
 
 
 @app.on_event("shutdown")

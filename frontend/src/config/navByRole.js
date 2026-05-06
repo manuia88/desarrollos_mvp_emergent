@@ -57,6 +57,7 @@ const ASESOR_NAV = [
     label: 'Principal',
     items: [
       { key: 'inicio',       to: '/asesor',                              label: 'Inicio',           Icon: Home, end: true },
+      { key: 'perfil',       to: '/asesor/perfil',                       label: 'Mi perfil',        Icon: Shield },
       { key: 'contactos',    to: '/asesor/contactos',                    label: 'Contactos',        Icon: Users, badge_source: 'asesor_contacts_new' },
       { key: 'busquedas',    to: '/asesor/busquedas',                    label: 'Búsquedas',        Icon: Search },
       { key: 'citas',        to: '/asesor/citas',                        label: 'Citas',            Icon: CalendarDays, badge_source: 'citas_today' },

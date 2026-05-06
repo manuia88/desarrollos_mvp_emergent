@@ -112,6 +112,17 @@ async def compute_asesor_metrics(db, asesor_id: str, period: str = "30d") -> Dic
     )
     health_score = int((hs or {}).get("score", 0))
 
+    # ─ Trust score (B32, optional) ─────────────────────────────────────────
+    trust_score = 0
+    try:
+        ts = await db.asesor_trust_scores.find_one(
+            {"asesor_id": asesor_id}, {"_id": 0, "score": 1},
+        )
+        if ts:
+            trust_score = int(ts.get("score", 0))
+    except Exception:
+        pass
+
     return {
         "asesor_id": asesor_id,
         "inmobiliaria_id": inmobiliaria_id,
@@ -127,6 +138,7 @@ async def compute_asesor_metrics(db, asesor_id: str, period: str = "30d") -> Dic
         "activity_score_7d": activity_7d,
         "links_active": links_active,
         "health_score": health_score,
+        "trust_score": trust_score,
     }
 
 

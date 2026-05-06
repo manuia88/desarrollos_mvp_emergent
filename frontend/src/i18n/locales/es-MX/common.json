@@ -401,5 +401,79 @@
       "smartMatch_empty_cta": "Tomar el quiz",
       "smartMatch_ver_favoritos": "Ver todos mis favoritos"
     }
+  },
+  "asesor": {
+    "perfil": {
+      "eyebrow": "MI IDENTIDAD · TRUST SCORE",
+      "title": "Mi perfil profesional",
+      "subtitle": "Construye tu credibilidad: importa LinkedIn, toma el test DISC y gestiona tus reseñas verificadas.",
+      "preview_public": "Ver mi perfil público",
+      "edit_linkedin": "Editar LinkedIn",
+      "import_linkedin": "Importar desde LinkedIn",
+      "take_disc": "Tomar test DISC (2 min)",
+      "retake_disc": "Volver a tomar DISC",
+      "about": "Sobre mí",
+      "certifications": "Certificaciones",
+      "education": "Educación",
+      "years_experience": "Años de experiencia",
+      "current_company": "Empresa actual"
+    },
+    "endorsements": {
+      "verified_reviews": "Reseñas verificadas",
+      "based_on": "Basado en {count} reseñas verificadas",
+      "leave_review": "Deja una reseña",
+      "submit": "Enviar reseña",
+      "cancel": "Cancelar",
+      "name_placeholder": "Tu nombre",
+      "email_placeholder": "Tu correo electrónico",
+      "rating_label": "Calificación:",
+      "text_placeholder": "Cuenta tu experiencia con el asesor (mínimo 8 caracteres)…",
+      "check_email": "Revisa tu correo",
+      "confirm_sent": "Te enviamos un email a {email}. Confirma con el enlace para que tu reseña aparezca pública.",
+      "pending": "Pendiente",
+      "delete_btn": "Borrar",
+      "delete_confirm": "¿Borrar esta reseña?",
+      "no_reviews": "Aún sin reseñas verificadas.",
+      "be_first": "Sé el primero en dejar la tuya.",
+      "show_all": "Ver todas ({count})",
+      "show_less": "Mostrar menos",
+      "rate_limit": "Límite de 3 reseñas alcanzado para este email"
+    },
+    "disc": {
+      "title": "Test DISC · 2 min",
+      "progress": "Pregunta {step} de {total}",
+      "next": "Siguiente",
+      "previous": "Anterior",
+      "finish": "Ver mi resultado",
+      "close": "Cerrar",
+      "retake": "Volver a tomar",
+      "result_eyebrow": "Tu perfil DISC",
+      "primary_label": "Dimensión primaria",
+      "D": "Dominante",
+      "I": "Influyente",
+      "S": "Estable",
+      "C": "Cauteloso",
+      "narrative_loading": "Tu narrativa personalizada se calcula con IA."
+    },
+    "trust_score": {
+      "title": "Trust Score",
+      "breakdown_title": "Desglose Trust Score",
+      "tooltip": "Combina experiencia, ventas, reseñas verificadas, tiempo de respuesta, certificaciones y test DISC. Se actualiza cada 4 horas.",
+      "experience_score": "Experiencia",
+      "deals_score": "Ventas cerradas",
+      "endorsement_score": "Reseñas verificadas",
+      "response_time_score": "Tiempo de respuesta",
+      "certifications_score": "Certificaciones",
+      "disc_complete_bonus": "DISC completo"
+    },
+    "public_profile": {
+      "verified_badge": "Asesor verificado · DesarrollosMX",
+      "cta_whatsapp": "Habla conmigo",
+      "projects_eyebrow": "Proyectos cerrados",
+      "confirmed_banner": "¡Tu reseña fue confirmada! Ya aparece en este perfil.",
+      "not_found": "Perfil no encontrado",
+      "home_link": "← DesarrollosMX",
+      "loading": "Cargando perfil…"
+    }
   }
 }

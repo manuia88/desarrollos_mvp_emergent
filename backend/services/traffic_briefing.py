@@ -211,6 +211,8 @@ async def build_briefing(
     if cached:
         cached_at = cached.get("cached_at")
         if isinstance(cached_at, datetime):
+            if cached_at.tzinfo is None:
+                cached_at = cached_at.replace(tzinfo=timezone.utc)
             age_min = (_now() - cached_at).total_seconds() / 60.0
             if age_min < TTL_MINUTES:
                 cached["is_stale"] = False
