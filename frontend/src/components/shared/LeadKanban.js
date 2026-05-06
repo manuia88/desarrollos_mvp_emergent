@@ -11,7 +11,10 @@ import React, { useEffect, useState } from 'react';
 import * as leadsApi from '../../api/leads';
 import { Badge } from '../advisor/primitives';
 import { Link2, Lock, Brain, MessageCircle, X, EyeOff, Sparkle, Flame } from '../icons';
+import { Check, Circle } from 'lucide-react';
 import { useServerUndo } from './UndoSnackbar';
+import { usePresentationMode } from '../../hooks/usePresentationMode';
+import { anonymizeKanbanCard, piiCSS } from '../../lib/anonymize';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -108,7 +111,7 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
       <div data-testid="lead-kanban-grid" style={{
         display: 'grid', gridTemplateColumns: 'repeat(5, minmax(220px, 1fr))',
         gap: 10, overflowX: 'auto', paddingBottom: 8,
-      }}>
+      }} className="density-kanban-grid">
         {data.columns.map(col => {
           const tok = COL_TOKEN[col.key] || COL_TOKEN.nuevo;
           const isOver = dragOver === col.key;
@@ -172,9 +175,14 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
 // ═════════════════════════════════════════════════════════════════════════════
 function LeadKanbanCard({ card, colKey, tok, onOpen }) {
   const [hover, setHover] = useState(false);
+  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
+
+  // Apply PII anonymization in presentation mode
+  const displayCard = (pmActive && pmConfig.anonymize_pii) ? anonymizeKanbanCard(card) : card;
+
   const canMove = card.can_move !== false;
   const canFull = card.can_view_full !== false;
-  const initials = (card.contact_name || 'L').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  const initials = (displayCard.contact_name || 'L').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
   const crossCount = card.cross_project_count || 0;
   const isBrokerExternal = card.origin_type === 'broker_external';
 
@@ -196,7 +204,7 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
       data-can-view-full={canFull ? 'true' : 'false'}
       style={{
         position: 'relative',
-        padding: 10, borderRadius: 10,
+        padding: 'var(--d-pad-kanban, 10px)', borderRadius: 10,
         background: hover ? 'rgba(240,235,224,0.05)' : 'rgba(240,235,224,0.02)',
         border: `1px solid ${hover ? tok.bd : 'var(--border)'}`,
         cursor: canMove ? 'grab' : 'pointer',
@@ -227,13 +235,19 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
             display: 'flex', alignItems: 'center', gap: 4,
           }}>
             {!canFull && <EyeOff size={10} color="var(--cream-3)" />}
-            {card.contact_name}
+            <span className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}
+                  data-testid={`lead-card-name-${card.id}`}>
+              {displayCard.contact_name}
+            </span>
           </div>
           <div style={{
             fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'var(--cream-3)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {canFull ? (card.contact_email || card.contact_phone || '—') : 'Datos privados'}
+            {pmActive && pmConfig.anonymize_pii
+              ? <span className={piiCSS}>{displayCard.contact_email || displayCard.contact_phone || '—'}</span>
+              : canFull ? (card.contact_email || card.contact_phone || '—') : 'Datos privados'
+            }
           </div>
         </div>
       </div>
@@ -315,6 +329,9 @@ function LeadDrawer({ leadId, onClose, onToast }) {
   const [convLocked, setConvLocked] = useState(false);
   const [aiLocked, setAiLocked] = useState(false);
 
+  // B19 Sub-C — Presentation mode
+  const { isActive: pmActive, config: pmConfig } = usePresentationMode();
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -371,7 +388,9 @@ function LeadDrawer({ leadId, onClose, onToast }) {
             <h2 data-testid="lead-drawer-title" style={{
               fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: 0,
             }}>
-              {loading ? 'Cargando…' : (lead?.contact?.name || 'Sin nombre')}
+              <span className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}>
+                {loading ? 'Cargando…' : (lead?.contact?.name || 'Sin nombre')}
+              </span>
             </h2>
           </div>
           <button data-testid="lead-drawer-close" onClick={onClose} style={{
@@ -400,8 +419,8 @@ function LeadDrawer({ leadId, onClose, onToast }) {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12, fontFamily: 'DM Sans' }}>
-                  <Field label="Email" value={lead.contact?.email || '—'} />
-                  <Field label="Teléfono" value={lead.contact?.phone || '—'} />
+                  <Field label="Email" value={<span className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}>{lead.contact?.email || '—'}</span>} />
+                  <Field label="Teléfono" value={<span className={pmActive && pmConfig.anonymize_pii ? piiCSS : ''}>{lead.contact?.phone || '—'}</span>} />
                   <Field label="Asesor" value={lead.assigned_to_name || lead.assigned_to || '—'} />
                   <Field label="Estado" value={lead.status} />
                 </div>
@@ -431,7 +450,8 @@ function LeadDrawer({ leadId, onClose, onToast }) {
               </Section>
             )}
 
-            <Section title="Conversación" icon={<MessageCircle size={13} />} testid="lead-drawer-conversation">
+            <Section title="Conversación" icon={<MessageCircle size={13} />} testid="lead-drawer-conversation"
+              className={pmActive && pmConfig.hide_internal_notes ? 'internal-only' : ''}>
               {convLocked ? (
                 <LockedHint text="Sin permisos para ver la conversación de este lead" />
               ) : !conv ? (
@@ -552,20 +572,21 @@ function LeadDrawer({ leadId, onClose, onToast }) {
 function PermBadge({ active, label }) {
   return (
     <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '3px 8px', borderRadius: 9999,
       background: active ? 'rgba(34,197,94,0.10)' : 'rgba(240,235,224,0.04)',
       border: `1px solid ${active ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
       color: active ? 'var(--green)' : 'var(--cream-3)',
       fontFamily: 'DM Mono, monospace', fontSize: 9.5, fontWeight: 600,
     }}>
-      {active ? '✓' : '○'} {label}
+      {active ? <Check size={9} /> : <Circle size={9} />} {label}
     </span>
   );
 }
 
-function Section({ title, icon, children, testid, right }) {
+function Section({ title, icon, children, testid, right, className }) {
   return (
-    <div data-testid={testid} style={{
+    <div data-testid={testid} className={className || ''} style={{
       padding: 14, borderRadius: 10,
       background: 'rgba(240,235,224,0.025)', border: '1px solid var(--border)',
     }}>
