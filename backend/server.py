@@ -274,6 +274,26 @@ app.include_router(funnel_router)
 app.include_router(insights_router)
 app.include_router(copilot_router)
 
+# Phase 4 Batch 24 — Marketplace Map Intelligence + Image Search
+from routes_marketplace_map import router as marketplace_map_router
+from routes_marketplace_search import router as marketplace_search_router
+app.include_router(marketplace_map_router)
+app.include_router(marketplace_search_router)
+
+# Phase 4 Batch 25 — External Search + Saved Searches
+from routes_external_search import router as external_search_router
+app.include_router(external_search_router)
+
+# Phase 4 Batch 26 — Marketplace Lead-Capture Tools (Reporte + Quiz + Comparador)
+from routes_marketplace_lead_tools import router as marketplace_lead_tools_router
+app.include_router(marketplace_lead_tools_router)
+
+# Phase 4 Batch 27 — Mortgage Calculator + Colonia History + Share-link OG
+from routes_marketplace_calculator import router as marketplace_calc_router
+from routes_share_meta import router as share_meta_router
+app.include_router(marketplace_calc_router)
+app.include_router(share_meta_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -666,6 +686,14 @@ async def startup():
         await ensure_copilot_indexes(db)
         if sched:
             schedule_daily_snapshots(sched, db)
+
+        # Phase 4 Batch 25 — Saved Search alerts (8am) + Image Embeddings (3am)
+        try:
+            from scheduler_saved_search_alerts import register_saved_search_jobs
+            if sched:
+                register_saved_search_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[batch25] scheduler register failed: {e}")
     except Exception as e:
         logging.warning(f"[batch20] setup failed: {e}")
 

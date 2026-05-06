@@ -1,53 +1,60 @@
 <analysis>**original_problem_statement**: 
 Build DesarrollosMX (DMX), an AI-native Spatial Decision Intelligence Platform for LATAM real estate.
 PRODUCT REQUIREMENTS: 
-- 6 Phases + New Moat #2 (Document Intelligence) & Asset Pipeline. 
-- Strict visual guidelines: Navy (#06080F) + Cream (#F0EBE0) + specific gradient, Outfit/DM Sans fonts, zero emojis (use lucide SVGs).
-- Technical constraints: Multi-tenant data isolation, single-session enforcement, mobile-first, robust auth, strictly es-MX UI localization.
+- Multi-tenant data isolation, single-session enforcement, mobile-first, robust auth.
+- Strict visual guidelines: Navy (#06080F) + Cream (#F0EBE0) + specific gradient (linear-gradient(90deg, #6366F1, #EC4899)), Outfit/DM Sans fonts, zero emojis (use internal SVG icons only).
+- Buttons MUST strictly be  (9999px) — never rounded-sm/md/lg. No  allowed.
+- All application UI, mock data, and internal strings MUST strictly be in Spanish .
 
 **User's preferred language**: Spanish (es-MX)
-**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language (Spanish es-MX) only. All application UI, mock data, responses, and internal string files MUST strictly be in Spanish .
+**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language (Spanish es-MX) only. ALL code, comments, strings, and UI must remain strictly in .
 
 **what currently exists?** 
-A highly functional LATAM real estate platform. Phase 4 Batches 0, 10, 11, 0.5, 12, and 13 are fully completed. The application features a 3-tier sidebar, detailed project shells, migrated property tabs (Amenities, Legal, Commercialization, Content), an enriched AI unit drawer, a robust 30+ probe Diagnostic Engine, a 7-step Smart Wizard for project creation (with AI/Drive extraction), and a unified cross-portal project tracking/attribution system. 
+A highly functional LATAM real estate platform. Phase 4 is practically complete, including CRM Kanban, Undo System, Team Productivity, Sankey/Funnel Attribution, Project Insights (Resumen, Engagement, Comparables with CSV/PDF export, IA, Cash Flow), and an AI Copilot Lateral Panel powered by Claude Sonnet 4.5.
 
 **Last working item**:
-    - Last item agent was working: Phase 4 Batch 13 — CROSS-PORTAL SYNC + TRACKING ATTRIBUTION + GAP FIX. Implemented unified backend helpers for legacy vs. wizard projects, extended diagnostic probes, multi-touch lead attribution cookies, MapboxPicker in the wizard, and an asesor tracking links page.
-    - Status: COMPLETED (Finished by agent, user verified via continuation)
+    - Last item agent was working: Phase 4 Batch 23 — AI Copilot Lateral Toggleable. The agent successfully built the backend endpoints (), the frontend slide-in drawer (), and wired the  keyboard shortcut along with real-time markdown streaming via . Pytest suite  passed successfully (13/13 tests). The agent has finished the implementation and provided an enhancement suggestion to the user regarding Agentic routing.
+    - Status: USER VERIFICATION PENDING
     - Agent Testing Done: Y
-    - Which testing method agent to use? manual testing by bash/curl script, python -c test files, and screenshot tool. **(User strictly forbade testing subagents).**
+    - Which testing method agent to use? manual testing by curl/bash, python -c (============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-3.7.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 184 items / 1 error
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting backend/tests/test_api.py __________________
+backend/tests/test_api.py:7: in <module>
+    assert BASE_URL, "REACT_APP_BACKEND_URL is required"
+E   AssertionError: REACT_APP_BACKEND_URL is required
+E   assert ''
+=========================== short test summary info ============================
+ERROR backend/tests/test_api.py - AssertionError: REACT_APP_BACKEND_URL is re...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.99s ===============================), and screenshot tool. **(Testing subagents are STRICTLY FORBIDDEN by the user).**
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
   Issue 1: Phase 4 Batch 1 UI elements not rendering in DOM () (P1)
      - Attempted fixes: Cleared dev server artifacts, injected Cache-Control.
-     - Next debug checklist: Check conditional rendering in . *CRITICAL: User has explicitly requested to DEFER this bug to the final sweep of H1. DO NOT attack this bug unless prompted.*
-     - Why fix this issue and what will be achieved with the fix? Will unblock the bulk upload functionality UI.
+     - Next debug checklist: DEFERRED. User explicitly requested to defer this bug to the final sweep of H1. DO NOT attack this bug unless prompted.
+     - Why fix this issue and what will be achieved with the fix? Unblocks bulk upload UI.
      - Status: BLOCKED (Deferred by User)
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix? frontend
      - Blocked on other issue: User requested deferral.
 
-  Issue 2: Missing API Keys (ELEVENLABS, PEDRA, GOOGLE_OAUTH) (P2)
+  Issue 2: Missing API Keys (ELEVENLABS, PEDRA) (P2)
      - Attempted fixes: Using honest stubs.
      - Next debug checklist: Keep using stubs. Await user action.
      - Why fix this issue and what will be achieved with the fix? Enables real 3rd party integrations.
      - Status: USER VERIFICATION PENDING
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix? backend
-     - Blocked on other issue: None
-
-  Issue 3: Playwright screenshot runner drops session state/cookies for deeply nested routes. (P2)
-     - Attempted fixes: Direct token injection failed due to UI router requirement ().
-     - Next debug checklist: Find a reliable way to maintain playwright auth state or build a workaround for deeply nested page screenshot tests.
-     - Why fix this issue and what will be achieved with the fix? Unblocks visual testing of deeply nested authenticated routes.
-     - Status: BLOCKED
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix? frontend
-     - Blocked on other issue: None
 
 **In progress Task List**:
-  None. The agent successfully closed out Batch 13. Awaiting user's next prompt.
+  None. The agent successfully wrapped up Phase 4 Batch 23. Await user confirmation or the next Phase prompt.
 
 **Upcoming and Future Tasks**
   Upcoming Tasks:
@@ -55,114 +62,133 @@ A highly functional LATAM real estate platform. Phase 4 Batches 0, 10, 11, 0.5, 
   - WhatsApp Business real integration via  QR + C11 Caya UI conversational completa + NLP intent classifier (P1)
   
   Future Tasks:
+  - Microsoft OAuth Integration activation: register  and update UI card (from B15 stub) (P2)
   - Phase 17 / ML Observability extension: Feedback Acceptance Rate tracking and UI widgets (P2)
   - Google Calendar OAuth bidireccional en Tareas (P2)
   - Studio Wave 1.5 (S1.2 timeline + S1.3 export presets) (P2)
   - Live-tail/SSE real-time changes for Superadmin  aggregation (P2 backlog)
 
 **Completed work in this session**
-- Phase 4 Batch 11: Migrar tabs Legajo + Comercialización + Drawer enriquecido (DONE)
-- Phase 4 Batch 0.5: Diagnostic Engine + Observability, System Map, User diagnostics (DONE)
-- Phase 4 Batch 12: Wizard 7 pasos + IA upload + Drive integration (DONE)
-- Phase 4 Batch 13: Cross-portal sync + Tracking attribution + Gap fix unified projects (DONE)
-- Created pytest regression suites: , , ,  (DONE)
+- Phase 4 Batch 22: Insights Tab dentro Proyecto (5 sub-tabs: Resumen, Engagement, Comparables, IA, Cash Flow) (DONE)
+- Enhancement: Comparables Export logic (CSV + PDF via ) (DONE)
+- Phase 4 Batch 23: AI Copilot Lateral Toggleable (Cmd+J shortcut, Drawer UI, backend context aggregation, persistence) (DONE)
+- Added  and  regression suites. Both passing 100%. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   - Issue 1: Playwright screenshot runner auth drops (Refer to Issue 3 in Pending list above)
+   - Issue 1: Playwright screenshot runner drops session state/cookies for deeply nested routes. (Bypassed temporarily using specific CSS z-index and explicit frontend tests).
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Playwright screenshot runner auth drops for deeply nested components.
-  - Recurrence count: 7
+  - Recurrence count: 9
   - Status: BLOCKED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-FastAPI, React.js (lazy/Suspense context), Tailwind CSS, MongoDB, Claude Haiku/Sonnet via Emergent LLM Key, APScheduler, JWT Authentication, Recharts.
+React.js, Tailwind CSS, FastAPI, MongoDB, , , , , . Claude Haiku/Sonnet via Emergent LLM Key.
 
 **key DB schema**
-  - : 
-  - : 
-  - : 
-  - : 
+  - :  (TTL 60 days)
 
 **changes in tech stack**
-  - No new stack changes, heavily reused existing primitives (MapboxPicker, DragDropZone, SmartWizard, EntityDrawer).
+  - Installed Python dependency  for PDF generation.
+  - Installed Frontend dependency  for Copilot Markdown rendering.
 
 **All files of reference** 
-  -  (Created for B0.5)
-  -  (Created for B0.5)
-  -  (Created for B13 to merge db.projects and legacy array)
-  -  (Created for B12)
-  -  (Created for B13)
-  -  (Created for B13 tracking cookies)
-  -  (Created for B12 Wizard)
-  -  (Created for B13)
-  -  (Updated systematically)
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
 
 **Areas that need refactoring**:
-  - Legacy  array in  /  is currently merged at runtime with  via . Eventually, legacy developments should be hard-migrated into the  collection to avoid double-lookups.
+  - Legacy  array vs new  (Unified reads exist, hard migration is backlog).
 
 **key api endpoints**
   - 
-  -  (Wizard create)
-  -  (Claude extraction from drag-dropped docs)
   - 
   - 
 
 **Critical Info for New Agent**
-  - **LANGUAGE:** All outputs MUST be in Spanish .
-  - **TESTING AGENT RESTRICTION:** Do NOT use  or any testing subagents. Rely on , Python scripts (pytest), and the Playwright Screenshot tool.
-  - **AI Tracking:** Make sure to use  from  when invoking Claude.
-  - **Unified Projects:** Whenever a project needs to be queried, use the newly created  helpers (, ) instead of just reading the  array directly, as new projects live in .
+  - **STANDARDS & RULES:** Do not pause to ask for plan or scope. Build COMPLETELY and make conservative decisions on edge cases. No partial ships.
+  - **LANGUAGE:** Outputs, UIs, and strings must strictly be . Update  with any new strings.
+  - **TESTING:** NO testing subagents allowed. Rely on , Playwright screenshot tool, and ============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-3.7.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 184 items / 1 error
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting backend/tests/test_api.py __________________
+backend/tests/test_api.py:7: in <module>
+    assert BASE_URL, "REACT_APP_BACKEND_URL is required"
+E   AssertionError: REACT_APP_BACKEND_URL is required
+E   assert ''
+=========================== short test summary info ============================
+ERROR backend/tests/test_api.py - AssertionError: REACT_APP_BACKEND_URL is re...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.57s ===============================. 
+  - **DESIGN:** NEVER use  or emojis. Buttons MUST be . CTAs use strict .
+  - **REUSE:** Instead of rebuilding, re-use existing primitives (e.g., , , ).
 
 **documents and test reports created in this job**
-  - 
-  - 
-  - 
+  -  (Updated)
   - 
   - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: GO PHASE 4 BATCH 12 — WIZARD 7 PASOS + IA UPLOAD (~12h) (Resolved)
- - User:  (Resolved)
+ - Assistant:  (Resolved)
+ - User: BATCH 20 — Asesor Metrics + Links Tracking + Conversion Funnel + Sankey (Resolved)
+ - Assistant:  (Resolved)
+ - User: BATCH 22 — Insights Tab dentro Proyecto (5 sub-tabs) (Resolved)
+ - Assistant:  + Enhancement suggestion (Resolved)
+ - User: si, haz la meora sugerida (Resolved)
+ - Assistant:  (Resolved)
  - User: dame el link del preview (Resolved)
- - Assistant:  (Resolved)
- - User: GO PHASE 4 BATCH 13 — CROSS-PORTAL SYNC + TRACKING ATTRIBUTION + GAP FIX (~12h) (Resolved)
- - User:  (Resolved)
- - User: continua (Resolved)
- - User:  (Resolved)
- - Assistant:  (Resolved)
- 
- **Pending Human Messages**: None. Wait for the user to specify the next batch/task.
+ - Assistant: Provided the preview link. (Resolved)
+ - User: BATCH 23 — AI Copilot Lateral Toggleable (Resolved)
+ - Assistant:  (Pending - Awaiting user response)
 
 **Project Health Check:**
-  - Broken: Playwright testing harness dropping auth on nested routes.
-  - Mocked: 3rd party API keys (Pedra, Google Auth OAuth for Drive).
+  - Broken: Playwright testing harness dropping auth on deeply nested routes (User is aware, use shallow auth components for screenshots or rely on ============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-3.7.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 184 items / 1 error
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting backend/tests/test_api.py __________________
+backend/tests/test_api.py:7: in <module>
+    assert BASE_URL, "REACT_APP_BACKEND_URL is required"
+E   AssertionError: REACT_APP_BACKEND_URL is required
+E   assert ''
+=========================== short test summary info ============================
+ERROR backend/tests/test_api.py - AssertionError: REACT_APP_BACKEND_URL is re...
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.57s ===============================).
+  - Mocked: Microsoft OAuth implementation, Pedra/ElevenLabs APIs.
 
 **3rd Party Integrations** 
+  - Google Calendar OAuth — requires User API Key / Client Secret (in )
   - Mapbox GL JS — requires User API Key
   - Sentry/Posthog — requires User API Key
-  - Claude/OpenAI — Emergent LLM Key (Used in AI narratives & Budget tracking & Wizard extraction)
+  - Claude/OpenAI — Emergent LLM Key (Used heavily in B22 Insights IA & B23 Copilot Engine)
   - Resend — requires User API Key
-  - INEGI BISE API — User Token inside env/constants
-  - Google Drive OAuth — requires User API Key (Client ID/Secret mocked currently)
 
 **Testing status**
   - Testing agent used after significant changes: NO (Forbidden by user)
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: , , , 
+  - Test files created: , 
   - Known regressions: Playwright automation token drop for nested views.
 
 **Credentials to test flow:**
   -  /  (Superadmin)
   -  /  (Asesor / Advisor)
   -  /  (Developer Admin)
-  -  /  (Developer Comercial)
 
 **What agent forgot to execute**
-  - Nothing forgotten. The agent executed everything perfectly according to the user's constraints and scopes for Batches 11, 0.5, 12, and 13.
-
-**Debugging checklist for current issue**
-    Task: Await next instruction from the user. No active bugs to debug unless user prompts for Phase 7.10 or WhatsApp Integration next.</analysis>
+  - Nothing. Phase 4 Batch 23 is fully completed exactly as specified by the user's rigorous prompt. Await the next instructions.</analysis>

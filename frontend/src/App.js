@@ -79,6 +79,8 @@ const CrmFunnel                      = lazy(() => import('./pages/developer/CrmF
 const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
 const PublicCitaPage                 = lazy(() => import('./pages/public/PublicCitaPage'));
 const PublicBookingPage              = lazy(() => import('./pages/public/PublicBookingPage'));
+// Phase 4 Batch 26 — Comparador 3-way
+const PublicComparator               = lazy(() => import('./pages/public/ColoniaComparator'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -345,6 +347,8 @@ function AppRouter() {
       <Route path="/aceptar-invitacion/:token" element={<AceptarInvitacion />} />
       <Route path="/cita/:token" element={<PublicCitaPage />} />
       <Route path="/reservar/:slug" element={<PublicBookingPage />} />
+      {/* Phase 4 Batch 26 — Comparador 3-way (página pública) */}
+      <Route path="/comparar" element={<PublicComparator />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />

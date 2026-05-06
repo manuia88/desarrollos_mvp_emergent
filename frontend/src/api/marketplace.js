@@ -103,7 +103,185 @@ export async function fetchBriefing(id) {
   return r.json();
 }
 
-// Favorites in localStorage
+// ─── Batch 24 — Map Intelligence ─────────────────────────────────────────────
+
+export async function fetchHeatmapLayer(layer = 'price', zoomLevel = 3, bbox = null) {
+  const qs = new URLSearchParams({ layer, zoom_level: zoomLevel });
+  if (bbox) qs.set('bbox', bbox);
+  const r = await fetch(`${API}/api/public/map/heatmap?${qs.toString()}`);
+  if (!r.ok) throw new Error('heatmap fetch failed');
+  return r.json();
+}
+
+export async function fetchMapLevels() {
+  const r = await fetch(`${API}/api/public/map/levels`);
+  if (!r.ok) throw new Error('map levels fetch failed');
+  return r.json();
+}
+
+export async function fetchColoniaFull(coloniaId) {
+  const r = await fetch(`${API}/api/public/map/colonia/${coloniaId}`);
+  if (!r.ok) throw new Error(`colonia ${coloniaId} fetch failed`);
+  return r.json();
+}
+
+export async function searchByImage(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const r = await fetch(`${API}/api/public/search/by-image`, {
+    method: 'POST',
+    body: form,
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Espera 1 minuto e intenta de nuevo.');
+  if (r.status === 413) throw new Error('Imagen demasiado grande. Máximo 5 MB.');
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body.detail || 'Error en búsqueda por imagen');
+  }
+  return r.json();
+}
+
+// ─── Batch 25 — External Search + Saved Searches ─────────────────────────────
+
+export async function parseExternalUrl(url) {
+  const r = await fetch(`${API}/api/public/search/by-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Espera 1 minuto e intenta de nuevo.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || data.error || 'Error al procesar la URL');
+  return data;
+}
+
+export async function saveSearch(email, filters, alertFrequency = 'weekly') {
+  const r = await fetch(`${API}/api/public/saved-search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, filters, alert_frequency: alertFrequency }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al guardar la búsqueda');
+  return data;
+}
+
+// ─── Batch 26 — Lead-Capture Tools (Reporte + Quiz + Comparador) ────────────
+
+export async function requestColoniaReport(coloniaId, email, acceptedTerms = true) {
+  const r = await fetch(`${API}/api/public/colonia/${encodeURIComponent(coloniaId)}/report-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, accepted_terms: acceptedTerms }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error generando el reporte');
+  return data;
+}
+
+export async function submitQuiz(email, answers, acceptedTerms = true) {
+  const r = await fetch(`${API}/api/public/quiz/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, answers, accepted_terms: acceptedTerms }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al procesar tu quiz');
+  return data;
+}
+
+export async function compareEntities(entityType, ids) {
+  const r = await fetch(`${API}/api/public/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_type: entityType, ids }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || data.error || 'Error en la comparación');
+  return data;
+}
+
+export async function downloadComparePdf(entityType, ids) {
+  const r = await fetch(`${API}/api/public/compare/pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_type: entityType, ids }),
+  });
+  if (!r.ok) throw new Error('Error generando el PDF');
+  return r.blob();
+}
+
+// ─── Batch 27 — Mortgage Calculator + Colonia History + Share ───────────────
+
+export async function calculateMortgage(payload) {
+  const r = await fetch(`${API}/api/public/mortgage/calculate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al calcular hipoteca');
+  return data;
+}
+
+export async function saveMortgage(email, calculation, propiedadId, acceptedTerms = true) {
+  const r = await fetch(`${API}/api/public/mortgage/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email, calculation, propiedad_id: propiedadId, accepted_terms: acceptedTerms,
+    }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al guardar el cálculo');
+  return data;
+}
+
+export async function fetchColoniaHistory(coloniaId) {
+  const r = await fetch(`${API}/api/public/colonia/${encodeURIComponent(coloniaId)}/history`);
+  if (!r.ok) {
+    if (r.status === 404) return null;
+    throw new Error(`historia colonia ${coloniaId} fetch failed`);
+  }
+  return r.json();
+}
+
+export async function fetchShareMeta(entityType, ids) {
+  const qs = new URLSearchParams({ type: entityType, ids: ids.join(',') });
+  const r = await fetch(`${API}/api/share/comparar/meta?${qs.toString()}`);
+  if (!r.ok) throw new Error('share meta fetch failed');
+  return r.json();
+}
+
+export function buildShareOgImageUrl(entityType, ids) {
+  const qs = new URLSearchParams({ type: entityType, ids: ids.join(',') });
+  return `${API}/api/share/comparar/og-image?${qs.toString()}`;
+}
+
+export async function captureTourRequest(propiedadId, propiedadNombre, email) {
+  const r = await fetch(`${API}/api/public/virtual-tour/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      accepted_terms: true,
+      propiedad_id: propiedadId,
+      propiedad_nombre: propiedadNombre,
+    }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al registrar solicitud de tour');
+  return data;
+}
+
+// ─── Favorites in localStorage
 const FAV_KEY = 'dmx.favorites';
 export function getFavorites() {
   try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; }
