@@ -9,6 +9,7 @@ import { FilterChipsBar } from '../shared/FilterChipsBar';
 import FilterPresetsBar from '../shared/FilterPresetsBar';
 import { EntityDrawer } from '../shared/EntityDrawer';
 import UnitDrawerContent from './UnitDrawerContent';
+import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
 import { listInventory } from '../../api/developer';
 import { Search, Upload, Eye, Building, Bed, Ruler } from '../../components/icons';
@@ -210,7 +211,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
 
       {/* Table */}
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(240,235,224,0.1)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+        <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
           <thead>
             <tr style={{ background: 'rgba(240,235,224,0.06)', position: 'sticky', top: 0, zIndex: 1 }}>
               {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Precio', 'Estado', 'Acciones'].map(h => (
@@ -617,7 +618,7 @@ export default function VentasTab({ devId, user, onBulkUpload }) {
             <PorPrototipo units={units} onFilterInventario={handleFilterInventario} />
           )}
           {activeSubTab === 'planta' && (
-            <VistaDePlanta units={units} user={user} devId={devId} />
+            <VistaPlantaInteractiva units={units} user={user} devId={devId} />
           )}
         </>
       )}

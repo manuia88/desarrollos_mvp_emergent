@@ -1,83 +1,121 @@
 /**
- * Phase 4 Batch 23 — useKeyboardShortcuts (centralized hook).
- *
- * Subscribe-style keyboard registry to coordinate global shortcuts across
- * portal layouts. First wired with Cmd+J for AI Copilot toggle. Designed to
- * grow into B19 keyboard help dialog without breaking existing handlers.
+ * Batch 19 Sub-A — useKeyboardShortcuts
+ * Registers global keyboard shortcuts on window keydown.
+ * Disabled when an input/textarea/select is focused (unless shortcut is Escape).
  *
  * Usage:
  *   useKeyboardShortcuts([
- *     { combo: 'mod+j', label: 'Abrir Copilot', handler: () => copilot.toggle() },
- *   ]);
+ *     { combo: '?',               handler: openHelpDialog },
+ *     { combo: 'mod+k',           handler: openSearch },
+ *     { combo: 'mod+/',           handler: openSwitcher },
+ *     { combo: 'mod+b',           handler: toggleSidebar },
+ *     { combo: 'mod+shift+p',     handler: togglePresentationMode },
+ *     { combo: 'g h',             handler: () => navigate('/desarrollador') },
+ *   ])
  *
- * Combo grammar: tokens joined with '+'. Supports modifiers `mod` (cmd on mac,
- * ctrl elsewhere), `shift`, `alt`, plus a single key (case-insensitive).
+ * combo format:
+ *   'mod+k'        → Cmd (Mac) / Ctrl (Windows) + K
+ *   'mod+shift+k'  → Cmd/Ctrl + Shift + K
+ *   '?'            → single key (no mod)
+ *   'g h'          → sequential 2-key chord
  */
 import { useEffect, useRef } from 'react';
 
-const isMac = typeof navigator !== 'undefined' &&
-  /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 function parseCombo(combo) {
-  const parts = String(combo).toLowerCase().split('+').map(s => s.trim()).filter(Boolean);
-  const out = { key: null, mod: false, shift: false, alt: false };
-  for (const p of parts) {
-    if (p === 'mod' || p === 'cmd' || p === 'ctrl') out.mod = true;
-    else if (p === 'shift') out.shift = true;
-    else if (p === 'alt' || p === 'option') out.alt = true;
-    else out.key = p;
-  }
-  return out;
+  const parts = combo.toLowerCase().split('+');
+  return {
+    mod:   parts.includes('mod'),
+    shift: parts.includes('shift'),
+    alt:   parts.includes('alt'),
+    key:   parts[parts.length - 1],
+    chord: combo.includes(' '),  // e.g. "g h"
+    raw:   combo,
+  };
 }
 
-function matches(e, parsed) {
-  if (!parsed.key) return false;
-  if (e.key.toLowerCase() !== parsed.key) return false;
+function matchesCombo(e, parsed) {
+  if (parsed.chord) return false; // chords handled separately
   const modPressed = isMac ? e.metaKey : e.ctrlKey;
-  if (parsed.mod !== modPressed) return false;
-  if (parsed.shift !== e.shiftKey) return false;
-  if (parsed.alt !== e.altKey) return false;
-  return true;
+  if (parsed.mod && !modPressed) return false;
+  if (!parsed.mod && (e.metaKey || e.ctrlKey)) return false;
+  if (parsed.shift && !e.shiftKey) return false;
+  if (!parsed.shift && e.shiftKey && parsed.mod) return false; // mod+key should not fire with shift
+  if (parsed.alt && !e.altKey) return false;
+  return e.key.toLowerCase() === parsed.key;
 }
 
-function isEditableTarget(target) {
-  if (!target) return false;
-  const tag = (target.tagName || '').toUpperCase();
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
-  if (target.isContentEditable) return true;
-  return false;
+const FOCUSABLE = ['input', 'textarea', 'select'];
+
+function isFocusedOnInput() {
+  const el = document.activeElement;
+  if (!el) return false;
+  const tag = el.tagName?.toLowerCase();
+  return FOCUSABLE.includes(tag) || el.isContentEditable;
 }
 
-/**
- * @param shortcuts Array<{ combo: string, handler: (e) => void,
- *                          label?: string, allowInInput?: boolean }>
- */
-export default function useKeyboardShortcuts(shortcuts) {
-  const ref = useRef(shortcuts);
-  ref.current = shortcuts;
+export function useKeyboardShortcuts(shortcuts = []) {
+  const chordRef = useRef(null);
+  const chordTimerRef = useRef(null);
+  const shortcutsRef = useRef(shortcuts);
+  shortcutsRef.current = shortcuts;
 
   useEffect(() => {
+    const parsed = shortcutsRef.current.map(s => ({
+      ...s,
+      parsed: parseCombo(s.combo),
+    }));
+
     const handler = (e) => {
-      const list = ref.current || [];
-      for (const sc of list) {
-        if (!sc?.combo || !sc?.handler) continue;
-        const parsed = parseCombo(sc.combo);
-        if (!matches(e, parsed)) continue;
-        if (!sc.allowInInput && isEditableTarget(e.target)) continue;
-        e.preventDefault();
-        try { sc.handler(e); } catch { /* noop */ }
-        break;
+      // Never block Escape — always fires
+      if (e.key !== 'Escape' && isFocusedOnInput()) return;
+      // Never use Cmd+P (browser print)
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p' && !e.shiftKey) return;
+
+      // Handle chord sequences (e.g. "g h")
+      const chordShortcuts = parsed.filter(s => s.parsed.chord);
+      if (chordShortcuts.length > 0 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const key = e.key.toLowerCase();
+
+        if (chordRef.current) {
+          // Second key of chord
+          const chord = `${chordRef.current} ${key}`;
+          const match = chordShortcuts.find(s => s.parsed.raw === chord);
+          if (match) {
+            e.preventDefault();
+            match.handler(e);
+          }
+          chordRef.current = null;
+          clearTimeout(chordTimerRef.current);
+        } else {
+          // Possible first key of chord
+          const possibleFirst = chordShortcuts.some(s => s.parsed.raw.startsWith(key + ' '));
+          if (possibleFirst) {
+            chordRef.current = key;
+            chordTimerRef.current = setTimeout(() => { chordRef.current = null; }, 600);
+            return; // wait for second key
+          }
+        }
+      }
+
+      // Single-key shortcuts
+      for (const s of parsed) {
+        if (s.parsed.chord) continue;
+        if (matchesCombo(e, s.parsed)) {
+          e.preventDefault();
+          s.handler(e);
+          return;
+        }
       }
     };
+
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      clearTimeout(chordTimerRef.current);
+    };
+  }, []); // stable — shortcutsRef.current updated via ref
 }
 
-/** Public registry for B19 KeyboardHelpDialog (future). */
-export const SHORTCUTS_REGISTRY = [
-  { combo: 'mod+k', label: 'Buscar (Universal Search)', scope: 'global' },
-  { combo: 'mod+j', label: 'Abrir Copilot DMX', scope: 'global' },
-];
-
-export { isMac };
+export default useKeyboardShortcuts;

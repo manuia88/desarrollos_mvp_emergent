@@ -4,6 +4,7 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge, fmtMXN, fmt0, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import { Radio, Bell, TrendUp, TrendDown, X, MessageCircle, Zap } from '../../components/icons';
+import { Check } from 'lucide-react';
 import { LineChart } from '../../components/developer/ChartPrimitives';
 
 export default function DesarrolladorCompetidores({ user, onLogout }) {
@@ -531,8 +532,9 @@ function Toggle({ label, value, onChange, tid }) {
         border: `1px solid ${value ? 'rgba(236,72,153,0.35)' : 'var(--border)'}`,
         color: value ? '#f9a8d4' : 'var(--cream-3)',
         fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+        display: 'flex', alignItems: 'center', gap: 6,
       }}>
-      {value ? '✓ ' : ''}{label}
+      {value && <Check size={11} />}{label}
     </button>
   );
 }

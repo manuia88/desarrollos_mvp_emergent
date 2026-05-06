@@ -233,7 +233,27 @@ from routes_dev_batch17 import (router as dev_batch17_router,
                                   purge_expired_undo_log)
 app.include_router(dev_batch17_router)
 
-# Phase 4 Batch 21 — Team Productivity + Aggregated Metrics
+# Phase 4 Batch 18 Sub-A — Density toggle + Project Switcher preferences
+from routes_dev_batch18 import (router as dev_batch18_router,
+                                  ensure_batch18_indexes)
+app.include_router(dev_batch18_router)
+
+# Phase 4 Batch 19 — Tours + Branding + Cross-portal + Presentation Mode
+from routes_dev_batch19 import (router as dev_batch19_router,
+                                 ensure_batch19_indexes)
+app.include_router(dev_batch19_router)
+
+# Phase 4 Batch 21 Sub-A — Tour Completion Analytics
+from routes_tour_analytics import (router as tour_analytics_router,
+                                    ensure_batch21_indexes)
+app.include_router(tour_analytics_router)
+
+# Phase 4 Batch 18 Sub-B — Floor plan routes
+from routes_floor_view import (router as floor_view_router,
+                                ensure_floor_view_indexes)
+app.include_router(floor_view_router)
+
+# Phase 4 Batch 21 Sub-B/C — Team Productivity + Aggregated Metrics
 from routes_team_productivity import router as team_productivity_router
 from routes_team_aggregated import router as team_aggregated_router
 app.include_router(team_productivity_router)
@@ -623,6 +643,30 @@ async def startup():
         await ensure_ai_suggestions_indexes(db)
     except Exception as e:
         logging.warning(f"[batch16] index setup failed: {e}")
+
+    # Phase 4 Batch 18 Sub-A — Density + Project Switcher
+    try:
+        await ensure_batch18_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch18] index setup failed: {e}")
+
+    # Phase 4 Batch 19 — Tours + Branding + Presentation Mode
+    try:
+        await ensure_batch19_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch19] index setup failed: {e}")
+
+    # Phase 4 Batch 21 Sub-A — Tour Completion Analytics
+    try:
+        await ensure_batch21_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch21] index setup failed: {e}")
+
+    # Phase 4 Batch 18 Sub-B — Floor plan view
+    try:
+        await ensure_floor_view_indexes(db)
+    except Exception as e:
+        logging.warning(f"[floor_view] index setup failed: {e}")
 
     # Phase 4 Batch 17 — Undo + Filter presets indexes + purge cron
     try:
