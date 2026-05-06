@@ -34,7 +34,7 @@
 | Phase 8 WhatsApp + Coms | 🟡 pending | ~15h |
 | Phase 10 Caya + A11 | 🟡 pending | ~26h |
 | Phase 11 Dubai | 🟡 pending | ~38h |
-| **Phase Y DMX Intelligence Platform** (reemplaza Phase 17) | 🟡 pending | ~107h |
+| **Phase Y DMX Intelligence Platform** (reemplaza Phase 17) | 🟡 pending | ~110h |
 | **Phase Z Superadmin Data Intelligence Layer** (NUEVO 2026-05-02) | 🟡 pending | ~72h |
 | Phase 19 Buyer Coach + Mortgage | 🟡 pending | ~14h |
 | Phase 20 Polish + Launch | 🟡 pending | ~23h |
@@ -97,7 +97,7 @@ SIDEBAR DEV (3 tiers collapsible)
 
 ## 3. Phase Y — DMX Intelligence Platform
 
-**~107h · 6 sub-phases · post-B23 (después de Phase 4 refactor)**
+**~110h · 6 sub-phases · post-B23 (después de Phase 4 refactor)**
 
 Fusión de Phase 17 ML training original + agentic features (concept Accio-inspired, sin browser scraping).
 
@@ -108,7 +108,7 @@ Fusión de Phase 17 ML training original + agentic features (concept Accio-inspi
 | Y.0 | Opt-in controls + Permission tiers T1-T4 + Master switch IA + Simulation mode | 8 |
 | Y.1 | Director Agent + Memory layer (vector embeddings) + Event collectors universales | 25 |
 | Y.2 | 5 sub-agents especializados (Pricing · Marketing · Lead · Construction · Compliance) + Per-user ML classifiers fusion | 25 |
-| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling + **Reply Classifier inbound** (clasifica intent en WA/email entrantes + auto-draft response + confidence threshold human-in-loop, inspirado Teckel AI Atlas) | 25 |
+| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling + **Reply Classifier inbound** (intent en WA/email entrantes) + **Buyer DISC Inferencer** (AI analiza conversaciones del lead → infiere personalidad DISC automático → surface insights al asesor para adaptar comunicación) | 28 |
 | Y.4 | Adaptive features per-user/org (Caya style · Match weights · Argumentario tone · Briefing per-segment) | 15 |
 | Y.5 | Agent observability + Audit replay UI + ML accuracy metrics | 9 |
 

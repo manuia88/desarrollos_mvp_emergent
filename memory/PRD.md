@@ -2862,7 +2862,7 @@ SIDEBAR DEV (3 tiers collapsible)
 - i18n infrastructure (es-MX default + en-US ready) — auto-detection rejected
 
 ═══════════════════════════════════════════════════════════
-## Phase Y — DMX Intelligence Platform (~107h, post-Phase 4)
+## Phase Y — DMX Intelligence Platform (~110h, post-Phase 4)
 ═══════════════════════════════════════════════════════════
 
 Reemplaza Phase 17 ML training original. Fusión Phase 17 + agentic features (Accio-inspired).
@@ -2874,7 +2874,7 @@ Reemplaza Phase 17 ML training original. Fusión Phase 17 + agentic features (Ac
 | Y.0 | Opt-in controls + Permission tiers T1-T4 + Master switch IA + Simulation mode | 8 |
 | Y.1 | Director Agent + Memory layer (vector embeddings) + Event collectors universales | 25 |
 | Y.2 | 5 sub-agents especializados (Pricing · Marketing · Lead · Construction · Compliance) + Per-user ML classifiers fusion | 25 |
-| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling + **Reply Classifier inbound** (clasifica intent en WA/email entrantes + auto-draft response + confidence threshold human-in-loop) | 25 |
+| Y.3 | Agentic CRM workflows (Lead Nurture · Visit Prep · Post-Visit) + Conversational scheduling + **Reply Classifier inbound** (intent en WA/email entrantes + auto-draft + confidence threshold) + **Buyer DISC Inferencer** (AI analiza mensajes acumulados del lead → infiere personalidad DISC D/I/S/C automático → surface insights al asesor: "lead tipo D, sé directo, no te enrolles" — adapta comunicación → más cierres · depende WhatsApp Business B8 + chat in-app B29 data) | 28 |
 | Y.4 | Adaptive features per-user/org (Caya style · Match weights · Argumentario tone · Briefing per-segment) | 15 |
 | Y.5 | Agent observability + Audit replay UI + ML accuracy metrics | 9 |
 
