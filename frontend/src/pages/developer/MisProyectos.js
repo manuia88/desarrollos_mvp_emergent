@@ -160,7 +160,7 @@ function ProjectCard({ project, onClick }) {
       </div>
 
       {/* Body */}
-      <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding: 'var(--d-pad-card, 14px 16px)', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit,sans-serif', lineHeight: 1.3 }}>
             {project.name}
@@ -372,7 +372,7 @@ export default function MisProyectos({ user, onLogout }) {
         ) : paged.length === 0 ? (
           <EmptyState stageFilter={stageFilter} />
         ) : viewMode === 'cards' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 'var(--d-gap-grid, 18px)' }}>
             {paged.map(p => (
               <ProjectCard
                 key={p.id}
@@ -451,7 +451,7 @@ function LoadingSkeleton({ viewMode }) {
 function ListaView({ projects, onSelect }) {
   return (
     <div style={{ border: '1px solid rgba(240,235,224,0.12)', borderRadius: 10, overflow: 'hidden' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: 'rgba(240,235,224,0.06)' }}>
             {['Proyecto', 'Etapa', 'Vendido', 'Disponibles', 'Leads', 'Revenue MTD', 'Salud'].map(h => (

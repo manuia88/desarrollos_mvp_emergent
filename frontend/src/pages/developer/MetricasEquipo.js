@@ -7,7 +7,6 @@
  */
 import React, { useState, useCallback } from 'react';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
-import { PageHeader } from '../../components/advisor/primitives';
 import { FilterChipsBar } from '../../components/shared/FilterChipsBar';
 import TourCompletionAnalytics from '../../components/developer/TourCompletionAnalytics';
 import ProductivityWidget from '../../components/developer/ProductivityWidget';
@@ -29,60 +28,75 @@ export default function MetricasEquipo({ user, onLogout }) {
   const [period, setPeriod] = useState('30d');
   const handleFilterChange = useCallback((key, value) => {
     if (key === 'period') {
-      // Don't allow null — keep a value
       setPeriod(value || '30d');
     }
   }, []);
 
   return (
     <DeveloperLayout user={user} onLogout={onLogout}>
-      <PageHeader
-        eyebrow="MÉTRICAS · EQUIPO"
-        title="Rendimiento del equipo"
-        sub="Tour completion · productividad · tabla agregada"
-      />
+      <div
+        data-testid="metricas-equipo-page"
+        style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 24px', fontFamily: 'DM Sans' }}
+      >
+        <div style={{ marginBottom: 24 }}>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>CRM · Analytics</div>
+          <h1 style={{
+            fontFamily: 'Outfit', fontWeight: 800, fontSize: 28,
+            color: 'var(--cream)', margin: 0, marginBottom: 8,
+          }}>
+            Métricas del equipo
+          </h1>
+          <p style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+            Tour completion · productividad · tabla agregada por asesor.
+          </p>
+        </div>
 
-      {/* Period filter chips topbar */}
-      <div data-testid="metricas-period-bar" style={{ marginBottom: 18 }}>
-        <FilterChipsBar
-          filters_config={PERIOD_FILTER_CONFIG}
-          current_state={{ period }}
-          on_change={handleFilterChange}
-          sync_url={true}
-        />
+        {/* Period filter chips topbar — controla las 3 secciones */}
+        <div data-testid="metricas-period-bar" style={{ marginBottom: 18 }}>
+          <FilterChipsBar
+            filters_config={PERIOD_FILTER_CONFIG}
+            current_state={{ period }}
+            on_change={handleFilterChange}
+            sync_url={true}
+          />
+        </div>
+
+        {/* Section 1 — Tour completion (Sub-A) */}
+        <Section title={`Onboarding tour completion · Últimos ${PERIOD_LABELS[period]}`}
+                  testId="metricas-section-tour">
+          <TourCompletionAnalytics period={period} />
+        </Section>
+
+        {/* Section 2 — Productividad (Sub-B) */}
+        <Section title={`Productividad del equipo · Últimos ${PERIOD_LABELS[period]}`}
+                  testId="metricas-section-productividad">
+          <ProductivityWidget period={period} />
+        </Section>
+
+        {/* Section 3 — Tabla equipo (Sub-C) */}
+        <Section title={`Tabla equipo · Últimos ${PERIOD_LABELS[period]}`}
+                  testId="metricas-section-tabla">
+          <TeamAggregatedTable period={period} />
+        </Section>
       </div>
-
-      {/* Section 1 — Tour completion (Sub-A) */}
-      <Section title={`Tour completion · Últimos ${PERIOD_LABELS[period]}`}
-                testId="metricas-section-tour">
-        <TourCompletionAnalytics period={period} />
-      </Section>
-
-      {/* Section 2 — Productividad (Sub-B) */}
-      <Section title={`Productividad del equipo · Últimos ${PERIOD_LABELS[period]}`}
-                testId="metricas-section-productividad">
-        <ProductivityWidget period={period} />
-      </Section>
-
-      {/* Section 3 — Tabla equipo (Sub-C) */}
-      <Section title={`Tabla equipo · Últimos ${PERIOD_LABELS[period]}`}
-                testId="metricas-section-tabla">
-        <TeamAggregatedTable period={period} />
-      </Section>
     </DeveloperLayout>
   );
 }
 
 function Section({ title, testId, children }) {
   return (
-    <section data-testid={testId} style={{ marginTop: 28 }}>
-      <h2 style={{
-        margin: '0 0 12px',
-        fontFamily: 'Outfit', fontSize: 17, fontWeight: 700,
-        color: 'var(--cream)', letterSpacing: '-0.01em',
+    <section data-testid={testId} style={{ marginTop: 28, marginBottom: 32 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18,
+        paddingBottom: 12, borderBottom: '1px solid rgba(240,235,224,0.08)',
       }}>
-        {title}
-      </h2>
+        <h2 style={{
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 18,
+          color: 'var(--cream)', margin: 0,
+        }}>
+          {title}
+        </h2>
+      </div>
       {children}
     </section>
   );

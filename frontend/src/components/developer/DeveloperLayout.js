@@ -3,6 +3,7 @@
 import React from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { PortalLayout } from '../shared/PortalLayout';
+import { ProjectSwitcher } from '../shared/ProjectSwitcher';
 
 const ROLES_OK = new Set(['developer_admin', 'developer_member', 'superadmin']);
 
@@ -28,7 +29,12 @@ export default function DeveloperLayout({ user, onLogout, children }) {
   }
 
   return (
-    <PortalLayout role={user.role} user={user} onLogout={onLogout}>
+    <PortalLayout
+      role={user.role}
+      user={user}
+      onLogout={onLogout}
+      projectSwitcherSlot={<ProjectSwitcher user={user} />}
+    >
       <div data-testid="dev-main" style={{ padding: '22px 28px 80px', maxWidth: 1500 }}>
         {children}
       </div>
