@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import './styles/density.css';
+import './styles/presentation.css';
 import './i18n';
 import { initObservability } from './observability';
 import App from './App';

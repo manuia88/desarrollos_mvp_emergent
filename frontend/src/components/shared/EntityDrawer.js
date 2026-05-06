@@ -38,6 +38,7 @@ function SectionPanel({ section, openState, onToggle, user }) {
     <div className="border-b border-[rgba(240,235,224,0.07)] last:border-0">
       <button
         onClick={() => onToggle(section.id)}
+        data-density-drawer-section
         className="w-full flex items-center gap-2.5 px-5 py-3.5 text-left hover:bg-[rgba(240,235,224,0.04)] transition-colors"
         data-testid={`drawer-section-${section.id}`}
       >
@@ -139,7 +140,7 @@ export function EntityDrawer({
       {!isMobile ? (
         /* Desktop: right slide-in panel */
         <div
-          className="absolute right-0 top-0 bottom-0 flex flex-col bg-[#0d1022] border-l border-[rgba(240,235,224,0.1)] shadow-2xl"
+          className="absolute right-0 top-0 bottom-0 flex flex-col bg-[rgba(13,16,23,0.92)] border-l border-[rgba(255,255,255,0.16)] backdrop-blur-[24px]"
           style={{ width: `${width}px`, animation: 'slideInRight 0.22s ease-out' }}
           data-testid="entity-drawer-panel"
           onClick={(e) => e.stopPropagation()}
@@ -155,7 +156,7 @@ export function EntityDrawer({
       ) : (
         /* Mobile: bottom-sheet */
         <div
-          className="absolute bottom-0 left-0 right-0 flex flex-col bg-[#0d1022] rounded-t-2xl border-t border-[rgba(240,235,224,0.1)] shadow-2xl"
+          className="absolute bottom-0 left-0 right-0 flex flex-col bg-[rgba(13,16,23,0.92)] rounded-t-2xl border-t border-[rgba(255,255,255,0.16)] backdrop-blur-[24px]"
           style={{ maxHeight: '90vh', animation: 'slideInUp 0.22s ease-out' }}
           data-testid="entity-drawer-bottom-sheet"
           onTouchStart={handleTouchStart}

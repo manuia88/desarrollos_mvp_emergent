@@ -1,41 +1,101 @@
 # DMX Build Standards (referenced by every batch prompt)
 
-## Code patterns to reuse (no re-explanation needed)
+## ═══ EXECUTION RULES (CRITICAL — leer antes de cualquier acción) ═══
+
+### NO PREGUNTAR — el prompt es la spec definitiva
+- Toda la información necesaria está en el prompt + este standards file + el repo.
+- NUNCA preguntar al founder "¿procedo con plan A o B?" cuando el prompt ya tiene la respuesta.
+- Antes de plantear una pregunta: re-leer el prompt completo. Si la respuesta está ahí (aunque sea en otra sub-sección) → ejecutar sin preguntar.
+- Si encuentras edge case GENUINAMENTE no cubierto: decisión conservadora + reportar en summary final. NO Q&A round-trip.
+- Cada round-trip de pregunta = tokens desperdiciados del founder.
+
+### Si archivo a crear YA EXISTE en repo → STOP
+- ANTES de crear cualquier archivo nuevo: `ls {path}` o `git ls-files | grep {filename}`.
+- Si existe → reportar en summary "el archivo X ya existía con N bytes, NO lo sobreescribí". NUNCA reemplazar con stub. NUNCA asumir "Sub-A no existía".
+- Lección B21: emergent overwrote real Sub-A con stub porque asumió que no existía.
+
+### NO TOCAR (off-limits files)
+- `/app/memory/PRD.md`
+- `/app/06_ROADMAP.md`
+- `/app/05_DESIGN_SYSTEM.md`
+- `/app/01_PRODUCT.md` · `02_FEATURES.md` · `03_INTELLIGENCE.md` · `04_UI_DATA_REF.md`
+- `/app/test_credentials.md`
+
+Tracking de batches lo maneja Claude Code (founder's PM). Tu output: código + summary con SHA.
+
+### Output esperado per batch
+1. Código completo per spec del prompt
+2. Build limpio (`yarn build` pasa)
+3. Save to GitHub
+4. Summary con: SHA, archivos creados/editados, edge cases conservadores tomados, conteo tests
+
+NO incluir en output: tests escritos por ti (Claude Code los hace post-push), pre-commit greps (Claude Code), playwright smoke (Claude Code).
+
+## ═══ DESIGN SYSTEM (NO violations) ═══
+
+### Tokens canónicos
+- Colors: `--bg #06080F` · `--cream #F0EBE0` · `--indigo #6366F1` · `--rose #EC4899`
+- Gradient único: `linear-gradient(90deg, #6366F1, #EC4899)` — NUNCA otros ángulos ni colores
+- Fonts: Outfit (700, 800) display · DM Sans (400, 500, 600) body
+
+### Reglas inviolables
+- Buttons SIEMPRE `border-radius: 9999px` (rounded-full) — NUNCA rounded-lg/md/sm
+- NO `shadow-2xl` → usar `border + backdrop-blur(24px) + bg(13,16,23,0.92)`
+- Transforms SOLO `translateY` — NUNCA rotate, scale, translateX en mobile
+- Cero emoji en UI · Animaciones ≤850ms · `once: true` viewport-triggered
+- Atoms only: reusar `<Card>`, `<Badge>`, `<PageHeader>` de `components/advisor/primitives.js` y `components/icons/index.js`
+
+### Keyboard shortcuts ya tomados (NO reusar)
+- Cmd+K = UniversalSearch · Cmd+/ = ProjectSwitcher · Cmd+B = Toggle sidebar
+- Cmd+N = Quick action · Esc = Close drawer · Cmd+Shift+P = Modo Presentación
+- ? = Help dialog · g h/p/c/l = navigation
+- NUNCA Cmd+P (rompe browser print nativo)
+
+## ═══ Code patterns to reuse (no re-explanation needed) ═══
 
 ### audit_log
-Use `await audit_log.log_mutation(db, entity_type, entity_id, before, after, actor, request, action='update'|'create'|'delete'|'read')` after every state change. Fire-and-forget pattern.
+`await audit_log.log_mutation(db, entity_type, entity_id, before, after, actor, request, action='update'|'create'|'delete'|'read')` después de cada mutation. Fire-and-forget.
 
 ### emit_ml_event
-Use `await emit_ml_event(db, event_type, user_id, org_id, role, context)` for ML training corpus. Mirror to PostHog with `dmx_ml_*` prefix automatically.
+`await emit_ml_event(db, event_type, user_id, org_id, role, context)` para ML training corpus. Mirror automático a PostHog con `dmx_ml_*` prefix.
+
+### log_activity (B14)
+`await log_activity(actor_id, action, entity_id, entity_type, metadata={})` en mutaciones críticas. Alimenta Activity Feed + Productividad metrics.
 
 ### Role guards
-- Reuse `routes_dev_batch4_2.get_user_permission_level(user)` — returns canonical level: superadmin | developer_director | developer_member | inmobiliaria_director | inmobiliaria_member | asesor_freelance
-- Reuse `can_view_kanban`, `can_move_lead`, `can_view_full_client_data`, `can_view_conversation`, `can_view_ai_summary` from same file
+- Reusar `routes_dev_batch4_2.get_user_permission_level(user)` → canonical level: superadmin | developer_director | developer_member | inmobiliaria_director | inmobiliaria_member | asesor_freelance
+- Reusar `can_view_kanban`, `can_move_lead`, `can_view_full_client_data`, `can_view_conversation`, `can_view_ai_summary` del mismo file
 
 ### Resend email
-Pattern: `await send_resend(to, subject, html, attachments?)`. Branded templates use `dev_org.branding` for logo + colors. Always Spanish unless founder spec says otherwise.
+`await send_resend(to, subject, html, attachments?)`. Branded templates usan `dev_org.branding` (B19 helper `branding_helpers.py`) para logo + colors. Default es-MX.
 
-### Design system (NO violations)
-- Colors: `var(--navy)`, `var(--cream)`, gradient único `linear-gradient(135deg, var(--gradient-from), var(--gradient-to))`
-- NO indigo, NO purple, NO custom rgba unless atom-defined
-- Fonts: Outfit (display), DM Sans (body)
-- Atoms only — reuse `<Card>`, `<Badge>`, `<PageHeader>` from `components/advisor/primitives.js` and `components/icons/index.js`
+### ai_budget gating (B0)
+Antes de llamar Claude (Sonnet/Haiku): verificar `ai_budget.is_within_budget(org_id)`. Si exceeded → return null o cached. Cache 24h en `db.ai_suggestions` (B16).
 
-### Frontend structure
+### cookie tracking 30d (B13)
+`set_ref_cookie(response, ref_slug, days=30)` para attribution multi-touch.
+
+## ═══ Frontend structure ═══
+
 - Components shared: `frontend/src/components/shared/`
 - Per-portal: `frontend/src/components/{advisor,developer,inmobiliaria,public}/`
 - Pages: `frontend/src/pages/{advisor,developer,inmobiliaria,public}/`
+- API helpers: `frontend/src/api/{scope}.js` (extender existing si aplica, NO duplicar)
+- i18n strings es-MX: `frontend/src/i18n/locales/es-MX/common.json`
 
-### Testing requirements (every batch)
-1. `lint` backend (pyflakes + isort)
-2. `lint` frontend (eslint)
-3. `curl` smoke each new endpoint with multiple roles
-4. `playwright` smoke at least 1 main user flow
-5. Backend startup clean
-6. Report SHA after Save to GitHub
+## ═══ Conventions ═══
 
-### Conventions
-- New backend route file naming: `routes_dev_batch{N}.py`
+- New backend route file naming: `routes_{name}.py` o `routes_dev_batch{N}.py`
 - Schema collections: snake_case
 - Endpoints: `/api/{scope}/{resource}` (scope: dev/advisor/inmobiliaria/public)
 - Spanish UI copy, English code identifiers
+- Strings UI nuevas → siempre en es-MX common.json
+
+## ═══ Reusable primitives by batch ═══
+
+- B0: PortalLayout · EntityCard · EntityDrawer · KPIStrip · UniversalSearch · SmartWizard · NotificationsBell
+- B14: HealthScoreWidget · ActivityFeed · SetupChecklist · FloatingQuickActions
+- B16: AISuggestionCard · SmartEmptyState · `/lib/anonymize.js`
+- B17: SortableList · InlineEditField · `useInlineSaver` · FilterChipsBar · FilterPresetsBar · UndoSnackbar
+- B18: `useDensity` · `useIsMobile` (B18.5) · ProjectSwitcher
+- B19: useTour · useKeyboardShortcuts · KeyboardHelpDialog · usePresentationMode · `branding_helpers.py`

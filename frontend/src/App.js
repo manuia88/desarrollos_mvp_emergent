@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { UndoProvider } from './components/shared/UndoSnackbar';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { PresentationModeProvider } from './hooks/usePresentationMode';
 
 // Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
@@ -104,6 +105,15 @@ const LinksTrackingPage          = lazy(() => import('./pages/asesor/LinksTracki
 const CalendarSettings           = lazy(() => import('./pages/advisor/CalendarSettings'));
 const CitasPolicies              = lazy(() => import('./pages/developer/CitasPolicies'));
 const AutoAssignments            = lazy(() => import('./pages/developer/AutoAssignments'));
+
+// Phase 4 Batch 18 Sub-A — Density + Preferences page
+const PreferenciasPage           = lazy(() => import('./pages/configuracion/PreferenciasPage'));
+
+// Phase 4 Batch 19 — Branding page
+const BrandingPage               = lazy(() => import('./pages/configuracion/BrandingPage'));
+
+// Phase 4 Batch 21 Sub-A — Team metrics
+const MetricasEquipo             = lazy(() => import('./pages/developer/MetricasEquipo'));
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -324,7 +334,7 @@ function AppRouter() {
 
       {/* Legacy backward-compat redirects */}
       <Route path="/desarrollador/inventario" element={<Navigate to="/desarrollador/proyectos" replace />} />
-      <Route path="/desarrollador/leads" element={<Navigate to="/desarrollador/crm?tab=pipeline" replace />} />
+      <Route path="/desarrollador/leads" element={<AdvisorRoute Page={DesarrolladorLeads} />} />
       <Route path="/desarrollador/citas" element={<Navigate to="/desarrollador/crm?tab=citas" replace />} />
       <Route path="/desarrollador/calendario-subidas" element={<Navigate to="/desarrollador/proyectos" replace />} />
 
@@ -368,6 +378,15 @@ function AppRouter() {
       <Route path="/asesor/configuracion" element={<AdvisorRoute Page={CalendarSettings} />} />
       <Route path="/desarrollador/configuracion/citas-policies" element={<AdvisorRoute Page={CitasPolicies} />} />
       <Route path="/desarrollador/crm/auto-assignments" element={<AdvisorRoute Page={AutoAssignments} />} />
+
+      {/* Phase 4 Batch 18 Sub-A — Density + Preferences */}
+      <Route path="/configuracion/preferencias" element={<AdvisorRoute Page={PreferenciasPage} />} />
+
+      {/* Phase 4 Batch 19 — Branding */}
+      <Route path="/configuracion/branding" element={<AdvisorRoute Page={BrandingPage} />} />
+
+      {/* Phase 4 Batch 21 Sub-A — Team metrics */}
+      <Route path="/desarrollador/crm/metricas-equipo" element={<AdvisorRoute Page={MetricasEquipo} />} />
 
       <Route path="*" element={<FallbackRoute />} />
     </Routes>
@@ -488,10 +507,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <UndoProvider>
-        <AuthProvider>
-          <CustomCursor />
-          <AppRouter />
-        </AuthProvider>
+        <PresentationModeProvider>
+          <AuthProvider>
+            <CustomCursor />
+            <AppRouter />
+          </AuthProvider>
+        </PresentationModeProvider>
       </UndoProvider>
     </BrowserRouter>
   );
