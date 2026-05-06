@@ -3532,3 +3532,45 @@ Importar `SHORTCUTS_REGISTRY` desde `useKeyboardShortcuts.js` y renderizar tabla
 - New: routes_external_search.py, services/url_parser.py, services/saved_searches.py, services/image_embeddings.py, scheduler_saved_search_alerts.py, test_batch25.py, UrlSearchModal.js, SaveSearchModal.js
 - Edited: server.py, image_search.py, requirements.txt, api/marketplace.js, Marketplace.js, common.json
 
+
+---
+
+## Phase 4 Batch 26 — Marketplace Lead-Capture Tools (Reporte + Quiz + Comparador) · 2026-02-06
+
+Status: ✅ DONE · 47/47 pytest (16 nuevos B26 + 31 regresión B24/B25)
+
+### Sub-A · C3 Reporte Gratis Colonia (PDF)
+- Endpoint: `POST /api/public/colonia/{id}/report-request` (5/min/IP) — devuelve `{capture_id, pdf_base64, email_sent}`
+- Servicio: `services/colonia_report_pdf.py` (ReportLab, ~10 págs branded navy/cream con KPIs, scores IE, climate twin, riesgos, top desarrollos, tendencia 12m, CTA)
+- Email: PDF adjunto vía Resend con template Outfit/DM Sans
+- UI: `components/marketplace/ColoniaReportModal.js` con email + opt-in → descarga inmediata + copia por email
+- Wired en: `ColoniaSidebar` (botón "Reporte completo PDF gratis")
+
+### Sub-B · C4 Quiz "Mi colonia ideal"
+- Endpoint: `POST /api/public/quiz/submit` (5/min/IP) — devuelve top 3 colonias con `match_pct` + reasons
+- Algoritmo: `services/colonia_quiz.py` matching ponderado (presupuesto + uso + lifestyle tags + scores IE + momentum)
+- Email: HTML branded con cards de los 3 matches
+- Config: `frontend/src/config/quizQuestions.js` (10 preguntas: presupuesto, uso, etapa vida, recámaras, lifestyle multi, movilidad, seguridad, distancia, tipo, plazo)
+- UI: `components/marketplace/ColoniaQuizModal.js` (wizard 10 pasos + email + resultados clickables)
+- Wired en: Marketplace topbar (botón "Mi colonia ideal" — gradient)
+
+### Sub-C · C5 Comparador 3-way
+- Endpoint: `POST /api/public/compare` (10/min/IP) + `POST /api/public/compare/pdf`
+- Servicio: `services/colonia_comparator.py` (matriz 11 métricas colonia / 8 propiedad, winner_idx por métrica, PDF con winners highlighted)
+- UI: `pages/public/ColoniaComparator.js` (3 slot pickers, type toggle colonia/propiedad, tabla con winner highlights, export PDF, query-param `?colonia=a,b,c`)
+- Ruta: `/comparar` registrada en `App.js`
+- Wired en: Marketplace topbar (botón "Comparar")
+
+### Lead Capture centralizado
+- `services/lead_capture.py` — `db.lead_captures`: `{capture_id, email, source, payload, ip_hash, created_at, dev_org_attributed}`
+- Atribución asíncrona a `developer_id` cuando el lead matchea una colonia con desarrollos activos
+- 3 sources: `colonia_report`, `quiz`, `comparator`
+
+### Archivos creados/modificados B26
+- New backend: `routes_marketplace_lead_tools.py`, `services/colonia_report_pdf.py`, `services/colonia_quiz.py`, `services/colonia_comparator.py`, `services/lead_capture.py`, `tests/test_batch26.py`
+- New frontend: `pages/public/ColoniaComparator.js`, `components/marketplace/ColoniaReportModal.js`, `components/marketplace/ColoniaQuizModal.js`, `config/quizQuestions.js`
+- Edited: `server.py` (router), `App.js` (ruta /comparar), `pages/Marketplace.js` (Quiz + Comparador CTAs), `components/marketplace/ColoniaSidebar.js` (botón Reporte), `api/marketplace.js` (4 helpers)
+
+### Pendiente (siguiente batch / next agent)
+- Phase 7.10: Avance-Obra tab integration
+- WhatsApp Business real integration

@@ -8,7 +8,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { fetchColoniaFull } from '../../api/marketplace';
-import { X, ArrowRight } from '../icons';
+import { X, ArrowRight, FileText } from '../icons';
+import ColoniaReportModal from './ColoniaReportModal';
 
 const RISK_LABELS = {
   flood:       'Inundación',
@@ -80,6 +81,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (!coloniaId) {
@@ -344,6 +346,26 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                   Ver desarrollos en {data.colonia?.nombre}
                   <ArrowRight size={14} />
                 </button>
+
+                {/* Batch 26 — Reporte gratis */}
+                <button
+                  data-testid="colonia-sidebar-report"
+                  onClick={() => setReportOpen(true)}
+                  style={{
+                    marginTop: 10,
+                    width: '100%',
+                    padding: '11px 18px',
+                    borderRadius: 9999,
+                    background: 'rgba(99,102,241,0.10)',
+                    border: '1px solid rgba(99,102,241,0.32)',
+                    color: 'rgba(99,102,241,0.95)',
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  }}
+                >
+                  <FileText size={13} /> Reporte completo (PDF gratis)
+                </button>
               </>
             )}
           </div>
@@ -366,6 +388,14 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
           .colonia-sidebar-backdrop { display: block !important; }
         }
       `}</style>
+
+      {/* Batch 26 — Reporte modal */}
+      <ColoniaReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        coloniaId={coloniaId}
+        coloniaNombre={data?.colonia?.nombre}
+      />
     </>
   );
 }

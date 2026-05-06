@@ -167,6 +167,54 @@ export async function saveSearch(email, filters, alertFrequency = 'weekly') {
   return data;
 }
 
+// ─── Batch 26 — Lead-Capture Tools (Reporte + Quiz + Comparador) ────────────
+
+export async function requestColoniaReport(coloniaId, email, acceptedTerms = true) {
+  const r = await fetch(`${API}/api/public/colonia/${encodeURIComponent(coloniaId)}/report-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, accepted_terms: acceptedTerms }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error generando el reporte');
+  return data;
+}
+
+export async function submitQuiz(email, answers, acceptedTerms = true) {
+  const r = await fetch(`${API}/api/public/quiz/submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, answers, accepted_terms: acceptedTerms }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al procesar tu quiz');
+  return data;
+}
+
+export async function compareEntities(entityType, ids) {
+  const r = await fetch(`${API}/api/public/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_type: entityType, ids }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || data.error || 'Error en la comparación');
+  return data;
+}
+
+export async function downloadComparePdf(entityType, ids) {
+  const r = await fetch(`${API}/api/public/compare/pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_type: entityType, ids }),
+  });
+  if (!r.ok) throw new Error('Error generando el PDF');
+  return r.blob();
+}
+
 // ─── Favorites in localStorage
 const FAV_KEY = 'dmx.favorites';
 export function getFavorites() {

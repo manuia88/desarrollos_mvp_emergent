@@ -12,8 +12,10 @@ import ImageSearchModal from '../components/marketplace/ImageSearchModal';
 import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import CayaBubble from '../components/landing/CayaBubble';
-import { Camera, ExternalLink, Bell } from '../components/icons';
+import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
+import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
+import { useNavigate } from 'react-router-dom';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -36,6 +38,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   // Batch 25 — New modals
   const [urlSearchOpen, setUrlSearchOpen] = useState(false);
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+
+  // Batch 26 — Lead-capture tools
+  const [quizOpen, setQuizOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Mapbox refs
   const mapContainer = useRef(null);
@@ -171,6 +177,42 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 }}
               >
                 <ExternalLink size={14} /> Buscar por URL
+              </button>
+              {/* Batch 26 — Quiz "Mi colonia ideal" */}
+              <button
+                data-testid="quiz-trigger"
+                onClick={() => setQuizOpen(true)}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 9999,
+                  background: 'rgba(99,102,241,0.12)',
+                  border: '1px solid rgba(99,102,241,0.35)',
+                  color: 'rgba(99,102,241,0.95)',
+                  fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <Sparkle size={14} /> Mi colonia ideal
+              </button>
+              {/* Batch 26 — Comparador */}
+              <button
+                data-testid="comparator-trigger"
+                onClick={() => navigate('/comparar')}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 9999,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(240,235,224,0.18)',
+                  color: 'var(--cream)',
+                  fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <BarChart size={14} /> Comparar
               </button>
               {/* View mode toggle */}
               <div style={{
@@ -375,6 +417,13 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         onClose={() => setSaveSearchOpen(false)}
         filters={filters}
         aiFilters={aiFilters}
+      />
+
+      {/* Batch 26 — Quiz Modal */}
+      <ColoniaQuizModal
+        open={quizOpen}
+        onClose={() => setQuizOpen(false)}
+        onSelectColonia={(coloniaId) => { setQuizOpen(false); setColoniaFilter(coloniaId); }}
       />
 
       <style>{`

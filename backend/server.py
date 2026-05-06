@@ -264,6 +264,10 @@ app.include_router(marketplace_search_router)
 from routes_external_search import router as external_search_router
 app.include_router(external_search_router)
 
+# Phase 4 Batch 26 — Marketplace Lead-Capture Tools (Reporte + Quiz + Comparador)
+from routes_marketplace_lead_tools import router as marketplace_lead_tools_router
+app.include_router(marketplace_lead_tools_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
