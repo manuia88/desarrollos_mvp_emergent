@@ -268,6 +268,12 @@ app.include_router(external_search_router)
 from routes_marketplace_lead_tools import router as marketplace_lead_tools_router
 app.include_router(marketplace_lead_tools_router)
 
+# Phase 4 Batch 27 — Mortgage Calculator + Colonia History + Share-link OG
+from routes_marketplace_calculator import router as marketplace_calc_router
+from routes_share_meta import router as share_meta_router
+app.include_router(marketplace_calc_router)
+app.include_router(share_meta_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()

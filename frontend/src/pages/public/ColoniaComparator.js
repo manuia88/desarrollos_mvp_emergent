@@ -9,6 +9,7 @@ import Navbar from '../../components/landing/Navbar';
 import { useAuth } from '../../App';
 import { fetchColonias, compareEntities, downloadComparePdf } from '../../api/marketplace';
 import { X, Plus, Download, ArrowRight, Sparkle } from '../../components/icons';
+import ShareLinkButton from '../../components/marketplace/ShareLinkButton';
 
 const MAX_SLOTS = 3;
 
@@ -200,11 +201,21 @@ export default function ColoniaComparator() {
     }).catch(() => setColonias([]));
   }, []);
 
-  // Pre-seleccionar desde query params: ?colonia=polanco,roma-norte
+  // Pre-seleccionar desde query params:
+  //  - B26 legacy: ?colonia=polanco,roma-norte
+  //  - B27 share:  ?ids=polanco,roma-norte&type=colonia (auto-compare)
   useEffect(() => {
     const colParam = searchParams.get('colonia');
-    if (colParam && colonias.length > 0) {
-      const ids = colParam.split(',').slice(0, MAX_SLOTS);
+    const idsParam = searchParams.get('ids');
+    const typeParam = searchParams.get('type');
+
+    if (typeParam === 'property' || typeParam === 'colonia') {
+      setEntityType(typeParam);
+    }
+
+    const sourceIds = idsParam || colParam;
+    if (sourceIds && colonias.length > 0) {
+      const ids = sourceIds.split(',').slice(0, MAX_SLOTS).map(s => s.trim());
       const next = [null, null, null];
       ids.forEach((id, i) => {
         const opt = colonias.find(c => c.id === id);
@@ -213,6 +224,17 @@ export default function ColoniaComparator() {
       setSlots(next);
     }
   }, [searchParams, colonias]);
+
+  // Auto-compare cuando llega vía ?ids=...&type=... (B27 share-link)
+  useEffect(() => {
+    const idsParam = searchParams.get('ids');
+    if (!idsParam) return;
+    const filled = slots.filter(Boolean);
+    if (filled.length >= 2 && !matrix && !loading) {
+      handleCompare();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots, searchParams]);
 
   const filledIds = slots.filter(Boolean).map(s => s.id);
   const canCompare = filledIds.length >= 2;
@@ -376,6 +398,13 @@ export default function ColoniaComparator() {
             >
               <Download size={13} /> {pdfLoading ? 'Generando…' : 'Descargar PDF'}
             </button>
+          )}
+          {matrix && canCompare && (
+            <ShareLinkButton
+              entityType={entityType}
+              ids={filledIds}
+              title={`Compara ${matrix.entities?.map(e => e.nombre).join(' · ')} en DesarrollosMX`}
+            />
           )}
         </div>
 

@@ -19,6 +19,10 @@ import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
 import CayaBubble from '../components/landing/CayaBubble';
+// Phase 4 Batch 27 — Mortgage + Tour + WA CTA
+import MortgageCalculator from '../components/marketplace/MortgageCalculator';
+import VirtualTourPlaceholder from '../components/marketplace/VirtualTourPlaceholder';
+import WhatsAppAsesorCTA from '../components/marketplace/WhatsAppAsesorCTA';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -96,6 +100,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     { k: 'avance', label: t('dev.tab_progress') },
     { k: 'amenidades', label: t('dev.tab_amen') },
     { k: 'localizacion', label: t('dev.tab_loc') },
+    { k: 'tour', label: 'Tour 360°' },
+    { k: 'hipoteca', label: 'Hipoteca' },
   ];
 
   return (
@@ -244,6 +250,21 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               {tab === 'avance' && <ProgressTab dev={dev} user={user} onGateOpen={openGate} />}
               {tab === 'amenidades' && <AmenitiesTab dev={dev} />}
               {tab === 'localizacion' && <LocationTab dev={dev} user={user} onGateOpen={openGate} />}
+              {tab === 'tour' && (
+                <VirtualTourPlaceholder
+                  propiedadId={dev.id}
+                  propiedadNombre={dev.name}
+                  tourUrl={dev.virtual_tour_url}
+                />
+              )}
+              {tab === 'hipoteca' && (
+                <MortgageCalculator
+                  variant="inline"
+                  propiedadId={dev.id}
+                  propiedadNombre={dev.name}
+                  precioInicial={dev.price_from || 0}
+                />
+              )}
             </div>
 
             <div>
@@ -303,6 +324,10 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         }
       `}</style>
       <CayaBubble />
+      <WhatsAppAsesorCTA
+        asesorPhone={dev.asesor_phone}
+        propiedadNombre={dev.name}
+      />
     </div>
   );
 }

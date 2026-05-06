@@ -215,6 +215,72 @@ export async function downloadComparePdf(entityType, ids) {
   return r.blob();
 }
 
+// ─── Batch 27 — Mortgage Calculator + Colonia History + Share ───────────────
+
+export async function calculateMortgage(payload) {
+  const r = await fetch(`${API}/api/public/mortgage/calculate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al calcular hipoteca');
+  return data;
+}
+
+export async function saveMortgage(email, calculation, propiedadId, acceptedTerms = true) {
+  const r = await fetch(`${API}/api/public/mortgage/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email, calculation, propiedad_id: propiedadId, accepted_terms: acceptedTerms,
+    }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al guardar el cálculo');
+  return data;
+}
+
+export async function fetchColoniaHistory(coloniaId) {
+  const r = await fetch(`${API}/api/public/colonia/${encodeURIComponent(coloniaId)}/history`);
+  if (!r.ok) {
+    if (r.status === 404) return null;
+    throw new Error(`historia colonia ${coloniaId} fetch failed`);
+  }
+  return r.json();
+}
+
+export async function fetchShareMeta(entityType, ids) {
+  const qs = new URLSearchParams({ type: entityType, ids: ids.join(',') });
+  const r = await fetch(`${API}/api/share/comparar/meta?${qs.toString()}`);
+  if (!r.ok) throw new Error('share meta fetch failed');
+  return r.json();
+}
+
+export function buildShareOgImageUrl(entityType, ids) {
+  const qs = new URLSearchParams({ type: entityType, ids: ids.join(',') });
+  return `${API}/api/share/comparar/og-image?${qs.toString()}`;
+}
+
+export async function captureTourRequest(propiedadId, propiedadNombre, email) {
+  const r = await fetch(`${API}/api/public/virtual-tour/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      accepted_terms: true,
+      propiedad_id: propiedadId,
+      propiedad_nombre: propiedadNombre,
+    }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al registrar solicitud de tour');
+  return data;
+}
+
 // ─── Favorites in localStorage
 const FAV_KEY = 'dmx.favorites';
 export function getFavorites() {

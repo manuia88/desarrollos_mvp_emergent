@@ -3574,3 +3574,46 @@ Status: ✅ DONE · 47/47 pytest (16 nuevos B26 + 31 regresión B24/B25)
 ### Pendiente (siguiente batch / next agent)
 - Phase 7.10: Avance-Obra tab integration
 - WhatsApp Business real integration
+
+---
+
+## Phase 4 Batch 27 — Mortgage Calc + Colonia History + WA CTA + Share-link · 2026-02-06
+
+Status: ✅ DONE · 64/64 pytest verde (17 nuevos B27 + 47 regresión B24-B26) · ÚLTIMO de Phase 1 Marketplace.
+
+### Sub-A · Calculadora Hipotecaria (Infonavit + Fovissste + 5 bancos)
+- `services/mortgage_calculator.py` — fórmulas referenciales: factor edad Infonavit × SBC × 0.65 (cap $2.5M); Fovissste con score interno (4-7%); banca privada con DTI ≤ 0.35 + CAT% (5 bancos: BBVA/Banamex/Santander/Banorte/Scotiabank)
+- `routes_marketplace_calculator.py` — `POST /api/public/mortgage/calculate` (20/min/IP) + `POST /api/public/mortgage/save` (5/min/IP, lead_capture source='mortgage_calc' + email branded)
+- `MortgageCalculator.js` — variant inline/modal · 8 inputs · 3 cards resultado (Infonavit · Fovissste · Banca con sub-cards) · save email opcional
+- Embedido como tab "Hipoteca" en `DevelopmentDetail.js` con `precioInicial` autocompletado
+
+### Sub-B · Colonia History (Claude Sonnet 4.5)
+- `services/colonia_history.py` — Claude Sonnet con prompt estructurado (past_milestones[5-7] + future_projections[3-5] con confidence_pct/drivers/risks + summary)
+- Cache 7 días en `db.colonia_history` · ai_budget tracking en bucket `public_marketplace`
+- `routes_share_meta.py` añade `GET /api/public/colonia/{id}/history`
+- `ColoniaHistoryTab.js` — timeline pasado + cards futuro con confidence rings (verde≥70 · ámbar 45-69 · rojo<45)
+- Sub-tab "Historia" en `ColoniaSidebar.js` (toggle Datos | Historia)
+
+### Sub-C · WhatsApp CTA + Virtual Tour + Share-link
+- `WhatsAppAsesorCTA.js` — floating 48px green button bottom-right · asesor_phone con fallback DMX · pre-fill mensaje con propiedad
+- `VirtualTourPlaceholder.js` — embed iframe Pedra/Matterport si `virtual_tour_url` presente · sino placeholder + email capture (lead_capture source='virtual_tour_request')
+- `POST /api/public/virtual-tour/request` — endpoint dedicado
+- `ShareLinkButton.js` — menú dropdown con Copy/WhatsApp/Email · URL pre-encoded
+- `routes_share_meta.py`:
+  - `GET /api/share/comparar/meta?ids=...&type=...` — JSON con og_title/og_description/og_image_url
+  - `GET /api/share/comparar/og-image?ids=...&type=...` — PNG dinámico 1200×630 (PIL/Pillow) con cache 24h en `/tmp/dmx_og_cache/`
+- `ColoniaComparator.js` — auto-compare cuando llega vía `?ids=...&type=...` · ShareLinkButton mounted next to PDF export
+
+### Lead Capture extensions
+- `lead_capture.py` VALID_SOURCES extended: `mortgage_calc`, `virtual_tour_request`
+- 3 nuevos sources cubiertos con attribution `dev_org_attributed` cuando aplica
+
+### Archivos creados/modificados B27
+- New backend: `routes_marketplace_calculator.py`, `routes_share_meta.py`, `services/mortgage_calculator.py`, `services/colonia_history.py`, `tests/test_batch27.py`
+- New frontend: `components/marketplace/MortgageCalculator.js`, `ColoniaHistoryTab.js`, `VirtualTourPlaceholder.js`, `WhatsAppAsesorCTA.js`, `ShareLinkButton.js`
+- Edited: `server.py` (2 routers), `services/lead_capture.py` (sources), `pages/DevelopmentDetail.js` (tabs Tour/Hipoteca + WA CTA), `pages/public/ColoniaComparator.js` (auto-compare + share), `components/marketplace/ColoniaSidebar.js` (tab Historia), `api/marketplace.js` (5 helpers), `i18n/es-MX/common.json` (mortgage/history/tour/share/wa_asesor strings)
+
+### Verificaciones cumplidas
+- ✅ A: $5M+20%+20a+$50k → 3 sources coherentes; ingreso bajo → DTI fail con razón
+- ✅ B: Polanco history 7 past + 4 future · cache hit 2ª llamada · confidence rings
+- ✅ C: og:image PNG 31KB con magic bytes válidos · `/comparar?ids=a,b,c&type=colonia` auto-compare · Share menu funcional

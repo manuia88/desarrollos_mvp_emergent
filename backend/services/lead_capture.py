@@ -20,7 +20,7 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 FROM_EMAIL = "leads@desarrollosmx.com"
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
 
-VALID_SOURCES = {"colonia_report", "quiz", "comparator"}
+VALID_SOURCES = {"colonia_report", "quiz", "comparator", "mortgage_calc", "virtual_tour_request"}
 
 
 async def _send_email(to: str, subject: str, html: str, attachments: list = None) -> bool:

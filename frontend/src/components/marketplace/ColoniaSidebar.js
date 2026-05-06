@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchColoniaFull } from '../../api/marketplace';
 import { X, ArrowRight, FileText } from '../icons';
 import ColoniaReportModal from './ColoniaReportModal';
+import ColoniaHistoryTab from './ColoniaHistoryTab';
 
 const RISK_LABELS = {
   flood:       'Inundación',
@@ -82,6 +83,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('datos'); // 'datos' | 'historia'
 
   useEffect(() => {
     if (!coloniaId) {
@@ -200,6 +202,42 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
               </button>
             </div>
 
+            {/* ── Tab switcher: Datos | Historia ── */}
+            {data && !error && (
+              <div data-testid="colonia-sidebar-tabs" style={{
+                display: 'flex', gap: 4, padding: 4,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(240,235,224,0.10)',
+                borderRadius: 9999,
+                marginBottom: 18,
+              }}>
+                {[
+                  { k: 'datos', label: 'Datos' },
+                  { k: 'historia', label: 'Historia' },
+                ].map(t => {
+                  const active = activeTab === t.k;
+                  return (
+                    <button
+                      key={t.k}
+                      data-testid={`colonia-tab-${t.k}`}
+                      onClick={() => setActiveTab(t.k)}
+                      style={{
+                        flex: 1, padding: '7px 0', borderRadius: 9999,
+                        border: 'none',
+                        background: active ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent',
+                        color: active ? '#fff' : 'rgba(240,235,224,0.55)',
+                        fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+                        cursor: 'pointer',
+                        transition: 'all 0.18s',
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* ── Error / empty ── */}
             {error && (
               <div style={{
@@ -215,7 +253,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
               </div>
             )}
 
-            {data && !error && (
+            {data && !error && activeTab === 'datos' && (
               <>
                 {/* ── Sección Mercado ── */}
                 <div style={{ marginBottom: 20 }}>
@@ -367,6 +405,14 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                   <FileText size={13} /> Reporte completo (PDF gratis)
                 </button>
               </>
+            )}
+
+            {/* ── Tab Historia ── */}
+            {data && !error && activeTab === 'historia' && (
+              <ColoniaHistoryTab
+                coloniaId={coloniaId}
+                coloniaNombre={data?.colonia?.nombre}
+              />
             )}
           </div>
         )}
