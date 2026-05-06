@@ -290,6 +290,12 @@ app.include_router(comprador_compare_router)
 from routes_wrapped import router as wrapped_router
 app.include_router(wrapped_router)
 
+# Phase 3 Batch 31 — Asesor Tools (Briefing Tráfico + Clima + Argumentario RAG)
+from routes_briefing_traffic import router as briefing_traffic_router
+from routes_argumentario import router as argumentario_router
+app.include_router(briefing_traffic_router)
+app.include_router(argumentario_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -711,6 +717,22 @@ async def startup():
         await ensure_smart_match_indexes(db)
     except Exception as e:
         logging.warning(f"[batch30] smart_match indexes failed: {e}")
+
+    # Phase 3 Batch 31 — Asesor Tools (Tráfico/Clima + Argumentario RAG)
+    try:
+        from services.traffic_briefing import ensure_traffic_indexes
+        await ensure_traffic_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch31] traffic indexes failed: {e}")
+    try:
+        from services.argumentario_rag import ensure_argumentario_indexes
+        await ensure_argumentario_indexes(db)
+        from services.argumentario_seed import seed_kb_if_empty
+        inserted = await seed_kb_if_empty(db)
+        if inserted:
+            logging.info(f"[batch31] argumentario seeded {inserted} entries")
+    except Exception as e:
+        logging.warning(f"[batch31] argumentario init failed: {e}")
 
 
 @app.on_event("shutdown")

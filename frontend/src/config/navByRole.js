@@ -80,6 +80,7 @@ const ASESOR_NAV = [
       { key: 'ranking',      to: '/asesor/ranking',                      label: 'Ranking',          Icon: Trophy },
       { key: 'studio',       to: '/asesor/studio',                       label: 'Studio',           Icon: Sparkles },
       { key: 'briefings',    to: '/asesor/briefings',                    label: 'Briefings',        Icon: FileText },
+      { key: 'briefing-traffic', to: '/asesor/briefing',                 label: 'Tráfico+Clima',    Icon: MapPin },
       { key: 'links',        to: '/asesor/links-tracking',               label: 'Links tracking',   Icon: Link },
     ],
   },

@@ -1,5 +1,45 @@
 # DesarrollosMX — CHANGELOG
 
+## Batch 31 — Phase 3 Asesor Tools (2026-05-06)
+
+### Sub-A: Briefing Tráfico + Clima
+- **NEW** `backend/services/traffic_briefing.py` — Mapbox Directions (driving-traffic) + Open-Meteo weather; cache 15 min en `db.traffic_briefings_cache`; fallback graceful Haversine + `last_known` con flag `is_stale=true` cuando Mapbox falla.
+- **NEW** `backend/routes_briefing_traffic.py` — `POST /api/asesor/briefing/traffic`, `GET /api/asesor/briefing/traffic/recent`. Persiste log en `db.traffic_briefings_log` (asesor_id, source, is_stale).
+- **NEW** `frontend/components/asesor/TrafficBriefingWidget.js` — coords inputs + 3 presets CDMX/GDL, badge minutos con gradient, banner is_stale, weather card.
+- **NEW** `frontend/pages/asesor/AsesorBriefingTraffic.js` — `/asesor/briefing` página con widget + tips.
+- **EDIT** `App.js` — ruta `/asesor/briefing`.
+- **EDIT** `config/navByRole.js` — nav item "Tráfico+Clima" en grupo Operación del asesor.
+- **NOTA**: el token MAPBOX en `.env` retornó HTTP 403 en pruebas (token con restricciones de URL/permisos), por lo que el sistema opera en modo `estimated` con fallback Haversine. Cuando se actualice el token con permisos Directions, el campo `source` cambiará a `live` y `is_stale=false` automáticamente.
+
+### Sub-B: Argumentario AI RAG (coach inline)
+- **NEW** `backend/services/argumentario_rag.py` — embeddings deterministas 1536-dim (feature hashing, mismo patrón B25/image_embeddings); cosine similarity top-K; Claude Sonnet 4.5 RAG generator (≤180 palabras, es-MX, sin emojis, formato markdown ligero).
+- **NEW** `backend/services/argumentario_seed.py` — 32 entradas KB en 4 categorías: 10 objeciones, 8 cierres, 6 comparaciones, 8 producto.
+- **NEW** `backend/routes_argumentario.py` — 4 endpoints: `POST /query`, `GET /recent`, `GET /kb`, `POST /seed` (admin).
+- **NEW** `frontend/components/shared/ArgumentarioDrawer.js` — drawer lateral right-slide, chips por categoría, sugerencias, recientes, resultado markdown con chips kb_sources + similarity_pct.
+- **NEW** `frontend/api/asesor.js` — helpers fetch (briefing + argumentario).
+- **EDIT** `frontend/components/advisor/AdvisorLayout.js` — FAB "AI" global (rounded-full, gradient), inserta `<ArgumentarioDrawer />` en cualquier vista de asesor.
+- **EDIT** `backend/server.py` — registra routers + ensure indexes + seed_kb_if_empty en startup.
+
+### DB Schema
+- `db.traffic_briefings_cache` — `{key, briefing_id, origin, destination, traffic_minutes, distance_km, route_geometry, weather, is_stale, source, cached_at, ttl_minutes}`
+- `db.traffic_briefings_log` — `{asesor_id, briefing_id, project_id, is_stale, source, ts}`
+- `db.argumentario_knowledge` — `{kb_id, category, title, content, tags, embedding(1536-dim), created_at}`
+- `db.argumentario_queries` — `{query_id, asesor_id, question, category, response_markdown, kb_sources, created_at}`
+
+### Endpoints curl-tested OK
+- `POST /api/asesor/briefing/traffic` → respuesta con minutos + clima + is_stale
+- `GET  /api/asesor/briefing/traffic/recent` → log ordenado descendente
+- `POST /api/asesor/argumentario/query` → Claude Sonnet 4.5 generó respuesta 4-bloques markdown citando 3 KB sources
+- `GET  /api/asesor/argumentario/kb?category=objeciones&limit=3` → 3 entradas
+- `GET  /api/asesor/argumentario/recent` → consultas previas
+
+### Build
+- `yarn build` — limpio, 0 warnings nuevos
+- `ruff` — 0 issues
+- `eslint` — 0 issues
+
+---
+
 ## Batch 30 — Phase 2 Comprador Wrapped + Smart Match (2026-05-06)
 
 ### Sub-A: Wrapped Mensual Automático + Anual Opt-in

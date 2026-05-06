@@ -4,6 +4,7 @@ import { Link, useLocation, Navigate } from 'react-router-dom';
 import { PortalLayout } from '../shared/PortalLayout';
 import OnboardingGate from './OnboardingGate';
 import CitaNotifBanner from '../shared/CitaNotifBanner';
+import ArgumentarioDrawer from '../shared/ArgumentarioDrawer';
 import * as api from '../../api/advisor';
 
 const ROLES_OK = new Set(['advisor', 'asesor_admin', 'superadmin']);
@@ -12,6 +13,7 @@ export default function AdvisorLayout({ user, onLogout, children }) {
   const loc = useLocation();
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [argOpen, setArgOpen] = useState(false);
 
   useEffect(() => {
     if (!user || !ROLES_OK.has(user.role)) { setProfileLoading(false); return; }
@@ -46,6 +48,27 @@ export default function AdvisorLayout({ user, onLogout, children }) {
         <CitaNotifBanner />
         {children}
       </div>
+
+      {/* Phase 3 Batch 31 — Argumentario AI FAB (coach inline) */}
+      <button
+        data-testid="argumentario-fab"
+        type="button"
+        aria-label="Abrir Argumentario AI"
+        onClick={() => setArgOpen(true)}
+        style={{
+          position: 'fixed', right: 20, bottom: 20, zIndex: 60,
+          width: 56, height: 56, borderRadius: 9999,
+          border: 'none',
+          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          color: '#fff', fontSize: 20, fontWeight: 700,
+          cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(99,102,241,0.4)',
+          letterSpacing: '0.02em',
+          fontFamily: 'Outfit, sans-serif',
+        }}
+      >AI</button>
+      <ArgumentarioDrawer open={argOpen} onClose={() => setArgOpen(false)} />
+
       {!profileLoading && needsOnboarding && (
         <OnboardingGate profile={profile} onDone={() => api.getProfile().then(setProfile)} />
       )}
