@@ -16,6 +16,7 @@ import { navByRole } from '../../config/navByRole';
 import { UniversalSearch } from './UniversalSearch';
 import { NotificationsBell } from './NotificationsBell';
 import ReportProblemButton from './ReportProblemButton';
+import AICopilotPanel from './AICopilotPanel';
 import { useDensity } from '../../hooks/useDensity';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -484,6 +485,9 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
 
       {/* Phase 4 Batch 0.5 — Report Problem floating button */}
       <ReportProblemButton user={user} />
+
+      {/* Phase 4 Batch 23 — AI Copilot panel + Cmd+J shortcut */}
+      <AICopilotPanel user={user} />
     </div>
   );
 }

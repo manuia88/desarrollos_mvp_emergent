@@ -266,11 +266,13 @@ from routes_tracking_links import (router as tracking_links_router,
                                      ensure_tracking_links_indexes)
 from routes_funnel import (router as funnel_router, ensure_funnel_indexes)
 from routes_insights import router as insights_router
+from routes_copilot import router as copilot_router, ensure_indexes as ensure_copilot_indexes
 from scheduler_asesor_snapshots import schedule_daily_snapshots
 app.include_router(asesor_metrics_router)
 app.include_router(tracking_links_router)
 app.include_router(funnel_router)
 app.include_router(insights_router)
+app.include_router(copilot_router)
 
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
@@ -661,6 +663,7 @@ async def startup():
         await ensure_asesor_metrics_indexes(db)
         await ensure_tracking_links_indexes(db)
         await ensure_funnel_indexes(db)
+        await ensure_copilot_indexes(db)
         if sched:
             schedule_daily_snapshots(sched, db)
     except Exception as e:
