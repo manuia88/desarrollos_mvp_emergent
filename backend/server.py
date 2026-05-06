@@ -260,6 +260,10 @@ from routes_marketplace_search import router as marketplace_search_router
 app.include_router(marketplace_map_router)
 app.include_router(marketplace_search_router)
 
+# Phase 4 Batch 25 — External Search + Saved Searches
+from routes_external_search import router as external_search_router
+app.include_router(external_search_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -628,6 +632,14 @@ async def startup():
         await ensure_copilot_indexes(db)
         if sched:
             schedule_daily_snapshots(sched, db)
+
+        # Phase 4 Batch 25 — Saved Search alerts (8am) + Image Embeddings (3am)
+        try:
+            from scheduler_saved_search_alerts import register_saved_search_jobs
+            if sched:
+                register_saved_search_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[batch25] scheduler register failed: {e}")
     except Exception as e:
         logging.warning(f"[batch20] setup failed: {e}")
 

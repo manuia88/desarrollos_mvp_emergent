@@ -6,6 +6,9 @@ Pipeline:
   3. Devolver top N unidades/proyectos por similitud Jaccard/TF-IDF
 
 Nightly cron: pre-computar descriptions para assets de db.dev_assets.
+
+Batch 25 enhancement:
+  EMBEDDINGS_ENABLED=true → usa vectores reales (1536-dim) de image_embeddings service.
 """
 from __future__ import annotations
 
@@ -25,6 +28,9 @@ log = logging.getLogger("dmx.image_search")
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 VISION_MODEL = "claude-sonnet-4-5-20250929"
+
+# Batch 25: toggle para usar vectores reales vs TF-IDF fallback
+EMBEDDINGS_ENABLED = os.getenv("IMAGE_EMBEDDINGS_ENABLED", "false").lower() == "true"
 
 # ─── Vision description ───────────────────────────────────────────────────────
 
@@ -123,9 +129,20 @@ async def search_similar(
 ) -> List[Dict[str, Any]]:
     """
     Busca unidades/proyectos similares a la descripción dada.
-    Primero intenta db.image_embeddings; si está vacío, usa datos de fallback.
+    - EMBEDDINGS_ENABLED=true → cosine similarity con vectores reales (B25)
+    - EMBEDDINGS_ENABLED=false → TF-IDF sobre text descriptions (B24 fallback)
     """
-    # Cargar embeddings cacheados
+    # Branch B25: real vector similarity
+    if EMBEDDINGS_ENABLED:
+        try:
+            from services.image_embeddings import search_similar_by_vector
+            results = await search_similar_by_vector(db, description, top_n=top_n)
+            if results:
+                return results
+        except Exception as ex:
+            log.warning(f"[image_search] real vector search failed, falling back: {ex}")
+
+    # Branch B24 fallback: TF-IDF over text descriptions
     try:
         docs = await db.image_embeddings.find(
             {}, {"_id": 0}
@@ -135,7 +152,6 @@ async def search_similar(
         docs = []
 
     if not docs:
-        # Fallback: búsqueda sobre datos estáticos de developments
         return await _fallback_search(db, description, top_n)
 
     # Calcular similitud

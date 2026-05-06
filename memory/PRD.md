@@ -3508,3 +3508,27 @@ Importar `SHORTCUTS_REGISTRY` desde `useKeyboardShortcuts.js` y renderizar tabla
 - `/app/frontend/src/api/marketplace.js` (+ fetchHeatmapLayer, fetchMapLevels, fetchColoniaFull, searchByImage)
 - `/app/frontend/src/pages/Marketplace.js` (+ map view, view toggle, image search trigger)
 - `/app/frontend/src/i18n/locales/es-MX/common.json` (+ namespace `marketplace.*`)
+
+## Phase 4 Batch 25 — Marketplace External Sources + Save Search + Image Embeddings Pipeline
+**Completado: 2026-05-06 · 12/12 pytest passed**
+
+### Sub-A · URL Parser + External Search
+- `services/url_parser.py` — JSON-LD → OG meta → CSS selectors; httpx + BeautifulSoup4; Inmuebles24/Vivanuncios/EasyBroker; graceful degradation; beautifulsoup4 + lxml instalados
+- POST /api/public/search/by-url — rate limit 20/min IP; busca similares por zona+precio ±15%
+- `UrlSearchModal.js` — URL input + tarjeta externa + grid matches + empty state + reset
+
+### Sub-B · Saved Search + APScheduler
+- `services/saved_searches.py` — UUID tokens; email via httpx→Resend (graceful sin RESEND_API_KEY); `_describe_filters()`; `find_new_matches()`
+- POST/GET saved-search endpoints · rate limit 5/min IP
+- `scheduler_saved_search_alerts.py` — 8am UTC alertas; 3am UTC embeddings nightly
+- `SaveSearchModal.js` — email + frecuencia + checkbox + success state
+
+### Sub-C · Image Embeddings Pipeline
+- `services/image_embeddings.py` — feature hashing 1536-dim determinista L2-normalizado; Claude Vision + batch cron; cost gating
+- `image_search.py` editado — EMBEDDINGS_ENABLED toggle (default false)
+- `.env.example` actualizado con IMAGE_EMBEDDINGS_ENABLED
+
+### Archivos creados/modificados
+- New: routes_external_search.py, services/url_parser.py, services/saved_searches.py, services/image_embeddings.py, scheduler_saved_search_alerts.py, test_batch25.py, UrlSearchModal.js, SaveSearchModal.js
+- Edited: server.py, image_search.py, requirements.txt, api/marketplace.js, Marketplace.js, common.json
+

@@ -9,8 +9,10 @@ import DevelopmentCard from '../components/marketplace/DevelopmentCard';
 import MarketplaceHeatmapLayer from '../components/marketplace/MarketplaceHeatmapLayer';
 import ColoniaSidebar from '../components/marketplace/ColoniaSidebar';
 import ImageSearchModal from '../components/marketplace/ImageSearchModal';
+import UrlSearchModal from '../components/marketplace/UrlSearchModal';
+import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import CayaBubble from '../components/landing/CayaBubble';
-import { Camera } from '../components/icons';
+import { Camera, ExternalLink, Bell } from '../components/icons';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
@@ -30,6 +32,10 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [selectedColonia, setSelectedColonia] = useState(null);
   const [imgSearchOpen, setImgSearchOpen] = useState(false);
   const [coloniaFilter, setColoniaFilter] = useState(null);
+
+  // Batch 25 — New modals
+  const [urlSearchOpen, setUrlSearchOpen] = useState(false);
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
 
   // Mapbox refs
   const mapContainer = useRef(null);
@@ -148,6 +154,24 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               >
                 <Camera size={14} /> Buscar por foto
               </button>
+              {/* URL Search trigger */}
+              <button
+                data-testid="url-search-trigger"
+                onClick={() => setUrlSearchOpen(true)}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 9999,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(240,235,224,0.18)',
+                  color: 'var(--cream)',
+                  fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <ExternalLink size={14} /> Buscar por URL
+              </button>
               {/* View mode toggle */}
               <div style={{
                 display: 'flex', gap: 4, padding: 4,
@@ -226,6 +250,25 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 aiFilters={aiFilters}
                 onAIClear={() => setAiFilters(null)}
               />
+              {/* Save Search button — visible cuando hay filtros */}
+              {(Object.keys(filters).length > 0 || aiFilters) && (
+                <button
+                  data-testid="save-search-trigger"
+                  onClick={() => setSaveSearchOpen(true)}
+                  style={{
+                    marginTop: 8,
+                    padding: '7px 14px', borderRadius: 9999,
+                    background: 'rgba(99,102,241,0.12)',
+                    border: '1px solid rgba(99,102,241,0.28)',
+                    color: 'rgba(99,102,241,0.9)',
+                    fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  <Bell size={12} /> Guardar búsqueda
+                </button>
+              )}
             </div>
           </section>
         )}
@@ -318,6 +361,20 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       <ImageSearchModal
         open={imgSearchOpen}
         onClose={() => setImgSearchOpen(false)}
+      />
+
+      {/* URL Search Modal */}
+      <UrlSearchModal
+        open={urlSearchOpen}
+        onClose={() => setUrlSearchOpen(false)}
+      />
+
+      {/* Save Search Modal */}
+      <SaveSearchModal
+        open={saveSearchOpen}
+        onClose={() => setSaveSearchOpen(false)}
+        filters={filters}
+        aiFilters={aiFilters}
       />
 
       <style>{`

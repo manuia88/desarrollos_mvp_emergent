@@ -141,6 +141,32 @@ export async function searchByImage(file) {
   return r.json();
 }
 
+// ─── Batch 25 — External Search + Saved Searches ─────────────────────────────
+
+export async function parseExternalUrl(url) {
+  const r = await fetch(`${API}/api/public/search/by-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Espera 1 minuto e intenta de nuevo.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || data.error || 'Error al procesar la URL');
+  return data;
+}
+
+export async function saveSearch(email, filters, alertFrequency = 'weekly') {
+  const r = await fetch(`${API}/api/public/saved-search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, filters, alert_frequency: alertFrequency }),
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Intenta en 1 minuto.');
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || 'Error al guardar la búsqueda');
+  return data;
+}
+
 // ─── Favorites in localStorage
 const FAV_KEY = 'dmx.favorites';
 export function getFavorites() {
