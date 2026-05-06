@@ -1,4 +1,26 @@
 {
+  "copilot": {
+    "title": "Copilot DMX",
+    "subtitle": "Claude Sonnet · contexto privado",
+    "trigger_label": "Abrir Copilot DMX (Cmd+J)",
+    "open_close_hint": "Cmd+J abre/cierra · Esc para cerrar",
+    "input_placeholder": "Pregunta lo que necesites… (Enter envía, Shift+Enter salto)",
+    "new_conversation": "Nueva conversación",
+    "conversations_title": "Conversaciones",
+    "no_conversations": "Aún no hay conversaciones guardadas.",
+    "empty_title": "Pregúntame lo que necesites",
+    "empty_sub": "Tengo contexto de tus proyectos, leads y métricas. Empieza con una de estas preguntas o escribe la tuya.",
+    "send": "Enviar",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "delete_conversation": "Eliminar conversación",
+    "tokens_label": "{count} tokens",
+    "model_sonnet": "sonnet 4.5",
+    "model_fallback": "fallback",
+    "error_send": "No fue posible obtener respuesta. Intenta de nuevo.",
+    "error_load": "Error al cargar conversación",
+    "error_delete": "Error al eliminar"
+  },
   "insights": {
     "tab": "Insights",
     "subtabs": {

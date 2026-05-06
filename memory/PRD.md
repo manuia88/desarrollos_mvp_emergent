@@ -3412,3 +3412,52 @@ Auth: roles `developer_admin|developer_director|developer_member|inmobiliaria_ad
 - **CSV**: UTF-8 BOM, headers en español, snapshot del proyecto + tabla comparables con deltas con signo (`Δ Precio/m²`, `Δ Health`, `Δ Velocidad`, `Δ Días`)
 - **PDF**: ReportLab landscape letter — eyebrow "DESARROLLOSMX · INSIGHTS", título proyecto, tabla snapshot navy + tabla comparables con grid cream/white, footer explicativo de Δ
 - **Frontend**: dos botones `data-testid="comp-export-csv"` (outline) y `comp-export-pdf` (gradient pill) en el header de Comparables, descarga via blob, estado disabled cuando no hay comparables, manejo de error inline. Helpers `exportComparablesUrl` + `downloadComparables` en `api/insights.js`.
+
+---
+
+## Phase 4 Batch 23 — AI Copilot Lateral Toggleable
+**Completado: 2026-05-06 · 13/13 pytest passed · Claude Sonnet 4.5 + react-markdown**
+
+### Sub-A · Backend Copilot Engine + Context
+- **Schema** `copilot_conversations`: `{id, user_id, messages[role,content,timestamp,tokens_used], last_topic, created_at, updated_at}` con TTL 60 días sobre `updated_at` + index `(user_id, updated_at desc)`.
+- **services/copilot_context.py** `aggregate_user_context(db, user)` — payload role-aware (developer / asesor / inmobiliaria_admin) ≤ 6000 chars con auto-truncate por prioridad. Soporta legacy `DEVELOPMENTS` fallback.
+- **services/copilot_engine.py** `ask_copilot()` — Claude Sonnet 4.5 vía emergentintegrations + system prompt es-MX, transcript de últimos 10 mensajes, gating con `ai_budget.is_within_budget` + tracking con `track_ai_call`, log_mutation `copilot_query`, fallback graceful si presupuesto agotado o API falla.
+- **5 endpoints** `/api/copilot/*`: `ask`, `conversations` (list 10), `conversations/{id}` (get), `DELETE conversations/{id}`, `quick-actions?role=`. User isolation enforced en queries (`user_id` siempre).
+
+### Sub-B · Frontend AI Copilot Panel
+- **Drawer slide-in derecho** 480px desktop / fullscreen mobile (≤640px) · backdrop blur 24px · `transform: translateX` con cubic-bezier 320ms · z-index 1501 (sobre Report button 900).
+- **Floating trigger** gradient indigo→rose Sparkle 52×52 rounded-full bottom-right (z-index 901, hide cuando panel open).
+- **Quick Actions strip** (chips horizontal scroll) · 4-6 templates por rol espejados desde backend `copilotPrompts.js` (developer 6, advisor 6, inmobiliaria_admin 5).
+- **Empty state** con 4 sugerencias · **Chat history** vertical · markdown rendering (h1/h2/h3, listas, **bold**, tablas, code) vía `react-markdown` (instalado).
+- **Composer** textarea expandible · Enter envía, Shift+Enter salto · botón send gradient circular · counter tokens.
+- **Conversaciones laterales** dropdown collapsible con delete por conv, "Nueva" reset, persistencia post-reload.
+- **Hook `useAICopilot`** singleton-style con event-bus `dmx-copilot-toggle` para coordinar shortcut + button + panel.
+- **Hook `useKeyboardShortcuts` (NUEVO centralizado)** — soporta `mod+key` (auto-detect Mac vs Linux), `shift`, `alt`, `escape`, ignora inputs por defecto. Public `SHORTCUTS_REGISTRY` para futuro KeyboardHelpDialog B19.
+- **Cmd+J (mod+J)** abre/cierra · **Esc** cierra. Wired vía useKeyboardShortcuts dentro del panel.
+
+### Endpoints
+- `POST /api/copilot/ask` · body `{question (≥2 chars), conversation_id?}` → `{response_markdown, conversation_id, tokens_used, tokens_in, tokens_out, cost_estimated_usd, model}`
+- `GET /api/copilot/conversations` → `{items: [{id, last_topic, updated_at, message_count}]}`
+- `GET /api/copilot/conversations/{id}` → conversación completa con messages
+- `DELETE /api/copilot/conversations/{id}` → `{deleted: true}`
+- `GET /api/copilot/quick-actions?role=` → `{role, items: [{id, label, prompt}]}`
+
+### Archivos creados
+- `/app/backend/routes_copilot.py`
+- `/app/backend/services/copilot_context.py`
+- `/app/backend/services/copilot_engine.py`
+- `/app/backend/tests/test_batch23.py`
+- `/app/frontend/src/api/copilot.js`
+- `/app/frontend/src/config/copilotPrompts.js`
+- `/app/frontend/src/hooks/useAICopilot.js`
+- `/app/frontend/src/hooks/useKeyboardShortcuts.js`
+- `/app/frontend/src/components/shared/AICopilotPanel.js`
+
+### Archivos modificados
+- `/app/backend/server.py` (+ copilot router + ensure_copilot_indexes en startup)
+- `/app/frontend/src/components/shared/PortalLayout.js` (mount AICopilotPanel)
+- `/app/frontend/src/i18n/locales/es-MX/common.json` (+ namespace `copilot.*`)
+- `/app/frontend/package.json` (+ `react-markdown`)
+
+### Activación KeyboardHelpDialog (futuro B19)
+Importar `SHORTCUTS_REGISTRY` desde `useKeyboardShortcuts.js` y renderizar tabla con `Cmd+K` (búsqueda) + `Cmd+J` (Copilot). Sin tocar lógica del panel.
