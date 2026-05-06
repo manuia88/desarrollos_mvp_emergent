@@ -259,7 +259,7 @@ async def put_policy_endpoint(project_id: str, body: PolicyIn, request: Request)
     user = await _auth(request)
     db = _db(request)
 
-    if body.policy_type not in ("round_robin", "pre_selected", "load_balance"):
+    if body.policy_type not in ("round_robin", "pre_selected", "load_balance", "smart_match"):
         raise HTTPException(400, "policy_type inválido")
 
     from availability import upsert_policy, _DEFAULT_POLICY

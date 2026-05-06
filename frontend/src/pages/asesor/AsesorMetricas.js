@@ -9,6 +9,7 @@ import { PageHeader } from '../../components/advisor/primitives';
 import { FilterChipsBar } from '../../components/shared/FilterChipsBar';
 import HealthScoreWidget from '../../components/shared/HealthScoreWidget';
 import SmartEmptyState from '../../components/shared/SmartEmptyState';
+import AsesorDailyFeed from '../../components/asesor/AsesorDailyFeed';
 import {
   getAsesorMetrics, getAsesorTimeseries, getAsesorTeamMetrics,
 } from '../../api/metrics';
@@ -112,6 +113,9 @@ export default function AsesorMetricas({ user, onLogout }) {
         title="Mi panel de rendimiento"
         sub="Pipeline, conversión, tiempo de respuesta y posición en el equipo."
       />
+
+      {/* Phase 4 Batch 34 — Tu día hoy smart feed */}
+      <AsesorDailyFeed user={user} />
 
       <div data-testid="asesor-metrics-filters" style={{ marginBottom: 16 }}>
         <FilterChipsBar

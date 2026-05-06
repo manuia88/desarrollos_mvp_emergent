@@ -1,9 +1,11 @@
 /**
- * WhatsAppAsesorCTA — Phase 4 Batch 27 (Sub-C)
+ * WhatsAppAsesorCTA — Phase 4 Batch 27 (Sub-C) · extended B32
  * Floating button bottom-right que abre WhatsApp con asesor del proyecto.
+ * Ahora también muestra link al perfil público del asesor (B32).
  *
  * Props:
  *   asesorPhone   — número del asesor (E.164 sin + ni espacios, ej "525555123456")
+ *   asesorId      — user_id del asesor (para link a /asesor-publico/{id}) (B32)
  *   propiedadNombre — para el mensaje pre-poblado
  *   fallbackPhone — número DMX general si no hay asesor
  */
@@ -29,6 +31,7 @@ function WhatsAppGlyph({ size = 22 }) {
 
 export default function WhatsAppAsesorCTA({
   asesorPhone,
+  asesorId,
   propiedadNombre,
   fallbackPhone = DMX_FALLBACK_PHONE,
 }) {
@@ -40,46 +43,65 @@ export default function WhatsAppAsesorCTA({
   const isFallback = !asesorPhone;
 
   return (
-    <a
-      data-testid="whatsapp-asesor-cta"
-      data-asesor={asesorPhone ? '1' : '0'}
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => {
-        try {
-          if (window.dataLayer) {
-            window.dataLayer.push({
-              event: 'wa_asesor_click',
-              propiedad: propiedadNombre || '',
-              fallback: isFallback,
-            });
-          }
-        } catch {}
-      }}
-      style={{
-        position: 'fixed',
-        right: 24, bottom: 24,
-        zIndex: 50,
-        display: 'inline-flex',
-        alignItems: 'center', gap: 10,
-        padding: '12px 18px',
-        borderRadius: 9999,
-        background: 'rgba(13,16,23,0.92)',
-        border: '1px solid rgba(34,197,94,0.45)',
-        color: '#22C55E',
-        fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
-        textDecoration: 'none',
-        backdropFilter: 'blur(24px)',
-        boxShadow: '0 4px 18px rgba(34,197,94,0.18)',
-        transition: 'transform 220ms cubic-bezier(0.22,1,0.36,1)',
-        minHeight: 48,
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
-    >
-      <WhatsAppGlyph size={20} />
-      <span>Habla con asesor</span>
-    </a>
+    <div style={{
+      position: 'fixed',
+      right: 24, bottom: 24,
+      zIndex: 50,
+      display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end',
+    }}>
+      {asesorId && !isFallback && (
+        <a data-testid="asesor-public-profile-link"
+           href={`/asesor-publico/${encodeURIComponent(asesorId)}`}
+           style={{
+             padding: '6px 12px',
+             borderRadius: 9999,
+             background: 'rgba(13,16,23,0.92)',
+             border: '1px solid rgba(240,235,224,0.18)',
+             color: 'var(--cream)',
+             fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11,
+             textDecoration: 'none',
+             backdropFilter: 'blur(24px)',
+             letterSpacing: '0.02em',
+           }}>Ver perfil del asesor</a>
+      )}
+      <a
+        data-testid="whatsapp-asesor-cta"
+        data-asesor={asesorPhone ? '1' : '0'}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => {
+          try {
+            if (window.dataLayer) {
+              window.dataLayer.push({
+                event: 'wa_asesor_click',
+                propiedad: propiedadNombre || '',
+                fallback: isFallback,
+              });
+            }
+          } catch {}
+        }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center', gap: 10,
+          padding: '12px 18px',
+          borderRadius: 9999,
+          background: 'rgba(13,16,23,0.92)',
+          border: '1px solid rgba(34,197,94,0.45)',
+          color: '#22C55E',
+          fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+          textDecoration: 'none',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '0 4px 18px rgba(34,197,94,0.18)',
+          transition: 'transform 220ms cubic-bezier(0.22,1,0.36,1)',
+          minHeight: 48,
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+      >
+        <WhatsAppGlyph size={20} />
+        <span>Habla con asesor</span>
+      </a>
+    </div>
   );
 }

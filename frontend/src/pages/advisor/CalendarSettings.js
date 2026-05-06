@@ -7,8 +7,142 @@ import { useSearchParams } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
 import { Check, AlertCircle, RefreshCw, ExternalLink, Calendar } from '../../components/icons';
+import {
+  calendarSubscribeWebhook, calendarUnsubscribeWebhook,
+  calendarSyncStatus, calendarSyncNow,
+} from '../../api/asesor_daily';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Phase 4 Batch 33 — Bidireccional sync card (Google → DMX)
+function BidirectionalSyncCard() {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const s = await calendarSyncStatus();
+      setStatus(s);
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const isActive = status?.status === 'active';
+  const isPolling = status?.status === 'polling';
+  const isError = status?.status === 'error';
+
+  let badgeColor = 'rgba(240,235,224,0.18)';
+  let badgeLabel = 'Inactivo';
+  if (isActive) { badgeColor = 'rgba(34,197,94,0.4)'; badgeLabel = 'Webhook activo'; }
+  else if (isPolling) { badgeColor = 'rgba(245,158,11,0.4)'; badgeLabel = 'Polling cada 30 min'; }
+  else if (isError) { badgeColor = 'rgba(239,68,68,0.4)'; badgeLabel = 'Error · usando polling'; }
+
+  const lastSync = status?.last_sync_at
+    ? new Date(status.last_sync_at).toLocaleString('es-MX', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+      })
+    : 'nunca';
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      if (status?.status && status.status !== 'off') {
+        await calendarUnsubscribeWebhook();
+      } else {
+        await calendarSubscribeWebhook();
+      }
+      await load();
+    } catch (e) {
+      alert(e.message);
+    } finally { setBusy(false); }
+  };
+
+  const forceNow = async () => {
+    setBusy(true);
+    try {
+      await calendarSyncNow();
+      await load();
+    } catch (e) {
+      alert(e.message);
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Card data-testid="calendar-bidi-card" style={{
+      marginTop: 14,
+      border: '1px solid rgba(99,102,241,0.25)',
+      background: 'rgba(99,102,241,0.04)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between',
+                    alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{
+            fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--cream-3)',
+          }}>Sincronización bidireccional</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--cream)',
+                        marginTop: 4, fontFamily: 'Outfit' }}>
+            Recibir cambios desde Google Calendar
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.55)',
+                        marginTop: 6, lineHeight: 1.6 }}>
+            Cuando crees o edites eventos directamente en Google, DMX los importará
+            automáticamente como citas.
+          </div>
+
+          {!loading && status && (
+            <div style={{ display: 'flex', gap: 12, marginTop: 12,
+                          flexWrap: 'wrap', alignItems: 'center' }}>
+              <span data-testid="calendar-bidi-status" style={{
+                padding: '4px 10px', borderRadius: 9999,
+                background: 'transparent',
+                border: `1px solid ${badgeColor}`,
+                color: 'var(--cream)', fontSize: 11,
+              }}>{badgeLabel}</span>
+              <span style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)' }}>
+                Último sync: {lastSync} · {status.events_synced_count || 0} eventos
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8,
+                      alignItems: 'flex-end' }}>
+          <button data-testid="calendar-bidi-toggle"
+                  type="button" onClick={toggle} disabled={busy || loading}
+                  style={{
+                    padding: '10px 18px', borderRadius: 9999,
+                    border: 'none',
+                    background: (status?.status && status.status !== 'off')
+                      ? 'rgba(239,68,68,0.16)'
+                      : 'linear-gradient(90deg, #6366F1, #EC4899)',
+                    color: (status?.status && status.status !== 'off')
+                      ? '#fca5a5' : '#fff',
+                    fontSize: 12, fontWeight: 600,
+                    cursor: busy ? 'not-allowed' : 'pointer',
+                    opacity: busy ? 0.6 : 1,
+                  }}>
+            {busy ? '...' : (status?.status && status.status !== 'off')
+              ? 'Desactivar sync' : 'Activar sync bidireccional'}
+          </button>
+          {status?.status && status.status !== 'off' && (
+            <button data-testid="calendar-bidi-force"
+                    type="button" onClick={forceNow} disabled={busy}
+                    style={{
+                      padding: '6px 12px', borderRadius: 9999,
+                      border: '1px solid rgba(240,235,224,0.18)',
+                      background: 'transparent', color: 'var(--cream-2)',
+                      fontSize: 11, cursor: busy ? 'not-allowed' : 'pointer',
+                    }}>Forzar sync ahora</button>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function ConnectionCard({ provider, label, connection, onConnect, onDisconnect, disabled, comingSoon }) {
   const connected = connection?.status === 'active';
@@ -252,6 +386,11 @@ export default function CalendarSettings({ user, onLogout }) {
             comingSoon={true}
           />
         </div>
+      )}
+
+      {/* Phase 4 Batch 33 — Sincronización bidireccional */}
+      {googleConn?.status === 'active' && (
+        <BidirectionalSyncCard />
       )}
 
       {/* Info box */}

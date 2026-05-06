@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import ClientInsightsTab from '../asesor/ClientInsightsTab';
 
 const LS_KEY = (entity_type) => `dmx_drawer_${entity_type || 'default'}`;
 
@@ -58,7 +59,7 @@ function SectionPanel({ section, openState, onToggle, user }) {
 
 export function EntityDrawer({
   isOpen, onClose, title,
-  sections = [], entity_type = 'default', user,
+  sections = [], entity_type = 'default', entity_id = null, user,
   width = 520,
   body = null,  // Phase 4 B11: custom body (bypasses sections)
 }) {
@@ -66,6 +67,20 @@ export function EntityDrawer({
   const [sectionState, setSectionState] = useState(() => loadSectionState(entity_type));
   const touchStartY = useRef(0);
   const touchDeltaY = useRef(0);
+
+  // Phase 4 Batch 33 — Inject Insights section for leads
+  const effectiveSections = (() => {
+    if (entity_type !== 'lead' || !entity_id) return sections;
+    const insightsSection = {
+      id: 'insights',
+      title: 'Insights',
+      defaultOpen: true,
+      content: <ClientInsightsTab leadId={entity_id} />,
+    };
+    // Avoid duplicate if user already passed insights section
+    if (sections.some((s) => s.id === 'insights')) return sections;
+    return [insightsSection, ...sections];
+  })();
 
   // Responsive detection
   useEffect(() => {
@@ -118,7 +133,7 @@ export function EntityDrawer({
 
   if (!isOpen) return null;
 
-  const panelSections = sections.map(s => (
+  const panelSections = effectiveSections.map(s => (
     <SectionPanel
       key={s.id}
       section={s}

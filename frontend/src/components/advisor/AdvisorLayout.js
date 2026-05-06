@@ -1,5 +1,5 @@
 // AdvisorLayout — backward-compat wrapper around PortalLayout.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { PortalLayout } from '../shared/PortalLayout';
 import OnboardingGate from './OnboardingGate';

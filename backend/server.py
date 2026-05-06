@@ -316,6 +316,18 @@ from routes_argumentario import router as argumentario_router
 app.include_router(briefing_traffic_router)
 app.include_router(argumentario_router)
 
+# Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
+from routes_asesor_identity import router as asesor_identity_router
+app.include_router(asesor_identity_router)
+
+# Phase 4 Batch 33 — Asesor Daily Tools (Calendar bidi + Visit briefing + Client insights)
+from routes_asesor_daily_tools import router as asesor_daily_tools_router
+app.include_router(asesor_daily_tools_router)
+
+# Phase 4 Batch 34 — Smart Match Lead-to-Asesor + Daily Feed
+from routes_lead_match import router as lead_match_router
+app.include_router(lead_match_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -777,6 +789,64 @@ async def startup():
             logging.info(f"[batch31] argumentario seeded {inserted} entries")
     except Exception as e:
         logging.warning(f"[batch31] argumentario init failed: {e}")
+
+    # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust)
+    try:
+        from services.endorsements import ensure_endorsement_indexes
+        await ensure_endorsement_indexes(db)
+        from services.linkedin_import import ensure_linkedin_indexes
+        await ensure_linkedin_indexes(db)
+        from services.disc_test import ensure_disc_indexes
+        await ensure_disc_indexes(db)
+        from services.trust_score import ensure_trust_score_indexes
+        await ensure_trust_score_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch32] asesor_identity indexes failed: {e}")
+
+    # Phase 4 Batch 33 — Asesor Daily Tools indexes + scheduler jobs
+    try:
+        from services.calendar_bidirectional import ensure_calendar_bidi_indexes
+        await ensure_calendar_bidi_indexes(db)
+        from services.visit_auto_prep import ensure_visit_prep_indexes
+        await ensure_visit_prep_indexes(db)
+        from services.client_insights import ensure_client_insights_indexes
+        await ensure_client_insights_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch33] daily tools indexes failed: {e}")
+
+    # Phase 4 Batch 34 — Smart Match + Daily Feed indexes
+    try:
+        from services.lead_to_asesor_match import ensure_lead_match_indexes
+        await ensure_lead_match_indexes(db)
+        from services.asesor_daily_feed import ensure_daily_feed_indexes
+        await ensure_daily_feed_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch34] indexes failed: {e}")
+    try:
+        # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
+        if sched is not None:
+            from services.calendar_bidirectional import (
+                polling_sync_all, renew_expiring_webhooks,
+            )
+            from services.visit_auto_prep import auto_generate_upcoming_briefings
+            sched.add_job(
+                polling_sync_all, "interval", minutes=30,
+                args=[db], id="b33_calendar_polling",
+                replace_existing=True, max_instances=1,
+            )
+            sched.add_job(
+                renew_expiring_webhooks, "cron", hour=3, minute=0,
+                args=[db], id="b33_webhook_renew",
+                replace_existing=True, max_instances=1,
+            )
+            sched.add_job(
+                auto_generate_upcoming_briefings, "interval", minutes=60,
+                args=[db], id="b33_visit_briefing_cron",
+                replace_existing=True, max_instances=1,
+            )
+            logging.info("[batch33] scheduler jobs registered")
+    except Exception as e:
+        logging.warning(f"[batch33] scheduler jobs failed: {e}")
 
 
 @app.on_event("shutdown")
