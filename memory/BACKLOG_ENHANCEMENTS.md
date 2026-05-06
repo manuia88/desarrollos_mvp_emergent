@@ -22,6 +22,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Por qué:** Cierra el loop bilateral cross-tenant (sin esto = unilateral, no production-safe)
 - **Costo:** ~1h (UI + notification al dev_admin)
 
+### Score de Alianza per asesor-developer
+- **Origen:** B36 (Phase 13 whitelist closure)
+- **Destino:** B37 (Phase 14 cross-partnerships) ó sweep post-launch
+- **Qué:** Score 0-100 PER partnership específica (asesor X con dev Y), distinto del Trust Score genérico B32. Combina: deals cerrados con ese dev + response time en proyectos del dev + endorsements de clientes que cerraron con esa partnership. Visible en sidebar inventario asesor + tabla solicitudes dev.
+- **Por qué:** Incentiva retention partnership (asesor mantiene buena reputación con dev específico) + dev prioriza top performers reales (no solo trust generic). Diferente de Trust Score B32 que es promedio across todos los devs.
+- **Costo:** ~2h (reusa Trust Score B32 formula pattern + asesor_metrics B20 con filtro por dev_org_id + endorsements filtered)
+
 ### Smart Match B30 → conectar con B34 Lead-to-Asesor
 - **Origen:** B30 + B34 (similares conceptos, diferentes scopes)
 - **Destino:** Sweep optimization post-launch
