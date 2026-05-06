@@ -27,9 +27,26 @@ Tracking de batches lo maneja Claude Code (founder's PM). Tu output: código + s
 1. Código completo per spec del prompt
 2. Build limpio (`yarn build` pasa)
 3. Save to GitHub
-4. Summary con: SHA, archivos creados/editados, edge cases conservadores tomados, conteo tests
+4. Summary con: SHA, archivos creados/editados, edge cases conservadores tomados
 
-NO incluir en output: tests escritos por ti (Claude Code los hace post-push), pre-commit greps (Claude Code), playwright smoke (Claude Code).
+**NO incluir en output (Claude Code los hace post-push):**
+- ❌ Tests pytest escritos por emergent — NO crear archivos `tests/test_batchXX.py`
+- ❌ Pre-commit greps de design system
+- ❌ Playwright smoke / E2E
+- ❌ Lint runs (ruff, eslint) — solo asegurar que `yarn build` pasa
+
+### IMPORTANT — sección "ACCEPTANCE CRITERIA" del prompt
+
+Si el prompt tiene una sección **ACCEPTANCE CRITERIA** o **VERIFICACIÓN**, esos son **criterios MANUALES de aceptación** (lista de condiciones que la feature debe cumplir), NO son test cases para escribir como pytest.
+
+**Cómo interpretarlos:**
+- "POST /endpoint retorna shape exacto" = el endpoint debe funcionar manualmente cuando se llame
+- "Permission denied → 403" = condición que el código debe garantizar (NO escribir test_permission_denied)
+- "Filter period=7d filtra correctamente" = comportamiento de la lógica (NO escribir test_filter_period)
+
+**Tu trabajo:** ASEGURAR que el código cumple esos criterios. Claude Code post-push los valida con pytest + curl + smoke.
+
+**Excepción única:** si el prompt dice EXPLÍCITAMENTE "Crea pytest test_batch{N}.py con N tests específicos" → entonces sí escribir tests. Sino: NO crear archivos de tests.
 
 ## ═══ DESIGN SYSTEM (NO violations) ═══
 
