@@ -226,6 +226,18 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Qué:** Tier standalone para asesores independientes ($X/mes) con KPIs comprometidos packaging tipo Teckel
 - **Costo:** Comercial, no técnico
 
+### Plan tiers superadmin con visibility granularity (full/leads-only)
+- **Origen:** B36 discussion 2026-05-06 (founder reformuló feature descartada)
+- **Destino:** H2 commercialization · prerequisite para monetización subscription
+- **Qué:** Superadmin (NO dev) crea planes mensuales con niveles visibility:
+  - Plan básico: solo leads (asesor puede referir clientes, no ve LPs/comisiones/fotos premium)
+  - Plan medio: leads + LPs públicas
+  - Plan pro: acceso completo (LPs internas + comisiones + fotos premium + contacto directo dev)
+- **Por qué:** Foundation para freemium + tiered pricing asesores. Sin esto, monetización solo es flat fee
+- **Costo:** ~5-7h (data scoping per tier + UI superadmin admin plans + Stripe subscription wiring)
+- **Dependencias:** Phase 16 BYO AI Keys + cost tracking + Stripe Connect
+- **Nota:** NO confundir con feature dev approval (descartada B36) · este es nivel SUPERADMIN para gestión comercial DMX
+
 ### Feature flag toggle DISC asesor visibility
 - **Origen:** B32 clarification founder
 - **Destino:** Decisión post-launch UX
