@@ -80,6 +80,13 @@ const PublicCitaPage                 = lazy(() => import('./pages/public/PublicC
 const PublicBookingPage              = lazy(() => import('./pages/public/PublicBookingPage'));
 // Phase 4 Batch 26 — Comparador 3-way
 const PublicComparator               = lazy(() => import('./pages/public/ColoniaComparator'));
+// Phase 4 Batch 28 — Portal Comprador autenticado
+const MagicLinkLogin                 = lazy(() => import('./pages/auth/MagicLinkLogin'));
+const CompradorDashboard             = lazy(() => import('./pages/comprador/CompradorDashboard'));
+const CompradorSavedSearches         = lazy(() => import('./pages/comprador/CompradorSavedSearches'));
+const CompradorFavoritos             = lazy(() => import('./pages/comprador/CompradorFavoritos'));
+const CompradorHistorial             = lazy(() => import('./pages/comprador/CompradorHistorial'));
+const CompradorPrivacy               = lazy(() => import('./pages/comprador/CompradorPrivacy'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -123,6 +130,7 @@ function AuthProvider({ children }) {
     if (role === 'superadmin') return '/superadmin';
     if (role === 'advisor' || role === 'asesor_admin') return '/asesor';
     if (role === 'developer_admin' || role === 'developer_member') return '/desarrollador';
+    if (role === 'buyer') return '/comprador';
     return '/marketplace';
   };
 
@@ -339,6 +347,13 @@ function AppRouter() {
       <Route path="/reservar/:slug" element={<PublicBookingPage />} />
       {/* Phase 4 Batch 26 — Comparador 3-way (página pública) */}
       <Route path="/comparar" element={<PublicComparator />} />
+      {/* Phase 4 Batch 28 — Portal Comprador autenticado */}
+      <Route path="/login-comprador" element={<MagicLinkLogin />} />
+      <Route path="/comprador" element={<CompradorDashboard />} />
+      <Route path="/comprador/saved-searches" element={<CompradorSavedSearches />} />
+      <Route path="/comprador/favoritos" element={<CompradorFavoritos />} />
+      <Route path="/comprador/historial" element={<CompradorHistorial />} />
+      <Route path="/comprador/privacidad" element={<CompradorPrivacy />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />

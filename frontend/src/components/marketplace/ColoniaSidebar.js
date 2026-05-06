@@ -7,8 +7,11 @@
  *   onFilterByColonia(id) — CTA para filtrar el marketplace por esta colonia
  */
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchColoniaFull } from '../../api/marketplace';
-import { X, ArrowRight, FileText } from '../icons';
+import { addFavorite } from '../../api/comprador';
+import { useAuth } from '../../App';
+import { X, ArrowRight, FileText, Heart } from '../icons';
 import ColoniaReportModal from './ColoniaReportModal';
 import ColoniaHistoryTab from './ColoniaHistoryTab';
 
@@ -84,6 +87,10 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
   const [error, setError] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('datos'); // 'datos' | 'historia'
+  const [favSaved, setFavSaved] = useState(false);
+  const [favError, setFavError] = useState(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!coloniaId) {
@@ -404,6 +411,48 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                 >
                   <FileText size={13} /> Reporte completo (PDF gratis)
                 </button>
+
+                {/* Batch 28 — Guardar colonia como favorito (gate auth) */}
+                <button
+                  data-testid="colonia-sidebar-favorite"
+                  onClick={async () => {
+                    if (!user) {
+                      navigate('/login-comprador');
+                      return;
+                    }
+                    setFavError(null);
+                    try {
+                      await addFavorite('colonia', coloniaId, [], `Colonia ${data?.colonia?.nombre || coloniaId}`);
+                      setFavSaved(true);
+                    } catch (e) {
+                      setFavError(e?.message || 'Error');
+                    }
+                  }}
+                  disabled={favSaved}
+                  style={{
+                    marginTop: 8,
+                    width: '100%',
+                    padding: '11px 18px',
+                    borderRadius: 9999,
+                    background: favSaved ? 'rgba(34,197,94,0.10)' : 'rgba(236,72,153,0.10)',
+                    border: `1px solid ${favSaved ? 'rgba(34,197,94,0.32)' : 'rgba(236,72,153,0.32)'}`,
+                    color: favSaved ? '#86EFAC' : '#F472B6',
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+                    cursor: favSaved ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  }}
+                >
+                  <Heart size={13} filled={favSaved} />
+                  {favSaved ? 'Guardada en favoritos' : (user ? 'Guardar como favorito' : 'Inicia sesión para guardar')}
+                </button>
+                {favError && (
+                  <div style={{
+                    marginTop: 6,
+                    fontFamily: 'DM Sans', fontSize: 11,
+                    color: '#FCA5A5',
+                    textAlign: 'center',
+                  }}>{favError}</div>
+                )}
               </>
             )}
 

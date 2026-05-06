@@ -182,6 +182,7 @@ async def save_search(
     filters: Dict,
     alert_frequency: str = "weekly",
     ip_hash: str = "",
+    user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Crea una búsqueda guardada y envía email de confirmación."""
     email = email.strip().lower()
@@ -208,17 +209,22 @@ async def save_search(
         "unsubscribe_token": unsubscribe_token,
         "ip_hash": ip_hash,
     }
+    if user_id:
+        doc["user_id"] = user_id
 
     if existing:
         # Re-enviar confirmación con nuevo token
+        update_set = {
+            "filters": filters,
+            "confirmation_token": confirmation_token,
+            "unsubscribe_token": unsubscribe_token,
+            "created_at": now,
+        }
+        if user_id:
+            update_set["user_id"] = user_id
         await db.saved_searches.update_one(
             {"search_id": existing["search_id"]},
-            {"$set": {
-                "filters": filters,
-                "confirmation_token": confirmation_token,
-                "unsubscribe_token": unsubscribe_token,
-                "created_at": now,
-            }},
+            {"$set": update_set},
         )
         doc["search_id"] = existing["search_id"]
     else:

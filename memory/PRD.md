@@ -3617,3 +3617,57 @@ Status: ✅ DONE · 64/64 pytest verde (17 nuevos B27 + 47 regresión B24-B26) �
 - ✅ A: $5M+20%+20a+$50k → 3 sources coherentes; ingreso bajo → DTI fail con razón
 - ✅ B: Polanco history 7 past + 4 future · cache hit 2ª llamada · confidence rings
 - ✅ C: og:image PNG 31KB con magic bytes válidos · `/comparar?ids=a,b,c&type=colonia` auto-compare · Share menu funcional
+
+---
+
+## Phase 4 Batch 28 — Portal Comprador Foundations (Magic Link + Dashboard + Privacy) · 2026-02-06
+
+Status: ✅ DONE · 83/83 pytest verde (19 nuevos B28 + 64 regresión B24-B27) · INICIO Phase 2 Portal Comprador.
+
+### Sub-A · Magic Link Auth + Dashboard
+- `routes_auth.py` extendido: `POST /api/auth/comprador/magic-link/request` (5/min/IP) genera token 32-char SHA256-stored (15min expires) + Resend email branded; `GET /api/auth/comprador/magic-link/verify?token=...` crea/restaura user role=buyer + emite cookies access_token/refresh_token (HttpOnly secure SameSite=none).
+- `services/comprador_dashboard.py` — KPI aggregator (saved_searches/alerts/favorites/history) + cache 15min en `db.comprador_dashboards` + profile_completion_pct.
+- `pages/comprador/CompradorDashboard.js` — Hero greeting + completion bar + 4 widget cards 2×2 (con thumbs reales) + empty state.
+- `pages/auth/MagicLinkLogin.js` — formulario email+name → success state + auto-verify si llega `?token=...` + debug_token preview.
+
+### Sub-B · Saved Searches + Favoritos + Histórico
+- `services/saved_searches.py` extendido: parámetro `user_id` opcional → linkage cuando authenticated. `routes_external_search.py` lo populates si hay sesión.
+- `services/buyer_history.py` — `add_favorite`/`remove_favorite`/`get_favorites` (upsert dedup) y `track_view`/`get_history`/`clear_history` (TTL 90d auto-purge en `buyer_views`).
+- `routes_comprador.py` — 9 endpoints CRUD: saved-searches list/delete, favorites CRUD con thumb enrichment desde `DEVELOPMENTS_BY_ID`, history list/track/clear.
+- 3 pages: `CompradorSavedSearches.js` (chips alert_frequency + delete), `CompradorFavoritos.js` (grid con tags chips + delete + thumb cover), `CompradorHistorial.js` (timeline + 2 filter groups source/type + clear all).
+- `lib/funnelTracker.js` extendido: `trackBuyerView` y `trackPropertyView` (silent 401 si no auth). Wireado en `DevelopmentDetail.js` useEffect.
+
+### Sub-C · Privacy Center (LFPDPPP-compliant)
+- `services/privacy_center.py`:
+  - `get_consents/update_consents` con audit trail en `history[]` (últimos 50, IP hash + UA).
+  - `request_export` JSON completo + email branded con attachment.
+  - `soft_delete_account` con 30d grace period + email confirmation, invalidates user_sessions, NO auto-restore on re-login.
+  - `cancel_delete` recupera cuenta dentro del periodo de gracia.
+- `routes_comprador.py` — 5 endpoints privacy.
+- `CompradorPrivacy.js` — 5 toggle switches con DM Sans descriptions + export status badge + delete-account modal con email confirm + grace checkbox + DPO footer.
+
+### Wiring & integraciones
+- `App.js` — 6 nuevas rutas: `/login-comprador` y 5 `/comprador/*`. `portalForRole` envía `buyer` a `/comprador`.
+- `ColoniaSidebar.js` — botón "Guardar como favorito" gateado por auth (redirige a `/login-comprador` si anónimo, hace `addFavorite('colonia', ...)` si auth).
+- `i18n/es-MX/common.json` — sección `marketplace.comprador.*` con 25+ strings.
+- `lead_capture.py` VALID_SOURCES + `mortgage_calc`, `virtual_tour_request` (extension B27).
+
+### Schemas nuevos (todos exclude `_id` en respuestas)
+- `db.users` extendido: campos `name/phone/role/is_deleted/deleted_at/purge_after/auth_method`.
+- `db.magic_link_tokens` `{email, token_hash, expires_at, used, created_at, used_at}`.
+- `db.comprador_dashboards` (cache 15min).
+- `db.buyer_favorites` (índice único user_id+item_type+item_id).
+- `db.buyer_views` (TTL 90d en `viewed_at`).
+- `db.privacy_consents` `{user_id, consents{...}, history[], updated_at}`.
+- `db.data_export_requests` `{req_id, user_id, status, items}`.
+
+### Verificaciones cumplidas
+- ✅ A: ML request → token + email → verify → cookies + dashboard 200 con counts; sin auth → 401.
+- ✅ B: Save anónimo + login mismo email → search visible y deletable; favorites idempotency + delete; history dedup 60s + clear.
+- ✅ C: Consents default → patch → audit log; export JSON con counts; delete soft + grace 30d + cancel restaura.
+- ✅ Smoke screenshots: Magic Link login + Dashboard E2E con sidebar + completion bar + 4 widgets + empty state.
+
+### Archivos creados/modificados B28
+- New backend: `routes_comprador.py`, `services/comprador_dashboard.py`, `services/buyer_history.py`, `services/privacy_center.py`, `tests/test_batch28.py`
+- New frontend: `api/comprador.js`, `components/comprador/CompradorLayout.js`, 5 `pages/comprador/*.js` + `pages/auth/MagicLinkLogin.js`
+- Edited: `routes_auth.py` (magic-link endpoints), `services/saved_searches.py` (user_id linkage), `routes_external_search.py` (auto-link if auth), `server.py` (router), `App.js` (6 routes + portalForRole), `lib/funnelTracker.js` (buyer view), `pages/DevelopmentDetail.js` (track view), `components/marketplace/ColoniaSidebar.js` (favorito gate), `i18n/es-MX/common.json` (comprador.* strings)

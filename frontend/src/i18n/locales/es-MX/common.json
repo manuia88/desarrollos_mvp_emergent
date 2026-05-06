@@ -303,6 +303,36 @@
     "wa_asesor": {
       "label": "Habla con asesor",
       "default_message": "Hola, vi {{propiedad}} en DesarrollosMX y me interesa más info."
+    },
+    "comprador": {
+      "magic_link_title": "Entra a tu portal",
+      "magic_link_subtitle": "Te enviamos un link mágico a tu correo. Sin contraseñas.",
+      "magic_link_send": "Enviar magic link",
+      "magic_link_sent": "Revisa tu correo · link enviado",
+      "magic_link_expired": "El link no es válido o expiró",
+      "dashboard_hello": "Hola, {{name}}",
+      "dashboard_subtitle": "Esto es lo que pasa con tu búsqueda inmobiliaria hoy.",
+      "profile_completion": "Perfil {{pct}}% completo",
+      "saved_searches": "Búsquedas guardadas",
+      "alerts": "Alertas recientes",
+      "favorites": "Favoritos",
+      "history": "Vistos recientemente",
+      "empty_state_title": "Tu primer paso es guardar una búsqueda",
+      "empty_state_cta": "Ir al marketplace",
+      "saved_new": "Nueva búsqueda",
+      "saved_empty_title": "No tienes búsquedas aún",
+      "fav_save_button": "Guardar como favorito",
+      "fav_save_button_authed": "Inicia sesión para guardar",
+      "fav_saved_label": "Guardada en favoritos",
+      "fav_empty_title": "Sin favoritos todavía",
+      "history_clear": "Limpiar histórico",
+      "history_empty_title": "Aún no exploras desarrollos",
+      "privacy_title": "Privacidad y datos",
+      "privacy_consents": "Consentimientos",
+      "privacy_export": "Descargar mis datos",
+      "privacy_delete": "Eliminar mi cuenta",
+      "privacy_grace_warning": "Entiendo que tengo 30 días de gracia. Después, mis datos se eliminan de forma irreversible.",
+      "logout": "Cerrar sesión"
     }
   }
 }

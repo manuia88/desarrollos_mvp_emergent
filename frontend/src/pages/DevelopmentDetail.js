@@ -23,6 +23,8 @@ import CayaBubble from '../components/landing/CayaBubble';
 import MortgageCalculator from '../components/marketplace/MortgageCalculator';
 import VirtualTourPlaceholder from '../components/marketplace/VirtualTourPlaceholder';
 import WhatsAppAsesorCTA from '../components/marketplace/WhatsAppAsesorCTA';
+// Phase 4 Batch 28 — buyer view tracking (auth-gated)
+import { trackPropertyView } from '../lib/funnelTracker';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -51,6 +53,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   useEffect(() => {
     let alive = true;
     fetchDevelopment(id).then((d) => { if (alive) setDev(d); }).catch(() => { if (alive) setDev(null); });
+    // Phase 4 Batch 28 — buyer view tracking (silent if not authenticated)
+    trackPropertyView(id, 'marketplace');
     // Phase 7.6: superpone fotos reales de dev_assets si existen.
     const API = process.env.REACT_APP_BACKEND_URL;
     fetch(`${API}/api/developments/${encodeURIComponent(id)}/assets`)
