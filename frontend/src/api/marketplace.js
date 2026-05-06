@@ -215,6 +215,31 @@ export async function downloadComparePdf(entityType, ids) {
   return r.blob();
 }
 
+export async function compareEntitiesBuyer(entityType, ids) {
+  const r = await fetch(`${API}/api/comprador/compare`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_type: entityType, ids }),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}));
+    throw new Error(data.detail || data.error || 'Error en la comparación premium');
+  }
+  return r.json();
+}
+
+export async function downloadComparePdfBuyer(entityType, ids) {
+  const r = await fetch(`${API}/api/comprador/compare/pdf`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_type: entityType, ids }),
+  });
+  if (!r.ok) throw new Error('Error generando el PDF premium');
+  return r.blob();
+}
+
 // ─── Batch 27 — Mortgage Calculator + Colonia History + Share ───────────────
 
 export async function calculateMortgage(payload) {

@@ -278,6 +278,14 @@ app.include_router(share_meta_router)
 from routes_comprador import router as comprador_router
 app.include_router(comprador_router)
 
+# Phase 4 Batch 29 — Comprador Engagement (Alertas + Chat + Comparador Premium)
+from routes_buyer_alerts import router as buyer_alerts_router
+from routes_chat import router as chat_router
+from routes_comprador_compare import router as comprador_compare_router
+app.include_router(buyer_alerts_router)
+app.include_router(chat_router)
+app.include_router(comprador_compare_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -654,8 +662,31 @@ async def startup():
                 register_saved_search_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[batch25] scheduler register failed: {e}")
+
+        # Phase 4 Batch 29 — Buyer Alerts (instant 5min + daily + weekly)
+        try:
+            from scheduler_buyer_alerts import register_buyer_alerts_jobs
+            if sched:
+                register_buyer_alerts_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[batch29] buyer alerts scheduler register failed: {e}")
     except Exception as e:
         logging.warning(f"[batch20] setup failed: {e}")
+
+
+    # Phase 4 Batch 28 — Comprador Portal — no extra indexes needed (handled by routes_comprador)
+
+    # Phase 4 Batch 29 — Buyer Alerts + Chat indexes
+    try:
+        from services.buyer_alerts import ensure_buyer_alerts_indexes
+        await ensure_buyer_alerts_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch29] buyer_alerts indexes failed: {e}")
+    try:
+        from services.chat_engine import ensure_chat_indexes
+        await ensure_chat_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch29] chat indexes failed: {e}")
 
 
 @app.on_event("shutdown")

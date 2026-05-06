@@ -87,6 +87,9 @@ const CompradorSavedSearches         = lazy(() => import('./pages/comprador/Comp
 const CompradorFavoritos             = lazy(() => import('./pages/comprador/CompradorFavoritos'));
 const CompradorHistorial             = lazy(() => import('./pages/comprador/CompradorHistorial'));
 const CompradorPrivacy               = lazy(() => import('./pages/comprador/CompradorPrivacy'));
+// Phase 4 Batch 29 — Comprador Engagement
+const CompradorAlertas               = lazy(() => import('./pages/comprador/CompradorAlertas'));
+const CompradorChat                  = lazy(() => import('./pages/comprador/CompradorChat'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -354,6 +357,9 @@ function AppRouter() {
       <Route path="/comprador/favoritos" element={<CompradorFavoritos />} />
       <Route path="/comprador/historial" element={<CompradorHistorial />} />
       <Route path="/comprador/privacidad" element={<CompradorPrivacy />} />
+      {/* Phase 4 Batch 29 — Comprador Engagement */}
+      <Route path="/comprador/alertas" element={<CompradorAlertas />} />
+      <Route path="/comprador/chat" element={<CompradorChat />} />
       <Route path="/desarrollador/demanda" element={<AdvisorRoute Page={DesarrolladorDemanda} />} />
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />

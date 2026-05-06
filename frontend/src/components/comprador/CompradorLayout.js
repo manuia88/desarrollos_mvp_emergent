@@ -1,19 +1,22 @@
 /**
- * CompradorLayout — Phase 4 Batch 28
+ * CompradorLayout — Phase 4 Batch 28 + Batch 29
  * Layout para el portal /comprador con sidebar navigation.
  * Si el usuario no está autenticado, redirige a /login-comprador.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../App';
 import { logoutComprador } from '../../api/comprador';
-import { Home, Search, Heart, Clock, Shield } from '../icons';
+import { Home, Search, Heart, Clock, Shield, Bell, MessageSquare } from '../icons';
+import { fetchUnreadCount } from '../../api/chat';
 
-const NAV = [
+const NAV_BASE = [
   { to: '/comprador', label: 'Dashboard', icon: Home, end: true },
   { to: '/comprador/saved-searches', label: 'Búsquedas', icon: Search },
   { to: '/comprador/favoritos', label: 'Favoritos', icon: Heart },
   { to: '/comprador/historial', label: 'Histórico', icon: Clock },
+  { to: '/comprador/alertas', label: 'Alertas', icon: Bell },
+  { to: '/comprador/chat', label: 'Chat', icon: MessageSquare, badge: 'chat_unread' },
   { to: '/comprador/privacidad', label: 'Privacidad', icon: Shield },
 ];
 
@@ -21,6 +24,30 @@ export default function CompradorLayout({ children }) {
   const { user, loading, setUser } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+
+  // Poll unread chat count every 30s
+  const loadUnread = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { unread } = await fetchUnreadCount();
+      setChatUnread(unread || 0);
+    } catch {
+      // silent
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadUnread();
+    const interval = setInterval(loadUnread, 30000);
+    return () => clearInterval(interval);
+  }, [loadUnread]);
+
+  // Build NAV with dynamic badge values
+  const NAV = NAV_BASE.map(item => ({
+    ...item,
+    badgeCount: item.badge === 'chat_unread' ? chatUnread : 0,
+  }));
 
   useEffect(() => {
     if (!loading && !user) navigate('/login-comprador', { replace: true });
@@ -83,7 +110,7 @@ export default function CompradorLayout({ children }) {
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {NAV.map(({ to, label, icon: Icon, end, badgeCount }) => (
             <NavLink
               key={to}
               to={to}
@@ -101,7 +128,18 @@ export default function CompradorLayout({ children }) {
               })}
             >
               <Icon size={14} />
-              {label}
+              <span style={{ flex: 1 }}>{label}</span>
+              {badgeCount > 0 && (
+                <span data-testid={`nav-badge-${label.toLowerCase()}`} style={{
+                  minWidth: 16, height: 16, borderRadius: 9999,
+                  background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'DM Sans', fontWeight: 800, fontSize: 9, color: '#fff',
+                  padding: '0 4px',
+                }}>
+                  {badgeCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -194,7 +232,7 @@ export default function CompradorLayout({ children }) {
             padding: '24px 16px',
             display: 'flex', flexDirection: 'column', gap: 4,
           }}>
-            {NAV.map(({ to, label, icon: Icon, end }) => (
+            {NAV.map(({ to, label, icon: Icon, end, badgeCount }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -211,7 +249,18 @@ export default function CompradorLayout({ children }) {
                 })}
               >
                 <Icon size={16} />
-                {label}
+                <span style={{ flex: 1 }}>{label}</span>
+                {badgeCount > 0 && (
+                  <span style={{
+                    minWidth: 16, height: 16, borderRadius: 9999,
+                    background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'DM Sans', fontWeight: 800, fontSize: 9, color: '#fff',
+                    padding: '0 4px',
+                  }}>
+                    {badgeCount}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>

@@ -272,3 +272,6 @@ export const Filter = icon(
   <><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></>
 );
 
+export const Send = icon(
+  <><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></>
+);
