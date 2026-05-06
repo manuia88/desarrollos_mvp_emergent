@@ -94,6 +94,9 @@ const CompradorChat                  = lazy(() => import('./pages/comprador/Comp
 // Phase 4 Batch 30 — Wrapped + Smart Match
 const CompradorWrapped               = lazy(() => import('./pages/comprador/CompradorWrapped'));
 
+// Phase 3 Batch 31 — Asesor Tools (Briefing Tráfico+Clima)
+const AsesorBriefingTraffic          = lazy(() => import('./pages/asesor/AsesorBriefingTraffic'));
+
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
 const DataSourcesPage            = lazy(() => import('./pages/superadmin/DataSourcesPage'));
@@ -343,6 +346,8 @@ function AppRouter() {
       <Route path="/desarrollador/crm/funnel" element={<AdvisorRoute Page={CrmFunnel} />} />
       <Route path="/asesor/metricas" element={<AdvisorRoute Page={AsesorMetricas} />} />
       <Route path="/asesor/links" element={<AdvisorRoute Page={AsesorLinks} />} />
+      {/* Phase 3 Batch 31 — Briefing pre-visita */}
+      <Route path="/asesor/briefing" element={<AdvisorRoute Page={AsesorBriefingTraffic} />} />
       <Route path="/desarrollador/mensajes" element={<AdvisorRoute Page={DesarrolladorCRMShell} />} />
 
       {/* Legacy backward-compat redirects */}
