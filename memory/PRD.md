@@ -2769,6 +2769,21 @@ Plan reemplaza implementación dev portal v1 con arquitectura cross-portal reusa
 17 batches shipped (~157h). B0 + B0.5 + B10-B23 + sub-fixes B18.5 + B19.5.
 Foundation production-ready para Phase Y (Intelligence Platform) + Phase Z (Data Products).
 
+═══════════════════════════════════════════════════════════
+## ✅ Phase 1 Marketplace gaps 100% COMPLETO (2026-05-06)
+═══════════════════════════════════════════════════════════
+4 batches shipped (~30h). Cubre 100% del scope público lead-capture marketplace.
+
+| # | Batch | Status | h |
+|---|---|---|---|
+| ✅ | B24 — Map Intelligence (1.1 Heatmap Z1-Z4 · 1.2 Sidebar colonia + climate twin + risks · 1.4 Image search Claude Vision + cosine) (15/15 pytest · 3 layers Mapbox + zoom progresivo + ColoniaSidebar 16 colonias climate twins + ImageSearchModal rate limit 10/min) | shipped | 8 |
+| ✅ | B25 — External Sources + Save Search + Embeddings Pipeline (1.5 URL parser Inmuebles24/Vivanuncios/EasyBroker · 1.6 Save search + email lead capture · Sub-C image embeddings toggle IMAGE_EMBEDDINGS_ENABLED) (12/12 pytest · BeautifulSoup4 parsers + Resend branded + APScheduler 8am alerts + 3am embeddings) | shipped | 5.5 |
+| ✅ | B26 — Lead-Capture Tools (1.7 Reporte gratis colonia PDF 10 págs · 1.8 Quiz 10 preguntas matching IA · 1.9 Comparador 3-way colonias/props) (16/16 pytest · ReportLab branded + Quiz wizard + Comparator 11 métricas + lead_capture cross-tool con dev attribution) | shipped | 10 |
+| ✅ | B27 — Mortgage + Colonia History + WA CTA + Share-link (1.10 Calculadora Infonavit/Fovissste/5 bancos con CAT% + DTI · 1.11 History Claude Sonnet 7 hitos pasado + 4 predicciones futuro · 1.12 Tour placeholder + WhatsApp CTA + Share-link comparador con og:image dinámico PIL) (17/17 pytest cumulativo · PR #11 2f034a1) | shipped | 10 |
+
+**Total Phase 1: 33.5h (vs estimado 30h, +12% sobre presupuesto por share-link enhancement añadido en B27).**
+**Commit consolidado:** PR #11 (45 archivos, 10,723 LOC).
+
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
 - TourCompletionAnalytics extendido con prop `period` controlable (controlled mode oculta filter chips internos cuando page topbar lo controla)
@@ -2789,9 +2804,7 @@ Foundation production-ready para Phase Y (Intelligence Platform) + Phase Z (Data
 - Upload plano arquitectónico actualmente base64. Migrar a S3/GCS en sweep H2
 
 ### Pendientes Phase 4 refactor — **NINGUNO** (100% completo 2026-05-06)
-
-| # | Batch | h |
-| 🟡 | B21 — Dev CRM > Métricas equipo (aggregated) | 5 |
+### Pendientes Phase 1 Marketplace — **NINGUNO** (100% completo 2026-05-06)
 
 ### Estructura navegación final (post B10-B11)
 

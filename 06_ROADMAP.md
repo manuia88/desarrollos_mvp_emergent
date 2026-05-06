@@ -25,7 +25,7 @@
 |---|---|---|
 | Phase 4 Dev Module (original v1) | ✅ shipped 16 batches | ~78h |
 | Phase 4 Dev REFACTOR | ✅ **100% COMPLETO** (17/17: B0 · B0.5 · B10-B23 + B18.5/B19.5 fix-pass) | ~157h |
-| Phase 1 Marketplace gaps | 🟡 pending | ~30h |
+| Phase 1 Marketplace gaps | ✅ **100% COMPLETO** (B24+B25+B26+B27 vía PR #11) | ~33.5h |
 | Phase 2 Comprador | 🟡 pending | ~12-14h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
 | Phase 3 Asesor remaining | 🟡 pending | ~16h |
