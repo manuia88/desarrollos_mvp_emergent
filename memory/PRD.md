@@ -2809,9 +2809,16 @@ Portal Comprador completo: Magic Link auth · Dashboard 5 widgets · Saved searc
 | # | Batch | Status | h |
 |---|---|---|---|
 | ✅ | B31 — Asesor Tools (Briefing Tráfico+Clima Mapbox Directions + Open-Meteo + cache 15min + fallback Haversine · Argumentario AI RAG drawer 32 KB seed objeciones/cierres/comparaciones/producto + embeddings 1536-dim cosine + Claude Sonnet 4.5 ≤180 palabras + FAB global AdvisorLayout) (PR #14) | shipped | 6 |
-| 🟡 | B32 — Asesor Identity (Endorsements + LinkedIn · Trust Score + DISC inline) | pending | 4 |
-| 🟡 | B33 — Team Mgmt + Pipeline (Calendar bidireccional · Asesor Admin team · Pipeline custom etapas) | pending | 8 |
-| 🟡 | B34 — Lead-to-Asesor Smart Match (reusa colonia_quiz B26 + asesor_metrics B20) | pending | 4 |
+| ✅ | B32 — Asesor Identity (Endorsements + LinkedIn import manual · Trust Score 6-component + DISC 7Q inline · 13 endpoints) (PR #15) | shipped | 4 |
+| ✅ | B33 — Asesor Daily Tools (Calendar bidireccional Google webhook + polling · Visit auto-prep Claude Sonnet 7-source · Client Insights inline tab + sentiment + next_action) (PR #15) | shipped | 8 |
+| ✅ | B34 — Smart Match Lead-to-Asesor + Tu Día Hoy Feed (5-component weighted scoring zona/price/intent/response/capacity · `smart_match` 4ta policy B15 · AsesorDailyFeed top 5 priority + 1-click execute) (PR #15) | shipped | 7 |
+
+**NOTA scope correction:** B33 Asesor Admin team mgmt + Pipeline custom etapas → MOVIDO a Phase 13/14/18 (Inmobiliaria entity ~30h) por foco real asesor empowerment.
+
+═══════════════════════════════════════════════════════════
+## ✅ Phase 3 Asesor 100% COMPLETO (2026-05-06)
+═══════════════════════════════════════════════════════════
+4 batches (~25h). 28 endpoints + 11 collections nuevas. Reuse máximo B11/B13/B14/B15/B22/B25/B26/B28/B29/B31. Zero deuda técnica.
 
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)

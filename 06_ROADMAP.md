@@ -28,7 +28,7 @@
 | Phase 1 Marketplace gaps | ✅ **100% COMPLETO** (B24+B25+B26+B27 vía PR #11) | ~33.5h |
 | Phase 2 Comprador | ✅ **100% COMPLETO** (B28+B29+B30 vía PR #12 + #13) | ~18.5h |
 | Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
-| Phase 3 Asesor remaining | 🟡 1/4 batches shipped (B31 ✅) · B32+B33+B34 pending | ~22h |
+| Phase 3 Asesor | ✅ **100% COMPLETO** (B31+B32+B33+B34 vía PR #14 + #15) | ~25h |
 | Phase 5 IE Engine completion | 🟡 pending | ~45h |
 | Phase 6 Studio Wave 1.5+2 | 🟡 pending | ~36h |
 | Phase 8 WhatsApp + Coms | 🟡 pending | ~15h |
