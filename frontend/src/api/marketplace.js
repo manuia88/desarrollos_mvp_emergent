@@ -103,7 +103,45 @@ export async function fetchBriefing(id) {
   return r.json();
 }
 
-// Favorites in localStorage
+// ─── Batch 24 — Map Intelligence ─────────────────────────────────────────────
+
+export async function fetchHeatmapLayer(layer = 'price', zoomLevel = 3, bbox = null) {
+  const qs = new URLSearchParams({ layer, zoom_level: zoomLevel });
+  if (bbox) qs.set('bbox', bbox);
+  const r = await fetch(`${API}/api/public/map/heatmap?${qs.toString()}`);
+  if (!r.ok) throw new Error('heatmap fetch failed');
+  return r.json();
+}
+
+export async function fetchMapLevels() {
+  const r = await fetch(`${API}/api/public/map/levels`);
+  if (!r.ok) throw new Error('map levels fetch failed');
+  return r.json();
+}
+
+export async function fetchColoniaFull(coloniaId) {
+  const r = await fetch(`${API}/api/public/map/colonia/${coloniaId}`);
+  if (!r.ok) throw new Error(`colonia ${coloniaId} fetch failed`);
+  return r.json();
+}
+
+export async function searchByImage(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const r = await fetch(`${API}/api/public/search/by-image`, {
+    method: 'POST',
+    body: form,
+  });
+  if (r.status === 429) throw new Error('Demasiadas solicitudes. Espera 1 minuto e intenta de nuevo.');
+  if (r.status === 413) throw new Error('Imagen demasiado grande. Máximo 5 MB.');
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body.detail || 'Error en búsqueda por imagen');
+  }
+  return r.json();
+}
+
+// ─── Favorites in localStorage
 const FAV_KEY = 'dmx.favorites';
 export function getFavorites() {
   try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; }

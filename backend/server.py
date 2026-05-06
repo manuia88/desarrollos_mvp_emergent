@@ -254,6 +254,12 @@ app.include_router(funnel_router)
 app.include_router(insights_router)
 app.include_router(copilot_router)
 
+# Phase 4 Batch 24 — Marketplace Map Intelligence + Image Search
+from routes_marketplace_map import router as marketplace_map_router
+from routes_marketplace_search import router as marketplace_search_router
+app.include_router(marketplace_map_router)
+app.include_router(marketplace_search_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()

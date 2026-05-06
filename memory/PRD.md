@@ -2082,7 +2082,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://latam-spatial.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://copilot-preview-10.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -3046,7 +3046,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://latam-spatial.preview.emergentagent.com
+https://copilot-preview-10.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
@@ -3461,3 +3461,50 @@ Auth: roles `developer_admin|developer_director|developer_member|inmobiliaria_ad
 
 ### Activación KeyboardHelpDialog (futuro B19)
 Importar `SHORTCUTS_REGISTRY` desde `useKeyboardShortcuts.js` y renderizar tabla con `Cmd+K` (búsqueda) + `Cmd+J` (Copilot). Sin tocar lógica del panel.
+
+
+## Phase 4 Batch 24 — Marketplace Map Intelligence
+**Completado: 2026-05-06 · 15/15 pytest passed · Claude Vision + Mapbox GL JS Heatmap**
+
+### Sub-A · Heatmap Precios + Demanda + Momentum + Zoom Progresivo Z1–Z4
+- **`routes_marketplace_map.py`** — 3 endpoints públicos (no auth)
+- `GET /api/public/map/heatmap?layer=price|demand|momentum&zoom_level=1|2|3|4` → GeoJSON FeatureCollection con features Point, weight normalizado 0–1, meta {value_min, value_max, zoom_unit}
+- `GET /api/public/map/levels` → config estática Z1–Z4 con breakpoints de zoom
+- Zoom granularidad: Z1=país(1 feature), Z2=zona metro(3 features), Z3=alcaldía(6 features), Z4=colonia(16 features)
+- `_parse_momentum(c)` maneja string "+8%" correctamente · price_m2 multiplicado ×1000 (data_seed en miles)
+- `MarketplaceHeatmapLayer.js` — Mapbox layer `heatmap` con color ramp indigo→rose, 3 toggles rounded-full (Precio/Demanda/Momentum), auto-switch zoomToLevel(), legend collapsible bottom-right con rango min-max
+
+### Sub-B · ColoniaSidebar con Climate Twin + Riesgos
+- **`services/colonia_intelligence.py`** `get_colonia_full(db, colonia_id)` — agrega data_seed + db.developments + db.engagement_events + db.ie_engine_scores
+- 16 climate twins estáticos (Polanco→Upper East Side, Roma Norte→Williamsburg, Condesa→Palermo Soho, etc.)
+- 16 risk mappings estáticos con flag `mock: True` (flood/seismic/theft/heat_stress 0–100)
+- `GET /api/public/map/colonia/{colonia_id}` → {colonia, scores, projects_count, avg_price_m2, momentum, demand_heat_30d, climate_twin, risks}
+- `ColoniaSidebar.js` — slide-in 380px desktop / fullscreen mobile, 5 secciones: header + Mercado + Scores IE + Climate Twin + Riesgos + CTA gradient
+
+### Sub-C · Búsqueda por Imagen (foto → similar)
+- **`services/image_search.py`** — Claude Vision vía emergentintegrations FileContent(base64) para descripción visual; TF-IDF cosine similarity para matching texto; fallback_search sobre DEVELOPMENTS estáticos
+- **`routes_marketplace_search.py`** — `POST /api/public/search/by-image` multipart, max 5MB, rate limit 10/min por IP_hash (in-memory deque), fallback graceful si Claude falla
+- Cron nightly `nightly_embed_assets(db)` estructura para pre-computar embeddings de dev_assets
+- `ImageSearchModal.js` — modal backdrop-blur, drag-drop + click-to-upload, preview, spinner, grid 3col desktop/2col mobile, badge similitud, empty state
+
+### Cambios en Marketplace.js
+- View toggle Lista|Mapa (rounded-full, gradient activo)
+- Botón "Buscar por foto" con icono Camera
+- Map view: Mapbox fullheight con MarketplaceHeatmapLayer + ColoniaSidebar
+- Filtro por colonia desde CTA sidebar → vuelve a lista con colonia aplicada
+
+### Archivos creados
+- `/app/backend/routes_marketplace_map.py`
+- `/app/backend/routes_marketplace_search.py`
+- `/app/backend/services/colonia_intelligence.py`
+- `/app/backend/services/image_search.py`
+- `/app/backend/tests/test_batch24.py`
+- `/app/frontend/src/components/marketplace/MarketplaceHeatmapLayer.js`
+- `/app/frontend/src/components/marketplace/ColoniaSidebar.js`
+- `/app/frontend/src/components/marketplace/ImageSearchModal.js`
+
+### Archivos modificados
+- `/app/backend/server.py` (+ marketplace_map_router + marketplace_search_router)
+- `/app/frontend/src/api/marketplace.js` (+ fetchHeatmapLayer, fetchMapLevels, fetchColoniaFull, searchByImage)
+- `/app/frontend/src/pages/Marketplace.js` (+ map view, view toggle, image search trigger)
+- `/app/frontend/src/i18n/locales/es-MX/common.json` (+ namespace `marketplace.*`)
