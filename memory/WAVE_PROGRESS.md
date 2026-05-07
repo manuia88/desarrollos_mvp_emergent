@@ -1,8 +1,8 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-07 (Wave 1 ✅ CERRADA)
-**Total H1 restante**: ~556h (de ~606h originales)
-**Shipped to date**: ~330h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 completa (~50h)
+**Última actualización**: 2026-05-07 (Wave 2 49h / 120h · 41%)
+**Total H1 restante**: ~507h (de ~606h originales)
+**Shipped to date**: ~379h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 completa (~50h) + W2.1-W2.4 (~49h)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -32,7 +32,7 @@ Formato canónico per-batch (founder request):
 | Wave | Foco | Estimado | Shipped | % | Status |
 |---|---|---|---|---|---|
 | **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 + ZZ.1.1 | 50h | 37.5h | 100% | ✅ CERRADA |
-| **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 0h | 0% | 🟡 NEXT |
+| **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 49h | 41% | 🟡 EN CURSO |
 | **Wave 3** — Authority + Verticals | ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 | 140h | 0h | 0% | ⏳ pending |
 | **Wave 4** — Phase Y Agentic + Polish | Phase Y + 6/8/10/11/19/20 + F0 + CC | 296h | 0h | 0% | ⏳ pending |
 
@@ -67,22 +67,27 @@ Formato canónico per-batch (founder request):
 
 ---
 
-## 🟡 Wave 2 — Commercial + Intelligence Hub (~120h) — NEXT
+## 🟡 Wave 2 — Commercial + Intelligence Hub (~120h) — EN CURSO
 
 **Objetivo**: monetización + dashboard ejecutivo cross-org.
 
-| # | Batch | h | Status |
-|---|---|---|---|
-| W2.1 | SA2 Data Sources Hub | 10 | ⏳ |
-| W2.2 | SA3 Audit Log Viewer | 8 | ⏳ |
-| W2.3 | SA4 AI Cost Observatory | 12 | ⏳ |
-| W2.4 | SA5 Commercial Foundation (incl. SA5.0 Plan tiers + GHL snapshots) | 19 | ⏳ |
-| W2.5 | SA6 Granular Metrics Cube UI | 15 | ⏳ |
-| W2.6 | SA8 Founder Console | 14 | ⏳ |
-| W2.7 | Phase Z.0 Data Lake + Warehouse Foundation | 10 | ⏳ |
-| W2.8 | Phase Z.1 Consolidated Metrics Cube | 12 | ⏳ |
-| W2.9 | Phase Z.2 Superadmin Intelligence Hub UI | 12 | ⏳ |
-| Buffer | — | 8 | ⏳ |
+| # | Batch | h est. | h real | Quién | Status | SHA | Notas |
+|---|---|---|---|---|---|---|---|
+| W2.1 | SA2 Data Sources Hub | 10 | 10 | emergent | ✅ | merge `cb7a530` | 11 connectors + healthcheck cada 10min + retry/replay + audit |
+| W2.2 | SA3 Audit Log Viewer | 8 | 8 | emergent | ✅ | merge `cb7a530` | 7 endpoints + BeforeAfterDiff + bulk_ingest enrichment (cierra W1.5 deferred) |
+| W2.3 | SA4 AI Cost Observatory | 12 | 12 | emergent | ✅ | merge `cb7a530` | 9 endpoints + dual-write ai_call_events + caps hard_block + sparkline + donut |
+| W2.4 | SA5 Commercial Foundation | 19 | 19 | emergent | ✅ | merge `cb7a530` | feature flags + plan templates + trial cron + GHL snapshots + UpgradeTeaser + cierra W2.3 deferred |
+| **W2.5** | **SA6 Granular Metrics Cube UI** | **15** | — | emergent | ⏳ NEXT | — | Vista nano→macro con drill-down + Mapbox heatmap + comparables |
+| W2.6 | SA8 Founder Console | 14 | — | emergent | ⏳ | — | Cmd+K extended + KPIs ejecutivos + alertas anomalías |
+| W2.7 | Phase Z.0 Data Lake + Warehouse | 10 | — | emergent | ⏳ | — | Time-series store + ETL diaria + geo indexing AGEB |
+| W2.8 | Phase Z.1 Consolidated Metrics Cube | 12 | — | emergent | ⏳ | — | OLAP aggregations + materialized views + Redis cache |
+| W2.9 | Phase Z.2 Intelligence Hub UI | 12 | — | emergent | ⏳ | — | Dashboard ejecutivo cross-org + heatmaps + comparables matrix |
+| W2.10 | Polish + Smoke + push consolidado | 6 | — | Claude Code | ⏳ | — | Pytest E2E + permission audit + docs closure |
+| Buffer | Imprevistos | 2 | — | mixto | ⏳ | — | — |
+
+**Acumulado Wave 2**: 49h / 120h (41%)
+**Por Claude Code**: 0h shipped (+ 6h pending W2.10)
+**Por emergent**: 49h shipped (+ 63h pending W2.5-W2.9)
 
 ---
 

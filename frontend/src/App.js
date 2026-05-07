@@ -133,6 +133,8 @@ const SuperadminDataSourcesHub       = lazy(() => import('./pages/superadmin/Sup
 const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/SuperadminAuditLog'));
 // W2.3 SA4 — AI Cost Observatory
 const SuperadminAiCost               = lazy(() => import('./pages/superadmin/SuperadminAiCost'));
+// W2.4 SA5 — Commercial Foundation (feature flags + plan templates + GHL snapshots)
+const SuperadminCommercial           = lazy(() => import('./pages/superadmin/SuperadminCommercial'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -473,6 +475,7 @@ function AppRouter() {
       <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={SuperadminAuditLog} />} />
       <Route path="/superadmin/audit-log-legacy" element={<AdvisorRoute Page={AuditLogPage} />} />
       <Route path="/superadmin/ai-cost" element={<AdvisorRoute Page={SuperadminAiCost} />} />
+      <Route path="/superadmin/commercial" element={<AdvisorRoute Page={SuperadminCommercial} />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
