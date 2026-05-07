@@ -1,6 +1,9 @@
-// W1.4 ZZ.1 — ReviewQueueItem
-import React, { useState } from 'react';
-import { Check, X, GitMerge, MapPin, Layers, AlertTriangle } from 'lucide-react';
+// W1.4 ZZ.1 + W1.5 ZZ.1.1 — ReviewQueueItem
+import React, { useState, useMemo } from 'react';
+import { Check, X, GitMerge, MapPin, Layers, AlertTriangle, RefreshCw, History } from 'lucide-react';
+import InlineEditableField from './InlineEditableField';
+import MergeDiffVisualizer from './MergeDiffVisualizer';
+import { patchItem, recomputeExtraction } from '../../api/superadminBulkIngest';
 
 function fmtMxn(n) {
   if (!n) return null;
@@ -9,20 +12,51 @@ function fmtMxn(n) {
   return `$${n}`;
 }
 
-export default function ReviewQueueItem({ item, onApprove, onReject, onMerge }) {
+// Compute effective extracted on the client (mirrors backend.effective_extracted)
+function computeEffective(item) {
+  const base = { ...(item.extracted || {}) };
+  for (const ov of (item.extracted_overrides || [])) {
+    const patch = ov.patch || {};
+    for (const [k, v] of Object.entries(patch)) {
+      if (k === 'price_range' && v && typeof v === 'object') {
+        base.price_range = { ...(base.price_range || {}), ...v };
+      } else if (k === 'units' && Array.isArray(v)) {
+        base.units = v;
+      } else {
+        base[k] = v;
+      }
+    }
+  }
+  return base;
+}
+
+export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, onMerge }) {
+  const [item, setItem] = useState(itemProp);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [reason, setReason] = useState('');
-  const [showMerge, setShowMerge] = useState(false);
+  const [showDiff, setShowDiff] = useState(false);
+  const [recomputing, setRecomputing] = useState(false);
+  const [toast, setToast] = useState('');
 
-  const e = item.extracted || {};
+  React.useEffect(() => { setItem(itemProp); }, [itemProp]);
+  React.useEffect(() => { if (toast) { const t = setTimeout(() => setToast(''), 2500); return () => clearTimeout(t); } }, [toast]);
+
+  const e = useMemo(() => computeEffective(item), [item]);
   const dedup = item.dedup || {};
   const matches = dedup.similar_matches || [];
-  const score = dedup.score;
   const lowConf = e._low_confidence || e._stub;
   const priceMin = fmtMxn(e?.price_range?.min_mxn);
   const priceMax = fmtMxn(e?.price_range?.max_mxn);
+  const overrideCount = (item.extracted_overrides || []).length;
+  const historyCount = (item.extraction_history || []).length;
+
+  const savePatch = async (patch) => {
+    const r = await patchItem(item.id, patch);
+    if (r && r.item) setItem(r.item);
+    setToast('Guardado');
+  };
 
   const doApprove = async () => { setBusy(true); try { await onApprove(item.id); } finally { setBusy(false); } };
   const doReject = async () => {
@@ -31,10 +65,18 @@ export default function ReviewQueueItem({ item, onApprove, onReject, onMerge }) 
     try { await onReject(item.id, reason); setShowReject(false); setReason(''); }
     finally { setBusy(false); }
   };
-  const doMerge = async (devId) => {
-    setBusy(true);
-    try { await onMerge(item.id, devId); setShowMerge(false); }
-    finally { setBusy(false); }
+  const doRecompute = async () => {
+    if (!window.confirm('¿Re-ejecutar Claude sobre los archivos? Esto preserva el histórico y descarta tus ediciones inline.')) return;
+    setRecomputing(true);
+    try {
+      const r = await recomputeExtraction(item.id);
+      if (r && r.item) setItem(r.item);
+      setToast('Extracción re-computada');
+    } catch (err) {
+      setToast(err.message || 'Error al recomputar');
+    } finally {
+      setRecomputing(false);
+    }
   };
 
   return (
@@ -45,43 +87,94 @@ export default function ReviewQueueItem({ item, onApprove, onReject, onMerge }) 
         border: `1px solid ${lowConf ? 'rgba(250,204,21,0.30)' : 'rgba(255,255,255,0.07)'}`,
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
+      {toast && (
+        <div data-testid={`review-toast-${item.id}`} style={{ alignSelf: 'flex-end', padding: '4px 10px', borderRadius: 9999, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.30)', color: '#4ADE80', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700 }}>
+          {toast}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 3 }}>
-            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14.5, color: 'var(--cream)' }}>
-              {e.project_name || item.project_folder_name || 'Sin nombre'}
-            </span>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 4 }}>
+            <InlineEditableField
+              testId={`field-name-${item.id}`}
+              value={e.project_name}
+              onSave={(v) => savePatch({ project_name: v })}
+              placeholder={item.project_folder_name || 'Sin nombre'}
+            />
             {lowConf && (
               <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(250,204,21,0.10)', color: '#FACC15', border: '1px solid rgba(250,204,21,0.32)', fontFamily: 'DM Sans', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <AlertTriangle size={9} /> Baja conf.
               </span>
             )}
+            {overrideCount > 0 && (
+              <span title={`${overrideCount} ediciones inline aplicadas`} style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(99,102,241,0.10)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.32)', fontFamily: 'DM Sans', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <Check size={9} /> Editado ({overrideCount})
+              </span>
+            )}
+            {historyCount > 0 && (
+              <span title={`${historyCount} extracciones previas`} style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(236,72,153,0.10)', color: '#EC4899', border: '1px solid rgba(236,72,153,0.32)', fontFamily: 'DM Sans', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <History size={9} /> Recomputado ({historyCount})
+              </span>
+            )}
           </div>
-          {e.address_full && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-              <MapPin size={10} color="rgba(240,235,224,0.40)" />
-              <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)' }}>{e.address_full}</span>
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 10, fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.55)', flexWrap: 'wrap' }}>
-            <span><Layers size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />{(e.units || []).length} prototipos · {e.total_units || 0} unidades</span>
-            {(priceMin || priceMax) && <span>{priceMin || '—'} — {priceMax || '—'}</span>}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <MapPin size={10} color="rgba(240,235,224,0.40)" />
+            <InlineEditableField
+              testId={`field-address-${item.id}`}
+              value={e.address_full}
+              onSave={(v) => savePatch({ address_full: v })}
+              placeholder="Sin dirección"
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.55)', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Layers size={10} />
+              {(e.units || []).length} prototipos · 
+              <InlineEditableField
+                testId={`field-total-${item.id}`}
+                value={e.total_units || 0}
+                onSave={(v) => savePatch({ total_units: v == null ? 0 : Number(v) })}
+                type="number" mono
+              /> unidades
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <InlineEditableField
+                testId={`field-pmin-${item.id}`}
+                value={e?.price_range?.min_mxn ?? null}
+                onSave={(v) => savePatch({ price_range: { min_mxn: v == null ? null : Number(v) } })}
+                type="number" mono placeholder="—"
+              />
+              <span>—</span>
+              <InlineEditableField
+                testId={`field-pmax-${item.id}`}
+                value={e?.price_range?.max_mxn ?? null}
+                onSave={(v) => savePatch({ price_range: { max_mxn: v == null ? null : Number(v) } })}
+                type="number" mono placeholder="—"
+              />
+            </span>
+            {(priceMin || priceMax) && <span style={{ color: 'rgba(240,235,224,0.40)' }}>· {priceMin || '—'} a {priceMax || '—'}</span>}
             {(e.amenities || []).length > 0 && <span>{e.amenities.length} amenidades</span>}
             <span style={{ color: 'rgba(240,235,224,0.40)' }}>· {item.source_files?.length || 0} archivos</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button data-testid={`review-recompute-${item.id}`} onClick={doRecompute} disabled={recomputing || busy} title="Re-extraer con Claude"
+            style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.32)', color: '#EC4899', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: recomputing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: recomputing ? 0.7 : 1 }}>
+            <RefreshCw size={11} className={recomputing ? 'animate-spin' : ''} /> {recomputing ? 'Procesando…' : 'Re-extraer'}
+          </button>
           <button data-testid={`review-approve-${item.id}`} onClick={doApprove} disabled={busy}
             style={{ padding: '7px 13px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: busy ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: busy ? 0.7 : 1 }}>
             <Check size={11} /> Aprobar
           </button>
-          {matches.length > 0 && (
-            <button data-testid={`review-merge-${item.id}`} onClick={() => setShowMerge(s => !s)}
-              style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.32)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <GitMerge size={11} /> Fusionar
-            </button>
-          )}
+          <button data-testid={`review-merge-${item.id}`} onClick={() => setShowDiff(s => !s)}
+            style={{ padding: '7px 12px', borderRadius: 9999, background: showDiff ? 'rgba(99,102,241,0.20)' : 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.32)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <GitMerge size={11} /> {showDiff ? 'Cerrar diff' : 'Comparar / Fusionar'}
+          </button>
           <button data-testid={`review-reject-${item.id}`} onClick={() => setShowReject(s => !s)}
             style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.28)', color: '#F87171', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
             <X size={11} /> Rechazar
@@ -89,8 +182,8 @@ export default function ReviewQueueItem({ item, onApprove, onReject, onMerge }) 
         </div>
       </div>
 
-      {/* Dedup matches */}
-      {matches.length > 0 && (
+      {/* Dedup matches summary */}
+      {matches.length > 0 && !showDiff && (
         <div style={{ padding: '8px 11px', borderRadius: 9, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.20)' }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
             Posibles coincidencias (top {matches.length})
@@ -102,22 +195,32 @@ export default function ReviewQueueItem({ item, onApprove, onReject, onMerge }) 
                 <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: m.score >= 0.85 ? 'rgba(74,222,128,0.10)' : 'rgba(250,204,21,0.10)', color: m.score >= 0.85 ? '#4ADE80' : '#FACC15', fontFamily: 'DM Mono, monospace', fontWeight: 700 }}>
                   {(m.score * 100).toFixed(0)}%
                 </span>
-                {showMerge && (
-                  <button onClick={() => doMerge(m.dev_id)} disabled={busy} data-testid={`merge-${item.id}-${m.dev_id}`}
-                    style={{ padding: '4px 9px', borderRadius: 9999, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.40)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10.5, cursor: busy ? 'wait' : 'pointer' }}>
-                    Usar
-                  </button>
-                )}
               </div>
             ))}
           </div>
         </div>
       )}
 
+      {/* Diff visualizer (W1.5) */}
+      {showDiff && (
+        <MergeDiffVisualizer
+          itemId={item.id}
+          candidates={matches}
+          defaultTargetDevId={dedup.best_match_dev_id || (matches[0] && matches[0].dev_id)}
+          onClose={() => setShowDiff(false)}
+          onMerged={async (info) => {
+            setShowDiff(false);
+            setToast(info.mode.startsWith('force') ? 'Forzado aplicado' : `Fusionado en ${info.target}`);
+            // Notify parent so it refreshes the queue
+            if (onMerge) await onMerge(item.id, info.target);
+          }}
+        />
+      )}
+
       {/* Reject reason */}
       {showReject && (
         <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-          <input data-testid={`reject-reason-${item.id}`} value={reason} onChange={e => setReason(e.target.value)}
+          <input data-testid={`reject-reason-${item.id}`} value={reason} onChange={ev => setReason(ev.target.value)}
             placeholder="Motivo del rechazo (mín 3 chars)…" maxLength={500}
             style={{ flex: 1, padding: '7px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none' }} />
           <button onClick={doReject} disabled={busy || reason.trim().length < 3} data-testid={`reject-confirm-${item.id}`}

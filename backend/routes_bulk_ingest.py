@@ -54,6 +54,15 @@ class MergeBody(BaseModel):
     target_dev_id: str
 
 
+class PatchItemBody(BaseModel):
+    patch: Dict[str, Any]
+
+
+class ForceMatchBody(BaseModel):
+    target_dev_id: str
+    mode: Literal["merge", "approve_as_new"] = "merge"
+
+
 # ─── 1) POST /start ───────────────────────────────────────────────────────────
 
 @router.post(PREFIX + "/start")
@@ -300,6 +309,129 @@ async def bulk_approve(
     except Exception:
         pass
     return {"approved_count": approved, "skipped_count": skipped}
+
+
+# ─── W1.5 — Inline edit / Diff / Recompute / Force-match ──────────────────────
+
+@router.patch(PREFIX + "/items/{item_id}")
+async def patch_item(item_id: str, body: PatchItemBody, request: Request):
+    user = await _require_superadmin(request)
+    db = _db(request)
+    item = await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Item no encontrado")
+    if item.get("decision") in {"approved", "merged", "rejected"}:
+        raise HTTPException(409, f"Item ya está en estado {item['decision']}, no editable")
+    try:
+        updated = await bie.apply_inline_patch(db, item_id, body.patch, user.user_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "patch", "bulk_ingest_item", item_id,
+                           before=None, after={"patch": body.patch}, request=request)
+    except Exception:
+        pass
+    return {"ok": True, "item": updated, "effective_extracted": bie.effective_extracted(updated)}
+
+
+@router.get(PREFIX + "/items/{item_id}/diff")
+async def get_item_diff(item_id: str, request: Request, target_dev_id: Optional[str] = Query(None)):
+    await _require_superadmin(request)
+    db = _db(request)
+    item = await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Item no encontrado")
+    # Default target = best_match_dev_id from dedup
+    target = target_dev_id or (item.get("dedup") or {}).get("best_match_dev_id")
+    if not target:
+        raise HTTPException(400, "Sin target_dev_id (ni explícito ni en dedup.best_match_dev_id)")
+    try:
+        diff = await bie.build_diff(db, item, target)
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+    return diff
+
+
+@router.post(PREFIX + "/items/{item_id}/recompute-extraction")
+async def recompute_extraction(item_id: str, request: Request):
+    user = await _require_superadmin(request)
+    db = _db(request)
+    item = await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Item no encontrado")
+    if item.get("decision") in {"approved", "merged"}:
+        raise HTTPException(409, f"Item en estado {item['decision']}, no recomputable")
+    if not (item.get("source_files") or []):
+        raise HTTPException(400, "Item sin archivos fuente")
+    try:
+        updated = await bie.recompute_item_extraction(db, item)
+    except RuntimeError as e:
+        raise HTTPException(409, str(e)) from e
+    except Exception as e:
+        raise HTTPException(500, f"Error al recomputar: {e}") from e
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "recompute", "bulk_ingest_item", item_id,
+                           before=None, after={"history_count": len(updated.get("extraction_history") or [])},
+                           request=request)
+    except Exception:
+        pass
+    return {"ok": True, "item": updated}
+
+
+@router.post(PREFIX + "/items/{item_id}/force-match")
+async def force_match(item_id: str, body: ForceMatchBody, request: Request):
+    user = await _require_superadmin(request)
+    db = _db(request)
+    item = await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Item no encontrado")
+    if item.get("decision") in {"approved", "merged", "rejected"}:
+        raise HTTPException(409, f"Item ya en estado {item['decision']}")
+
+    target = await db.developments.find_one({"id": body.target_dev_id}, {"_id": 0, "id": 1, "name": 1})
+    if not target:
+        raise HTTPException(404, "Development destino no encontrado")
+
+    if body.mode == "merge":
+        try:
+            await bie.merge_into_dev(db, item, body.target_dev_id)
+        except Exception as e:
+            raise HTTPException(500, f"Error al fusionar: {e}") from e
+        new_decision = "merged"
+        inserted = body.target_dev_id
+    else:  # approve_as_new
+        try:
+            inserted = await bie.insert_extracted_project(db, item)
+        except Exception as e:
+            raise HTTPException(500, f"Error al insertar: {e}") from e
+        new_decision = "approved"
+
+    now = _now_iso()
+    await db.bulk_ingest_items.update_one(
+        {"id": item_id},
+        {"$set": {
+            "decision": new_decision,
+            "inserted_dev_id": inserted,
+            "reviewer_user_id": user.user_id,
+            "decision_at": now,
+            "force_matched": True,
+            "force_match_target_dev_id": body.target_dev_id,
+        }},
+    )
+    await db.bulk_ingest_jobs.update_one(
+        {"id": item["job_id"]},
+        {"$inc": {"items_auto_approved": 1, "items_pending_review": -1}},
+    )
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, "force_match", "bulk_ingest_item", item_id,
+                           before=None, after={"target": body.target_dev_id, "mode": body.mode},
+                           request=request)
+    except Exception:
+        pass
+    return {"ok": True, "decision": new_decision, "inserted_dev_id": inserted, "target_name": target.get("name")}
 
 
 # ─── KPI endpoint (used by frontend strip) ────────────────────────────────────

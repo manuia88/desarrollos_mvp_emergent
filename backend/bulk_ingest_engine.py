@@ -277,7 +277,7 @@ async def find_dedup_matches(db, extracted: Dict[str, Any], target_dev_org_id: O
 
 async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
     """Inserts new dev. Returns dev_id."""
-    extracted = item.get("extracted") or {}
+    extracted = effective_extracted(item)
     dev_id = f"dev_{secrets.token_urlsafe(10)}"
     now = _iso()
     target_org = item.get("target_dev_org_id") or "superadmin_global"
@@ -338,7 +338,7 @@ async def insert_extracted_project(db, item: Dict[str, Any]) -> str:
 
 async def merge_into_dev(db, item: Dict[str, Any], target_dev_id: str) -> None:
     """UPSERT units (no duplicate unit_number) + APPEND assets."""
-    extracted = item.get("extracted") or {}
+    extracted = effective_extracted(item)
     now = _iso()
     for u in (extracted.get("units") or []):
         unit_no = u.get("unit_number")
@@ -573,6 +573,207 @@ async def run(db, job_id: str) -> None:
     fresh = await db.bulk_ingest_jobs.find_one({"id": job_id}, {"_id": 0})
     if fresh:
         await _email_completion(fresh)
+
+
+# ─── W1.5 — Inline edits, diff, recompute, force-match ────────────────────────
+
+# Whitelisted top-level fields editable via PATCH
+EDITABLE_TOP_LEVEL = {
+    "project_name", "address_full", "lat", "lng",
+    "total_units", "amenities",
+}
+# Editable nested keys
+EDITABLE_PRICE_RANGE = {"min_mxn", "max_mxn"}
+EDITABLE_UNIT_KEYS = {"unit_number", "type", "bedrooms", "bathrooms", "size_m2", "price_mxn"}
+
+
+def effective_extracted(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Return extracted dict with overrides applied (last-write-wins per field)."""
+    base = dict(item.get("extracted") or {})
+    for ov in item.get("extracted_overrides") or []:
+        patch = ov.get("patch") or {}
+        for k, v in patch.items():
+            if k == "price_range" and isinstance(v, dict):
+                pr = dict(base.get("price_range") or {})
+                pr.update(v)
+                base["price_range"] = pr
+            elif k == "units" and isinstance(v, list):
+                # Replace whole units array (full replacement semantics for simplicity)
+                base["units"] = v
+            else:
+                base[k] = v
+    return base
+
+
+def _validate_patch(patch: Dict[str, Any]) -> Optional[str]:
+    """Return error string if invalid, None if valid."""
+    if not isinstance(patch, dict) or not patch:
+        return "Patch vacío"
+    for k, v in patch.items():
+        if k == "price_range":
+            if not isinstance(v, dict):
+                return "price_range debe ser objeto"
+            for pk in v.keys():
+                if pk not in EDITABLE_PRICE_RANGE:
+                    return f"price_range.{pk} no editable"
+        elif k == "units":
+            if not isinstance(v, list):
+                return "units debe ser lista"
+            for u in v:
+                if not isinstance(u, dict):
+                    return "Cada unit debe ser objeto"
+                for uk in u.keys():
+                    if uk not in EDITABLE_UNIT_KEYS:
+                        return f"units.{uk} no editable"
+        elif k not in EDITABLE_TOP_LEVEL:
+            return f"Campo {k} no editable"
+        else:
+            # Type checks for top-level
+            if k in {"lat", "lng"} and v is not None and not isinstance(v, (int, float)):
+                return f"{k} debe ser numérico o null"
+            if k == "total_units" and v is not None and not isinstance(v, int):
+                return "total_units debe ser entero"
+            if k == "amenities" and not isinstance(v, list):
+                return "amenities debe ser lista"
+            if k in {"project_name", "address_full"} and v is not None and not isinstance(v, str):
+                return f"{k} debe ser string"
+    return None
+
+
+async def apply_inline_patch(db, item_id: str, patch: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+    """Append override entry to extracted_overrides and return updated item."""
+    err = _validate_patch(patch)
+    if err:
+        raise ValueError(err)
+    override = {
+        "patch": patch,
+        "user_id": user_id,
+        "ts": _iso(),
+    }
+    await db.bulk_ingest_items.update_one(
+        {"id": item_id},
+        {"$push": {"extracted_overrides": override}, "$set": {"updated_at": _iso()}},
+    )
+    return await db.bulk_ingest_items.find_one({"id": item_id}, {"_id": 0})
+
+
+async def build_diff(db, item: Dict[str, Any], target_dev_id: str) -> Dict[str, Any]:
+    """Build side-by-side diff between item's effective extracted and target dev."""
+    target = await db.developments.find_one({"id": target_dev_id}, {"_id": 0})
+    if not target:
+        raise ValueError("Development destino no encontrado")
+    eff = effective_extracted(item)
+
+    # Target units sourced from collection
+    target_units_cursor = db.units.find(
+        {"development_id": target_dev_id}, {"_id": 0},
+    ).limit(200)
+    target_units = [u async for u in target_units_cursor]
+    target_units_by_no = {u.get("unit_number"): u for u in target_units}
+
+    pr = eff.get("price_range") or {}
+
+    fields = [
+        ("project_name", "Nombre", eff.get("project_name"), target.get("name")),
+        ("address_full", "Dirección", eff.get("address_full"), target.get("address")),
+        ("lat", "Latitud", eff.get("lat"), target.get("lat")),
+        ("lng", "Longitud", eff.get("lng"), target.get("lng")),
+        ("total_units", "Total unidades", eff.get("total_units"), target.get("total_units")),
+        ("price_min_mxn", "Precio mínimo", pr.get("min_mxn"), target.get("price_min_mxn")),
+        ("price_max_mxn", "Precio máximo", pr.get("max_mxn"), target.get("price_max_mxn")),
+        ("amenities", "Amenidades", eff.get("amenities") or [], target.get("amenities") or []),
+    ]
+    field_diffs = []
+    for key, label, src, dst in fields:
+        same = src == dst
+        field_diffs.append({
+            "key": key, "label": label,
+            "ingest": src, "target": dst,
+            "status": "same" if same else ("missing_target" if dst in (None, "", [], 0) and src not in (None, "", [], 0) else
+                                            ("missing_ingest" if src in (None, "", [], 0) and dst not in (None, "", [], 0) else "diff")),
+        })
+
+    # Units diff by unit_number
+    unit_diffs = []
+    for u in (eff.get("units") or []):
+        un = u.get("unit_number")
+        match = target_units_by_no.get(un) if un else None
+        unit_diffs.append({
+            "unit_number": un,
+            "ingest": u,
+            "target": match,
+            "status": "same" if (match and all(match.get(k) == u.get(k) for k in ["type", "bedrooms", "bathrooms", "size_m2", "price_mxn"])) else
+                      ("new" if not match else "diff"),
+        })
+    # Existing target-only units
+    ingest_unit_nos = {u.get("unit_number") for u in (eff.get("units") or [])}
+    for un, tu in target_units_by_no.items():
+        if un not in ingest_unit_nos:
+            unit_diffs.append({
+                "unit_number": un, "ingest": None, "target": tu, "status": "target_only",
+            })
+
+    return {
+        "item_id": item.get("id"),
+        "target_dev_id": target_dev_id,
+        "target_name": target.get("name"),
+        "fields": field_diffs,
+        "units": unit_diffs,
+        "summary": {
+            "total_fields": len(field_diffs),
+            "fields_diff": sum(1 for f in field_diffs if f["status"] == "diff"),
+            "fields_same": sum(1 for f in field_diffs if f["status"] == "same"),
+            "units_new": sum(1 for u in unit_diffs if u["status"] == "new"),
+            "units_diff": sum(1 for u in unit_diffs if u["status"] == "diff"),
+            "units_target_only": sum(1 for u in unit_diffs if u["status"] == "target_only"),
+        },
+    }
+
+
+async def recompute_item_extraction(db, item: Dict[str, Any]) -> Dict[str, Any]:
+    """Re-download files + re-run Claude. Push old version into extraction_history."""
+    target_org = item.get("target_dev_org_id")
+    conn = await _resolve_drive_conn(db, target_org)
+    if not conn:
+        raise RuntimeError("Sin conexión Drive activa")
+
+    payloads: List[Tuple[bytes, str, str]] = []
+    for f in (item.get("source_files") or [])[:MAX_KEY_FILES_PER_PROJECT + 1]:
+        try:
+            data, eff_mime = await _download_file_bytes(conn, f.get("file_id"), f.get("mime") or "")
+            payloads.append((data, eff_mime, f.get("name") or ""))
+        except Exception as e:
+            log.warning(f"[recompute] download failed {f.get('file_id')}: {e}")
+
+    project_name_hint = item.get("project_folder_name") or (item.get("extracted") or {}).get("project_name") or "Proyecto"
+    new_extracted, cost_mxn = await extract_bulk_project(project_name_hint, payloads)
+
+    history_entry = {
+        "extracted": item.get("extracted") or {},
+        "ts": _iso(),
+        "ai_cost_mxn": item.get("ai_cost_mxn") or 0.0,
+    }
+    # Re-run dedup against new extraction
+    try:
+        new_dedup = await find_dedup_matches(db, new_extracted, target_org)
+    except Exception:
+        new_dedup = item.get("dedup") or {"best_match_dev_id": None, "score": None, "similar_matches": []}
+
+    await db.bulk_ingest_items.update_one(
+        {"id": item["id"]},
+        {
+            "$push": {"extraction_history": history_entry},
+            "$set": {
+                "extracted": new_extracted,
+                "dedup": new_dedup,
+                "ai_cost_mxn": (item.get("ai_cost_mxn") or 0.0) + cost_mxn,
+                "extracted_overrides": [],  # reset overrides since base changed
+                "recomputed_at": _iso(),
+                "updated_at": _iso(),
+            },
+        },
+    )
+    return await db.bulk_ingest_items.find_one({"id": item["id"]}, {"_id": 0})
 
 
 async def ensure_bulk_ingest_indexes(db) -> None:

@@ -1,6 +1,38 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W1.5 — ZZ.1.1 Ingestion Quality + Dedup Engine (2026-05-07)
+
+### Backend (`bulk_ingest_engine.py` + `routes_bulk_ingest.py`)
+- **NEW** `effective_extracted(item)` — applica `extracted_overrides[]` sobre `extracted` (last-write-wins por campo, deep merge para `price_range`, replace para `units`).
+- **NEW** `apply_inline_patch(db, item_id, patch, user_id)` — append override entry `{patch, user_id, ts}`; whitelist de campos editables (`project_name`, `address_full`, `lat`, `lng`, `total_units`, `amenities`, `price_range.{min,max}_mxn`, `units[].{unit_number,type,bedrooms,bathrooms,size_m2,price_mxn}`).
+- **NEW** `build_diff(db, item, target_dev_id)` — comparativa side-by-side entre effective extracted y target development (incluye unidades cargadas desde `db.units`); statuses por campo: `same | diff | missing_target | missing_ingest`; statuses por unidad: `same | diff | new | target_only`; summary con conteos.
+- **NEW** `recompute_item_extraction(db, item)` — re-descarga archivos Drive + re-ejecuta Claude Haiku, push antiguo a `extraction_history[]`, resetea `extracted_overrides[]` (base cambia), re-corre dedup.
+- `insert_extracted_project` y `merge_into_dev` ahora usan `effective_extracted(item)` para que las ediciones inline se apliquen al persistir.
+- **4 endpoints nuevos**:
+  - `PATCH /api/superadmin/bulk-ingest/items/{id}` — inline patch validado; 409 si item ya `approved/merged/rejected`; retorna `effective_extracted` actualizado.
+  - `GET /api/superadmin/bulk-ingest/items/{id}/diff?target_dev_id=` — diff JSON; default = `dedup.best_match_dev_id`.
+  - `POST /api/superadmin/bulk-ingest/items/{id}/recompute-extraction` — re-extrae con Claude; 409 si sin Drive; preserva histórico.
+  - `POST /api/superadmin/bulk-ingest/items/{id}/force-match` — body `{target_dev_id, mode: merge|approve_as_new}`; permite forzar match aunque score < 0.50.
+- Audit log entries para cada operación (`patch`, `recompute`, `force_match`).
+
+### Frontend
+- **NEW** `components/superadmin/InlineEditableField.js` — click-to-edit, Enter guarda, Esc cancela; soporte text/number/textarea; parser custom; estados busy/error.
+- **NEW** `components/superadmin/MergeDiffVisualizer.js` — panel side-by-side con grid `Campo | Ingesta → Destino | Estado`; chips de candidatos del dedup; toggle "Forzar por ID" para introducir dev_id arbitrario; botones "Fusionar" (estilo gradient) y "Forzar fusión / Aprobar como nuevo" cuando se fuerza.
+- **REWRITE** `ReviewQueueItem.js` — campos de cabecera ahora editables inline (nombre, dirección, total unidades, price min/max); muestra contador de overrides + recomputaciones; botón "Re-extraer" con confirmación (descarta overrides); botón "Comparar / Fusionar" abre `MergeDiffVisualizer`; toast in-component.
+- **API client** `superadminBulkIngest.js` — agrega `patchItem`, `getItemDiff`, `recomputeExtraction`, `forceMatch`.
+
+### Manual tests passed (curl + python fixture)
+- ✅ PATCH inline (project_name, lat) — overrides creciendo a 1
+- ✅ PATCH validation rechaza `hacked_field` con 400
+- ✅ PATCH `price_range.min_mxn` deep-merged correctamente
+- ✅ GET diff resuelve target via `dedup.best_match_dev_id`; statuses correctos por campo (`same/diff/missing_ingest`) y por unidad (`diff`)
+- ✅ recompute → 409 cuando no hay Drive conn (gate funcionando)
+- ✅ force-match modo `merge` → decision=`merged`, `force_matched=true`, units mergeadas con valores editados
+- ✅ PATCH bloqueado (409) tras decision final
+- ✅ `yarn build` compila sin warnings nuevos
+
+
 ## W1.4 — ZZ.1 Bulk Drive Ingestion (2026-05-07)
 
 ### Backend
