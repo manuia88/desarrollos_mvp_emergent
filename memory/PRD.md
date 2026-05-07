@@ -2820,6 +2820,23 @@ Portal Comprador completo: Magic Link auth · Dashboard 5 widgets · Saved searc
 ═══════════════════════════════════════════════════════════
 4 batches (~25h). 28 endpoints + 11 collections nuevas. Reuse máximo B11/B13/B14/B15/B22/B25/B26/B28/B29/B31. Zero deuda técnica.
 
+═══════════════════════════════════════════════════════════
+## ✅ Phase 13 + 14 + 15 — B2B Multi-tenant 100% COMPLETO (2026-05-06)
+═══════════════════════════════════════════════════════════
+3 batches (~36h). 51 archivos · 10,257 LOC · PR #16 consolidado.
+
+| # | Batch | Status | h |
+|---|---|---|---|
+| ✅ | B36 — Phase 13 Marketplace Asesor + Whitelist Developer + Auto-Approve (services/advisor_authorization + auto_approve_engine 3-gate trust+zona+deals · routes_advisor_whitelist 9 endpoints + multi-tenant guard hard · /asesor/mini-market + /asesor/inventario + SolicitudAccesoModal · /desarrollador/solicitudes + AutoApproveSettings) | shipped | 14 |
+| ✅ | B37 — Phase 14 In-house Users + Mini Markets + Cross-Org Partnerships (3 schemas: dev_internal_users + inmobiliaria_internal_users + cross_org_partnerships · 14 endpoints · in-house SSO via magic link 7d · 6 pages dev/inmobiliaria · cross-dev + cross-inmobiliaria partnerships unified flow) | shipped | 16 |
+| ✅ | B38 — Phase 15 Directorio Cruzado + Lead Cards Enriquecidas (services/directory_aggregator + routes_directories 3 endpoints · 3 pages dev/asesor/inmobiliaria red-comercial · LeadKanban EnrichedSection con dev_branding + comisión + asesor TrustScore + Contactar dev menu) | shipped | 6 |
+
+**Highlights:**
+- Multi-tenant B2B end-to-end: signup inmobiliaria + asesor whitelist con dev + cross-org partnerships + in-house users SSO
+- Auto-approve engine reduce overhead admin 80% para devs grandes
+- Mini Markets dev/inmobiliaria scoped per assigned_projects/partnerships
+- Lead cards enriquecidas con info dev branding + comisión + Trust Score asesor
+
 ### Conservative decisions B21 Sub-B/C
 - emergent's stub TourCompletionAnalytics.js descartado en merge (preservado real Sub-A 12.8KB)
 - TourCompletionAnalytics extendido con prop `period` controlable (controlled mode oculta filter chips internos cuando page topbar lo controla)

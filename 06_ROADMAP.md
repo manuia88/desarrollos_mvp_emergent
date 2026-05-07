@@ -27,7 +27,7 @@
 | Phase 4 Dev REFACTOR | ✅ **100% COMPLETO** (17/17: B0 · B0.5 · B10-B23 + B18.5/B19.5 fix-pass) | ~157h |
 | Phase 1 Marketplace gaps | ✅ **100% COMPLETO** (B24+B25+B26+B27 vía PR #11) | ~33.5h |
 | Phase 2 Comprador | ✅ **100% COMPLETO** (B28+B29+B30 vía PR #12 + #13) | ~18.5h |
-| Phase 13/14/18 (whitelist + inhouse + inmobiliaria) | 🟡 pending | ~30h |
+| Phase 13/14/15/18 (whitelist + inhouse + directorios + inmobiliaria) | ✅ **100% COMPLETO** (B35+B36+B37+B38 vía PR #12+#15+#16) | ~46h |
 | Phase 3 Asesor | ✅ **100% COMPLETO** (B31+B32+B33+B34 vía PR #14 + #15) | ~25h |
 | Phase 5 IE Engine completion | 🟡 pending | ~45h |
 | Phase 6 Studio Wave 1.5+2 | 🟡 pending | ~36h |
