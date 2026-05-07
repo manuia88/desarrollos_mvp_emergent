@@ -145,6 +145,7 @@ const SUPERADMIN_NAV = [
     label: 'Sistema',
     items: [
       { key: 'dashboard',    to: '/superadmin',                          label: 'Dashboard',        Icon: LayoutDashboard, end: true },
+      { key: 'tenants',      to: '/superadmin/tenants',                  label: 'Tenants',          Icon: Users },
       { key: 'data-sources', to: '/superadmin/data-sources',             label: 'Data Sources',     Icon: Database },
       { key: 'scores',       to: '/superadmin/scores',                   label: 'Scores',           Icon: BarChart3 },
       { key: 'documents',    to: '/superadmin/documents',                label: 'Documentos',       Icon: FileText },

@@ -115,6 +115,13 @@ app.include_router(obs_router)
 from audit_log import router as audit_router, ensure_audit_log_indexes
 app.include_router(audit_router)
 
+# W1.2 SA1.1 — Superadmin Tenants Management
+from routes_superadmin_tenants import (
+    router as superadmin_tenants_router,
+    ensure_superadmin_tenant_indexes,
+)
+app.include_router(superadmin_tenants_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -542,6 +549,10 @@ async def startup():
     await ensure_ml_indexes_fn(db)
     # Phase F0.1 — Audit log indexes
     await ensure_audit_log_indexes(db)
+    try:
+        await ensure_superadmin_tenant_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] superadmin tenant indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

@@ -1,6 +1,53 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W1.2 — SA1.1 Tenants Management UI (2026-05-07)
+
+### Backend
+- **NEW** `routes_superadmin_tenants.py` — 5 endpoints prefijados `/api/superadmin/tenants`, `require_superadmin` en list/detail/start-impersonate/patch-status; end-impersonate acepta superadmin O sesión impersonada activa (cookie `dmx_impersonate_session`):
+  - `GET /` — devs (distinct users.tenant_id WHERE role IN DEV_IN_HOUSE_ROLES) + inms (excluyendo `is_system_default=true`); filtros type/status/search/sort/limit/skip
+  - `GET /{tenant_id}` — base + members (max 100) + members_total + recent_audit (20) + ai_usage_breakdown (haiku|sonnet|other mes actual) + projects_summary (max 50, dev only)
+  - `POST /{tenant_id}/impersonate` — primer admin del tenant; cookie HttpOnly+Secure+SameSite=lax+Path=/+30min (+ access_token target user); audit `{action:"impersonate_start", impersonator_user_id, target_user_id, target_tenant_id, target_role, ts, expires_at}`; 404 si no admin
+  - `POST /impersonate/end` — clear cookies; audit `{action:"impersonate_end", duration_seconds}`; idempotente
+  - `PATCH /{tenant_id}/status` — body `{status, reason?}`; suspended → `users.update_many({tenant_id}, {$set:{account_blocked, blocked_at, blocked_reason}})`; active → unblock; audit shape estándar
+- **EDIT** `routes_auth.py` login — check `account_blocked` post password match → 403 "Cuenta suspendida. Contactar soporte." ANTES de set cookies
+- **EDIT** `server.py` — `include_router(superadmin_tenants_router)` post audit_router; `ensure_superadmin_tenant_indexes` en startup
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminTenants.js` — vista completa con header + count + Refrescar; FilterChipsBar (type · status · search debounce 300ms); tabla density-aware (desktop ≥768px) y mobile cards stacked (<768px) con `useState(window.innerWidth<768)` + resize listener; row click → drawer; impersonar btn (yellow pill); inline status select (PATCH con confirm modal si suspended). Pagination "Cargar más" (skip+=50).
+- **NEW** `components/superadmin/ImpersonationBanner.js` — banner sticky amarillo top con countdown live (mm:ss), "Salir" btn que llama `endImpersonation()` + redirige `/superadmin/tenants`. `useImpersonation` hook lee `localStorage.dmx_impersonation` con expiry check.
+- **NEW** `hooks/useImpersonation.js` — startImpersonation/clearImpersonationMarker/end con revalidación en storage events + interval 30s.
+- **NEW** `api/superadminTenants.js` — listTenants, getTenant, impersonateTenant, endImpersonation, patchTenantStatus.
+- **EDIT** `App.js` — ruta `/superadmin/tenants` (lazy + AdvisorRoute)
+- **EDIT** `config/navByRole.js` — SUPERADMIN_NAV tier 1 agrega "Tenants" (icon Users) ANTES de "Data Sources"
+- **EDIT** `components/shared/PortalLayout.js` — mount `<ImpersonationBanner/>` arriba del topbar; `handleLogout` llama `/api/superadmin/tenants/impersonate/end` + remueve `dmx_impersonation` ANTES del logout normal (cubre el caso "logout durante impersonación")
+- **EDIT** `i18n/locales/es-MX/common.json` — sección `tenants.*` (table, drawer, modals, banner, status_modal, impersonate_modal)
+
+### EntityDrawer (3 tabs en SuperadminTenants)
+- **Resumen** — KPI grid (members_total · projects · ai_usage_month_mxn · last_activity) + plan_tier badge + AI breakdown (haiku/sonnet/otros) + projects list (dev only, max 50)
+- **Equipo** — tabla miembros (max 100): name/email/role/account_blocked/last_login_at; footer "Mostrando N de M" cuando members_total > 100
+- **Auditoría** — timeline 20 entries (action · entity_type · ts relative)
+
+### Tests (curl + screenshot, sin testing subagent)
+- ✅ `yarn build` clean · lint 0 issues
+- ✅ `GET /api/superadmin/tenants` (admin@desarrollosmx.com superadmin) → 2 tenants (Constructora Ariel dev + Inmobiliaria Demo Test inm), totals correctos
+- ✅ Filter `?type=inm` → 1 inm, `is_system_default=true` excluida
+- ✅ `GET /api/superadmin/tenants/constructora_ariel` → name/members_total=6/audit=20/projects=0/ai_breakdown
+- ✅ `POST /impersonate` → cookies `access_token` + `dmx_impersonate_session` ambas HttpOnly+Secure+Max-Age=1800; SameSite=lax en cookie de impersonación; response shape `{impersonation_token, target_user_id, target_role, target_tenant_id, target_name, expires_at, audit_id}`
+- ✅ `POST /impersonate/end` → `{ok, duration_seconds}` idempotente
+- ✅ `PATCH /status suspended` → bloqueo activado; login subsecuente con tenant suspendido → 403 "Cuenta suspendida. Contactar soporte."; reactivar → login HTTP 200
+- ✅ Non-superadmin (developer@demo.com) → 403 en endpoints 1,2,3,5
+- ✅ Smoke screenshot `/superadmin/tenants` → tabla desktop con 2 rows, sidebar "Tenants" highlighted, click impersonate abre modal con confirmación
+
+### Edge cases manejados
+- Tenant sin admin → 404 "No se encontró admin para ese tenant"
+- AI usage si collection ai_usage no existe / vacía → fallback 0.0 silencioso
+- last_activity_at fallback via aggregate lookup users.tenant_id si actor.tenant_id no setteado
+- impersonate cookie + access_token expiran simultáneamente a 30 min
+- responsive viewport breakpoint controlado vía JS state (no Tailwind hidden md:block) para evitar conflictos con sistema dual layout
+
+
+
 ## Batch 38 — Phase 15 Directorio Cruzado + Lead Cards Enriquecidas (2026-05-07)
 
 ### Sub-A — Directorios 3 portales

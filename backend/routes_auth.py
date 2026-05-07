@@ -85,6 +85,9 @@ async def login(payload: LoginIn, response: Response, request: Request):
     user_doc = await db.users.find_one({"email": payload.email})
     if not user_doc or not verify_password(payload.password, user_doc.get("password_hash", "")):
         raise HTTPException(401, "Credenciales incorrectas")
+    # W1.2 SA1.1 — Block suspended accounts before issuing session cookies
+    if user_doc.get("account_blocked"):
+        raise HTTPException(403, "Cuenta suspendida. Contactar soporte.")
     user_id = user_doc["user_id"]
     access = create_access_token(user_id, payload.email)
     refresh = create_refresh_token(user_id)
