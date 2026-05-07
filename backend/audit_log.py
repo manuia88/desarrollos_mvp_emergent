@@ -177,6 +177,54 @@ def _scope_filter(user) -> Dict[str, Any]:
     return {"actor.user_id": user_id}
 
 
+# ─── Reusable filter builder (W2.2 SA3) ───────────────────────────────────────
+def build_filter_query(filters: Dict[str, Any], base: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Build a Mongo query from a flat filters dict.
+
+    Supported keys (any subset, all optional):
+      actor_user_id, actor_role, entity_type, entity_id, action, tenant_id,
+      severity, from_ts, to_ts, q (regex on action + entity_type + entity_id)
+    `base` is merged first (e.g. _scope_filter result for non-superadmin endpoints).
+    """
+    q: Dict[str, Any] = dict(base or {})
+    if filters.get("actor_user_id"):
+        q["actor.user_id"] = filters["actor_user_id"]
+    if filters.get("actor_role"):
+        q["actor.role"] = filters["actor_role"]
+    if filters.get("entity_type"):
+        q["entity_type"] = filters["entity_type"]
+    if filters.get("entity_id"):
+        q["entity_id"] = filters["entity_id"]
+    if filters.get("action"):
+        act = filters["action"]
+        if act == "mutations":
+            # Treat "mutations" as the canonical write-actions set
+            q["action"] = {"$in": ["create", "update", "delete", "revert", "patch", "merge",
+                                   "approve", "reject", "force_match", "recompute",
+                                   "test", "retry", "replay", "alert_resolved", "alert_test_triggered"]}
+        else:
+            q["action"] = act
+    if filters.get("tenant_id"):
+        q["actor.tenant_id"] = filters["tenant_id"]
+    if filters.get("severity"):
+        q["severity"] = filters["severity"]
+    if filters.get("from_ts") or filters.get("to_ts"):
+        ts: Dict[str, Any] = q.get("ts") or {}
+        if filters.get("from_ts"):
+            ts["$gte"] = filters["from_ts"]
+        if filters.get("to_ts"):
+            ts["$lte"] = filters["to_ts"]
+        q["ts"] = ts
+    if filters.get("q"):
+        rx = {"$regex": filters["q"], "$options": "i"}
+        q["$or"] = [
+            {"action": rx},
+            {"entity_type": rx},
+            {"entity_id": rx},
+        ]
+    return q
+
+
 # ─── Indexes ──────────────────────────────────────────────────────────────────
 async def ensure_audit_log_indexes(db) -> None:
     await db.audit_log.create_index([("actor.tenant_id", 1), ("ts", -1)], background=True)

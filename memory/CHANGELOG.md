@@ -1,6 +1,196 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.3 — SA4 AI Cost Observatory (2026-05-07)
+
+### Backend
+- **EDIT** `ai_budget.py`:
+  - `track_ai_call(...feature_key=None)` — backwards-compat opcional. Default fallback: `feature_key or call_type or "other"`. Dual-write: actualiza el rollup `ai_usage_log` (legacy budget gate) Y crea un evento por llamada en `ai_call_events` con `daily_iso/month_iso/feature_key`.
+  - `is_within_budget(db, dev_org_id)` — ahora consulta `db.ai_budget_caps` para honrar `hard_block`. Si `hard_block=True` y `spent >= monthly_cap_mxn` → `False` aunque legacy cap permita.
+  - `ensure_ai_budget_indexes` extendido: índices nuevos en `ai_call_events (dev_org_id, month_iso, feature_key)`, `(daily_iso desc)`, `(month_iso, model)`, `(ts desc)`; `ai_budget_caps (tenant_id unique)`; `ai_cost_daily_snapshots (daily_iso, tenant_id)`.
+- **NEW** `ai_cost_aggregations.py` — pipelines centralizados:
+  - `period_window`/`previous_period_window`/`days_remaining_in_month`/`model_class` helpers
+  - `overview()` — total + top 5 spenders (con tenant_name lookup) + top 5 features + Haiku/Sonnet/other split + trend vs prev period + forecast EOM
+  - `by_tenant()` — paginado, con caps map + alert_flag (pct_used >= threshold) + hard_block flag
+  - `by_feature()` — feature_key con model_mix object + top tenant per feature
+  - `by_model()` — split + avg_cost_per_call_mxn
+  - `tenant_timeseries()` — array de 30 días con bucket por modelo, fill 0s para días vacíos
+  - `forecast()` — `current_mtd + (run_rate_7d × days_remaining)`
+  - `materialize_daily_snapshot()` — cron-friendly (yesterday → `ai_cost_daily_snapshots`)
+- **NEW** `routes_superadmin_ai_cost.py` — prefix `/api/superadmin/ai-cost`, 9 endpoints:
+  1. `GET /overview?period=month|7d|30d`
+  2. `GET /by-tenant?period&limit&skip&sort=spend_desc|name_asc`
+  3. `GET /by-feature?period&tenant_id?`
+  4. `GET /by-model?period`
+  5. `GET /tenant/{id}/timeseries?days`
+  6. `GET /forecast?tenant_id?`
+  7. `GET /caps`
+  8. `POST /caps` (UPSERT) — body `{tenant_id, monthly_cap_mxn, alert_threshold_pct?, custom_alert_email?, hard_block?}`. Audit log con before/after.
+  9. `PATCH /caps/{tenant_id}` (partial). Audit log.
+  Todos con `require_superadmin` (403 para roles ≠).
+- **EDIT** `server.py` (+include_router); **EDIT** `scheduler_ie.py` (registra cron `ai_cost_daily_aggregation` con `CronTrigger(hour=1, minute=0, tz=America/Mexico_City)`); **EDIT** `cron_heartbeat.py` (label + interval) — visible en `/superadmin/health` crons list.
+
+### Feature_key migrations en callers (silent default)
+- ✅ `narrative_engine.py` → `feature_key="narrative_engine"`
+- ✅ `diagnostic_engine.ai_recommend_for_failure` → `feature_key="diagnostic_engine"`
+- ✅ `ai_suggestions.py` → `feature_key="ai_suggestions"`
+- ✅ `caya_engine.py` → `feature_key="copilot_chat"`
+- ✅ `bulk_ingest_engine.py` (caller en `_process_job`) → `feature_key="bulk_ingest_haiku"` con db handle correcto
+- 🟡 9 callers restantes (`routes_dev_batch4_4/5/7/8/11/14`) NO modificados — usan variable `call_type` ya descriptiva (ej. `"weekly_brief"`, `"argumentario_rag"`, `"buyer_disc"`) que se materializa via fallback `feature_key=call_type` en track_ai_call. **Decisión conservadora**: preservar firmas existentes, dejar que el fallback agrupe correctamente.
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminAiCost.js`:
+  - Header "Costos IA" + period chips [Mes actual · 7d · 30d] + "Refrescar" + "Configurar topes (N)" gradient
+  - 4 KPIs (Gasto / Calls / Forecast EOM con color por threshold / Trend ±%)
+  - Sparkline 30d inline-SVG (sin nuevo nivo dep) con 3 líneas overlay (total magenta + haiku verde + sonnet violeta + área degradada)
+  - Filter chip "Solo en alerta"
+  - 2-col grid responsive: `<CostBreakdownTable kind="tenant">` (sortable, click row → cap modal) + `<CostBreakdownTable kind="feature">` (con mini-mix bar)
+  - `<ModelMixChart>` SVG donut + tabla detallada de modelos
+  - `<CapsListModal>` muestra topes existentes con botón Editar
+- **NEW** `components/superadmin/CostBreakdownTable.js` — sortable cols (mxn/pct/name/feature_key), CapBar visual con color verde<70%/amber 70-90%/rojo>90% + chip BLOCK si hard_block, MiniMix bar por feature
+- **NEW** `components/superadmin/ModelMixChart.js` — SVG donut con stroke-dasharray (Haiku verde / Sonnet violeta / Otros gris) + leyenda + tabla detalle
+- **NEW** `components/superadmin/CapModal.js` — form con monthly_cap input + threshold slider 50-95% (con preview MXN calculado en vivo) + email opcional + checkbox hard_block destacado en rojo cuando activo. POST or PATCH dependiendo de `existingCap`.
+- **NEW** `api/superadminAiCost.js` — 9 funciones matching endpoints
+- **EDIT** `App.js` route `/superadmin/ai-cost`; **EDIT** `navByRole.js` agrega "Costos IA" tier 2 con icon `DollarSign` después de "Auditoría"
+
+### Manual tests passed (curl + python)
+- ✅ Synthetic 150 events insertados → `/overview?period=month` retorna shape correcto: total 89.5 MXN, top 5 spenders + features con `pct_total`, Haiku/Sonnet split (13.5/76.0), trend pct vs prev period, forecast EOM 396.46
+- ✅ `/by-tenant` 3 items con cap=null inicialmente
+- ✅ `/by-feature?period=30d` retorna feature_keys con `model_mix` object completo + `top_tenant_id/name`
+- ✅ `/by-model?period=30d` retorna avg_cost_per_call_mxn correcto (haiku 0.7 vs sonnet 5.6)
+- ✅ `/tenant/dev_alpha/timeseries?days=30` → 31 buckets (incluye día 0); 15 con datos, resto 0s
+- ✅ `/forecast?tenant_id=dev_alpha` → mtd 37.5, run_rate 5.36/d, projected 166.14, days_remaining 24
+- ✅ `POST /caps` → UPSERT crea cap con audit; `GET /caps` lista; `PATCH /caps/{id}` actualiza solo threshold
+- ✅ `is_within_budget` hard_block: con rollup `spent=100, cap=50, hard_block=True` → `False`; `hard_block=False` → `True`. Confirmado el gate funciona.
+- ✅ Non-superadmin → 403 "Solo superadmin"
+- ✅ Backend startup limpio · `yarn build` 37.24s sin warnings
+
+### Edge cases conservadores aplicados
+- **Schema reality vs spec**: spec menciona `db.ai_usage` con extension de `feature_key`/`daily_iso`. Reality: la collection se llama `ai_usage_log` y es rollup `(dev_org_id, month_iso) unique` que rompería con feature_key. **Decisión**: mantener `ai_usage_log` rollup intacto (preserva `is_within_budget` legacy) y crear nueva collection `ai_call_events` por-llamada para analytics. Ambas se actualizan en cada `track_ai_call` para máxima compatibilidad.
+- **No nivo line/pie**: spec asume `@nivo/line` y `@nivo/pie` ya en deps de B20, pero `package.json` solo trae `@nivo/core` + `@nivo/sankey`. Per directiva "NO @nivo/* nuevos packages" + "no añadir dependencias", se implementaron sparkline y donut con SVG inline (más ligero, sin overhead, mejor TTI).
+- **Feature_key migration silent**: 9/14 callers de `track_ai_call` no se modificaron explícitamente. Decisión: el fallback `feature_key=call_type` ya da agrupación útil porque las invocaciones existentes usan `call_type` descriptivo (`"weekly_brief"`, `"argumentario_rag"`, `"buyer_disc"`, etc.). Migración silent + reportada vs. tocar 9 archivos por una mejora cosmética.
+- **Forecast cap threshold sin tenant**: `/forecast` sin tenant_id devuelve `monthly_cap_mxn=null` y `vs_cap_pct=null` (cap es por tenant, no global) — la UI usa el forecast global solo en KPI strip sin barra de cap.
+- **Email alert engine**: el alert path existente en `_maybe_send_budget_alert` se mantiene (Resend, 1/día per tenant). El nuevo `ai_budget_caps.alert_threshold_pct` aún no inyecta a `_maybe_send_budget_alert` (que sigue con 80% hardcoded) — lo correcto sería override desde caps_doc, pero esta extension añade alcance fuera del tope de este batch (W2.x SA siguiente). Reportado.
+- **Hard limit 1M MXN en cap monthly**: validado en Pydantic body. Slider threshold 50-95% bound en backend y cliente.
+- **CronTrigger TZ**: `America/Mexico_City` honra horarios LATAM (1am MX = 7am UTC en invierno, 6am UTC en verano).
+
+
+## W2.2 — SA3 Audit Log Viewer (2026-05-07)
+
+### Backend
+- **NEW** `routes_superadmin_audit.py` — prefix `/api/superadmin/audit`, todos `require_superadmin` (sin scoping). 7 endpoints:
+  1. `GET /entries` — paginated cross-org con filtros (actor_user_id, actor_role, entity_type, entity_id, action, tenant_id, severity, from_ts, to_ts, q regex). action=`mutations` se traduce a un `$in` con la canonical write-actions list (incluye patch/merge/approve/reject/force_match/recompute/test/retry/replay).
+  2. `GET /entries/{id}` — full detail. Si `entity_type=bulk_ingest_item` enriquece con `extracted_overrides[]`, `extraction_history[]` y `ai_extracted` desde `db.bulk_ingest_items` → cierra W1.5 panel deferred sin prompt extra.
+  3. `GET /entity/{type}/{id}/timeline` — chronological (asc), max 500 entries, flag `truncated`.
+  4. `GET /export?format=csv|json` — `StreamingResponse` async generator. CSV cols `ts,action,entity_type,entity_id,actor_user_id,actor_role,actor_tenant,severity,before_json,after_json`. Header `Content-Disposition` con timestamp. **413** si `total > 10000` con detalle "Filtra más estrictamente".
+  5. `GET /distinct/actors` — agg pipeline `$group $actor.user_id` con last_seen + count. **In-memory cache 60s** (estructura `_actors_cache` con `ts/data`, hit retorna `cached:true`).
+  6. `GET /distinct/entity-types` — mismo patrón, top 100.
+  7. `GET /stats` — KPIs 24h: `total_24h, critical_24h, mutations_24h, reads_24h`.
+- **EDIT** `audit_log.py` — añadido `build_filter_query(filters, base?)` reutilizable que abstrae la lógica de query (compatible con `_scope_filter` existente; los endpoints scoped no se tocaron).
+- **EDIT** `server.py` — wired `superadmin_audit_router` y `ensure_superadmin_audit_indexes` en startup. Indexes nuevos: `(action, ts desc)` y `(severity, ts desc)` parcial.
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminAuditLog.js` — `<SuperadminLayout>`:
+  - Header "Auditoría" + 4 KPIs (Total 24h · Critical · Mutations · Reads) + botones "Refrescar" + "Exportar" (gradient)
+  - 2 filas de filtros: severity chips · action chips (Todas | Solo mutaciones)
+  - Search bar con icon Search, debounce 300ms en `q`
+  - Botón "Más filtros" toggle → panel grid responsive con `<AutocompleteField>` (actor + entity_type usando `/distinct/*` 60s cache), `<TextField>` (entity_id, tenant_id), `<DateField>` (from_ts/to_ts)
+  - Filtros sincronizados en URL (`useSearchParams`) → enlaces compartibles + restoring desde drawer "Ver historial completo"
+  - Chip "Limpiar (N)" cuando hay filtros activos
+  - Lista clickeable hover translateY(-1px); pills severity + action + diff_keys (top 6 + "+N más")
+  - Botón "Cargar más" pagination skip+=50
+  - Empty state cuando 0 resultados
+  - `<ExportModal>`: radio CSV/JSON + preview "N registros serán exportados" + bloqueo visual rojo si N>10000 + descarga via anchor (cookie auth)
+- **NEW** `components/superadmin/AuditEntryDrawer.js` — 3-4 tabs dinámicos:
+  - **Detalle**: grid de DetailItems (ts, actor, tenant, IP, route, request_id) + diff_keys pills
+  - **Diff**: usa `<BeforeAfterDiff>` reusable
+  - **Edición inline (N)** *(automático cuando entity_type=bulk_ingest_item)*: lista de overrides cronológicos con `key: AntiguoAI → NuevoOverride` strikethrough + Historial AI con extractions previas (timestamp + costo MXN)
+  - **Timeline entidad**: lista cronológica + botón "Ver historial completo" → navega a `/superadmin/audit-log?entity_type=X&entity_id=Y`
+- **NEW** `components/superadmin/BeforeAfterDiff.js` — componente reutilizable. Recibe `{before, after}` JSON. Clasifica keys: added (verde +) / removed (rojo -) / updated (amber →) / same. Grid `120px | 1fr | 14px | 1fr`. Botón "+N campos sin cambios" colapsable. Empty state si no hay payload.
+- **NEW** `api/superadminAudit.js` — 6 funciones + helper `exportUrl`.
+- **EDIT** `App.js` — route `/superadmin/audit-log` ahora apunta al SA3 viewer; legacy `AuditLogPage` accesible en `/superadmin/audit-log-legacy`.
+- **navByRole** — item "Auditoría" tier 2 ya existía; `to:/superadmin/audit-log` confirmado, no se modifica.
+
+### Manual tests passed (curl)
+- ✅ `GET /entries` cross-org → 174 entries; filtro `q=connector` → 4 matches; filtro `action=mutations` → 107
+- ✅ `GET /entries/{id}` → before/after/diff_keys completos; entry sin entity_id → enrichment vacío sin crash
+- ✅ Bulk-ingest enrichment: synthetic fixture insertado → drawer expone `ai_extracted`, `extracted_overrides[1]`, `extraction_history[1]` (tab "Edición inline" auto-render)
+- ✅ `GET /entity/connector/mapbox_geocoding/timeline` → 3 events (test, retry, replay) en orden cronológico
+- ✅ `GET /export?format=csv` → CSV streamed con header + 4 rows (action=mutations preset funciona)
+- ✅ `GET /export?format=json` → array JSON parseado correctamente
+- ✅ `GET /export` con 10001 docs sintéticos → **HTTP 413** "Demasiados registros (10001). Filtra más estrictamente (máx 10000)."
+- ✅ `GET /distinct/actors` → 10 actors agregados; segunda llamada `cached:true` (60s TTL)
+- ✅ `GET /distinct/entity-types` → 54 types ordenados por count desc
+- ✅ `GET /stats` → totales 24h calculados
+- ✅ Non-superadmin → 403 "Solo superadmin" en `/entries`
+- ✅ `yarn build` limpio (Done in 38.88s) · backend startup limpio
+
+### Edge cases conservadores aplicados
+- Action filter `mutations` se materializa en backend a un `$in` con write-actions canonicales (incluye actions agregadas por W1.5/W2.1 como patch/merge/approve/reject/force_match/recompute/test/retry/replay) — evita parsing por cliente y mantiene la lista en un solo lugar.
+- In-memory cache 60s sin invalidación explícita (se warm-resetea cada minuto). Adecuado para stat queries no críticas en consistency; no se usó Redis para evitar dependencia nueva.
+- Export streaming chunked: cada row CSV se serializa individualmente con `csv.writer` en `StringIO` aislado por iteración → no acumula memoria. Hard-limit 10001 → 413 (no truncate silencioso).
+- Drawer `enrichment` solo poblado para `entity_type=bulk_ingest_item` (no extensible aquí — se añadirán nuevos enrichment paths cuando se requiera otra entidad con histórico paralelo).
+- `BeforeAfterDiff` ordena keys: updated → added → removed → same para que las diferencias relevantes salgan primero en pantalla.
+- URL params no persisten valores `'all'` ni vacíos para evitar query strings ruidosos.
+- Filtros `from_ts/to_ts` se almacenan como ISO `00:00:00Z`, displayed como `<input type="date">` para UX simple — UTC implícito.
+
+
+## W2.1 — SA2 Data Sources Hub (2026-05-07)
+
+### Backend
+- **NEW** `connector_registry.py` — catálogo central de 11 connectors (`claude_haiku`, `claude_sonnet`, `mapbox_geocoding`, `mapbox_static`, `inegi_demographics`, `google_drive`, `google_calendar`, `microsoft_calendar`, `resend`, `sentry`, `posthog`).
+  - Cada connector declara `{id, name, category, icon_key, required_env, supports_retry, supports_replay, is_stub?}`.
+  - `HEALTHCHECKS` async functions por connector (httpx 30s timeout): Claude usa emergentintegrations ping, Mapbox geocoding/static endpoints, INEGI reachability, Google Drive `files.list(pageSize=1)`, Resend `/domains`, Sentry host reachability, PostHog `/decide/`.
+  - `record_invocation`, `aggregate_24h`, `compute_status` (lógica: stub si env missing | failed si último check falló y sin success >2h | degraded si fail_ratio_24h>0.30 y fails≥2 | ok otherwise).
+  - `retry_connector` re-ejecuta healthcheck (deterministic re-call); `replay_range` valida ≤7d y ≤100 items, re-corre healthcheck por cada fail; `healthcheck_all_connectors` para cron.
+- **NEW** `routes_superadmin_data_hub.py` — prefix `/api/superadmin/data-hub`, 6 endpoints todos con `require_superadmin`:
+  1. `GET /connectors` → list + counts (total/ok/degraded/failed/stub)
+  2. `GET /connectors/{id}` → connector summary + last 50 invocations + last 20 audit entries
+  3. `POST /connectors/{id}/test` → run healthcheck sync
+  4. `POST /connectors/{id}/retry` → 409 si !supports_retry
+  5. `POST /connectors/{id}/replay` body `{from_ts, to_ts}` → 400 si rango >7d, >100 items, o fechas inválidas
+  6. `GET /connectors/{id}/invocations?status=&from_ts=&to_ts=&limit=&skip=` → paginated log
+- **Cron `data_hub_healthcheck_all`** registrado cada 10 min vía APScheduler con `wrap_apscheduler_job` (cron_heartbeat W1.3) — aparece en `/superadmin/health` crons list.
+- Schema `db.connector_invocations`: `{id, connector_id, op, status, ts, duration_ms, error?, metadata?}` con índices `(connector_id, ts desc, status)` y `(ts desc)`.
+- `server.py` wired post-bulk_ingest_router; `ensure_connector_indexes` en startup.
+- Audit log entries para `test`, `retry`, `replay` (entity_type=`connector`, entity_id=`{connector_id}`).
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminDataSourcesHub.js` con `<SuperadminLayout>`:
+  - Header "Conectores" + botón gradient "Refrescar todo" (POST /test paralelo a todos los no-stub)
+  - 4 KPI cards (Total/Operativos/Degraded/Failed)
+  - 2 filtros pill (categoría · estado)
+  - Grid responsivo `auto-fill minmax(280px,1fr)`
+  - `<ConnectorDrawer>` con 3 tabs (Overview · Log invocaciones con filtros · Auditoría)
+  - `<ReplayModal>` con datepicker range, validación cliente (>7d) + server (400 surfaced), CTA gradient
+  - Auto-refresh KPIs cada 60s (paused on `visibilitychange` hidden)
+  - SmartEmptyState `hub-empty` cuando filter retorna 0
+- **NEW** `components/superadmin/ConnectorCard.js` — icon mapeado de `lucide-react` (Bot, Brain, MapPin, Map, Layers, FolderOpen, CalendarDays, Calendar, Mail, AlertCircle, Activity, Plug); 3 botones inline `rounded-full` (Probar/Reintentar/Replay), pulse animation rojo si `failed`, hover translateY(-1px), banner de credenciales faltantes para stubs.
+- **NEW** `api/superadminDataHub.js` — 6 funciones matching endpoints.
+- `App.js` route `/superadmin/data-sources` ahora apunta al hub; legacy IE Engine accesible vía `/superadmin/ie-engine-sources` (+ detail).
+- `navByRole.js` reemplaza item `data-sources` → `conectores` con icon `Plug` y label "Conectores".
+
+### Manual tests passed (curl)
+- ✅ `GET /connectors` → 11 items, counts `{total:11, ok:10, degraded:0, failed:0, stub:1}` (resend=stub por RESEND_API_KEY missing; ms_calendar=stub explícito)
+- ✅ Non-superadmin → 403 (`Solo superadmin`)
+- ✅ `POST /test` mapbox_geocoding → ok 279ms con preview "1 features"; posthog ok 185ms
+- ✅ `GET /connectors/{id}` → invocations populadas + audit_log
+- ✅ `POST /retry` mapbox_geocoding → success; sentry → 409 ("Connector no soporta retry")
+- ✅ `POST /replay` rango 45d → 400 "Rango máximo 7 días"; fechas invertidas → 400; rango válido → 200; stub connector → 409
+- ✅ `GET /invocations?status=ok&limit=3` → paginado correcto
+- ✅ `microsoft_calendar` status=`stub` (is_stub flag explícito)
+- ✅ `yarn build` limpio (Done in 37s)
+- ⚠️ Playwright screenshot bloqueado por modal de login (Issue 2 conocido del handoff — auth cookie drops); curl/backend testing usado en su lugar.
+
+### Edge cases / decisiones conservadoras
+- `microsoft_calendar` marcado con `is_stub: true` explícito porque no tiene env keys requeridas pero la integración no está implementada — sin esto se computaría "ok" trivialmente.
+- `resend` healthcheck devuelve `ok` también en HTTP 401/403 (key inválida) para distinguir "API ureachable" vs "key issue"; el error se surface en `last_error` para que founder vea el problema sin marcar el connector entero como failed.
+- `retry_connector` re-ejecuta healthcheck en lugar de re-call exacto del business call original (no hay forma genérica de hacer eso desde el registry; healthcheck es la prueba determinística más segura de liveness).
+- `replay_range` también re-corre healthcheck por cada invocation fallida (no se replays el payload original; se valida que el connector ahora responde para el founder pueda volver a disparar la op real desde su UI específica).
+- `INEGI` healthcheck solo valida reachability del host (no API call real) por inestabilidad histórica del endpoint desde el cluster.
+- Test/retry desactivados en la UI cuando `status === 'stub'` (misma lógica server-side via `env_present` y `is_stub`).
+
+
 ## W1.5 — ZZ.1.1 Ingestion Quality + Dedup Engine (2026-05-07)
 
 ### Backend (`bulk_ingest_engine.py` + `routes_bulk_ingest.py`)

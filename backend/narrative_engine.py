@@ -215,6 +215,7 @@ async def get_or_generate(db, scope: str, entity_id: str, force: bool = False) -
             f"narrative_{scope}",
             tokens_in=out["input_tokens"],
             tokens_out=out["output_tokens"],
+            feature_key="narrative_engine",
         )
     except Exception:
         pass

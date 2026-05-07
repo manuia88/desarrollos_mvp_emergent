@@ -127,6 +127,12 @@ const SuperadminTenants              = lazy(() => import('./pages/superadmin/Sup
 const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 // W1.4 ZZ.1 — Bulk Drive Ingestion
 const SuperadminBulkIngest           = lazy(() => import('./pages/superadmin/SuperadminBulkIngest'));
+// W2.1 SA2 — Data Sources Hub (unified connectors)
+const SuperadminDataSourcesHub       = lazy(() => import('./pages/superadmin/SuperadminDataSourcesHub'));
+// W2.2 SA3 — Audit Log Viewer (cross-org)
+const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/SuperadminAuditLog'));
+// W2.3 SA4 — AI Cost Observatory
+const SuperadminAiCost               = lazy(() => import('./pages/superadmin/SuperadminAiCost'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -453,13 +459,20 @@ function AppRouter() {
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />
-      <Route path="/superadmin/data-sources" element={<AdvisorRoute Page={DataSourcesPage} />} />
+      {/* W2.1 SA2 — Data Sources Hub (replaces legacy /data-sources nav item) */}
+      <Route path="/superadmin/data-sources" element={<AdvisorRoute Page={SuperadminDataSourcesHub} />} />
+      {/* Legacy IE Engine sources page (kept accessible) */}
+      <Route path="/superadmin/ie-engine-sources" element={<AdvisorRoute Page={DataSourcesPage} />} />
+      <Route path="/superadmin/ie-engine-sources/:id" element={<AdvisorRoute Page={DataSourceDetailPage} />} />
+      {/* Legacy detail still reachable via old path */}
       <Route path="/superadmin/data-sources/:id" element={<AdvisorRoute Page={DataSourceDetailPage} />} />
       <Route path="/superadmin/scores" element={<AdvisorRoute Page={ScoresPage} />} />
       <Route path="/superadmin/documents" element={<AdvisorRoute Page={DocumentsPage} />} />
       <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
-      <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
+      <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={SuperadminAuditLog} />} />
+      <Route path="/superadmin/audit-log-legacy" element={<AdvisorRoute Page={AuditLogPage} />} />
+      <Route path="/superadmin/ai-cost" element={<AdvisorRoute Page={SuperadminAiCost} />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />

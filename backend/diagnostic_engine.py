@@ -323,6 +323,7 @@ async def ai_recommend_for_failure(db, dev_org_id: str, result: ProbeResult) -> 
             await track_ai_call(
                 db, dev_org_id, "claude-haiku-4-5", 0, "diagnostic_recommendation",
                 tokens_in=(len(system) + len(user_text)) // 4, tokens_out=len(raw) // 4,
+                feature_key="diagnostic_engine",
             )
         except Exception:
             pass
