@@ -1,0 +1,57 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Barrios" [ref=e12] [cursor=pointer]:
+        - /url: /mapa
+      - link "Propiedades" [ref=e13] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Inteligencia" [ref=e14] [cursor=pointer]:
+        - /url: /#inteligencia
+      - link "Asesores" [ref=e15] [cursor=pointer]:
+        - /url: /#faq
+    - generic [ref=e16]:
+      - button "Entrar" [ref=e17] [cursor=pointer]
+      - link "Abrir mapa" [ref=e18] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e19]
+        - text: Abrir mapa
+  - main [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]: Marketplace de desarrollos
+      - heading "Todos los estrenos de CDMX, con la inteligencia que ningún portal tiene." [level=1] [ref=e25]
+      - paragraph [ref=e26]: Preventas, obras en curso y entregas inmediatas — filtradas por los scores de su barrio y los 97 indicadores que hay detrás de cada precio.
+    - generic [ref=e29]:
+      - generic [ref=e31]:
+        - img [ref=e32]
+        - 'textbox "Describe tu hogar ideal — ej: \"depa 2 rec en Roma Norte máximo 5 millones con terraza\"" [ref=e35]': depa 2 rec en Polanco máximo 20 millones con sky lounge
+        - button "Interpretar" [ref=e1655] [cursor=pointer]:
+          - img [ref=e1656]
+          - text: Interpretar
+      - generic [ref=e40]:
+        - button "Ubicación" [ref=e42] [cursor=pointer]:
+          - text: Ubicación
+          - img [ref=e43]
+        - button "Tipo" [ref=e46] [cursor=pointer]:
+          - text: Tipo
+          - img [ref=e47]
+        - button "Precio" [ref=e50] [cursor=pointer]:
+          - text: Precio
+          - img [ref=e51]
+        - button "Recámaras" [ref=e54] [cursor=pointer]:
+          - text: Recámaras
+          - img [ref=e55]
+        - button "Más filtros" [ref=e57] [cursor=pointer]
+        - generic [ref=e58]:
+          - generic [ref=e59]: Ordenar
+          - combobox [ref=e60] [cursor=pointer]:
+            - 'option "Publicación: más reciente" [selected]'
+            - 'option "Precio: menor a mayor"'
+            - 'option "Precio: mayor a menor"'
+            - option "Mayor m²"
+    - generic [ref=e61]:
+      - generic [ref=e62]: 0 desarrollos
+      - generic [ref=e63]: Ningún desarrollo con estos filtros. Ajusta y vuelve a intentar.

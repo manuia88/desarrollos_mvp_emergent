@@ -263,6 +263,22 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+### Data Lake: R² trend sparkline 30 runs (model health monitoring)
+- **Origen:** W2.7 Phase Z.0 emergent potential improvement 2026-05-07
+- **Destino:** Wave 4 Polish — cuando ≥30 días validation data acumulada
+- **Qué:** Sparkline mini junto a cada row de ValidationMetricsTable mostrando R² histórico últimos 30 runs. Convierte "snapshot status" en "model health monitoring" tipo MLflow/W&B.
+- **Por qué:** ÚTIL pero requiere data acumulada. Hoy cron acaba de arrancar, no hay tendencia visible. Costo bajo (~30 líneas reuse patrón W2.3/W2.6).
+- **Costo:** ~1h
+- **Pre-requisito:** ≥30 días `db.model_validation_runs` ejecutados
+
+### Founder Console: deep-link compartible anomalías
+- **Origen:** W2.6 SA8 emergent potential improvement 2026-05-07
+- **Destino:** Wave 4 / post-launch cuando founder tenga equipo (CTO/CFO/COO)
+- **Qué:** URL `/superadmin?anom=anom_xxx` aterriza directo al row anomalía expandido con Claude reasoning pre-renderizado. Founder comparte en Slack/email al equipo.
+- **Por qué:** UX cierre de loop "detect → investigate → assign". Hoy founder es solo, no aplica. Cuando hire CTO/CFO/team lead, esto reduce friction.
+- **Costo:** ~1h (URL param + auto-scroll + auto-expand row matching anom_id)
+- **Pre-requisito:** founder hire equipo
+
 ### Metrics Cube: prefetch períodos para switching instantáneo
 - **Origen:** W2.5 SA6 emergent potential improvement 2026-05-07
 - **Destino:** W2.6 SA8 Founder Console (consistente con experiencia ejecutiva snappy)

@@ -1,0 +1,104 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Barrios" [ref=e12] [cursor=pointer]:
+        - /url: /barrios
+      - link "Propiedades" [ref=e13] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Inteligencia" [ref=e14] [cursor=pointer]:
+        - /url: /inteligencia
+      - link "Asesores" [ref=e15] [cursor=pointer]:
+        - /url: /asesores
+    - generic [ref=e16]:
+      - button "Switch to English" [ref=e17] [cursor=pointer]:
+        - img [ref=e18]
+        - generic [ref=e21]: ES
+        - generic [ref=e22]: ·
+        - generic [ref=e23]: EN
+      - button "Entrar" [ref=e24] [cursor=pointer]
+      - link "Abrir mapa" [ref=e25] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e26]
+        - text: Abrir mapa
+  - main [ref=e29]:
+    - generic [ref=e30]: CDMX · 16 barrios
+    - heading "Los 16 barrios de CDMX, leídos por IE Score." [level=1] [ref=e31]
+    - paragraph [ref=e32]: Cada barrio se lee a través de cuatro ejes verificables — Vida, Movilidad, Seguridad y Comercio — que alimentan el puntaje IE que verás en cada ficha. Abre el mapa para explorar todos los barrios geolocalizados con su lectura completa.
+    - generic [ref=e33]:
+      - button "Abrir el mapa" [ref=e34] [cursor=pointer]:
+        - img [ref=e35]
+        - text: Abrir el mapa
+      - button "Ver desarrollos por barrio" [ref=e38] [cursor=pointer]:
+        - text: Ver desarrollos por barrio
+        - img [ref=e39]
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - img [ref=e44]
+        - generic [ref=e47]: Vida
+        - generic [ref=e48]: Áreas verdes, ruido, densidad de servicios y ritmo cotidiano.
+      - generic [ref=e49]:
+        - img [ref=e51]
+        - generic [ref=e55]: Movilidad
+        - generic [ref=e56]: Tráfico observado, acceso a Metro/Metrobús, cobertura de ciclovía.
+      - generic [ref=e57]:
+        - img [ref=e59]
+        - generic [ref=e61]: Seguridad
+        - generic [ref=e62]: Delito georreferenciado, iluminación pública, riesgo sísmico y encharcamientos.
+      - generic [ref=e63]:
+        - img [ref=e65]
+        - generic [ref=e68]: Comercio
+        - generic [ref=e69]: Densidad comercial, horarios, gastronomía y retail ancla.
+    - generic [ref=e70]: COBERTURA ACTUAL
+    - generic [ref=e71]:
+      - generic [ref=e72]: Polanco
+      - generic [ref=e73]: Condesa
+      - generic [ref=e74]: Roma Norte
+      - generic [ref=e75]: Roma Sur
+      - generic [ref=e76]: Juárez
+      - generic [ref=e77]: Del Valle
+      - generic [ref=e78]: Nápoles
+      - generic [ref=e79]: Escandón
+      - generic [ref=e80]: San Miguel Chapultepec
+      - generic [ref=e81]: Coyoacán Centro
+      - generic [ref=e82]: San Ángel
+      - generic [ref=e83]: Santa María la Ribera
+      - generic [ref=e84]: Anzures
+      - generic [ref=e85]: Lomas de Chapultepec
+      - generic [ref=e86]: Narvarte
+      - generic [ref=e87]: Doctores
+  - generic [ref=e89]:
+    - generic [ref=e91]: Empieza hoy
+    - heading "Comprar bien no es suerte. Es información." [level=2] [ref=e92]:
+      - generic [ref=e93]: Comprar
+      - generic [ref=e94]: bien
+      - generic [ref=e95]: "no"
+      - generic [ref=e96]: es
+      - generic [ref=e97]: suerte.
+      - generic [ref=e98]: Es
+      - generic [ref=e99]: información.
+    - generic [ref=e100]:
+      - paragraph [ref=e101]: Abre el mapa de inteligencia más completo de la Ciudad de México y toma una decisión que aguante revisión en cinco años.
+      - generic [ref=e102]:
+        - button "Entrar al mapa" [ref=e103] [cursor=pointer]:
+          - img [ref=e104]
+          - text: Entrar al mapa
+        - button "Ver planes" [ref=e107] [cursor=pointer]
+  - contentinfo [ref=e108]:
+    - generic [ref=e110]:
+      - generic [ref=e111]:
+        - img [ref=e113]
+        - generic [ref=e116]: DMX
+      - generic [ref=e117]:
+        - link "Aviso de privacidad" [ref=e118] [cursor=pointer]:
+          - /url: "#"
+        - link "Términos de uso" [ref=e119] [cursor=pointer]:
+          - /url: "#"
+        - link "Para asesores" [ref=e120] [cursor=pointer]:
+          - /url: "#"
+        - link "Para desarrolladoras" [ref=e121] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e122]: © 2026 DesarrollosMX SA de CV · Ciudad de México

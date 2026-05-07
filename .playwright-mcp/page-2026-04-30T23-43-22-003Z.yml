@@ -1,0 +1,48 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - link "DesarrollosMX Portal desarrollador" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]:
+        - generic [ref=e11]: DesarrollosMX
+        - generic [ref=e12]: Portal desarrollador
+    - generic [ref=e13]:
+      - generic [ref=e14]: Constructora Ariel
+      - generic [ref=e15]: Admin desarrolladora
+    - navigation [ref=e16]:
+      - link "Panel" [ref=e17] [cursor=pointer]:
+        - /url: /desarrollador
+        - img [ref=e18]
+        - text: Panel
+      - link "Inventario" [ref=e21] [cursor=pointer]:
+        - /url: /desarrollador/inventario
+        - img [ref=e22]
+        - text: Inventario
+      - link "Demanda" [ref=e26] [cursor=pointer]:
+        - /url: /desarrollador/demanda
+        - img [ref=e27]
+        - text: Demanda
+      - link "Reportes IA" [ref=e30] [cursor=pointer]:
+        - /url: /desarrollador/reportes
+        - img [ref=e31]
+        - text: Reportes IA
+      - link "Pricing dinámico" [ref=e34] [cursor=pointer]:
+        - /url: /desarrollador/pricing
+        - img [ref=e35]
+        - text: Pricing dinámico
+      - link "Radar" [ref=e36] [cursor=pointer]:
+        - /url: /desarrollador/competidores
+        - img [ref=e37]
+        - text: Radar
+    - generic [ref=e43]:
+      - link "Ver marketplace público" [ref=e44] [cursor=pointer]:
+        - /url: /marketplace
+      - button "Cerrar sesión" [ref=e45] [cursor=pointer]:
+        - img [ref=e46]
+        - text: Cerrar sesión
+  - main [ref=e49]:
+    - generic [ref=e51]:
+      - generic [ref=e52]: D1 · INVENTARIO TIEMPO REAL
+      - heading "Inventario" [level=1] [ref=e53]
+      - paragraph [ref=e54]: Status por unidad, overrides auditados, esquemas de pago configurables. Click en una unidad para cambiar status.
+    - generic [ref=e55]: Cargando…

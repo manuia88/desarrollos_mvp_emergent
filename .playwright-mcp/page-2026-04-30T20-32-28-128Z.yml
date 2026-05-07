@@ -1,0 +1,157 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Barrios" [ref=e12] [cursor=pointer]:
+        - /url: /mapa
+      - link "Propiedades" [ref=e13] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Inteligencia" [ref=e14] [cursor=pointer]:
+        - /url: /#inteligencia
+      - link "Asesores" [ref=e15] [cursor=pointer]:
+        - /url: /#faq
+    - generic [ref=e16]:
+      - button "Entrar" [ref=e17] [cursor=pointer]
+      - link "Abrir mapa" [ref=e18] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e19]
+        - text: Abrir mapa
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - link "Marketplace" [ref=e27] [cursor=pointer]:
+            - /url: /marketplace
+          - text: / POLANCO · MIGUEL HIDALGO · CDMX
+        - generic [ref=e28]:
+          - heading "Altavista Polanco" [level=1] [ref=e29]
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - img [ref=e32]
+              - text: Verificado
+            - generic [ref=e34]: Preventa
+            - generic [ref=e35]: Destacado
+        - generic [ref=e36]:
+          - img [ref=e37]
+          - generic [ref=e40]: Moliere 245, Col. Polanco, CP 11570
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - button "Fotos" [ref=e43] [cursor=pointer]
+          - button "Video" [ref=e44] [cursor=pointer]
+          - button "Recorrido 360°" [ref=e45] [cursor=pointer]
+          - button "Planos" [ref=e46] [cursor=pointer]
+          - button "Ubicación" [ref=e47] [cursor=pointer]
+          - button "Street view" [ref=e48] [cursor=pointer]
+        - generic [ref=e49]:
+          - img [ref=e50]
+          - button [ref=e163] [cursor=pointer]:
+            - img [ref=e164]
+          - button [ref=e166] [cursor=pointer]:
+            - img [ref=e167]
+          - generic [ref=e169]: 1 / 6
+        - generic [ref=e170]:
+          - button [ref=e171] [cursor=pointer]:
+            - img [ref=e172]
+          - button [ref=e285] [cursor=pointer]:
+            - img [ref=e286]
+          - button [ref=e399] [cursor=pointer]:
+            - img [ref=e400]
+          - button [ref=e513] [cursor=pointer]:
+            - img [ref=e514]
+          - button [ref=e627] [cursor=pointer]:
+            - img [ref=e628]
+          - button [ref=e741] [cursor=pointer]:
+            - img [ref=e742]
+      - generic [ref=e855]:
+        - generic [ref=e856]:
+          - generic [ref=e857]:
+            - button "Descripción" [ref=e858] [cursor=pointer]
+            - button "Lista de precios" [ref=e859] [cursor=pointer]
+            - button "Avance de obra" [ref=e860] [cursor=pointer]
+            - button "Amenidades" [ref=e861] [cursor=pointer]
+            - button "Localización" [active] [ref=e862] [cursor=pointer]
+          - generic [ref=e1026]:
+            - generic [ref=e1027]:
+              - generic [ref=e1028]: Dirección
+              - generic [ref=e1029]: Moliere 245, Col. Polanco, CP 11570
+            - generic [ref=e1030]:
+              - button "Escuelas" [ref=e1031] [cursor=pointer]: Escuelas
+              - button "Hospitales" [ref=e1033] [cursor=pointer]: Hospitales
+              - button "Metro" [ref=e1035] [cursor=pointer]: Metro
+              - button "Parques" [ref=e1037] [cursor=pointer]: Parques
+              - button "Super" [ref=e1039] [cursor=pointer]: Super
+            - generic [ref=e1041]:
+              - generic:
+                - region "Map" [ref=e1042]
+                - img "Map marker" [ref=e1043]
+              - generic:
+                - generic [ref=e1045]:
+                  - link "© Mapbox" [ref=e1046] [cursor=pointer]:
+                    - /url: https://www.mapbox.com/about/maps
+                  - link "© OpenStreetMap" [ref=e1047] [cursor=pointer]:
+                    - /url: https://www.openstreetmap.org/copyright/
+                  - link "Improve this map" [ref=e1048] [cursor=pointer]:
+                    - /url: https://apps.mapbox.com/feedback/?owner=mapbox&id=dark-v11&access_token=pk.eyJ1IjoibWFudXJlYWxlc3RhdGUiLCJhIjoiY21tcDhtZG10MG0xaTJzcTI2c2o1cHc4aSJ9.NoXR8crDQ9IW1ra8J862NA#/-99.1939/19.433/14
+                - link "Mapbox homepage" [ref=e1050] [cursor=pointer]:
+                  - /url: https://www.mapbox.com/
+            - generic [ref=e1051]:
+              - generic [ref=e1052]: Tiempo a puntos clave
+              - button "Regístrate para ver tiempos caminando y en auto" [ref=e1053] [cursor=pointer]:
+                - img [ref=e1054]
+                - text: Regístrate para ver tiempos caminando y en auto
+        - complementary [ref=e975]:
+          - generic [ref=e976]:
+            - generic [ref=e977]: Desde
+            - generic [ref=e978]: $14,500,000
+            - generic [ref=e979]: MXN · Preventa · Entrega 2027-10
+          - generic [ref=e980]:
+            - button "Agendar visita" [ref=e981] [cursor=pointer]:
+              - img [ref=e982]
+              - text: Agendar visita
+            - link "Ver lista de precios" [ref=e984] [cursor=pointer]:
+              - /url: "#tab-precios"
+              - text: Ver lista de precios
+              - img [ref=e985]
+            - link "WhatsApp" [ref=e987] [cursor=pointer]:
+              - /url: https://wa.me/525512345678?text=Hola%2C%20me%20interesa%20Altavista%20Polanco%20en%20Polanco.%20https%3A%2F%2Fpropiedades-next.preview.emergentagent.com%2Fdesarrollo%2Faltavista-polanco
+              - img [ref=e988]
+              - text: WhatsApp
+          - generic [ref=e990]:
+            - generic [ref=e991]: Calculadora de plusvalía
+            - generic [ref=e992]:
+              - generic [ref=e993]:
+                - generic [ref=e994]: Plusvalía anual estimada
+                - generic [ref=e995]: 8%
+              - slider [ref=e996]: "8"
+            - generic [ref=e997]:
+              - generic [ref=e998]:
+                - generic [ref=e999]: Hoy
+                - generic [ref=e1000]: $14,500,000
+              - generic [ref=e1001]:
+                - generic [ref=e1002]: En entrega
+                - generic [ref=e1003]: $16,274,349
+              - generic [ref=e1004]:
+                - generic [ref=e1005]: Ganancia
+                - generic [ref=e1006]: $1,774,349
+            - generic [ref=e1007]: Estimación estadística con base en comparables históricos del barrio. No es una promesa de retorno.
+          - generic [ref=e1008]:
+            - generic [ref=e1009]: Plan de pagos estimado
+            - generic [ref=e1010]:
+              - generic [ref=e1011]:
+                - generic [ref=e1012]: Enganche
+                - generic [ref=e1013]: 20%
+              - slider [ref=e1014]: "20"
+            - generic [ref=e1015]:
+              - generic [ref=e1016]:
+                - generic [ref=e1017]: Enganche
+                - generic [ref=e1018]: $2,900,000
+              - generic [ref=e1019]:
+                - generic [ref=e1020]: 18 mensualidades durante obra
+                - generic [ref=e1021]: $241,667/mes
+              - generic [ref=e1022]:
+                - generic [ref=e1023]: Pago final a la entrega (50%)
+                - generic [ref=e1024]: $7,250,000
+          - button "Crea tu cuenta para descargar brochure, ver planos y recibir avance semanal por WhatsApp." [ref=e1025] [cursor=pointer]

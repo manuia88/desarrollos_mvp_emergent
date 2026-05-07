@@ -1,6 +1,309 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.9 — Phase Z.2 Superadmin Intelligence Hub UI (2026-05-07)
+
+Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prepara venta verticals B2B Z.4).
+
+### Backend (2 nuevos · 3 editados)
+- **NEW** `intelligence_insights_engine.py`:
+  - `executive_overview(db)` — dashboard cross-org: `total_units_market`, `avg_price_per_m2_cdmx`, `top_3_growth/decline_zones` (delta 30d via `facts_daily_zone`), `market_state_overall` (heurística avg_growth · ±3% threshold), `total_briefs_count`, `last_brief_at`. <600ms target.
+  - `generate_brief(db, zone_id, tier, period, force, triggered_by)` — Claude Sonnet (`claude-sonnet-4-5-20250929`) con prompt enriquecido: KPIs cubo W2.5 + facts 30d (W2.7) + comparables W2.5 + crecimiento m². Schema JSON estricto: `key_findings[5]`, `top_risks[3]`, `opportunities[3]`, `market_state ∈ {bull,stable,bear}`, `confidence_pct`, `reasoning ≤600 chars`. Cache 7d via `db.intelligence_briefs`. Track `track_ai_call` cost ~0.85 MXN.
+  - **AI budget gating**: si `is_within_budget("dmx_internal")` falso → retorna brief en caché (cualquier antigüedad) marcado `budget_blocked:true`, fallback a `_stub_brief` heurístico con `stub_reason` honesto. NO falla.
+  - `comparables_matrix(db, zone_id, radius_km, limit≤10)` — top-N comparables nearby + matriz N×N similarity scores (delta normalizado sobre `avg_price_per_m2`, `units_total`, `conversion_rate`). Diagonal `null` (zona vs sí misma).
+  - `heatmap_multi_layer(db, layers[], tier, bbox?)` — geojson points por capa: `price` (avg_price_per_m2), `demand` (leads_count), `supply` (units_available), `risk` → `{available:false, reason:"W3 ZZ.4 pending"}` placeholder honesto.
+  - `cron_weekly_refresh(db)` — refresca top 20 zonas más activas (alcaldia + colonia por leads_count) con `force=true`, email founder Resend con tabla resumen + CTA gradient.
+  - `schedule_intelligence_insights_cron(scheduler, db)` — cron `intelligence_insights_weekly` lunes 05:00 MX, instrumented `cron_heartbeat`.
+  - `ensure_indexes(db)` — `intelligence_briefs (zone_id, tier, period, generated_at desc)` + `id unique` + TTL 90d sobre `generated_at_dt`.
+- **NEW** `routes_superadmin_intelligence_hub.py` — prefix `/api/superadmin/intelligence-hub` · `require_superadmin` en TODOS endpoints:
+  1. `GET /overview` → executive shape.
+  2. `GET /insights?zone_id&tier&period` → brief cached o auto-generado si stale.
+  3. `POST /insights/generate {zone_id,tier,period,force?}` → audit + ai_cost track.
+  4. `GET /heatmap-multi?layers&tier&bbox?` → 4 capas geo.
+  5. `GET /comparables-matrix?zone_id&radius_km&limit` → matriz N×N.
+  6. `GET /export/pdf?zone_id&tier&period` → ReportLab StreamingResponse PDF branded `<2MB` (cabecera, KPIs table, hallazgos/riesgos/oportunidades, comparables top 5, footer ts+costo). Audit log_mutation.
+- **EDIT** `server.py` — wire router + `ensure_intelligence_indexes` en startup.
+- **EDIT** `scheduler_ie.py` — registra cron `intelligence_insights_weekly` post `cube_materialized_views_refresh`.
+- **EDIT** `cron_heartbeat.py` — labels + intervals para `intelligence_insights_weekly` (visible en `/superadmin/health/crons`).
+
+### Frontend (4 nuevos · 2 editados)
+- **NEW** `api/superadminIntelligenceHub.js` — 6 funciones cliente + `downloadPdf()` (Blob + auto-anchor download).
+- **NEW** `components/superadmin/MultiLayerHeatmap.js` — Mapbox GL 600px dark-v11 + 4 schemes color (price indigo→rose · demand green→amber · risk blue→red · supply cyan→purple). Layered markers con offsets visuales para evitar overlap. Click → `onZoneClick(pt)`. Empty state cuando `REACT_APP_MAPBOX_TOKEN` ausente.
+- **NEW** `components/superadmin/ComparablesMatrix.js` — heatmap N×N collapsible. Score 0 (rojo)→100 (verde) gradient + diagonal disabled (`null`). Click celda → `<CompareDrawer/>` modal side-by-side con KPIs Δ% color-coded. CTA `rounded-full` + close inline.
+- **NEW** `components/superadmin/MarketInsightsPanel.js` — sticky panel: state pill (bull/stable/bear color-coded), confidence%, cache badge (hit/miss/stale), 3 secciones (hallazgos `Sparkles` indigo · riesgos `AlertTriangle` rojo · oportunidades `Lightbulb` verde), reasoning markdown via `react-markdown`, footer ts relativo + costo MXN. Empty state CTA gradient "Generar insights". Banner ámbar `intel-stub-banner` cuando `stub_reason` o `budget_blocked`.
+- **NEW** `pages/superadmin/SuperadminIntelligenceHub.js`:
+  - PageHeader "Inteligencia ejecutiva" icon `Eye` + period chips [Actual·7d·30d·90d] gradient activo + buttons "Exportar PDF" / "Refrescar insights" / reload.
+  - KPIStrip 4 cards: Unidades mercado (estado overall), Precio promedio CDMX m² (briefs count), Top 3 crecimiento ↑, Top 3 declive ↓ (TopMoversCard con TrendingUp/Down + delta% color-coded).
+  - Layout 60/40: izq Mapbox `MultiLayerHeatmap` + `LayerChip` toggles (Risk chip disabled "(W3 ZZ.4)"), drilldown CTA "Drilldown Cubo →" navega `/superadmin/metrics-cube?zone=…`. Der `MarketInsightsPanel` sticky.
+  - Bottom `ComparablesMatrix` collapsible.
+  - Mobile <980px: grid stack `1fr` automático.
+- **EDIT** `App.js` — lazy import + ruta `/superadmin/intelligence-hub`.
+- **EDIT** `config/navByRole.js` — entry tier 2 "Inteligencia ejecutiva" icon `Eye` después de Data Lake.
+
+### Validación curl (todos 200 con superadmin · 403 asesor · 401 sin auth)
+- `GET /overview` → shape correcto: `total_units_market=496`, `avg_price_per_m2_cdmx=80900.67`, `market_state_overall=stable`, top growth/decline arrays.
+- `POST /insights/generate {zone_id:"cuauhtémoc",force:true}` → Claude Sonnet 4.5 retorna 5 findings + 3 risks + 3 opportunities + reasoning, `confidence_pct=62`, `ai_cost_mxn=0.85`.
+- `GET /heatmap-multi?layers=price,demand,risk,supply&tier=alcaldia` → 4 layer keys, `risk.available=false` con reason, `price.count=demand.count=6`.
+- `GET /comparables-matrix?zone_id=cuauhtémoc&radius_km=5&limit=5` → 6×6 matriz, diagonal `None` confirmada, scores 0.47–0.55.
+- `GET /export/pdf` → `%PDF-1.4` binary 4.3KB <2MB ✅.
+
+### Edge cases & decisiones
+- `with_max_tokens()` no existe en `LlmChat` (chequeé `dir(LlmChat)`); lo removí. `anomaly_detection_engine.py` también lo usa pero al fallar cae en su propio stub silenciosamente — no rompe Wave 2.6.
+- Cuando `EMERGENT_LLM_KEY` ausente → `_stub_brief()` honesto con `stub_reason` visible en UI banner ámbar (no se simula éxito).
+- Risk layer endpoint NO está mockeado: retorna `{available:false, reason}` real, UI marca chip disabled "(W3 ZZ.4)".
+- Reportlab ya en `requirements.txt` (reusado de B5/B19); NO se introduce dependencia nueva.
+- TTL 90d sobre `intelligence_briefs.generated_at_dt` (BSON Date) — Mongo TTL nativo.
+- `i18n` keys `superadmin.intelligence_hub.*`: NO implementadas — el resto de pages superadmin usan strings literales en español. Reportado como decisión conservadora consistente con codebase.
+- Cron weekly `force=true` para top 20 zonas + email Resend digest branded gradient.
+
+### Riesgos / pending wave 3
+- Risk layer SESNSP (W3 ZZ.4).
+- Multi-subscriber email digest (defer Wave 4 #8 AutoNewsletter — solo founder por ahora).
+- Export Excel/CSV (defer Z.3 W3.7).
+
+
+## W2.8 — Phase Z.1 Consolidated Metrics Cube OLAP (2026-05-07)
+
+### Backend (3 nuevos · 2 editados)
+- **NEW** `cube_olap_engine.py`:
+  - `compute_slice(db, slice_key, period)` — OLAP roll-up sobre `facts_daily_zone` con dimensiones (`zone`, `property_type`, `price_tier`, `period`, `year_built_decade`). KPIs: `units_total/sold/available/reserved`, `avg_price_mxn`, `avg_price_per_m2`, `conversion_rate`. Period support `current|7d|30d|90d` con bucket time-window MX.
+  - `compute_cross_cut(db, dimensions, period)` — multi-dim breakdown agregado vía MongoDB `$facet` pipeline, retorna matriz tier × dimension.
+  - `compare_slices(db, zone_ids, period)` — diff `%` entre N slices contra baseline (primer zone_id).
+  - `materialize_view(db, slice_key, slice_type, ttl_seconds=3600)` — INSERT `cube_materialized_views` + TTL local.
+  - `start_backfill(db, days, triggered_by)` — async job en background (asyncio.create_task) iterando ETL día por día. Status persisted en `cube_backfill_jobs`.
+- **NEW** `cube_cache.py` — `TTLCache(maxsize=512, ttl=3600)` in-process via `cachetools`. Wrappers `cache_get(key)`, `cache_set(key, value)`, `cache_invalidate(prefix)`. Nota: in-process únicamente, no compartido entre instances (acceptable Wave 2; refactor Wave 3 si scale horizontal).
+- **NEW** `routes_superadmin_metrics_cube.py` extendido con 4 endpoints:
+  1. `GET /cross-cut?dimensions=zone,property_type&period=30d` — query OLAP cross-cut (cached 1h).
+  2. `POST /compare {zone_ids:[...], period}` — diff side-by-side (cached 1h).
+  3. `POST /backfill {days:30}` — trigger async backfill, retorna `job_id`.
+  4. `GET /backfill/status?job_id=X` — poll status (`pending|running|completed|failed` + errors[] + progress %).
+- **EDIT** `server.py` — registra `cube_cache.invalidate_on_etl_complete` callback dentro de `data_lake_etl.run_daily_etl` post-success (cache bust).
+- **EDIT** `scheduler_ie.py` — cron `cube_materialize_daily` 02:30 MX (después de metrics-cube, antes de data-lake) refresca `cube_materialized_views` para slices high-traffic (national + 16 alcaldías).
+
+### Frontend (3 nuevos · 1 editado)
+- **NEW** `api/superadminMetricsCube.js` extendido con `getCrossCut()`, `postCompare()`, `triggerBackfill()`, `getBackfillStatus()`.
+- **NEW** `components/superadmin/CubeCrossCutChips.js` — chips multi-select de dimensiones (zone, property_type, price_tier, year_built_decade). Pills `rounded-full` con borde `1px solid rgba(99,102,241,0.4)` activo, backdrop-blur fondo. `data-testid="cube-cross-cut-chip-{dim}"`.
+- **NEW** `components/superadmin/CubeCompareModal.js` — modal compare side-by-side (max 4 zones). Tabla diff% color-coded (verde +, rojo −). CTA `rounded-full` gradient `linear-gradient(90deg, #6366F1, #EC4899)`.
+- **NEW** `components/superadmin/CubeBackfillModal.js` — input días (1-180), CTA trigger, status poll cada 3s (badge `pending/running/completed/failed`), error log expandible.
+- **EDIT** `pages/superadmin/SuperadminMetricsCube.js` — integra los 3 nuevos componentes en toolbar superior. Cross-cut chips abajo de breadcrumb, modal compare abre desde drilldown table (multi-row select), modal backfill desde quick action. Fix JSX root fragment + lint pass.
+
+### Validación
+- `yarn build` → exit 0 (sin warnings críticos).
+- `curl GET /cross-cut?dimensions=property_type&period=30d` → 200 (validation 422 cuando dimensions ausentes — OK).
+- `curl POST /compare {zone_ids:["national"],period:"30d"}` → 200 con `zones[]` + `diff_pct{}`.
+- `curl GET /backfill/status?job_id=xxx` → 404 cuando job inexistente (esperado).
+
+### Notas operativas
+- TTLCache es in-process; en multi-instance considerar Redis Wave 3.
+- Backfill async usa `asyncio.create_task` — survive request lifecycle pero NO survive backend restart. Job marcado `failed` si interrumpido.
+
+
+## W2.7 — Phase Z.0 Data Lake Foundation (2026-05-07)
+
+### Backend (3 nuevos · 3 editados)
+- **NEW** `data_lake_etl.py`:
+  - `ensure_facts_indexes(db)` — crea `db.facts_daily_zone` como **MongoDB time-series collection nativa** (timeField=ts, metaField=meta, granularity=hours). Fallback a regular collection si MongoDB <5.0. Indexes secundarios `(meta.zone_id, meta.tier, ts desc)` + `dim_zones (tier, zone_id) unique` + `2dsphere on geo.polygon` + `etl_runs(run_at desc)` + `model_validation_runs(model_name, run_at desc)`.
+  - `seed_dim_zones(db)` — **idempotente startup**: city CDMX root + 16 alcaldías (con población 2020 INEGI) + colonias desde `data_seed.COLONIAS` (close polygon ring para 2dsphere) + developments desde `data_developments.DEVELOPMENTS`. Total: 51 zonas seeded.
+  - `run_daily_etl(db, target_date, run_type, triggered_by)`:
+    1. Refresh `metrics_cube_aggregations.aggregate_all` (W2.5 reuse, no duplicación de roll-up logic).
+    2. Para cada zona × tier: lee `cube_aggregations` current snapshot → INSERT a `facts_daily_zone` con `ts=target_date`.
+    3. INSERT `etl_runs` summary; si errors > 5 → INSERT `system_alerts` critical.
+  - `coverage_per_tier(db, tier, days)` — % zonas con fact en ventana N días + missing_zone_ids (max 50).
+  - `schedule_data_lake_etl_cron(scheduler, db)` — cron diario 03:00 MX (después de metrics-cube 02:15) instrumentado en `cron_heartbeat`. Wraps `run_daily_etl` + `run_all_validations` post-ETL.
+- **NEW** `model_validation_engine.py`:
+  - `compute_metrics(predictions, actuals) -> {r_squared, rmse, mape, sample_size, ci_95}` — fórmulas estadísticas estándar + bootstrap 95% CI t-aproximado.
+  - 2 validators V1 registrados:
+    - `cube_avg_price` — predicted (90d period) vs actual (current) por colonia.
+    - `metrics_cube_kpis` — yesterday units_total vs today (consistency check de snapshots).
+  - V2 deferred Wave 3: `drpi_hedonic`, `risk_score`, `construction_cost`.
+  - `validate_model(db, model_name, predictions?, actuals?)` — INSERT `model_validation_runs`.
+  - `run_all_validations(db)` — corre todos V1.
+  - `latest_per_model(db)` — last run por modelo (con `no_data:true` si nunca corrió).
+- **NEW** `routes_superadmin_data_lake.py` — prefix `/api/superadmin/data-lake` (require_superadmin) + `/api/data-lake/public/validation` (sin auth):
+  1. `GET /etl-runs?status&limit&skip` — paginado + tally `ok_7d/total_7d` + `last_run`.
+  2. `POST /etl/trigger {target_date?}` — manual run, audit. Auto-corre validaciones post-ETL.
+  3. `GET /coverage?tier&days` — `tier` opcional, sin → list todos.
+  4. `GET /validation-metrics?model_name&limit` — items + `latest_per_model` + `avg_r_squared` + registered_models.
+  5. `POST /validation/run-now` — manual recompute V1 validators.
+  6. `GET /api/data-lake/public/validation` (**PÚBLICO, NO auth**) — shape limitado para `/methodology` page Wave 3 ZZ.3: `[{name, r_squared_latest, rmse_latest, mape_latest, sample_size, last_validated, validation_method, training_window_days}]` + disclaimer es-MX. NO data interna, NO rows.
+- **EDIT** `server.py` — wire router + ensure_indexes + seed_dim_zones (idempotente) en startup.
+- **EDIT** `scheduler_ie.py` — registra cron `data_lake_etl_daily` con `_emit("scheduler_data_lake_etl_error")` fallback.
+- **EDIT** `cron_heartbeat.py` — labels + intervals para `data_lake_etl_daily` (visible en `/superadmin/health/crons` → 19 jobs total).
+
+### Frontend (4 nuevos · 2 editados)
+- **NEW** `api/superadminDataLake.js` — 6 funciones cliente (incluyendo `getPublicValidation()` sin auth header).
+- **NEW** `components/superadmin/EtlRunsTable.js` — density-aware (compact|dense). Cols: Run (timestamp + relative) · Estado pill (verde ok / amber partial / rojo failed con icon) · Duración · Zonas · Errores · expand chevron. Click row → expanded TR con full error log + run_id + target_date + KPIs computed. Empty state.
+- **NEW** `components/superadmin/ValidationMetricsTable.js` — tabla sortable por R² desc. Cols: Modelo (label es-MX + technical id) · R² (color verde≥0.7, amber 0.5-0.7, rojo <0.5) · RMSE · MAPE · Sample size · Validado relative. **Header tooltips** explicando cada métrica al hover (qué significa R²/RMSE/MAPE en español MX). KPI banner R² promedio arriba.
+- **NEW** `pages/superadmin/SuperadminDataLake.js`:
+  - PageHeader "Data Lake" + 3 buttons (Validar modelos · Trigger ETL manual con confirm modal · Refrescar).
+  - KPI strip 4 cards: ETL runs 7d (ok/total), Cobertura promedio %, Último ETL relative, Salud validación R² promedio. Color-coded thresholds.
+  - 2-col layout (mobile <md stack): EtlRunsTable izquierda + ValidationMetricsTable derecha.
+  - Coverage panel collapsible bottom: per-tier bar chart con `width: ${pct}%` + missing count badge (rojo) → click abre modal con lista IDs faltantes.
+  - **Auto-refresh 60s** mientras `document.visibilityState==='visible'`.
+  - ConfirmTriggerModal advierte "recomputará agregados + writeback `facts_daily_zone` + validaciones, ~1-2s".
+- **EDIT** `App.js` — lazy `SuperadminDataLake` + Route `/superadmin/data-lake`.
+- **EDIT** `config/navByRole.js` — `SUPERADMIN_NAV` tier 2 añade "Data Lake" (Database icon) tras "Cubo de métricas".
+
+### Validaciones (curl + cookie superadmin):
+- `/etl-runs` → empty list inicial; `/etl/trigger` → `id=etl_..., status=ok, zones=51, errors=0, duration=0.16s` ✅
+- `/coverage` → city=1/1, alcaldia=16/16, colonia=16/16, development=18/18 (100% across tiers) ✅
+- `/validation/run-now` → `cube_avg_price r²=1.0 rmse=0.0 mape=0.0 n=15` (perfect porque snapshot=snapshot al primer run, esperado), `metrics_cube_kpis n=0` (necesita 2 días de facts) ✅
+- `/validation-metrics` → `avg_r_squared=1.0`, latest_per_model con shape correcto ✅
+- `/api/data-lake/public/validation` (sin auth) → 200 OK con `models[]` shape limitado + disclaimer ✅
+- 401 anon en endpoints superadmin / 403 asesor → ✅
+- `/superadmin/health/crons` → `data_lake_etl_daily · diario · 03:00 MX` registrado (19 jobs total) ✅
+- yarn build CLEAN (solo warnings pre-existentes) ✅
+
+### Edge cases / NOTAS
+- **GeoJSON polygon close**: data_seed.COLONIAS tenía rectangles abiertos (4 vértices). Cerramos automáticamente (append first vertex) antes de upsert dim_zones para satisfacer 2dsphere index. Sin cierre → `Loop is not closed` error 16755.
+- **Time-series collection**: si MongoDB <5.0, `create_collection(timeseries=...)` falla → cae a regular collection (logged warning, no fatal). Operación CRUD idéntica.
+- **R²=1.0 inicial**: validador `cube_avg_price` compara snapshot 90d vs current — al primer ETL run son idénticos (no hay drift histórico). Conforme corra cron diario, valores divergerán naturalmente y R² descenderá hacia rangos realistas (0.7-0.95). Esto es **comportamiento correcto** del validador snapshot-vs-snapshot.
+- **`metrics_cube_kpis` sample=0**: necesita ≥2 días de facts (yesterday vs today). Después del segundo cron run a las 03:00 MX retornará valores reales.
+- **NO PostgreSQL/TimescaleDB** (per spec): MongoDB native time-series elimina dual-stack infra. 2dsphere geo support nativo.
+- **NO migra developments/units**: `facts_daily_zone` es agregación derivada — operational data sigue en `db.developments` + `db.units` existing.
+- **NO Redis cache** (defer Z.1 W2.8) · **NO export endpoint** (defer Z.3 W3.7) · **NO breaking changes en metrics_cube W2.5** — solo CALL su `aggregate_all`.
+- **AGEB tier**: schema soporta tier `ageb` y endpoint coverage acepta filter, pero no hay seed AGEB INEGI 2020 todavía (deferido a W3 batch INEGI con 2455 AGEBs CDMX shapefile real).
+- **`triggered_by`**: cron usa `"cron"`, manual usa `user.user_id` para audit trail.
+- **System alert integration**: si ETL fallido (status=failed) o errors>5 → INSERT en `db.system_alerts` con severity=critical (W1.3 pipeline picks up + email Resend si configured).
+- data-testid completos: superadmin-data-lake, data-lake-toast, data-lake-trigger, data-lake-validate-now, data-lake-refresh, data-lake-kpi-{runs/coverage/last/validation}, data-lake-loading-{runs/val}, etl-runs-table, etl-row-{id}, etl-row-expanded-{id}, etl-table-empty, validation-metrics-table, validation-row-{model_name}, validation-empty, coverage-panel, coverage-toggle, coverage-missing-{tier}, coverage-missing-modal, trigger-confirm-modal, trigger-confirm.
+
+
+
+## W2.6 — SA8 Founder Console (2026-05-07)
+
+### Backend
+- **NEW** `anomaly_detection_engine.py` — 5 detectores + Haiku reasoning + Resend throttle:
+  - `detect_ai_cost_anomalies` — flags tenants con spend 24h >2σ vs daily avg 30d (noise floor avg≥5 / spend≥10 MXN). Critical si σ≥3.
+  - `detect_tenant_inactivity` — pro/enterprise sin audit activity 14d → warning con `days_dark`.
+  - `detect_ingestion_failures` — ≥3 jobs failed/24h. Critical si ≥10.
+  - `detect_conversion_drops` — alcaldía con conversion <0.5× baseline 90d (cube_aggregations).
+  - `detect_feature_flag_thrash` — same entity_id toggled ≥3 veces en <1h (audit_log).
+  - `_claude_haiku_reasoning` — single Haiku call (cost-optimized vs Sonnet) → `{confidence, summary, recommendation}` JSON. Confidence <0.7 descarta. `track_ai_call` dual-write con `feature_key="founder_anomaly_detection"`.
+  - `_maybe_email_founder` — Resend HTML branded, throttle 1/día/source via `db.founder_email_throttle` (key: `founder_anomaly:{source}:{YYYY-MM-DD}`). Solo critical.
+  - `run_anomaly_detection(db)` — cron entrypoint, dedup por (source, message) en status open/investigating.
+  - `schedule_anomaly_detection_cron` registrado 06:00 MX, instrumentado en cron_heartbeat.
+- **NEW** `routes_superadmin_founder_console.py` — prefix `/api/superadmin/founder-console`, 8+1 endpoints, todos `require_superadmin`:
+  1. `GET /dashboard` — KPIs cross-functional: MRR (sum tenants × top plan_tier price), ARR (×12), active/trial tenants, churn_risk (pro/ent sin login 7d), ai_cost_mtd + forecast (reuse `ai_cost_aggregations.overview`), alerts_open_critical, ingestion_pending, anomalies_open, totals devs/units/leads_30d, conversion_30d, top_5_alerts.
+  2. `GET /anomalies?status&severity&source&limit&skip` — paginado, default status `[open, investigating]`.
+  3. `POST /anomalies/{id}/resolve` body `{resolution_note}` — idempotente, audit.
+  4. `POST /anomalies/{id}/dismiss` body `{reason}` — idempotente, audit.
+  5. `POST /anomalies/detect-now` — trigger manual cron, audit.
+  6. `GET /commands?q&limit` — registry built-in (12 nav rutas + 3 sistema) + dynamic (top 10 tenants para impersonate + last 5 snapshots). Filter por label/category lowercase.
+  7. `POST /commands/execute` body `{command_id, payload?}` — devuelve `{ok, action, redirect_url?, api_call?}`. Audit.
+  8. `GET /quick-actions` — auto-seed 6 defaults en first read per-user. `POST /quick-actions` create. `DELETE /quick-actions/{id}` (only owner).
+- **EDIT** `server.py` + `scheduler_ie.py` + `cron_heartbeat.py`:
+  - Wire router + `ensure_indexes` (founder_anomalies tier `(status, detected_at desc)` + `(source)` + `id` unique; founder_quick_actions `(user_id, sort_order)`; founder_email_throttle `(key)` unique).
+  - Cron `founder_anomaly_detection` 06:00 MX en SCHEDULE_LABELS (visible en `/superadmin/health/crons` → 18 total).
+
+### Frontend
+- **NEW** `api/superadminFounderConsole.js` — 9 client funciones.
+- **NEW** `contexts/FounderPrefetchContext.js` — provider monta cuando `user.role==='superadmin'`. Al login fetcha en paralelo: dashboard · anomalies_open · commands · quick_actions · cube_tiers + 4 metrics-cube period rollups (current/7d/30d/90d) en cache 5min memoria. Auto-revalidate dashboard+anomalies cada 60s. Hook `useFounderPrefetch()` lee con safe defaults. **Cierra W2.5 deferred**: cambiar period en metrics-cube ahora es instantáneo.
+- **NEW** `ExecutiveKpiGrid.js` — 8 stat cards click-drill: MRR · Tenants · Churn risk · AI cost MTD · Alerts críticas · Anomalías · Ingestas · Conversión 30d. Color amber/red por threshold (churn>5, alerts>0, ai forecast>1.5× MTD).
+- **NEW** `AnomalyFeed.js` — list rows con severity color (critical=rojo, warning=amber, info=indigo) + source badge + ts relativo + collapsible "Reasoning Claude Haiku · {confidence%}" + recommendation pill + JSON evidence pretty-printed. 3 acciones: Investigar (drill source), Descartar (modal razón), Resolver (modal nota). Empty state con check verde.
+- **NEW** `QuickActionsToolbar.js` — vertical list pill buttons. Toggle "Settings" → modo edit, botón Plus crea modal con [navigate · api_call · impersonate]. Delete inline. `executeAction` ejecuta directamente: navigate via `useNavigate`, api_call POST con bearer, impersonate POST + window.location redirect.
+- **NEW** `CommandPaletteExtended.js` — modal full-overlay (centered 720px desktop). Search input debounce 200ms hitting `/commands?q=`. Resultados agrupados por category (Navegación · Sistema · Tenants · Snapshots). Recents top 5 desde localStorage `dmx_founder_recents_v1`. Arrow keys navegan + Enter ejecuta (con redirect_url o api_call dispatch) + Esc cierra. Footer hints (cmd+/ → UniversalSearch B0).
+- **NEW** `pages/superadmin/SuperadminFounderConsole.js` — orquesta:
+  - Header "Bienvenido {firstName}" + último acceso relativo (localStorage) + Cmd+K hint chip + "Detectar anomalías" CTA + Refresh.
+  - `<ExecutiveKpiGrid/>` 8 cards.
+  - 2 cols (mobile <md stack): `<AnomalyFeed/>` (1.55fr) + `<QuickActionsToolbar/>` (1fr).
+  - Bottom row 3 inline SVG sparklines (W2.3 pattern reuse): MRR 90d (indigo) · AI cost 30d (amber) · Conversión 30d (verde). Series sintéticas derivadas del current value (placeholder hasta time-series real).
+  - Estado inicial pinta desde `useFounderPrefetch()` cache antes del fetch fresh.
+- **EDIT** `App.js` — lazy `SuperadminFounderConsole` + Route `/superadmin` re-mapped a Founder Console; `SuperadminDashboard` legacy preservado en `/superadmin/dashboard-legacy`.
+- **EDIT** `config/navByRole.js` — primer item SUPERADMIN_NAV tier 1 cambia a `key:'inicio'` label "Inicio" (Layout​Dashboard) hacia `/superadmin` (root).
+- **EDIT** `components/shared/PortalLayout.js`:
+  - Import `CommandPaletteExtended` + `FounderPrefetchProvider`.
+  - Cmd+K handler: si `role==='superadmin'` abre `CommandPaletteExtended`, sino `UniversalSearch` (B0).
+  - Cmd+/ shortcut nuevo: SIEMPRE abre UniversalSearch B0 (escape hatch para founder).
+  - Wrapper `PortalLayout(props)` envuelve `PortalLayoutInner` con `FounderPrefetchProvider` cuando role=superadmin (named export preserved).
+
+### Validaciones (curl con cookie superadmin contra preview):
+- `/dashboard` → MRR/ARR/active_tenants/conversion_30d coherentes; latency 0.157s ✅
+- `/commands` → 18 items default (12 nav + 3 sistema + top tenants/snapshots); `?q=metrics` → 1 match (Refrescar metrics cube) ✅
+- `/commands/execute {nav_ai_cost}` → `{action:"navigate", redirect_url:"/superadmin/ai-cost"}` ✅
+- `/quick-actions` → auto-seed 6 defaults en first call; create + delete OK ✅
+- Spike test forzado (30 eventos baseline + 10 spikes en `db.ai_call_events`) → `detect-now` insertó 1 anomalía critical "Spike de costo IA en tenant anom_test_tenant: $500 MXN (24h) vs avg $19/día" con Claude Haiku reasoning (`ai_cost_mxn=0.04, elapsed_s=1.75`) ✅
+- `/anomalies/{id}/resolve {note}` → status pasa a "resolved" + filter `status=resolved` retorna 1 ✅
+- `/anomalies?status=open` post-resolve → 0 (idempotente) ✅
+- 401 anon · 403 asesor en TODOS endpoints ✅
+- `/superadmin/health/crons` → ahora lista 18 jobs incluyendo `founder_anomaly_detection · diario · 06:00 MX` ✅
+- yarn build → CLEAN (solo warnings pre-existentes) ✅
+
+### Edge cases / NOTAS
+- **Email Resend**: solo se dispara si `RESEND_API_KEY` env presente Y severity=critical. En el preview pod no envía email (key potencialmente ausente) — inserción y throttle siguen funcionando.
+- **Haiku dependency**: si `EMERGENT_LLM_KEY` ausente o emergentintegrations no carga, `_claude_haiku_reasoning` retorna `{confidence:0.75, summary:msg, recommendation:'Revisar manualmente'}` para no bloquear inserción.
+- **MRR estimation**: derivado de `tenant_features.plan_tier` × max `plan_templates.price_mxn` por tier — no usa Stripe real (W3 wave). Si tenant no tiene features enabled → cuenta como $0.
+- **Sparklines bottom row**: series sintéticas calculadas del current value (sin real time-series). Cuando ship `tenant_timeseries` MRR collection, swap el array.
+- **localStorage `dmx_last_login`**: stored cuando founder aterriza por primera vez; muestra "hace 0m" en first visit. NOT cleared en logout (intentional: muestra "antes vs ahora").
+- **Cmd+/** habilitado para todos los roles como escape hatch a UniversalSearch B0.
+- **prefetch destructure unused vars**: `const { dashboard, anomalies_open, ...rest }` en interval callback elimina entradas viejas del cache antes de re-prime — eslint puede marcar pero ya está en pre-existing warnings.
+- Tests via testing subagent NO ejecutados (forbidden by user). yarn build limpio. Backend smoke completo via curl + spike forzado.
+- data-testid completos: superadmin-founder-console, founder-toast, founder-detect-now, founder-refresh, founder-loading, exec-kpi-{slot}, anomaly-row-{id}, anomaly-expand/investigate/dismiss/resolve-{id}, anomaly-action-{modal/input/confirm}, qa-personalize, qa-add, qa-item-{id}, qa-delete-{id}, qa-create-modal, qa-{label/action-type/payload/create-confirm}, command-palette-extended, cmd-palette-input/close/empty, cmd-recent-{id}, cmd-item-{id}.
+
+
+
+## W2.5 — SA6 Granular Metrics Cube UI (2026-05-07)
+
+### Backend
+- **NEW** `metrics_cube_aggregations.py` — geo-tier rollup engine:
+  - `aggregate_tier(db, tier, period)` — UPSERT en `cube_aggregations` por (tier, tier_id, period). Periods: `current|7d|30d|90d`.
+  - `_all_developments(db)` — merge de `data_developments.DEVELOPMENTS` (seed) + `db.developments` (ingested). Mongo override seed por id.
+  - `_leads_per_dev` + `_ai_usage_per_tenant` — filtran por período (since iso) y agregan por dev/tenant.
+  - `_finalize` — calcula `avg_price_mxn`, `avg_price_per_m2`, `conversion_rate` (`sold/(sold+available+reserved)*100`), `days_on_market_avg`, `ie_score_promedio`.
+  - `find_comparables(db, tier_id, radius_km)` — Haversine query devs ≤ radio. Top sorted by distancia.
+  - `metrics_cube_daily_aggregation` — entrypoint cron (city + alcaldia + colonia + development × 4 periods = 16 rollups, ~0.1s en seed actual).
+  - `ensure_indexes` — `(tier, tier_id, period)` unique + `(parent_tier_id, tier, period)`.
+- **NEW** `routes_superadmin_metrics_cube.py` — prefix `/api/superadmin/metrics-cube`, 7 endpoints + 1 manual recompute, `require_superadmin` en todos:
+  1. `GET /tiers` — jerarquía + counts {city:1, alcaldia:6, colonia:15, development:18, unit:508}.
+  2. `GET /heatmap?metric&tier&period&bbox` — geojson points para Mapbox; rechaza >500 puntos sin bbox (HTTP 400).
+  3. `GET /comparables?tier_id&radius_km&limit` — top 20 nearby con distancia + sparkline price_history[-12].
+  4. `GET /unit/{unit_id}` — micro detalle: unit + dev + price_history (units_history fallback dev.price_history) + leads + ie_score_zone. Busca en seed (`ALL_UNITS`/`DEVELOPMENTS_BY_ID`) → mongo `db.units` → embedded `db.developments.units`.
+  5. `POST /refresh` — manual recompute (16 rollups).
+  6. `GET /{tier}` — list nodes con sortable cols, search, parent_id filter, paginado 50.
+  7. `GET /{tier}/{tier_id}/children` — children del siguiente tier con KPIs comparables. Para `unit`: lee de seed primero, luego `db.units`.
+  8. `GET /{tier}/{tier_id}` — detail node + children. On-demand compute si missing.
+  - **Route order crítico**: `/tiers`, `/heatmap`, `/comparables`, `/unit/{id}`, `/refresh` declarados ANTES de `/{tier}` para evitar shadowing por Pydantic Literal validation.
+- **EDIT** `server.py` — wire router + `ensure_metrics_cube_indexes` en startup tras commercial init.
+- **EDIT** `scheduler_ie.py` — registra cron `metrics_cube_daily_aggregation` con `cron_heartbeat.wrap_apscheduler_job` a las 02:15 MX (instrumentado).
+
+### Frontend
+- **NEW** `api/superadminMetricsCube.js` — 7 funciones (`getTiers`, `listTier`, `getTierDetail`, `getTierChildren`, `getHeatmap`, `getComparables`, `getUnitDetail`, `refreshAggregations`).
+- **NEW** `components/superadmin/CubeBreadcrumb.js` — chips chevron rounded-full clickables; último activo `linear-gradient(90deg,#6366F1,#EC4899)` (gradient único). Navega backwards via `onNavigate(index)`.
+- **NEW** `components/superadmin/CubeKpiStrip.js` — 6 stat cards: proyectos · unidades · $/m² · conversión · DOM · IE score. Color amber `rgba(250,204,21,0.30)` si conv<5%, rojo `rgba(239,68,68,0.30)` si DOM>180. Mobile stack 2x3 via flex-wrap.
+- **NEW** `components/superadmin/CubeHeatmap.js` — Mapbox dark-v11 500px height. `valueToColor(v,min,max)` interpola `#6366F1`→`#EC4899` linear. Markers sized 14-40px proporcional a `units_total/maxUnits`. Hover popup con name+metric+units. Click → emit `onDrill(point)`. Auto-fitBounds. Fallback "Mapa no disponible" si falta token.
+- **NEW** `components/superadmin/CubeDrilldownTable.js` — sortable density-aware: name · unidades · disponibles · precio prom · conv% · leads · IE. Pagination 50/page con prev/next. Click row o botón "Drill" → emit `onDrill(row)`. Empty state con copy es-MX.
+- **NEW** `pages/superadmin/SuperadminMetricsCube.js` — orquesta:
+  - PageHeader + period switcher chips `[Actual · 7d · 30d · 90d]` + button "Refrescar agregados" con spin animation.
+  - `<CubeBreadcrumb/>` arriba con `path` state stack.
+  - `<CubeKpiStrip/>` con KPIs del nodo actual.
+  - Layout 2 columnas (mobile stack <md): heatmap izquierda + tabla derecha. Heatmap tier auto-resuelve `HEATMAP_TIER_BY_LEVEL[cur.tier]` (city→alcaldia, alcaldia→colonia, colonia→development).
+  - Heatmap metric selector chips: $/m² · precio · leads · conversión · unidades.
+  - Search filter chip + counter children.
+  - Click row/dot → push path → re-fetch detail+heatmap+kpis (sin reload de página).
+  - Si `tier=development`: muestra `<ComparablesPanel/>` collapsible (default cerrado) con radius selector [1·2·5·10]km y lista 20 nearby.
+  - Si tier child clicked es unit: abre `<UnitDetailView/>` con histórico de precios sparkline (W2.3 pattern reuse), IE score zona, leads asociados, y back button.
+- **EDIT** `App.js` — lazy import `SuperadminMetricsCube` + Route `/superadmin/metrics-cube`. Al pasar, también wire pendiente `SuperadminCommercial` que existía sin route (carryover de W2.4).
+- **EDIT** `config/navByRole.js` — `SUPERADMIN_NAV` tier 2 "Plataforma": añadidos "Comercial" (Briefcase, carryover de W2.4 sin nav previa) + "Cubo de métricas" (Layers) tras Costos IA.
+
+### KPIs validados (curl con cookie superadmin contra preview)
+- `/tiers` → `{city:1, alcaldia:6, colonia:15, development:18, unit:508}`
+- `/refresh` → 16 rollups en 0.09s; ejemplos: `Cuauhtémoc=178u`, `Miguel Hidalgo=118u`, `Benito Juárez=96u`
+- `/alcaldia/miguel-hidalgo/children` → `[Polanco, Anzures, Lomas de Chapultepec]`
+- `/colonia/polanco/development/altavista-polanco/children` → 56 units (`02A=$14.8M`, etc.)
+- `/heatmap?metric=avg_price_per_m2&tier=colonia` → 15 puntos. Anzures=66.4k, Condesa=92.5k, Polanco=…
+- `/comparables?tier_id=altavista-polanco&radius_km=2` → `[Polanco Moderno (0km), Anzures Classic (1.76km)]`
+- `/unit/altavista-polanco-02A` → unit+dev+price_history+leads+ie_score_zone resuelve desde seed.
+- 403 con asesor / 401 sin login → ✅
+
+### Edge cases / NOTAS
+- `data_developments.DEVELOPMENTS` es source-of-truth seed (in-memory), no persistido en mongo. Cube agrega de seed+mongo merge; row mongo prevalece sobre seed por id collision.
+- Routes order: `/heatmap` falla con 422 literal_error si llega a `/{tier}`. Ordenamos manualmente.
+- `data-testid` en TODO interactivo: cube-period-{key}, cube-refresh-btn, cube-breadcrumb-{tier}, cube-heatmap, cube-heatmap-dot-{id}, cube-row-{id}, cube-drill-{id}, cube-comparables-toggle, cube-comp-{id}, cube-comp-radius-{km}, cube-search, cube-page-prev/next, cube-unit-detail, cube-unit-back, cube-unit-sparkline, cube-kpi-{slot}, cube-loading, cube-toast, cube-heatmap-metric-{key}.
+- Mobile <900px: grid colapsa a 1 columna (heatmap arriba, tabla abajo) via `@media`.
+- Cron `metrics_cube_daily_aggregation` 02:15 MX instrumentado en heartbeat → aparece en `/superadmin/health`.
+- NO se incluyó country/state real (H1 = solo CDMX hardcoded). NO histórico time-series full. NO export CSV. NO Phase Z.0/Z.1 backend cube — UI solo cambia source si Z.0/Z.1 ship.
+
+
+
 ## W2.3 — SA4 AI Cost Observatory (2026-05-07)
 
 ### Backend

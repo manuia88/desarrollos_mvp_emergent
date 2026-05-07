@@ -29,6 +29,94 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 
 ---
 
+## 2026-05-07 — W2.8 · Phase Z.1 Consolidated Metrics Cube OLAP
+
+### Backend
+- `cube_olap_engine.py` — `compute_slice`, `compute_cross_cut` (multi-dim `$facet`), `compare_slices` (diff %), `materialize_view`, `start_backfill` (asyncio task).
+- `cube_cache.py` — `TTLCache(maxsize=512, ttl=3600)` con `cache_get/set/invalidate`. Bust automático post-ETL. In-process (no compartido entre instances).
+- `routes_superadmin_metrics_cube.py` extendido: `GET /cross-cut`, `POST /compare`, `POST /backfill`, `GET /backfill/status`.
+- `scheduler_ie.py` — cron `cube_materialize_daily` 02:30 MX.
+
+### Frontend
+- `CubeCrossCutChips.js`, `CubeCompareModal.js`, `CubeBackfillModal.js` integrados en `SuperadminMetricsCube.js`. CTAs `rounded-full` + gradient `#6366F1→#EC4899`. Lint + `yarn build` clean.
+
+### Validación
+- `curl /cross-cut?dimensions=property_type&period=30d` → 200.
+- `curl POST /compare {zone_ids:["national"],period:"30d"}` → 200 con `diff_pct`.
+- Backfill async ejecuta y persiste en `cube_backfill_jobs`.
+
+---
+
+
+
+## 2026-05-06 — Phase 13 Batch 36 · Marketplace Asesor + Whitelist Developer + Auto-Approve
+
+### Backend nuevo
+- `routes_advisor_whitelist.py` — 9 endpoints: POST `/api/asesor/whitelist/request`, GET `/api/asesor/whitelist/me`, GET `/api/asesor/whitelist/authorized-devs`, GET `/api/dev/whitelist/pending`, GET `/api/dev/whitelist/all`, POST `/api/dev/whitelist/{auth_id}/approve|reject|revoke`, POST `/api/dev/whitelist/bulk-approve`, GET/PUT `/api/dev/auto-approve-rule`, POST `/api/dev/auto-approve-rule/simulate`.
+- `services/advisor_authorization.py` — CRUD whitelist: request_access (con auto-approve check), approve, reject, revoke, bulk_approve, list_pending, list_for_asesor, list_all_for_dev, is_authorized, get_authorized_dev_org_ids. Notificaciones NotificationsBell + email branded.
+- `services/auto_approve_engine.py` — 3-gate check: (1) regla habilitada, (2) trust_score >= threshold, (3) deals_in_zone_12m >= min_deals. Simulation endpoint.
+
+### Permissions + Data Scoping (editados)
+- `permissions.py` — `can_view_dev_inventory_exclusive(user, dev_org_id, is_authorized)`.
+- `data_scoping.py` — `scope_dev_project_for_asesor(project, is_authorized)`, `scope_dev_projects_for_asesor(projects, authorized_dev_org_ids)`. Scrub campos exclusivos si no hay whitelist.
+
+### Schemas nuevos
+- `db.dev_advisor_authorizations`: `{auth_id, dev_org_id, asesor_id, status (pending|approved|rejected|revoked), solicitud {motivo, experiencia_colonia, clientes_interesados_count}, comentario_decision, auto_approved, requested_at, decided_at, decided_by_user_id, revoked_at, revoked_by_user_id, revoked_reason}`.
+- `db.dev_auto_approve_rules`: `{rule_id, dev_org_id (PK unique), enabled, threshold_trust_score (0-100), require_zona_expertise, target_colonias, min_deals_closed_12m, last_modified, modified_by}`.
+
+### Frontend nuevo
+- `api/advisor_whitelist.js` — API helpers (fetch, no axios).
+- `pages/asesor/AsesorMiniMarket.js` (/asesor/mini-market) — Toda la oferta con whitelist status badge per card. CTA contextual según estado.
+- `components/asesor/SolicitudAccesoModal.js` — Form 3 campos: motivo, experiencia_colonia, clientes_interesados_count.
+- `pages/asesor/AsesorInventario.js` (/asesor/inventario) — Solo devs aprobados + datos exclusivos + drawer LP completa + share tracking link.
+- `pages/developer/DesarrolladorSolicitudes.js` (/desarrollador/solicitudes) — Lista solicitudes + approve/reject/revoke inline + bulk approve checkboxes.
+- `components/developer/AutoApproveSettings.js` — Toggle + Trust Score slider + zona config + live simulation preview.
+
+### Frontend editado
+- `config/navByRole.js` — Mini Market + Inventario aliados en ASESOR_NAV; Solicitudes en DEV_NAV.
+- `App.js` — 3 rutas nuevas.
+- `i18n/locales/es-MX/common.json` — Strings asesor.whitelist + developer.solicitudes + auto_approve.
+- `pages/developer/DesarrolladorConfiguracion.js` — AutoApproveSettings card integrada.
+
+---
+
+## 2026-05-06 — Phase 18 Batch 35 · Inmobiliaria Entity (Foundation + Portal + Relationships)
+
+### Backend nuevo
+- `routes_inmobiliaria.py` — POST `/api/auth/inmobiliaria/signup` (público), POST `/api/inmobiliaria/ampi-verify` (público), GET `/api/inmobiliaria/me`, POST `/api/inmobiliaria/users/invite`, GET `/api/inmobiliaria/advisor-relationships`, POST/GET `/api/inmobiliaria/dev-partnerships`, PATCH `/api/inmobiliaria/dev-partnerships/{id}`.
+- `services/ampi_verification.py` — stub formato 8-12 alfanuméricos (real AMPI API → H2). Audit en `db.ampi_verifications`.
+- `services/inmobiliaria_signup.py` — onboarding tenant + admin user (idempotente, rechaza email dup).
+- `services/inmobiliaria_relationships.py` — invitaciones de asesor (token + email Resend) + dev partnerships (status pending|active|paused|terminated, comisión 0-50%, dup-guard, ownership check).
+- `permissions.py` — `can_manage_inmobiliaria(user, inmobiliaria_id)`.
+
+### Schemas nuevos / extendidos
+- `db.inmobiliarias` extendido: `ampi_verified`, `ampi_id`, `ampi_expires_at`, `ampi_manual_review`, `created_by_user_id`.
+- `db.inmobiliaria_advisor_relationships` `{rel_id, inmobiliaria_id, asesor_id?, asesor_email, asesor_name, role, status, activation_token, invited_by_user_id, invited_at, accepted_at?}`.
+- `db.inmobiliaria_dev_partnerships` `{partnership_id, inmobiliaria_id, dev_org_id, dev_org_name?, commission_pct?, notes?, status, created_by_user_id, created_at, updated_at}`.
+- `db.ampi_verifications` `{inmobiliaria_id, ampi_id, valid, manual_review_required, reason, expires_at, raw_input_hash, created_at}`.
+
+### Frontend
+- `pages/auth/InmobiliariaSignup.js` (público) — wizard 3 pasos (Empresa → AMPI inline verify → Admin). Auto-login + redirect `/inmobiliaria` post-signup.
+- `pages/inmobiliaria/InmobiliariaPartnerships.js` — CRUD alianzas + transiciones de estado inline.
+
+- `api/inmobiliaria.js` — helpers verifyAmpiId, inmobiliariaSignup, getInmobiliariaMe, inviteAdvisor, listAdvisorRelationships, createDevPartnership, listDevPartnerships, updateDevPartnershipStatus.
+- Routes en `App.js`: `/inmobiliaria/signup` (público), `/inmobiliaria/alianzas` (auth).
+- `config/navByRole.js` — añadido item "Alianzas" (Briefcase) en INMOBILIARIA_ADMIN_NAV.
+
+### Reuso
+- `log_activity` (routes_dev_batch14) en signup/invite/partnership mutations.
+- `_send_email` (services.lead_capture) para email de invitación de asesor.
+- `InmobiliariaLayout` (developer/) reutilizado tal cual (DRY).
+
+### Testing manual ✅ (curl + screenshot)
+- AMPI verify formato (X→inválido, AMPI12345→válido).
+- Signup E2E (creates tenant + user_id + cookies + ampi_result), rechaza email dup, rechaza AMPI mal formato, inputs Pydantic validados.
+- Login post-signup → cookies persisten → `/api/inmobiliaria/me` retorna inmobiliaria + counters {advisors_active=1, partnerships=1}.
+- Invite asesor + dup-guard, list relationships (pending visible).
+- Partnership create + dup-guard + PATCH pending→active.
+- 401 sin cookies, 403 si rol incorrecto.
+- Render: signup público (3 pasos visibles, gradient brand, rounded-full, sin emojis) + Alianzas portal con sidebar nav y row activa.
+
 ## Arquitectura implementada
 
 ### Backend `/app/backend/`

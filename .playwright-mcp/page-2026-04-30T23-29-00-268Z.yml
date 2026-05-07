@@ -1,0 +1,1420 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "DesarrollosMX" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - img [ref=e7]
+      - generic [ref=e10]: DesarrollosMX
+    - generic [ref=e11]:
+      - link "Neighborhoods" [ref=e1917] [cursor=pointer]:
+        - /url: /barrios
+      - link "Properties" [ref=e1918] [cursor=pointer]:
+        - /url: /marketplace
+      - link "Intelligence" [ref=e1919] [cursor=pointer]:
+        - /url: /inteligencia
+      - link "Advisors" [ref=e1920] [cursor=pointer]:
+        - /url: /asesores
+    - generic [ref=e16]:
+      - button "Cambiar a español" [ref=e1921] [cursor=pointer]:
+        - img [ref=e1922]
+        - generic [ref=e1925]: EN
+        - generic [ref=e1926]: ·
+        - generic [ref=e1927]: ES
+      - button "Sign in" [ref=e1928] [cursor=pointer]
+      - link "Open map" [ref=e1929] [cursor=pointer]:
+        - /url: /mapa
+        - img [ref=e26]
+        - text: Open map
+  - main [ref=e29]:
+    - generic [ref=e31]:
+      - img [ref=e33]
+      - generic:
+        - generic:
+          - img
+          - generic:
+            - generic:
+              - generic: Neighborhood profile
+              - generic:
+                - img
+                - generic: LIVE
+            - generic: Roma Norte
+            - generic: Cuauhtémoc
+            - generic:
+              - generic:
+                - img
+                - generic:
+                  - generic: Livability
+                  - generic: "90"
+              - generic:
+                - img
+                - generic:
+                  - generic: Mobility
+                  - generic: "85"
+              - generic:
+                - img
+                - generic:
+                  - generic: Safety
+                  - generic: "72"
+              - generic:
+                - img
+                - generic:
+                  - generic: Commerce
+                  - generic: "94"
+            - button "Open full report"
+      - generic [ref=e35]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: IE · CDMX · 16 neighborhoods
+          - generic [ref=e40]: Analytical reading of territory
+        - heading "Before you pick an address, read the map." [level=1] [ref=e1930]:
+          - generic [ref=e42]: Before
+          - generic [ref=e43]: you
+          - generic [ref=e44]: pick
+          - generic [ref=e45]: an
+          - generic [ref=e46]: address,
+          - generic [ref=e47]: read
+          - generic [ref=e48]: the
+          - generic [ref=e49]: map.
+        - paragraph [ref=e51]: We cross one hundred and seventeen variables per neighborhood — preconstruction absorption, georeferenced crime, seismic risk, service density — and deliver a verifiable portrait. Square meters stop being a blind figure.
+        - generic [ref=e53]:
+          - button "Open the city map" [ref=e1931] [cursor=pointer]:
+            - img [ref=e55]
+            - text: Open the city map
+          - button "See a sample report" [ref=e1932] [cursor=pointer]:
+            - img [ref=e59]
+            - text: See a sample report
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - generic [ref=e1933]:
+              - img [ref=e1934]
+              - generic [ref=e1937]: Livability
+              - generic [ref=e1938]: "90"
+            - generic [ref=e1940]:
+              - img [ref=e1941]
+              - generic [ref=e1945]: Mobility
+              - generic [ref=e1946]: "85"
+            - generic [ref=e1948]:
+              - img [ref=e1949]
+              - generic [ref=e1951]: Safety
+              - generic [ref=e1952]: "72"
+            - generic [ref=e1954]:
+              - img [ref=e1955]
+              - generic [ref=e1958]: Commerce
+              - generic [ref=e1959]: "94"
+            - generic [ref=e91]:
+              - img [ref=e92]
+              - generic [ref=e95]: Absorción 24m
+              - generic [ref=e96]: +8%
+          - generic [ref=e97]: Roma Norte · Cuauhtémoc · Reading refreshed 4 hours ago
+      - generic [ref=e98]:
+        - generic [ref=e99]: We operate alongside the platforms that move real estate
+        - generic [ref=e100]: Christie's
+        - generic [ref=e101]: Sotheby's
+        - generic [ref=e102]: Lamudi
+        - generic [ref=e103]: Propiedades.com
+        - generic [ref=e104]: Pulppo
+        - generic [ref=e105]: Habimetro
+    - generic [ref=e106]:
+      - generic [ref=e107]:
+        - button "Buy" [ref=e1961] [cursor=pointer]
+        - button "Rent" [ref=e1962] [cursor=pointer]
+        - button "Invest" [ref=e1963] [cursor=pointer]
+        - button "Developer" [ref=e1964] [cursor=pointer]
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - generic:
+            - img
+          - textbox "Neighborhood, borough or feature — e.g. \"Condesa with rooftop\"" [ref=e1965]
+        - combobox [ref=e115] [cursor=pointer]:
+          - option "Type" [selected]
+          - option "Apartment"
+          - option "House"
+          - option "Penthouse"
+          - option "Loft"
+          - option "Retail"
+          - option "Office"
+          - option "Land"
+        - combobox [ref=e116] [cursor=pointer]:
+          - option "Any budget" [selected]
+          - option "Up to $3M"
+          - option "$3M — $6M"
+          - option "$6M — $12M"
+          - option "$12M — $25M"
+          - option "Over $25M"
+        - button "Query" [ref=e1966] [cursor=pointer]:
+          - img [ref=e118]
+          - text: Query
+      - generic [ref=e121]:
+        - button "Preconstruction" [ref=e1967] [cursor=pointer]
+        - button "Move-in ready" [ref=e1968] [cursor=pointer]
+        - button "Parking" [ref=e1969] [cursor=pointer]
+        - button "Pet friendly" [ref=e125] [cursor=pointer]
+        - button "Rooftop" [ref=e1970] [cursor=pointer]
+        - button "Gym" [ref=e1971] [cursor=pointer]
+        - button "24/7 security" [ref=e1972] [cursor=pointer]
+        - button "Pool" [ref=e1973] [cursor=pointer]
+    - generic [ref=e130]:
+      - generic [ref=e133]: Price per m² — live
+      - generic [ref=e135]:
+        - generic [ref=e136]:
+          - generic [ref=e137]: Polanco
+          - generic [ref=e138]: $95k/m²
+          - generic [ref=e139]: +3%
+        - generic [ref=e140]:
+          - generic [ref=e141]: Lomas de Chapultepec
+          - generic [ref=e142]: $110k/m²
+          - generic [ref=e143]: +2%
+        - generic [ref=e144]:
+          - generic [ref=e145]: Roma Norte
+          - generic [ref=e146]: $68k/m²
+          - generic [ref=e147]: +8%
+        - generic [ref=e148]:
+          - generic [ref=e149]: Roma Sur
+          - generic [ref=e150]: $59k/m²
+          - generic [ref=e151]: +9%
+        - generic [ref=e152]:
+          - generic [ref=e153]: Condesa
+          - generic [ref=e154]: $72k/m²
+          - generic [ref=e155]: +4%
+        - generic [ref=e156]:
+          - generic [ref=e157]: Juárez
+          - generic [ref=e158]: $64k/m²
+          - generic [ref=e159]: +11%
+        - generic [ref=e160]:
+          - generic [ref=e161]: Cuauhtémoc
+          - generic [ref=e162]: $56k/m²
+          - generic [ref=e163]: +6%
+        - generic [ref=e164]:
+          - generic [ref=e165]: Del Valle Centro
+          - generic [ref=e166]: $58k/m²
+          - generic [ref=e167]: +6%
+        - generic [ref=e168]:
+          - generic [ref=e169]: Narvarte Poniente
+          - generic [ref=e170]: $55k/m²
+          - generic [ref=e171]: +7%
+        - generic [ref=e172]:
+          - generic [ref=e173]: Nápoles
+          - generic [ref=e174]: $52k/m²
+          - generic [ref=e175]: +5%
+        - generic [ref=e176]:
+          - generic [ref=e177]: Escandón
+          - generic [ref=e178]: $61k/m²
+          - generic [ref=e179]: "-1%"
+        - generic [ref=e180]:
+          - generic [ref=e181]: Anzures
+          - generic [ref=e182]: $67k/m²
+          - generic [ref=e183]: +3%
+        - generic [ref=e184]:
+          - generic [ref=e185]: Doctores
+          - generic [ref=e186]: $38k/m²
+          - generic [ref=e187]: +12%
+        - generic [ref=e188]:
+          - generic [ref=e189]: Coyoacán Centro
+          - generic [ref=e190]: $65k/m²
+          - generic [ref=e191]: +4%
+        - generic [ref=e192]:
+          - generic [ref=e193]: Polanco
+          - generic [ref=e194]: $95k/m²
+          - generic [ref=e195]: +3%
+        - generic [ref=e196]:
+          - generic [ref=e197]: Lomas de Chapultepec
+          - generic [ref=e198]: $110k/m²
+          - generic [ref=e199]: +2%
+        - generic [ref=e200]:
+          - generic [ref=e201]: Roma Norte
+          - generic [ref=e202]: $68k/m²
+          - generic [ref=e203]: +8%
+        - generic [ref=e204]:
+          - generic [ref=e205]: Roma Sur
+          - generic [ref=e206]: $59k/m²
+          - generic [ref=e207]: +9%
+        - generic [ref=e208]:
+          - generic [ref=e209]: Condesa
+          - generic [ref=e210]: $72k/m²
+          - generic [ref=e211]: +4%
+        - generic [ref=e212]:
+          - generic [ref=e213]: Juárez
+          - generic [ref=e214]: $64k/m²
+          - generic [ref=e215]: +11%
+        - generic [ref=e216]:
+          - generic [ref=e217]: Cuauhtémoc
+          - generic [ref=e218]: $56k/m²
+          - generic [ref=e219]: +6%
+        - generic [ref=e220]:
+          - generic [ref=e221]: Del Valle Centro
+          - generic [ref=e222]: $58k/m²
+          - generic [ref=e223]: +6%
+        - generic [ref=e224]:
+          - generic [ref=e225]: Narvarte Poniente
+          - generic [ref=e226]: $55k/m²
+          - generic [ref=e227]: +7%
+        - generic [ref=e228]:
+          - generic [ref=e229]: Nápoles
+          - generic [ref=e230]: $52k/m²
+          - generic [ref=e231]: +5%
+        - generic [ref=e232]:
+          - generic [ref=e233]: Escandón
+          - generic [ref=e234]: $61k/m²
+          - generic [ref=e235]: "-1%"
+        - generic [ref=e236]:
+          - generic [ref=e237]: Anzures
+          - generic [ref=e238]: $67k/m²
+          - generic [ref=e239]: +3%
+        - generic [ref=e240]:
+          - generic [ref=e241]: Doctores
+          - generic [ref=e242]: $38k/m²
+          - generic [ref=e243]: +12%
+        - generic [ref=e244]:
+          - generic [ref=e245]: Coyoacán Centro
+          - generic [ref=e246]: $65k/m²
+          - generic [ref=e247]: +4%
+    - generic [ref=e249]:
+      - generic [ref=e251]:
+        - generic [ref=e252]: Neighborhoods under the lens
+        - heading "Sixteen neighborhoods. One analytical lens." [level=2] [ref=e1974]:
+          - generic [ref=e254]: Sixteen
+          - generic [ref=e255]: neighborhoods.
+          - generic [ref=e256]: One
+          - generic [ref=e257]: analytical
+          - generic [ref=e258]: lens.
+        - paragraph [ref=e260]: From Polanco to Doctores, each tile breaks down four dimensions — Livability, Mobility, Safety and Commerce — with the raw indicators behind each number. Switch layers and see the evidence.
+      - generic [ref=e261]:
+        - generic [ref=e262]:
+          - generic [ref=e263]:
+            - generic [ref=e265]: +3%
+            - generic [ref=e266]: Miguel Hidalgo
+            - generic [ref=e267]: Polanco
+            - generic [ref=e268]: "89"
+            - generic [ref=e269]: Livability · DMX composite score · 0 to 100
+            - generic [ref=e270]: Computed with DENUE, C5, GTFS, SEDUVI and CDMX Risk Atlas data — no opaque estimates.
+          - generic [ref=e271]:
+            - button "Livability" [ref=e1975] [cursor=pointer]:
+              - img [ref=e273]
+              - generic [ref=e276]: Livability
+            - button "Mobility" [ref=e1976] [cursor=pointer]:
+              - img [ref=e278]
+              - generic [ref=e282]: Mobility
+            - button "Safety" [ref=e1977] [cursor=pointer]:
+              - img [ref=e284]
+              - generic [ref=e286]: Safety
+            - button "Commerce" [ref=e1978] [cursor=pointer]:
+              - img [ref=e288]
+              - generic [ref=e291]: Commerce
+          - generic [ref=e292]:
+            - generic [ref=e293]:
+              - generic [ref=e294]: Parques a 10 min
+              - generic [ref=e295]: "13"
+            - generic [ref=e296]:
+              - generic [ref=e297]: Ruido promedio
+              - generic [ref=e298]: 48 dB
+            - generic [ref=e299]:
+              - generic [ref=e300]: Amenidades walkables
+              - generic [ref=e301]: "506"
+          - generic [ref=e302]:
+            - generic [ref=e303]: Price m² — 24 months
+            - img [ref=e304]
+            - generic [ref=e307]:
+              - generic [ref=e308]: $82k
+              - generic [ref=e309]: $95k
+          - generic [ref=e310]:
+            - generic [ref=e311]:
+              - generic [ref=e312]:
+                - generic [ref=e313]: Price/m²
+                - generic [ref=e314]: $95k
+              - generic [ref=e315]:
+                - generic [ref=e316]: Active inventory
+                - generic [ref=e317]: 76 u
+            - button [ref=e318] [cursor=pointer]:
+              - img [ref=e319]
+        - generic [ref=e321]:
+          - generic [ref=e322]:
+            - generic [ref=e324]: +8%
+            - generic [ref=e325]: Cuauhtémoc
+            - generic [ref=e326]: Roma Norte
+            - generic [ref=e327]: "90"
+            - generic [ref=e328]: Livability · DMX composite score · 0 to 100
+            - generic [ref=e329]: Computed with DENUE, C5, GTFS, SEDUVI and CDMX Risk Atlas data — no opaque estimates.
+          - generic [ref=e330]:
+            - button "Livability" [ref=e1979] [cursor=pointer]:
+              - img [ref=e332]
+              - generic [ref=e335]: Livability
+            - button "Mobility" [ref=e1980] [cursor=pointer]:
+              - img [ref=e337]
+              - generic [ref=e341]: Mobility
+            - button "Safety" [ref=e1981] [cursor=pointer]:
+              - img [ref=e343]
+              - generic [ref=e345]: Safety
+            - button "Commerce" [ref=e1982] [cursor=pointer]:
+              - img [ref=e347]
+              - generic [ref=e350]: Commerce
+          - generic [ref=e351]:
+            - generic [ref=e352]:
+              - generic [ref=e353]: Parques a 10 min
+              - generic [ref=e354]: "13"
+            - generic [ref=e355]:
+              - generic [ref=e356]: Ruido promedio
+              - generic [ref=e357]: 47 dB
+            - generic [ref=e358]:
+              - generic [ref=e359]: Amenidades walkables
+              - generic [ref=e360]: "510"
+          - generic [ref=e361]:
+            - generic [ref=e362]: Price m² — 24 months
+            - img [ref=e363]
+            - generic [ref=e366]:
+              - generic [ref=e367]: $54k
+              - generic [ref=e368]: $68k
+          - generic [ref=e369]:
+            - generic [ref=e370]:
+              - generic [ref=e371]:
+                - generic [ref=e372]: Price/m²
+                - generic [ref=e373]: $68k
+              - generic [ref=e374]:
+                - generic [ref=e375]: Active inventory
+                - generic [ref=e376]: 115 u
+            - button [ref=e377] [cursor=pointer]:
+              - img [ref=e378]
+        - generic [ref=e380]:
+          - generic [ref=e381]:
+            - generic [ref=e383]: +4%
+            - generic [ref=e384]: Cuauhtémoc
+            - generic [ref=e385]: Condesa
+            - generic [ref=e386]: "92"
+            - generic [ref=e387]: Livability · DMX composite score · 0 to 100
+            - generic [ref=e388]: Computed with DENUE, C5, GTFS, SEDUVI and CDMX Risk Atlas data — no opaque estimates.
+          - generic [ref=e389]:
+            - button "Livability" [ref=e1983] [cursor=pointer]:
+              - img [ref=e391]
+              - generic [ref=e394]: Livability
+            - button "Mobility" [ref=e1984] [cursor=pointer]:
+              - img [ref=e396]
+              - generic [ref=e400]: Mobility
+            - button "Safety" [ref=e1985] [cursor=pointer]:
+              - img [ref=e402]
+              - generic [ref=e404]: Safety
+            - button "Commerce" [ref=e1986] [cursor=pointer]:
+              - img [ref=e406]
+              - generic [ref=e409]: Commerce
+          - generic [ref=e410]:
+            - generic [ref=e411]:
+              - generic [ref=e412]: Parques a 10 min
+              - generic [ref=e413]: "13"
+            - generic [ref=e414]:
+              - generic [ref=e415]: Ruido promedio
+              - generic [ref=e416]: 47 dB
+            - generic [ref=e417]:
+              - generic [ref=e418]: Amenidades walkables
+              - generic [ref=e419]: "518"
+          - generic [ref=e420]:
+            - generic [ref=e421]: Price m² — 24 months
+            - img [ref=e422]
+            - generic [ref=e425]:
+              - generic [ref=e426]: $62k
+              - generic [ref=e427]: $72k
+          - generic [ref=e428]:
+            - generic [ref=e429]:
+              - generic [ref=e430]:
+                - generic [ref=e431]: Price/m²
+                - generic [ref=e432]: $72k
+              - generic [ref=e433]:
+                - generic [ref=e434]: Active inventory
+                - generic [ref=e435]: 89 u
+            - button [ref=e436] [cursor=pointer]:
+              - img [ref=e437]
+        - generic [ref=e439]:
+          - generic [ref=e440]:
+            - generic [ref=e442]: +6%
+            - generic [ref=e443]: Benito Juárez
+            - generic [ref=e444]: Del Valle Centro
+            - generic [ref=e445]: "87"
+            - generic [ref=e446]: Livability · DMX composite score · 0 to 100
+            - generic [ref=e447]: Computed with DENUE, C5, GTFS, SEDUVI and CDMX Risk Atlas data — no opaque estimates.
+          - generic [ref=e448]:
+            - button "Livability" [ref=e1987] [cursor=pointer]:
+              - img [ref=e450]
+              - generic [ref=e453]: Livability
+            - button "Mobility" [ref=e1988] [cursor=pointer]:
+              - img [ref=e455]
+              - generic [ref=e459]: Mobility
+            - button "Safety" [ref=e1989] [cursor=pointer]:
+              - img [ref=e461]
+              - generic [ref=e463]: Safety
+            - button "Commerce" [ref=e1990] [cursor=pointer]:
+              - img [ref=e465]
+              - generic [ref=e468]: Commerce
+          - generic [ref=e469]:
+            - generic [ref=e470]:
+              - generic [ref=e471]: Parques a 10 min
+              - generic [ref=e472]: "13"
+            - generic [ref=e473]:
+              - generic [ref=e474]: Ruido promedio
+              - generic [ref=e475]: 48 dB
+            - generic [ref=e476]:
+              - generic [ref=e477]: Amenidades walkables
+              - generic [ref=e478]: "498"
+          - generic [ref=e479]:
+            - generic [ref=e480]: Price m² — 24 months
+            - img [ref=e481]
+            - generic [ref=e484]:
+              - generic [ref=e485]: $46k
+              - generic [ref=e486]: $58k
+          - generic [ref=e487]:
+            - generic [ref=e488]:
+              - generic [ref=e489]:
+                - generic [ref=e490]: Price/m²
+                - generic [ref=e491]: $58k
+              - generic [ref=e492]:
+                - generic [ref=e493]: Active inventory
+                - generic [ref=e494]: 142 u
+            - button [ref=e495] [cursor=pointer]:
+              - img [ref=e496]
+        - generic [ref=e498]:
+          - generic [ref=e499]:
+            - generic [ref=e501]: +11%
+            - generic [ref=e502]: Cuauhtémoc
+            - generic [ref=e503]: Juárez
+            - generic [ref=e504]: "81"
+            - generic [ref=e505]: Livability · DMX composite score · 0 to 100
+            - generic [ref=e506]: Computed with DENUE, C5, GTFS, SEDUVI and CDMX Risk Atlas data — no opaque estimates.
+          - generic [ref=e507]:
+            - button "Livability" [ref=e1991] [cursor=pointer]:
+              - img [ref=e509]
+              - generic [ref=e512]: Livability
+            - button "Mobility" [ref=e1992] [cursor=pointer]:
+              - img [ref=e514]
+              - generic [ref=e518]: Mobility
+            - button "Safety" [ref=e1993] [cursor=pointer]:
+              - img [ref=e520]
+              - generic [ref=e522]: Safety
+            - button "Commerce" [ref=e1994] [cursor=pointer]:
+              - img [ref=e524]
+              - generic [ref=e527]: Commerce
+          - generic [ref=e528]:
+            - generic [ref=e529]:
+              - generic [ref=e530]: Parques a 10 min
+              - generic [ref=e531]: "12"
+            - generic [ref=e532]:
+              - generic [ref=e533]: Ruido promedio
+              - generic [ref=e534]: 50 dB
+            - generic [ref=e535]:
+              - generic [ref=e536]: Amenidades walkables
+              - generic [ref=e537]: "474"
+          - generic [ref=e538]:
+            - generic [ref=e539]: Price m² — 24 months
+            - img [ref=e540]
+            - generic [ref=e543]:
+              - generic [ref=e544]: $48k
+              - generic [ref=e545]: $64k
+          - generic [ref=e546]:
+            - generic [ref=e547]:
+              - generic [ref=e548]:
+                - generic [ref=e549]: Price/m²
+                - generic [ref=e550]: $64k
+              - generic [ref=e551]:
+                - generic [ref=e552]: Active inventory
+                - generic [ref=e553]: 132 u
+            - button [ref=e554] [cursor=pointer]:
+              - img [ref=e555]
+        - generic [ref=e557]:
+          - generic [ref=e558]:
+            - generic [ref=e560]: +7%
+            - generic [ref=e561]: Benito Juárez
+            - generic [ref=e562]: Narvarte Poniente
+            - generic [ref=e563]: "83"
+            - generic [ref=e564]: Livability · DMX composite score · 0 to 100
+            - generic [ref=e565]: Computed with DENUE, C5, GTFS, SEDUVI and CDMX Risk Atlas data — no opaque estimates.
+          - generic [ref=e566]:
+            - button "Livability" [ref=e1995] [cursor=pointer]:
+              - img [ref=e568]
+              - generic [ref=e571]: Livability
+            - button "Mobility" [ref=e1996] [cursor=pointer]:
+              - img [ref=e573]
+              - generic [ref=e577]: Mobility
+            - button "Safety" [ref=e1997] [cursor=pointer]:
+              - img [ref=e579]
+              - generic [ref=e581]: Safety
+            - button "Commerce" [ref=e1998] [cursor=pointer]:
+              - img [ref=e583]
+              - generic [ref=e586]: Commerce
+          - generic [ref=e587]:
+            - generic [ref=e588]:
+              - generic [ref=e589]: Parques a 10 min
+              - generic [ref=e590]: "12"
+            - generic [ref=e591]:
+              - generic [ref=e592]: Ruido promedio
+              - generic [ref=e593]: 49 dB
+            - generic [ref=e594]:
+              - generic [ref=e595]: Amenidades walkables
+              - generic [ref=e596]: "482"
+          - generic [ref=e597]:
+            - generic [ref=e598]: Price m² — 24 months
+            - img [ref=e599]
+            - generic [ref=e602]:
+              - generic [ref=e603]: $42k
+              - generic [ref=e604]: $55k
+          - generic [ref=e605]:
+            - generic [ref=e606]:
+              - generic [ref=e607]:
+                - generic [ref=e608]: Price/m²
+                - generic [ref=e609]: $55k
+              - generic [ref=e610]:
+                - generic [ref=e611]: Active inventory
+                - generic [ref=e612]: 119 u
+            - button [ref=e613] [cursor=pointer]:
+              - img [ref=e614]
+      - link "Tour all 16 neighborhoods" [ref=e1999] [cursor=pointer]:
+        - /url: "#"
+        - text: Tour all 16 neighborhoods
+        - img [ref=e618]
+    - generic [ref=e621]:
+      - generic [ref=e623]:
+        - generic [ref=e624]: Neighborhood comparator
+        - heading "Two neighborhoods, six axes, one truth." [level=2] [ref=e2000]:
+          - generic [ref=e626]: Two
+          - generic [ref=e627]: neighborhoods,
+          - generic [ref=e628]: six
+          - generic [ref=e629]: axes,
+          - generic [ref=e630]: one
+          - generic [ref=e631]: truth.
+        - paragraph [ref=e633]: We project two neighborhoods across six decision axes. Where the polygons diverge, there is your argument. Tap any axis for what it measures.
+      - generic [ref=e634]:
+        - generic [ref=e635]:
+          - generic [ref=e637]: PO
+          - generic [ref=e638]:
+            - generic [ref=e639]: Polanco
+            - generic [ref=e640]: Miguel Hidalgo
+          - generic [ref=e641]:
+            - generic [ref=e2001]:
+              - generic [ref=e2002]: Price/m²
+              - generic [ref=e2003]: $95k
+            - generic [ref=e2004]:
+              - generic [ref=e2005]: 24m absorption
+              - generic [ref=e2006]: +3%
+          - generic [ref=e648]:
+            - button "Polanco" [ref=e649] [cursor=pointer]:
+              - generic [ref=e651]: Polanco
+            - button "Lomas de Chapultepec" [ref=e652] [cursor=pointer]:
+              - generic [ref=e654]: Lomas de Chapultepec
+            - button "Roma Norte" [ref=e655] [cursor=pointer]:
+              - generic [ref=e657]: Roma Norte
+            - button "Condesa" [ref=e658] [cursor=pointer]:
+              - generic [ref=e660]: Condesa
+            - button "Juárez" [ref=e661] [cursor=pointer]:
+              - generic [ref=e663]: Juárez
+            - button "Del Valle Centro" [ref=e664] [cursor=pointer]:
+              - generic [ref=e666]: Del Valle Centro
+            - button "Narvarte Poniente" [ref=e667] [cursor=pointer]:
+              - generic [ref=e669]: Narvarte Poniente
+            - button "Coyoacán Centro" [ref=e670] [cursor=pointer]:
+              - generic [ref=e672]: Coyoacán Centro
+        - generic [ref=e673]:
+          - img [ref=e674]:
+            - generic [ref=e705] [cursor=pointer]: Movilidad
+            - generic [ref=e706] [cursor=pointer]: Seguridad
+            - generic [ref=e707] [cursor=pointer]: Comercio
+            - generic [ref=e708] [cursor=pointer]: Plusvalía
+            - generic [ref=e709] [cursor=pointer]: Educación
+            - generic [ref=e710] [cursor=pointer]: Riesgo
+          - generic [ref=e711]:
+            - button "Movilidad" [ref=e712] [cursor=pointer]
+            - button "Seguridad" [ref=e713] [cursor=pointer]
+            - button "Comercio" [ref=e714] [cursor=pointer]
+            - button "Plusvalía" [ref=e715] [cursor=pointer]
+            - button "Educación" [ref=e716] [cursor=pointer]
+            - button "Riesgo" [ref=e717] [cursor=pointer]
+        - generic [ref=e718]:
+          - generic [ref=e720]: RN
+          - generic [ref=e721]:
+            - generic [ref=e722]: Roma Norte
+            - generic [ref=e723]: Cuauhtémoc
+          - generic [ref=e724]:
+            - generic [ref=e2007]:
+              - generic [ref=e2008]: Price/m²
+              - generic [ref=e2009]: $68k
+            - generic [ref=e2010]:
+              - generic [ref=e2011]: 24m absorption
+              - generic [ref=e2012]: +8%
+          - generic [ref=e731]:
+            - button "Polanco" [ref=e732] [cursor=pointer]:
+              - generic [ref=e734]: Polanco
+            - button "Lomas de Chapultepec" [ref=e735] [cursor=pointer]:
+              - generic [ref=e737]: Lomas de Chapultepec
+            - button "Roma Norte" [ref=e738] [cursor=pointer]:
+              - generic [ref=e740]: Roma Norte
+            - button "Condesa" [ref=e741] [cursor=pointer]:
+              - generic [ref=e743]: Condesa
+            - button "Juárez" [ref=e744] [cursor=pointer]:
+              - generic [ref=e746]: Juárez
+            - button "Del Valle Centro" [ref=e747] [cursor=pointer]:
+              - generic [ref=e749]: Del Valle Centro
+            - button "Narvarte Poniente" [ref=e750] [cursor=pointer]:
+              - generic [ref=e752]: Narvarte Poniente
+            - button "Coyoacán Centro" [ref=e753] [cursor=pointer]:
+              - generic [ref=e755]: Coyoacán Centro
+    - generic [ref=e757]:
+      - generic [ref=e759]:
+        - generic [ref=e760]: Marketplace with context
+        - heading "Everyone publishes the price. We explain the context." [level=2] [ref=e2013]:
+          - generic [ref=e762]: Everyone
+          - generic [ref=e763]: publishes
+          - generic [ref=e764]: the
+          - generic [ref=e765]: price.
+          - generic [ref=e766]: We
+          - generic [ref=e767]: explain
+          - generic [ref=e768]: the
+          - generic [ref=e769]: context.
+        - paragraph [ref=e772]: Each listing carries its neighborhood scores, the 24-month price/m² curve and an appreciation estimator with confidence interval — no tab-switching required.
+      - generic [ref=e773]:
+        - generic [ref=e774]:
+          - generic [ref=e775]:
+            - img [ref=e777]
+            - generic [ref=e804]: DMX Exclusive
+            - generic [ref=e806]: +3%
+            - button [ref=e807] [cursor=pointer]:
+              - img [ref=e808]
+            - button [ref=e810] [cursor=pointer]:
+              - img [ref=e811]
+            - button [ref=e813] [cursor=pointer]:
+              - img [ref=e814]
+          - generic [ref=e820]:
+            - generic [ref=e821]:
+              - img [ref=e822]
+              - generic [ref=e825]: Polanco
+              - generic [ref=e827]: Miguel Hidalgo
+            - generic [ref=e828]: Penthouse with terrace · Polanco
+            - generic [ref=e829]:
+              - generic [ref=e830]:
+                - img [ref=e831]
+                - generic [ref=e833]: 3 rec
+              - generic [ref=e834]:
+                - img [ref=e835]
+                - generic [ref=e838]: 3 baños
+              - generic [ref=e839]:
+                - img [ref=e840]
+                - generic [ref=e846]: 2 car
+              - generic [ref=e847]:
+                - img [ref=e848]
+                - generic [ref=e854]: 195 m²
+            - generic [ref=e855]:
+              - generic [ref=e856]:
+                - generic [ref=e857]: $18,500,000
+                - generic [ref=e858]: $95k/m²
+              - generic [ref=e859]:
+                - generic [ref=e860]: Proj. appreciation
+                - generic [ref=e861]: +3.2%
+            - generic [ref=e862]:
+              - generic [ref=e863]:
+                - generic [ref=e864]:
+                  - img [ref=e865]
+                  - generic [ref=e868]: Livability
+                - generic [ref=e869]: "89"
+              - generic [ref=e870]:
+                - generic [ref=e871]:
+                  - img [ref=e872]
+                  - generic [ref=e876]: Mobility
+                - generic [ref=e877]: "84"
+              - generic [ref=e878]:
+                - generic [ref=e879]:
+                  - img [ref=e880]
+                  - generic [ref=e882]: Safety
+                - generic [ref=e883]: "88"
+            - generic [ref=e884]:
+              - generic [ref=e885]:
+                - generic [ref=e886]: ER
+                - generic [ref=e887]:
+                  - generic [ref=e888]: Elena Ríos
+                  - generic [ref=e889]: DMX Advisor
+              - button "Open listing" [ref=e2014] [cursor=pointer]:
+                - text: Open listing
+                - img [ref=e891]
+        - generic [ref=e893]:
+          - generic [ref=e894]:
+            - img [ref=e896]
+            - generic [ref=e929]: New to market
+            - generic [ref=e931]: +8%
+            - button [ref=e932] [cursor=pointer]:
+              - img [ref=e933]
+            - button [ref=e935] [cursor=pointer]:
+              - img [ref=e936]
+            - button [ref=e938] [cursor=pointer]:
+              - img [ref=e939]
+          - generic [ref=e945]:
+            - generic [ref=e946]:
+              - img [ref=e947]
+              - generic [ref=e950]: Roma Norte
+              - generic [ref=e952]: Cuauhtémoc
+            - generic [ref=e953]: Signature loft · Roma Norte
+            - generic [ref=e954]:
+              - generic [ref=e955]:
+                - img [ref=e956]
+                - generic [ref=e958]: 1 rec
+              - generic [ref=e959]:
+                - img [ref=e960]
+                - generic [ref=e963]: 1 baños
+              - generic [ref=e964]:
+                - img [ref=e965]
+                - generic [ref=e971]: 1 car
+              - generic [ref=e972]:
+                - img [ref=e973]
+                - generic [ref=e979]: 76 m²
+            - generic [ref=e980]:
+              - generic [ref=e981]:
+                - generic [ref=e982]: $5,200,000
+                - generic [ref=e983]: $68k/m²
+              - generic [ref=e984]:
+                - generic [ref=e985]: Proj. appreciation
+                - generic [ref=e986]: +8.3%
+            - generic [ref=e987]:
+              - generic [ref=e988]:
+                - generic [ref=e989]:
+                  - img [ref=e990]
+                  - generic [ref=e993]: Livability
+                - generic [ref=e994]: "90"
+              - generic [ref=e995]:
+                - generic [ref=e996]:
+                  - img [ref=e997]
+                  - generic [ref=e1001]: Mobility
+                - generic [ref=e1002]: "85"
+              - generic [ref=e1003]:
+                - generic [ref=e1004]:
+                  - img [ref=e1005]
+                  - generic [ref=e1007]: Safety
+                - generic [ref=e1008]: "72"
+            - generic [ref=e1009]:
+              - generic [ref=e1010]:
+                - generic [ref=e1011]: MT
+                - generic [ref=e1012]:
+                  - generic [ref=e1013]: Miguel Torres
+                  - generic [ref=e1014]: DMX Advisor
+              - button "Open listing" [ref=e2015] [cursor=pointer]:
+                - text: Open listing
+                - img [ref=e1016]
+        - generic [ref=e1018]:
+          - generic [ref=e1019]:
+            - img [ref=e1021]
+            - generic [ref=e1030]: Move-in ready
+            - generic [ref=e1032]: +4%
+            - button [ref=e1033] [cursor=pointer]:
+              - img [ref=e1034]
+            - button [ref=e1036] [cursor=pointer]:
+              - img [ref=e1037]
+            - button [ref=e1039] [cursor=pointer]:
+              - img [ref=e1040]
+          - generic [ref=e1046]:
+            - generic [ref=e1047]:
+              - img [ref=e1048]
+              - generic [ref=e1051]: Condesa
+              - generic [ref=e1053]: Cuauhtémoc
+            - generic [ref=e1054]: Park-front apartment · Condesa
+            - generic [ref=e1055]:
+              - generic [ref=e1056]:
+                - img [ref=e1057]
+                - generic [ref=e1059]: 3 rec
+              - generic [ref=e1060]:
+                - img [ref=e1061]
+                - generic [ref=e1064]: 2 baños
+              - generic [ref=e1065]:
+                - img [ref=e1066]
+                - generic [ref=e1072]: 2 car
+              - generic [ref=e1073]:
+                - img [ref=e1074]
+                - generic [ref=e1080]: 124 m²
+            - generic [ref=e1081]:
+              - generic [ref=e1082]:
+                - generic [ref=e1083]: $8,900,000
+                - generic [ref=e1084]: $72k/m²
+              - generic [ref=e1085]:
+                - generic [ref=e1086]: Proj. appreciation
+                - generic [ref=e1087]: +4.1%
+            - generic [ref=e1088]:
+              - generic [ref=e1089]:
+                - generic [ref=e1090]:
+                  - img [ref=e1091]
+                  - generic [ref=e1094]: Livability
+                - generic [ref=e1095]: "92"
+              - generic [ref=e1096]:
+                - generic [ref=e1097]:
+                  - img [ref=e1098]
+                  - generic [ref=e1102]: Mobility
+                - generic [ref=e1103]: "88"
+              - generic [ref=e1104]:
+                - generic [ref=e1105]:
+                  - img [ref=e1106]
+                  - generic [ref=e1108]: Safety
+                - generic [ref=e1109]: "76"
+            - generic [ref=e1110]:
+              - generic [ref=e1111]:
+                - generic [ref=e1112]: AG
+                - generic [ref=e1113]:
+                  - generic [ref=e1114]: Ana Gutiérrez
+                  - generic [ref=e1115]: DMX Advisor
+              - button "Open listing" [ref=e2016] [cursor=pointer]:
+                - text: Open listing
+                - img [ref=e1117]
+        - generic [ref=e1119]:
+          - generic [ref=e1120]:
+            - img [ref=e1122]
+            - generic [ref=e1149]: Preconstruction
+            - generic [ref=e1151]: +11%
+            - button [ref=e1152] [cursor=pointer]:
+              - img [ref=e1153]
+            - button [ref=e1155] [cursor=pointer]:
+              - img [ref=e1156]
+            - button [ref=e1158] [cursor=pointer]:
+              - img [ref=e1159]
+          - generic [ref=e1165]:
+            - generic [ref=e1166]:
+              - img [ref=e1167]
+              - generic [ref=e1170]: Juárez
+              - generic [ref=e1172]: Cuauhtémoc
+            - generic [ref=e1173]: Boutique preconstruction · Juárez
+            - generic [ref=e1174]:
+              - generic [ref=e1175]:
+                - img [ref=e1176]
+                - generic [ref=e1178]: 2 rec
+              - generic [ref=e1179]:
+                - img [ref=e1180]
+                - generic [ref=e1183]: 2 baños
+              - generic [ref=e1184]:
+                - img [ref=e1185]
+                - generic [ref=e1191]: 1 car
+              - generic [ref=e1192]:
+                - img [ref=e1193]
+                - generic [ref=e1199]: 64 m²
+            - generic [ref=e1200]:
+              - generic [ref=e1201]:
+                - generic [ref=e1202]: $4,100,000
+                - generic [ref=e1203]: $64k/m²
+              - generic [ref=e1204]:
+                - generic [ref=e1205]: Proj. appreciation
+                - generic [ref=e1206]: +11.4%
+            - generic [ref=e1207]:
+              - generic [ref=e1208]:
+                - generic [ref=e1209]:
+                  - img [ref=e1210]
+                  - generic [ref=e1213]: Livability
+                - generic [ref=e1214]: "81"
+              - generic [ref=e1215]:
+                - generic [ref=e1216]:
+                  - img [ref=e1217]
+                  - generic [ref=e1221]: Mobility
+                - generic [ref=e1222]: "93"
+              - generic [ref=e1223]:
+                - generic [ref=e1224]:
+                  - img [ref=e1225]
+                  - generic [ref=e1227]: Safety
+                - generic [ref=e1228]: "68"
+            - generic [ref=e1229]:
+              - generic [ref=e1230]:
+                - generic [ref=e1231]: DN
+                - generic [ref=e1232]:
+                  - generic [ref=e1233]: Diego Navarro
+                  - generic [ref=e1234]: DMX Advisor
+              - button "Open listing" [ref=e2017] [cursor=pointer]:
+                - text: Open listing
+                - img [ref=e1236]
+        - generic [ref=e1238]:
+          - generic [ref=e1239]:
+            - img [ref=e1241]
+            - generic [ref=e1258]: Move-in ready
+            - generic [ref=e1260]: +6%
+            - button [ref=e1261] [cursor=pointer]:
+              - img [ref=e1262]
+            - button [ref=e1264] [cursor=pointer]:
+              - img [ref=e1265]
+            - button [ref=e1267] [cursor=pointer]:
+              - img [ref=e1268]
+          - generic [ref=e1274]:
+            - generic [ref=e1275]:
+              - img [ref=e1276]
+              - generic [ref=e1279]: Del Valle Centro
+              - generic [ref=e1281]: Benito Juárez
+            - generic [ref=e1282]: Family house · Del Valle Centro
+            - generic [ref=e1283]:
+              - generic [ref=e1284]:
+                - img [ref=e1285]
+                - generic [ref=e1287]: 4 rec
+              - generic [ref=e1288]:
+                - img [ref=e1289]
+                - generic [ref=e1292]: 4 baños
+              - generic [ref=e1293]:
+                - img [ref=e1294]
+                - generic [ref=e1300]: 2 car
+              - generic [ref=e1301]:
+                - img [ref=e1302]
+                - generic [ref=e1308]: 220 m²
+            - generic [ref=e1309]:
+              - generic [ref=e1310]:
+                - generic [ref=e1311]: $12,800,000
+                - generic [ref=e1312]: $58k/m²
+              - generic [ref=e1313]:
+                - generic [ref=e1314]: Proj. appreciation
+                - generic [ref=e1315]: +6.0%
+            - generic [ref=e1316]:
+              - generic [ref=e1317]:
+                - generic [ref=e1318]:
+                  - img [ref=e1319]
+                  - generic [ref=e1322]: Livability
+                - generic [ref=e1323]: "87"
+              - generic [ref=e1324]:
+                - generic [ref=e1325]:
+                  - img [ref=e1326]
+                  - generic [ref=e1330]: Mobility
+                - generic [ref=e1331]: "91"
+              - generic [ref=e1332]:
+                - generic [ref=e1333]:
+                  - img [ref=e1334]
+                  - generic [ref=e1336]: Safety
+                - generic [ref=e1337]: "78"
+            - generic [ref=e1338]:
+              - generic [ref=e1339]:
+                - generic [ref=e1340]: CM
+                - generic [ref=e1341]:
+                  - generic [ref=e1342]: Carlos Mendoza
+                  - generic [ref=e1343]: DMX Advisor
+              - button "Open listing" [ref=e2018] [cursor=pointer]:
+                - text: Open listing
+                - img [ref=e1345]
+        - generic [ref=e1347]:
+          - generic [ref=e1348]:
+            - img [ref=e1350]
+            - generic [ref=e1377]: Opportunity
+            - generic [ref=e1379]: +7%
+            - button [ref=e1380] [cursor=pointer]:
+              - img [ref=e1381]
+            - button [ref=e1383] [cursor=pointer]:
+              - img [ref=e1384]
+            - button [ref=e1386] [cursor=pointer]:
+              - img [ref=e1387]
+          - generic [ref=e1393]:
+            - generic [ref=e1394]:
+              - img [ref=e1395]
+              - generic [ref=e1398]: Narvarte Poniente
+              - generic [ref=e1400]: Benito Juárez
+            - generic [ref=e1401]: Apartment with patio · Narvarte
+            - generic [ref=e1402]:
+              - generic [ref=e1403]:
+                - img [ref=e1404]
+                - generic [ref=e1406]: 2 rec
+              - generic [ref=e1407]:
+                - img [ref=e1408]
+                - generic [ref=e1411]: 1 baños
+              - generic [ref=e1412]:
+                - img [ref=e1413]
+                - generic [ref=e1419]: 1 car
+              - generic [ref=e1420]:
+                - img [ref=e1421]
+                - generic [ref=e1427]: 63 m²
+            - generic [ref=e1428]:
+              - generic [ref=e1429]:
+                - generic [ref=e1430]: $3,450,000
+                - generic [ref=e1431]: $55k/m²
+              - generic [ref=e1432]:
+                - generic [ref=e1433]: Proj. appreciation
+                - generic [ref=e1434]: +7.2%
+            - generic [ref=e1435]:
+              - generic [ref=e1436]:
+                - generic [ref=e1437]:
+                  - img [ref=e1438]
+                  - generic [ref=e1441]: Livability
+                - generic [ref=e1442]: "83"
+              - generic [ref=e1443]:
+                - generic [ref=e1444]:
+                  - img [ref=e1445]
+                  - generic [ref=e1449]: Mobility
+                - generic [ref=e1450]: "87"
+              - generic [ref=e1451]:
+                - generic [ref=e1452]:
+                  - img [ref=e1453]
+                  - generic [ref=e1455]: Safety
+                - generic [ref=e1456]: "80"
+            - generic [ref=e1457]:
+              - generic [ref=e1458]:
+                - generic [ref=e1459]: PO
+                - generic [ref=e1460]:
+                  - generic [ref=e1461]: Paulina Ortega
+                  - generic [ref=e1462]: DMX Advisor
+              - button "Open listing" [ref=e2019] [cursor=pointer]:
+                - text: Open listing
+                - img [ref=e1464]
+      - link "See the full inventory" [ref=e2020] [cursor=pointer]:
+        - /url: "#"
+        - text: See the full inventory
+        - img [ref=e1468]
+    - generic [ref=e1472]:
+      - generic [ref=e1473]:
+        - generic [ref=e1475]: Intelligence engine
+        - heading "We are not a portal. We are the decision layer." [level=2] [ref=e2021]:
+          - generic [ref=e1477]: We
+          - generic [ref=e1478]: are
+          - generic [ref=e1479]: not
+          - generic [ref=e1480]: a
+          - generic [ref=e1481]: portal.
+          - generic [ref=e1482]: We
+          - generic [ref=e1483]: are
+          - generic [ref=e1484]: the
+          - generic [ref=e1485]: decision
+          - generic [ref=e2022]: layer.
+        - paragraph [ref=e1487]: Other catalogs pile up photos. DMX crosses layers no portal processes — Risk Atlas, DENUE, GTFS, FGJ — and turns them into a number you can defend in front of your family or your investment committee.
+        - generic [ref=e1488]:
+          - generic [ref=e1490]:
+            - img [ref=e1492]
+            - generic [ref=e1496]:
+              - generic [ref=e1497]: Fifty auditable data layers
+              - generic [ref=e1498]: DENUE, FGJ, GTFS, SEDUVI, Risk Atlas. Refreshed every Sunday with source checksum.
+          - generic [ref=e1500]:
+            - img [ref=e1502]
+            - generic [ref=e1505]:
+              - generic [ref=e1506]: Neighborhood report in three seconds
+              - generic [ref=e1507]: Ninety-seven indicators processed in parallel. No waiting for an advisor to call you back.
+          - generic [ref=e1509]:
+            - img [ref=e1511]
+            - generic [ref=e1514]:
+              - generic [ref=e1515]: We do not earn sales commissions
+              - generic [ref=e1516]: DMX runs on subscription and APIs, not on closing your deal. The product is intelligence, not your signature.
+      - generic [ref=e1518]:
+        - generic [ref=e1519]:
+          - generic [ref=e1520]: Roma Norte
+          - generic [ref=e1521]: "82"
+          - generic [ref=e1522]: DMX composite IE Score
+        - generic [ref=e1523]:
+          - generic [ref=e1525]:
+            - generic [ref=e1526]: Mobility
+            - generic [ref=e1527]: "0"
+          - generic [ref=e1530]:
+            - generic [ref=e1531]: Safety
+            - generic [ref=e1532]: "0"
+          - generic [ref=e1535]:
+            - generic [ref=e1536]: Commerce
+            - generic [ref=e1537]: "0"
+          - generic [ref=e1540]:
+            - generic [ref=e1541]: 24m appreciation
+            - generic [ref=e1542]: "0"
+          - generic [ref=e1545]:
+            - generic [ref=e1546]: Education
+            - generic [ref=e1547]: "0"
+          - generic [ref=e1550]:
+            - generic [ref=e1551]: Risk management
+            - generic [ref=e1552]: "0"
+        - button "Read all 97 indicators" [ref=e2023] [cursor=pointer]:
+          - text: Read all 97 indicators
+          - img [ref=e1555]
+    - generic [ref=e1559]:
+      - generic [ref=e1560]:
+        - generic [ref=e1561]:
+          - generic [ref=e1562]: "0"
+          - generic [ref=e1563]: Variables per neighborhood
+        - generic [ref=e1564]:
+          - generic [ref=e1566]: 0+
+          - generic [ref=e1567]: Official sources cross-referenced
+        - generic [ref=e1568]:
+          - generic [ref=e1569]: "0"
+          - generic [ref=e1570]: CDMX neighborhoods indexed
+        - generic [ref=e1571]:
+          - generic [ref=e1573]: 0s
+          - generic [ref=e1574]: Average analysis time
+      - generic [ref=e1575]:
+        - generic [ref=e1576]: "Latest sync:"
+        - generic [ref=e1577]: Escandón · 2 hours ago
+    - generic [ref=e1578]:
+      - generic [ref=e1580]:
+        - generic [ref=e1581]: Real voices
+        - heading "Decisions signed with data, not intuition." [level=2] [ref=e2024]
+      - generic [ref=e1583]:
+        - generic [ref=e1585]:
+          - generic [ref=e1586]:
+            - paragraph [ref=e1587]: "\"I compared Polanco and Lomas in one afternoon. The radar showed me what no advisor had told me in three months.\""
+            - generic [ref=e1588]:
+              - generic [ref=e1589]: L
+              - generic [ref=e1590]:
+                - generic [ref=e1591]: Laura S.
+                - generic [ref=e1592]: First-time buyer · CDMX
+          - generic [ref=e1593]:
+            - paragraph [ref=e1594]: "\"Juárez's mobility score changed my entire investment thesis. I own two units there today.\""
+            - generic [ref=e1595]:
+              - generic [ref=e1596]: R
+              - generic [ref=e1597]:
+                - generic [ref=e1598]: Ricardo M.
+                - generic [ref=e1599]: Private investor
+          - generic [ref=e1600]:
+            - paragraph [ref=e1601]: "\"I open DMX in front of the client and the argument stands on its own in two clicks. Saves me three hours per meeting.\""
+            - generic [ref=e1602]:
+              - generic [ref=e1603]: A
+              - generic [ref=e1604]:
+                - generic [ref=e1605]: Ana G.
+                - generic [ref=e1606]: AMPI Advisor · Roma
+          - generic [ref=e1607]:
+            - paragraph [ref=e1608]: "\"My buyers ask for the IE Score before the price. That says more than any marketing metric.\""
+            - generic [ref=e1609]:
+              - generic [ref=e1610]: C
+              - generic [ref=e1611]:
+                - generic [ref=e1612]: Carlos V.
+                - generic [ref=e1613]: Master Broker
+          - generic [ref=e1614]:
+            - paragraph [ref=e1615]: "\"Narvarte scared me by reputation. The georeferenced crime report told a very different story.\""
+            - generic [ref=e1616]:
+              - generic [ref=e1617]: M
+              - generic [ref=e1618]:
+                - generic [ref=e1619]: Mariana L.
+                - generic [ref=e1620]: Buyer · Benito Juárez
+          - generic [ref=e1621]:
+            - paragraph [ref=e1622]: "\"Source transparency is what makes me share the report with my committee. No black box.\""
+            - generic [ref=e1623]:
+              - generic [ref=e1624]: A
+              - generic [ref=e1625]:
+                - generic [ref=e1626]: Alejandro F.
+                - generic [ref=e1627]: CFO · real estate firm
+          - generic [ref=e1628]:
+            - paragraph [ref=e1629]: "\"I deliver my client a 97-indicator brief signed by a platform. That is another level of advisory.\""
+            - generic [ref=e1630]:
+              - generic [ref=e1631]: S
+              - generic [ref=e1632]:
+                - generic [ref=e1633]: Sofía R.
+                - generic [ref=e1634]: Head of Development
+          - generic [ref=e1635]:
+            - paragraph [ref=e1636]: "\"I decided to rent in Cuauhtémoc based on commerce score and average noise. I did not miss.\""
+            - generic [ref=e1637]:
+              - generic [ref=e1638]: J
+              - generic [ref=e1639]:
+                - generic [ref=e1640]: Jorge P.
+                - generic [ref=e1641]: Architect · tenant
+          - generic [ref=e1642]:
+            - paragraph [ref=e1643]: "\"I compared Polanco and Lomas in one afternoon. The radar showed me what no advisor had told me in three months.\""
+            - generic [ref=e1644]:
+              - generic [ref=e1645]: L
+              - generic [ref=e1646]:
+                - generic [ref=e1647]: Laura S.
+                - generic [ref=e1648]: First-time buyer · CDMX
+          - generic [ref=e1649]:
+            - paragraph [ref=e1650]: "\"Juárez's mobility score changed my entire investment thesis. I own two units there today.\""
+            - generic [ref=e1651]:
+              - generic [ref=e1652]: R
+              - generic [ref=e1653]:
+                - generic [ref=e1654]: Ricardo M.
+                - generic [ref=e1655]: Private investor
+          - generic [ref=e1656]:
+            - paragraph [ref=e1657]: "\"I open DMX in front of the client and the argument stands on its own in two clicks. Saves me three hours per meeting.\""
+            - generic [ref=e1658]:
+              - generic [ref=e1659]: A
+              - generic [ref=e1660]:
+                - generic [ref=e1661]: Ana G.
+                - generic [ref=e1662]: AMPI Advisor · Roma
+          - generic [ref=e1663]:
+            - paragraph [ref=e1664]: "\"My buyers ask for the IE Score before the price. That says more than any marketing metric.\""
+            - generic [ref=e1665]:
+              - generic [ref=e1666]: C
+              - generic [ref=e1667]:
+                - generic [ref=e1668]: Carlos V.
+                - generic [ref=e1669]: Master Broker
+          - generic [ref=e1670]:
+            - paragraph [ref=e1671]: "\"Narvarte scared me by reputation. The georeferenced crime report told a very different story.\""
+            - generic [ref=e1672]:
+              - generic [ref=e1673]: M
+              - generic [ref=e1674]:
+                - generic [ref=e1675]: Mariana L.
+                - generic [ref=e1676]: Buyer · Benito Juárez
+          - generic [ref=e1677]:
+            - paragraph [ref=e1678]: "\"Source transparency is what makes me share the report with my committee. No black box.\""
+            - generic [ref=e1679]:
+              - generic [ref=e1680]: A
+              - generic [ref=e1681]:
+                - generic [ref=e1682]: Alejandro F.
+                - generic [ref=e1683]: CFO · real estate firm
+          - generic [ref=e1684]:
+            - paragraph [ref=e1685]: "\"I deliver my client a 97-indicator brief signed by a platform. That is another level of advisory.\""
+            - generic [ref=e1686]:
+              - generic [ref=e1687]: S
+              - generic [ref=e1688]:
+                - generic [ref=e1689]: Sofía R.
+                - generic [ref=e1690]: Head of Development
+          - generic [ref=e1691]:
+            - paragraph [ref=e1692]: "\"I decided to rent in Cuauhtémoc based on commerce score and average noise. I did not miss.\""
+            - generic [ref=e1693]:
+              - generic [ref=e1694]: J
+              - generic [ref=e1695]:
+                - generic [ref=e1696]: Jorge P.
+                - generic [ref=e1697]: Architect · tenant
+        - generic [ref=e1699]:
+          - generic [ref=e1700]:
+            - paragraph [ref=e1701]: "\"Narvarte scared me by reputation. The georeferenced crime report told a very different story.\""
+            - generic [ref=e1702]:
+              - generic [ref=e1703]: M
+              - generic [ref=e1704]:
+                - generic [ref=e1705]: Mariana L.
+                - generic [ref=e1706]: Buyer · Benito Juárez
+          - generic [ref=e1707]:
+            - paragraph [ref=e1708]: "\"Source transparency is what makes me share the report with my committee. No black box.\""
+            - generic [ref=e1709]:
+              - generic [ref=e1710]: A
+              - generic [ref=e1711]:
+                - generic [ref=e1712]: Alejandro F.
+                - generic [ref=e1713]: CFO · real estate firm
+          - generic [ref=e1714]:
+            - paragraph [ref=e1715]: "\"I deliver my client a 97-indicator brief signed by a platform. That is another level of advisory.\""
+            - generic [ref=e1716]:
+              - generic [ref=e1717]: S
+              - generic [ref=e1718]:
+                - generic [ref=e1719]: Sofía R.
+                - generic [ref=e1720]: Head of Development
+          - generic [ref=e1721]:
+            - paragraph [ref=e1722]: "\"I decided to rent in Cuauhtémoc based on commerce score and average noise. I did not miss.\""
+            - generic [ref=e1723]:
+              - generic [ref=e1724]: J
+              - generic [ref=e1725]:
+                - generic [ref=e1726]: Jorge P.
+                - generic [ref=e1727]: Architect · tenant
+          - generic [ref=e1728]:
+            - paragraph [ref=e1729]: "\"I compared Polanco and Lomas in one afternoon. The radar showed me what no advisor had told me in three months.\""
+            - generic [ref=e1730]:
+              - generic [ref=e1731]: L
+              - generic [ref=e1732]:
+                - generic [ref=e1733]: Laura S.
+                - generic [ref=e1734]: First-time buyer · CDMX
+          - generic [ref=e1735]:
+            - paragraph [ref=e1736]: "\"Juárez's mobility score changed my entire investment thesis. I own two units there today.\""
+            - generic [ref=e1737]:
+              - generic [ref=e1738]: R
+              - generic [ref=e1739]:
+                - generic [ref=e1740]: Ricardo M.
+                - generic [ref=e1741]: Private investor
+          - generic [ref=e1742]:
+            - paragraph [ref=e1743]: "\"I open DMX in front of the client and the argument stands on its own in two clicks. Saves me three hours per meeting.\""
+            - generic [ref=e1744]:
+              - generic [ref=e1745]: A
+              - generic [ref=e1746]:
+                - generic [ref=e1747]: Ana G.
+                - generic [ref=e1748]: AMPI Advisor · Roma
+          - generic [ref=e1749]:
+            - paragraph [ref=e1750]: "\"My buyers ask for the IE Score before the price. That says more than any marketing metric.\""
+            - generic [ref=e1751]:
+              - generic [ref=e1752]: C
+              - generic [ref=e1753]:
+                - generic [ref=e1754]: Carlos V.
+                - generic [ref=e1755]: Master Broker
+          - generic [ref=e1756]:
+            - paragraph [ref=e1757]: "\"Narvarte scared me by reputation. The georeferenced crime report told a very different story.\""
+            - generic [ref=e1758]:
+              - generic [ref=e1759]: M
+              - generic [ref=e1760]:
+                - generic [ref=e1761]: Mariana L.
+                - generic [ref=e1762]: Buyer · Benito Juárez
+          - generic [ref=e1763]:
+            - paragraph [ref=e1764]: "\"Source transparency is what makes me share the report with my committee. No black box.\""
+            - generic [ref=e1765]:
+              - generic [ref=e1766]: A
+              - generic [ref=e1767]:
+                - generic [ref=e1768]: Alejandro F.
+                - generic [ref=e1769]: CFO · real estate firm
+          - generic [ref=e1770]:
+            - paragraph [ref=e1771]: "\"I deliver my client a 97-indicator brief signed by a platform. That is another level of advisory.\""
+            - generic [ref=e1772]:
+              - generic [ref=e1773]: S
+              - generic [ref=e1774]:
+                - generic [ref=e1775]: Sofía R.
+                - generic [ref=e1776]: Head of Development
+          - generic [ref=e1777]:
+            - paragraph [ref=e1778]: "\"I decided to rent in Cuauhtémoc based on commerce score and average noise. I did not miss.\""
+            - generic [ref=e1779]:
+              - generic [ref=e1780]: J
+              - generic [ref=e1781]:
+                - generic [ref=e1782]: Jorge P.
+                - generic [ref=e1783]: Architect · tenant
+          - generic [ref=e1784]:
+            - paragraph [ref=e1785]: "\"I compared Polanco and Lomas in one afternoon. The radar showed me what no advisor had told me in three months.\""
+            - generic [ref=e1786]:
+              - generic [ref=e1787]: L
+              - generic [ref=e1788]:
+                - generic [ref=e1789]: Laura S.
+                - generic [ref=e1790]: First-time buyer · CDMX
+          - generic [ref=e1791]:
+            - paragraph [ref=e1792]: "\"Juárez's mobility score changed my entire investment thesis. I own two units there today.\""
+            - generic [ref=e1793]:
+              - generic [ref=e1794]: R
+              - generic [ref=e1795]:
+                - generic [ref=e1796]: Ricardo M.
+                - generic [ref=e1797]: Private investor
+          - generic [ref=e1798]:
+            - paragraph [ref=e1799]: "\"I open DMX in front of the client and the argument stands on its own in two clicks. Saves me three hours per meeting.\""
+            - generic [ref=e1800]:
+              - generic [ref=e1801]: A
+              - generic [ref=e1802]:
+                - generic [ref=e1803]: Ana G.
+                - generic [ref=e1804]: AMPI Advisor · Roma
+          - generic [ref=e1805]:
+            - paragraph [ref=e1806]: "\"My buyers ask for the IE Score before the price. That says more than any marketing metric.\""
+            - generic [ref=e1807]:
+              - generic [ref=e1808]: C
+              - generic [ref=e1809]:
+                - generic [ref=e1810]: Carlos V.
+                - generic [ref=e1811]: Master Broker
+    - generic [ref=e1814]:
+      - generic [ref=e1816]:
+        - generic [ref=e1817]: Frequent questions
+        - heading "What people always ask before they trust us." [level=2] [ref=e2025]
+        - paragraph [ref=e1819]: How we build the scores, where the data comes from and how we protect what you share.
+        - button "Talk to a verified advisor" [ref=e2026] [cursor=pointer]:
+          - img [ref=e1821]
+          - text: Talk to a verified advisor
+      - generic [ref=e1823]:
+        - generic [ref=e1824]:
+          - button "What separates DMX from a portal like Lamudi or Inmuebles24?" [ref=e2027] [cursor=pointer]:
+            - generic [ref=e1826]: What separates DMX from a portal like Lamudi or Inmuebles24?
+            - img [ref=e1828]
+          - paragraph [ref=e1831]: "A portal monetizes listings; DMX monetizes decisions. We process more than 97 variables per neighborhood from official sources (DENUE, FGJ, GTFS, SEDUVI, Risk Atlas) so you have an auditable reading before signing. We are not a catalog: we are the intelligence layer catalogs should rest on."
+        - generic [ref=e1832]:
+          - button "Where does the data come from and how often is it refreshed?" [ref=e2028] [cursor=pointer]:
+            - generic [ref=e1834]: Where does the data come from and how often is it refreshed?
+            - img [ref=e1836]
+          - paragraph [ref=e1838]: All sources are public and official. The refresh is automated weekly, with checksums to detect schema drift. Each indicator ships with origin metadata and extraction date — you can click down to the source CSV.
+        - generic [ref=e1839]:
+          - button "What exactly do Livability, Mobility, Safety and Commerce measure?" [ref=e2029] [cursor=pointer]:
+            - generic [ref=e1841]: What exactly do Livability, Mobility, Safety and Commerce measure?
+            - img [ref=e1843]
+          - paragraph [ref=e1845]: They are DMX's four composite 0–100 scores. Livability integrates parks, noise, amenities and air quality; Mobility adds Metro/Metrobús/Ecobici coverage and commute times; Safety crosses FGJ with C5 coverage and lighting; Commerce measures DENUE density per block. Each score publishes its recipe and weights.
+        - generic [ref=e1846]:
+          - button "If you do not charge sales commission, how do you sustain?" [ref=e2030] [cursor=pointer]:
+            - generic [ref=e1848]: If you do not charge sales commission, how do you sustain?
+            - img [ref=e1850]
+          - paragraph [ref=e1852]: "Three lines: Advisor and Developer subscription, Premium Buyer for full-report listings, and B2B APIs for banks and FIBRAs. Zero transactional commission means zero conflict of interest when we show you an uncomfortable data point."
+        - generic [ref=e1853]:
+          - button "How many neighborhoods have full IE Score today?" [ref=e2031] [cursor=pointer]:
+            - generic [ref=e1855]: How many neighborhoods have full IE Score today?
+            - img [ref=e1857]
+          - paragraph [ref=e1859]: H1 2026 covers 16 high-activity residential neighborhoods in CDMX. H2 scales to the full 133 city neighborhoods and starts Monterrey and Guadalajara. Dubai and Miami enter in 2027.
+        - generic [ref=e1860]:
+          - button "Is projected appreciation a return promise?" [ref=e2032] [cursor=pointer]:
+            - generic [ref=e1862]: Is projected appreciation a return promise?
+            - img [ref=e1864]
+          - paragraph [ref=e1866]: No. It is a statistical estimate with 24-month regression and explicit confidence bands. We publish historical RMSE per neighborhood so you can gauge how sharp our reading is before folding it into your thesis.
+        - generic [ref=e1867]:
+          - button "How do I confirm an advisor is really from DMX?" [ref=e2033] [cursor=pointer]:
+            - generic [ref=e1869]: How do I confirm an advisor is really from DMX?
+            - img [ref=e1871]
+          - paragraph [ref=e1873]: Each advisor publishes AMPI license, transparent operations history and audited reputation score. You can reach them from any listing or neighborhood report — always under the DMX verification shield.
+    - generic [ref=e1876]:
+      - generic [ref=e1878]: Start today
+      - heading "Buying well isn't luck. It's information." [level=2] [ref=e2034]:
+        - generic [ref=e1880]: Buying
+        - generic [ref=e1881]: well
+        - generic [ref=e1882]: isn't
+        - generic [ref=e1883]: luck.
+        - generic [ref=e1884]: It's
+        - generic [ref=e1885]: information.
+      - generic [ref=e1887]:
+        - paragraph [ref=e1888]: Open the most complete intelligence map of Mexico City and make a decision that survives a five-year audit.
+        - generic [ref=e1889]:
+          - button "Enter the map" [ref=e2035] [cursor=pointer]:
+            - img [ref=e1891]
+            - text: Enter the map
+          - button "See plans" [ref=e2036] [cursor=pointer]
+    - generic [ref=e1897]:
+      - generic [ref=e1898]:
+        - img [ref=e1900]
+        - generic [ref=e1903]: DMX
+      - generic [ref=e1904]:
+        - link "Privacy policy" [ref=e2037] [cursor=pointer]:
+          - /url: "#"
+        - link "Terms of use" [ref=e2038] [cursor=pointer]:
+          - /url: "#"
+        - link "For advisors" [ref=e2039] [cursor=pointer]:
+          - /url: "#"
+        - link "For developers" [ref=e2040] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e1909]: © 2026 DesarrollosMX SA de CV · Mexico City

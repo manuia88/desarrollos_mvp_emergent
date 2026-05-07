@@ -158,6 +158,32 @@ from trial_expiry_cron import ensure_trial_alerts_indexes
 app.include_router(superadmin_commercial_router)
 app.include_router(me_feature_flags_router)
 
+# W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
+from routes_superadmin_metrics_cube import router as superadmin_metrics_cube_router
+from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
+app.include_router(superadmin_metrics_cube_router)
+
+# W2.8 Phase Z.1 — Consolidated OLAP cube (cross-cut + cache + backfill)
+from cube_olap_engine import ensure_consolidated_indexes as ensure_cube_consolidated_indexes
+
+# W2.6 SA8 — Founder Console (executive dashboard + Cmd+K + anomalies)
+from routes_superadmin_founder_console import router as superadmin_founder_console_router
+from anomaly_detection_engine import ensure_indexes as ensure_founder_anomaly_indexes
+app.include_router(superadmin_founder_console_router)
+
+# W2.7 Phase Z.0 — Data Lake (time-series facts + ETL + model validation)
+from routes_superadmin_data_lake import router as superadmin_data_lake_router
+from data_lake_etl import (
+    ensure_facts_indexes as ensure_data_lake_indexes,
+    seed_dim_zones as seed_data_lake_dim_zones,
+)
+app.include_router(superadmin_data_lake_router)
+
+# W2.9 Phase Z.2 — Superadmin Intelligence Hub (executive bird's-eye)
+from routes_superadmin_intelligence_hub import router as superadmin_intelligence_hub_router
+from intelligence_insights_engine import ensure_indexes as ensure_intelligence_indexes
+app.include_router(superadmin_intelligence_hub_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -613,6 +639,33 @@ async def startup():
         logging.info(f"[startup] commercial seeds: {seed_result}")
     except Exception as e:
         logging.warning(f"[startup] commercial init failed: {e}")
+    # W2.5 SA6 — Metrics Cube indexes
+    try:
+        await ensure_metrics_cube_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] metrics cube indexes failed: {e}")
+    # W2.8 Phase Z.1 — Consolidated OLAP indexes
+    try:
+        await ensure_cube_consolidated_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] cube consolidated indexes failed: {e}")
+    # W2.6 SA8 — Founder Console anomaly indexes
+    try:
+        await ensure_founder_anomaly_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] founder anomaly indexes failed: {e}")
+    # W2.7 Phase Z.0 — Data Lake indexes + dim_zones seed
+    try:
+        await ensure_data_lake_indexes(db)
+        seed_summary = await seed_data_lake_dim_zones(db)
+        logging.info(f"[startup] data lake dim_zones seed: {seed_summary}")
+    except Exception as e:
+        logging.warning(f"[startup] data lake init failed: {e}")
+    # W2.9 Phase Z.2 — Intelligence Hub indexes
+    try:
+        await ensure_intelligence_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] intelligence hub indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

@@ -144,7 +144,7 @@ const SUPERADMIN_NAV = [
     tier: 1,
     label: 'Sistema',
     items: [
-      { key: 'dashboard',    to: '/superadmin',                          label: 'Dashboard',        Icon: LayoutDashboard, end: true },
+      { key: 'inicio',       to: '/superadmin',                          label: 'Inicio',           Icon: LayoutDashboard, end: true },
       { key: 'tenants',      to: '/superadmin/tenants',                  label: 'Tenants',          Icon: Users },
       { key: 'bulk-ingest',  to: '/superadmin/bulk-ingest',              label: 'Ingesta masiva',   Icon: FolderUp },
       { key: 'conectores',   to: '/superadmin/data-sources',             label: 'Conectores',       Icon: Plug },
@@ -162,6 +162,9 @@ const SUPERADMIN_NAV = [
       { key: 'audit-log',    to: '/superadmin/audit-log',                label: 'Auditoría',        Icon: Shield },
       { key: 'ai-cost',      to: '/superadmin/ai-cost',                  label: 'Costos IA',        Icon: DollarSign },
       { key: 'commercial',   to: '/superadmin/commercial',               label: 'Comercial',        Icon: Briefcase },
+      { key: 'metrics-cube', to: '/superadmin/metrics-cube',             label: 'Cubo de métricas', Icon: Layers },
+      { key: 'data-lake',    to: '/superadmin/data-lake',                label: 'Data Lake',        Icon: Database },
+      { key: 'intelligence-hub', to: '/superadmin/intelligence-hub',     label: 'Inteligencia ejecutiva', Icon: Eye },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },
