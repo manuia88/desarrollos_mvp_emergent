@@ -21,7 +21,8 @@ export async function getTiers() {
   return _j(await fetch(`${BASE}/tiers`, { headers: h(), credentials: 'include' }));
 }
 
-export async function listTier(tier, { parentId, search, sort, period, limit, skip } = {}) {
+export async function listTier(tier, { parentId, search, sort, period, limit, skip,
+  sliceBy, propertyType, priceTier } = {}) {
   const p = new URLSearchParams();
   if (parentId) p.set('parent_id', parentId);
   if (search) p.set('search', search);
@@ -29,14 +30,22 @@ export async function listTier(tier, { parentId, search, sort, period, limit, sk
   if (period) p.set('period', period);
   if (limit) p.set('limit', limit);
   if (skip) p.set('skip', skip);
+  if (sliceBy) p.set('slice_by', sliceBy);
+  if (propertyType) p.set('property_type', propertyType);
+  if (priceTier) p.set('price_tier', priceTier);
   const qs = p.toString();
   return _j(await fetch(`${BASE}/${encodeURIComponent(tier)}${qs ? '?' + qs : ''}`,
     { headers: h(), credentials: 'include' }));
 }
 
-export async function getTierDetail(tier, tierId, { period } = {}) {
-  const qs = period ? `?period=${period}` : '';
-  return _j(await fetch(`${BASE}/${encodeURIComponent(tier)}/${encodeURIComponent(tierId)}${qs}`,
+export async function getTierDetail(tier, tierId, { period, sliceBy, propertyType, priceTier } = {}) {
+  const p = new URLSearchParams();
+  if (period) p.set('period', period);
+  if (sliceBy) p.set('slice_by', sliceBy);
+  if (propertyType) p.set('property_type', propertyType);
+  if (priceTier) p.set('price_tier', priceTier);
+  const qs = p.toString();
+  return _j(await fetch(`${BASE}/${encodeURIComponent(tier)}/${encodeURIComponent(tierId)}${qs ? '?' + qs : ''}`,
     { headers: h(), credentials: 'include' }));
 }
 
@@ -72,4 +81,40 @@ export async function getUnitDetail(unitId) {
 
 export async function refreshAggregations() {
   return _j(await fetch(`${BASE}/refresh`, { method: 'POST', headers: h(), credentials: 'include' }));
+}
+
+// W2.8 Phase Z.1 — Consolidated cube endpoints
+export async function queryCrossCut({ dimensions, period, propertyType, priceTier, tier } = {}) {
+  const p = new URLSearchParams();
+  if (Array.isArray(dimensions)) p.set('dimensions', dimensions.join(','));
+  else if (dimensions) p.set('dimensions', dimensions);
+  if (period) p.set('period', period);
+  if (propertyType) p.set('property_type', propertyType);
+  if (priceTier) p.set('price_tier', priceTier);
+  if (tier) p.set('tier', tier);
+  return _j(await fetch(`${BASE}/cross-cut?${p.toString()}`,
+    { headers: h(), credentials: 'include' }));
+}
+
+export async function compareZones(zoneIds, period = 'current') {
+  return _j(await fetch(`${BASE}/compare`, {
+    method: 'POST', headers: h(), credentials: 'include',
+    body: JSON.stringify({ zone_ids: zoneIds, period }),
+  }));
+}
+
+export async function triggerBackfill(fromDate, toDate, zoneIds = null) {
+  return _j(await fetch(`${BASE}/backfill`, {
+    method: 'POST', headers: h(), credentials: 'include',
+    body: JSON.stringify({ from_date: fromDate, to_date: toDate, zone_ids: zoneIds }),
+  }));
+}
+
+export async function getBackfillStatus(jobId) {
+  return _j(await fetch(`${BASE}/backfill/${encodeURIComponent(jobId)}`,
+    { headers: h(), credentials: 'include' }));
+}
+
+export async function getCacheStats() {
+  return _j(await fetch(`${BASE}/cache-stats`, { headers: h(), credentials: 'include' }));
 }

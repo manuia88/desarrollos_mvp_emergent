@@ -363,6 +363,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_data_lake_etl_error", error=str(e))
 
+    # W2.8 Phase Z.1 — Materialized views refresh cron (3:30am MX, post ETL)
+    try:
+        from cube_olap_engine import schedule_materialized_views_cron
+        schedule_materialized_views_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_cube_materialized_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

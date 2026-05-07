@@ -163,6 +163,9 @@ from routes_superadmin_metrics_cube import router as superadmin_metrics_cube_rou
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
 app.include_router(superadmin_metrics_cube_router)
 
+# W2.8 Phase Z.1 — Consolidated OLAP cube (cross-cut + cache + backfill)
+from cube_olap_engine import ensure_consolidated_indexes as ensure_cube_consolidated_indexes
+
 # W2.6 SA8 — Founder Console (executive dashboard + Cmd+K + anomalies)
 from routes_superadmin_founder_console import router as superadmin_founder_console_router
 from anomaly_detection_engine import ensure_indexes as ensure_founder_anomaly_indexes
@@ -616,6 +619,11 @@ async def startup():
         await ensure_metrics_cube_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] metrics cube indexes failed: {e}")
+    # W2.8 Phase Z.1 — Consolidated OLAP indexes
+    try:
+        await ensure_cube_consolidated_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] cube consolidated indexes failed: {e}")
     # W2.6 SA8 — Founder Console anomaly indexes
     try:
         await ensure_founder_anomaly_indexes(db)

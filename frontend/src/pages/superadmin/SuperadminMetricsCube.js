@@ -9,7 +9,7 @@ import CubeDrilldownTable from '../../components/superadmin/CubeDrilldownTable';
 import { Layers, RefreshCw, Map as MapIcon, ChevronDown, AlertCircle, Sparkles } from 'lucide-react';
 import {
   getTierDetail, getTierChildren, getHeatmap, getComparables, getUnitDetail,
-  refreshAggregations,
+  refreshAggregations, compareZones, triggerBackfill, getBackfillStatus, listTier,
 } from '../../api/superadminMetricsCube';
 
 const PERIODS = [
@@ -294,6 +294,311 @@ function UnitDetailView({ unitId, onBack }) {
   );
 }
 
+// W2.8 Phase Z.1 — Compare modal: multi-select up to 5 zones + diff_pct cards
+function CompareModal({ children_, selected, setSelected, data, loading,
+                        onCompare, onClose, period }) {
+  const toggle = (zid) => {
+    setSelected(s => s.includes(zid) ? s.filter(x => x !== zid)
+      : (s.length >= 5 ? s : [...s, zid]));
+  };
+
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
+        backdropFilter: 'blur(8px)', zIndex: 1500,
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        padding: '8vh 20px 20px',
+      }}>
+      <div data-testid="compare-modal" style={{
+        width: '100%', maxWidth: 760,
+        background: 'rgba(13,17,28,0.97)',
+        border: '1px solid rgba(99,102,241,0.30)',
+        borderRadius: 14, padding: 22, maxHeight: '80vh', overflowY: 'auto',
+      }}>
+        <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18,
+          color: 'var(--cream)', margin: '0 0 10px' }}>
+          Comparar zonas ({selected.length}/5)
+        </h3>
+        {!data && (
+          <>
+            <div style={{ marginBottom: 10,
+              fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.65)' }}>
+              Selecciona 2 a 5 zonas para comparar:
+            </div>
+            <div style={{
+              maxHeight: 280, overflowY: 'auto',
+              padding: 10, borderRadius: 10,
+              background: 'rgba(0,0,0,0.18)',
+              display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+              {(children_ || []).map(c => {
+                const active = selected.includes(c.tier_id);
+                return (
+                  <button key={c.tier_id}
+                    data-testid={`compare-toggle-${c.tier_id}`}
+                    onClick={() => toggle(c.tier_id)}
+                    style={{
+                      padding: '7px 11px', borderRadius: 9999,
+                      background: active ? 'rgba(99,102,241,0.16)' : 'transparent',
+                      border: `1px solid ${active ? 'rgba(99,102,241,0.45)'
+                        : 'rgba(255,255,255,0.07)'}`,
+                      color: active ? '#818CF8' : 'rgba(240,235,224,0.75)',
+                      fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+                      cursor: 'pointer', textAlign: 'left',
+                      display: 'flex', justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}>
+                    <span>{c.name}</span>
+                    <span style={{
+                      fontFamily: 'DM Mono, monospace', fontSize: 10,
+                      color: 'rgba(240,235,224,0.45)',
+                    }}>{(c.kpis?.units_total || 0)} u</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end',
+              marginTop: 14 }}>
+              <button onClick={onClose}
+                style={{
+                  padding: '8px 16px', borderRadius: 9999,
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}>Cancelar</button>
+              <button data-testid="compare-confirm"
+                disabled={selected.length < 2 || loading}
+                onClick={() => onCompare(selected)}
+                style={{
+                  padding: '9px 20px', borderRadius: 9999,
+                  background: selected.length < 2
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  border: 'none', color: '#fff',
+                  fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
+                  cursor: selected.length < 2 ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.7 : 1,
+                }}>{loading ? 'Comparando…' : 'Comparar'}</button>
+            </div>
+          </>
+        )}
+        {data && (
+          <div data-testid="compare-results">
+            <div style={{ display: 'grid',
+              gridTemplateColumns: `repeat(${data.zones.length}, minmax(140px, 1fr))`,
+              gap: 8, marginBottom: 14,
+            }} className="compare-grid">
+              {data.zones.map((z, i) => (
+                <div key={z.zone_id} style={{
+                  padding: 12, borderRadius: 10,
+                  background: 'rgba(99,102,241,0.06)',
+                  border: '1px solid rgba(99,102,241,0.20)',
+                }}>
+                  <div style={{
+                    fontFamily: 'DM Mono, monospace', fontSize: 9.5,
+                    color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+                    letterSpacing: '0.07em', marginBottom: 3,
+                  }}>{z.tier}</div>
+                  <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14,
+                    color: 'var(--cream)', marginBottom: 6 }}>{z.name}</div>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5,
+                    color: 'rgba(240,235,224,0.65)', lineHeight: 1.55 }}>
+                    {(['units_total', 'units_sold', 'avg_price_per_m2',
+                       'conversion_rate', 'leads_count']).map(k => (
+                      <div key={k}><span style={{ opacity: 0.55 }}>{k}:</span>{' '}
+                        <strong style={{ color: 'var(--cream)' }}>
+                          {z.kpis?.[k] != null ? (typeof z.kpis[k] === 'number'
+                            ? z.kpis[k].toLocaleString('es-MX') : z.kpis[k]) : '—'}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{
+              padding: 12, borderRadius: 10,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+            }}>
+              <div style={{
+                fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                color: 'rgba(240,235,224,0.55)', marginBottom: 6,
+              }}>Variación máx vs mín (%)</div>
+              <div style={{ display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6,
+              }}>
+                {Object.entries(data.diff_pct || {}).map(([k, v]) => (
+                  <div key={k} style={{
+                    padding: '6px 10px', borderRadius: 8,
+                    background: v == null ? 'rgba(255,255,255,0.03)'
+                      : v > 50 ? 'rgba(74,222,128,0.10)'
+                      : 'rgba(99,102,241,0.06)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    fontFamily: 'DM Mono, monospace', fontSize: 11,
+                  }}>
+                    <span style={{ color: 'rgba(240,235,224,0.55)' }}>{k}:</span>{' '}
+                    <strong style={{ color: v == null ? 'rgba(240,235,224,0.40)'
+                      : v > 50 ? '#4ADE80' : '#818CF8' }}>
+                      {v != null ? `${v}%` : '—'}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end',
+              marginTop: 14 }}>
+              <button onClick={onClose}
+                style={{
+                  padding: '8px 16px', borderRadius: 9999,
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}>Cerrar</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// W2.8 Phase Z.1 — Backfill modal: date range + polling status
+function BackfillModal({ onClose, onToast }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(monthAgo);
+  const [to, setTo] = useState(today);
+  const [job, setJob] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  // Polling effect
+  useEffect(() => {
+    if (!job || job.status !== 'running') return;
+    const id = setInterval(async () => {
+      try {
+        const r = await getBackfillStatus(job.job_id || job.id);
+        setJob(r);
+        if (r.status !== 'running') {
+          clearInterval(id);
+          onToast(`Backfill ${r.status}: ${r.zones_processed} zonas en ${r.duration_seconds}s`);
+        }
+      } catch (e) { /* ignore */ }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [job, onToast]);
+
+  const onTrigger = async () => {
+    setBusy(true);
+    try {
+      const r = await triggerBackfill(`${from}T00:00:00Z`, `${to}T00:00:00Z`);
+      setJob(r);
+    } catch (e) {
+      if (e.status === 409) {
+        onToast('Ya hay un backfill activo. Espera a que termine.');
+      } else {
+        onToast(e.message || 'Error backfill');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
+        backdropFilter: 'blur(8px)', zIndex: 1500,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}>
+      <div data-testid="backfill-modal" style={{
+        width: '100%', maxWidth: 480,
+        background: 'rgba(13,17,28,0.97)',
+        border: '1px solid rgba(250,204,21,0.30)',
+        borderRadius: 14, padding: 22,
+      }}>
+        <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16,
+          color: 'var(--cream)', margin: '0 0 12px' }}>
+          Backfill histórico
+        </h3>
+        <p style={{ fontFamily: 'DM Sans', fontSize: 12.5,
+          color: 'rgba(240,235,224,0.65)', lineHeight: 1.5, marginTop: 0 }}>
+          Genera snapshots <code>facts_daily_zone</code> retroactivos. Máx 90 días.
+          Solo 1 backfill simultáneo permitido.
+        </p>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+          <label style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 11,
+            color: 'rgba(240,235,224,0.55)' }}>
+            Desde
+            <input data-testid="backfill-from" type="date" value={from}
+              onChange={e => setFrom(e.target.value)}
+              style={{
+                width: '100%', padding: '7px 10px', borderRadius: 8,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'var(--cream)', fontFamily: 'DM Mono, monospace',
+                fontSize: 12, marginTop: 4, outline: 'none',
+              }} />
+          </label>
+          <label style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 11,
+            color: 'rgba(240,235,224,0.55)' }}>
+            Hasta
+            <input data-testid="backfill-to" type="date" value={to}
+              onChange={e => setTo(e.target.value)}
+              style={{
+                width: '100%', padding: '7px 10px', borderRadius: 8,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'var(--cream)', fontFamily: 'DM Mono, monospace',
+                fontSize: 12, marginTop: 4, outline: 'none',
+              }} />
+          </label>
+        </div>
+        {job && (
+          <div data-testid="backfill-status" style={{
+            padding: 10, borderRadius: 8,
+            background: 'rgba(99,102,241,0.06)',
+            border: '1px solid rgba(99,102,241,0.20)',
+            marginBottom: 10, fontFamily: 'DM Mono, monospace', fontSize: 11.5,
+            color: 'rgba(240,235,224,0.85)',
+          }}>
+            <div>Job: <strong>{job.job_id || job.id}</strong></div>
+            <div>Status: <strong style={{
+              color: job.status === 'ok' ? '#4ADE80'
+                : job.status === 'failed' ? '#F87171'
+                : '#FACC15',
+            }}>{job.status}</strong></div>
+            {job.days_done != null && <div>Días: {job.days_done}</div>}
+            {job.zones_processed != null && <div>Zonas: {job.zones_processed}</div>}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+          <button onClick={onClose}
+            style={{
+              padding: '8px 16px', borderRadius: 9999,
+              background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>{job && job.status !== 'running' ? 'Cerrar' : 'Cancelar'}</button>
+          {(!job || job.status !== 'running') && (
+            <button data-testid="backfill-confirm" onClick={onTrigger} disabled={busy}
+              style={{
+                padding: '9px 20px', borderRadius: 9999,
+                background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                border: 'none', color: '#fff', fontFamily: 'DM Sans',
+                fontWeight: 700, fontSize: 12.5,
+                cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1,
+              }}>{busy ? 'Disparando…' : 'Iniciar backfill'}</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SuperadminMetricsCube({ user, onLogout }) {
   const [path, setPath] = useState([ROOT]);
   const [period, setPeriod] = useState('current');
@@ -306,6 +611,15 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
   const [heatmapPoints, setHeatmapPoints] = useState([]);
   const [unitDetailId, setUnitDetailId] = useState(null);
   const [search, setSearch] = useState('');
+  // W2.8 Phase Z.1 — slice/property/price filters + compare/backfill modals
+  const [sliceBy, setSliceBy] = useState(null);
+  const [propertyType, setPropertyType] = useState(null);
+  const [priceTier, setPriceTier] = useState(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareSelected, setCompareSelected] = useState([]);
+  const [compareData, setCompareData] = useState(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [backfillOpen, setBackfillOpen] = useState(false);
 
   const cur = path[path.length - 1];
   const isUnit = cur.tier === 'unit';
@@ -320,15 +634,37 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
     if (isUnit) return;
     setLoading(true);
     try {
-      const r = await getTierDetail(cur.tier, cur.tier_id, { period });
-      setNode(r.node);
-      setChildren(r.children || []);
+      // W2.8 — when filters active, fetch via listTier (with slice_by) for breakdown rows
+      let r;
+      if (sliceBy || propertyType || priceTier) {
+        const next = { city: 'alcaldia', alcaldia: 'colonia',
+                       colonia: 'development', development: 'unit' }[cur.tier];
+        const detail = await getTierDetail(cur.tier, cur.tier_id, {
+          period, sliceBy, propertyType, priceTier,
+        });
+        // Also fetch the children list with slice_by populated
+        if (next && next !== 'unit') {
+          const list = await listTier(next, {
+            parentId: cur.tier_id, period,
+            sliceBy, propertyType, priceTier, limit: 200,
+          });
+          setNode(detail.node);
+          setChildren(list.items || []);
+        } else {
+          setNode(detail.node);
+          setChildren(detail.children || []);
+        }
+      } else {
+        r = await getTierDetail(cur.tier, cur.tier_id, { period });
+        setNode(r.node);
+        setChildren(r.children || []);
+      }
     } catch (e) {
       setToast(e.message || 'Error al cargar nodo');
     } finally {
       setLoading(false);
     }
-  }, [cur.tier, cur.tier_id, period, isUnit]);
+  }, [cur.tier, cur.tier_id, period, isUnit, sliceBy, propertyType, priceTier]);
 
   const loadHeatmap = useCallback(async () => {
     if (!heatmapTier) { setHeatmapPoints([]); return; }
@@ -450,8 +786,94 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
             <RefreshCw size={11} style={{
               animation: refreshing ? 'spin 1s linear infinite' : 'none',
             }} />
-            {refreshing ? 'Refrescando…' : 'Refrescar agregados'}
+            {refreshing ? 'Refrescando…' : 'Refrescar'}
           </button>
+
+          <button onClick={() => setCompareOpen(true)}
+            data-testid="cube-compare-btn"
+            style={{
+              padding: '8px 14px', borderRadius: 9999,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'rgba(240,235,224,0.65)', fontFamily: 'DM Sans', fontWeight: 600,
+              fontSize: 11.5, cursor: 'pointer',
+            }}>Comparar zonas</button>
+
+          <button onClick={() => setBackfillOpen(true)}
+            data-testid="cube-backfill-btn"
+            style={{
+              padding: '8px 14px', borderRadius: 9999,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'rgba(240,235,224,0.65)', fontFamily: 'DM Sans', fontWeight: 600,
+              fontSize: 11.5, cursor: 'pointer',
+            }}>Backfill histórico</button>
+        </div>
+
+        {/* W2.8 Filters strip — slice_by + property_type + price_tier */}
+        <div data-testid="cube-filter-strip" style={{
+          display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center',
+          marginBottom: 14, padding: '8px 12px', borderRadius: 12,
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.05)',
+        }}>
+          <span style={{
+            fontFamily: 'DM Mono, monospace', fontSize: 9.5,
+            color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+            letterSpacing: '0.07em', marginRight: 4,
+          }}>Agrupar:</span>
+          {[['none', 'Sin agrupar', null],
+            ['property_type', 'Por tipo', 'property_type'],
+            ['price_tier', 'Por rango precio', 'price_tier'],
+            ['year_built_decade', 'Por década', 'year_built_decade']].map(([k, label, val]) => (
+            <button key={k} data-testid={`cube-slice-${k}`}
+              onClick={() => setSliceBy(val)}
+              style={{
+                padding: '4px 10px', borderRadius: 9999,
+                background: sliceBy === val ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${sliceBy === val ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
+                color: sliceBy === val ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5, cursor: 'pointer',
+              }}>{label}</button>
+          ))}
+
+          <span style={{
+            fontFamily: 'DM Mono, monospace', fontSize: 9.5,
+            color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+            letterSpacing: '0.07em', marginLeft: 8, marginRight: 4,
+          }}>Tipo:</span>
+          {[['all', 'Todos', null], ['depto', 'Depto', 'depto'],
+            ['casa', 'Casa', 'casa'], ['loft', 'Loft', 'loft'],
+            ['town', 'Town', 'town'], ['ph', 'PH', 'ph']].map(([k, label, val]) => (
+            <button key={`pt-${k}`} data-testid={`cube-pt-${k}`}
+              onClick={() => setPropertyType(val)}
+              style={{
+                padding: '4px 10px', borderRadius: 9999,
+                background: propertyType === val ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${propertyType === val ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
+                color: propertyType === val ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5, cursor: 'pointer',
+              }}>{label}</button>
+          ))}
+
+          <span style={{
+            fontFamily: 'DM Mono, monospace', fontSize: 9.5,
+            color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+            letterSpacing: '0.07em', marginLeft: 8, marginRight: 4,
+          }}>Rango:</span>
+          {[['all', 'Todos', null], ['entry', 'Entry', 'entry'],
+            ['mid', 'Mid', 'mid'], ['luxury', 'Luxury', 'luxury'],
+            ['ultraluxury', 'Ultra', 'ultraluxury']].map(([k, label, val]) => (
+            <button key={`pr-${k}`} data-testid={`cube-pr-${k}`}
+              onClick={() => setPriceTier(val)}
+              style={{
+                padding: '4px 10px', borderRadius: 9999,
+                background: priceTier === val ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${priceTier === val ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
+                color: priceTier === val ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5, cursor: 'pointer',
+              }}>{label}</button>
+          ))}
         </div>
 
         <CubeBreadcrumb path={path} onNavigate={onBreadcrumb} />
@@ -542,6 +964,13 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
                     items={filteredChildren}
                     onDrill={drillTo}
                     density="compact"
+                    breakdownKeys={
+                      sliceBy === 'property_type'
+                        ? ['depto', 'casa', 'loft', 'town', 'ph']
+                        : sliceBy === 'price_tier'
+                          ? ['entry', 'mid', 'luxury', 'ultraluxury']
+                          : null
+                    }
                   />
                 </div>
               </div>
@@ -551,6 +980,39 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
               <ComparablesPanel tierId={cur.tier_id} />
             )}
           </>
+        )}
+
+        {/* W2.8 Compare modal */}
+        {compareOpen && (
+          <CompareModal
+            children_={children}
+            selected={compareSelected}
+            setSelected={setCompareSelected}
+            data={compareData}
+            loading={compareLoading}
+            onCompare={async (ids) => {
+              setCompareLoading(true);
+              try {
+                const r = await compareZones(ids, period);
+                setCompareData(r);
+              } catch (e) { setToast(e.message || 'Error compare'); }
+              finally { setCompareLoading(false); }
+            }}
+            onClose={() => {
+              setCompareOpen(false);
+              setCompareData(null);
+              setCompareSelected([]);
+            }}
+            period={period}
+          />
+        )}
+
+        {/* W2.8 Backfill modal */}
+        {backfillOpen && (
+          <BackfillModal
+            onClose={() => setBackfillOpen(false)}
+            onToast={setToast}
+          />
         )}
       </div>
 

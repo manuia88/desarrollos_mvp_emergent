@@ -24,13 +24,29 @@ const COLS = [
 
 const PAGE_SIZE = 50;
 
-export default function CubeDrilldownTable({ items, onDrill, density = 'compact' }) {
+export default function CubeDrilldownTable({ items, onDrill, density = 'compact',
+                                              breakdownKeys = null }) {
   const [sortKey, setSortKey] = useState('units');
   const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(0);
 
+  // Build full column list, optionally with dynamic breakdown columns
+  const cols = useMemo(() => {
+    if (!breakdownKeys || breakdownKeys.length === 0) return COLS;
+    const dynCols = breakdownKeys.map(k => ({
+      key: `bk-${k}`,
+      label: k,
+      accessor: r => ((r.olap?.breakdown || {})[k] || {}).units_total || 0,
+      sortable: true,
+      mono: true,
+    }));
+    // Replace conv/leads/ie cols (keep name + units total + breakdown + price)
+    const base = COLS.filter(c => ['name', 'units', 'price'].includes(c.key));
+    return [...base, ...dynCols];
+  }, [breakdownKeys]);
+
   const sorted = useMemo(() => {
-    const col = COLS.find(c => c.key === sortKey);
+    const col = cols.find(c => c.key === sortKey) || cols[0];
     if (!col) return items;
     const arr = [...(items || [])];
     arr.sort((a, b) => {
@@ -45,7 +61,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
       return sortDir === 'asc' ? av - bv : bv - av;
     });
     return arr;
-  }, [items, sortKey, sortDir]);
+  }, [items, sortKey, sortDir, cols]);
 
   const total = sorted.length;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -80,7 +96,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
           <thead>
             <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
-              {COLS.map(c => {
+              {cols.map(c => {
                 const active = sortKey === c.key;
                 return (
                   <th key={c.key}
@@ -126,7 +142,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                {COLS.map(c => {
+                {cols.map(c => {
                   const v = c.accessor(r);
                   const display = c.fmt ? c.fmt(v) : (v != null ? v : '—');
                   return (

@@ -1,6 +1,42 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.8 — Phase Z.1 Consolidated Metrics Cube OLAP (2026-05-07)
+
+### Backend (3 nuevos · 2 editados)
+- **NEW** `cube_olap_engine.py`:
+  - `compute_slice(db, slice_key, period)` — OLAP roll-up sobre `facts_daily_zone` con dimensiones (`zone`, `property_type`, `price_tier`, `period`, `year_built_decade`). KPIs: `units_total/sold/available/reserved`, `avg_price_mxn`, `avg_price_per_m2`, `conversion_rate`. Period support `current|7d|30d|90d` con bucket time-window MX.
+  - `compute_cross_cut(db, dimensions, period)` — multi-dim breakdown agregado vía MongoDB `$facet` pipeline, retorna matriz tier × dimension.
+  - `compare_slices(db, zone_ids, period)` — diff `%` entre N slices contra baseline (primer zone_id).
+  - `materialize_view(db, slice_key, slice_type, ttl_seconds=3600)` — INSERT `cube_materialized_views` + TTL local.
+  - `start_backfill(db, days, triggered_by)` — async job en background (asyncio.create_task) iterando ETL día por día. Status persisted en `cube_backfill_jobs`.
+- **NEW** `cube_cache.py` — `TTLCache(maxsize=512, ttl=3600)` in-process via `cachetools`. Wrappers `cache_get(key)`, `cache_set(key, value)`, `cache_invalidate(prefix)`. Nota: in-process únicamente, no compartido entre instances (acceptable Wave 2; refactor Wave 3 si scale horizontal).
+- **NEW** `routes_superadmin_metrics_cube.py` extendido con 4 endpoints:
+  1. `GET /cross-cut?dimensions=zone,property_type&period=30d` — query OLAP cross-cut (cached 1h).
+  2. `POST /compare {zone_ids:[...], period}` — diff side-by-side (cached 1h).
+  3. `POST /backfill {days:30}` — trigger async backfill, retorna `job_id`.
+  4. `GET /backfill/status?job_id=X` — poll status (`pending|running|completed|failed` + errors[] + progress %).
+- **EDIT** `server.py` — registra `cube_cache.invalidate_on_etl_complete` callback dentro de `data_lake_etl.run_daily_etl` post-success (cache bust).
+- **EDIT** `scheduler_ie.py` — cron `cube_materialize_daily` 02:30 MX (después de metrics-cube, antes de data-lake) refresca `cube_materialized_views` para slices high-traffic (national + 16 alcaldías).
+
+### Frontend (3 nuevos · 1 editado)
+- **NEW** `api/superadminMetricsCube.js` extendido con `getCrossCut()`, `postCompare()`, `triggerBackfill()`, `getBackfillStatus()`.
+- **NEW** `components/superadmin/CubeCrossCutChips.js` — chips multi-select de dimensiones (zone, property_type, price_tier, year_built_decade). Pills `rounded-full` con borde `1px solid rgba(99,102,241,0.4)` activo, backdrop-blur fondo. `data-testid="cube-cross-cut-chip-{dim}"`.
+- **NEW** `components/superadmin/CubeCompareModal.js` — modal compare side-by-side (max 4 zones). Tabla diff% color-coded (verde +, rojo −). CTA `rounded-full` gradient `linear-gradient(90deg, #6366F1, #EC4899)`.
+- **NEW** `components/superadmin/CubeBackfillModal.js` — input días (1-180), CTA trigger, status poll cada 3s (badge `pending/running/completed/failed`), error log expandible.
+- **EDIT** `pages/superadmin/SuperadminMetricsCube.js` — integra los 3 nuevos componentes en toolbar superior. Cross-cut chips abajo de breadcrumb, modal compare abre desde drilldown table (multi-row select), modal backfill desde quick action. Fix JSX root fragment + lint pass.
+
+### Validación
+- `yarn build` → exit 0 (sin warnings críticos).
+- `curl GET /cross-cut?dimensions=property_type&period=30d` → 200 (validation 422 cuando dimensions ausentes — OK).
+- `curl POST /compare {zone_ids:["national"],period:"30d"}` → 200 con `zones[]` + `diff_pct{}`.
+- `curl GET /backfill/status?job_id=xxx` → 404 cuando job inexistente (esperado).
+
+### Notas operativas
+- TTLCache es in-process; en multi-instance considerar Redis Wave 3.
+- Backfill async usa `asyncio.create_task` — survive request lifecycle pero NO survive backend restart. Job marcado `failed` si interrumpido.
+
+
 ## W2.7 — Phase Z.0 Data Lake Foundation (2026-05-07)
 
 ### Backend (3 nuevos · 3 editados)

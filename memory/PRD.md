@@ -30,6 +30,26 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 ---
 
 
+## 2026-05-07 — W2.8 · Phase Z.1 Consolidated Metrics Cube OLAP
+
+### Backend
+- `cube_olap_engine.py` — `compute_slice`, `compute_cross_cut` (multi-dim `$facet`), `compare_slices` (diff %), `materialize_view`, `start_backfill` (asyncio task).
+- `cube_cache.py` — `TTLCache(maxsize=512, ttl=3600)` con `cache_get/set/invalidate`. Bust automático post-ETL. In-process (no compartido entre instances).
+- `routes_superadmin_metrics_cube.py` extendido: `GET /cross-cut`, `POST /compare`, `POST /backfill`, `GET /backfill/status`.
+- `scheduler_ie.py` — cron `cube_materialize_daily` 02:30 MX.
+
+### Frontend
+- `CubeCrossCutChips.js`, `CubeCompareModal.js`, `CubeBackfillModal.js` integrados en `SuperadminMetricsCube.js`. CTAs `rounded-full` + gradient `#6366F1→#EC4899`. Lint + `yarn build` clean.
+
+### Validación
+- `curl /cross-cut?dimensions=property_type&period=30d` → 200.
+- `curl POST /compare {zone_ids:["national"],period:"30d"}` → 200 con `diff_pct`.
+- Backfill async ejecuta y persiste en `cube_backfill_jobs`.
+
+---
+
+
+
 ## 2026-05-06 — Phase 13 Batch 36 · Marketplace Asesor + Whitelist Developer + Auto-Approve
 
 ### Backend nuevo

@@ -11,9 +11,11 @@ are registered BEFORE the dynamic /{tier} route to avoid path-shadowing.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel
 
 import metrics_cube_aggregations as cube
 
@@ -240,7 +242,116 @@ async def unit_detail_route(unit_id: str, request: Request):
 async def refresh_aggregations(request: Request):
     await _require_superadmin(request)
     db = _db(request)
+    # W2.8 — invalidate OLAP cache when underlying data changes
+    try:
+        import cube_cache
+        cube_cache.cache_invalidate_zones([])
+    except Exception:
+        pass
     return await cube.aggregate_all(db)
+
+
+# ─── W2.8 Phase Z.1 — Cross-cut OLAP, Compare, Backfill (BEFORE /{tier}) ──────
+import cube_olap_engine as olap  # noqa: E402
+
+SliceByLit = Literal["property_type", "price_tier", "year_built_decade"]
+PropertyTypeLit = Literal["depto", "casa", "loft", "town", "ph", "all"]
+PriceTierLit = Literal["entry", "mid", "luxury", "ultraluxury", "all"]
+
+
+class CompareBody(BaseModel):
+    zone_ids: List[str]
+    period: PeriodLit = "current"
+
+
+class BackfillBody(BaseModel):
+    from_date: str
+    to_date: str
+    zone_ids: Optional[List[str]] = None
+
+
+@router.get(PREFIX + "/cross-cut")
+async def cross_cut_route(
+    request: Request,
+    dimensions: str = Query(..., description="comma-separated, max 3"),
+    period: PeriodLit = "current",
+    property_type: Optional[PropertyTypeLit] = None,
+    price_tier: Optional[PriceTierLit] = None,
+    tier: Optional[TierLit] = None,
+):
+    await _require_superadmin(request)
+    db = _db(request)
+    dims = [d.strip() for d in dimensions.split(",") if d.strip()]
+    filters: Dict[str, Any] = {}
+    if property_type:
+        filters["property_type"] = property_type
+    if price_tier:
+        filters["price_tier"] = price_tier
+    if tier:
+        filters["tier"] = tier
+    try:
+        return await olap.query_cross_cut(db, dimensions=dims, filters=filters,
+                                          period=period)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post(PREFIX + "/compare")
+async def compare_route(body: CompareBody, request: Request):
+    await _require_superadmin(request)
+    db = _db(request)
+    try:
+        return await olap.query_compare_zones(db, body.zone_ids, body.period)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post(PREFIX + "/backfill")
+async def backfill_route(body: BackfillBody, request: Request):
+    user = await _require_superadmin(request)
+    db = _db(request)
+    try:
+        from_d = datetime.fromisoformat(body.from_date.replace("Z", "+00:00"))
+        to_d = datetime.fromisoformat(body.to_date.replace("Z", "+00:00"))
+    except Exception:
+        raise HTTPException(400, "Fechas inválidas (ISO 8601 requerido)")
+    try:
+        result = await olap.backfill_historical(
+            db, from_date=from_d, to_date=to_d, zone_ids=body.zone_ids,
+            triggered_by=user.user_id,
+        )
+        if not result.get("ok") and result.get("status") == 409:
+            raise HTTPException(409, f"Backfill activo: {result.get('active_job_id')}")
+        try:
+            from audit_log import log_mutation
+            await log_mutation(
+                db, user, "trigger", "cube_backfill", result.get("job_id"),
+                before=None, after={"from_date": body.from_date,
+                                    "to_date": body.to_date},
+                request=request,
+            )
+        except Exception:
+            pass
+        return result
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.get(PREFIX + "/backfill/{job_id}")
+async def backfill_status_route(job_id: str, request: Request):
+    await _require_superadmin(request)
+    db = _db(request)
+    job = await olap.get_backfill_status(db, job_id)
+    if not job:
+        raise HTTPException(404, "Job no encontrado")
+    return job
+
+
+@router.get(PREFIX + "/cache-stats")
+async def cache_stats_route(request: Request):
+    await _require_superadmin(request)
+    import cube_cache
+    return cube_cache.cache_stats()
 
 
 # ─── 6) GET /:tier — list nodes ───────────────────────────────────────────────
@@ -254,6 +365,10 @@ async def list_tier_route(
     period: PeriodLit = "current",
     limit: int = Query(50, ge=1, le=200),
     skip: int = Query(0, ge=0),
+    # W2.8 Phase Z.1 — optional OLAP filters (backwards compatible)
+    slice_by: Optional[SliceByLit] = None,
+    property_type: Optional[PropertyTypeLit] = None,
+    price_tier: Optional[PriceTierLit] = None,
 ):
     await _require_superadmin(request)
     db = _db(request)
@@ -300,8 +415,29 @@ async def list_tier_route(
         items.append(r)
 
     total = await db.cube_aggregations.count_documents(q)
+
+    # W2.8 — if slice_by/property_type/price_tier filters provided, attach OLAP breakdown
+    olap_breakdown = None
+    if slice_by or property_type or price_tier:
+        try:
+            for it in items:
+                slice_res = await olap.query_slice(
+                    db, tier=tier, tier_id=it.get("tier_id"), period=period,
+                    slice_by=slice_by, property_type=property_type,
+                    price_tier=price_tier,
+                )
+                it["olap"] = {
+                    "kpis": slice_res.get("kpis"),
+                    "breakdown": slice_res.get("breakdown"),
+                    "cache": slice_res.get("cache"),
+                }
+            olap_breakdown = {"slice_by": slice_by, "property_type": property_type,
+                              "price_tier": price_tier}
+        except Exception as e:
+            log.warning(f"[olap] list_tier slice failed: {e}")
+
     return {"items": items, "total": total, "tier": tier, "period": period,
-            "parent_id": parent_id}
+            "parent_id": parent_id, "olap": olap_breakdown}
 
 
 # ─── 7) GET /:tier/:tier_id/children — children with mini-KPIs ────────────────
@@ -372,6 +508,10 @@ async def detail_tier_route(
     tier: TierLit, tier_id: str,
     request: Request,
     period: PeriodLit = "current",
+    # W2.8 Phase Z.1 — optional OLAP filters (backwards compatible)
+    slice_by: Optional[SliceByLit] = None,
+    property_type: Optional[PropertyTypeLit] = None,
+    price_tier: Optional[PriceTierLit] = None,
 ):
     await _require_superadmin(request)
     db = _db(request)
@@ -381,6 +521,23 @@ async def detail_tier_route(
     node = await _get_or_compute(db, tier, tier_id, period)
     if not node:
         raise HTTPException(404, "Nodo no encontrado")
+
+    # W2.8 — attach OLAP slice if filters provided
+    if slice_by or property_type or price_tier:
+        try:
+            slice_res = await olap.query_slice(
+                db, tier=tier, tier_id=tier_id, period=period,
+                slice_by=slice_by, property_type=property_type,
+                price_tier=price_tier,
+            )
+            node["olap"] = {
+                "kpis": slice_res.get("kpis"),
+                "breakdown": slice_res.get("breakdown"),
+                "source_units_count": slice_res.get("source_units_count"),
+                "cache": slice_res.get("cache"),
+            }
+        except Exception as e:
+            log.warning(f"[olap] detail slice failed: {e}")
 
     next_tier = {"city": "alcaldia", "alcaldia": "colonia",
                  "colonia": "development", "development": "unit"}.get(tier)
