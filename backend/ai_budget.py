@@ -138,7 +138,11 @@ async def track_ai_call(
 
 
 async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
-    """Send Resend email alert once per day when usage > 80% of cap."""
+    """Send Resend email alert once per day when usage > threshold of cap.
+
+    W2.4 SA5: Honors `db.ai_budget_caps.alert_threshold_pct` (fallback 80%) and
+    `custom_alert_email` (fallback ALERT_EMAIL env). Closes W2.3 deferred.
+    """
     try:
         doc = await db.ai_usage_log.find_one(
             {"dev_org_id": dev_org_id, "month_iso": month},
@@ -148,7 +152,25 @@ async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
             return
         cap = doc.get("cap_mxn") or DEFAULT_CAP_MXN
         spent = doc.get("estimated_cost_mxn") or 0.0
-        if cap <= 0 or (spent / cap) < ALERT_THRESHOLD_PCT:
+
+        # W2.4 SA5: per-tenant threshold + email override
+        threshold = ALERT_THRESHOLD_PCT
+        alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.com")
+        try:
+            cap_doc = await db.ai_budget_caps.find_one(
+                {"tenant_id": dev_org_id}, {"_id": 0},
+            )
+            if cap_doc:
+                if cap_doc.get("alert_threshold_pct") is not None:
+                    threshold = float(cap_doc["alert_threshold_pct"]) / 100.0
+                if cap_doc.get("custom_alert_email"):
+                    alert_email = cap_doc["custom_alert_email"]
+                if cap_doc.get("monthly_cap_mxn"):
+                    cap = float(cap_doc["monthly_cap_mxn"])
+        except Exception:
+            pass
+
+        if cap <= 0 or (spent / cap) < threshold:
             return
         # Rate-limit: once per day
         last_alert = doc.get("alert_sent_at")
@@ -166,12 +188,12 @@ async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
                 pct = round((spent / cap) * 100, 1)
                 body = {
                     "from": "DMX Platform <no-reply@desarrollosmx.com>",
-                    "to": [os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.com")],
+                    "to": [alert_email],
                     "subject": f"[DMX] Alerta presupuesto IA {pct}% utilizado — {dev_org_id}",
                     "text": (
                         f"La organización '{dev_org_id}' ha consumido el {pct}% de su límite mensual de IA.\n"
                         f"Consumo: ${spent:.2f} MXN / ${cap:.0f} MXN\n"
-                        f"Período: {month}\n\nAjusta el límite en el panel Superadmin → AI Usage."
+                        f"Período: {month}\n\nAjusta el límite en el panel Superadmin → Costos IA."
                     ),
                 }
                 async with httpx.AsyncClient() as client:

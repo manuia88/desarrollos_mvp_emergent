@@ -148,6 +148,16 @@ app.include_router(superadmin_audit_router)
 from routes_superadmin_ai_cost import router as superadmin_ai_cost_router
 app.include_router(superadmin_ai_cost_router)
 
+# W2.4 SA5 — Commercial Foundation (feature flags + plan templates + snapshots)
+from routes_superadmin_commercial import (
+    router as superadmin_commercial_router,
+    me_router as me_feature_flags_router,
+)
+from feature_flags_engine import ensure_commercial_indexes, seed_commercial
+from trial_expiry_cron import ensure_trial_alerts_indexes
+app.include_router(superadmin_commercial_router)
+app.include_router(me_feature_flags_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -575,6 +585,14 @@ async def startup():
         await ensure_superadmin_audit_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] superadmin audit indexes failed: {e}")
+    # W2.4 SA5 — Commercial foundation
+    try:
+        await ensure_commercial_indexes(db)
+        await ensure_trial_alerts_indexes(db)
+        seed_result = await seed_commercial(db)
+        logging.info(f"[startup] commercial seeds: {seed_result}")
+    except Exception as e:
+        logging.warning(f"[startup] commercial init failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
