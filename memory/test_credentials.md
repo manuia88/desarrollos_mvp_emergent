@@ -20,3 +20,10 @@ Magic-link flow es PASSWORDLESS. Para crear una sesión de prueba:
 
 Rate limit: 5 magic-link requests / minuto / IP.
 Tokens: 24-byte URL-safe, single-use, expires 15 min.
+
+## Phase 14 Batch 37 — In-house invitation activation (created during this session)
+- Activation token (consumed, just for reference): `PUQJXoIkifBS2aFBUw-H9ettZidVOKi4XazRL2daLKI`
+- Activated user: `b37test@demo.com` / `Test2026!` (role: developer_member, tenant_id: constructora_ariel)
+- Probar nueva invitación: POST /api/dev/internal-users body {email, role: developer_marketing|developer_advisor|…, name?} con cookie de developer@demo.com
+- Lookup invitación: GET /api/auth/in-house/invitation?token=…
+- Aceptar: POST /api/auth/in-house/accept-invitation body {token, name, password?} → set cookies access_token+refresh_token

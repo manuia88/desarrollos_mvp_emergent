@@ -13,7 +13,7 @@ import {
   Search, Layers, Home,
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
-  MessageSquare, Link, Store,
+  MessageSquare, Link, Store, HeartHandshake,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -27,6 +27,7 @@ const DEV_NAV = [
       { key: 'proyectos',    to: '/desarrollador/proyectos',         label: 'Mis Proyectos',  Icon: Building2,       badge_source: 'projects_health_below_60' },
       { key: 'crm',          to: '/desarrollador/crm',               label: 'CRM',            Icon: ClipboardList,   badge_source: 'crm_unread_leads' },
       { key: 'solicitudes',  to: '/desarrollador/solicitudes',       label: 'Solicitudes',    Icon: Users,           badge_source: 'whitelist_pending_count' },
+      { key: 'mini-market',  to: '/desarrollador/mini-market',       label: 'Mini Market',    Icon: Store },
       { key: 'mensajes',     to: '/desarrollador/mensajes',          label: 'Mensajes',       Icon: MessageSquare },
     ],
   },
@@ -46,6 +47,7 @@ const DEV_NAV = [
     label: 'Configuración',
     items: [
       { key: 'usuarios',     to: '/desarrollador/usuarios',          label: 'Equipo',         Icon: Users },
+      { key: 'cross-partnerships', to: '/desarrollador/cross-partnerships', label: 'Alianzas',  Icon: HeartHandshake },
       { key: 'configuracion',to: '/desarrollador/configuracion',     label: 'Configuración',  Icon: Settings },
     ],
   },
@@ -110,7 +112,10 @@ const INMOBILIARIA_ADMIN_NAV = [
       { key: 'dashboard',    to: '/inmobiliaria',                        label: 'Dashboard',        Icon: LayoutDashboard, end: true },
       { key: 'leads',        to: '/inmobiliaria/leads',                  label: 'Leads',            Icon: Users, badge_source: 'crm_unread_leads' },
       { key: 'asesores',     to: '/inmobiliaria/asesores',               label: 'Asesores',         Icon: Users },
-      { key: 'alianzas',     to: '/inmobiliaria/alianzas',               label: 'Alianzas',         Icon: Briefcase },
+      { key: 'usuarios',     to: '/inmobiliaria/usuarios',               label: 'Equipo',           Icon: Users },
+      { key: 'mini-market',  to: '/inmobiliaria/mini-market',            label: 'Mini Market',      Icon: Store },
+      { key: 'alianzas',     to: '/inmobiliaria/alianzas',               label: 'Alianzas dev',     Icon: Briefcase },
+      { key: 'cross-partnerships', to: '/inmobiliaria/cross-partnerships', label: 'Cross-org',      Icon: HeartHandshake },
     ],
   },
 ];

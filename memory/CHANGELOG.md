@@ -1,5 +1,39 @@
 # DesarrollosMX — CHANGELOG
 
+
+## Batch 37 — Phase 14 In-house Users + Mini Markets + Cross-Org Partnerships (2026-05-07)
+
+### Backend (already wired previous session — verified working this session)
+- `services/internal_users.py` — invite/list/update/suspend dev + inmobiliaria internal users; magic-link invitations (`db.invitations`); `lookup_invitation_by_token`; idempotent dup-guard.
+- `services/cross_org_partnerships.py` — generic dev↔dev / dev↔inmobiliaria / inmobiliaria↔inmobiliaria partnerships with request/approve/reject/revoke + dup-guard + notify admins via `routes_dev_batch14.create_notification`.
+- `services/mini_market_engine.py` — computes visible projects: dev (own_org + cross_partnership when `allow_external_inventory`); inmobiliaria (dev_partnership + cross_inmobiliaria fanout when external).
+- `routes_internal_users.py` — endpoints `/api/dev/internal-users`, `/api/dev/mini-market`, `/api/dev/settings/external-inventory`, `/api/inmobiliaria/internal-users`, `/api/inmobiliaria/mini-market`, `/api/inmobiliaria/settings/external-inventory`, `/api/auth/in-house/invitation`, `/api/cross-partnerships` (CRUD + approve/reject/revoke).
+- **FIX (this session)** — eliminado el conflicto de rutas `/api/dev/internal-users` (legacy en `routes_dev_batch1.py` 4.9). Removidos GET/POST/PATCH/DELETE legacy; los nuevos endpoints B37 ahora ganan el routing.
+
+### Frontend (this session)
+- **NEW** `pages/developer/DesarrolladorMiniMarket.js` — vista de inventario visible al equipo (propio + cross-org); admin toggle `allow_external_inventory`; stats Propios/Cross-org/Total; filtros por source.
+- **NEW** `pages/developer/DesarrolladorCrossPartnerships.js` — gestión completa de alianzas cross-org (Recibidas/Enviadas/Todas + filtro status), modal NuevaAlianza con target_org_type=dev|inmobiliaria, comisión default y notas; aprobar/rechazar/revocar con razón. Exporta también `CrossPartnershipsPage` para reuso.
+- **NEW** `pages/inmobiliaria/InmobiliariaUsuariosCRUD.js` — equipo interno inmobiliaria (admin/director/asesor/marketing), invite con magic-link, suspend, reenviar invitación.
+- **NEW** `pages/inmobiliaria/InmobiliariaMiniMarket.js` — inventario visible: alianzas directas (B35) + cross-inmobiliaria fanout. Admin toggle external inventory.
+- **NEW** `pages/inmobiliaria/InmobiliariaCrossPartnerships.js` — wrapper que reusa `CrossPartnershipsPage` con `InmobiliariaLayout`.
+- **EDIT** `pages/auth/InHouseSignup.js` — switch a `useAuth.setUser` (en vez de `onLogin` prop) + persistencia `dmx_token`.
+- **EDIT** `App.js` — rutas nuevas: `/in-house/aceptar-invitacion`, `/desarrollador/mini-market`, `/desarrollador/cross-partnerships`, `/inmobiliaria/usuarios`, `/inmobiliaria/mini-market`, `/inmobiliaria/cross-partnerships`.
+- **EDIT** `config/navByRole.js` — DEV nav agrega Mini Market + Alianzas (cross-partnerships); INMOBILIARIA_ADMIN_NAV agrega Equipo + Mini Market + Alianzas dev (renamed) + Cross-org. Icono `HeartHandshake` (no existe Handshake en lucide-react).
+
+### Tests (curl/yarn build only — no testing subagents)
+- `yarn build` → success (no errors).
+- `POST /api/auth/login` developer@demo.com → ok (cookie-based auth).
+- `GET /api/dev/internal-users` → wrapped `{items, total}` ✓
+- `GET /api/dev/mini-market` → `{items: [], total: 0}` ✓
+- `GET /api/cross-partnerships` → ✓
+- `POST /api/dev/internal-users` → invitation con magic_link_token ✓
+- `GET /api/auth/in-house/invitation?token=…` → metadata correcta ✓
+- `POST /api/auth/in-house/accept-invitation` → user activado + cookies set + redirect=/desarrollador ✓
+- `POST /api/cross-partnerships` → partnership_id devuelto ✓
+- `POST /api/inmobiliaria/internal-users` (con inm-test-1) → ✓
+- Smoke screenshots `/desarrollador/mini-market` y `/desarrollador/cross-partnerships` → render correcto, navy/cream theme, gradient CTAs, estado vacío y filas con datos seed.
+
+
 ## Batch 35 — Phase 18 Inmobiliaria Entity (Foundation + Portal + Relationships) (2026-05-06)
 
 ### Sub-A: Backend Foundation

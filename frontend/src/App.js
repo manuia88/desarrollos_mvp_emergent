@@ -107,6 +107,14 @@ const AsesorMiniMarket               = lazy(() => import('./pages/asesor/AsesorM
 const AsesorInventario               = lazy(() => import('./pages/asesor/AsesorInventario'));
 const DesarrolladorSolicitudes       = lazy(() => import('./pages/developer/DesarrolladorSolicitudes'));
 
+// Phase 14 Batch 37 — In-house Users + Mini Markets + Cross-Org Partnerships
+const InHouseSignup                  = lazy(() => import('./pages/auth/InHouseSignup'));
+const DesarrolladorMiniMarket        = lazy(() => import('./pages/developer/DesarrolladorMiniMarket'));
+const DesarrolladorCrossPartnerships = lazy(() => import('./pages/developer/DesarrolladorCrossPartnerships'));
+const InmobiliariaUsuariosCRUD       = lazy(() => import('./pages/inmobiliaria/InmobiliariaUsuariosCRUD'));
+const InmobiliariaMiniMarket         = lazy(() => import('./pages/inmobiliaria/InmobiliariaMiniMarket'));
+const InmobiliariaCrossPartnerships  = lazy(() => import('./pages/inmobiliaria/InmobiliariaCrossPartnerships'));
+
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
 const DataSourcesPage            = lazy(() => import('./pages/superadmin/DataSourcesPage'));
@@ -400,6 +408,14 @@ function AppRouter() {
       <Route path="/asesor/mini-market" element={<AdvisorRoute Page={AsesorMiniMarket} />} />
       <Route path="/asesor/inventario" element={<AdvisorRoute Page={AsesorInventario} />} />
       <Route path="/desarrollador/solicitudes" element={<AdvisorRoute Page={DesarrolladorSolicitudes} />} />
+
+      {/* Phase 14 Batch 37 — In-house Users + Mini Markets + Cross-Org Partnerships */}
+      <Route path="/in-house/aceptar-invitacion" element={<InHouseSignup />} />
+      <Route path="/desarrollador/mini-market" element={<AdvisorRoute Page={DesarrolladorMiniMarket} />} />
+      <Route path="/desarrollador/cross-partnerships" element={<AdvisorRoute Page={DesarrolladorCrossPartnerships} />} />
+      <Route path="/inmobiliaria/usuarios" element={<AdvisorRoute Page={InmobiliariaUsuariosCRUD} />} />
+      <Route path="/inmobiliaria/mini-market" element={<AdvisorRoute Page={InmobiliariaMiniMarket} />} />
+      <Route path="/inmobiliaria/cross-partnerships" element={<AdvisorRoute Page={InmobiliariaCrossPartnerships} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />

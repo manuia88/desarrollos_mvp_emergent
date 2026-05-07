@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { lookupInvitation, acceptInvitation } from '../../api/internal_users';
+import { useAuth } from '../../App';
 
 const ROLE_LABELS = {
   developer_admin: 'Administrador', developer_director: 'Director Comercial',
@@ -12,9 +13,10 @@ const ROLE_LABELS = {
   inmobiliaria_advisor: 'Asesor', inmobiliaria_marketing: 'Marketing',
 };
 
-export default function InHouseSignup({ onLogin }) {
+export default function InHouseSignup() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const token = params.get('token') || '';
 
   const [info, setInfo] = useState(null);
@@ -46,7 +48,10 @@ export default function InHouseSignup({ onLogin }) {
     try {
       const res = await acceptInvitation(token, form.name.trim(), form.password || undefined);
       setSuccess(true);
-      if (onLogin) onLogin(res.user);
+      if (res.token) {
+        try { localStorage.setItem('dmx_token', res.token); } catch {}
+      }
+      if (res.user && setUser) setUser(res.user);
       setTimeout(() => navigate(res.redirect || '/desarrollador'), 1800);
     } catch (e) { setFormErr(e.message || 'Error al activar la cuenta'); }
     finally { setSubmitting(false); }

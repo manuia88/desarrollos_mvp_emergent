@@ -579,7 +579,9 @@ async def auto_release_expired_holds(db) -> int:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 4.9 INTERNAL USERS (Phase 14 dev slice)
+# 4.9 INTERNAL USERS — SUPERSEDED BY Phase 14 Batch 37 (routes_internal_users.py)
+# Old endpoints removed to avoid route collision. Schemas kept for backwards-compat
+# read-only references (e.g., legacy invitation seed migration).
 # ═══════════════════════════════════════════════════════════════════════════════
 
 INTERNAL_ROLES = {"admin", "commercial_director", "comercial", "obras", "marketing"}
@@ -604,129 +606,10 @@ class InternalUserPatch(BaseModel):
     status: Optional[str] = None
 
 
-@router.get("/internal-users")
-async def list_internal_users(request: Request):
-    user = await _auth(request)
-    db = _db(request)
-    items = await db.dev_internal_users.find(
-        {"dev_org_id": _tenant(user)}, {"_id": 0}
-    ).sort("ts", -1).to_list(200)
-    return items
+# NOTE: GET/POST/PATCH/DELETE /internal-users handlers removed — see routes_internal_users.py
 
 
-@router.post("/internal-users")
-async def create_internal_user(payload: InternalUserCreate, request: Request):
-    user = await _auth(request)
-    db = _db(request)
-    if not payload.email or "@" not in payload.email:
-        raise HTTPException(400, "Email inválido")
-
-    # Check duplicate
-    existing = await db.dev_internal_users.find_one({"dev_org_id": _tenant(user), "email": payload.email.lower()})
-    if existing:
-        raise HTTPException(409, "Ya existe un usuario con ese email en tu organización")
-
-    activation_token = uuid.uuid4().hex
-    activation_expires_at = (_now() + timedelta(days=7)).isoformat()
-    new_user = {
-        "id": _uid("diu"),
-        "dev_org_id": _tenant(user),
-        "email": payload.email.lower(),
-        "name": payload.name,
-        "role": payload.role,
-        "status": "invited",
-        "invited_by": user.user_id,
-        "activation_token": activation_token,
-        "activation_expires_at": activation_expires_at,
-        "password_hash": None,
-        "last_login_at": None,
-        "user_id": None,
-        "ts": _now().isoformat(),
-    }
-    await db.dev_internal_users.insert_one(dict(new_user))
-    new_user.pop("_id", None)
-
-    # Public activation URL (frontend public page)
-    import os as _os
-    app_url = _os.environ.get("PUBLIC_APP_URL", "").rstrip("/")
-    invite_url = f"{app_url}/aceptar-invitacion/{activation_token}" if app_url else f"/aceptar-invitacion/{activation_token}"
-    email_sent = False
-    resend_key = _os.environ.get("RESEND_API_KEY", "")
-    # Best-effort: real email via Resend when key present.
-    if resend_key:
-        try:
-            import resend
-            resend.api_key = resend_key
-            # Resolve dev_org_name for personalized subject
-            org_name = _tenant(user).replace("_", " ").title()
-            resend.Emails.send({
-                "from": "DMX Platform <noreply@desarrollosmx.com>",
-                "to": payload.email.lower(),
-                "subject": f"Invitación a {org_name} — DesarrollosMX",
-                "html": (
-                    f"<h2>Has sido invitado a {org_name}</h2>"
-                    f"<p>Fuiste invitado como <strong>{payload.role}</strong> en el Portal Desarrollador de DesarrollosMX.</p>"
-                    f"<p><a href='{invite_url}' style='background:#EC4899;color:#fff;padding:12px 24px;"
-                    f"border-radius:999px;text-decoration:none;font-family:sans-serif'>Activar cuenta</a></p>"
-                    f"<p style='color:#8F897A;font-size:12px'>Este enlace expira el "
-                    f"{activation_expires_at[:10]}. Si no esperabas esta invitación, ignora este correo.</p>"
-                ),
-            })
-            email_sent = True
-        except Exception as e:
-            log.warning(f"[invite] Resend failed: {e}")
-
-    try:
-        from audit_log import log_mutation
-        await log_mutation(db, user, "create", "internal_user", new_user["id"],
-                           before=None, after={"email": payload.email, "role": payload.role}, request=request)
-        from observability import emit_ml_event
-        await emit_ml_event(db, "mutation_logged", user.user_id, _tenant(user), user.role,
-                            context={"entity_type": "internal_user", "action": "invite", "role": payload.role},
-                            ai_decision={}, user_action={})
-    except Exception: pass
-
-    return {**new_user, "email_sent": email_sent, "invite_url": invite_url}
-
-
-@router.patch("/internal-users/{uid}")
-async def patch_internal_user(uid: str, payload: InternalUserPatch, request: Request):
-    user = await _auth(request)
-    db = _db(request)
-    patch = {k: v for k, v in payload.model_dump().items() if v is not None}
-    if "role" in patch and patch["role"] not in INTERNAL_ROLES:
-        raise HTTPException(400, f"role inválido")
-    if "status" in patch and patch["status"] not in {"active", "invited", "disabled"}:
-        raise HTTPException(400, "status inválido")
-    old = await db.dev_internal_users.find_one({"id": uid, "dev_org_id": _tenant(user)}, {"_id": 0})
-    if not old:
-        raise HTTPException(404, "Usuario no encontrado")
-    patch["updated_at"] = _now().isoformat()
-    await db.dev_internal_users.update_one({"id": uid}, {"$set": patch})
-    updated = await db.dev_internal_users.find_one({"id": uid}, {"_id": 0})
-    try:
-        from audit_log import log_mutation
-        await log_mutation(db, user, "update", "internal_user", uid,
-                           before=old, after=updated, request=request)
-    except Exception: pass
-    return updated
-
-
-@router.delete("/internal-users/{uid}")
-async def disable_internal_user(uid: str, request: Request):
-    user = await _auth(request)
-    db = _db(request)
-    r = await db.dev_internal_users.update_one(
-        {"id": uid, "dev_org_id": _tenant(user)},
-        {"$set": {"status": "disabled", "disabled_at": _now().isoformat(), "disabled_by": user.user_id}},
-    )
-    if not r.matched_count:
-        raise HTTPException(404, "Usuario no encontrado")
-    try:
-        from audit_log import log_mutation
-        await log_mutation(db, user, "delete", "internal_user", uid, before=None, after={"status": "disabled"}, request=request)
-    except Exception: pass
-    return {"ok": True, "status": "disabled"}
+# Legacy POST/PATCH/DELETE /internal-users handlers removed — see routes_internal_users.py
 
 
 # ─── Org Settings ─────────────────────────────────────────────────────────────

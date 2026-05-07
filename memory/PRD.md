@@ -3740,3 +3740,36 @@ Status: ✅ DONE · 83/83 pytest verde (19 nuevos B28 + 64 regresión B24-B27) �
 - New backend: `routes_comprador.py`, `services/comprador_dashboard.py`, `services/buyer_history.py`, `services/privacy_center.py`, `tests/test_batch28.py`
 - New frontend: `api/comprador.js`, `components/comprador/CompradorLayout.js`, 5 `pages/comprador/*.js` + `pages/auth/MagicLinkLogin.js`
 - Edited: `routes_auth.py` (magic-link endpoints), `services/saved_searches.py` (user_id linkage), `routes_external_search.py` (auto-link if auth), `server.py` (router), `App.js` (6 routes + portalForRole), `lib/funnelTracker.js` (buyer view), `pages/DevelopmentDetail.js` (track view), `components/marketplace/ColoniaSidebar.js` (favorito gate), `i18n/es-MX/common.json` (comprador.* strings)
+
+---
+
+## ✅ Phase 14 / Batch 37 — In-house Users + Mini Markets + Cross-Org Partnerships (DONE 2026-05-07)
+
+### Status: COMPLETE
+- Backend ya estaba wired (services/internal_users, services/cross_org_partnerships, services/mini_market_engine, routes_internal_users)
+- Conflicto de rutas legacy en routes_dev_batch1.py resuelto (removidos 4 endpoints legacy `/internal-users` que sombraban B37)
+- Frontend completo: 5 páginas nuevas + InHouseSignup integrado con AuthContext + nav links + rutas en App.js
+
+### Endpoints expuestos (verificados con curl)
+- `POST/GET/PATCH/DELETE /api/dev/internal-users[/{email}]` — CRUD equipo dev
+- `POST /api/dev/internal-users/invitations/{id}/resend`
+- `PUT /api/dev/settings/external-inventory`
+- `GET /api/dev/mini-market`
+- `POST/GET/PATCH/DELETE /api/inmobiliaria/internal-users[/{email}]` — CRUD equipo inmobiliaria
+- `PUT /api/inmobiliaria/settings/external-inventory`
+- `GET /api/inmobiliaria/mini-market`
+- `GET /api/auth/in-house/invitation?token=…` (público)
+- `POST /api/auth/in-house/accept-invitation` (público, set cookies)
+- `POST/GET /api/cross-partnerships` + `POST /{id}/{approve|reject|revoke}`
+
+### Páginas frontend (todas en es-MX, navy/cream, gradient CTAs `rounded-full`)
+- `/desarrollador/mini-market` — DesarrolladorMiniMarket
+- `/desarrollador/cross-partnerships` — DesarrolladorCrossPartnerships
+- `/inmobiliaria/usuarios` — InmobiliariaUsuariosCRUD
+- `/inmobiliaria/mini-market` — InmobiliariaMiniMarket
+- `/inmobiliaria/cross-partnerships` — InmobiliariaCrossPartnerships
+- `/in-house/aceptar-invitacion?token=…` — InHouseSignup (pública)
+
+### Próximas tareas (P1)
+- Phase 7.10 — Avance-Obra tab integration
+- WhatsApp Business real (`whatsapp-web.js` + Caya UI)
