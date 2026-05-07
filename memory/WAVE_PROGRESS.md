@@ -6,6 +6,25 @@
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
+## Convenciones del checklist
+
+Formato canónico per-batch (founder request):
+
+| # | Batch | h | Quién | Status | SHA | Notas |
+|---|---|---|---|---|---|---|
+
+- **Status**: ⏳ pending · 🟡 in-progress · ✅ completed · ❌ blocked
+- **Quién**: Claude Code (audit/cleanup/bug-fix/QA/docs) · emergent (features con UI nueva + endpoints + lógica)
+- **h**: estimado / real
+- **SHA**: short hash del commit que cierra el batch
+
+### Regla quién hace qué
+- ¿Hay UI nueva? → emergent
+- ¿Schema + endpoints + integración cross-portal? → emergent
+- ¿Bug fix sin UI nueva? → Claude Code
+- ¿Audit / QA / docs / refactor sin features? → Claude Code
+- ¿Smoke testing post-batch? → Claude Code
+
 ---
 
 ## 📊 Resumen ejecutivo
@@ -25,17 +44,19 @@ Este doc se actualiza después de cada batch shipped. Estado siempre refleja úl
 
 ### Batches
 
-| # | Batch | h est. | h real | Status | SHA | Notas |
-|---|---|---|---|---|---|---|
-| W1.1 | SA1.0 Critical Bug Fix superadmin guards | 2 | 1.5 | ✅ | `90666a3` | Audit completo, 2 bugs reales fixed (document-types + units history skip-on-empty) + 13 pytest tests + helpers en permissions.py |
-| W1.2 | SA1.1 Tenants Management UI | 8 | — | ⏳ | — | Pendiente: list orgs + filtros + drill-down + impersonation con audit |
-| W1.3 | SA1.2 System Health Dashboard | 8 | — | ⏳ | — | Aggregator probes B0.5 cross-org + uptime + ETL + cron status + email alert |
-| W1.4 | ZZ.1 Bulk Drive Ingestion | 10 | — | ⏳ | — | Superadmin UI upload Drive folder → Haiku extraction → schema fill → dedup → review queue |
-| W1.5 | ZZ.1.1 Ingestion Quality + Dedup Engine | 6 | — | ⏳ | — | Rapidfuzz match contra existing developments + manual override + merge tool + Haiku second-pass |
-| W1.6 | Wave 1 Polish + Smoke | 4 | — | ⏳ | — | E2E tests + permission audit + doc updates + founder ingest 50 proyectos sample |
-| Buffer | Polish/imprevistos | 12 | — | ⏳ | — | — |
+| # | Batch | h est. | h real | Quién | Status | SHA | Notas |
+|---|---|---|---|---|---|---|---|
+| W1.1 | SA1.0 Critical Bug Fix superadmin guards | 2 | 1.5 | Claude Code | ✅ | `90666a3` | Audit completo · 2 bugs fixed (document-types + units history skip-on-empty) · 13 pytest · helpers permissions.py |
+| W1.2 | SA1.1 Tenants Management UI | 8 | — | emergent | ⏳ | — | List orgs + filtros + drill-down + impersonation con audit |
+| W1.3 | SA1.2 System Health Dashboard | 8 | — | emergent | ⏳ | — | Aggregator probes B0.5 cross-org + uptime + ETL + cron status + email alert |
+| W1.4 | ZZ.1 Bulk Drive Ingestion | 10 | — | emergent | ⏳ | — | Superadmin UI upload Drive folder → Haiku extraction → schema fill → dedup → review queue |
+| W1.5 | ZZ.1.1 Ingestion Quality + Dedup Engine | 6 | — | emergent | ⏳ | — | Rapidfuzz match + manual override + merge tool + Haiku second-pass |
+| W1.6 | Wave 1 Polish + Smoke | 4 | — | Claude Code | ⏳ | — | E2E tests + permission audit + doc updates + validar ingest 50 proyectos |
+| Buffer | Polish/imprevistos | 12 | — | mixto | ⏳ | — | Bugs → Claude Code · scope expansion → emergent |
 
 **Acumulado Wave 1**: 1.5h / 50h (3%)
+**Por Claude Code**: 1.5h shipped (+ 4h pending W1.6)
+**Por emergent**: 0h shipped (+ 32h pending W1.2-W1.5)
 
 ### Métricas éxito Wave 1
 - [x] 100% superadmin endpoints requieren superadmin role (audit limpio en W1.1)
