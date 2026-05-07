@@ -33,6 +33,7 @@ SCHEDULE_LABELS = {
     "wrapped_monthly_first_6am": "mensual · día 1 · 06:00 MX",
     "availability_refresh": "cada 30 min",
     "health_critical_check": "cada 5 min",
+    "data_hub_healthcheck_all": "cada 10 min",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -50,6 +51,7 @@ SCHEDULE_INTERVAL_SEC = {
     "wrapped_monthly_first_6am": 32 * 86400,
     "availability_refresh": 30 * 60,
     "health_critical_check": 5 * 60,
+    "data_hub_healthcheck_all": 10 * 60,
 }
 
 

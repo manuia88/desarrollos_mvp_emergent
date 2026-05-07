@@ -1,6 +1,62 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.1 — SA2 Data Sources Hub (2026-05-07)
+
+### Backend
+- **NEW** `connector_registry.py` — catálogo central de 11 connectors (`claude_haiku`, `claude_sonnet`, `mapbox_geocoding`, `mapbox_static`, `inegi_demographics`, `google_drive`, `google_calendar`, `microsoft_calendar`, `resend`, `sentry`, `posthog`).
+  - Cada connector declara `{id, name, category, icon_key, required_env, supports_retry, supports_replay, is_stub?}`.
+  - `HEALTHCHECKS` async functions por connector (httpx 30s timeout): Claude usa emergentintegrations ping, Mapbox geocoding/static endpoints, INEGI reachability, Google Drive `files.list(pageSize=1)`, Resend `/domains`, Sentry host reachability, PostHog `/decide/`.
+  - `record_invocation`, `aggregate_24h`, `compute_status` (lógica: stub si env missing | failed si último check falló y sin success >2h | degraded si fail_ratio_24h>0.30 y fails≥2 | ok otherwise).
+  - `retry_connector` re-ejecuta healthcheck (deterministic re-call); `replay_range` valida ≤7d y ≤100 items, re-corre healthcheck por cada fail; `healthcheck_all_connectors` para cron.
+- **NEW** `routes_superadmin_data_hub.py` — prefix `/api/superadmin/data-hub`, 6 endpoints todos con `require_superadmin`:
+  1. `GET /connectors` → list + counts (total/ok/degraded/failed/stub)
+  2. `GET /connectors/{id}` → connector summary + last 50 invocations + last 20 audit entries
+  3. `POST /connectors/{id}/test` → run healthcheck sync
+  4. `POST /connectors/{id}/retry` → 409 si !supports_retry
+  5. `POST /connectors/{id}/replay` body `{from_ts, to_ts}` → 400 si rango >7d, >100 items, o fechas inválidas
+  6. `GET /connectors/{id}/invocations?status=&from_ts=&to_ts=&limit=&skip=` → paginated log
+- **Cron `data_hub_healthcheck_all`** registrado cada 10 min vía APScheduler con `wrap_apscheduler_job` (cron_heartbeat W1.3) — aparece en `/superadmin/health` crons list.
+- Schema `db.connector_invocations`: `{id, connector_id, op, status, ts, duration_ms, error?, metadata?}` con índices `(connector_id, ts desc, status)` y `(ts desc)`.
+- `server.py` wired post-bulk_ingest_router; `ensure_connector_indexes` en startup.
+- Audit log entries para `test`, `retry`, `replay` (entity_type=`connector`, entity_id=`{connector_id}`).
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminDataSourcesHub.js` con `<SuperadminLayout>`:
+  - Header "Conectores" + botón gradient "Refrescar todo" (POST /test paralelo a todos los no-stub)
+  - 4 KPI cards (Total/Operativos/Degraded/Failed)
+  - 2 filtros pill (categoría · estado)
+  - Grid responsivo `auto-fill minmax(280px,1fr)`
+  - `<ConnectorDrawer>` con 3 tabs (Overview · Log invocaciones con filtros · Auditoría)
+  - `<ReplayModal>` con datepicker range, validación cliente (>7d) + server (400 surfaced), CTA gradient
+  - Auto-refresh KPIs cada 60s (paused on `visibilitychange` hidden)
+  - SmartEmptyState `hub-empty` cuando filter retorna 0
+- **NEW** `components/superadmin/ConnectorCard.js` — icon mapeado de `lucide-react` (Bot, Brain, MapPin, Map, Layers, FolderOpen, CalendarDays, Calendar, Mail, AlertCircle, Activity, Plug); 3 botones inline `rounded-full` (Probar/Reintentar/Replay), pulse animation rojo si `failed`, hover translateY(-1px), banner de credenciales faltantes para stubs.
+- **NEW** `api/superadminDataHub.js` — 6 funciones matching endpoints.
+- `App.js` route `/superadmin/data-sources` ahora apunta al hub; legacy IE Engine accesible vía `/superadmin/ie-engine-sources` (+ detail).
+- `navByRole.js` reemplaza item `data-sources` → `conectores` con icon `Plug` y label "Conectores".
+
+### Manual tests passed (curl)
+- ✅ `GET /connectors` → 11 items, counts `{total:11, ok:10, degraded:0, failed:0, stub:1}` (resend=stub por RESEND_API_KEY missing; ms_calendar=stub explícito)
+- ✅ Non-superadmin → 403 (`Solo superadmin`)
+- ✅ `POST /test` mapbox_geocoding → ok 279ms con preview "1 features"; posthog ok 185ms
+- ✅ `GET /connectors/{id}` → invocations populadas + audit_log
+- ✅ `POST /retry` mapbox_geocoding → success; sentry → 409 ("Connector no soporta retry")
+- ✅ `POST /replay` rango 45d → 400 "Rango máximo 7 días"; fechas invertidas → 400; rango válido → 200; stub connector → 409
+- ✅ `GET /invocations?status=ok&limit=3` → paginado correcto
+- ✅ `microsoft_calendar` status=`stub` (is_stub flag explícito)
+- ✅ `yarn build` limpio (Done in 37s)
+- ⚠️ Playwright screenshot bloqueado por modal de login (Issue 2 conocido del handoff — auth cookie drops); curl/backend testing usado en su lugar.
+
+### Edge cases / decisiones conservadoras
+- `microsoft_calendar` marcado con `is_stub: true` explícito porque no tiene env keys requeridas pero la integración no está implementada — sin esto se computaría "ok" trivialmente.
+- `resend` healthcheck devuelve `ok` también en HTTP 401/403 (key inválida) para distinguir "API ureachable" vs "key issue"; el error se surface en `last_error` para que founder vea el problema sin marcar el connector entero como failed.
+- `retry_connector` re-ejecuta healthcheck en lugar de re-call exacto del business call original (no hay forma genérica de hacer eso desde el registry; healthcheck es la prueba determinística más segura de liveness).
+- `replay_range` también re-corre healthcheck por cada invocation fallida (no se replays el payload original; se valida que el connector ahora responde para el founder pueda volver a disparar la op real desde su UI específica).
+- `INEGI` healthcheck solo valida reachability del host (no API call real) por inestabilidad histórica del endpoint desde el cluster.
+- Test/retry desactivados en la UI cuando `status === 'stub'` (misma lógica server-side via `env_present` y `is_stub`).
+
+
 ## W1.5 — ZZ.1.1 Ingestion Quality + Dedup Engine (2026-05-07)
 
 ### Backend (`bulk_ingest_engine.py` + `routes_bulk_ingest.py`)

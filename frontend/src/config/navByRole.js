@@ -13,7 +13,7 @@ import {
   Search, Layers, Home,
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
-  MessageSquare, Link, Store, HeartHandshake, Network, FolderUp,
+  MessageSquare, Link, Store, HeartHandshake, Network, FolderUp, Plug,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -146,7 +146,7 @@ const SUPERADMIN_NAV = [
       { key: 'dashboard',    to: '/superadmin',                          label: 'Dashboard',        Icon: LayoutDashboard, end: true },
       { key: 'tenants',      to: '/superadmin/tenants',                  label: 'Tenants',          Icon: Users },
       { key: 'bulk-ingest',  to: '/superadmin/bulk-ingest',              label: 'Ingesta masiva',   Icon: FolderUp },
-      { key: 'data-sources', to: '/superadmin/data-sources',             label: 'Data Sources',     Icon: Database },
+      { key: 'conectores',   to: '/superadmin/data-sources',             label: 'Conectores',       Icon: Plug },
       { key: 'scores',       to: '/superadmin/scores',                   label: 'Scores',           Icon: BarChart3 },
       { key: 'documents',    to: '/superadmin/documents',                label: 'Documentos',       Icon: FileText },
     ],

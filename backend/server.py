@@ -132,6 +132,11 @@ from routes_bulk_ingest import router as bulk_ingest_router
 from bulk_ingest_engine import ensure_bulk_ingest_indexes
 app.include_router(bulk_ingest_router)
 
+# W2.1 SA2 — Data Sources Hub (unified connectors)
+from routes_superadmin_data_hub import router as data_hub_router
+from connector_registry import ensure_connector_indexes
+app.include_router(data_hub_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -551,6 +556,10 @@ async def startup():
         await ensure_bulk_ingest_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] bulk ingest indexes failed: {e}")
+    try:
+        await ensure_connector_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] connector indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
