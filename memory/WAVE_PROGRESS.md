@@ -1,8 +1,8 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-07 (post W1.1 ship)
-**Total H1 restante**: ~604h (de ~606h originales)
-**Shipped to date**: ~280h Phase 4-refactor + 1 + 2 + 3 + B2B + 1.5h Wave 1.1
+**Última actualización**: 2026-05-07 (post W1.2 merge)
+**Total H1 restante**: ~596h (de ~606h originales)
+**Shipped to date**: ~280h Phase 4-refactor + 1 + 2 + 3 + B2B + 9.5h Wave 1 (W1.1 + W1.2)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -47,16 +47,16 @@ Formato canónico per-batch (founder request):
 | # | Batch | h est. | h real | Quién | Status | SHA | Notas |
 |---|---|---|---|---|---|---|---|
 | W1.1 | SA1.0 Critical Bug Fix superadmin guards | 2 | 1.5 | Claude Code | ✅ | `90666a3` | Audit completo · 2 bugs fixed (document-types + units history skip-on-empty) · 13 pytest · helpers permissions.py |
-| W1.2 | SA1.1 Tenants Management UI | 8 | — | emergent | ⏳ | — | List orgs + filtros + drill-down + impersonation con audit |
+| W1.2 | SA1.1 Tenants Management UI | 8 | 8 | emergent | ✅ | `c905563` | 5 endpoints + page responsive + ImpersonationBanner countdown + useImpersonation hook + login account_blocked check · merge resolved (.emergent/emergent.yml) |
 | W1.3 | SA1.2 System Health Dashboard | 8 | — | emergent | ⏳ | — | Aggregator probes B0.5 cross-org + uptime + ETL + cron status + email alert |
 | W1.4 | ZZ.1 Bulk Drive Ingestion | 10 | — | emergent | ⏳ | — | Superadmin UI upload Drive folder → Haiku extraction → schema fill → dedup → review queue |
 | W1.5 | ZZ.1.1 Ingestion Quality + Dedup Engine | 6 | — | emergent | ⏳ | — | Rapidfuzz match + manual override + merge tool + Haiku second-pass |
 | W1.6 | Wave 1 Polish + Smoke | 4 | — | Claude Code | ⏳ | — | E2E tests + permission audit + doc updates + validar ingest 50 proyectos |
 | Buffer | Polish/imprevistos | 12 | — | mixto | ⏳ | — | Bugs → Claude Code · scope expansion → emergent |
 
-**Acumulado Wave 1**: 1.5h / 50h (3%)
+**Acumulado Wave 1**: 9.5h / 50h (19%)
 **Por Claude Code**: 1.5h shipped (+ 4h pending W1.6)
-**Por emergent**: 0h shipped (+ 32h pending W1.2-W1.5)
+**Por emergent**: 8h shipped (+ 24h pending W1.3-W1.5)
 
 ### Métricas éxito Wave 1
 - [x] 100% superadmin endpoints requieren superadmin role (audit limpio en W1.1)
@@ -127,6 +127,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-07 | W1.2 SA1.1 Tenants Management UI | 8h | `c905563` | List orgs dev+inm + drill-down + impersonate 30min + login account_blocked + responsive table/cards |
 | 2026-05-07 | W1.1 SA1.0 superadmin guards | 1.5h | `90666a3` | 2 bugs reales fixed + 13 pytest + helpers permissions.py |
 | 2026-05-07 | docs: Wave 1-4 structure + Phase ZZ + SA1-SA8 + SA5.0 GHL | — | `83522e4` | Roadmap consolidado post-challenge founder |
 
