@@ -169,3 +169,91 @@ async def send_quiz_results_email(
 </body></html>
 """
     return await _send_email(to=to, subject="Tus Colonias Ideales · DesarrollosMX", html=html)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 15 · Batch 38 — Lead Enrichment (dev branding + commission + asesor info)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def enrich_lead_metadata(db, lead: Dict[str, Any], viewer_role: str = "") -> Dict[str, Any]:
+    """Build enriched_metadata block for a lead card.
+
+    Returns dict with optional keys: dev_branding, commission_estimated,
+    asesor_attributed, contact_dev. Returns {} if lead has no dev attribution.
+    """
+    enriched: Dict[str, Any] = {}
+    dev_org_id = lead.get("dev_org_id") or lead.get("dev_org_attributed")
+    if not dev_org_id:
+        return enriched
+
+    # 1) Dev branding (B19.5 fallback)
+    try:
+        org = await db.dev_orgs.find_one(
+            {"org_id": dev_org_id},
+            {"_id": 0, "name": 1, "display_name": 1, "logo_url": 1, "tagline": 1,
+             "default_commission_pct": 1, "phone": 1, "email": 1, "whatsapp": 1, "contact_url": 1},
+        ) or {}
+        enriched["dev_branding"] = {
+            "logo_url": org.get("logo_url"),
+            "display_name": org.get("display_name") or org.get("name") or dev_org_id.replace("_", " ").title(),
+            "tagline": org.get("tagline") or "",
+        }
+    except Exception:
+        org = {}
+
+    # 2) Commission estimated — prefer asesor's negotiated commission, fall back to dev default
+    commission = None
+    asesor_id = lead.get("assigned_to")
+    if asesor_id:
+        try:
+            auth = await db.dev_advisor_authorizations.find_one(
+                {"asesor_id": asesor_id, "dev_org_id": dev_org_id, "status": "approved"},
+                {"_id": 0, "commission_pct": 1},
+            )
+            if auth and auth.get("commission_pct") is not None:
+                commission = auth["commission_pct"]
+        except Exception:
+            pass
+    if commission is None:
+        commission = org.get("default_commission_pct")
+    if commission is not None:
+        enriched["commission_estimated"] = commission
+
+    # 3) Asesor attributed (Trust Score B32 + response time avg)
+    if asesor_id:
+        try:
+            user = await db.users.find_one(
+                {"user_id": asesor_id},
+                {"_id": 0, "name": 1, "picture": 1, "email": 1},
+            ) or {}
+            trust_doc = await db.asesor_trust_scores.find_one(
+                {"asesor_id": asesor_id}, {"_id": 0, "trust_score": 1},
+            ) or {}
+            enriched["asesor_attributed"] = {
+                "asesor_id": asesor_id,
+                "name": user.get("name") or asesor_id,
+                "picture": user.get("picture"),
+                "trust_score": trust_doc.get("trust_score", 0),
+            }
+        except Exception:
+            pass
+
+    # 4) Contact dev — only if asesor has approved whitelist with dev
+    if asesor_id and dev_org_id:
+        try:
+            auth = await db.dev_advisor_authorizations.find_one(
+                {"asesor_id": asesor_id, "dev_org_id": dev_org_id, "status": "approved"},
+                {"_id": 0, "auth_id": 1},
+            )
+            if auth:
+                contact_dev: Dict[str, Any] = {}
+                if org.get("phone"): contact_dev["phone"] = org["phone"]
+                if org.get("email"): contact_dev["email"] = org["email"]
+                if org.get("whatsapp"): contact_dev["whatsapp"] = org["whatsapp"]
+                if org.get("contact_url"): contact_dev["contact_url"] = org["contact_url"]
+                if contact_dev:
+                    enriched["contact_dev"] = contact_dev
+        except Exception:
+            pass
+
+    return enriched

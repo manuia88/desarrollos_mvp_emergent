@@ -328,6 +328,22 @@ app.include_router(asesor_daily_tools_router)
 from routes_lead_match import router as lead_match_router
 app.include_router(lead_match_router)
 
+# Phase 18 Batch 35 — Inmobiliaria entity (Foundation + Portal + Relationships)
+from routes_inmobiliaria import router as inmobiliaria_router
+app.include_router(inmobiliaria_router)
+
+# Phase 13 Batch 36 — Advisor Whitelist + Auto-Approve
+from routes_advisor_whitelist import router as whitelist_router
+app.include_router(whitelist_router)
+
+# Phase 14 Batch 37 — Internal Users + Mini Market + Cross-Org Partnerships
+from routes_internal_users import router as internal_users_router
+app.include_router(internal_users_router)
+
+# Phase 15 Batch 38 — Cross directories + lead enrichment
+from routes_directories import router as directories_router
+app.include_router(directories_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
@@ -537,6 +553,9 @@ async def startup():
     # Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
     await ensure_batch4_1_indexes(db)
     await seed_dmx_inmobiliaria(db)
+    # Phase 18 Batch 35 — Inmobiliaria relationships + AMPI verifications
+    from services.inmobiliaria_relationships import ensure_inmobiliaria_relationship_indexes
+    await ensure_inmobiliaria_relationship_indexes(db)
     # Phase 4 Batch 4.2 — Universal LeadKanban + Permission Tiers
     await ensure_batch4_2_indexes(db)
     # Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression
@@ -822,6 +841,22 @@ async def startup():
         await ensure_daily_feed_indexes(db)
     except Exception as e:
         logging.warning(f"[batch34] indexes failed: {e}")
+
+    # Phase 13 Batch 36 — Advisor Whitelist + Auto-Approve indexes
+    try:
+        from services.advisor_authorization import ensure_whitelist_indexes
+        await ensure_whitelist_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch36] whitelist indexes failed: {e}")
+
+    # Phase 14 Batch 37 — Internal Users + Cross-Org Partnerships indexes
+    try:
+        from services.internal_users import ensure_invitation_indexes
+        await ensure_invitation_indexes(db)
+        from services.cross_org_partnerships import ensure_cross_partnership_indexes
+        await ensure_cross_partnership_indexes(db)
+    except Exception as e:
+        logging.warning(f"[batch37] indexes failed: {e}")
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:

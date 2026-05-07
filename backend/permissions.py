@@ -1,6 +1,7 @@
 """Phase 4 Batch 0 — Permission helpers extracted from routes_dev_batch4_2.py.
 Re-exports the canonical permission level and capability checks.
 All other route files should import from here instead of batch4_2.
+Phase 14 Batch 37 — Extended with in-house user roles + cross-org helpers.
 """
 from __future__ import annotations
 from typing import Dict
@@ -16,6 +17,25 @@ LEVELS_ORDER = [
     "asesor_freelance",
 ]
 
+# B37: All in-house developer roles
+DEV_IN_HOUSE_ROLES = {
+    "developer_admin",
+    "developer_member",  # covers director/advisor/obras/marketing via internal_role
+    "developer_director",
+    "developer_advisor",
+    "developer_obras",
+    "developer_marketing",
+}
+
+# B37: All inmobiliaria roles
+INM_IN_HOUSE_ROLES = {
+    "inmobiliaria_admin",
+    "inmobiliaria_director",
+    "inmobiliaria_member",  # covers advisor/marketing via internal_role
+    "inmobiliaria_advisor",
+    "inmobiliaria_marketing",
+}
+
 
 def get_user_permission_level(user) -> str:
     """Canonical permission level for a user. Returns string enum."""
@@ -28,11 +48,17 @@ def get_user_permission_level(user) -> str:
         return "developer_director"
     if role == "inmobiliaria_admin":
         return "inmobiliaria_director"
+    if role == "developer_director":           # B37 explicit role
+        return "developer_director"
+    if role == "inmobiliaria_director":        # B37 explicit role
+        return "inmobiliaria_director"
     if role == "developer_member":
-        if internal_role in ("admin", "commercial_director"):
+        if internal_role in ("admin", "commercial_director", "director"):
             return "developer_director"
         return "developer_member"
-    if role in ("inmobiliaria_member",):
+    if role in ("developer_advisor", "developer_obras", "developer_marketing"):
+        return "developer_member"
+    if role in ("inmobiliaria_member", "inmobiliaria_advisor", "inmobiliaria_marketing"):
         return "inmobiliaria_member"
     if role in ("advisor", "asesor_admin"):
         return "asesor_freelance"
@@ -128,3 +154,110 @@ def can_view_engagement_metrics(user) -> bool:
     lvl = get_user_permission_level(user)
     return lvl in ("superadmin", "developer_director", "developer_member",
                    "inmobiliaria_director")
+
+
+# ─── Phase 18 Batch 35 — Inmobiliaria entity scoping ──────────────────────────
+
+def can_manage_inmobiliaria(user, inmobiliaria_id: str = "") -> bool:
+    """True if user can mutate inmobiliaria settings, invite asesores, manage
+    dev partnerships. superadmin always can; inmobiliaria_admin can only on
+    their own tenant.
+    """
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    if role == "superadmin":
+        return True
+    if role != "inmobiliaria_admin":
+        return False
+    if not inmobiliaria_id:
+        # Permission check w/o target tenant: just confirms admin role.
+        return True
+    return getattr(user, "tenant_id", None) == inmobiliaria_id
+
+
+# ─── Phase 13 Batch 36 — Dev Inventory Exclusive Access ───────────────────────
+
+def can_view_dev_inventory_exclusive(user, dev_org_id: str, is_authorized: bool = False) -> bool:
+    """True si el usuario puede ver datos exclusivos del inventario (comisión real,
+    contacto dev, LP completa) del developer especificado.
+
+    Reglas:
+      - superadmin: siempre True
+      - developer_admin con mismo dev_org_id: True
+      - asesor con whitelist approved (is_authorized=True): True
+      - cualquier otro: False
+    """
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    if role == "superadmin":
+        return True
+    if role == "developer_admin":
+        return getattr(user, "tenant_id", None) == dev_org_id
+    if role in ("advisor", "asesor_admin"):
+        return is_authorized
+    return False
+
+
+# ─── Phase 14 Batch 37 — In-house Users + Cross-Org Permissions ───────────────
+
+def can_invite_internal_user(user, org_id: str = "") -> bool:
+    """True si el usuario puede invitar usuarios internos a su organización.
+    Solo admin/director del mismo org.
+    """
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    if role == "superadmin":
+        return True
+    if role in ("developer_admin", "developer_director"):
+        if not org_id:
+            return True
+        return getattr(user, "tenant_id", None) == org_id
+    if role in ("inmobiliaria_admin", "inmobiliaria_director"):
+        if not org_id:
+            return True
+        return getattr(user, "tenant_id", None) == org_id
+    return False
+
+
+def can_modify_assigned_projects(user) -> bool:
+    """True si el usuario puede modificar los proyectos asignados a usuarios internos."""
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    internal_role = getattr(user, "internal_role", "") or ""
+    if role == "superadmin":
+        return True
+    if role in ("developer_admin", "developer_director"):
+        return True
+    if role == "developer_member" and internal_role in ("admin", "commercial_director", "director"):
+        return True
+    if role in ("inmobiliaria_admin", "inmobiliaria_director"):
+        return True
+    return False
+
+
+def can_view_org_internal_users(user, org_id: str) -> bool:
+    """True si el usuario puede ver la lista de usuarios internos de la org."""
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    if role == "superadmin":
+        return True
+    return getattr(user, "tenant_id", None) == org_id
+
+
+def can_manage_cross_partnership(user, org_id: str = "") -> bool:
+    """True si el usuario puede gestionar cross-org partnerships."""
+    if not user:
+        return False
+    role = getattr(user, "role", "") or ""
+    if role == "superadmin":
+        return True
+    if role in ("developer_admin", "developer_director", "inmobiliaria_admin", "inmobiliaria_director"):
+        if not org_id:
+            return True
+        return getattr(user, "tenant_id", None) == org_id
+    return False

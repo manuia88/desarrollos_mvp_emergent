@@ -352,6 +352,14 @@ async def _run_kanban(
         gid = lead.get("client_global_id", "")
         cross = cross_counts.get(gid, 0)
         card = _build_card(lead, name_by_id, now, can_m, can_f, cross)
+        # Phase 15 Batch 38 — Enriched metadata (dev branding + commission + asesor info)
+        try:
+            from services.lead_capture import enrich_lead_metadata
+            enriched = await enrich_lead_metadata(db, lead, viewer_role=getattr(user, "role", ""))
+            if enriched:
+                card["enriched_metadata"] = enriched
+        except Exception as e:
+            log.warning(f"[kanban] enrichment failed: {e}")
         cols[col_key].append(card)
         total_counts[col_key] += 1
         bmax = (lead.get("budget_range") or {}).get("max") or 0

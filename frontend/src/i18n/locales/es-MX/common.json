@@ -544,6 +544,91 @@
       "info_card": "El sistema asignará automáticamente al asesor con mejor track record para cada lead, combinando 5 señales: expertise en zona (30%), match de presupuesto (25%), tipo de lead (20%), tiempo de respuesta (15%) y capacidad disponible (10%).",
       "top_3_reasons": "Razones del match",
       "match_pct": "Match {pct}%"
+    },
+    "asesor_whitelist": {
+      "mini_market_title": "Mini Market",
+      "mini_market_subtitle": "Explora toda la oferta y solicita acceso al inventario exclusivo de tus desarrolladores aliados.",
+      "inventario_title": "Inventario Aliados",
+      "inventario_subtitle": "Datos exclusivos: comisión real, contacto directo del desarrollador y LP completa.",
+      "status_none": "Sin acceso",
+      "status_pending": "Pendiente",
+      "status_approved": "Acceso aprobado",
+      "status_rejected": "Rechazado",
+      "status_revoked": "Revocado",
+      "solicitar_acceso": "Solicitar acceso",
+      "ver_inventario": "Ver inventario completo",
+      "solicitud_enviada": "Solicitud enviada. Te avisamos cuando el desarrollador responda.",
+      "acceso_aprobado_auto": "Acceso aprobado automáticamente. Ya puedes ver el inventario completo.",
+      "modal_title": "Solicitar acceso al inventario",
+      "motivo_label": "Motivo",
+      "colonia_label": "Colonia de experiencia principal",
+      "clientes_label": "Clientes interesados actualmente (estimado)",
+      "solicitar_nuevamente": "Solicitar nuevamente",
+      "cooldown_msg": "Disponible en 30 días"
+    },
+    "developer_solicitudes": {
+      "title": "Solicitudes de Acceso",
+      "subtitle": "Asesores que solicitan acceso a tu inventario exclusivo.",
+      "aprobar": "Aprobar",
+      "rechazar": "Rechazar",
+      "revocar": "Revocar",
+      "bulk_aprobar": "Aprobar seleccionadas",
+      "reject_modal_title": "Rechazar solicitud",
+      "revoke_modal_title": "Revocar acceso",
+      "motivo_rechazo": "Motivo",
+      "reason_revocacion": "Razón de revocación",
+      "waiting_days": "{days}d esperando"
+    },
+    "auto_approve": {
+      "title": "Aprobación automática",
+      "subtitle": "Aprueba asesores calificados sin intervención manual",
+      "enable_toggle": "Habilitar auto-approve",
+      "trust_score_min": "Trust Score mínimo",
+      "require_zona": "Requerir experiencia en zona",
+      "colonias_relevantes": "Colonias relevantes",
+      "min_deals": "Mínimo deals cerrados (últimos 12 meses)",
+      "simulate_preview": "Con esta regla, {pct}% de asesores activos serían auto-aprobados ({count} de {total}).",
+      "save": "Guardar configuración",
+      "saved_ok": "Configuración guardada"
+    },
+    "directorios": {
+      "dev_red_title": "Red comercial",
+      "dev_red_subtitle": "Inmobiliarias aliadas, equipo in-house y asesores freelance autorizados.",
+      "asesor_aliados_title": "Mis aliados",
+      "asesor_aliados_subtitle": "Desarrolladores con tu acceso a inventario aprobado y tu comisión negociada.",
+      "asesor_aliados_empty": "Sin desarrolladores aliados aún · Solicita acceso desde Mini Market",
+      "inm_red_title": "Red comercial",
+      "inm_red_subtitle": "Desarrolladores aliados, equipo y asesores asociados, y partnerships cross-inmobiliaria.",
+      "tabs": {
+        "inmobiliarias": "Inmobiliarias aliadas",
+        "asesores_inhouse": "Asesores in-house",
+        "asesores_freelance": "Asesores freelance",
+        "devs": "Devs partners",
+        "cross_inmobiliaria": "Cross-inmobiliaria"
+      },
+      "kpis": {
+        "deals_12m": "Deals 12m",
+        "leads_30d": "Leads 30d",
+        "conversion_pct": "Conversión",
+        "last_activity": "Última act.",
+        "last_deal": "Último deal",
+        "response_avg": "Resp. avg",
+        "trust_score": "Trust score"
+      },
+      "ver_inventario": "Ver inventario completo",
+      "comision_filtros": {
+        "todas": "Todas",
+        "lt5": "<5%",
+        "5to8": "5-8%",
+        "gte8": "≥8%"
+      }
+    },
+    "lead_card_enriched": {
+      "contact_dev": "Contactar dev",
+      "wa": "WhatsApp",
+      "call": "Llamar",
+      "email": "Email",
+      "site": "Sitio"
     }
   }
 }

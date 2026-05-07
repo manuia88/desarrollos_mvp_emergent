@@ -1,5 +1,135 @@
 # DesarrollosMX — CHANGELOG
 
+
+## Batch 38 — Phase 15 Directorio Cruzado + Lead Cards Enriquecidas (2026-05-07)
+
+### Sub-A — Directorios 3 portales
+**Backend (NEW)**
+- `services/directory_aggregator.py` — agrega cross-tabla:
+  - `get_dev_red_comercial(dev_org_id)` → inmobiliarias B35 + asesores in-house B37 + asesores freelance B36 + KPIs (deals_12m, leads_30d, conversion_pct, last_activity_at, trust_score)
+  - `get_asesor_mis_aliados(asesor_id)` → devs approved B36 con dev_branding + comisión negociada + KPI personal (response_time_avg_hours) + inventario_count
+  - `get_inmobiliaria_red_comercial(inmobiliaria_id)` → devs B35 + asesores in-house B37 + freelance B35 + cross_inmobiliaria B37
+  - Helpers `_get_dev_branding`, `_get_inmobiliaria_branding`, `_kpi_for_asesor`, `_kpi_for_inmobiliaria`
+- `routes_directories.py` — 3 endpoints multi-tenant scoped:
+  - `GET /api/dev/red-comercial` (auth: developer_admin/director/superadmin)
+  - `GET /api/asesor/mis-aliados` (auth: advisor/asesor_*/superadmin)
+  - `GET /api/inmobiliaria/red-comercial` (auth: inmobiliaria_admin/director/superadmin)
+- `server.py` — registra `directories_router`
+
+**Frontend (NEW)**
+- `pages/developer/DesarrolladorRedComercial.js` — 3 tabs (Inmobiliarias aliadas | Asesores in-house | Asesores freelance) con KPI cells inline (deals/leads/conversion/last act.), TrustMini badge B32 si asesor, search global, drawer detalle con 4 KPI cards, notas, proyectos asignados.
+- `pages/asesor/AsesorMisAliados.js` — grid cards devs aprobados con logo dev (B19.5 fallback), comisión badge gradient, 4 KPIs personales (deals/leads/response/last deal), badge auto-aprobado, badge inventario count. Filter chips comisión (<5% / 5-8% / ≥8%) + search. Drawer con 6 KPI cards + CTA "Ver inventario completo" → `/asesor/inventario?dev=…`. Empty state con CTA "Ir al Mini Market".
+- `pages/inmobiliaria/InmobiliariaRedComercial.js` — 4 tabs (Devs partners | Asesores in-house | Asesores freelance | Cross-inmobiliaria) mismo pattern + AMPI badge si verified.
+- `api/directories.js` — `getDevRedComercial`, `getAsesorMisAliados`, `getInmobiliariaRedComercial`.
+
+### Sub-B — Lead Cards Enriquecidas
+**Backend**
+- `services/lead_capture.py` (EDIT) — append `enrich_lead_metadata(db, lead, viewer_role)`:
+  - `dev_branding` { logo_url, display_name, tagline } from `dev_orgs`
+  - `commission_estimated` (asesor whitelist commission_pct, fallback dev default_commission_pct)
+  - `asesor_attributed` { asesor_id, name, picture, trust_score } from `asesor_trust_scores` B32
+  - `contact_dev` { phone, email, whatsapp, contact_url } solo si asesor tiene whitelist approved con dev
+- `routes_dev_batch4_2.py` (EDIT) — `_run_kanban` ahora llama `enrich_lead_metadata` por lead, agrega `enriched_metadata` al card
+
+**Frontend**
+- `components/shared/LeadKanban.js` (EDIT) — nueva subcomponente `EnrichedSection`:
+  - Bloque indigo soft con logo dev + nombre + comisión badge gradient
+  - Asesor row con avatar + nombre + Trust mini badge clickable a `/asesor-publico/{id}`
+  - Botón "Contactar dev" gradient pill que abre menu inline (WhatsApp/Llamar/Email/Sitio según `contact_dev`)
+- Si no hay `enriched_metadata` → graceful (return null, card básica)
+
+### Wiring
+- `App.js` — 3 rutas nuevas: `/desarrollador/red-comercial`, `/asesor/mis-aliados`, `/inmobiliaria/red-comercial`
+- `config/navByRole.js` — DEV agrega "Red comercial" (icon Network); ASESOR agrega "Mis aliados"; INMOBILIARIA_ADMIN agrega "Red comercial"
+- `i18n/es-MX/common.json` — secciones `directorios.*` (tabs, KPIs, filtros) + `lead_card_enriched.*` (CTAs contacto)
+
+### Eliminado conflicto rutas legacy
+- `routes_dev_batch1.py` — removidos GET/POST/PATCH/DELETE legacy `/api/dev/internal-users` que sombraban B37 (verificado y resuelto en B37)
+
+### Tests (curl + yarn build, sin testing subagent)
+- ✅ `yarn build` clean (sin errores ni warnings nuevos)
+- ✅ `lint_javascript` clean en 5 archivos B38
+- ✅ `GET /api/dev/red-comercial` → wrapped con `inmobiliarias[], asesores_inhouse[], asesores_freelance[], totals{}`
+- ✅ `GET /api/asesor/mis-aliados` (asesor@demo.com) → `{items, total}` con dev branding + commission
+- ✅ `GET /api/inmobiliaria/red-comercial` → `devs[], asesores_inhouse[], asesores_freelance[], cross_inmobiliaria[], totals{}` (1 dev partnership real)
+- ✅ `GET /api/leads/kanban?scope=all_org` → 6/6 cards con `enriched_metadata` (dev_branding + asesor_attributed + commission_estimated cuando aplica)
+- ✅ Smoke screenshot `/desarrollador/red-comercial` → render correcto, 3 tabs operativos, switch tab a in-house muestra 5 asesores
+
+
+
+## Batch 37 — Phase 14 In-house Users + Mini Markets + Cross-Org Partnerships (2026-05-07)
+
+### Backend (already wired previous session — verified working this session)
+- `services/internal_users.py` — invite/list/update/suspend dev + inmobiliaria internal users; magic-link invitations (`db.invitations`); `lookup_invitation_by_token`; idempotent dup-guard.
+- `services/cross_org_partnerships.py` — generic dev↔dev / dev↔inmobiliaria / inmobiliaria↔inmobiliaria partnerships with request/approve/reject/revoke + dup-guard + notify admins via `routes_dev_batch14.create_notification`.
+- `services/mini_market_engine.py` — computes visible projects: dev (own_org + cross_partnership when `allow_external_inventory`); inmobiliaria (dev_partnership + cross_inmobiliaria fanout when external).
+- `routes_internal_users.py` — endpoints `/api/dev/internal-users`, `/api/dev/mini-market`, `/api/dev/settings/external-inventory`, `/api/inmobiliaria/internal-users`, `/api/inmobiliaria/mini-market`, `/api/inmobiliaria/settings/external-inventory`, `/api/auth/in-house/invitation`, `/api/cross-partnerships` (CRUD + approve/reject/revoke).
+- **FIX (this session)** — eliminado el conflicto de rutas `/api/dev/internal-users` (legacy en `routes_dev_batch1.py` 4.9). Removidos GET/POST/PATCH/DELETE legacy; los nuevos endpoints B37 ahora ganan el routing.
+
+### Frontend (this session)
+- **NEW** `pages/developer/DesarrolladorMiniMarket.js` — vista de inventario visible al equipo (propio + cross-org); admin toggle `allow_external_inventory`; stats Propios/Cross-org/Total; filtros por source.
+- **NEW** `pages/developer/DesarrolladorCrossPartnerships.js` — gestión completa de alianzas cross-org (Recibidas/Enviadas/Todas + filtro status), modal NuevaAlianza con target_org_type=dev|inmobiliaria, comisión default y notas; aprobar/rechazar/revocar con razón. Exporta también `CrossPartnershipsPage` para reuso.
+- **NEW** `pages/inmobiliaria/InmobiliariaUsuariosCRUD.js` — equipo interno inmobiliaria (admin/director/asesor/marketing), invite con magic-link, suspend, reenviar invitación.
+- **NEW** `pages/inmobiliaria/InmobiliariaMiniMarket.js` — inventario visible: alianzas directas (B35) + cross-inmobiliaria fanout. Admin toggle external inventory.
+- **NEW** `pages/inmobiliaria/InmobiliariaCrossPartnerships.js` — wrapper que reusa `CrossPartnershipsPage` con `InmobiliariaLayout`.
+- **EDIT** `pages/auth/InHouseSignup.js` — switch a `useAuth.setUser` (en vez de `onLogin` prop) + persistencia `dmx_token`.
+- **EDIT** `App.js` — rutas nuevas: `/in-house/aceptar-invitacion`, `/desarrollador/mini-market`, `/desarrollador/cross-partnerships`, `/inmobiliaria/usuarios`, `/inmobiliaria/mini-market`, `/inmobiliaria/cross-partnerships`.
+- **EDIT** `config/navByRole.js` — DEV nav agrega Mini Market + Alianzas (cross-partnerships); INMOBILIARIA_ADMIN_NAV agrega Equipo + Mini Market + Alianzas dev (renamed) + Cross-org. Icono `HeartHandshake` (no existe Handshake en lucide-react).
+
+### Tests (curl/yarn build only — no testing subagents)
+- `yarn build` → success (no errors).
+- `POST /api/auth/login` developer@demo.com → ok (cookie-based auth).
+- `GET /api/dev/internal-users` → wrapped `{items, total}` ✓
+- `GET /api/dev/mini-market` → `{items: [], total: 0}` ✓
+- `GET /api/cross-partnerships` → ✓
+- `POST /api/dev/internal-users` → invitation con magic_link_token ✓
+- `GET /api/auth/in-house/invitation?token=…` → metadata correcta ✓
+- `POST /api/auth/in-house/accept-invitation` → user activado + cookies set + redirect=/desarrollador ✓
+- `POST /api/cross-partnerships` → partnership_id devuelto ✓
+- `POST /api/inmobiliaria/internal-users` (con inm-test-1) → ✓
+- Smoke screenshots `/desarrollador/mini-market` y `/desarrollador/cross-partnerships` → render correcto, navy/cream theme, gradient CTAs, estado vacío y filas con datos seed.
+
+
+## Batch 35 — Phase 18 Inmobiliaria Entity (Foundation + Portal + Relationships) (2026-05-06)
+
+### Sub-A: Backend Foundation
+- **NEW** `services/ampi_verification.py` — `validate_ampi_id(raw)` valida formato 8-12 alfanuméricos (regex), retorna `{valid, ampi_id, expires_at, holder_name, manual_review_required, reason}`. Persiste audit trail en `db.ampi_verifications` via `record_verification`. Real AMPI API → defer H2.
+- **NEW** `services/inmobiliaria_signup.py` — `signup_inmobiliaria(db, ...)` crea tenant + user + mirror entry idempotente: `db.inmobiliarias` (type='broker', `ampi_verified`, `ampi_manual_review`, `brokers_count`, `created_by_user_id`), `db.users` (role='inmobiliaria_admin', tenant_id=inm_id), `db.inmobiliaria_internal_users` (role='admin', user_id link). Rechaza email duplicado.
+- **NEW** `services/inmobiliaria_relationships.py`:
+  - `invite_advisor` → `db.inmobiliaria_advisor_relationships` `{rel_id, asesor_email, role, status='pending', activation_token}` + mirror pending en `inmobiliaria_internal_users` (rechaza dup).
+  - `create_dev_partnership` → `db.inmobiliaria_dev_partnerships` `{partnership_id, dev_org_id, dev_org_name, commission_pct (0-50), notes, status='pending'}` (rechaza dup activa).
+  - `update_dev_partnership_status` → transición pending|active|paused|terminated.
+  - `ensure_inmobiliaria_relationship_indexes` (rel_id PK, partnership_id PK, activation_token unique sparse, ampi_verifications by inm_id+date).
+- **NEW** `routes_inmobiliaria.py` — endpoints:
+  - `POST /api/auth/inmobiliaria/signup` (público, set-cookie access+refresh)
+  - `POST /api/inmobiliaria/ampi-verify` (público, format check)
+  - `GET /api/inmobiliaria/me` (auth admin, devuelve inmobiliaria + counters {advisors_active|pending, partnerships_active|pending})
+  - `POST /api/inmobiliaria/users/invite` (auth admin, manda email Resend branded con activation_token)
+  - `GET /api/inmobiliaria/advisor-relationships?status=` (auth admin)
+  - `POST /api/inmobiliaria/dev-partnerships` (auth admin)
+  - `GET /api/inmobiliaria/dev-partnerships?status=` (auth admin)
+  - `PATCH /api/inmobiliaria/dev-partnerships/{id}` body{status} (auth admin, valida ownership)
+- **EDIT** `permissions.py` — `can_manage_inmobiliaria(user, inmobiliaria_id)` (superadmin always, inmobiliaria_admin limited a su tenant_id).
+- **EDIT** `server.py` — wire `routes_inmobiliaria` + `ensure_inmobiliaria_relationship_indexes` en startup.
+- **REUSE** `log_activity` (routes_dev_batch14) en cada mutación (signup, invite, partnership create/patch); `_send_email` (services.lead_capture) para email de invitación.
+
+### Sub-B: Portal + Relationships UI
+- **NEW** `api/inmobiliaria.js` — `verifyAmpiId`, `inmobiliariaSignup`, `getInmobiliariaMe`, `inviteAdvisor`, `listAdvisorRelationships`, `createDevPartnership`, `listDevPartnerships`, `updateDevPartnershipStatus`.
+- **NEW** `pages/auth/InmobiliariaSignup.js` (público, sin auth) — wizard 3 pasos: Empresa (nombre, RFC, año, tel) → Verificación AMPI (verificar inline antes de continuar; saltable) → Admin (nombre, email, password ≥8). StepDot con check/gradient activo, botón "Verificar" inline AMPI, errores rojos, CTA gradient pill "Crear inmobiliaria". Tras éxito llama `auth.checkAuth()` → navega a `/inmobiliaria`.
+- **NEW** `pages/inmobiliaria/InmobiliariaPartnerships.js` (auth `inmobiliaria_admin`/`inmobiliaria_director`) — header "Alianzas con Desarrolladores" + chips filtro (Todas|Pendiente|Activa|En pausa|Terminada) + lista cards con Briefcase icon, dev_org_name/id, comisión%, notes, StatusBadge color-coded, action pills inline (Activar→Pausar→Reanudar→Terminar) según status. Modal CreateModal full-form. Empty state con icon centrado.
+- **EDIT** `App.js` — lazy import + Routes `/inmobiliaria/alianzas` (protected) y `/inmobiliaria/signup` (público).
+- **EDIT** `config/navByRole.js` — `INMOBILIARIA_ADMIN_NAV` añadido item "Alianzas" con `Briefcase` icon.
+
+### Schemas nuevos
+- `db.inmobiliarias` — extendido con `ampi_verified`, `ampi_id`, `ampi_expires_at`, `ampi_manual_review`, `created_by_user_id` (signup público); existente `dmx_root` intacto (is_system_default).
+- `db.inmobiliaria_advisor_relationships` — `{rel_id, inmobiliaria_id, asesor_id?, asesor_email, asesor_name, role, status, activation_token, invited_by_user_id, invited_at, accepted_at?}`.
+- `db.inmobiliaria_dev_partnerships` — `{partnership_id, inmobiliaria_id, dev_org_id, dev_org_name?, commission_pct?, notes?, status, created_by_user_id, created_at, updated_at}`.
+- `db.ampi_verifications` — audit trail `{inmobiliaria_id, ampi_id, valid, manual_review_required, reason, expires_at, raw_input_hash, created_at}`.
+
+### Testing manual ✅
+- AMPI verify (inválido/válido), Signup (E2E + dup email + bad AMPI), `/me`, invite asesor (+dup guard), list relationships, create partnership (+dup guard), list partnerships, PATCH status, login post-signup, /api/inmobiliaria/me con counters, page render screenshot OK (signup público + portal alianzas con asesor logueado).
+
+
 ## Batch 34 — Phase 4 Smart Match + "Tu Día Hoy" (2026-05-06)
 
 ### Sub-A: Smart Match Lead-to-Asesor (~4h)
