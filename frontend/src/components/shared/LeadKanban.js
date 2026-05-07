@@ -261,6 +261,8 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
           </span>
         )}
       </div>
+      {/* Phase 15 Batch 38 — Enriched metadata block */}
+      <EnrichedSection card={card} />
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'var(--cream-3)',
@@ -300,6 +302,133 @@ function HeatBadge({ tag, score }) {
     </span>
   );
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// EnrichedSection — Phase 15 Batch 38 (dev branding + commission + asesor info)
+// ═════════════════════════════════════════════════════════════════════════════
+function EnrichedSection({ card }) {
+  const e = card?.enriched_metadata;
+  const [contactOpen, setContactOpen] = useState(false);
+  if (!e || (!e.dev_branding && e.commission_estimated == null && !e.asesor_attributed && !e.contact_dev)) {
+    return null;
+  }
+  const branding = e.dev_branding || {};
+  const asesor = e.asesor_attributed;
+  const contact = e.contact_dev || {};
+  const initial = (branding.display_name || 'D').charAt(0).toUpperCase();
+
+  return (
+    <div data-testid={`lead-enriched-${card.id}`} style={{
+      marginTop: 6, marginBottom: 6, padding: '6px 8px', borderRadius: 8,
+      background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.18)',
+      display: 'flex', flexDirection: 'column', gap: 5,
+    }}>
+      {/* Dev branding row */}
+      {branding.display_name && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {branding.logo_url ? (
+            <img src={branding.logo_url} alt={branding.display_name} style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
+          ) : (
+            <div style={{
+              width: 18, height: 18, borderRadius: 4,
+              background: 'linear-gradient(135deg,rgba(99,102,241,0.30),rgba(236,72,153,0.20))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'Outfit', fontWeight: 800, fontSize: 9.5, color: '#fff',
+            }}>{initial}</div>
+          )}
+          <span style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {branding.display_name}
+          </span>
+          {e.commission_estimated != null && (
+            <span data-testid={`lead-comm-${card.id}`} style={{
+              padding: '1px 7px', borderRadius: 9999,
+              background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+              fontFamily: 'DM Sans', fontWeight: 700, fontSize: 9.5,
+            }}>{e.commission_estimated}%</span>
+          )}
+        </div>
+      )}
+
+      {/* Asesor attributed row */}
+      {asesor && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            width: 16, height: 16, borderRadius: '50%',
+            background: asesor.picture ? `url(${asesor.picture}) center/cover no-repeat` : 'rgba(74,222,128,0.20)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Outfit', fontWeight: 800, fontSize: 9, color: '#4ADE80',
+          }}>
+            {!asesor.picture && (asesor.name || '?').charAt(0).toUpperCase()}
+          </div>
+          <span style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {asesor.name}
+          </span>
+          {asesor.trust_score != null && (
+            <a href={`/asesor-publico/${asesor.asesor_id}`} target="_blank" rel="noreferrer"
+              onClick={ev => ev.stopPropagation()}
+              data-testid={`trust-mini-${card.id}`}
+              style={{
+                padding: '1px 6px', borderRadius: 9999,
+                background: asesor.trust_score >= 70 ? 'rgba(74,222,128,0.10)' : asesor.trust_score >= 40 ? 'rgba(250,204,21,0.10)' : 'rgba(239,68,68,0.08)',
+                color: asesor.trust_score >= 70 ? '#4ADE80' : asesor.trust_score >= 40 ? '#FACC15' : '#F87171',
+                fontFamily: 'DM Mono, monospace', fontSize: 9, fontWeight: 700, textDecoration: 'none',
+              }}>{asesor.trust_score}</a>
+          )}
+        </div>
+      )}
+
+      {/* Contact dev CTA */}
+      {Object.keys(contact).length > 0 && (
+        <div style={{ position: 'relative' }}>
+          <button data-testid={`contact-dev-${card.id}`}
+            onClick={ev => { ev.stopPropagation(); setContactOpen(o => !o); }}
+            style={{
+              width: '100%', padding: '5px 0', borderRadius: 9999,
+              background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff',
+              fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, cursor: 'pointer',
+            }}>Contactar dev</button>
+          {contactOpen && (
+            <div onClick={ev => ev.stopPropagation()}
+              style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 12,
+                padding: 6, borderRadius: 8, background: 'rgba(13,17,28,0.97)',
+                border: '1px solid rgba(255,255,255,0.10)', display: 'flex', flexDirection: 'column', gap: 3,
+              }}>
+              {contact.whatsapp && (
+                <a href={`https://wa.me/${String(contact.whatsapp).replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer"
+                  data-testid={`contact-wa-${card.id}`}
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(74,222,128,0.10)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  WhatsApp
+                </a>
+              )}
+              {contact.phone && (
+                <a href={`tel:${contact.phone}`} data-testid={`contact-phone-${card.id}`}
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.10)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  Llamar
+                </a>
+              )}
+              {contact.email && (
+                <a href={`mailto:${contact.email}`} data-testid={`contact-email-${card.id}`}
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(236,72,153,0.10)', color: '#EC4899', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  Email
+                </a>
+              )}
+              {contact.contact_url && (
+                <a href={contact.contact_url} target="_blank" rel="noreferrer"
+                  data-testid={`contact-url-${card.id}`}
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', color: 'var(--cream)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  Sitio
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 // ═════════════════════════════════════════════════════════════════════════════
 // LeadDrawer — full lead detail with conditional sections

@@ -115,6 +115,11 @@ const InmobiliariaUsuariosCRUD       = lazy(() => import('./pages/inmobiliaria/I
 const InmobiliariaMiniMarket         = lazy(() => import('./pages/inmobiliaria/InmobiliariaMiniMarket'));
 const InmobiliariaCrossPartnerships  = lazy(() => import('./pages/inmobiliaria/InmobiliariaCrossPartnerships'));
 
+// Phase 15 Batch 38 — Directorio Cruzado
+const DesarrolladorRedComercial      = lazy(() => import('./pages/developer/DesarrolladorRedComercial'));
+const AsesorMisAliados               = lazy(() => import('./pages/asesor/AsesorMisAliados'));
+const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/InmobiliariaRedComercial'));
+
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
 const DataSourcesPage            = lazy(() => import('./pages/superadmin/DataSourcesPage'));
@@ -416,6 +421,11 @@ function AppRouter() {
       <Route path="/inmobiliaria/usuarios" element={<AdvisorRoute Page={InmobiliariaUsuariosCRUD} />} />
       <Route path="/inmobiliaria/mini-market" element={<AdvisorRoute Page={InmobiliariaMiniMarket} />} />
       <Route path="/inmobiliaria/cross-partnerships" element={<AdvisorRoute Page={InmobiliariaCrossPartnerships} />} />
+
+      {/* Phase 15 Batch 38 — Directorio Cruzado */}
+      <Route path="/desarrollador/red-comercial" element={<AdvisorRoute Page={DesarrolladorRedComercial} />} />
+      <Route path="/asesor/mis-aliados" element={<AdvisorRoute Page={AsesorMisAliados} />} />
+      <Route path="/inmobiliaria/red-comercial" element={<AdvisorRoute Page={InmobiliariaRedComercial} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />

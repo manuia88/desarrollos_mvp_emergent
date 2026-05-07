@@ -1,6 +1,62 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Batch 38 — Phase 15 Directorio Cruzado + Lead Cards Enriquecidas (2026-05-07)
+
+### Sub-A — Directorios 3 portales
+**Backend (NEW)**
+- `services/directory_aggregator.py` — agrega cross-tabla:
+  - `get_dev_red_comercial(dev_org_id)` → inmobiliarias B35 + asesores in-house B37 + asesores freelance B36 + KPIs (deals_12m, leads_30d, conversion_pct, last_activity_at, trust_score)
+  - `get_asesor_mis_aliados(asesor_id)` → devs approved B36 con dev_branding + comisión negociada + KPI personal (response_time_avg_hours) + inventario_count
+  - `get_inmobiliaria_red_comercial(inmobiliaria_id)` → devs B35 + asesores in-house B37 + freelance B35 + cross_inmobiliaria B37
+  - Helpers `_get_dev_branding`, `_get_inmobiliaria_branding`, `_kpi_for_asesor`, `_kpi_for_inmobiliaria`
+- `routes_directories.py` — 3 endpoints multi-tenant scoped:
+  - `GET /api/dev/red-comercial` (auth: developer_admin/director/superadmin)
+  - `GET /api/asesor/mis-aliados` (auth: advisor/asesor_*/superadmin)
+  - `GET /api/inmobiliaria/red-comercial` (auth: inmobiliaria_admin/director/superadmin)
+- `server.py` — registra `directories_router`
+
+**Frontend (NEW)**
+- `pages/developer/DesarrolladorRedComercial.js` — 3 tabs (Inmobiliarias aliadas | Asesores in-house | Asesores freelance) con KPI cells inline (deals/leads/conversion/last act.), TrustMini badge B32 si asesor, search global, drawer detalle con 4 KPI cards, notas, proyectos asignados.
+- `pages/asesor/AsesorMisAliados.js` — grid cards devs aprobados con logo dev (B19.5 fallback), comisión badge gradient, 4 KPIs personales (deals/leads/response/last deal), badge auto-aprobado, badge inventario count. Filter chips comisión (<5% / 5-8% / ≥8%) + search. Drawer con 6 KPI cards + CTA "Ver inventario completo" → `/asesor/inventario?dev=…`. Empty state con CTA "Ir al Mini Market".
+- `pages/inmobiliaria/InmobiliariaRedComercial.js` — 4 tabs (Devs partners | Asesores in-house | Asesores freelance | Cross-inmobiliaria) mismo pattern + AMPI badge si verified.
+- `api/directories.js` — `getDevRedComercial`, `getAsesorMisAliados`, `getInmobiliariaRedComercial`.
+
+### Sub-B — Lead Cards Enriquecidas
+**Backend**
+- `services/lead_capture.py` (EDIT) — append `enrich_lead_metadata(db, lead, viewer_role)`:
+  - `dev_branding` { logo_url, display_name, tagline } from `dev_orgs`
+  - `commission_estimated` (asesor whitelist commission_pct, fallback dev default_commission_pct)
+  - `asesor_attributed` { asesor_id, name, picture, trust_score } from `asesor_trust_scores` B32
+  - `contact_dev` { phone, email, whatsapp, contact_url } solo si asesor tiene whitelist approved con dev
+- `routes_dev_batch4_2.py` (EDIT) — `_run_kanban` ahora llama `enrich_lead_metadata` por lead, agrega `enriched_metadata` al card
+
+**Frontend**
+- `components/shared/LeadKanban.js` (EDIT) — nueva subcomponente `EnrichedSection`:
+  - Bloque indigo soft con logo dev + nombre + comisión badge gradient
+  - Asesor row con avatar + nombre + Trust mini badge clickable a `/asesor-publico/{id}`
+  - Botón "Contactar dev" gradient pill que abre menu inline (WhatsApp/Llamar/Email/Sitio según `contact_dev`)
+- Si no hay `enriched_metadata` → graceful (return null, card básica)
+
+### Wiring
+- `App.js` — 3 rutas nuevas: `/desarrollador/red-comercial`, `/asesor/mis-aliados`, `/inmobiliaria/red-comercial`
+- `config/navByRole.js` — DEV agrega "Red comercial" (icon Network); ASESOR agrega "Mis aliados"; INMOBILIARIA_ADMIN agrega "Red comercial"
+- `i18n/es-MX/common.json` — secciones `directorios.*` (tabs, KPIs, filtros) + `lead_card_enriched.*` (CTAs contacto)
+
+### Eliminado conflicto rutas legacy
+- `routes_dev_batch1.py` — removidos GET/POST/PATCH/DELETE legacy `/api/dev/internal-users` que sombraban B37 (verificado y resuelto en B37)
+
+### Tests (curl + yarn build, sin testing subagent)
+- ✅ `yarn build` clean (sin errores ni warnings nuevos)
+- ✅ `lint_javascript` clean en 5 archivos B38
+- ✅ `GET /api/dev/red-comercial` → wrapped con `inmobiliarias[], asesores_inhouse[], asesores_freelance[], totals{}`
+- ✅ `GET /api/asesor/mis-aliados` (asesor@demo.com) → `{items, total}` con dev branding + commission
+- ✅ `GET /api/inmobiliaria/red-comercial` → `devs[], asesores_inhouse[], asesores_freelance[], cross_inmobiliaria[], totals{}` (1 dev partnership real)
+- ✅ `GET /api/leads/kanban?scope=all_org` → 6/6 cards con `enriched_metadata` (dev_branding + asesor_attributed + commission_estimated cuando aplica)
+- ✅ Smoke screenshot `/desarrollador/red-comercial` → render correcto, 3 tabs operativos, switch tab a in-house muestra 5 asesores
+
+
+
 ## Batch 37 — Phase 14 In-house Users + Mini Markets + Cross-Org Partnerships (2026-05-07)
 
 ### Backend (already wired previous session — verified working this session)

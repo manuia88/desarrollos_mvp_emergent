@@ -3773,3 +3773,36 @@ Status: ✅ DONE · 83/83 pytest verde (19 nuevos B28 + 64 regresión B24-B27) �
 ### Próximas tareas (P1)
 - Phase 7.10 — Avance-Obra tab integration
 - WhatsApp Business real (`whatsapp-web.js` + Caya UI)
+
+---
+
+## ✅ Phase 15 / Batch 38 — Directorio Cruzado + Lead Cards Enriquecidas (DONE 2026-05-07)
+
+### Status: COMPLETE — ÚLTIMO Phase 13/14/15
+
+### Sub-A — Directorios 3 portales
+- Backend: `services/directory_aggregator.py` + `routes_directories.py` (3 endpoints multi-tenant scoped, reuse B35/B36/B37 schemas)
+- Frontend: 3 páginas (DesarrolladorRedComercial · AsesorMisAliados · InmobiliariaRedComercial) + `api/directories.js`
+- KPIs aggregate por entry: deals_closed_12m · leads_referred_30d · conversion_pct · last_activity_at · trust_score (asesor B32)
+- Asesor: comisión negociada B36 + response_time_avg + inventario_count
+- Inmobiliaria: 4 tabs incluyendo Cross-inmobiliaria B37
+
+### Sub-B — Lead Cards Enriquecidas
+- Backend: `services/lead_capture.py` ext con `enrich_lead_metadata()` + integración en `routes_dev_batch4_2._run_kanban`
+- Frontend: `components/shared/LeadKanban.js` con `EnrichedSection` (dev_branding + comisión + asesor B32 + contact_dev menu)
+- Graceful: lead sin atribución → card básica sin enriched_metadata
+
+### Endpoints expuestos (verificados curl)
+- `GET /api/dev/red-comercial`
+- `GET /api/asesor/mis-aliados`
+- `GET /api/inmobiliaria/red-comercial`
+- `GET /api/leads/kanban` ahora con `enriched_metadata` por card
+
+### Páginas + rutas frontend (es-MX, navy/cream, gradient `rounded-full`)
+- `/desarrollador/red-comercial` — 3 tabs Inmobiliarias | In-house | Freelance
+- `/asesor/mis-aliados` — grid cards devs aprobados con comisión personalizada
+- `/inmobiliaria/red-comercial` — 4 tabs Devs | In-house | Freelance | Cross-inm
+
+### Próximas tareas (P1)
+- Phase 7.10 — Avance-Obra tab integration
+- WhatsApp Business real (`whatsapp-web.js` + Caya UI)

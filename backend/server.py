@@ -320,6 +320,10 @@ app.include_router(whitelist_router)
 from routes_internal_users import router as internal_users_router
 app.include_router(internal_users_router)
 
+# Phase 15 Batch 38 — Cross directories + lead enrichment
+from routes_directories import router as directories_router
+app.include_router(directories_router)
+
 # ─── Password helpers ─────────────────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
