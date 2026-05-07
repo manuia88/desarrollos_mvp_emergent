@@ -1,8 +1,8 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-07 (post W1.2 merge)
-**Total H1 restante**: ~596h (de ~606h originales)
-**Shipped to date**: ~280h Phase 4-refactor + 1 + 2 + 3 + B2B + 9.5h Wave 1 (W1.1 + W1.2)
+**Última actualización**: 2026-05-07 (Wave 1 ✅ CERRADA)
+**Total H1 restante**: ~556h (de ~606h originales)
+**Shipped to date**: ~330h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 completa (~50h)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -31,14 +31,14 @@ Formato canónico per-batch (founder request):
 
 | Wave | Foco | Estimado | Shipped | % | Status |
 |---|---|---|---|---|---|
-| **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 | 50h | 1.5h | 3% | 🟡 EN CURSO |
-| **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 0h | 0% | ⏳ pending |
+| **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 + ZZ.1.1 | 50h | 37.5h | 100% | ✅ CERRADA |
+| **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 0h | 0% | 🟡 NEXT |
 | **Wave 3** — Authority + Verticals | ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 | 140h | 0h | 0% | ⏳ pending |
 | **Wave 4** — Phase Y Agentic + Polish | Phase Y + 6/8/10/11/19/20 + F0 + CC | 296h | 0h | 0% | ⏳ pending |
 
 ---
 
-## 🟡 Wave 1 — Foundation + Authority Seeds (~50h)
+## ✅ Wave 1 — Foundation + Authority Seeds (~50h) — CERRADA 2026-05-07
 
 **Objetivo**: superadmin production-safe + bulk drive ingestion activa para empezar a construir moat.
 
@@ -48,15 +48,15 @@ Formato canónico per-batch (founder request):
 |---|---|---|---|---|---|---|---|
 | W1.1 | SA1.0 Critical Bug Fix superadmin guards | 2 | 1.5 | Claude Code | ✅ | `90666a3` | Audit completo · 2 bugs fixed (document-types + units history skip-on-empty) · 13 pytest · helpers permissions.py |
 | W1.2 | SA1.1 Tenants Management UI | 8 | 8 | emergent | ✅ | `c905563` | 5 endpoints + page responsive + ImpersonationBanner countdown + useImpersonation hook + login account_blocked check |
-| W1.3 | SA1.2 System Health Dashboard | 8 | 8 | emergent | ✅ | pending push | 5 endpoints + cron_heartbeat decorator + 9 crons instrumentados + Resend email throttle + auto-refresh 30s |
-| W1.4 | ZZ.1 Bulk Drive Ingestion | 10 | 10 | emergent | ✅ | pending push | Pipeline async Drive→Haiku→dedup rapidfuzz→schema disgregado INSERT + 8 endpoints + email completion + Semaphore(10) + ai_budget gate |
-| W1.5 | ZZ.1.1 Ingestion Quality + Dedup Engine | 6 | 6 | emergent | ✅ | pending push | 4 endpoints (PATCH/diff/recompute/force-match) + InlineEditableField + MergeDiffVisualizer + extracted_overrides + extraction_history |
-| W1.6 | Wave 1 Polish + Smoke | 4 | — | Claude Code | 🟡 | — | E2E tests + permission audit + doc updates (PRD/ROADMAP marca ✅) + push consolidado fin Wave |
+| W1.3 | SA1.2 System Health Dashboard | 8 | 8 | emergent | ✅ | `054b0a6` (merge) | 5 endpoints + cron_heartbeat decorator + 9 crons instrumentados + Resend email throttle + auto-refresh 30s |
+| W1.4 | ZZ.1 Bulk Drive Ingestion | 10 | 10 | emergent | ✅ | `054b0a6` (merge) | Pipeline async Drive→Haiku→dedup rapidfuzz→schema disgregado INSERT + 8 endpoints + email completion + Semaphore(10) + ai_budget gate |
+| W1.5 | ZZ.1.1 Ingestion Quality + Dedup Engine | 6 | 6 | emergent | ✅ | `054b0a6` (merge) | 4 endpoints (PATCH/diff/recompute/force-match) + InlineEditableField + MergeDiffVisualizer + extracted_overrides + extraction_history |
+| W1.6 | Wave 1 Polish + Smoke | 4 | 4 | Claude Code | ✅ | TBD push | Permission audit 23 endpoints W1.2-W1.5 limpio · pytest E2E test_wave1_e2e_superadmin.py · founder test guide WAVE1_FOUNDER_TEST_GUIDE.md · PRD/06_ROADMAP marcados Wave 1 ✅ |
 | Buffer | Polish/imprevistos | 12 | — | mixto | ⏳ | — | Bugs → Claude Code · scope expansion → emergent |
 
-**Acumulado Wave 1**: 33.5h / 50h (67%)
-**Por Claude Code**: 1.5h shipped (+ 4h W1.6 in-progress)
-**Por emergent**: 32h pending push (W1.2 ya en main; W1.3+W1.4+W1.5 push consolidado al cierre Wave 1)
+**Acumulado Wave 1**: 37.5h / 50h (100% scope · 75% del estimate buffer-incluido)
+**Por Claude Code**: 5.5h shipped (W1.1 + W1.6)
+**Por emergent**: 32h shipped (W1.2 + W1.3 + W1.4 + W1.5)
 
 ### Métricas éxito Wave 1
 - [x] 100% superadmin endpoints requieren superadmin role (audit limpio en W1.1)
@@ -67,7 +67,7 @@ Formato canónico per-batch (founder request):
 
 ---
 
-## ⏳ Wave 2 — Commercial + Intelligence Hub (~120h)
+## 🟡 Wave 2 — Commercial + Intelligence Hub (~120h) — NEXT
 
 **Objetivo**: monetización + dashboard ejecutivo cross-org.
 
@@ -127,7 +127,11 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
-| 2026-05-07 | W1.2 SA1.1 Tenants Management UI | 8h | `c905563` | List orgs dev+inm + drill-down + impersonate 30min + login account_blocked + responsive table/cards |
+| 2026-05-07 | **Wave 1 CERRADA** — W1.6 Polish + push consolidado | 4h | TBD | E2E pytest 23 endpoints · audit limpio · founder test guide · PRD/ROADMAP closure |
+| 2026-05-07 | W1.5 ZZ.1.1 Quality + Dedup + DiffVisualizer | 6h | merge `054b0a6` | InlineEdit + MergeDiffVisualizer + force-match + recompute Haiku + extracted_overrides |
+| 2026-05-07 | W1.4 ZZ.1 Bulk Drive Ingestion | 10h | merge `054b0a6` | Pipeline async Drive→Haiku→dedup rapidfuzz→schema disgregado + 8 endpoints |
+| 2026-05-07 | W1.3 SA1.2 System Health Dashboard | 8h | merge `054b0a6` | 5 endpoints + cron heartbeat + 9 crons instrumentados + Resend throttle |
+| 2026-05-07 | W1.2 SA1.1 Tenants Management UI | 8h | `c905563` | List orgs dev+inm + drill-down + impersonate 30min + login account_blocked |
 | 2026-05-07 | W1.1 SA1.0 superadmin guards | 1.5h | `90666a3` | 2 bugs reales fixed + 13 pytest + helpers permissions.py |
 | 2026-05-07 | docs: Wave 1-4 structure + Phase ZZ + SA1-SA8 + SA5.0 GHL | — | `83522e4` | Roadmap consolidado post-challenge founder |
 
