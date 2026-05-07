@@ -370,6 +370,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_cube_materialized_error", error=str(e))
 
+    # W2.9 Phase Z.2 — Intelligence Hub weekly refresh cron (Mon 05:00 MX)
+    try:
+        from intelligence_insights_engine import schedule_intelligence_insights_cron
+        schedule_intelligence_insights_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_intelligence_insights_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

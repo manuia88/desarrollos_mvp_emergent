@@ -1,6 +1,67 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.9 — Phase Z.2 Superadmin Intelligence Hub UI (2026-05-07)
+
+Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prepara venta verticals B2B Z.4).
+
+### Backend (2 nuevos · 3 editados)
+- **NEW** `intelligence_insights_engine.py`:
+  - `executive_overview(db)` — dashboard cross-org: `total_units_market`, `avg_price_per_m2_cdmx`, `top_3_growth/decline_zones` (delta 30d via `facts_daily_zone`), `market_state_overall` (heurística avg_growth · ±3% threshold), `total_briefs_count`, `last_brief_at`. <600ms target.
+  - `generate_brief(db, zone_id, tier, period, force, triggered_by)` — Claude Sonnet (`claude-sonnet-4-5-20250929`) con prompt enriquecido: KPIs cubo W2.5 + facts 30d (W2.7) + comparables W2.5 + crecimiento m². Schema JSON estricto: `key_findings[5]`, `top_risks[3]`, `opportunities[3]`, `market_state ∈ {bull,stable,bear}`, `confidence_pct`, `reasoning ≤600 chars`. Cache 7d via `db.intelligence_briefs`. Track `track_ai_call` cost ~0.85 MXN.
+  - **AI budget gating**: si `is_within_budget("dmx_internal")` falso → retorna brief en caché (cualquier antigüedad) marcado `budget_blocked:true`, fallback a `_stub_brief` heurístico con `stub_reason` honesto. NO falla.
+  - `comparables_matrix(db, zone_id, radius_km, limit≤10)` — top-N comparables nearby + matriz N×N similarity scores (delta normalizado sobre `avg_price_per_m2`, `units_total`, `conversion_rate`). Diagonal `null` (zona vs sí misma).
+  - `heatmap_multi_layer(db, layers[], tier, bbox?)` — geojson points por capa: `price` (avg_price_per_m2), `demand` (leads_count), `supply` (units_available), `risk` → `{available:false, reason:"W3 ZZ.4 pending"}` placeholder honesto.
+  - `cron_weekly_refresh(db)` — refresca top 20 zonas más activas (alcaldia + colonia por leads_count) con `force=true`, email founder Resend con tabla resumen + CTA gradient.
+  - `schedule_intelligence_insights_cron(scheduler, db)` — cron `intelligence_insights_weekly` lunes 05:00 MX, instrumented `cron_heartbeat`.
+  - `ensure_indexes(db)` — `intelligence_briefs (zone_id, tier, period, generated_at desc)` + `id unique` + TTL 90d sobre `generated_at_dt`.
+- **NEW** `routes_superadmin_intelligence_hub.py` — prefix `/api/superadmin/intelligence-hub` · `require_superadmin` en TODOS endpoints:
+  1. `GET /overview` → executive shape.
+  2. `GET /insights?zone_id&tier&period` → brief cached o auto-generado si stale.
+  3. `POST /insights/generate {zone_id,tier,period,force?}` → audit + ai_cost track.
+  4. `GET /heatmap-multi?layers&tier&bbox?` → 4 capas geo.
+  5. `GET /comparables-matrix?zone_id&radius_km&limit` → matriz N×N.
+  6. `GET /export/pdf?zone_id&tier&period` → ReportLab StreamingResponse PDF branded `<2MB` (cabecera, KPIs table, hallazgos/riesgos/oportunidades, comparables top 5, footer ts+costo). Audit log_mutation.
+- **EDIT** `server.py` — wire router + `ensure_intelligence_indexes` en startup.
+- **EDIT** `scheduler_ie.py` — registra cron `intelligence_insights_weekly` post `cube_materialized_views_refresh`.
+- **EDIT** `cron_heartbeat.py` — labels + intervals para `intelligence_insights_weekly` (visible en `/superadmin/health/crons`).
+
+### Frontend (4 nuevos · 2 editados)
+- **NEW** `api/superadminIntelligenceHub.js` — 6 funciones cliente + `downloadPdf()` (Blob + auto-anchor download).
+- **NEW** `components/superadmin/MultiLayerHeatmap.js` — Mapbox GL 600px dark-v11 + 4 schemes color (price indigo→rose · demand green→amber · risk blue→red · supply cyan→purple). Layered markers con offsets visuales para evitar overlap. Click → `onZoneClick(pt)`. Empty state cuando `REACT_APP_MAPBOX_TOKEN` ausente.
+- **NEW** `components/superadmin/ComparablesMatrix.js` — heatmap N×N collapsible. Score 0 (rojo)→100 (verde) gradient + diagonal disabled (`null`). Click celda → `<CompareDrawer/>` modal side-by-side con KPIs Δ% color-coded. CTA `rounded-full` + close inline.
+- **NEW** `components/superadmin/MarketInsightsPanel.js` — sticky panel: state pill (bull/stable/bear color-coded), confidence%, cache badge (hit/miss/stale), 3 secciones (hallazgos `Sparkles` indigo · riesgos `AlertTriangle` rojo · oportunidades `Lightbulb` verde), reasoning markdown via `react-markdown`, footer ts relativo + costo MXN. Empty state CTA gradient "Generar insights". Banner ámbar `intel-stub-banner` cuando `stub_reason` o `budget_blocked`.
+- **NEW** `pages/superadmin/SuperadminIntelligenceHub.js`:
+  - PageHeader "Inteligencia ejecutiva" icon `Eye` + period chips [Actual·7d·30d·90d] gradient activo + buttons "Exportar PDF" / "Refrescar insights" / reload.
+  - KPIStrip 4 cards: Unidades mercado (estado overall), Precio promedio CDMX m² (briefs count), Top 3 crecimiento ↑, Top 3 declive ↓ (TopMoversCard con TrendingUp/Down + delta% color-coded).
+  - Layout 60/40: izq Mapbox `MultiLayerHeatmap` + `LayerChip` toggles (Risk chip disabled "(W3 ZZ.4)"), drilldown CTA "Drilldown Cubo →" navega `/superadmin/metrics-cube?zone=…`. Der `MarketInsightsPanel` sticky.
+  - Bottom `ComparablesMatrix` collapsible.
+  - Mobile <980px: grid stack `1fr` automático.
+- **EDIT** `App.js` — lazy import + ruta `/superadmin/intelligence-hub`.
+- **EDIT** `config/navByRole.js` — entry tier 2 "Inteligencia ejecutiva" icon `Eye` después de Data Lake.
+
+### Validación curl (todos 200 con superadmin · 403 asesor · 401 sin auth)
+- `GET /overview` → shape correcto: `total_units_market=496`, `avg_price_per_m2_cdmx=80900.67`, `market_state_overall=stable`, top growth/decline arrays.
+- `POST /insights/generate {zone_id:"cuauhtémoc",force:true}` → Claude Sonnet 4.5 retorna 5 findings + 3 risks + 3 opportunities + reasoning, `confidence_pct=62`, `ai_cost_mxn=0.85`.
+- `GET /heatmap-multi?layers=price,demand,risk,supply&tier=alcaldia` → 4 layer keys, `risk.available=false` con reason, `price.count=demand.count=6`.
+- `GET /comparables-matrix?zone_id=cuauhtémoc&radius_km=5&limit=5` → 6×6 matriz, diagonal `None` confirmada, scores 0.47–0.55.
+- `GET /export/pdf` → `%PDF-1.4` binary 4.3KB <2MB ✅.
+
+### Edge cases & decisiones
+- `with_max_tokens()` no existe en `LlmChat` (chequeé `dir(LlmChat)`); lo removí. `anomaly_detection_engine.py` también lo usa pero al fallar cae en su propio stub silenciosamente — no rompe Wave 2.6.
+- Cuando `EMERGENT_LLM_KEY` ausente → `_stub_brief()` honesto con `stub_reason` visible en UI banner ámbar (no se simula éxito).
+- Risk layer endpoint NO está mockeado: retorna `{available:false, reason}` real, UI marca chip disabled "(W3 ZZ.4)".
+- Reportlab ya en `requirements.txt` (reusado de B5/B19); NO se introduce dependencia nueva.
+- TTL 90d sobre `intelligence_briefs.generated_at_dt` (BSON Date) — Mongo TTL nativo.
+- `i18n` keys `superadmin.intelligence_hub.*`: NO implementadas — el resto de pages superadmin usan strings literales en español. Reportado como decisión conservadora consistente con codebase.
+- Cron weekly `force=true` para top 20 zonas + email Resend digest branded gradient.
+
+### Riesgos / pending wave 3
+- Risk layer SESNSP (W3 ZZ.4).
+- Multi-subscriber email digest (defer Wave 4 #8 AutoNewsletter — solo founder por ahora).
+- Export Excel/CSV (defer Z.3 W3.7).
+
+
 ## W2.8 — Phase Z.1 Consolidated Metrics Cube OLAP (2026-05-07)
 
 ### Backend (3 nuevos · 2 editados)

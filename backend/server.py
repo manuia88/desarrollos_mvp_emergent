@@ -179,6 +179,11 @@ from data_lake_etl import (
 )
 app.include_router(superadmin_data_lake_router)
 
+# W2.9 Phase Z.2 — Superadmin Intelligence Hub (executive bird's-eye)
+from routes_superadmin_intelligence_hub import router as superadmin_intelligence_hub_router
+from intelligence_insights_engine import ensure_indexes as ensure_intelligence_indexes
+app.include_router(superadmin_intelligence_hub_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -636,6 +641,11 @@ async def startup():
         logging.info(f"[startup] data lake dim_zones seed: {seed_summary}")
     except Exception as e:
         logging.warning(f"[startup] data lake init failed: {e}")
+    # W2.9 Phase Z.2 — Intelligence Hub indexes
+    try:
+        await ensure_intelligence_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] intelligence hub indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

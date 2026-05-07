@@ -163,6 +163,7 @@ const SUPERADMIN_NAV = [
       { key: 'commercial',   to: '/superadmin/commercial',               label: 'Comercial',        Icon: Briefcase },
       { key: 'metrics-cube', to: '/superadmin/metrics-cube',             label: 'Cubo de métricas', Icon: Layers },
       { key: 'data-lake',    to: '/superadmin/data-lake',                label: 'Data Lake',        Icon: Database },
+      { key: 'intelligence-hub', to: '/superadmin/intelligence-hub',     label: 'Inteligencia ejecutiva', Icon: Eye },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },

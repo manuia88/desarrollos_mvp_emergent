@@ -40,6 +40,7 @@ SCHEDULE_LABELS = {
     "founder_anomaly_detection": "diario · 06:00 MX",
     "data_lake_etl_daily": "diario · 03:00 MX",
     "cube_materialized_views_refresh": "diario · 03:30 MX",
+    "intelligence_insights_weekly": "lunes · 05:00 MX",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -64,6 +65,7 @@ SCHEDULE_INTERVAL_SEC = {
     "founder_anomaly_detection": 24 * 60 * 60 + 600,
     "data_lake_etl_daily": 24 * 60 * 60 + 600,
     "cube_materialized_views_refresh": 24 * 60 * 60 + 600,
+    "intelligence_insights_weekly": 7 * 86400 + 3600,
 }
 
 
