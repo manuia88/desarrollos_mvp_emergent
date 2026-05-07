@@ -231,6 +231,7 @@ def _generate_ics(apt_datetime: str, duration_min: int, project_name: str,
 async def _send_cita_email(
     db, *, to_email: str, to_name: str, project_name: str,
     apt_datetime: str, duration_min: int, modalidad: str, confirmation_token: str,
+    dev_org_id: str = "dmx",
 ) -> None:
     resend_key = os.environ.get("RESEND_API_KEY", "")
     if not resend_key or not to_email:
@@ -242,17 +243,30 @@ async def _send_cita_email(
         ics_b64 = base64.b64encode(ics_content.encode()).decode()
         fecha_es = f"{_fmt_date_es(apt_datetime)} a las {_fmt_time(apt_datetime)}"
         modal_label = "videollamada" if modalidad == "videollamada" else "presencial"
+        # B19.5 — org branding footer
+        _footer_html = ""
+        _header_name = "DesarrollosMX"
+        try:
+            from branding_helpers import get_org_branding, email_footer_html
+            _org_branding = await get_org_branding(db, dev_org_id)
+            _footer_html = email_footer_html(_org_branding)
+            _header_name = _org_branding.get("display_name") or "DesarrollosMX"
+        except Exception:
+            pass
         resend.Emails.send({
             "from": "citas@desarrollosmx.com",
             "to": [to_email],
             "subject": f"Cita confirmada: {project_name}",
             "html": (
+                f'<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;'
+                f'padding:24px;background:#06080F;color:#F0EBE0;">'
                 f"<p>Hola {to_name},</p>"
                 f"<p>Tu cita <strong>{modal_label}</strong> para <strong>{project_name}</strong> "
                 f"está agendada para el <strong>{fecha_es}</strong>.</p>"
                 f"<p>Adjuntamos el archivo de calendario (.ics) para que puedas agregar el evento.</p>"
                 f"<p>Recibirás recordatorios 24h y 2h antes de la cita.</p>"
-                f"<p>— DesarrollosMX</p>"
+                f"{_footer_html}"
+                f"</div>"
             ),
             "attachments": [{
                 "filename": f"cita-{re.sub(r'[^a-z0-9]', '-', project_name.lower())}.ics",
