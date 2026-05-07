@@ -263,6 +263,20 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+### Bulk Ingest: histórico inline edits panel UI
+- **Origen:** W1.5 ZZ.1.1 emergent potential improvement 2026-05-07
+- **Destino:** W2.2 SA3 Audit Log Viewer (visualización trazabilidad)
+- **Qué:** Panel colapsable en `ReviewQueueItem` mostrando `extracted_overrides[]` + `extraction_history[]` con timestamp + autor.
+- **Por qué:** trazabilidad ya guardada en backend, pero UI explícita ayudaría founder a auditar antes de approve. NO crítico — `audit_log` cross-org cubre el caso. Encaja natural en SA3 que ya construye timeline genérico.
+- **Costo:** ~1h dentro de SA3 (no incremental)
+
+### System Health: mini-graph crons fallos por hora 24h
+- **Origen:** W1.3 SA1.2 emergent potential improvement 2026-05-07
+- **Destino:** W2.6 SA8 Founder Console (visualization analytics)
+- **Qué:** Mini-graph en `/superadmin/health` mostrando crons fallos por hora últimas 24h (aggregations sobre `cron_heartbeats` con TTL). Permite detectar patrones (ej: cron falla solo 6am por carga).
+- **Por qué:** útil para detección proactiva pero rompe scope Wave 1 (ops-foundation pura). Encaja en SA8 que ya tiene 14h asignadas para visualización ejecutiva.
+- **Costo:** ~2h dentro de SA8 (no incremental)
+
 ### Tenants UI: AI gasto top-5 + Members growth sparkline
 - **Origen:** W1.2 SA1.1 emergent potential improvement 2026-05-07
 - **Destino:** W2.3 SA4 AI Cost Observatory (top-5 gasto) + W2.6 SA8 Founder Console (sparkline members + churn alerts)

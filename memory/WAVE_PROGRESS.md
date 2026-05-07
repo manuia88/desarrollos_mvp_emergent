@@ -47,16 +47,16 @@ Formato canónico per-batch (founder request):
 | # | Batch | h est. | h real | Quién | Status | SHA | Notas |
 |---|---|---|---|---|---|---|---|
 | W1.1 | SA1.0 Critical Bug Fix superadmin guards | 2 | 1.5 | Claude Code | ✅ | `90666a3` | Audit completo · 2 bugs fixed (document-types + units history skip-on-empty) · 13 pytest · helpers permissions.py |
-| W1.2 | SA1.1 Tenants Management UI | 8 | 8 | emergent | ✅ | `c905563` | 5 endpoints + page responsive + ImpersonationBanner countdown + useImpersonation hook + login account_blocked check · merge resolved (.emergent/emergent.yml) |
-| W1.3 | SA1.2 System Health Dashboard | 8 | — | emergent | ⏳ | — | Aggregator probes B0.5 cross-org + uptime + ETL + cron status + email alert |
-| W1.4 | ZZ.1 Bulk Drive Ingestion | 10 | — | emergent | ⏳ | — | Superadmin UI upload Drive folder → Haiku extraction → schema fill → dedup → review queue |
-| W1.5 | ZZ.1.1 Ingestion Quality + Dedup Engine | 6 | — | emergent | ⏳ | — | Rapidfuzz match + manual override + merge tool + Haiku second-pass |
-| W1.6 | Wave 1 Polish + Smoke | 4 | — | Claude Code | ⏳ | — | E2E tests + permission audit + doc updates + validar ingest 50 proyectos |
+| W1.2 | SA1.1 Tenants Management UI | 8 | 8 | emergent | ✅ | `c905563` | 5 endpoints + page responsive + ImpersonationBanner countdown + useImpersonation hook + login account_blocked check |
+| W1.3 | SA1.2 System Health Dashboard | 8 | 8 | emergent | ✅ | pending push | 5 endpoints + cron_heartbeat decorator + 9 crons instrumentados + Resend email throttle + auto-refresh 30s |
+| W1.4 | ZZ.1 Bulk Drive Ingestion | 10 | 10 | emergent | ✅ | pending push | Pipeline async Drive→Haiku→dedup rapidfuzz→schema disgregado INSERT + 8 endpoints + email completion + Semaphore(10) + ai_budget gate |
+| W1.5 | ZZ.1.1 Ingestion Quality + Dedup Engine | 6 | 6 | emergent | ✅ | pending push | 4 endpoints (PATCH/diff/recompute/force-match) + InlineEditableField + MergeDiffVisualizer + extracted_overrides + extraction_history |
+| W1.6 | Wave 1 Polish + Smoke | 4 | — | Claude Code | 🟡 | — | E2E tests + permission audit + doc updates (PRD/ROADMAP marca ✅) + push consolidado fin Wave |
 | Buffer | Polish/imprevistos | 12 | — | mixto | ⏳ | — | Bugs → Claude Code · scope expansion → emergent |
 
-**Acumulado Wave 1**: 9.5h / 50h (19%)
-**Por Claude Code**: 1.5h shipped (+ 4h pending W1.6)
-**Por emergent**: 8h shipped (+ 24h pending W1.3-W1.5)
+**Acumulado Wave 1**: 33.5h / 50h (67%)
+**Por Claude Code**: 1.5h shipped (+ 4h W1.6 in-progress)
+**Por emergent**: 32h pending push (W1.2 ya en main; W1.3+W1.4+W1.5 push consolidado al cierre Wave 1)
 
 ### Métricas éxito Wave 1
 - [x] 100% superadmin endpoints requieren superadmin role (audit limpio en W1.1)
