@@ -215,7 +215,8 @@ async def extract_bulk_project(
                 raw = re.sub(r"^```(?:json)?\s*", "", raw)
                 raw = re.sub(r"\s*```$", "", raw)
             data = json.loads(raw)
-            # Approx cost: 0.50 MXN per call (Haiku ballpark)
+            # Approx cost: 0.50 MXN per call (Haiku ballpark) — caller side records
+            # the budget event via track_ai_call (db handle lives there).
             return data, 0.50
         except Exception as e:
             log.warning(f"[bulk_ingest] extraction failed for {project_name_hint}: {e}")
@@ -496,6 +497,19 @@ async def run(db, job_id: str) -> None:
             except Exception as e:
                 extracted, cost_mxn = _stub_extraction(project_name_hint), 0.0
                 error_log.append(f"extract failed {gkey}: {e}")
+
+            # W2.3 SA4 — feature_key tagging for AI cost observatory
+            if cost_mxn > 0:
+                try:
+                    from ai_budget import track_ai_call
+                    await track_ai_call(
+                        db, target_org or "bulk_ingest", "claude-haiku-4-5",
+                        0, "bulk_ingest_haiku",
+                        tokens_in=2000, tokens_out=400,
+                        feature_key="bulk_ingest_haiku",
+                    )
+                except Exception:
+                    pass
 
             # Dedup
             try:

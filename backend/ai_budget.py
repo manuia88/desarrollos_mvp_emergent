@@ -65,9 +65,14 @@ async def track_ai_call(
     call_type: str,
     tokens_in: Optional[int] = None,
     tokens_out: Optional[int] = None,
+    feature_key: Optional[str] = None,
 ) -> None:
     """Increment usage counter. Fire-and-forget; never raises.
     Accepts either total `tokens` (split ~70/30) or explicit tokens_in/tokens_out.
+
+    W2.3 SA4: `feature_key` enables per-feature breakdown. Defaults to `call_type`
+    for backwards compatibility; if neither is informative, falls back to "other".
+    Each call is also logged into `db.ai_call_events` with `daily_iso` for analytics.
     """
     try:
         t_in = tokens_in if tokens_in is not None else int(tokens * 0.70)
@@ -76,6 +81,8 @@ async def track_ai_call(
         cost_mxn = round(cost_usd * USD_TO_MXN, 2)
         month = _month_iso()
         now = datetime.now(timezone.utc)
+        daily_iso = now.strftime("%Y-%m-%d")
+        feat = feature_key or call_type or "other"
 
         await db.ai_usage_log.update_one(
             {"dev_org_id": dev_org_id, "month_iso": month},
@@ -97,7 +104,7 @@ async def track_ai_call(
                 "$push": {
                     "call_log": {
                         "$each": [{"model": model, "tokens_in": t_in, "tokens_out": t_out,
-                                   "type": call_type, "ts": now}],
+                                   "type": call_type, "feature_key": feat, "ts": now}],
                         "$slice": -100,
                     }
                 },
@@ -105,7 +112,25 @@ async def track_ai_call(
             upsert=True,
         )
 
-        # Fire budget alert if crossing 80% threshold (once per day)
+        # W2.3: Dual-write per-call event for analytics
+        try:
+            await db.ai_call_events.insert_one({
+                "dev_org_id": dev_org_id,
+                "model": model,
+                "tokens_in": t_in,
+                "tokens_out": t_out,
+                "cost_usd": cost_usd,
+                "cost_mxn": cost_mxn,
+                "call_type": call_type,
+                "feature_key": feat,
+                "ts": now,
+                "daily_iso": daily_iso,
+                "month_iso": month,
+            })
+        except Exception as ev_err:
+            log.warning(f"[ai_budget] event write failed: {ev_err}")
+
+        # Fire budget alert if crossing threshold (once per day)
         await _maybe_send_budget_alert(db, dev_org_id, month)
 
     except Exception as e:
@@ -168,17 +193,33 @@ async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
 
 
 async def is_within_budget(db, dev_org_id: str) -> bool:
-    """Returns True if org is within their monthly cap."""
+    """Returns True if org is within their monthly cap.
+
+    W2.3 SA4: also honors `db.ai_budget_caps[tenant_id].hard_block` flag — when
+    `hard_block=True` and `monthly_cap_mxn` is exceeded, returns False even if
+    the legacy ai_usage_log.cap_mxn allows it.
+    """
     try:
         month = _month_iso()
         doc = await db.ai_usage_log.find_one(
             {"dev_org_id": dev_org_id, "month_iso": month}, {"_id": 0}
         )
-        if not doc:
-            return True
-        cap = doc.get("cap_mxn") or DEFAULT_CAP_MXN
-        spent = doc.get("estimated_cost_mxn") or 0
-        return spent < cap
+        spent = (doc or {}).get("estimated_cost_mxn") or 0
+        # Legacy cap (per-month doc)
+        legacy_cap = (doc or {}).get("cap_mxn") or DEFAULT_CAP_MXN
+
+        # W2.3 SA4 hard-block cap
+        try:
+            cap_doc = await db.ai_budget_caps.find_one(
+                {"tenant_id": dev_org_id}, {"_id": 0},
+            )
+        except Exception:
+            cap_doc = None
+        if cap_doc and cap_doc.get("hard_block") and cap_doc.get("monthly_cap_mxn"):
+            if spent >= float(cap_doc["monthly_cap_mxn"]):
+                return False
+
+        return spent < legacy_cap
     except Exception:
         return True  # fail open
 
@@ -229,6 +270,22 @@ async def ensure_ai_budget_indexes(db) -> None:
         pass
     try:
         await db.ai_usage_log.create_index("month_iso", background=True)
+    except Exception:
+        pass
+    # W2.3 SA4 — Per-call event log + caps collection indexes
+    try:
+        await db.ai_call_events.create_index([("dev_org_id", 1), ("month_iso", -1), ("feature_key", 1)], background=True)
+        await db.ai_call_events.create_index([("daily_iso", -1)], background=True)
+        await db.ai_call_events.create_index([("month_iso", -1), ("model", 1)], background=True)
+        await db.ai_call_events.create_index([("ts", -1)], background=True)
+    except Exception:
+        pass
+    try:
+        await db.ai_budget_caps.create_index("tenant_id", unique=True, background=True)
+    except Exception:
+        pass
+    try:
+        await db.ai_cost_daily_snapshots.create_index([("daily_iso", -1), ("tenant_id", 1)], background=True)
     except Exception:
         pass
 

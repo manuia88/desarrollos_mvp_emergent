@@ -159,6 +159,7 @@ const SUPERADMIN_NAV = [
       { key: 'health',       to: '/superadmin/health',                   label: 'Salud del sistema', Icon: Activity },
       { key: 'observability',to: '/superadmin/observability',            label: 'Observabilidad',   Icon: Eye },
       { key: 'audit-log',    to: '/superadmin/audit-log',                label: 'Auditoría',        Icon: Shield },
+      { key: 'ai-cost',      to: '/superadmin/ai-cost',                  label: 'Costos IA',        Icon: DollarSign },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },

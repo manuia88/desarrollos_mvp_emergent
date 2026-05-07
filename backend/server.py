@@ -144,6 +144,10 @@ from routes_superadmin_audit import (
 )
 app.include_router(superadmin_audit_router)
 
+# W2.3 SA4 — AI Cost Observatory
+from routes_superadmin_ai_cost import router as superadmin_ai_cost_router
+app.include_router(superadmin_ai_cost_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)

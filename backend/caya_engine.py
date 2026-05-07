@@ -147,7 +147,8 @@ async def caya_query(payload: CayaQueryIn, request: Request):
         try:
             from ai_budget import track_ai_call
             await track_ai_call(db, "caya", "claude-sonnet-4-5-20250929", 0, "caya_conversation",
-                                tokens_in=in_tokens, tokens_out=out_tokens)
+                                tokens_in=in_tokens, tokens_out=out_tokens,
+                                feature_key="copilot_chat")
         except Exception:
             pass
     except Exception as e:

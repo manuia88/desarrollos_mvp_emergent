@@ -265,7 +265,8 @@ async def _call_claude(db, dev_org_id: str, entity_type: str,
             from ai_budget import track_ai_call
             await track_ai_call(db, dev_org_id, CLAUDE_HAIKU_MODEL, 0,
                                 call_type=f"ai_suggestions_{entity_type}",
-                                tokens_in=t_in, tokens_out=t_out)
+                                tokens_in=t_in, tokens_out=t_out,
+                                feature_key="ai_suggestions")
         except Exception:
             pass
         text = raw.strip()

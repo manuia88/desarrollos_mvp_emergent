@@ -1,6 +1,80 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.3 — SA4 AI Cost Observatory (2026-05-07)
+
+### Backend
+- **EDIT** `ai_budget.py`:
+  - `track_ai_call(...feature_key=None)` — backwards-compat opcional. Default fallback: `feature_key or call_type or "other"`. Dual-write: actualiza el rollup `ai_usage_log` (legacy budget gate) Y crea un evento por llamada en `ai_call_events` con `daily_iso/month_iso/feature_key`.
+  - `is_within_budget(db, dev_org_id)` — ahora consulta `db.ai_budget_caps` para honrar `hard_block`. Si `hard_block=True` y `spent >= monthly_cap_mxn` → `False` aunque legacy cap permita.
+  - `ensure_ai_budget_indexes` extendido: índices nuevos en `ai_call_events (dev_org_id, month_iso, feature_key)`, `(daily_iso desc)`, `(month_iso, model)`, `(ts desc)`; `ai_budget_caps (tenant_id unique)`; `ai_cost_daily_snapshots (daily_iso, tenant_id)`.
+- **NEW** `ai_cost_aggregations.py` — pipelines centralizados:
+  - `period_window`/`previous_period_window`/`days_remaining_in_month`/`model_class` helpers
+  - `overview()` — total + top 5 spenders (con tenant_name lookup) + top 5 features + Haiku/Sonnet/other split + trend vs prev period + forecast EOM
+  - `by_tenant()` — paginado, con caps map + alert_flag (pct_used >= threshold) + hard_block flag
+  - `by_feature()` — feature_key con model_mix object + top tenant per feature
+  - `by_model()` — split + avg_cost_per_call_mxn
+  - `tenant_timeseries()` — array de 30 días con bucket por modelo, fill 0s para días vacíos
+  - `forecast()` — `current_mtd + (run_rate_7d × days_remaining)`
+  - `materialize_daily_snapshot()` — cron-friendly (yesterday → `ai_cost_daily_snapshots`)
+- **NEW** `routes_superadmin_ai_cost.py` — prefix `/api/superadmin/ai-cost`, 9 endpoints:
+  1. `GET /overview?period=month|7d|30d`
+  2. `GET /by-tenant?period&limit&skip&sort=spend_desc|name_asc`
+  3. `GET /by-feature?period&tenant_id?`
+  4. `GET /by-model?period`
+  5. `GET /tenant/{id}/timeseries?days`
+  6. `GET /forecast?tenant_id?`
+  7. `GET /caps`
+  8. `POST /caps` (UPSERT) — body `{tenant_id, monthly_cap_mxn, alert_threshold_pct?, custom_alert_email?, hard_block?}`. Audit log con before/after.
+  9. `PATCH /caps/{tenant_id}` (partial). Audit log.
+  Todos con `require_superadmin` (403 para roles ≠).
+- **EDIT** `server.py` (+include_router); **EDIT** `scheduler_ie.py` (registra cron `ai_cost_daily_aggregation` con `CronTrigger(hour=1, minute=0, tz=America/Mexico_City)`); **EDIT** `cron_heartbeat.py` (label + interval) — visible en `/superadmin/health` crons list.
+
+### Feature_key migrations en callers (silent default)
+- ✅ `narrative_engine.py` → `feature_key="narrative_engine"`
+- ✅ `diagnostic_engine.ai_recommend_for_failure` → `feature_key="diagnostic_engine"`
+- ✅ `ai_suggestions.py` → `feature_key="ai_suggestions"`
+- ✅ `caya_engine.py` → `feature_key="copilot_chat"`
+- ✅ `bulk_ingest_engine.py` (caller en `_process_job`) → `feature_key="bulk_ingest_haiku"` con db handle correcto
+- 🟡 9 callers restantes (`routes_dev_batch4_4/5/7/8/11/14`) NO modificados — usan variable `call_type` ya descriptiva (ej. `"weekly_brief"`, `"argumentario_rag"`, `"buyer_disc"`) que se materializa via fallback `feature_key=call_type` en track_ai_call. **Decisión conservadora**: preservar firmas existentes, dejar que el fallback agrupe correctamente.
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminAiCost.js`:
+  - Header "Costos IA" + period chips [Mes actual · 7d · 30d] + "Refrescar" + "Configurar topes (N)" gradient
+  - 4 KPIs (Gasto / Calls / Forecast EOM con color por threshold / Trend ±%)
+  - Sparkline 30d inline-SVG (sin nuevo nivo dep) con 3 líneas overlay (total magenta + haiku verde + sonnet violeta + área degradada)
+  - Filter chip "Solo en alerta"
+  - 2-col grid responsive: `<CostBreakdownTable kind="tenant">` (sortable, click row → cap modal) + `<CostBreakdownTable kind="feature">` (con mini-mix bar)
+  - `<ModelMixChart>` SVG donut + tabla detallada de modelos
+  - `<CapsListModal>` muestra topes existentes con botón Editar
+- **NEW** `components/superadmin/CostBreakdownTable.js` — sortable cols (mxn/pct/name/feature_key), CapBar visual con color verde<70%/amber 70-90%/rojo>90% + chip BLOCK si hard_block, MiniMix bar por feature
+- **NEW** `components/superadmin/ModelMixChart.js` — SVG donut con stroke-dasharray (Haiku verde / Sonnet violeta / Otros gris) + leyenda + tabla detalle
+- **NEW** `components/superadmin/CapModal.js` — form con monthly_cap input + threshold slider 50-95% (con preview MXN calculado en vivo) + email opcional + checkbox hard_block destacado en rojo cuando activo. POST or PATCH dependiendo de `existingCap`.
+- **NEW** `api/superadminAiCost.js` — 9 funciones matching endpoints
+- **EDIT** `App.js` route `/superadmin/ai-cost`; **EDIT** `navByRole.js` agrega "Costos IA" tier 2 con icon `DollarSign` después de "Auditoría"
+
+### Manual tests passed (curl + python)
+- ✅ Synthetic 150 events insertados → `/overview?period=month` retorna shape correcto: total 89.5 MXN, top 5 spenders + features con `pct_total`, Haiku/Sonnet split (13.5/76.0), trend pct vs prev period, forecast EOM 396.46
+- ✅ `/by-tenant` 3 items con cap=null inicialmente
+- ✅ `/by-feature?period=30d` retorna feature_keys con `model_mix` object completo + `top_tenant_id/name`
+- ✅ `/by-model?period=30d` retorna avg_cost_per_call_mxn correcto (haiku 0.7 vs sonnet 5.6)
+- ✅ `/tenant/dev_alpha/timeseries?days=30` → 31 buckets (incluye día 0); 15 con datos, resto 0s
+- ✅ `/forecast?tenant_id=dev_alpha` → mtd 37.5, run_rate 5.36/d, projected 166.14, days_remaining 24
+- ✅ `POST /caps` → UPSERT crea cap con audit; `GET /caps` lista; `PATCH /caps/{id}` actualiza solo threshold
+- ✅ `is_within_budget` hard_block: con rollup `spent=100, cap=50, hard_block=True` → `False`; `hard_block=False` → `True`. Confirmado el gate funciona.
+- ✅ Non-superadmin → 403 "Solo superadmin"
+- ✅ Backend startup limpio · `yarn build` 37.24s sin warnings
+
+### Edge cases conservadores aplicados
+- **Schema reality vs spec**: spec menciona `db.ai_usage` con extension de `feature_key`/`daily_iso`. Reality: la collection se llama `ai_usage_log` y es rollup `(dev_org_id, month_iso) unique` que rompería con feature_key. **Decisión**: mantener `ai_usage_log` rollup intacto (preserva `is_within_budget` legacy) y crear nueva collection `ai_call_events` por-llamada para analytics. Ambas se actualizan en cada `track_ai_call` para máxima compatibilidad.
+- **No nivo line/pie**: spec asume `@nivo/line` y `@nivo/pie` ya en deps de B20, pero `package.json` solo trae `@nivo/core` + `@nivo/sankey`. Per directiva "NO @nivo/* nuevos packages" + "no añadir dependencias", se implementaron sparkline y donut con SVG inline (más ligero, sin overhead, mejor TTI).
+- **Feature_key migration silent**: 9/14 callers de `track_ai_call` no se modificaron explícitamente. Decisión: el fallback `feature_key=call_type` ya da agrupación útil porque las invocaciones existentes usan `call_type` descriptivo (`"weekly_brief"`, `"argumentario_rag"`, `"buyer_disc"`, etc.). Migración silent + reportada vs. tocar 9 archivos por una mejora cosmética.
+- **Forecast cap threshold sin tenant**: `/forecast` sin tenant_id devuelve `monthly_cap_mxn=null` y `vs_cap_pct=null` (cap es por tenant, no global) — la UI usa el forecast global solo en KPI strip sin barra de cap.
+- **Email alert engine**: el alert path existente en `_maybe_send_budget_alert` se mantiene (Resend, 1/día per tenant). El nuevo `ai_budget_caps.alert_threshold_pct` aún no inyecta a `_maybe_send_budget_alert` (que sigue con 80% hardcoded) — lo correcto sería override desde caps_doc, pero esta extension añade alcance fuera del tope de este batch (W2.x SA siguiente). Reportado.
+- **Hard limit 1M MXN en cap monthly**: validado en Pydantic body. Slider threshold 50-95% bound en backend y cliente.
+- **CronTrigger TZ**: `America/Mexico_City` honra horarios LATAM (1am MX = 7am UTC en invierno, 6am UTC en verano).
+
+
 ## W2.2 — SA3 Audit Log Viewer (2026-05-07)
 
 ### Backend

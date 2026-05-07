@@ -328,6 +328,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_data_hub_error", error=str(e))
 
+    # W2.3 SA4 — AI cost daily aggregation cron (1am MX)
+    try:
+        from routes_superadmin_ai_cost import schedule_ai_cost_daily_aggregation
+        schedule_ai_cost_daily_aggregation(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_ai_cost_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",
