@@ -629,6 +629,63 @@
       "call": "Llamar",
       "email": "Email",
       "site": "Sitio"
+    },
+    "tenants": {
+      "title": "Tenants",
+      "subtitle": "Desarrolladoras + inmobiliarias activas en la plataforma.",
+      "refresh": "Refrescar",
+      "search_placeholder": "Buscar tenant…",
+      "type_all": "Todos",
+      "type_dev": "Devs",
+      "type_inm": "Inmobiliarias",
+      "status_all": "Todos",
+      "status_active": "Activos",
+      "status_trial": "Trial",
+      "status_suspended": "Suspendidos",
+      "table": {
+        "name": "Nombre",
+        "type": "Tipo",
+        "status": "Estado",
+        "members": "Miembros",
+        "projects": "Proyectos",
+        "ai_month": "AI/mes",
+        "last_activity": "Última act.",
+        "created": "Creado"
+      },
+      "actions": {
+        "view": "Ver",
+        "impersonate": "Impersonar",
+        "load_more": "Cargar más"
+      },
+      "drawer": {
+        "tab_resumen": "Resumen",
+        "tab_equipo": "Equipo",
+        "tab_audit": "Auditoría",
+        "members_label": "Miembros",
+        "projects_label": "Proyectos",
+        "ai_breakdown_title": "AI breakdown (mes)",
+        "showing_of": "Mostrando {shown} de {total}"
+      },
+      "impersonate_modal": {
+        "title": "Impersonar {name}",
+        "body": "Iniciarás sesión como el primer admin de {name}. Toda actividad será auditada. La sesión expira en 30 minutos.",
+        "confirm": "Confirmar impersonación",
+        "cancel": "Cancelar"
+      },
+      "status_modal": {
+        "title": "Cambiar estado de {name}",
+        "danger_warn": "Esto bloqueará todos los logins de este tenant.",
+        "reason_label": "Motivo (opcional)",
+        "confirm": "Confirmar"
+      },
+      "banner": {
+        "session_label": "Sesión impersonada como",
+        "exit": "Salir"
+      },
+      "empty": {
+        "title": "Sin tenants",
+        "subtitle": "Ajusta los filtros o intenta otra búsqueda."
+      }
     }
   }
 }

@@ -21,6 +21,7 @@ import {
   ChevronDown, ChevronRight, Menu, X, Search, LogOut, User,
   ChevronLeft,
 } from 'lucide-react';
+import ImpersonationBanner from '../superadmin/ImpersonationBanner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -170,6 +171,16 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const handleLogout = useCallback(async () => {
+    // W1.2 SA1.1 — If impersonating, end impersonation first (clears cookie + audits end)
+    try {
+      const raw = localStorage.getItem('dmx_impersonation');
+      if (raw) {
+        await fetch(`${API}/api/superadmin/tenants/impersonate/end`, {
+          method: 'POST', credentials: 'include',
+        });
+        try { localStorage.removeItem('dmx_impersonation'); } catch (_) {}
+      }
+    } catch (_) {}
     try {
       await fetch(`${API}/api/auth/logout`, { method: 'POST', credentials: 'include' });
     } catch (_) {}
@@ -266,6 +277,7 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
 
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <ImpersonationBanner />
         {/* Topbar */}
         <header className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(240,235,224,0.08)] bg-[#0b0e18] shrink-0" data-testid="portal-topbar">
           {/* Mobile hamburger */}
