@@ -125,12 +125,12 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Costo:** ~4h + LinkedIn partnership approval timeline
 - **Bloqueador externo:** LinkedIn partnership not guaranteed
 
-### AMPI API real verification
+### AMPI API real verification — DESCARTADO 2026-05-07
 - **Origen:** B35 (Phase 18 Inmobiliaria)
-- **Destino:** H2
-- **Qué:** Hoy stub formato 8-12 alfanum + manual review. Activar AMPI API real para verificación automática de cédulas
-- **Costo:** ~2h + AMPI API access negotiation
-- **Bloqueador externo:** AMPI institutional access
+- **Destino:** ❌ NO perseguir partnership AMPI
+- **Qué:** Hoy stub formato 8-12 alfanum + manual review.
+- **Decisión 2026-05-07:** Founder confirmó AMPI no tiene data unique value (solo lista membresía + códigos éticos + eventos). Lo que importa viene de catastros municipales, notarías, bancos/SOFOM. **Mantener stub format check para badge Trust Score B32**, pero NO perseguir verification real ni partnership institucional.
+- **Reemplazos data inmobiliaria reales:** Wave 3 SHF Índice + cubo Z + ZZ.2 Transaction Network (notaría partnership) + catastros piloto
 
 ### Microsoft OAuth Calendar
 - **Origen:** B15 (stub forward-compat)
@@ -263,6 +263,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+### Metrics Cube: prefetch períodos para switching instantáneo
+- **Origen:** W2.5 SA6 emergent potential improvement 2026-05-07
+- **Destino:** W2.6 SA8 Founder Console (consistente con experiencia ejecutiva snappy)
+- **Qué:** Prefetch background de los 3 períodos no-activos (current/7d/30d/90d) en `useEffect` cuando carga la página. Switching de período instantáneo vs on-demand actual.
+- **Por qué:** UX "Bloomberg Terminal" para founder — "¿cómo va Polanco?" en 2 clicks vs 5. Aplica el patrón a TODA SA8 founder console (no solo metrics cube).
+- **Costo:** ~1h dentro de SA8 (no incremental)
+
 ### Bulk Ingest: histórico inline edits panel UI
 - **Origen:** W1.5 ZZ.1.1 emergent potential improvement 2026-05-07
 - **Destino:** W2.2 SA3 Audit Log Viewer (visualización trazabilidad)
@@ -283,6 +290,54 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Qué:** Widget agregado superior en `/superadmin/tenants` — top-5 gasto IA mes actual + sparkline histórico crecimiento members per tenant. Permite detectar churn antes de downgrade explícito.
 - **Por qué:** anti-churn intelligence — útil pero rompe scope Wave 1 (ops-foundation pura). Encaja natural en SA4/SA8 que ya tienen 12h+14h asignadas para esto.
 - **Costo:** ~2-3h dentro de SA4 + SA8 (no incremental)
+
+---
+
+## 💼 H2 COMMERCIAL (Teseo expansion 2026-05-07 · sin código H1)
+
+### #5 DMX Insights consultoría premium
+- **Origen:** Teseo Data analysis 2026-05-07 (servicios consulting $150-300K MXN/project)
+- **Destino:** H2 commercialization tier
+- **Qué:** Tier premium $X/mes con analyst dedicado interpreta cubo Z + entrega report custom mensual al dev/inmobiliaria. Comercial, no técnico.
+- **Por qué:** Teseo cobra $150-300K MXN per project consulting. DMX puede ofrecerlo recurring + cubo data-backed.
+- **Costo H1:** 0h código (comercial)
+- **Pre-requisito:** Wave 3 cubo Z + DRPI live para que el analyst tenga data structured
+
+### #9 DMX Expansion Advisor (PDF report $5K USD)
+- **Origen:** Teseo Expansion Analysis ($150-300K MXN, 397% ROI Cayco case)
+- **Destino:** H2 enterprise tier (post-PMF)
+- **Qué:** Dev paga $5K USD/report por análisis profundo de UNA zona específica. Output: PDF 30 páginas con scenarios + competitive analysis + demand forecast 12 meses generado con cubo Z + IE Engine + Claude Sonnet.
+- **Por qué:** Teseo charges $150K-300K MXN/project ($7-15K USD). DMX a $5K USD/report es 50-70% más barato Y data-backed real-time vs static econometric.
+- **Costo H1:** 0h (defer post-PMF)
+- **Pre-requisito:** Wave 3 cubo Z completado + plantilla PDF + integración Stripe one-time billing
+
+### #10 DMX Capex Validator pre-construcción
+- **Origen:** Teseo Investment Validation (60.7% ROI Huauchinango)
+- **Destino:** H2 advanced features tier enterprise
+- **Qué:** Validador de proyectos antes de comprometer capital del dev. Input: 3 sitios alternativos (ubicación, m², mix unidades, precio target). Output: viabilidad financiera con confidence interval + Monte Carlo scenarios + ranking. Use case: dev considera 3 sitios alternativos → sube los 3, sistema rankea.
+- **Por qué:** valor enorme para dev pre-CAPEX, requiere clientes establecidos + cubo Z maduro para inputs reliable
+- **Costo H1:** 0h (defer post-Wave 3)
+- **Pre-requisito:** Wave 3 cubo Z + Risk Score #12 + Construction Cost Predictor #13 + Phase Y agentic
+
+### #15 Co-creation enterprise tier (solutions architect)
+- **Origen:** Teseo Co-creation value proposition
+- **Destino:** H2 enterprise services
+- **Qué:** Para enterprise tier, asesor solutions architect dedicado trabaja con dev cliente para crear modelo custom (e.g. cubo segmentado solo a su portfolio + métricas custom + dashboard tailored).
+- **Por qué:** ARR multiplier — enterprise tier $2-5K USD/mes vs basic $499/mes. Comercial, no técnico.
+- **Costo H1:** 0h código (solo comercial)
+
+### #16 Partnerships institucionales (catastro · notarías · bancos)
+- **Origen:** Teseo es VP Analytics CANACINTRA + AMCI alliance + AMPI Riviera
+- **Destino:** H2 strategic — founder negociaciones
+- **Qué:** Buscar partnerships con valor data REAL (no AMPI):
+  - **Catastro alcaldía piloto** (Miguel Hidalgo Polanco): avalúos oficiales por predio
+  - **Notaría grande CDMX**: closings reales para ZZ.2 Transaction Network
+  - **Banco/SOFOM piloto**: cartera hipotecaria con avalúos validados (golden data AVM)
+  - **CMIC**: proyectos en cartera nacional + capex sector
+  - **CANADEVI**: producción nacional vivienda
+- **Por qué:** Founder confirmó 2026-05-07 que AMPI NO tiene data unique value. Estas alternativas SÍ tienen datos exclusivos.
+- **NO perseguir:** AMPI partnership institucional (percepción sin data)
+- **Costo H1:** 0h código (estratégico/comercial)
 
 ---
 

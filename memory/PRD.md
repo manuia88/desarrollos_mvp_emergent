@@ -3233,3 +3233,90 @@ Análisis 2026-05-07 del módulo superadmin actual vs lo que necesita ser ("mód
 - `<InlineEditableField/>` (W1.5) · `<MergeDiffVisualizer/>` (W1.5)
 - `bulk_ingest_engine.compute_merge_diff` · `bulk_ingest_engine.second_pass_extraction`
 
+═══════════════════════════════════════════════════════════
+## Wave 3 detailed plan (~177h, +37h Teseo expansion 2026-05-07)
+═══════════════════════════════════════════════════════════
+
+**Objetivo Wave 3**: Authority + Verticals + Risk Layer. Posicionar DMX como autoridad data inmobiliaria MX vía DRPI Index citable + Risk Score per propiedad + Construction Cost Predictor. Habilitar B2B verticals (bancos/aseguradoras/notarías).
+
+**Origin Teseo expansion**: análisis 2026-05-07 incorporó 8 ideas tropicalizadas (DENUE #1, R² públicos #3, Hedonic regression #2, Boletines #4+#11, Risk Score #12, Construction Cost #13, Methodology page #14). Detalles fuentes: `memory/DATA_SOURCES.md`.
+
+### Batches Wave 3
+
+| # | Batch | h est. | Dependencies |
+|---|---|---|---|
+| W3.1 | **ZZ.2 Transaction Network** — track real closings anonimizados + comparables matrix verificada + price index per zona/tipo | 18 | Wave 2 closing |
+| W3.2 | **ZZ.3 Index Provider DRPI ampliado** — Hedonic regression engine (#2) replace simple promedio + DRPI mensual + boletín general (#4) + sectoral bulletins per zona (#11: Polanco · Lomas · Roma · Condesa) + `/methodology` page pública (#14: R²+RMSE+K-fold+Monte Carlo expuestos) + media partnerships Forbes/El Financiero | 20 (+5h) | ZZ.2 |
+| W3.3 | **ZZ.4 Risk Layer ampliado** — Fraud Detection AI (V1: title chain + price anomaly + duplicate listings) + DMX Risk Score per propiedad #12 (V1 SESNSP only ~10h, V2 +CENAPRED +ENVIPE +Atlas Riesgo CDMX +8h: badge visible en marketplace, ML pattern detection) | 40 (+18h) | ZZ.3 |
+| W3.4 | **Phase Z.0 Data Lake + Warehouse Foundation** — time-series store + ETL diaria + geo indexing AGEB + facts/dim tables + R² + IC validation publicos (#3: validation metrics layer) | 13 (+3h) | — |
+| W3.5 | **Phase Z.1 Consolidated Metrics Cube** — OLAP aggregations + materialized views + Redis cache + backfill | 12 | Z.0 |
+| W3.6 | **Phase Z.2 Superadmin Intelligence Hub UI** — dashboard ejecutivo cross-org + heatmaps geo + comparables matrix + drill-down zona→proyecto→unidad | 12 | Z.0+Z.1 |
+| W3.7 | **Phase Z.3 Public API + Stripe billing** — API v1 + auth keys + rate limits + OpenAPI + tier free/pro/enterprise | 10 | Z.1 |
+| W3.8 | **Phase Z.4 Vertical Data Products** — Bank AVM + Insurance risk + Notaría title + Investor yield (4 widgets white-label + dedicated APIs) | 14 | Z.1 |
+| W3.9 | **Phase Z.5 Anonymization + Compliance** — PII strip + k-anonymity ≥5 props + LFPDPPP DSR + audit log queries externas | 6 | Z.4 |
+| W3.10 | **Phase Z.6 Cross-sell Intelligence** — lead enrichment + partner integrations + revenue share tracking + propensity ML | 8 | Z.3+Z.4 |
+| W3.11 | **Phase 5 IE Engine completion ampliada** — IE original (45h: 125 scores production-ready) + DENUE integration #1 (+6h: density competidores + lead enrichment) + Construction Cost Predictor #13 (+5h: BANXICO INPC + INEGI INPP construcción + cost prediction per zona alimenta Cash Flow B8) | 56 (+11h) | — |
+| W3.12 | **Polish + Smoke** — pytest E2E + permission audit + docs closure | 4 | W3.1-W3.11 |
+
+**Total Wave 3**: 213h core - paralelización potencial ~36h = **~177h netas** (vs estimate original 140h + 37h Teseo expansion)
+
+### Métricas éxito Wave 3
+- DRPI publicado mensual con metodología pública en `/methodology` + ≥1 media mention citable
+- Risk Score per propiedad visible en marketplace listings (Risk badge ≥80% propiedades CDMX cubiertas)
+- Construction Cost Predictor alimenta Cash Flow B8 con confidence interval per zona
+- Phase Z.3 Public API live con ≥1 cliente piloto B2B firmado (banco / aseguradora / notaría)
+- DENUE integrado: Site Selection muestra density competidores + leads enriched con empresa-validated
+- Audit log 100% queries externas + 0 violaciones k-anonymity
+
+### Schemas nuevos Wave 3
+- `db.transaction_network` — closings agregados anonimizados (ZZ.2)
+- `db.drpi_snapshots` — DMX Residential Price Index mensual per zona (ZZ.3)
+- `db.risk_scores` — per propiedad: crime_score + natural_risk + title_risk + ml_score (ZZ.4)
+- `db.construction_costs` — per zona/tipo predicción $/m² mensual (W3.11)
+- `db.public_api_keys` — auth tokens B2B + rate limits (Z.3)
+- `db.vertical_products_subscriptions` — Stripe-linked plan tiers (Z.3+Z.4)
+
+═══════════════════════════════════════════════════════════
+## Wave 4 detailed plan (~336h, +40h Teseo expansion 2026-05-07)
+═══════════════════════════════════════════════════════════
+
+**Objetivo Wave 4**: Phase Y Agentic completa + Investor Simulator + Lead Outbound asesor→dev + AutoNewsletter Pulse + closure phases pending + polish + launch.
+
+**Origin Teseo expansion**: 4 ideas tropicalizadas (Investment Simulator #6, Lead Journey Outbound #7, AutoNewsletter Pulse #8, Free 30-min audit landing #17).
+
+### Batches Wave 4
+
+| # | Batch | h est. | Concept |
+|---|---|---|---|
+| W4.1 | **Phase Y completa Y.0-Y.5** — Agentic AI: Director Agent + 5 sub-agents + memory layer + per-user ML classifiers + Reply Classifier + Buyer DISC Inferencer + observability + audit replay | 110 | Wave 3 cubo Z foundation |
+| W4.2 | **Phase 6 Studio Wave 1.5+2** — trim/transitions + 10 export presets + Hook auto + Pacing AI + Re-edit AI + ElevenLabs voiceover + Pedra renders | 36 | — |
+| W4.3 | **Phase 8 ext WhatsApp + Coms + AutoNewsletter Pulse** — WA Business real (15h) + AutoNewsletter DMX Pulse semanal segmentado (#8 +10h: dev/asesor/buyer/inversionista 4 segments con AI Haiku-generated content + Resend distribution) | 25 (+10h) | — |
+| W4.4 | **Phase 10 Caya + A11** — Bot DMX upgrades + accessibility | 26 | — |
+| W4.5 | **Phase 11 Dubai** — multi-currency MXN/AED/USD + i18n en-US/ar + zone Dubai schema | 38 | — |
+| W4.6 | **Phase 16 NEW Outbound Engine** — Lead Journey Outbound asesor→dev (#7: engine captación de devs por asesor con qualification AI + tracking conversion + funnel completo) | 12 (NEW) | Phase 8 |
+| W4.7 | **Phase 19 ext Buyer Coach + Investment Simulator** — Buyer Coach + Mortgage simulator (14h) + Investment Simulator #6 (+15h: per-unit ROI + Monte Carlo sensitivity 10k iter + compare CETES/Fibras + freemium captador inversionistas + share link público) | 29 (+15h) | Z.4 vertical products |
+| W4.8 | **Phase 20 Polish + Launch** — UX final + onboarding tour + smoke tests + load testing | 23 | All Wave 1-3 |
+| W4.9 | **W4 marketing/pre-launch** — Free 30-min audit landing #17 (lead magnet asesores/devs: "Auditoría gratuita portfolio dev" + "Smart Match diagnóstico asesor") | 3 (NEW) | Phase 20 |
+| W4.10 | **F0 sweep restante** — push notifications iOS/Android real + web push + LinkedIn OAuth real (si partnership confirmado) + AMPI API real (si partnership) — paralelo evaluado | 22 | — |
+| W4.11 | **Cross-cutting CC1-4** — i18n closure + accessibility audit + performance + security review | 28 | Phase 20 |
+| W4.12 | **Polish + Smoke + Launch** | 4 | W4.1-W4.11 |
+| Buffer | Integration testing | -16 (optimistic) | — |
+
+**Total Wave 4**: 360h core - paralelización ~24h = **~336h netas**
+
+### Métricas éxito Wave 4
+- Phase Y agentic operacional con T1-T4 tier system + simulation mode + master switch
+- Investment Simulator captador ≥500 inversionistas registrados pre-launch
+- Phase 16 Outbound: ≥3 asesores piloto cierran ≥1 dev cada uno via engine
+- AutoNewsletter Pulse: ≥1k suscriptores cross-segment
+- Free audit lead magnet: ≥100 leads/mes orgánicos
+- Phase 11 Dubai: ≥10 proyectos Dubai live + 2 inversionistas MX-Dubai cross-region
+- Phase 20: NPS asesor ≥50, dev ≥40, buyer ≥35
+
+### Schemas nuevos Wave 4
+- `db.agent_sessions` + `db.agent_actions` (Phase Y)
+- `db.user_ml_classifiers` (Phase Y per-user adaptive)
+- `db.investment_simulations` (Phase 19 Investor Sim)
+- `db.outbound_campaigns` + `db.outbound_leads` (Phase 16 Lead Journey)
+- `db.newsletter_subscribers` + `db.newsletter_segments` (Phase 8 ext)
+

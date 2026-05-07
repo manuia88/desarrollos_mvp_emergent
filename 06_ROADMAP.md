@@ -33,13 +33,15 @@
 | Phase 13/14/15/18 (whitelist + inhouse + directorios + inmobiliaria) | ✅ **100% COMPLETO** (B35+B36+B37+B38 vía PR #12+#15+#16) | ~46h |
 | Phase 3 Asesor | ✅ **100% COMPLETO** (B31+B32+B33+B34 vía PR #14 + #15) | ~25h |
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
-| **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | 🟡 NEXT | ~120h |
-| **Wave 3 — Authority + Verticals** (ZZ.2-ZZ.4 + Z.3-Z.4) | 🟡 pending | ~140h |
-| **Wave 4 — Phase Y Agentic + Polish** (Phase Y + 5/6/8/10/19/20 + CC) | 🟡 pending | ~296h |
+| **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | 🟡 EN CURSO 49/120h | ~120h |
+| **Wave 3 — Authority + Verticals + Risk Layer** (ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 + DENUE + Risk Score #12 + Cost Predictor #13 + R² públicos #3 + Methodology #14) | 🟡 pending | ~177h |
+| **Wave 4 — Phase Y Agentic + Investor Sim + Outbound + Polish** (Phase Y + 5/6/8 ext/10/11/16/19 ext/20 + CC + Investment Sim #6 + Lead Journey #7 + AutoNewsletter #8 + Free audit #17) | 🟡 pending | ~336h |
 
-**Total H1 restante**: ~556h (Wave 2-4)
+**Total H1 restante**: ~633h (Wave 2 71h + Wave 3 177h + Wave 4 336h + buffers + integraciones Teseo +77h)
 
-**Shipped to date**: ~330h (Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h)
+**Shipped to date**: ~379h (Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + W2.1-W2.4 ~49h)
+
+**Origin del +77h**: análisis Teseo Data 2026-05-07 — distribución 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit). Detalles en `memory/DATA_SOURCES.md` + sección "Wave 3 detailed plan" / "Wave 4 detailed plan" en PRD.md.
 
 ---
 
@@ -73,25 +75,28 @@
 - Phase Z.2 Superadmin Intelligence Hub UI (12h)
 - Buffer ~8h
 
-#### Wave 3 — Authority + Verticals (~140h)
+#### Wave 3 — Authority + Verticals + Risk Layer (~177h, +37h Teseo expansion)
 - ZZ.2 Transaction Network (18h)
-- ZZ.3 Index Provider DRPI (15h)
-- ZZ.4 Fraud Detection AI (22h)
+- **ZZ.3 Index Provider DRPI** (20h, +5h) — incluye Hedonic regression #2 + Boletín mensual #4 + Sectoral bulletins per zona #11 + `/methodology` page #14 (todos absorbidos)
+- **ZZ.4 Risk Layer ampliado** (40h, +18h) — Fraud Detection AI ORIGINAL (22h) + DMX Risk Score per propiedad #12 (+18h: SESNSP crime + CENAPRED riesgos + ENVIPE percepción + Atlas Riesgo CDMX. V1 SESNSP only ~10h, V2 multi-source +8h)
 - Phase Z.3 Public API + Stripe billing (10h)
 - Phase Z.4 Vertical Data Products (Bank AVM/Insurance/Notaría/Investor) (14h)
 - Phase Z.5 Anonymization + Compliance (6h)
 - Phase Z.6 Cross-sell Intelligence (8h)
-- Phase 5 IE Engine completion (45h)
+- **Phase 5 IE Engine completion ampliada** (56h, +11h) — IE original (45h) + DENUE integration #1 (+6h) + Construction Cost Predictor #13 (+5h reuse BANXICO/INPC)
+- **Z.0 Data Lake spec ampliado** (+3h) — R² + IC validation públicos #3 (preparación cubo)
 - Buffer ~2h
 
-#### Wave 4 — Phase Y Agentic + Polish (~296h)
+#### Wave 4 — Phase Y Agentic + Investor Sim + Outbound + Polish (~336h, +40h Teseo expansion)
 - Phase Y completa Y.0-Y.5 (110h)
 - Phase 6 Studio Wave 1.5+2 (36h)
-- Phase 8 WhatsApp + Coms (15h)
+- **Phase 8 ext** (25h, +10h) — WhatsApp + Coms (15h) + AutoNewsletter DMX Pulse semanal #8 segmentado (+10h reuse Resend + Claude Haiku, segments dev/asesor/buyer/inversionista)
 - Phase 10 Caya + A11 (26h)
 - Phase 11 Dubai (38h)
-- Phase 19 Buyer Coach + Mortgage (14h)
+- **Phase 16 NEW** (12h) — Lead Journey Outbound asesor→dev #7 (engine captación devs por asesor con qualification AI + tracking conversion). Antes era H2 implícito.
+- **Phase 19 ext** (29h, +15h) — Buyer Coach + Mortgage (14h) + Investment Simulator #6 (+15h DatAlpine clone: per-unit ROI + Monte Carlo sensitivity + compare CETES/Fibras + freemium captador inversionistas)
 - Phase 20 Polish + Launch (23h)
+- **W4 marketing/pre-launch** (3h) — Free 30-min audit landing #17 (lead magnet asesores/devs)
 - F0 sweep restante (22h)
 - Cross-cutting CC1-4 (28h)
 - Buffer integration testing ~-16h optimistic
