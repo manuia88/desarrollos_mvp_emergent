@@ -13,7 +13,7 @@ import {
   Search, Layers, Home,
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
-  MessageSquare, Link, Store, HeartHandshake, Network, BarChart2,
+  MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -146,6 +146,7 @@ const SUPERADMIN_NAV = [
     items: [
       { key: 'dashboard',    to: '/superadmin',                          label: 'Dashboard',        Icon: LayoutDashboard, end: true },
       { key: 'tenants',      to: '/superadmin/tenants',                  label: 'Tenants',          Icon: Users },
+      { key: 'bulk-ingest',  to: '/superadmin/bulk-ingest',              label: 'Ingesta masiva',   Icon: FolderUp },
       { key: 'data-sources', to: '/superadmin/data-sources',             label: 'Data Sources',     Icon: Database },
       { key: 'scores',       to: '/superadmin/scores',                   label: 'Scores',           Icon: BarChart3 },
       { key: 'documents',    to: '/superadmin/documents',                label: 'Documentos',       Icon: FileText },
@@ -156,6 +157,7 @@ const SUPERADMIN_NAV = [
     label: 'Plataforma',
     items: [
       { key: 'drive',        to: '/superadmin/drive',                    label: 'Drive',            Icon: FolderOpen },
+      { key: 'health',       to: '/superadmin/health',                   label: 'Salud del sistema', Icon: Activity },
       { key: 'observability',to: '/superadmin/observability',            label: 'Observabilidad',   Icon: Eye },
       { key: 'audit-log',    to: '/superadmin/audit-log',                label: 'Auditoría',        Icon: Shield },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },

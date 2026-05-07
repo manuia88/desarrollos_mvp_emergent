@@ -1,6 +1,147 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W1.5 — ZZ.1.1 Ingestion Quality + Dedup Engine (2026-05-07)
+
+### Backend (`bulk_ingest_engine.py` + `routes_bulk_ingest.py`)
+- **NEW** `effective_extracted(item)` — applica `extracted_overrides[]` sobre `extracted` (last-write-wins por campo, deep merge para `price_range`, replace para `units`).
+- **NEW** `apply_inline_patch(db, item_id, patch, user_id)` — append override entry `{patch, user_id, ts}`; whitelist de campos editables (`project_name`, `address_full`, `lat`, `lng`, `total_units`, `amenities`, `price_range.{min,max}_mxn`, `units[].{unit_number,type,bedrooms,bathrooms,size_m2,price_mxn}`).
+- **NEW** `build_diff(db, item, target_dev_id)` — comparativa side-by-side entre effective extracted y target development (incluye unidades cargadas desde `db.units`); statuses por campo: `same | diff | missing_target | missing_ingest`; statuses por unidad: `same | diff | new | target_only`; summary con conteos.
+- **NEW** `recompute_item_extraction(db, item)` — re-descarga archivos Drive + re-ejecuta Claude Haiku, push antiguo a `extraction_history[]`, resetea `extracted_overrides[]` (base cambia), re-corre dedup.
+- `insert_extracted_project` y `merge_into_dev` ahora usan `effective_extracted(item)` para que las ediciones inline se apliquen al persistir.
+- **4 endpoints nuevos**:
+  - `PATCH /api/superadmin/bulk-ingest/items/{id}` — inline patch validado; 409 si item ya `approved/merged/rejected`; retorna `effective_extracted` actualizado.
+  - `GET /api/superadmin/bulk-ingest/items/{id}/diff?target_dev_id=` — diff JSON; default = `dedup.best_match_dev_id`.
+  - `POST /api/superadmin/bulk-ingest/items/{id}/recompute-extraction` — re-extrae con Claude; 409 si sin Drive; preserva histórico.
+  - `POST /api/superadmin/bulk-ingest/items/{id}/force-match` — body `{target_dev_id, mode: merge|approve_as_new}`; permite forzar match aunque score < 0.50.
+- Audit log entries para cada operación (`patch`, `recompute`, `force_match`).
+
+### Frontend
+- **NEW** `components/superadmin/InlineEditableField.js` — click-to-edit, Enter guarda, Esc cancela; soporte text/number/textarea; parser custom; estados busy/error.
+- **NEW** `components/superadmin/MergeDiffVisualizer.js` — panel side-by-side con grid `Campo | Ingesta → Destino | Estado`; chips de candidatos del dedup; toggle "Forzar por ID" para introducir dev_id arbitrario; botones "Fusionar" (estilo gradient) y "Forzar fusión / Aprobar como nuevo" cuando se fuerza.
+- **REWRITE** `ReviewQueueItem.js` — campos de cabecera ahora editables inline (nombre, dirección, total unidades, price min/max); muestra contador de overrides + recomputaciones; botón "Re-extraer" con confirmación (descarta overrides); botón "Comparar / Fusionar" abre `MergeDiffVisualizer`; toast in-component.
+- **API client** `superadminBulkIngest.js` — agrega `patchItem`, `getItemDiff`, `recomputeExtraction`, `forceMatch`.
+
+### Manual tests passed (curl + python fixture)
+- ✅ PATCH inline (project_name, lat) — overrides creciendo a 1
+- ✅ PATCH validation rechaza `hacked_field` con 400
+- ✅ PATCH `price_range.min_mxn` deep-merged correctamente
+- ✅ GET diff resuelve target via `dedup.best_match_dev_id`; statuses correctos por campo (`same/diff/missing_ingest`) y por unidad (`diff`)
+- ✅ recompute → 409 cuando no hay Drive conn (gate funcionando)
+- ✅ force-match modo `merge` → decision=`merged`, `force_matched=true`, units mergeadas con valores editados
+- ✅ PATCH bloqueado (409) tras decision final
+- ✅ `yarn build` compila sin warnings nuevos
+
+
+## W1.4 — ZZ.1 Bulk Drive Ingestion (2026-05-07)
+
+### Backend
+- **NEW** `bulk_ingest_engine.py` — pipeline async completo:
+  1. `parse_folder_id(url)` regex extrae folder_id de URL Drive
+  2. `_resolve_drive_conn(db, target_org)` reusa drive_engine OAuth (modo superadmin: usa primer drive_connection conectado si target_org no tiene)
+  3. `_list_folder_recursive(conn, folder_id)` lista archivos root + 1-level subfolders (max 200), agrupa en projects
+  4. `extract_bulk_project(name, payloads)` Claude Haiku via emergentintegrations con `CLAUDE_SEMAPHORE = asyncio.Semaphore(10)` rate limit; system prompt JSON-only es-MX para `{project_name, address_full, lat, lng, total_units, price_range, amenities, units[]}`; cost ballpark 0.50 MXN/call; fallback `_stub_extraction` si key/lib ausente
+  5. `find_dedup_matches(db, extracted, target_org)` rapidfuzz WRatio sobre `name + address` contra `db.developments`, top 3 matches con score
+  6. `insert_extracted_project(db, item)` schema disgregado: INSERT en `developments` + `units` (1 doc por prototipo) + `project_assets` (drive_reference por archivo)
+  7. `merge_into_dev(db, item, target_dev_id)` UPSERT units por `unit_number` + APPEND assets
+  8. `_email_completion(job)` Resend branded template (skip silencioso si no key)
+  9. `run(db, job_id)` orchestrator: setea status pending→extracting→reviewing/completed/failed, ai_budget gate, captura errors en `error_log[:50]`
+- **NEW** `routes_bulk_ingest.py` — 8 endpoints prefijados `/api/superadmin/bulk-ingest`, todos `require_superadmin`:
+  - `POST /start` valida URL + drive conn → crea job + dispara `asyncio.create_task(bie.run(...))` SIN bloquear response
+  - `GET /jobs?status=&limit=&skip=` paginated
+  - `GET /jobs/{id}` detail con last_items[50]
+  - `GET /jobs/{id}/items?decision=&limit=&skip=`
+  - `POST /items/{id}/approve` insert + audit + dec counter pending_review
+  - `POST /items/{id}/reject` body{reason} + audit
+  - `POST /items/{id}/merge` body{target_dev_id} + audit
+  - `POST /jobs/{id}/bulk-approve?threshold=0.85` aprueba todos con score < 0.65 O None (truly new)
+  - `GET /stats` KPIs: jobs_total, proyectos_ingested_total, pending_review_total, ai_cost_mes_mxn (aggregate)
+- **EDIT** `server.py` — registra router + `ensure_bulk_ingest_indexes` en startup (collections con índices unique on id, compound (status, started_at), (job_id, decision))
+- **REUSE** `drive_engine` OAuth + `_drive_service` + `_download_file_sync` + `_export_native_doc_sync` + `NATIVE_EXPORT_MAP` — modo superadmin agrega lookup global (sin development_id) sin modificar engine
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminBulkIngest.js` — header + 4 KPI strip + form Iniciar nueva ingesta (URL + dev_org_id opcional + btn gradient) + 2 tabs (Jobs históricos | Cola revisión con badge count) + FilterChipsBar status. Tab Jobs: lista de `IngestionJobCard` con status pill animada para extracting/pending. Tab Review: lista de `ReviewQueueItem` agregados de jobs con pending. Job detail drawer 3 tabs (Resumen+bulk-approve btn / Items list / Errores log). Auto-refresh cada 10s SOLO si hay jobs live (extracting/pending) y `tabVisibleRef`.
+- **NEW** `components/superadmin/IngestionJobCard.js` — id mono + status pill (pending/extracting/reviewing/completed/failed) + URL truncada + KPIs inline (Total/Aprobados verde/Pendientes amber/Rechazados/Fallidos rojo)
+- **NEW** `components/superadmin/ReviewQueueItem.js` — preview extracted (project_name + address + units count + amenities + price range) + dedup matches top 3 con score % colored (≥85 verde / 65-85 amber) + 3 botones [Aprobar gradient · Fusionar (oculto si no matches) · Rechazar] · expand toggle "Ver N prototipos" muestra unit chips · low_confidence/stub badge si extraction fallback · reject reason inline input
+- **NEW** `api/superadminBulkIngest.js` — 9 funciones (8 endpoints + getStats)
+- **EDIT** `App.js` ruta `/superadmin/bulk-ingest` (lazy + AdvisorRoute), `config/navByRole.js` SUPERADMIN_NAV tier 1 agrega "Ingesta masiva" (icon FolderUp) DESPUÉS de Tenants. `i18n/es-MX/common.json` sección `bulk_ingest.*`
+
+### Tests (curl + yarn build + screenshot)
+- ✅ `yarn build` clean · lint 0 issues
+- ✅ `GET /jobs` empty list · `GET /stats` shape correcto
+- ✅ `POST /start` con URL malformada → 400 "URL de carpeta Drive inválida"
+- ✅ `POST /start` con URL válida + sin drive conn → 409 "No hay conexión Drive activa. Conecta Drive primero." (esperado en preview env sin OAuth setup)
+- ✅ Non-superadmin → 403 en TODOS endpoints
+- ✅ Smoke screenshot: page renderea con KPIs + form + tabs + empty state, sidebar "Ingesta masiva" highlighted entre Tenants y Data Sources
+
+### Edge cases manejados (decisiones conservadoras)
+- `EMERGENT_LLM_KEY`/`ANTHROPIC_API_KEY` ausente → `_stub_extraction` con `_low_confidence:true` (no crash, item entra a pending_review)
+- `rapidfuzz` no instalado → return matches=[] (no crash, item va a auto_approve como nuevo)
+- AI budget exceeded → job marca `status="failed"` con `error_log=["AI budget exceeded for this org/month"]` antes de listar archivos
+- Drive connection ausente → 409 en /start, no crea job huérfano
+- Folder vacío → items_total=0, status="completed"
+- Subfolders sin archivos ingestables → no se crea item (skip silencioso)
+- Drive download falla per-file → captura en error_log, sigue con resto (no aborta job)
+- Claude extraction falla → fallback a stub, item entra como pending_review (founder revisa)
+- Concurrencia: `asyncio.Semaphore(10)` global limita Haiku paralelos
+- Reject reason mín 3 chars validation client-side
+- Merge requiere matches del dedup (botón solo aparece si matches.length > 0)
+- Bulk-approve solo procesa items con score `< 0.65` o `None` (evita auto-merge accidental al 85%+)
+- Auto-refresh pausa con `document.hidden` para no consumir API calls
+- 1 nivel de subfolders solamente (max 200 files total) — files anidados deeper se ignoran (decisión conservadora vs explosion)
+- `target_dev_org_id` opcional: si vacío, dedup se hace global y proyectos van a `developer_id="superadmin_global"` (founder asigna después)
+
+
+
+## W1.3 — SA1.2 System Health Dashboard (2026-05-07)
+
+### Backend
+- **NEW** `cron_heartbeat.py` — `wrap_apscheduler_job(fn, job_id)` decorator que captura start/end/duration/excepciones en `db.cron_heartbeats`; `is_stale(hb)` (>2× schedule_interval); `SCHEDULE_LABELS` + `SCHEDULE_INTERVAL_SEC` para 13 jobs; `set_db()` helper; `ensure_heartbeat_indexes`.
+- **NEW** `routes_superadmin_health.py` — 5 endpoints prefijados `/api/superadmin/health`, todos con `require_superadmin`:
+  - `GET /overview` → uptime_24h_pct (de observability_events probe_run · fallback 99) · probe_pass_rate_7d (de diagnostic_probe_runs) · etl_status (worst de 4 ETL job_ids) · crons_total/failing · alerts open critical/warning + last_critical_alert · services [{name, status, last_check_at}] (backend_api/mongodb/apscheduler/resend/claude_haiku/claude_sonnet)
+  - `GET /crons` → list `cron_heartbeats` + ítems pending para job_ids registrados sin heartbeat aún · adds `stale` y `computed_status`
+  - `GET /alerts?status=open|resolved|all&severity=&limit=&skip=` → list ordenados ts desc
+  - `POST /alerts/{id}/resolve` → idempotente · audit `alert_resolved`
+  - `POST /alerts/test` → inserta system_alert(severity=info, source="founder_test")
+- **NEW** Critical check engine `health_critical_check(db)` registrado en APScheduler cada 5 min:
+  - Detecta heartbeats stale (>2× interval) o `fail_count_24h >= 3`
+  - Inserta `system_alerts(severity=critical)` solo si no hay open mismo source
+  - Email Resend a `ADMIN_EMAIL` (env) con throttle 1/hora per source vía `metadata.email_sent_at`
+  - Branded HTML template DMX (navy + cream + rose accent) sin shadow-2xl
+- **EDIT** `scheduler_ie.py` — instrumentados 9 crons existentes con `wrap_apscheduler_job`: ie_daily_ingestion, ie_hourly_status, ie_daily_score_recompute, drive_watcher, drive_webhook_renew, unit_holds_release, health_score_snapshots, weekly_brief_generation, oauth_token_refresh + registra `health_critical_check` en startup.
+- **EDIT** `server.py` — `include_router(superadmin_health_router)` + `ensure_heartbeat_indexes` en startup.
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminHealth.js` — 4 KPI cards (Uptime 24h · Probes 7d · Crons OK% · Alertas abiertas) con color verde >95 / amber 70-95 / rojo <70. 4 secciones: Servicios (grid auto-fill 220px), Crons (grid auto-fill 280px), Probes (link card → `/superadmin/system-map` con pass rate 7d), Alertas (feed con tabs Abiertas/Resueltas/Todas + paginated 20 + Cargar más). Test alert btn (yellow pill). Auto-refresh `loadOverview+loadCrons+loadAlerts` cada 30s con `document.visibilitychange` listener (pausa cuando tab hidden).
+- **NEW** `components/superadmin/CronCard.js` — job_id label, schedule humanizado, status pill (ok/fail/stale/pending), last_run relative, duration_ms, runs/fails 24h, last_error si presente.
+- **NEW** `components/superadmin/AlertItem.js` — severity icon + color (critical/warning/info), source en mono, ts relative, message, btn "Resolver" cuando open. Estilos resolved: opacity 0.65 + badge "Resuelta" verde.
+- **NEW** `api/superadminHealth.js` — getHealthOverview, getCrons, getAlerts, resolveAlert, triggerTestAlert.
+- **EDIT** `App.js` — ruta `/superadmin/health` (lazy + AdvisorRoute), `config/navByRole.js` SUPERADMIN_NAV tier 2 agrega "Salud del sistema" (icon Activity) ANTES de "Observabilidad" (Audit Log = Auditoría queda después). `i18n/es-MX/common.json` sección `health.*`.
+
+### Tests (curl + yarn build + screenshot)
+- ✅ `yarn build` clean · lint 0 issues
+- ✅ `GET /overview` → shape exacto: uptime_24h_pct, probe_pass_rate_7d, etl_status, crons_total/failing, alerts open critical/warning, last_critical_alert, services[6], ts; <500ms
+- ✅ `GET /crons` → 13 placeholders pending (los crons aún no han corrido en este preview env)
+- ✅ `GET /alerts` → empty list inicial
+- ✅ `POST /alerts/test` → inserta info alert visible en feed inmediatamente; smoke screenshot lo confirma
+- ✅ `POST /alerts/{id}/resolve` → ok + idempotente (`already_resolved:true`)
+- ✅ Critical check: forzando `cron_heartbeats.last_run_at` a hace 3 días para `ie_daily_score_recompute`, llamando `health_critical_check(db)` directamente → genera 1 critical alert con source `cron:ie_daily_score_recompute`, throttle 1/hora vía `metadata.email_sent_at`
+- ✅ Email Resend en stub mode (sin RESEND_API_KEY/ADMIN_EMAIL): skip silencioso con log `[health-critical] skip email` (no rompe critical alert insertion)
+- ✅ Non-superadmin → 403 en TODOS endpoints
+- ✅ Smoke screenshot `/superadmin/health` → 6 services pills, 13 cron cards visibles, alert critical "cron:ie_daily_score_recompute" mostrado en feed con btn Resolver, sidebar nav "Salud del sistema" highlighted entre Drive y Observabilidad
+
+### Edge cases manejados
+- `db.observability_events` o `db.diagnostic_probe_runs` vacías → fallback 99% (no error)
+- `RESEND_API_KEY` o `ADMIN_EMAIL` ausentes → skip email silencioso, alert critical sigue insertándose
+- Email throttle vía `metadata.email_sent_at` (no per-process state, sobrevive restarts)
+- Stale detection robusta a `last_run_at` malformado → tratado como stale (conservador)
+- `mongodb` health vía `db.command("ping")` async, fail-safe con error capturado
+- Auto-refresh pausa con `document.hidden` (visibilitychange listener) — preserva batería + ahorra API calls
+- 13 SCHEDULE_LABELS conocidos: si un cron no está heartbeated, aparece como "Pendiente" en `/crons` para visibilidad (no se pierde info de que existe)
+- run_count_24h/fail_count_24h: increment-only (diseño simple); se podría agregar sliding window con TTL en una iteración futura
+
+
+
 ## W1.2 — SA1.1 Tenants Management UI (2026-05-07)
 
 ### Backend
