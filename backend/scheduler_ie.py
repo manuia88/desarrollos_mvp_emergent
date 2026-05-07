@@ -342,6 +342,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_trial_expiry_error", error=str(e))
 
+    # W2.5 SA6 — Metrics Cube daily aggregation cron (2:15am MX)
+    try:
+        from routes_superadmin_metrics_cube import schedule_metrics_cube_daily_aggregation
+        schedule_metrics_cube_daily_aggregation(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_metrics_cube_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

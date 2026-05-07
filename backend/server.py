@@ -158,6 +158,11 @@ from trial_expiry_cron import ensure_trial_alerts_indexes
 app.include_router(superadmin_commercial_router)
 app.include_router(me_feature_flags_router)
 
+# W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
+from routes_superadmin_metrics_cube import router as superadmin_metrics_cube_router
+from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
+app.include_router(superadmin_metrics_cube_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -593,6 +598,11 @@ async def startup():
         logging.info(f"[startup] commercial seeds: {seed_result}")
     except Exception as e:
         logging.warning(f"[startup] commercial init failed: {e}")
+    # W2.5 SA6 — Metrics Cube indexes
+    try:
+        await ensure_metrics_cube_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] metrics cube indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

@@ -1,6 +1,69 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.5 — SA6 Granular Metrics Cube UI (2026-05-07)
+
+### Backend
+- **NEW** `metrics_cube_aggregations.py` — geo-tier rollup engine:
+  - `aggregate_tier(db, tier, period)` — UPSERT en `cube_aggregations` por (tier, tier_id, period). Periods: `current|7d|30d|90d`.
+  - `_all_developments(db)` — merge de `data_developments.DEVELOPMENTS` (seed) + `db.developments` (ingested). Mongo override seed por id.
+  - `_leads_per_dev` + `_ai_usage_per_tenant` — filtran por período (since iso) y agregan por dev/tenant.
+  - `_finalize` — calcula `avg_price_mxn`, `avg_price_per_m2`, `conversion_rate` (`sold/(sold+available+reserved)*100`), `days_on_market_avg`, `ie_score_promedio`.
+  - `find_comparables(db, tier_id, radius_km)` — Haversine query devs ≤ radio. Top sorted by distancia.
+  - `metrics_cube_daily_aggregation` — entrypoint cron (city + alcaldia + colonia + development × 4 periods = 16 rollups, ~0.1s en seed actual).
+  - `ensure_indexes` — `(tier, tier_id, period)` unique + `(parent_tier_id, tier, period)`.
+- **NEW** `routes_superadmin_metrics_cube.py` — prefix `/api/superadmin/metrics-cube`, 7 endpoints + 1 manual recompute, `require_superadmin` en todos:
+  1. `GET /tiers` — jerarquía + counts {city:1, alcaldia:6, colonia:15, development:18, unit:508}.
+  2. `GET /heatmap?metric&tier&period&bbox` — geojson points para Mapbox; rechaza >500 puntos sin bbox (HTTP 400).
+  3. `GET /comparables?tier_id&radius_km&limit` — top 20 nearby con distancia + sparkline price_history[-12].
+  4. `GET /unit/{unit_id}` — micro detalle: unit + dev + price_history (units_history fallback dev.price_history) + leads + ie_score_zone. Busca en seed (`ALL_UNITS`/`DEVELOPMENTS_BY_ID`) → mongo `db.units` → embedded `db.developments.units`.
+  5. `POST /refresh` — manual recompute (16 rollups).
+  6. `GET /{tier}` — list nodes con sortable cols, search, parent_id filter, paginado 50.
+  7. `GET /{tier}/{tier_id}/children` — children del siguiente tier con KPIs comparables. Para `unit`: lee de seed primero, luego `db.units`.
+  8. `GET /{tier}/{tier_id}` — detail node + children. On-demand compute si missing.
+  - **Route order crítico**: `/tiers`, `/heatmap`, `/comparables`, `/unit/{id}`, `/refresh` declarados ANTES de `/{tier}` para evitar shadowing por Pydantic Literal validation.
+- **EDIT** `server.py` — wire router + `ensure_metrics_cube_indexes` en startup tras commercial init.
+- **EDIT** `scheduler_ie.py` — registra cron `metrics_cube_daily_aggregation` con `cron_heartbeat.wrap_apscheduler_job` a las 02:15 MX (instrumentado).
+
+### Frontend
+- **NEW** `api/superadminMetricsCube.js` — 7 funciones (`getTiers`, `listTier`, `getTierDetail`, `getTierChildren`, `getHeatmap`, `getComparables`, `getUnitDetail`, `refreshAggregations`).
+- **NEW** `components/superadmin/CubeBreadcrumb.js` — chips chevron rounded-full clickables; último activo `linear-gradient(90deg,#6366F1,#EC4899)` (gradient único). Navega backwards via `onNavigate(index)`.
+- **NEW** `components/superadmin/CubeKpiStrip.js` — 6 stat cards: proyectos · unidades · $/m² · conversión · DOM · IE score. Color amber `rgba(250,204,21,0.30)` si conv<5%, rojo `rgba(239,68,68,0.30)` si DOM>180. Mobile stack 2x3 via flex-wrap.
+- **NEW** `components/superadmin/CubeHeatmap.js` — Mapbox dark-v11 500px height. `valueToColor(v,min,max)` interpola `#6366F1`→`#EC4899` linear. Markers sized 14-40px proporcional a `units_total/maxUnits`. Hover popup con name+metric+units. Click → emit `onDrill(point)`. Auto-fitBounds. Fallback "Mapa no disponible" si falta token.
+- **NEW** `components/superadmin/CubeDrilldownTable.js` — sortable density-aware: name · unidades · disponibles · precio prom · conv% · leads · IE. Pagination 50/page con prev/next. Click row o botón "Drill" → emit `onDrill(row)`. Empty state con copy es-MX.
+- **NEW** `pages/superadmin/SuperadminMetricsCube.js` — orquesta:
+  - PageHeader + period switcher chips `[Actual · 7d · 30d · 90d]` + button "Refrescar agregados" con spin animation.
+  - `<CubeBreadcrumb/>` arriba con `path` state stack.
+  - `<CubeKpiStrip/>` con KPIs del nodo actual.
+  - Layout 2 columnas (mobile stack <md): heatmap izquierda + tabla derecha. Heatmap tier auto-resuelve `HEATMAP_TIER_BY_LEVEL[cur.tier]` (city→alcaldia, alcaldia→colonia, colonia→development).
+  - Heatmap metric selector chips: $/m² · precio · leads · conversión · unidades.
+  - Search filter chip + counter children.
+  - Click row/dot → push path → re-fetch detail+heatmap+kpis (sin reload de página).
+  - Si `tier=development`: muestra `<ComparablesPanel/>` collapsible (default cerrado) con radius selector [1·2·5·10]km y lista 20 nearby.
+  - Si tier child clicked es unit: abre `<UnitDetailView/>` con histórico de precios sparkline (W2.3 pattern reuse), IE score zona, leads asociados, y back button.
+- **EDIT** `App.js` — lazy import `SuperadminMetricsCube` + Route `/superadmin/metrics-cube`. Al pasar, también wire pendiente `SuperadminCommercial` que existía sin route (carryover de W2.4).
+- **EDIT** `config/navByRole.js` — `SUPERADMIN_NAV` tier 2 "Plataforma": añadidos "Comercial" (Briefcase, carryover de W2.4 sin nav previa) + "Cubo de métricas" (Layers) tras Costos IA.
+
+### KPIs validados (curl con cookie superadmin contra preview)
+- `/tiers` → `{city:1, alcaldia:6, colonia:15, development:18, unit:508}`
+- `/refresh` → 16 rollups en 0.09s; ejemplos: `Cuauhtémoc=178u`, `Miguel Hidalgo=118u`, `Benito Juárez=96u`
+- `/alcaldia/miguel-hidalgo/children` → `[Polanco, Anzures, Lomas de Chapultepec]`
+- `/colonia/polanco/development/altavista-polanco/children` → 56 units (`02A=$14.8M`, etc.)
+- `/heatmap?metric=avg_price_per_m2&tier=colonia` → 15 puntos. Anzures=66.4k, Condesa=92.5k, Polanco=…
+- `/comparables?tier_id=altavista-polanco&radius_km=2` → `[Polanco Moderno (0km), Anzures Classic (1.76km)]`
+- `/unit/altavista-polanco-02A` → unit+dev+price_history+leads+ie_score_zone resuelve desde seed.
+- 403 con asesor / 401 sin login → ✅
+
+### Edge cases / NOTAS
+- `data_developments.DEVELOPMENTS` es source-of-truth seed (in-memory), no persistido en mongo. Cube agrega de seed+mongo merge; row mongo prevalece sobre seed por id collision.
+- Routes order: `/heatmap` falla con 422 literal_error si llega a `/{tier}`. Ordenamos manualmente.
+- `data-testid` en TODO interactivo: cube-period-{key}, cube-refresh-btn, cube-breadcrumb-{tier}, cube-heatmap, cube-heatmap-dot-{id}, cube-row-{id}, cube-drill-{id}, cube-comparables-toggle, cube-comp-{id}, cube-comp-radius-{km}, cube-search, cube-page-prev/next, cube-unit-detail, cube-unit-back, cube-unit-sparkline, cube-kpi-{slot}, cube-loading, cube-toast, cube-heatmap-metric-{key}.
+- Mobile <900px: grid colapsa a 1 columna (heatmap arriba, tabla abajo) via `@media`.
+- Cron `metrics_cube_daily_aggregation` 02:15 MX instrumentado en heartbeat → aparece en `/superadmin/health`.
+- NO se incluyó country/state real (H1 = solo CDMX hardcoded). NO histórico time-series full. NO export CSV. NO Phase Z.0/Z.1 backend cube — UI solo cambia source si Z.0/Z.1 ship.
+
+
+
 ## W2.3 — SA4 AI Cost Observatory (2026-05-07)
 
 ### Backend

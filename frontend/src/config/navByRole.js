@@ -160,6 +160,8 @@ const SUPERADMIN_NAV = [
       { key: 'observability',to: '/superadmin/observability',            label: 'Observabilidad',   Icon: Eye },
       { key: 'audit-log',    to: '/superadmin/audit-log',                label: 'Auditoría',        Icon: Shield },
       { key: 'ai-cost',      to: '/superadmin/ai-cost',                  label: 'Costos IA',        Icon: DollarSign },
+      { key: 'commercial',   to: '/superadmin/commercial',               label: 'Comercial',        Icon: Briefcase },
+      { key: 'metrics-cube', to: '/superadmin/metrics-cube',             label: 'Cubo de métricas', Icon: Layers },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },
