@@ -168,6 +168,14 @@ from routes_superadmin_founder_console import router as superadmin_founder_conso
 from anomaly_detection_engine import ensure_indexes as ensure_founder_anomaly_indexes
 app.include_router(superadmin_founder_console_router)
 
+# W2.7 Phase Z.0 — Data Lake (time-series facts + ETL + model validation)
+from routes_superadmin_data_lake import router as superadmin_data_lake_router
+from data_lake_etl import (
+    ensure_facts_indexes as ensure_data_lake_indexes,
+    seed_dim_zones as seed_data_lake_dim_zones,
+)
+app.include_router(superadmin_data_lake_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -613,6 +621,13 @@ async def startup():
         await ensure_founder_anomaly_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] founder anomaly indexes failed: {e}")
+    # W2.7 Phase Z.0 — Data Lake indexes + dim_zones seed
+    try:
+        await ensure_data_lake_indexes(db)
+        seed_summary = await seed_data_lake_dim_zones(db)
+        logging.info(f"[startup] data lake dim_zones seed: {seed_summary}")
+    except Exception as e:
+        logging.warning(f"[startup] data lake init failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

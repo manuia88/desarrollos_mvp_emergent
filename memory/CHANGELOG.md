@@ -1,6 +1,77 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.7 — Phase Z.0 Data Lake Foundation (2026-05-07)
+
+### Backend (3 nuevos · 3 editados)
+- **NEW** `data_lake_etl.py`:
+  - `ensure_facts_indexes(db)` — crea `db.facts_daily_zone` como **MongoDB time-series collection nativa** (timeField=ts, metaField=meta, granularity=hours). Fallback a regular collection si MongoDB <5.0. Indexes secundarios `(meta.zone_id, meta.tier, ts desc)` + `dim_zones (tier, zone_id) unique` + `2dsphere on geo.polygon` + `etl_runs(run_at desc)` + `model_validation_runs(model_name, run_at desc)`.
+  - `seed_dim_zones(db)` — **idempotente startup**: city CDMX root + 16 alcaldías (con población 2020 INEGI) + colonias desde `data_seed.COLONIAS` (close polygon ring para 2dsphere) + developments desde `data_developments.DEVELOPMENTS`. Total: 51 zonas seeded.
+  - `run_daily_etl(db, target_date, run_type, triggered_by)`:
+    1. Refresh `metrics_cube_aggregations.aggregate_all` (W2.5 reuse, no duplicación de roll-up logic).
+    2. Para cada zona × tier: lee `cube_aggregations` current snapshot → INSERT a `facts_daily_zone` con `ts=target_date`.
+    3. INSERT `etl_runs` summary; si errors > 5 → INSERT `system_alerts` critical.
+  - `coverage_per_tier(db, tier, days)` — % zonas con fact en ventana N días + missing_zone_ids (max 50).
+  - `schedule_data_lake_etl_cron(scheduler, db)` — cron diario 03:00 MX (después de metrics-cube 02:15) instrumentado en `cron_heartbeat`. Wraps `run_daily_etl` + `run_all_validations` post-ETL.
+- **NEW** `model_validation_engine.py`:
+  - `compute_metrics(predictions, actuals) -> {r_squared, rmse, mape, sample_size, ci_95}` — fórmulas estadísticas estándar + bootstrap 95% CI t-aproximado.
+  - 2 validators V1 registrados:
+    - `cube_avg_price` — predicted (90d period) vs actual (current) por colonia.
+    - `metrics_cube_kpis` — yesterday units_total vs today (consistency check de snapshots).
+  - V2 deferred Wave 3: `drpi_hedonic`, `risk_score`, `construction_cost`.
+  - `validate_model(db, model_name, predictions?, actuals?)` — INSERT `model_validation_runs`.
+  - `run_all_validations(db)` — corre todos V1.
+  - `latest_per_model(db)` — last run por modelo (con `no_data:true` si nunca corrió).
+- **NEW** `routes_superadmin_data_lake.py` — prefix `/api/superadmin/data-lake` (require_superadmin) + `/api/data-lake/public/validation` (sin auth):
+  1. `GET /etl-runs?status&limit&skip` — paginado + tally `ok_7d/total_7d` + `last_run`.
+  2. `POST /etl/trigger {target_date?}` — manual run, audit. Auto-corre validaciones post-ETL.
+  3. `GET /coverage?tier&days` — `tier` opcional, sin → list todos.
+  4. `GET /validation-metrics?model_name&limit` — items + `latest_per_model` + `avg_r_squared` + registered_models.
+  5. `POST /validation/run-now` — manual recompute V1 validators.
+  6. `GET /api/data-lake/public/validation` (**PÚBLICO, NO auth**) — shape limitado para `/methodology` page Wave 3 ZZ.3: `[{name, r_squared_latest, rmse_latest, mape_latest, sample_size, last_validated, validation_method, training_window_days}]` + disclaimer es-MX. NO data interna, NO rows.
+- **EDIT** `server.py` — wire router + ensure_indexes + seed_dim_zones (idempotente) en startup.
+- **EDIT** `scheduler_ie.py` — registra cron `data_lake_etl_daily` con `_emit("scheduler_data_lake_etl_error")` fallback.
+- **EDIT** `cron_heartbeat.py` — labels + intervals para `data_lake_etl_daily` (visible en `/superadmin/health/crons` → 19 jobs total).
+
+### Frontend (4 nuevos · 2 editados)
+- **NEW** `api/superadminDataLake.js` — 6 funciones cliente (incluyendo `getPublicValidation()` sin auth header).
+- **NEW** `components/superadmin/EtlRunsTable.js` — density-aware (compact|dense). Cols: Run (timestamp + relative) · Estado pill (verde ok / amber partial / rojo failed con icon) · Duración · Zonas · Errores · expand chevron. Click row → expanded TR con full error log + run_id + target_date + KPIs computed. Empty state.
+- **NEW** `components/superadmin/ValidationMetricsTable.js` — tabla sortable por R² desc. Cols: Modelo (label es-MX + technical id) · R² (color verde≥0.7, amber 0.5-0.7, rojo <0.5) · RMSE · MAPE · Sample size · Validado relative. **Header tooltips** explicando cada métrica al hover (qué significa R²/RMSE/MAPE en español MX). KPI banner R² promedio arriba.
+- **NEW** `pages/superadmin/SuperadminDataLake.js`:
+  - PageHeader "Data Lake" + 3 buttons (Validar modelos · Trigger ETL manual con confirm modal · Refrescar).
+  - KPI strip 4 cards: ETL runs 7d (ok/total), Cobertura promedio %, Último ETL relative, Salud validación R² promedio. Color-coded thresholds.
+  - 2-col layout (mobile <md stack): EtlRunsTable izquierda + ValidationMetricsTable derecha.
+  - Coverage panel collapsible bottom: per-tier bar chart con `width: ${pct}%` + missing count badge (rojo) → click abre modal con lista IDs faltantes.
+  - **Auto-refresh 60s** mientras `document.visibilityState==='visible'`.
+  - ConfirmTriggerModal advierte "recomputará agregados + writeback `facts_daily_zone` + validaciones, ~1-2s".
+- **EDIT** `App.js` — lazy `SuperadminDataLake` + Route `/superadmin/data-lake`.
+- **EDIT** `config/navByRole.js` — `SUPERADMIN_NAV` tier 2 añade "Data Lake" (Database icon) tras "Cubo de métricas".
+
+### Validaciones (curl + cookie superadmin):
+- `/etl-runs` → empty list inicial; `/etl/trigger` → `id=etl_..., status=ok, zones=51, errors=0, duration=0.16s` ✅
+- `/coverage` → city=1/1, alcaldia=16/16, colonia=16/16, development=18/18 (100% across tiers) ✅
+- `/validation/run-now` → `cube_avg_price r²=1.0 rmse=0.0 mape=0.0 n=15` (perfect porque snapshot=snapshot al primer run, esperado), `metrics_cube_kpis n=0` (necesita 2 días de facts) ✅
+- `/validation-metrics` → `avg_r_squared=1.0`, latest_per_model con shape correcto ✅
+- `/api/data-lake/public/validation` (sin auth) → 200 OK con `models[]` shape limitado + disclaimer ✅
+- 401 anon en endpoints superadmin / 403 asesor → ✅
+- `/superadmin/health/crons` → `data_lake_etl_daily · diario · 03:00 MX` registrado (19 jobs total) ✅
+- yarn build CLEAN (solo warnings pre-existentes) ✅
+
+### Edge cases / NOTAS
+- **GeoJSON polygon close**: data_seed.COLONIAS tenía rectangles abiertos (4 vértices). Cerramos automáticamente (append first vertex) antes de upsert dim_zones para satisfacer 2dsphere index. Sin cierre → `Loop is not closed` error 16755.
+- **Time-series collection**: si MongoDB <5.0, `create_collection(timeseries=...)` falla → cae a regular collection (logged warning, no fatal). Operación CRUD idéntica.
+- **R²=1.0 inicial**: validador `cube_avg_price` compara snapshot 90d vs current — al primer ETL run son idénticos (no hay drift histórico). Conforme corra cron diario, valores divergerán naturalmente y R² descenderá hacia rangos realistas (0.7-0.95). Esto es **comportamiento correcto** del validador snapshot-vs-snapshot.
+- **`metrics_cube_kpis` sample=0**: necesita ≥2 días de facts (yesterday vs today). Después del segundo cron run a las 03:00 MX retornará valores reales.
+- **NO PostgreSQL/TimescaleDB** (per spec): MongoDB native time-series elimina dual-stack infra. 2dsphere geo support nativo.
+- **NO migra developments/units**: `facts_daily_zone` es agregación derivada — operational data sigue en `db.developments` + `db.units` existing.
+- **NO Redis cache** (defer Z.1 W2.8) · **NO export endpoint** (defer Z.3 W3.7) · **NO breaking changes en metrics_cube W2.5** — solo CALL su `aggregate_all`.
+- **AGEB tier**: schema soporta tier `ageb` y endpoint coverage acepta filter, pero no hay seed AGEB INEGI 2020 todavía (deferido a W3 batch INEGI con 2455 AGEBs CDMX shapefile real).
+- **`triggered_by`**: cron usa `"cron"`, manual usa `user.user_id` para audit trail.
+- **System alert integration**: si ETL fallido (status=failed) o errors>5 → INSERT en `db.system_alerts` con severity=critical (W1.3 pipeline picks up + email Resend si configured).
+- data-testid completos: superadmin-data-lake, data-lake-toast, data-lake-trigger, data-lake-validate-now, data-lake-refresh, data-lake-kpi-{runs/coverage/last/validation}, data-lake-loading-{runs/val}, etl-runs-table, etl-row-{id}, etl-row-expanded-{id}, etl-table-empty, validation-metrics-table, validation-row-{model_name}, validation-empty, coverage-panel, coverage-toggle, coverage-missing-{tier}, coverage-missing-modal, trigger-confirm-modal, trigger-confirm.
+
+
+
 ## W2.6 — SA8 Founder Console (2026-05-07)
 
 ### Backend

@@ -138,6 +138,8 @@ const SuperadminCommercial           = lazy(() => import('./pages/superadmin/Sup
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 // W2.6 SA8 — Founder Console (root /superadmin)
 const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
+// W2.7 Phase Z.0 — Data Lake foundation
+const SuperadminDataLake             = lazy(() => import('./pages/superadmin/SuperadminDataLake'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -473,6 +475,7 @@ function AppRouter() {
       <Route path="/superadmin/ai-cost" element={<AdvisorRoute Page={SuperadminAiCost} />} />
       <Route path="/superadmin/commercial" element={<AdvisorRoute Page={SuperadminCommercial} />} />
       <Route path="/superadmin/metrics-cube" element={<AdvisorRoute Page={SuperadminMetricsCube} />} />
+      <Route path="/superadmin/data-lake" element={<AdvisorRoute Page={SuperadminDataLake} />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
