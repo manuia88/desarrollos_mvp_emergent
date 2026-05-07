@@ -1,6 +1,66 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.2 — SA3 Audit Log Viewer (2026-05-07)
+
+### Backend
+- **NEW** `routes_superadmin_audit.py` — prefix `/api/superadmin/audit`, todos `require_superadmin` (sin scoping). 7 endpoints:
+  1. `GET /entries` — paginated cross-org con filtros (actor_user_id, actor_role, entity_type, entity_id, action, tenant_id, severity, from_ts, to_ts, q regex). action=`mutations` se traduce a un `$in` con la canonical write-actions list (incluye patch/merge/approve/reject/force_match/recompute/test/retry/replay).
+  2. `GET /entries/{id}` — full detail. Si `entity_type=bulk_ingest_item` enriquece con `extracted_overrides[]`, `extraction_history[]` y `ai_extracted` desde `db.bulk_ingest_items` → cierra W1.5 panel deferred sin prompt extra.
+  3. `GET /entity/{type}/{id}/timeline` — chronological (asc), max 500 entries, flag `truncated`.
+  4. `GET /export?format=csv|json` — `StreamingResponse` async generator. CSV cols `ts,action,entity_type,entity_id,actor_user_id,actor_role,actor_tenant,severity,before_json,after_json`. Header `Content-Disposition` con timestamp. **413** si `total > 10000` con detalle "Filtra más estrictamente".
+  5. `GET /distinct/actors` — agg pipeline `$group $actor.user_id` con last_seen + count. **In-memory cache 60s** (estructura `_actors_cache` con `ts/data`, hit retorna `cached:true`).
+  6. `GET /distinct/entity-types` — mismo patrón, top 100.
+  7. `GET /stats` — KPIs 24h: `total_24h, critical_24h, mutations_24h, reads_24h`.
+- **EDIT** `audit_log.py` — añadido `build_filter_query(filters, base?)` reutilizable que abstrae la lógica de query (compatible con `_scope_filter` existente; los endpoints scoped no se tocaron).
+- **EDIT** `server.py` — wired `superadmin_audit_router` y `ensure_superadmin_audit_indexes` en startup. Indexes nuevos: `(action, ts desc)` y `(severity, ts desc)` parcial.
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminAuditLog.js` — `<SuperadminLayout>`:
+  - Header "Auditoría" + 4 KPIs (Total 24h · Critical · Mutations · Reads) + botones "Refrescar" + "Exportar" (gradient)
+  - 2 filas de filtros: severity chips · action chips (Todas | Solo mutaciones)
+  - Search bar con icon Search, debounce 300ms en `q`
+  - Botón "Más filtros" toggle → panel grid responsive con `<AutocompleteField>` (actor + entity_type usando `/distinct/*` 60s cache), `<TextField>` (entity_id, tenant_id), `<DateField>` (from_ts/to_ts)
+  - Filtros sincronizados en URL (`useSearchParams`) → enlaces compartibles + restoring desde drawer "Ver historial completo"
+  - Chip "Limpiar (N)" cuando hay filtros activos
+  - Lista clickeable hover translateY(-1px); pills severity + action + diff_keys (top 6 + "+N más")
+  - Botón "Cargar más" pagination skip+=50
+  - Empty state cuando 0 resultados
+  - `<ExportModal>`: radio CSV/JSON + preview "N registros serán exportados" + bloqueo visual rojo si N>10000 + descarga via anchor (cookie auth)
+- **NEW** `components/superadmin/AuditEntryDrawer.js` — 3-4 tabs dinámicos:
+  - **Detalle**: grid de DetailItems (ts, actor, tenant, IP, route, request_id) + diff_keys pills
+  - **Diff**: usa `<BeforeAfterDiff>` reusable
+  - **Edición inline (N)** *(automático cuando entity_type=bulk_ingest_item)*: lista de overrides cronológicos con `key: AntiguoAI → NuevoOverride` strikethrough + Historial AI con extractions previas (timestamp + costo MXN)
+  - **Timeline entidad**: lista cronológica + botón "Ver historial completo" → navega a `/superadmin/audit-log?entity_type=X&entity_id=Y`
+- **NEW** `components/superadmin/BeforeAfterDiff.js` — componente reutilizable. Recibe `{before, after}` JSON. Clasifica keys: added (verde +) / removed (rojo -) / updated (amber →) / same. Grid `120px | 1fr | 14px | 1fr`. Botón "+N campos sin cambios" colapsable. Empty state si no hay payload.
+- **NEW** `api/superadminAudit.js` — 6 funciones + helper `exportUrl`.
+- **EDIT** `App.js` — route `/superadmin/audit-log` ahora apunta al SA3 viewer; legacy `AuditLogPage` accesible en `/superadmin/audit-log-legacy`.
+- **navByRole** — item "Auditoría" tier 2 ya existía; `to:/superadmin/audit-log` confirmado, no se modifica.
+
+### Manual tests passed (curl)
+- ✅ `GET /entries` cross-org → 174 entries; filtro `q=connector` → 4 matches; filtro `action=mutations` → 107
+- ✅ `GET /entries/{id}` → before/after/diff_keys completos; entry sin entity_id → enrichment vacío sin crash
+- ✅ Bulk-ingest enrichment: synthetic fixture insertado → drawer expone `ai_extracted`, `extracted_overrides[1]`, `extraction_history[1]` (tab "Edición inline" auto-render)
+- ✅ `GET /entity/connector/mapbox_geocoding/timeline` → 3 events (test, retry, replay) en orden cronológico
+- ✅ `GET /export?format=csv` → CSV streamed con header + 4 rows (action=mutations preset funciona)
+- ✅ `GET /export?format=json` → array JSON parseado correctamente
+- ✅ `GET /export` con 10001 docs sintéticos → **HTTP 413** "Demasiados registros (10001). Filtra más estrictamente (máx 10000)."
+- ✅ `GET /distinct/actors` → 10 actors agregados; segunda llamada `cached:true` (60s TTL)
+- ✅ `GET /distinct/entity-types` → 54 types ordenados por count desc
+- ✅ `GET /stats` → totales 24h calculados
+- ✅ Non-superadmin → 403 "Solo superadmin" en `/entries`
+- ✅ `yarn build` limpio (Done in 38.88s) · backend startup limpio
+
+### Edge cases conservadores aplicados
+- Action filter `mutations` se materializa en backend a un `$in` con write-actions canonicales (incluye actions agregadas por W1.5/W2.1 como patch/merge/approve/reject/force_match/recompute/test/retry/replay) — evita parsing por cliente y mantiene la lista en un solo lugar.
+- In-memory cache 60s sin invalidación explícita (se warm-resetea cada minuto). Adecuado para stat queries no críticas en consistency; no se usó Redis para evitar dependencia nueva.
+- Export streaming chunked: cada row CSV se serializa individualmente con `csv.writer` en `StringIO` aislado por iteración → no acumula memoria. Hard-limit 10001 → 413 (no truncate silencioso).
+- Drawer `enrichment` solo poblado para `entity_type=bulk_ingest_item` (no extensible aquí — se añadirán nuevos enrichment paths cuando se requiera otra entidad con histórico paralelo).
+- `BeforeAfterDiff` ordena keys: updated → added → removed → same para que las diferencias relevantes salgan primero en pantalla.
+- URL params no persisten valores `'all'` ni vacíos para evitar query strings ruidosos.
+- Filtros `from_ts/to_ts` se almacenan como ISO `00:00:00Z`, displayed como `<input type="date">` para UX simple — UTC implícito.
+
+
 ## W2.1 — SA2 Data Sources Hub (2026-05-07)
 
 ### Backend

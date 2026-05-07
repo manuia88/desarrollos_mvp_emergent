@@ -137,6 +137,13 @@ from routes_superadmin_data_hub import router as data_hub_router
 from connector_registry import ensure_connector_indexes
 app.include_router(data_hub_router)
 
+# W2.2 SA3 — Superadmin Audit Log Viewer
+from routes_superadmin_audit import (
+    router as superadmin_audit_router,
+    ensure_superadmin_audit_indexes,
+)
+app.include_router(superadmin_audit_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -560,6 +567,10 @@ async def startup():
         await ensure_connector_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] connector indexes failed: {e}")
+    try:
+        await ensure_superadmin_audit_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] superadmin audit indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

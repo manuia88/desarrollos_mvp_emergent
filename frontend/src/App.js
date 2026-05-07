@@ -128,6 +128,8 @@ const SuperadminHealth               = lazy(() => import('./pages/superadmin/Sup
 const SuperadminBulkIngest           = lazy(() => import('./pages/superadmin/SuperadminBulkIngest'));
 // W2.1 SA2 — Data Sources Hub (unified connectors)
 const SuperadminDataSourcesHub       = lazy(() => import('./pages/superadmin/SuperadminDataSourcesHub'));
+// W2.2 SA3 — Audit Log Viewer (cross-org)
+const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/SuperadminAuditLog'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -456,7 +458,8 @@ function AppRouter() {
       <Route path="/superadmin/documents" element={<AdvisorRoute Page={DocumentsPage} />} />
       <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
-      <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={AuditLogPage} />} />
+      <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={SuperadminAuditLog} />} />
+      <Route path="/superadmin/audit-log-legacy" element={<AdvisorRoute Page={AuditLogPage} />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
