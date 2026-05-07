@@ -163,6 +163,11 @@ from routes_superadmin_metrics_cube import router as superadmin_metrics_cube_rou
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
 app.include_router(superadmin_metrics_cube_router)
 
+# W2.6 SA8 — Founder Console (executive dashboard + Cmd+K + anomalies)
+from routes_superadmin_founder_console import router as superadmin_founder_console_router
+from anomaly_detection_engine import ensure_indexes as ensure_founder_anomaly_indexes
+app.include_router(superadmin_founder_console_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -603,6 +608,11 @@ async def startup():
         await ensure_metrics_cube_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] metrics cube indexes failed: {e}")
+    # W2.6 SA8 — Founder Console anomaly indexes
+    try:
+        await ensure_founder_anomaly_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] founder anomaly indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

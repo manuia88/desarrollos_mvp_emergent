@@ -1,6 +1,78 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W2.6 — SA8 Founder Console (2026-05-07)
+
+### Backend
+- **NEW** `anomaly_detection_engine.py` — 5 detectores + Haiku reasoning + Resend throttle:
+  - `detect_ai_cost_anomalies` — flags tenants con spend 24h >2σ vs daily avg 30d (noise floor avg≥5 / spend≥10 MXN). Critical si σ≥3.
+  - `detect_tenant_inactivity` — pro/enterprise sin audit activity 14d → warning con `days_dark`.
+  - `detect_ingestion_failures` — ≥3 jobs failed/24h. Critical si ≥10.
+  - `detect_conversion_drops` — alcaldía con conversion <0.5× baseline 90d (cube_aggregations).
+  - `detect_feature_flag_thrash` — same entity_id toggled ≥3 veces en <1h (audit_log).
+  - `_claude_haiku_reasoning` — single Haiku call (cost-optimized vs Sonnet) → `{confidence, summary, recommendation}` JSON. Confidence <0.7 descarta. `track_ai_call` dual-write con `feature_key="founder_anomaly_detection"`.
+  - `_maybe_email_founder` — Resend HTML branded, throttle 1/día/source via `db.founder_email_throttle` (key: `founder_anomaly:{source}:{YYYY-MM-DD}`). Solo critical.
+  - `run_anomaly_detection(db)` — cron entrypoint, dedup por (source, message) en status open/investigating.
+  - `schedule_anomaly_detection_cron` registrado 06:00 MX, instrumentado en cron_heartbeat.
+- **NEW** `routes_superadmin_founder_console.py` — prefix `/api/superadmin/founder-console`, 8+1 endpoints, todos `require_superadmin`:
+  1. `GET /dashboard` — KPIs cross-functional: MRR (sum tenants × top plan_tier price), ARR (×12), active/trial tenants, churn_risk (pro/ent sin login 7d), ai_cost_mtd + forecast (reuse `ai_cost_aggregations.overview`), alerts_open_critical, ingestion_pending, anomalies_open, totals devs/units/leads_30d, conversion_30d, top_5_alerts.
+  2. `GET /anomalies?status&severity&source&limit&skip` — paginado, default status `[open, investigating]`.
+  3. `POST /anomalies/{id}/resolve` body `{resolution_note}` — idempotente, audit.
+  4. `POST /anomalies/{id}/dismiss` body `{reason}` — idempotente, audit.
+  5. `POST /anomalies/detect-now` — trigger manual cron, audit.
+  6. `GET /commands?q&limit` — registry built-in (12 nav rutas + 3 sistema) + dynamic (top 10 tenants para impersonate + last 5 snapshots). Filter por label/category lowercase.
+  7. `POST /commands/execute` body `{command_id, payload?}` — devuelve `{ok, action, redirect_url?, api_call?}`. Audit.
+  8. `GET /quick-actions` — auto-seed 6 defaults en first read per-user. `POST /quick-actions` create. `DELETE /quick-actions/{id}` (only owner).
+- **EDIT** `server.py` + `scheduler_ie.py` + `cron_heartbeat.py`:
+  - Wire router + `ensure_indexes` (founder_anomalies tier `(status, detected_at desc)` + `(source)` + `id` unique; founder_quick_actions `(user_id, sort_order)`; founder_email_throttle `(key)` unique).
+  - Cron `founder_anomaly_detection` 06:00 MX en SCHEDULE_LABELS (visible en `/superadmin/health/crons` → 18 total).
+
+### Frontend
+- **NEW** `api/superadminFounderConsole.js` — 9 client funciones.
+- **NEW** `contexts/FounderPrefetchContext.js` — provider monta cuando `user.role==='superadmin'`. Al login fetcha en paralelo: dashboard · anomalies_open · commands · quick_actions · cube_tiers + 4 metrics-cube period rollups (current/7d/30d/90d) en cache 5min memoria. Auto-revalidate dashboard+anomalies cada 60s. Hook `useFounderPrefetch()` lee con safe defaults. **Cierra W2.5 deferred**: cambiar period en metrics-cube ahora es instantáneo.
+- **NEW** `ExecutiveKpiGrid.js` — 8 stat cards click-drill: MRR · Tenants · Churn risk · AI cost MTD · Alerts críticas · Anomalías · Ingestas · Conversión 30d. Color amber/red por threshold (churn>5, alerts>0, ai forecast>1.5× MTD).
+- **NEW** `AnomalyFeed.js` — list rows con severity color (critical=rojo, warning=amber, info=indigo) + source badge + ts relativo + collapsible "Reasoning Claude Haiku · {confidence%}" + recommendation pill + JSON evidence pretty-printed. 3 acciones: Investigar (drill source), Descartar (modal razón), Resolver (modal nota). Empty state con check verde.
+- **NEW** `QuickActionsToolbar.js` — vertical list pill buttons. Toggle "Settings" → modo edit, botón Plus crea modal con [navigate · api_call · impersonate]. Delete inline. `executeAction` ejecuta directamente: navigate via `useNavigate`, api_call POST con bearer, impersonate POST + window.location redirect.
+- **NEW** `CommandPaletteExtended.js` — modal full-overlay (centered 720px desktop). Search input debounce 200ms hitting `/commands?q=`. Resultados agrupados por category (Navegación · Sistema · Tenants · Snapshots). Recents top 5 desde localStorage `dmx_founder_recents_v1`. Arrow keys navegan + Enter ejecuta (con redirect_url o api_call dispatch) + Esc cierra. Footer hints (cmd+/ → UniversalSearch B0).
+- **NEW** `pages/superadmin/SuperadminFounderConsole.js` — orquesta:
+  - Header "Bienvenido {firstName}" + último acceso relativo (localStorage) + Cmd+K hint chip + "Detectar anomalías" CTA + Refresh.
+  - `<ExecutiveKpiGrid/>` 8 cards.
+  - 2 cols (mobile <md stack): `<AnomalyFeed/>` (1.55fr) + `<QuickActionsToolbar/>` (1fr).
+  - Bottom row 3 inline SVG sparklines (W2.3 pattern reuse): MRR 90d (indigo) · AI cost 30d (amber) · Conversión 30d (verde). Series sintéticas derivadas del current value (placeholder hasta time-series real).
+  - Estado inicial pinta desde `useFounderPrefetch()` cache antes del fetch fresh.
+- **EDIT** `App.js` — lazy `SuperadminFounderConsole` + Route `/superadmin` re-mapped a Founder Console; `SuperadminDashboard` legacy preservado en `/superadmin/dashboard-legacy`.
+- **EDIT** `config/navByRole.js` — primer item SUPERADMIN_NAV tier 1 cambia a `key:'inicio'` label "Inicio" (Layout​Dashboard) hacia `/superadmin` (root).
+- **EDIT** `components/shared/PortalLayout.js`:
+  - Import `CommandPaletteExtended` + `FounderPrefetchProvider`.
+  - Cmd+K handler: si `role==='superadmin'` abre `CommandPaletteExtended`, sino `UniversalSearch` (B0).
+  - Cmd+/ shortcut nuevo: SIEMPRE abre UniversalSearch B0 (escape hatch para founder).
+  - Wrapper `PortalLayout(props)` envuelve `PortalLayoutInner` con `FounderPrefetchProvider` cuando role=superadmin (named export preserved).
+
+### Validaciones (curl con cookie superadmin contra preview):
+- `/dashboard` → MRR/ARR/active_tenants/conversion_30d coherentes; latency 0.157s ✅
+- `/commands` → 18 items default (12 nav + 3 sistema + top tenants/snapshots); `?q=metrics` → 1 match (Refrescar metrics cube) ✅
+- `/commands/execute {nav_ai_cost}` → `{action:"navigate", redirect_url:"/superadmin/ai-cost"}` ✅
+- `/quick-actions` → auto-seed 6 defaults en first call; create + delete OK ✅
+- Spike test forzado (30 eventos baseline + 10 spikes en `db.ai_call_events`) → `detect-now` insertó 1 anomalía critical "Spike de costo IA en tenant anom_test_tenant: $500 MXN (24h) vs avg $19/día" con Claude Haiku reasoning (`ai_cost_mxn=0.04, elapsed_s=1.75`) ✅
+- `/anomalies/{id}/resolve {note}` → status pasa a "resolved" + filter `status=resolved` retorna 1 ✅
+- `/anomalies?status=open` post-resolve → 0 (idempotente) ✅
+- 401 anon · 403 asesor en TODOS endpoints ✅
+- `/superadmin/health/crons` → ahora lista 18 jobs incluyendo `founder_anomaly_detection · diario · 06:00 MX` ✅
+- yarn build → CLEAN (solo warnings pre-existentes) ✅
+
+### Edge cases / NOTAS
+- **Email Resend**: solo se dispara si `RESEND_API_KEY` env presente Y severity=critical. En el preview pod no envía email (key potencialmente ausente) — inserción y throttle siguen funcionando.
+- **Haiku dependency**: si `EMERGENT_LLM_KEY` ausente o emergentintegrations no carga, `_claude_haiku_reasoning` retorna `{confidence:0.75, summary:msg, recommendation:'Revisar manualmente'}` para no bloquear inserción.
+- **MRR estimation**: derivado de `tenant_features.plan_tier` × max `plan_templates.price_mxn` por tier — no usa Stripe real (W3 wave). Si tenant no tiene features enabled → cuenta como $0.
+- **Sparklines bottom row**: series sintéticas calculadas del current value (sin real time-series). Cuando ship `tenant_timeseries` MRR collection, swap el array.
+- **localStorage `dmx_last_login`**: stored cuando founder aterriza por primera vez; muestra "hace 0m" en first visit. NOT cleared en logout (intentional: muestra "antes vs ahora").
+- **Cmd+/** habilitado para todos los roles como escape hatch a UniversalSearch B0.
+- **prefetch destructure unused vars**: `const { dashboard, anomalies_open, ...rest }` en interval callback elimina entradas viejas del cache antes de re-prime — eslint puede marcar pero ya está en pre-existing warnings.
+- Tests via testing subagent NO ejecutados (forbidden by user). yarn build limpio. Backend smoke completo via curl + spike forzado.
+- data-testid completos: superadmin-founder-console, founder-toast, founder-detect-now, founder-refresh, founder-loading, exec-kpi-{slot}, anomaly-row-{id}, anomaly-expand/investigate/dismiss/resolve-{id}, anomaly-action-{modal/input/confirm}, qa-personalize, qa-add, qa-item-{id}, qa-delete-{id}, qa-create-modal, qa-{label/action-type/payload/create-confirm}, command-palette-extended, cmd-palette-input/close/empty, cmd-recent-{id}, cmd-item-{id}.
+
+
+
 ## W2.5 — SA6 Granular Metrics Cube UI (2026-05-07)
 
 ### Backend

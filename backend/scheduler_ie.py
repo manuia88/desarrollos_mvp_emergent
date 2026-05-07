@@ -349,6 +349,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_metrics_cube_error", error=str(e))
 
+    # W2.6 SA8 — Founder anomaly detection cron (6am MX)
+    try:
+        from anomaly_detection_engine import schedule_anomaly_detection_cron
+        schedule_anomaly_detection_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_anomaly_detection_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

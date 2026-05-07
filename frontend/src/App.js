@@ -136,6 +136,8 @@ const SuperadminAiCost               = lazy(() => import('./pages/superadmin/Sup
 const SuperadminCommercial           = lazy(() => import('./pages/superadmin/SuperadminCommercial'));
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
+// W2.6 SA8 — Founder Console (root /superadmin)
+const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/SuperadminFounderConsole'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -452,7 +454,9 @@ function AppRouter() {
       <Route path="/superadmin/bulk-ingest" element={<AdvisorRoute Page={SuperadminBulkIngest} />} />
 
       {/* Superadmin — IE Engine Phase A */}
-      <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />
+      {/* W2.6 SA8 — Founder Console replaces legacy dashboard at /superadmin */}
+      <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminFounderConsole} />} />
+      <Route path="/superadmin/dashboard-legacy" element={<AdvisorRoute Page={SuperadminDashboard} />} />
       {/* W2.1 SA2 — Data Sources Hub (replaces legacy /data-sources nav item) */}
       <Route path="/superadmin/data-sources" element={<AdvisorRoute Page={SuperadminDataSourcesHub} />} />
       {/* Legacy IE Engine sources page (kept accessible) */}

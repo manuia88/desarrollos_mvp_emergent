@@ -143,7 +143,7 @@ const SUPERADMIN_NAV = [
     tier: 1,
     label: 'Sistema',
     items: [
-      { key: 'dashboard',    to: '/superadmin',                          label: 'Dashboard',        Icon: LayoutDashboard, end: true },
+      { key: 'inicio',       to: '/superadmin',                          label: 'Inicio',           Icon: LayoutDashboard, end: true },
       { key: 'tenants',      to: '/superadmin/tenants',                  label: 'Tenants',          Icon: Users },
       { key: 'bulk-ingest',  to: '/superadmin/bulk-ingest',              label: 'Ingesta masiva',   Icon: FolderUp },
       { key: 'conectores',   to: '/superadmin/data-sources',             label: 'Conectores',       Icon: Plug },

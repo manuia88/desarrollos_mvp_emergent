@@ -37,6 +37,7 @@ SCHEDULE_LABELS = {
     "ai_cost_daily_aggregation": "1am hora CDMX",
     "trial_expiry_check": "8am hora CDMX",
     "metrics_cube_daily_aggregation": "diario · 02:15 MX",
+    "founder_anomaly_detection": "diario · 06:00 MX",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -58,6 +59,7 @@ SCHEDULE_INTERVAL_SEC = {
     "ai_cost_daily_aggregation": 24 * 60 * 60 + 600,
     "trial_expiry_check": 24 * 60 * 60 + 600,
     "metrics_cube_daily_aggregation": 24 * 60 * 60 + 600,
+    "founder_anomaly_detection": 24 * 60 * 60 + 600,
 }
 
 

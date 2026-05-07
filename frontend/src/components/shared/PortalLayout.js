@@ -22,6 +22,8 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import ImpersonationBanner from '../superadmin/ImpersonationBanner';
+import CommandPaletteExtended from '../superadmin/CommandPaletteExtended';
+import { FounderPrefetchProvider } from '../../contexts/FounderPrefetchContext';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -115,16 +117,18 @@ function NavTier({ tier, collapsed, badges }) {
 }
 
 // ─── Main PortalLayout ─────────────────────────────────────────────────────────
-export function PortalLayout({ role, user, onLogout, children, projectSwitcherSlot }) {
+function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [badges, setBadges] = useState({});
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
 
   const tiers = navByRole[role] || navByRole['buyer'] || [];
+  const isSuperadmin = role === 'superadmin';
 
   // Load badge counts
   useEffect(() => {
@@ -143,17 +147,27 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
     return () => clearInterval(interval);
   }, [role]);
 
-  // Global Cmd+K shortcut
+  // Global Cmd+K shortcut · for superadmin → CommandPaletteExtended (overlays B0)
+  // For other roles → existing UniversalSearch B0. Cmd+/ stays universal for everyone.
   useEffect(() => {
     const handler = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (isSuperadmin) {
+          setCmdPaletteOpen(true);
+        } else {
+          setSearchOpen(true);
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
         setSearchOpen(true);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [isSuperadmin]);
 
   // Close user menu on outside click
   useEffect(() => {
@@ -351,6 +365,11 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
         <UniversalSearch onClose={() => setSearchOpen(false)} user={user} />
       )}
 
+      {/* W2.6 SA8 — Founder Cmd+K palette (superadmin only) */}
+      {cmdPaletteOpen && isSuperadmin && (
+        <CommandPaletteExtended onClose={() => setCmdPaletteOpen(false)} />
+      )}
+
       {/* Phase 4 Batch 0.5 — Report Problem floating button */}
       <ReportProblemButton user={user} />
 
@@ -360,4 +379,17 @@ export function PortalLayout({ role, user, onLogout, children, projectSwitcherSl
   );
 }
 
+// Wrapper: mount FounderPrefetchProvider for superadmin role only.
+function PortalLayout(props) {
+  if (props.role === 'superadmin') {
+    return (
+      <FounderPrefetchProvider user={props.user}>
+        <PortalLayoutInner {...props} />
+      </FounderPrefetchProvider>
+    );
+  }
+  return <PortalLayoutInner {...props} />;
+}
+
+export { PortalLayout };
 export default PortalLayout;
