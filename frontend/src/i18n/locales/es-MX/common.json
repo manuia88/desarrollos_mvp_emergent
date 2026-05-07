@@ -715,6 +715,37 @@
         "test_inserted": "Alert insertado"
       },
       "probes_link_label": "Ver mapa completo de probes"
+    },
+    "bulk_ingest": {
+      "title": "Ingesta masiva",
+      "subtitle": "Pega una URL de carpeta Drive · Claude Haiku extrae proyectos · dedup automática · revisa edge cases.",
+      "form": {
+        "url_placeholder": "https://drive.google.com/drive/folders/…",
+        "org_placeholder": "dev_org_id (opcional)",
+        "start": "Iniciar ingesta"
+      },
+      "tabs": {
+        "jobs": "Jobs históricos",
+        "review": "Cola revisión"
+      },
+      "kpi": {
+        "jobs_total": "Jobs totales",
+        "ingested": "Proyectos ingresados",
+        "pending": "Pendiente revisión",
+        "ai_cost": "AI mes (MXN)"
+      },
+      "actions": {
+        "approve": "Aprobar",
+        "reject": "Rechazar",
+        "merge": "Fusionar",
+        "bulk_approve": "Aprobar todos <65% score"
+      },
+      "empty": {
+        "jobs_title": "Sin jobs aún",
+        "jobs_subtitle": "Inicia tu primera ingesta arriba.",
+        "review_title": "Sin items en revisión",
+        "review_subtitle": "Todos los proyectos extraídos fueron procesados."
+      }
     }
   }
 }

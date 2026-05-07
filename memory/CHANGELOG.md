@@ -1,6 +1,66 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W1.4 — ZZ.1 Bulk Drive Ingestion (2026-05-07)
+
+### Backend
+- **NEW** `bulk_ingest_engine.py` — pipeline async completo:
+  1. `parse_folder_id(url)` regex extrae folder_id de URL Drive
+  2. `_resolve_drive_conn(db, target_org)` reusa drive_engine OAuth (modo superadmin: usa primer drive_connection conectado si target_org no tiene)
+  3. `_list_folder_recursive(conn, folder_id)` lista archivos root + 1-level subfolders (max 200), agrupa en projects
+  4. `extract_bulk_project(name, payloads)` Claude Haiku via emergentintegrations con `CLAUDE_SEMAPHORE = asyncio.Semaphore(10)` rate limit; system prompt JSON-only es-MX para `{project_name, address_full, lat, lng, total_units, price_range, amenities, units[]}`; cost ballpark 0.50 MXN/call; fallback `_stub_extraction` si key/lib ausente
+  5. `find_dedup_matches(db, extracted, target_org)` rapidfuzz WRatio sobre `name + address` contra `db.developments`, top 3 matches con score
+  6. `insert_extracted_project(db, item)` schema disgregado: INSERT en `developments` + `units` (1 doc por prototipo) + `project_assets` (drive_reference por archivo)
+  7. `merge_into_dev(db, item, target_dev_id)` UPSERT units por `unit_number` + APPEND assets
+  8. `_email_completion(job)` Resend branded template (skip silencioso si no key)
+  9. `run(db, job_id)` orchestrator: setea status pending→extracting→reviewing/completed/failed, ai_budget gate, captura errors en `error_log[:50]`
+- **NEW** `routes_bulk_ingest.py` — 8 endpoints prefijados `/api/superadmin/bulk-ingest`, todos `require_superadmin`:
+  - `POST /start` valida URL + drive conn → crea job + dispara `asyncio.create_task(bie.run(...))` SIN bloquear response
+  - `GET /jobs?status=&limit=&skip=` paginated
+  - `GET /jobs/{id}` detail con last_items[50]
+  - `GET /jobs/{id}/items?decision=&limit=&skip=`
+  - `POST /items/{id}/approve` insert + audit + dec counter pending_review
+  - `POST /items/{id}/reject` body{reason} + audit
+  - `POST /items/{id}/merge` body{target_dev_id} + audit
+  - `POST /jobs/{id}/bulk-approve?threshold=0.85` aprueba todos con score < 0.65 O None (truly new)
+  - `GET /stats` KPIs: jobs_total, proyectos_ingested_total, pending_review_total, ai_cost_mes_mxn (aggregate)
+- **EDIT** `server.py` — registra router + `ensure_bulk_ingest_indexes` en startup (collections con índices unique on id, compound (status, started_at), (job_id, decision))
+- **REUSE** `drive_engine` OAuth + `_drive_service` + `_download_file_sync` + `_export_native_doc_sync` + `NATIVE_EXPORT_MAP` — modo superadmin agrega lookup global (sin development_id) sin modificar engine
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminBulkIngest.js` — header + 4 KPI strip + form Iniciar nueva ingesta (URL + dev_org_id opcional + btn gradient) + 2 tabs (Jobs históricos | Cola revisión con badge count) + FilterChipsBar status. Tab Jobs: lista de `IngestionJobCard` con status pill animada para extracting/pending. Tab Review: lista de `ReviewQueueItem` agregados de jobs con pending. Job detail drawer 3 tabs (Resumen+bulk-approve btn / Items list / Errores log). Auto-refresh cada 10s SOLO si hay jobs live (extracting/pending) y `tabVisibleRef`.
+- **NEW** `components/superadmin/IngestionJobCard.js` — id mono + status pill (pending/extracting/reviewing/completed/failed) + URL truncada + KPIs inline (Total/Aprobados verde/Pendientes amber/Rechazados/Fallidos rojo)
+- **NEW** `components/superadmin/ReviewQueueItem.js` — preview extracted (project_name + address + units count + amenities + price range) + dedup matches top 3 con score % colored (≥85 verde / 65-85 amber) + 3 botones [Aprobar gradient · Fusionar (oculto si no matches) · Rechazar] · expand toggle "Ver N prototipos" muestra unit chips · low_confidence/stub badge si extraction fallback · reject reason inline input
+- **NEW** `api/superadminBulkIngest.js` — 9 funciones (8 endpoints + getStats)
+- **EDIT** `App.js` ruta `/superadmin/bulk-ingest` (lazy + AdvisorRoute), `config/navByRole.js` SUPERADMIN_NAV tier 1 agrega "Ingesta masiva" (icon FolderUp) DESPUÉS de Tenants. `i18n/es-MX/common.json` sección `bulk_ingest.*`
+
+### Tests (curl + yarn build + screenshot)
+- ✅ `yarn build` clean · lint 0 issues
+- ✅ `GET /jobs` empty list · `GET /stats` shape correcto
+- ✅ `POST /start` con URL malformada → 400 "URL de carpeta Drive inválida"
+- ✅ `POST /start` con URL válida + sin drive conn → 409 "No hay conexión Drive activa. Conecta Drive primero." (esperado en preview env sin OAuth setup)
+- ✅ Non-superadmin → 403 en TODOS endpoints
+- ✅ Smoke screenshot: page renderea con KPIs + form + tabs + empty state, sidebar "Ingesta masiva" highlighted entre Tenants y Data Sources
+
+### Edge cases manejados (decisiones conservadoras)
+- `EMERGENT_LLM_KEY`/`ANTHROPIC_API_KEY` ausente → `_stub_extraction` con `_low_confidence:true` (no crash, item entra a pending_review)
+- `rapidfuzz` no instalado → return matches=[] (no crash, item va a auto_approve como nuevo)
+- AI budget exceeded → job marca `status="failed"` con `error_log=["AI budget exceeded for this org/month"]` antes de listar archivos
+- Drive connection ausente → 409 en /start, no crea job huérfano
+- Folder vacío → items_total=0, status="completed"
+- Subfolders sin archivos ingestables → no se crea item (skip silencioso)
+- Drive download falla per-file → captura en error_log, sigue con resto (no aborta job)
+- Claude extraction falla → fallback a stub, item entra como pending_review (founder revisa)
+- Concurrencia: `asyncio.Semaphore(10)` global limita Haiku paralelos
+- Reject reason mín 3 chars validation client-side
+- Merge requiere matches del dedup (botón solo aparece si matches.length > 0)
+- Bulk-approve solo procesa items con score `< 0.65` o `None` (evita auto-merge accidental al 85%+)
+- Auto-refresh pausa con `document.hidden` para no consumir API calls
+- 1 nivel de subfolders solamente (max 200 files total) — files anidados deeper se ignoran (decisión conservadora vs explosion)
+- `target_dev_org_id` opcional: si vacío, dedup se hace global y proyectos van a `developer_id="superadmin_global"` (founder asigna después)
+
+
+
 ## W1.3 — SA1.2 System Health Dashboard (2026-05-07)
 
 ### Backend

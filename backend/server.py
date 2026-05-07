@@ -127,6 +127,11 @@ from routes_superadmin_health import router as superadmin_health_router
 from cron_heartbeat import ensure_heartbeat_indexes
 app.include_router(superadmin_health_router)
 
+# W1.4 ZZ.1 — Bulk Drive Ingestion
+from routes_bulk_ingest import router as bulk_ingest_router
+from bulk_ingest_engine import ensure_bulk_ingest_indexes
+app.include_router(bulk_ingest_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -542,6 +547,10 @@ async def startup():
         await ensure_heartbeat_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] heartbeat indexes failed: {e}")
+    try:
+        await ensure_bulk_ingest_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] bulk ingest indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
