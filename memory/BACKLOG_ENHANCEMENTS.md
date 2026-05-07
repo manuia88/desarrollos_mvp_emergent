@@ -263,6 +263,15 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+### Tenants UI: AI gasto top-5 + Members growth sparkline
+- **Origen:** W1.2 SA1.1 emergent potential improvement 2026-05-07
+- **Destino:** W2.3 SA4 AI Cost Observatory (top-5 gasto) + W2.6 SA8 Founder Console (sparkline members + churn alerts)
+- **Qué:** Widget agregado superior en `/superadmin/tenants` — top-5 gasto IA mes actual + sparkline histórico crecimiento members per tenant. Permite detectar churn antes de downgrade explícito.
+- **Por qué:** anti-churn intelligence — útil pero rompe scope Wave 1 (ops-foundation pura). Encaja natural en SA4/SA8 que ya tienen 12h+14h asignadas para esto.
+- **Costo:** ~2-3h dentro de SA4 + SA8 (no incremental)
+
+---
+
 ## ❌ DESCARTADOS (referencia histórica · post-challenge founder 2026-05-07)
 
 ### Construction Pipeline Tracker
