@@ -229,38 +229,52 @@ def start_scheduler(db):
         return None
 
     _scheduler = AsyncIOScheduler(timezone=TZ)
+    # W1.3 SA1.2 — heartbeat instrumentation
+    try:
+        from cron_heartbeat import wrap_apscheduler_job, set_db
+        set_db(db)
+    except Exception:
+        def wrap_apscheduler_job(fn, _job_id):  # noqa: ARG001
+            return fn
+
     _scheduler.add_job(
-        run_daily_ingestion, CronTrigger(hour=0, minute=0, timezone=TZ),
+        wrap_apscheduler_job(run_daily_ingestion, "ie_daily_ingestion"),
+        CronTrigger(hour=0, minute=0, timezone=TZ),
         args=[db], id="ie_daily_ingestion", replace_existing=True,
         misfire_grace_time=3600,
     )
     _scheduler.add_job(
-        run_hourly_status_check, CronTrigger(minute=0, timezone=TZ),
+        wrap_apscheduler_job(run_hourly_status_check, "ie_hourly_status"),
+        CronTrigger(minute=0, timezone=TZ),
         args=[db], id="ie_hourly_status", replace_existing=True,
         misfire_grace_time=600,
     )
     _scheduler.add_job(
-        run_daily_score_recompute, CronTrigger(hour=2, minute=0, timezone=TZ),
+        wrap_apscheduler_job(run_daily_score_recompute, "ie_daily_score_recompute"),
+        CronTrigger(hour=2, minute=0, timezone=TZ),
         args=[db], id="ie_daily_score_recompute", replace_existing=True,
         misfire_grace_time=3600,
     )
     # Phase 7.11 — Drive watcher every 6h (FALLBACK; webhooks are realtime)
     from drive_engine import run_drive_watcher_once, renew_expiring_webhooks
     _scheduler.add_job(
-        run_drive_watcher_once, CronTrigger(hour="*/6", minute=15, timezone=TZ),
+        wrap_apscheduler_job(run_drive_watcher_once, "drive_watcher"),
+        CronTrigger(hour="*/6", minute=15, timezone=TZ),
         args=[db], id="drive_watcher", replace_existing=True,
         misfire_grace_time=1800,
     )
     # Phase 7.11 upgrade — renew webhooks expiring within 24h (Google caps ~7d)
     _scheduler.add_job(
-        renew_expiring_webhooks, CronTrigger(hour=3, minute=30, timezone=TZ),
+        wrap_apscheduler_job(renew_expiring_webhooks, "drive_webhook_renew"),
+        CronTrigger(hour=3, minute=30, timezone=TZ),
         args=[db], id="drive_webhook_renew", replace_existing=True,
         misfire_grace_time=3600,
     )
     # Phase 4 Batch 1 — Unit holds auto-release (every 30min)
     from routes_dev_batch1 import auto_release_expired_holds
     _scheduler.add_job(
-        auto_release_expired_holds, CronTrigger(minute="*/30", timezone=TZ),
+        wrap_apscheduler_job(auto_release_expired_holds, "unit_holds_release"),
+        CronTrigger(minute="*/30", timezone=TZ),
         args=[db], id="unit_holds_release", replace_existing=True,
         misfire_grace_time=300,
     )
@@ -268,7 +282,8 @@ def start_scheduler(db):
     try:
         from health_score import take_health_snapshots
         _scheduler.add_job(
-            take_health_snapshots, CronTrigger(hour=6, minute=0, timezone=TZ),
+            wrap_apscheduler_job(take_health_snapshots, "health_score_snapshots"),
+            CronTrigger(hour=6, minute=0, timezone=TZ),
             args=[db], id="health_score_snapshots", replace_existing=True,
             misfire_grace_time=3600,
         )
@@ -279,7 +294,8 @@ def start_scheduler(db):
     try:
         from routes_dev_batch14 import generate_weekly_briefs_for_all
         _scheduler.add_job(
-            generate_weekly_briefs_for_all, CronTrigger(day_of_week="mon", hour=8, minute=0, timezone=TZ),
+            wrap_apscheduler_job(generate_weekly_briefs_for_all, "weekly_brief_generation"),
+            CronTrigger(day_of_week="mon", hour=8, minute=0, timezone=TZ),
             args=[db], id="weekly_brief_generation", replace_existing=True,
             misfire_grace_time=3600,
         )
@@ -290,12 +306,20 @@ def start_scheduler(db):
     try:
         from oauth_calendar import refresh_all_expiring_tokens
         _scheduler.add_job(
-            refresh_all_expiring_tokens, "interval", minutes=30,
+            wrap_apscheduler_job(refresh_all_expiring_tokens, "oauth_token_refresh"),
+            "interval", minutes=30,
             args=[db], id="oauth_token_refresh", replace_existing=True,
             misfire_grace_time=300,
         )
     except Exception as e:
         _emit("scheduler_oauth_refresh_error", error=str(e))
+
+    # W1.3 SA1.2 — health critical check every 5 min
+    try:
+        from routes_superadmin_health import schedule_health_critical_check
+        schedule_health_critical_check(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_health_critical_error", error=str(e))
 
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",

@@ -1,6 +1,55 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W1.3 — SA1.2 System Health Dashboard (2026-05-07)
+
+### Backend
+- **NEW** `cron_heartbeat.py` — `wrap_apscheduler_job(fn, job_id)` decorator que captura start/end/duration/excepciones en `db.cron_heartbeats`; `is_stale(hb)` (>2× schedule_interval); `SCHEDULE_LABELS` + `SCHEDULE_INTERVAL_SEC` para 13 jobs; `set_db()` helper; `ensure_heartbeat_indexes`.
+- **NEW** `routes_superadmin_health.py` — 5 endpoints prefijados `/api/superadmin/health`, todos con `require_superadmin`:
+  - `GET /overview` → uptime_24h_pct (de observability_events probe_run · fallback 99) · probe_pass_rate_7d (de diagnostic_probe_runs) · etl_status (worst de 4 ETL job_ids) · crons_total/failing · alerts open critical/warning + last_critical_alert · services [{name, status, last_check_at}] (backend_api/mongodb/apscheduler/resend/claude_haiku/claude_sonnet)
+  - `GET /crons` → list `cron_heartbeats` + ítems pending para job_ids registrados sin heartbeat aún · adds `stale` y `computed_status`
+  - `GET /alerts?status=open|resolved|all&severity=&limit=&skip=` → list ordenados ts desc
+  - `POST /alerts/{id}/resolve` → idempotente · audit `alert_resolved`
+  - `POST /alerts/test` → inserta system_alert(severity=info, source="founder_test")
+- **NEW** Critical check engine `health_critical_check(db)` registrado en APScheduler cada 5 min:
+  - Detecta heartbeats stale (>2× interval) o `fail_count_24h >= 3`
+  - Inserta `system_alerts(severity=critical)` solo si no hay open mismo source
+  - Email Resend a `ADMIN_EMAIL` (env) con throttle 1/hora per source vía `metadata.email_sent_at`
+  - Branded HTML template DMX (navy + cream + rose accent) sin shadow-2xl
+- **EDIT** `scheduler_ie.py` — instrumentados 9 crons existentes con `wrap_apscheduler_job`: ie_daily_ingestion, ie_hourly_status, ie_daily_score_recompute, drive_watcher, drive_webhook_renew, unit_holds_release, health_score_snapshots, weekly_brief_generation, oauth_token_refresh + registra `health_critical_check` en startup.
+- **EDIT** `server.py` — `include_router(superadmin_health_router)` + `ensure_heartbeat_indexes` en startup.
+
+### Frontend
+- **NEW** `pages/superadmin/SuperadminHealth.js` — 4 KPI cards (Uptime 24h · Probes 7d · Crons OK% · Alertas abiertas) con color verde >95 / amber 70-95 / rojo <70. 4 secciones: Servicios (grid auto-fill 220px), Crons (grid auto-fill 280px), Probes (link card → `/superadmin/system-map` con pass rate 7d), Alertas (feed con tabs Abiertas/Resueltas/Todas + paginated 20 + Cargar más). Test alert btn (yellow pill). Auto-refresh `loadOverview+loadCrons+loadAlerts` cada 30s con `document.visibilitychange` listener (pausa cuando tab hidden).
+- **NEW** `components/superadmin/CronCard.js` — job_id label, schedule humanizado, status pill (ok/fail/stale/pending), last_run relative, duration_ms, runs/fails 24h, last_error si presente.
+- **NEW** `components/superadmin/AlertItem.js` — severity icon + color (critical/warning/info), source en mono, ts relative, message, btn "Resolver" cuando open. Estilos resolved: opacity 0.65 + badge "Resuelta" verde.
+- **NEW** `api/superadminHealth.js` — getHealthOverview, getCrons, getAlerts, resolveAlert, triggerTestAlert.
+- **EDIT** `App.js` — ruta `/superadmin/health` (lazy + AdvisorRoute), `config/navByRole.js` SUPERADMIN_NAV tier 2 agrega "Salud del sistema" (icon Activity) ANTES de "Observabilidad" (Audit Log = Auditoría queda después). `i18n/es-MX/common.json` sección `health.*`.
+
+### Tests (curl + yarn build + screenshot)
+- ✅ `yarn build` clean · lint 0 issues
+- ✅ `GET /overview` → shape exacto: uptime_24h_pct, probe_pass_rate_7d, etl_status, crons_total/failing, alerts open critical/warning, last_critical_alert, services[6], ts; <500ms
+- ✅ `GET /crons` → 13 placeholders pending (los crons aún no han corrido en este preview env)
+- ✅ `GET /alerts` → empty list inicial
+- ✅ `POST /alerts/test` → inserta info alert visible en feed inmediatamente; smoke screenshot lo confirma
+- ✅ `POST /alerts/{id}/resolve` → ok + idempotente (`already_resolved:true`)
+- ✅ Critical check: forzando `cron_heartbeats.last_run_at` a hace 3 días para `ie_daily_score_recompute`, llamando `health_critical_check(db)` directamente → genera 1 critical alert con source `cron:ie_daily_score_recompute`, throttle 1/hora vía `metadata.email_sent_at`
+- ✅ Email Resend en stub mode (sin RESEND_API_KEY/ADMIN_EMAIL): skip silencioso con log `[health-critical] skip email` (no rompe critical alert insertion)
+- ✅ Non-superadmin → 403 en TODOS endpoints
+- ✅ Smoke screenshot `/superadmin/health` → 6 services pills, 13 cron cards visibles, alert critical "cron:ie_daily_score_recompute" mostrado en feed con btn Resolver, sidebar nav "Salud del sistema" highlighted entre Drive y Observabilidad
+
+### Edge cases manejados
+- `db.observability_events` o `db.diagnostic_probe_runs` vacías → fallback 99% (no error)
+- `RESEND_API_KEY` o `ADMIN_EMAIL` ausentes → skip email silencioso, alert critical sigue insertándose
+- Email throttle vía `metadata.email_sent_at` (no per-process state, sobrevive restarts)
+- Stale detection robusta a `last_run_at` malformado → tratado como stale (conservador)
+- `mongodb` health vía `db.command("ping")` async, fail-safe con error capturado
+- Auto-refresh pausa con `document.hidden` (visibilitychange listener) — preserva batería + ahorra API calls
+- 13 SCHEDULE_LABELS conocidos: si un cron no está heartbeated, aparece como "Pendiente" en `/crons` para visibilidad (no se pierde info de que existe)
+- run_count_24h/fail_count_24h: increment-only (diseño simple); se podría agregar sliding window con TTL en una iteración futura
+
+
+
 ## W1.2 — SA1.1 Tenants Management UI (2026-05-07)
 
 ### Backend

@@ -122,6 +122,11 @@ from routes_superadmin_tenants import (
 )
 app.include_router(superadmin_tenants_router)
 
+# W1.3 SA1.2 — Superadmin System Health
+from routes_superadmin_health import router as superadmin_health_router
+from cron_heartbeat import ensure_heartbeat_indexes
+app.include_router(superadmin_health_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -533,6 +538,10 @@ async def startup():
         await ensure_superadmin_tenant_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] superadmin tenant indexes failed: {e}")
+    try:
+        await ensure_heartbeat_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] heartbeat indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

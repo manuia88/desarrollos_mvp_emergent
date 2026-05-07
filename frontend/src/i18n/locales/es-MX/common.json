@@ -686,6 +686,35 @@
         "title": "Sin tenants",
         "subtitle": "Ajusta los filtros o intenta otra búsqueda."
       }
+    },
+    "health": {
+      "title": "Salud del sistema",
+      "subtitle": "Probes, crons, ETL y alertas críticas en una sola vista. Auto-refresh 30s.",
+      "test_alert": "Test alert",
+      "refresh": "Refrescar",
+      "kpi": {
+        "uptime_24h": "Uptime 24h",
+        "probes_7d": "Probes 7d",
+        "crons_ok": "Crons OK",
+        "alerts_open": "Alertas abiertas"
+      },
+      "section": {
+        "services": "Servicios",
+        "crons": "Crons",
+        "probes": "Probes",
+        "alerts": "Alertas"
+      },
+      "alerts": {
+        "tab_open": "Abiertas",
+        "tab_resolved": "Resueltas",
+        "tab_all": "Todas",
+        "load_more": "Cargar más",
+        "resolve": "Resolver",
+        "all_clear_title": "Todos los sistemas operativos",
+        "last_check": "Última verificación: {ts}",
+        "test_inserted": "Alert insertado"
+      },
+      "probes_link_label": "Ver mapa completo de probes"
     }
   }
 }

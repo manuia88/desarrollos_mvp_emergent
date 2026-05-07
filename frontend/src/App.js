@@ -122,6 +122,8 @@ const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/I
 
 // W1.2 SA1.1 — Superadmin Tenants Management
 const SuperadminTenants              = lazy(() => import('./pages/superadmin/SuperadminTenants'));
+// W1.3 SA1.2 — Superadmin System Health
+const SuperadminHealth               = lazy(() => import('./pages/superadmin/SuperadminHealth'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -432,6 +434,8 @@ function AppRouter() {
 
       {/* W1.2 SA1.1 — Superadmin Tenants */}
       <Route path="/superadmin/tenants" element={<AdvisorRoute Page={SuperadminTenants} />} />
+      {/* W1.3 SA1.2 — Superadmin System Health */}
+      <Route path="/superadmin/health" element={<AdvisorRoute Page={SuperadminHealth} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminDashboard} />} />
