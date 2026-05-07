@@ -150,8 +150,15 @@ def _check_dev_access(user, dev_id: str) -> None:
 @router.get("/api/superadmin/units/{unit_id}/history")
 async def get_unit_history(unit_id: str, request: Request, limit: int = Query(50, ge=1, le=500)):
     user = await _get_user(request)
+    # Wave 1.1 fix — was: skipped role check when sample is None (anyone authenticated could probe).
+    # Now: enforce role check upfront (superadmin or developer), then dev-scoped check after sample lookup.
+    if not user:
+        raise HTTPException(401, "Auth requerida")
+    role = getattr(user, "role", None)
+    if role != "superadmin" and role not in ("developer_admin", "developer_member"):
+        raise HTTPException(403, "Sólo superadmin o developer")
     db = request.app.state.db
-    # Find dev_id from any history row to check access
+    # Find dev_id from any history row to check tenant access (already role-validated above)
     sample = await db.units_history.find_one({"unit_id": unit_id}, {"_id": 0, "development_id": 1})
     if sample:
         _check_dev_access(user, sample["development_id"])

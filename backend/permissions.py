@@ -261,3 +261,34 @@ def can_manage_cross_partnership(user, org_id: str = "") -> bool:
             return True
         return getattr(user, "tenant_id", None) == org_id
     return False
+
+
+# ─── Wave 1.1 — Centralized superadmin guards ────────────────────────────────
+async def require_superadmin(request):
+    """
+    Canonical superadmin gate. Raises 401 if no auth, 403 if role != superadmin.
+    Returns the authenticated user.
+    """
+    from fastapi import HTTPException
+    from server import get_current_user
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    if getattr(user, "role", None) != "superadmin":
+        raise HTTPException(403, "Acceso restringido a superadmin")
+    return user
+
+
+def is_superadmin(user) -> bool:
+    """Pure check (no raise). True if user.role == superadmin."""
+    if not user:
+        return False
+    return getattr(user, "role", None) == "superadmin"
+
+
+def is_dev_or_superadmin(user) -> bool:
+    """Pure check (no raise). True if superadmin OR developer in-house role."""
+    if not user:
+        return False
+    role = getattr(user, "role", None)
+    return role == "superadmin" or role in DEV_IN_HOUSE_ROLES

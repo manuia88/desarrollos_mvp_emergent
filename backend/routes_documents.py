@@ -214,7 +214,9 @@ async def _ingest_document_bytes(
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 @router.get("/api/superadmin/document-types", response_model=DocumentTypesOut)
 async def list_doc_types(request: Request):
-    await _get_user(request)  # any auth user can read this dictionary
+    # Wave 1.1 fix — was: any auth user. Now: superadmin or developer (consistent with rest of routes_documents).
+    user = await _get_user(request)
+    _require_dev_or_superadmin(user)
     return {"doc_types": DI_DOC_TYPE_LABELS_ES}
 
 
