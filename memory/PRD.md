@@ -3119,3 +3119,103 @@ GET /v1/portfolio/exposure                  → análisis carteras (auth)
 - project_id en PATCH derivado de unit_id pattern (fallback='unknown')
 - floor_number = campo level existente en data_developments.py, fallback 1
 
+---
+
+═══════════════════════════════════════════════════════════
+## H1 ROADMAP REVISED 2026-05-07 — Wave 1-4 structure (~606h pending)
+═══════════════════════════════════════════════════════════
+
+**Origen**: post-cierre Phase 1/2/3/4-refactor/13/14/15/18 (~280h shipped). Founder pidió roadmap consolidado priorizado para H1 closure. Re-evaluación honesta de game-changers tras challenge founder ("¿estás completamente seguro?").
+
+**Insight unlock**: founder puede ingestar manualmente 100 proyectos/semana de drives developers (acceso pre-negociado). Esto unlocks Phase ZZ Transaction Network + Index Provider previamente bloqueados por chicken-and-egg data problem.
+
+### Wave structure
+
+| Wave | Foco | h | Justificación orden |
+|---|---|---|---|
+| **Wave 1** — Foundation + Authority Seeds | SA1 Ops + ZZ.1 Bulk Ingestion + critical bugs | ~50h | Sin SA1 superadmin no es production-safe; sin ZZ.1 no hay data para Authority moat |
+| **Wave 2** — Commercial + Intelligence Hub | SA2-SA5 (incl. SA5.0 Plan tiers) + Phase Z foundation Z.0-Z.2 | ~120h | Habilita monetización + dashboard ejecutivo cross-org |
+| **Wave 3** — Authority + Verticals | ZZ.2 Transaction Network + ZZ.3 Index Provider + ZZ.4 Fraud + Z.3-Z.4 Public API | ~140h | Moat real: data products B2B bancos/aseguradoras/notarías |
+| **Wave 4** — Phase Y Agentic + Polish | Phase Y completa + Phase 5/6/8/10/19/20 + Cross-cutting | ~296h | Agentic features post-data foundation; polish + launch |
+
+### Critical bugs Wave 1 (must-fix antes de production)
+
+- ⚠️ Superadmin endpoints usan `require_advisor` en lugar de `require_superadmin` (~2h) — cualquier asesor puede acceder data superadmin. SHIP urgente.
+- ⚠️ B18 webpack residuals (validar nuevamente post Wave 1)
+
+═══════════════════════════════════════════════════════════
+## Phase ZZ — DMX Authority Layer (~65h, NEW 2026-05-07)
+═══════════════════════════════════════════════════════════
+
+**Tesis**: Posicionar DMX como "el dios de la data inmobiliaria residencial MX → mundo". Phase Z monetiza data; Phase ZZ la convierte en autoridad inevitable (índices que el mercado cita, network effects en transactions, fraude detection que reguladores adoptan).
+
+**Originada por**: founder challenge 2026-05-07 — "estos son game changers REALES?". Re-evaluación honesta: 3 de 4 propuestos originalmente eran oversold/premature/sales-problem-disguised. Solo Fraud Detection era achievable. Pero founder reveló insight de bulk drive ingestion → unlock Transaction Network + Index Provider (data problem solucionado por founder manual seeding).
+
+### Sub-phases
+
+| Sub | Foco | h |
+|---|---|---|
+| ZZ.1 | **Bulk Drive Ingestion**: founder superadmin upload masivo proyectos desde drives developers · Claude haiku extraction + dedup matching + auto-fill schema disgregado developments+units+assets+documents | 10 |
+| ZZ.2 | **Transaction Network**: track real closing prices anonymizados + comparables matrix verificada + price index per zona/tipo · feed continuo desde CRM cierres reales DMX + bulk ingested data | 18 |
+| ZZ.3 | **Index Provider**: DMX Residential Price Index (DRPI) per CDMX alcaldía + per ciudad MX · publicación mensual con metodología pública + media partnerships (Forbes, El Financiero) → autoridad citable | 15 |
+| ZZ.4 | **Fraud Detection AI**: ML pattern detection sobre title chains + price anomalies + duplicate listings + flag-de-confianza visible buyers · alianza notarías + bancos | 22 |
+
+### Por qué cada item es real game-changer (post-challenge)
+
+- **ZZ.1**: Sin esto, Phase ZZ es vaporware. Founder seeding manual 100/semana × 12 semanas = 1,200 proyectos baseline → enough data para indexes.
+- **ZZ.2**: Network effect — cada transaction agregada mejora comparables. Una vez con masa crítica (~5,000 closings), nadie más en MX puede replicar.
+- **ZZ.3**: Index provider es lo que hace Case-Shiller en USA. Si Forbes/El Financiero citan DRPI mensual → autoridad de facto inmobiliaria MX.
+- **ZZ.4**: Fraude inmobiliario MX es problema real (~5-8% transacciones afectadas). Detection AI + flag visible compradores = differentiator vs Inmuebles24/Lamudi (cero AI fraud detection).
+
+### Descartados de propuesta original (post-challenge founder)
+
+- ❌ **Construction Pipeline Tracker**: oversold ~5-10x. Government data MX fragmentada (RUV federal, SEDUVI CDMX, 32 estados separados, no API unificado). Real implementation ~100h+ partnerships Tinsa/Softec. Defer hasta Y2 con presupuesto data acquisition.
+- ❌ **Government API integration**: misma razón — no existe API unificada MX. Solo viable post-partnerships institucionales.
+- ❌ **Press Kit Generator**: sales-problem-disguised-as-product. Founder PR puede usar Canva/manual hasta validar product-market fit.
+
+═══════════════════════════════════════════════════════════
+## Superadmin gaps SA1-SA8 (~106h, mapped to Waves 1-2)
+═══════════════════════════════════════════════════════════
+
+Análisis 2026-05-07 del módulo superadmin actual vs lo que necesita ser ("módulo más importante de toda la plataforma"). Gap list ordenada por criticidad:
+
+| ID | Foco | h | Wave |
+|---|---|---|---|
+| SA1 | **Ops Foundation**: fix `require_superadmin` en endpoints (hoy usan `require_advisor` por bug · ~2h crítico) + Tenants list/manage UI + impersonation flow + system health dashboard agregado | 18 | 1 |
+| SA2 | **Data Sources Hub**: status connectors INEGI/Mapbox/Google Drive/Resend + retry/replay + audit trail | 10 | 2 |
+| SA3 | **Audit Log Viewer**: timeline cross-org filterable por actor/entity/severity + export · reusa B0 mutation log foundation | 8 | 2 |
+| SA4 | **AI Cost Observatory**: dashboard costos Claude/Haiku per org/feature + budget alerts + per-org breakdown | 12 | 2 |
+| **SA5** | **Commercial Foundation** (incl. SA5.0 Plan tiers + GHL snapshots): per-tenant feature flags + plan templates simples + trial auto-expiry + GHL-style snapshots clonables ("Dev Solo" / "Mid" / "Enterprise") + Stripe billing wiring | 19 | 2 |
+| SA6 | **Granular Metrics Cube UI**: vista nano→macro (depto individual → desarrollo → calle → colonia → alcaldía → ciudad) drill-down interactivo · feeds Phase Z.2 | 15 | 2 |
+| SA7 | **Bulk Ingestion Tools**: batch upload proyectos drives + dedup engine + manual review queue · es ZZ.1 reusado | 10 | 1 |
+| SA8 | **Founder Console**: command palette superadmin (Cmd+K extended) + ejecutivo KPIs + alertas anomalías + Quick actions ("Disable feature X for tenant Y") | 14 | 2 |
+
+**Total SA1-SA8**: 106h. Wave 1 toma SA1 (18h) + SA7=ZZ.1 (10h) = 28h. Wave 2 toma SA2-SA6 + SA8 = 78h.
+
+═══════════════════════════════════════════════════════════
+## Wave 1 detailed plan (~50h)
+═══════════════════════════════════════════════════════════
+
+**Objetivo Wave 1**: superadmin production-safe + data ingestion foundation activa para empezar a construir moat.
+
+### Batches Wave 1 ordenados
+
+| # | Batch | h | Dependencies |
+|---|---|---|---|
+| W1.1 | **SA1.0 Critical Bug Fix**: rename `require_advisor` → `require_superadmin` en `/superadmin/*` endpoints + audit todos los superadmin routes para confirmar guard correcto + smoke test 403 con asesor token | 2 | ninguna · SHIP first |
+| W1.2 | **SA1.1 Tenants Management**: list orgs (devs + inmobiliarias) + filtros estado/plan/created_at + drill-down per tenant (members, projects count, AI usage, last activity) + impersonation button (con audit) | 8 | W1.1 |
+| W1.3 | **SA1.2 System Health Dashboard**: aggregator probes B0.5 cross-org + uptime + ETL status + cron jobs status + alerting básico email founder si critical down | 8 | W1.1 |
+| W1.4 | **ZZ.1 Bulk Drive Ingestion** (= SA7): superadmin UI upload Drive folder URL → Claude Haiku extraction → schema disgregado fill → dedup matching 85% similarity → manual review queue para edge cases → bulk approve | 10 | ninguna · paralelizable con SA1 |
+| W1.5 | **ZZ.1.1 Ingestion Quality + Dedup Engine**: rapidfuzz match contra existing developments + manual override + merge tool + backfill metadata faltante via Haiku second-pass | 6 | W1.4 |
+| W1.6 | **Wave 1 Polish + Smoke**: e2e tests · permission audit todos endpoints · doc actualización · founder ingest 50 proyectos sample para validar end-to-end | 4 | W1.1-W1.5 |
+
+**Total Wave 1**: ~38h core + ~12h buffer/polish = **50h**
+
+### Métricas éxito Wave 1
+
+- 100% superadmin endpoints requieren superadmin role (audit limpio)
+- Founder puede ingestar 50 proyectos en <2h via Bulk UI
+- Dedup engine correctamente identifica >90% duplicados
+- System Health alerta a founder dentro de 5min si critical service down
+- Audit log captura 100% mutations cross-org cross-tenant
+

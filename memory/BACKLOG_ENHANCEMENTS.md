@@ -233,16 +233,26 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Qué:** Tier standalone para asesores independientes ($X/mes) con KPIs comprometidos packaging tipo Teckel
 - **Costo:** Comercial, no técnico
 
-### Plan tiers superadmin con visibility granularity (full/leads-only)
-- **Origen:** B36 discussion 2026-05-06 (founder reformuló feature descartada)
-- **Destino:** H2 commercialization · prerequisite para monetización subscription
-- **Qué:** Superadmin (NO dev) crea planes mensuales con niveles visibility:
-  - Plan básico: solo leads (asesor puede referir clientes, no ve LPs/comisiones/fotos premium)
-  - Plan medio: leads + LPs públicas
-  - Plan pro: acceso completo (LPs internas + comisiones + fotos premium + contacto directo dev)
-- **Por qué:** Foundation para freemium + tiered pricing asesores. Sin esto, monetización solo es flat fee
-- **Costo:** ~5-7h (data scoping per tier + UI superadmin admin plans + Stripe subscription wiring)
-- **Dependencias:** Phase 16 BYO AI Keys + cost tracking + Stripe Connect
+### SA5.0 — Per-tenant Feature Flags + GHL-style Snapshots (commercialization foundation)
+- **Origen:** B36 discussion 2026-05-06 + 2026-05-07 (founder pidió checklist per-dev + GHL-style templates)
+- **Destino:** Wave 2 SA5 Commercial · prerequisite para Stripe billing tiered
+- **Qué:** Sistema 4 piezas integradas:
+  1. **Feature flags per tenant** (~8h): schema `db.tenant_features` + endpoint admin toggle + hook frontend `useFeatureFlag` + `<UpgradeTeaser/>` component (preview borroso + CTA "Contactar ventas") + ~10 flags iniciales (demanda · pricing_ai · site_selection · competidores · reportes_ia · cross_partnerships · studio · bulk_drive_sync · api_access · advanced_analytics)
+  2. **Plan templates simples** (~2h): guardar combos reusables ("Basic", "Pro", "Enterprise") aplicar a dev en 1 click vs marcar 12 checkboxes
+  3. **Trial auto-expiry + email warnings** (~3h): toggle con `expires_at` + cron diario que avisa día 7/3/1 antes + auto-revert + email "tu trial expiró"
+  4. **GHL-style full snapshots** (~6h): templates clonables tipo GoHighLevel con feature flags + pipeline CRM default (etapas + colores) + email templates default (bienvenida/follow-up/propuesta) + branding starter + automations default (nuevo lead → asignar asesor) + DISC config + reportes IA pre-configurados. Founder en superadmin tiene 3 templates base: "Dev Solo" · "Dev Mid 5-15 proyectos" · "Dev Enterprise 30+ proyectos". Onboarding nuevo dev = aplicar snapshot → en 30s tiene plataforma funcional vs 2h configurando manual.
+- **Por qué:** Foundation para freemium + tiered pricing. Sin esto, monetización solo es flat fee. GHL-style snapshots habilitan franchising modelo a otros países (Colombia, Perú) — patrón monetización que escala $100M+ ARR.
+- **Costo total:** ~19h Wave 2
+- **Dependencias:** Phase 16 BYO AI Keys + cost tracking + Stripe Connect (post-MVP)
+- **Plan tiers iniciales propuestos:**
+  - Basic (gratis): Dashboard + CRM + Mini Market
+  - Pro ($X/mes): + Demanda + Pricing IA + Reportes IA
+  - Enterprise ($XX/mes): + Site Selection + Competidores + Cross-partnerships + Bulk drive sync
+  - Add-ons sueltos: Studio video ($), API access ($)
+- **Diferidos a Wave 3 cuando 20+ devs pagando:**
+  - Usage analytics per feature flag (~4h): log cada vez que dev abre módulo gated → dashboard "Dev X usó Pricing IA 47 veces este mes" → data brutal para upsell argumentado
+  - Self-serve trial activation (~3h): dev ve teaser → click "Probar 14 días gratis" → auto-enable + tracking → reduce ciclo de venta sin founder bottleneck
+- **Descartados:** webhook Slack (overkill solo founder) · feature dependency graph (premature) · A/B testing % rollout (no consumer product) · revenue attribution dashboard (hasta Stripe live)
 - **Nota:** NO confundir con feature dev approval (descartada B36) · este es nivel SUPERADMIN para gestión comercial DMX
 
 ### Feature flag toggle DISC asesor visibility
@@ -250,6 +260,45 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Destino:** Decisión post-launch UX
 - **Qué:** B32 dejó DISC asesor como auto-declaración secundaria. Si después de feedback users el asesor DISC no aporta → deprecar via feature flag
 - **Costo:** Cero (solo flag toggle)
+
+---
+
+## ❌ DESCARTADOS (referencia histórica · post-challenge founder 2026-05-07)
+
+### Construction Pipeline Tracker
+- **Origen:** propuesta game-changer Phase ZZ original
+- **Razón descarte:** oversold ~5-10x. Government data MX fragmentada (RUV federal, SEDUVI CDMX, 32 estados sin API unificado). Real implementation ~100h+ partnerships Tinsa/Softec.
+- **Reconsiderar:** Y2 con presupuesto data acquisition + partnerships institucionales firmados
+
+### Government API integration (RUV/SEDUVI/INFONAVIT bulk)
+- **Origen:** propuesta acceso datos government
+- **Razón descarte:** no existe API unificada MX. RUV federal vs SEDUVI CDMX vs 32 estados separados. Solo viable post-partnerships institucionales.
+- **Reconsiderar:** post-Index Provider DRPI launch cuando DMX tenga leverage para negociar acceso institucional
+
+### Press Kit Generator
+- **Origen:** propuesta marketing automation
+- **Razón descarte:** sales-problem-disguised-as-product. Founder PR puede usar Canva/manual hasta validar product-market fit.
+- **Reconsiderar:** post-Wave 4 si volumen PR justifica automatización
+
+### Webhook to Slack on feature flag toggle (SA5.0)
+- **Origen:** SA5.0 design discussion 2026-05-07
+- **Razón descarte:** overkill para founder solo. Notificaciones email bastan.
+- **Reconsiderar:** cuando equipo founder >3 personas
+
+### Feature dependency graph (SA5.0)
+- **Origen:** SA5.0 design discussion 2026-05-07
+- **Razón descarte:** premature. Con 5-10 features iniciales no hay dependencies complejas.
+- **Reconsiderar:** Wave 4+ cuando feature catalog >20
+
+### A/B testing % rollout per feature flag (SA5.0)
+- **Origen:** SA5.0 design discussion 2026-05-07
+- **Razón descarte:** DMX no es consumer product que justifique A/B masivo. B2B SaaS no necesita esto.
+- **Reconsiderar:** nunca a menos que se construya consumer marketplace puro
+
+### Revenue attribution dashboard per feature flag (SA5.0)
+- **Origen:** SA5.0 design discussion 2026-05-07
+- **Razón descarte:** prematuro hasta tener Stripe live + 20+ devs pagando. Sin data real no aporta.
+- **Reconsiderar:** Wave 3 post-Stripe activation cuando MRR per feature sea calculable
 
 ---
 
