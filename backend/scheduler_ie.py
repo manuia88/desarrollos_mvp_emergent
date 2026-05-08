@@ -405,6 +405,20 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_transaction_price_index_error", error=str(e))
 
+    # W3.3 ZZ.3 — DRPI monthly snapshot (1ro mes 06:00 MX)
+    try:
+        from drpi_engine import schedule_drpi_monthly_cron
+        schedule_drpi_monthly_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_drpi_monthly_error", error=str(e))
+
+    # W3.3 ZZ.3 — Bulletins monthly generate (1ro mes 07:00 MX, post DRPI)
+    try:
+        from bulletins_engine import schedule_bulletins_monthly_cron
+        schedule_bulletins_monthly_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_bulletins_monthly_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

@@ -1150,3 +1150,54 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 
 ## Batch 1-23 — Developer Portal (2026-01 to 2026-04)
 - Full developer CRM: Units, Leads, Canales, AI pricing, OAuth Calendar, Caya, RAG, ML, etc.
+
+---
+
+## W3.3 ZZ.3 — DRPI Index Provider Ampliado (2026-05-08)
+
+**Foundation Authority play**: media partnerships Forbes / El Financiero · DRPI mensual con regresión hedónica OLS sobre Transaction Network · /methodology page pública · boletines mensuales (general + sectoriales top 6) · Investment Explorer AirDNA-style.
+
+### Backend nuevos
+- **NEW** `hedonic_regression_engine.py` — fit OLS via statsmodels (variables m2/recamaras/baños/year_built/floor/proximity_metro_m/denue_density/construction_cost_index) · IC95% por coeficiente · honest stub si <30 transactions
+- **NEW** `drpi_engine.py` — `compute_drpi_snapshot` (anclado base=100), `compute_drpi_national` (weighted avg), `compute_drpi_history` 12 períodos · cron `drpi_monthly_snapshot` 1ro mes 06:00 MX · system alert critical si <30% cobertura
+- **NEW** `bulletins_engine.py` — `generate_bulletin_general` + `generate_bulletin_zone` (top 6: Polanco/Roma/Lomas/Condesa/Del Valle/Coyoacán) · narrative Claude Sonnet 4.5 (ai_budget gated) · PDF branded (B5/B19 navy+cream) · Resend distribution · cron `bulletins_monthly_generate` 1ro mes 07:00 MX
+- **NEW** `routes_drpi.py` — public snapshot tier-gated (free=last, pro=12 history, enterprise=hedonic) + national + superadmin recompute + coefficients + list
+- **NEW** `routes_bulletins.py` — public HTML + PDF + `/api/public/methodology` + superadmin list/generate
+- **NEW** `routes_investment_explorer.py` — table sortable (score/yield/growth_30d/risk/dom) × buyer_objective (cashflow/appreciation/balanced) + drill-down detail con scorecard
+
+### Backend ediciones
+- **EDIT** `server.py` — registra 3 routers (`drpi_router`, `bulletins_router`, `investment_explorer_router`) + ensure_indexes (hedonic_models, drpi_snapshots, dmx_bulletins, bulletin_subscribers)
+- **EDIT** `scheduler_ie.py` — boot 2 nuevos crons (drpi_monthly_snapshot, bulletins_monthly_generate)
+- **EDIT** `cron_heartbeat.py` — labels + intervals (sistema total: 27 crons)
+- **EDIT** `requirements.txt` — `statsmodels==0.14.6`, `scipy==1.17.1`, `patsy==1.0.2`
+
+### Frontend nuevos
+- **NEW** `api/drpi.js`, `api/bulletins.js`, `api/investmentExplorer.js`
+- **NEW** `components/public/DrpiHeroWidget.js` — card grande mensual con Nacional + 6 colonias top, gradient eyebrow
+- **NEW** `components/superadmin/HedonicCoefficientsTable.js` — tabla coeficientes + IC95% + R²/RMSE pills
+- **NEW** `pages/public/MethodologyPage.js` — `/methodology` con 6 secciones (DRPI, Zone Score, Risk, Construction Cost, Validation, Citation) + Schema.org Dataset markup
+- **NEW** `pages/public/BulletinPage.js` — `/boletin/{slug}/{period}` con KPIs strip + html_content + download PDF + share (WhatsApp/LinkedIn/X) + Schema.org Article
+- **NEW** `pages/superadmin/SuperadminDRPI.js` — tabla snapshots filtros tier + drawer coeficientes + recompute manual + export CSV
+- **NEW** `pages/superadmin/SuperadminBulletins.js` — tabla bulletins + filtros + preview HTML + generate per zona top 6 + PDF
+- **NEW** `pages/superadmin/SuperadminInvestmentExplorer.js` — tabla density-aware sortable + filtros sort/tier/objective + drill drawer scorecard + export CSV
+
+### Frontend ediciones
+- **EDIT** `App.js` — 5 rutas nuevas (`/methodology`, `/boletin/:slug/:period`, `/superadmin/drpi`, `/superadmin/bulletins`, `/superadmin/investment-explorer`) + DrpiHeroWidget en Home post-ColoniasBento
+- **EDIT** `config/navByRole.js` — SUPERADMIN_NAV tier 2: 3 items nuevos (DRPI, Boletines, Investment Explorer)
+
+### Acceptance criteria validados (curl)
+- `POST /superadmin/drpi/recompute` → 200 (refit + insert snapshots, refreshed=3, insufficient=39 sin data)
+- `GET /api/drpi/snapshot/polanco` → public 200 con `available=true`, R²=0.049, sample=45 tras seed
+- `GET /api/drpi/snapshot/polanco?include=history` (free) → `history_locked=true upgrade_required=pro`
+- `GET /api/drpi/snapshot/polanco?include=hedonic` (superadmin) → `hedonic` con coefs + R²
+- `POST /superadmin/bulletins/generate` (general + zone) → PDF + html_content + slug correcto
+- `GET /api/bulletins/general/2026-05` → HTML page payload (kpis + html_content)
+- `GET /api/bulletins/general/2026-05/pdf` → 200 application/pdf valid (%PDF-1.4)
+- `GET /api/public/methodology` → shape complete (drpi + zone_score + construction_cost + validation + citation)
+- `GET /superadmin/investment-explorer/zones?sort=yield&buyer_objective=cashflow` → 200 con `recommended_for_objective`
+- 27 crons en `/api/superadmin/health/crons` (incluye drpi_monthly_snapshot + bulletins_monthly_generate)
+- Roles ≠ superadmin → 403 en endpoints protegidos · públicos → 200
+- DRPI <30 transactions → honest stub `available=false reason=insufficient_data`
+- ai_budget exceeded → bulletin generation skip + system_alert
+- `yarn build` limpio · ruff cosmético · ESLint clean
+

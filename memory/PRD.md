@@ -3425,3 +3425,45 @@ Análisis 2026-05-07 del módulo superadmin actual vs lo que necesita ser ("mód
 - `db.outbound_campaigns` + `db.outbound_leads` (Phase 16 Lead Journey)
 - `db.newsletter_subscribers` + `db.newsletter_segments` (Phase 8 ext)
 
+
+---
+
+## W3.3 ZZ.3 — DRPI Index Provider Ampliado (2026-05-08) ✅ IMPLEMENTADO
+
+### Foundation Authority play
+DesarrollosMX establece autoridad estadística pública con DRPI (DMX Residential Price Index), citation-ready para Forbes/El Financiero. Metodología abierta + boletines mensuales = brand defensiveness por rigor estadístico.
+
+### Componentes
+- **Hedonic OLS** vía `statsmodels` sobre Transaction Network W3.2 (180d window). Variables: m2, recamaras, baños, year_built, floor, proximity_metro_m, denue_density, construction_cost_index. IC95% por variable, R², RMSE.
+- **DRPI snapshots** mensuales por zona × tier. Anclado base=100. Cron 1ro mes 06:00 MX. Honest stub si <30 transactions.
+- **National DRPI** weighted average per alcaldía CDMX.
+- **Methodology page pública** `/methodology` con OG/Schema.org Dataset markup, secciones DRPI/Zone Score/Risk/Construction Cost/Validation/Citation.
+- **Boletines** mensuales: 1 general nacional + 6 sectoriales (Polanco, Roma, Lomas, Condesa, Del Valle, Coyoacán). Narrative Claude Sonnet 4.5 (ai_budget gated). PDF branded (B5/B19). Resend distribution. Cron 1ro mes 07:00 MX.
+- **Investment Explorer** AirDNA-style: tabla colonias sortable (score/yield/growth_30d/risk/dom) × buyer_objective (cashflow/appreciation/balanced) + drill-down scorecard.
+
+### Tier-gating del DRPI público
+- `free`: último snapshot (`/api/drpi/snapshot/{zone_id}`)
+- `pro`: + 12 períodos de history (`?include=history`)
+- `enterprise`: + coeficientes hedónicos completos (`?include=hedonic`)
+
+### Rutas frontend nuevas (5)
+- `/methodology` — pública con Schema.org Dataset
+- `/boletin/:slug/:period` — pública con Schema.org Article + share buttons
+- `/superadmin/drpi` — tabla snapshots + drawer hedónico
+- `/superadmin/bulletins` — lista + preview HTML + generate per zona top 6
+- `/superadmin/investment-explorer` — tabla density-aware sortable
+
+### Endpoints nuevos
+**Públicos**: `/api/drpi/snapshot/{zone_id}`, `/api/drpi/national/{period}`, `/api/bulletins/{slug}/{period}`, `/api/bulletins/{slug}/{period}/pdf`, `/api/public/methodology`
+**Superadmin**: `/api/superadmin/drpi/{recompute,coefficients/{zone_id},list}`, `/api/superadmin/bulletins/{list,generate}`, `/api/superadmin/investment-explorer/zones[/{zone_id}/detail]`
+
+### Schemas DB nuevos
+- `db.hedonic_models`: `{id, zone_id, tier, fit_at, coefficients{var:{coef,std_err,p_value,ci_low,ci_high}}, r_squared, sample_size, formula_version}` · TTL 1y
+- `db.drpi_snapshots`: `{id, zone_id, tier, period, index_value, delta_pct, hedonic_model_id, r_squared, sample_size, available, computed_at}` · unique (zone_id, tier, period)
+- `db.dmx_bulletins`: `{id, type, zone_id?, slug, period, pdf_url, html_content, narrative_md, kpis_summary, generated_at, distributed_at, distribution_count}`
+- `db.bulletin_subscribers`: `{email, segment, active, created_at}` · unique email
+
+### Crons nuevos (sistema total: 27)
+- `drpi_monthly_snapshot` 1ro mes 06:00 MX
+- `bulletins_monthly_generate` 1ro mes 07:00 MX
+

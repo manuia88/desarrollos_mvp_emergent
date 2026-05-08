@@ -45,6 +45,8 @@ SCHEDULE_LABELS = {
     "construction_costs_monthly":   "mensual · día 1 · 07:00 MX",
     "zone_score_daily_refresh":     "diario · 04:00 MX",
     "transaction_price_index_refresh": "diario · 04:30 MX",
+    "drpi_monthly_snapshot":            "mensual · día 1 · 06:00 MX",
+    "bulletins_monthly_generate":       "mensual · día 1 · 07:00 MX",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -74,6 +76,8 @@ SCHEDULE_INTERVAL_SEC = {
     "construction_costs_monthly":   32 * 86400,
     "zone_score_daily_refresh":     86400 + 600,
     "transaction_price_index_refresh": 86400 + 900,
+    "drpi_monthly_snapshot":            32 * 86400,
+    "bulletins_monthly_generate":       32 * 86400,
 }
 
 

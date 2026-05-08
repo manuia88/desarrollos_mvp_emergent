@@ -197,6 +197,17 @@ from routes_transaction_network import router as txn_network_router
 from transaction_network_engine import ensure_indexes as ensure_txn_indexes
 app.include_router(txn_network_router)
 
+# W3.3 ZZ.3 — DRPI + Bulletins + Investment Explorer
+from routes_drpi import router as drpi_router
+from routes_bulletins import router as bulletins_router
+from routes_investment_explorer import router as investment_explorer_router
+from drpi_engine import ensure_indexes as ensure_drpi_indexes
+from hedonic_regression_engine import ensure_indexes as ensure_hedonic_indexes
+from bulletins_engine import ensure_indexes as ensure_bulletins_indexes
+app.include_router(drpi_router)
+app.include_router(bulletins_router)
+app.include_router(investment_explorer_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -691,6 +702,13 @@ async def startup():
         await ensure_txn_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] transaction network indexes failed: {e}")
+    # W3.3 ZZ.3 — DRPI + Hedonic + Bulletins indexes
+    try:
+        await ensure_hedonic_indexes(db)
+        await ensure_drpi_indexes(db)
+        await ensure_bulletins_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W3.3 DRPI indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
