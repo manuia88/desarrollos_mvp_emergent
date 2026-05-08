@@ -1871,7 +1871,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://spatial-decisions-mx.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://spatial-intel-latam.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -2827,7 +2827,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://spatial-decisions-mx.preview.emergentagent.com
+https://spatial-intel-latam.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
@@ -3745,3 +3745,38 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 
 ### Ruta frontend nueva
 - `/superadmin/risk-alerts` — KPI strip + filtros severity/days/zone + RiskAlertCard list + timeline modal
+
+---
+
+## W3.7 — Phase Z.5 Anonymization + Compliance LFPDPPP (2026-05-08) ✅ SHIPPED
+
+### Capa de privacidad LFPDPPP envolviendo todos los endpoints públicos
+
+**Nuevos archivos backend**:
+- `anonymization_engine.py` — `strip_pii(record, level)` · `check_k_anonymity(db, query_params, k_min=5)` · `add_differential_privacy_noise(value, epsilon, sensitivity)`
+- `compliance_engine.py` — DSR lifecycle · audit trail · `process_dsr_deletion` · `send_dsr_confirmation_email` (Resend) · `cron_compliance_audit_retention_check` · `ensure_compliance_indexes`
+- `routes_compliance.py` — 5 endpoints compliance
+
+**Wrapping endpoints existentes**:
+- `routes_public_api_v1.py`: k-anon gate en `v1_snapshot` · PII strip en `v1_comparables` + `v1_valuation` · compliance logging en todos
+- `routes_vertical_products.py`: PII strip enterprise + compliance logging en `notaria-title-check`
+- `routes_drpi.py`: Laplace noise (ε=1.0) en DRPI snapshot free tier + compliance logging
+- `routes_risk_score.py`: compliance logging en todos los tiers
+
+### Schemas DB nuevos
+- `db.dsr_requests`: `{id, request_type, subject_email, subject_phone, status:"pending|verified|completed|rejected", verification_token, verified_at, completed_at, justification, requestor_ip, audit_evidence, created_at}` · index (status, created_at) + (subject_email)
+- `db.compliance_audit`: `{id, ts, action, endpoint, api_key_id, response_pii_stripped, k_anonymity_passed, records_returned, requestor_ip}` · index (ts desc) · TTL 5 años
+
+### Cron nuevo (sistema total: 32)
+- `compliance_audit_retention` 1ro mes 10:00 MX — flagea DSR pendientes >30d + system alert
+
+### Endpoints nuevos
+**Públicos**: `POST /api/privacy/dsr` · `GET /api/privacy/dsr/{id}/verify`
+**Superadmin**: `GET /api/superadmin/compliance/dsr-requests` · `POST /api/superadmin/compliance/dsr-requests/{id}/process` · `GET /api/superadmin/compliance/audit-trail`
+
+### Rutas frontend nuevas (2)
+- `/privacy/dsr` — Formulario ARCO público + schema.org TechArticle + sección derechos ARCO + compliance statement
+- `/superadmin/compliance` — KPI strip (4 KPIs) + DSR tab (filtros status/días) + Audit trail tab (filtro endpoint + CSV export)
+
+### Componentes nuevos (1)
+- `DsrRequestCard` — status pill + type badge + process button (verified only) + evidence summary + overdue warning (>30d)

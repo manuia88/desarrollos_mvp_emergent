@@ -37,6 +37,8 @@ from pydantic import BaseModel
 
 import public_api_auth as auth
 import stripe_billing_engine as billing
+import anonymization_engine as anon
+import compliance_engine as comp
 
 log = logging.getLogger("dmx.routes_public_api_v1")
 
@@ -79,6 +81,17 @@ async def v1_snapshot(zone_id: str, request: Request, response: Response):
     started = time.perf_counter()
     db = _db(request)
 
+    # W3.7 — k-anonymity gate for aggregate zone queries
+    k_check = await anon.check_k_anonymity(db, {"zone_id": zone_id})
+    if not k_check.get("available"):
+        _set_headers(response, ctx)
+        await comp.log_compliance_event(
+            db, action="api_query", endpoint=f"/api/v1/zones/{zone_id}/snapshot",
+            api_key_id=ctx.id, k_anonymity_passed=False, records_returned=0,
+            requestor_ip=request.client.host if request.client else "",
+        )
+        return {**k_check, "zone_id": zone_id}
+
     cube = await db.cube_aggregations.find_one(
         {"tier_id": zone_id, "period": "current"}, {"_id": 0},
     ) or {}
@@ -89,11 +102,20 @@ async def v1_snapshot(zone_id: str, request: Request, response: Response):
         "kpis": cube.get("kpis") or {},
         "computed_at": cube.get("last_synced_at"),
     }
+    # W3.7 — PII strip (snapshot kpis are aggregate, but strip defensively)
+    out = anon.strip_pii(out, level=ctx.tier)
+
     _set_headers(response, ctx)
+    latency_ms = int((time.perf_counter() - started) * 1000)
     await auth.track_api_call(
         db, ctx, request, status_code=200,
-        latency_ms=int((time.perf_counter() - started) * 1000),
-        response_size=len(str(out)),
+        latency_ms=latency_ms, response_size=len(str(out)),
+    )
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint=f"/api/v1/zones/{zone_id}/snapshot",
+        api_key_id=ctx.id, response_pii_stripped=True,
+        k_anonymity_passed=True, records_returned=1,
+        requestor_ip=request.client.host if request.client else "",
     )
     return out
 
@@ -223,11 +245,20 @@ async def v1_comparables(
          "closing_price_mxn": 1, "property_type": 1, "closed_at": 1, "lat": 1, "lng": 1},
     ).limit(limit)
     items = [d async for d in cursor]
+    # W3.7 — strip PII from each comparable item
+    items = [anon.strip_pii(item, level=ctx.tier) for item in items]
     out = {"center": {"lat": lat, "lng": lng}, "radius_km": radius_km,
            "items": items, "count": len(items)}
+    latency_ms = int((time.perf_counter() - started) * 1000)
     _set_headers(response, ctx)
     await auth.track_api_call(db, ctx, request, status_code=200,
-        latency_ms=int((time.perf_counter() - started) * 1000), response_size=len(str(out)))
+        latency_ms=latency_ms, response_size=len(str(out)))
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint="/api/v1/comparables",
+        api_key_id=ctx.id, response_pii_stripped=True,
+        k_anonymity_passed=True, records_returned=len(items),
+        requestor_ip=request.client.host if request.client else "",
+    )
     return out
 
 
@@ -258,10 +289,18 @@ async def v1_valuation(property_id: str, request: Request, response: Response):
             avm = await hed.predict_price(db, model["id"], feats)
         out = {"property_id": property_id, "available": True,
                "zone_id": tx.get("zone_id"), "features": feats, "avm": avm}
-
+    # W3.7 — strip PII from valuation response
+    out = anon.strip_pii(out, level=ctx.tier)
+    latency_ms = int((time.perf_counter() - started) * 1000)
     _set_headers(response, ctx)
     await auth.track_api_call(db, ctx, request, status_code=200,
-        latency_ms=int((time.perf_counter() - started) * 1000), response_size=len(str(out)))
+        latency_ms=latency_ms, response_size=len(str(out)))
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint=f"/api/v1/valuations/{property_id}",
+        api_key_id=ctx.id, response_pii_stripped=True, k_anonymity_passed=True,
+        records_returned=1 if out.get("available") else 0,
+        requestor_ip=request.client.host if request.client else "",
+    )
     return out
 
 

@@ -162,6 +162,9 @@ const ApiDocsPage                    = lazy(() => import('./pages/public/ApiDocs
 // W3.6 — Vertical Data Products + Data Licensing (Phase Z.4)
 const SuperadminVerticalProducts     = lazy(() => import('./pages/superadmin/SuperadminVerticalProducts'));
 const SuperadminDataLicensing        = lazy(() => import('./pages/superadmin/SuperadminDataLicensing'));
+// W3.7 — Phase Z.5 Compliance LFPDPPP
+const SuperadminCompliance           = lazy(() => import('./pages/superadmin/SuperadminCompliance'));
+const PrivacyDsrPage                 = lazy(() => import('./pages/public/PrivacyDsrPage'));
 const BankAvmWidget                  = lazy(() => import('./pages/public/widgets/BankAvmWidget'));
 const InsuranceRiskWidget            = lazy(() => import('./pages/public/widgets/InsuranceRiskWidget'));
 const NotariaTitleWidget             = lazy(() => import('./pages/public/widgets/NotariaTitleWidget'));
@@ -529,6 +532,9 @@ function AppRouter() {
       {/* W3.6 — Vertical Data Products + Data Licensing */}
       <Route path="/superadmin/vertical-products" element={<AdvisorRoute Page={SuperadminVerticalProducts} />} />
       <Route path="/superadmin/data-licensing" element={<AdvisorRoute Page={SuperadminDataLicensing} />} />
+      {/* W3.7 — Phase Z.5 Compliance */}
+      <Route path="/superadmin/compliance" element={<AdvisorRoute Page={SuperadminCompliance} />} />
+      <Route path="/privacy/dsr" element={<PrivacyDsrPage />} />
       <Route path="/widget/bank-avm" element={<BankAvmWidget />} />
       <Route path="/widget/insurance-risk" element={<InsuranceRiskWidget />} />
       <Route path="/widget/notaria-title-check" element={<NotariaTitleWidget />} />

@@ -19,6 +19,8 @@ from pydantic import BaseModel
 
 import public_api_auth as auth
 import vertical_products_engine as vp
+import anonymization_engine as anon
+import compliance_engine as comp
 
 log = logging.getLogger("dmx.routes_vertical_products")
 
@@ -210,17 +212,25 @@ async def v1_notaria_title(body: TitleCheckBody, request: Request, response: Res
     raw = await vp.compute_title_check(
         db, body.property_id, body.transaction_history or [],
     )
+    # W3.7 — PII strip for title-check (enterprise, but still strip raw PII)
+    out = anon.strip_pii(dict(raw), level="enterprise")
 
     latency_ms = int((time.perf_counter() - started) * 1000)
     _set_headers(response, ctx)
     await auth.track_api_call(
         db, ctx, request, status_code=200,
-        latency_ms=latency_ms, response_size=len(str(raw)),
+        latency_ms=latency_ms, response_size=len(str(out)),
     )
     await vp.persist_call_audit(
         db, "notaria-title-check", ctx, payload,
         status="ok" if raw.get("available") else "stub",
         latency_ms=latency_ms,
+    )
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint="/api/v1/verticals/notaria-title-check",
+        api_key_id=ctx.id, response_pii_stripped=True, k_anonymity_passed=True,
+        records_returned=1 if out.get("available") else 0,
+        requestor_ip=request.client.host if request.client else "",
     )
     try:
         from audit_log import log_mutation
@@ -234,7 +244,7 @@ async def v1_notaria_title(body: TitleCheckBody, request: Request, response: Res
         )
     except Exception:
         pass
-    return raw
+    return out
 
 
 @router.post("/api/v1/verticals/investor-yield")
