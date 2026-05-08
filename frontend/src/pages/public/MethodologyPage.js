@@ -121,24 +121,42 @@ export default function MethodologyPage() {
         </Section>
 
         {/* Risk */}
-        <Section title="3 · Risk Score">
+        <Section title="3 · Risk Score V2 multi-source">
           {data?.risk_score && (
             <>
               <p>
-                <strong style={{ color: 'var(--cream)' }}>V1 activo</strong> (W3.4A): capa de criminalidad
-                via SESNSP (Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública).
+                <strong style={{ color: 'var(--cream)' }}>V2 activo</strong> (W3.4B):
+                composite ponderado de 4 dimensiones · v{data.risk_score.version || '2.0.0'}.
               </p>
-              <ul style={{ paddingLeft: 22, margin: '8px 0 14px' }}>
-                <li>Fuente: SESNSP CSV mensual (gratuito, sin token).</li>
-                <li>Frecuencia: ingesta mensual (1ro de mes 08:00 MX) · refresh diario 05:00 MX.</li>
-                <li>6 categorías: robo a casa habitación · robo a transeúnte · homicidio doloso · secuestro · extorsión · violencia familiar.</li>
-                <li>Normalización: incidentes por 100,000 habitantes en ventana de 6 meses.</li>
-                <li>Score: 0-100 (0 incidentes → 100; 5,000 incidentes/100k → 0). Letter A-F.</li>
-              </ul>
-              <p style={{ color: 'var(--cream-3)' }}>
-                <strong>V2 pendiente</strong> (W3.4B): natural risk (CENAPRED + Atlas Riesgo CDMX) ·
-                title risk (RPP partnership Y2) · percepción (ENVIPE INEGI).
-              </p>
+              <KvLine label="Composite weights" value="crime 40% · natural 25% · title 15% · perception 20%" />
+              <KvLine label="Fuentes activas" value={(data.risk_score.sources_active || []).join(' · ')} />
+              <KvLine label="Frecuencia" value={data.risk_score.frequency || ''} />
+              <KvLine label="Alert engine" value={data.risk_score.alert_engine || ''} />
+              {data.risk_score.dimensions && (
+                <div style={{ marginTop: 14 }}>
+                  <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 8 }}>
+                    Dimensiones
+                  </h3>
+                  {Object.entries(data.risk_score.dimensions).map(([k, dim]) => (
+                    <div key={k} style={{ marginBottom: 12 }}>
+                      <div style={{ color: 'var(--cream)', fontWeight: 700, marginBottom: 4 }}>
+                        {k === 'crime' ? 'Crime' : k === 'natural' ? 'Natural'
+                         : k === 'title' ? 'Título' : 'Percepción'}
+                      </div>
+                      {Object.entries(dim).map(([dk, dv]) => (
+                        <div key={dk} style={{ marginLeft: 16, fontSize: 13, color: 'var(--cream-2)' }}>
+                          <span style={{ color: 'var(--cream-3)' }}>{dk}:</span> {Array.isArray(dv) ? dv.join(', ') : String(dv)}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(data.risk_score.sources_pending_v3 || []).length > 0 && (
+                <p style={{ color: 'var(--cream-3)', marginTop: 14 }}>
+                  <strong>V3 pendiente</strong>: {(data.risk_score.sources_pending_v3 || []).join(', ')}.
+                </p>
+              )}
             </>
           )}
         </Section>

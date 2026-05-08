@@ -86,29 +86,35 @@ export default function RiskScoreBreakdown({ zoneId }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <ComponentCard
           title="Crime score"
-          status="active"
+          status={components.crime_score != null ? 'active' : 'placeholder'}
           value={components.crime_score != null ? components.crime_score.toFixed(1) : '—'}
           sub={components.crime_normalized_per_100k != null
             ? `${components.crime_normalized_per_100k.toLocaleString('es-MX')} incidentes / 100k hab · 6m`
-            : null}
+            : 'SESNSP V1'}
         />
         <ComponentCard
           title="Riesgo natural"
-          status="placeholder"
-          value="—"
-          sub="V2 con CENAPRED + Atlas Riesgo CDMX (W3.4B)"
+          status={components.natural_score != null ? 'active' : 'placeholder'}
+          value={components.natural_score != null ? components.natural_score.toFixed(1) : '—'}
+          sub={components.natural_detail
+            ? `Sísmica ${components.natural_detail.sismic_zone || '—'} · Inund ${components.natural_detail.flood_pct ?? '—'}% · Hund ${components.natural_detail.subsidence_mm_year ?? '—'}mm/año`
+            : 'Atlas CDMX + CENAPRED (W3.4B)'}
         />
         <ComponentCard
           title="Riesgo título"
-          status="placeholder"
-          value="—"
-          sub="V2 con RPP partnership (Y2)"
+          status={components.title_risk_score != null ? 'active' : 'placeholder'}
+          value={components.title_risk_score != null ? components.title_risk_score.toFixed(1) : '—'}
+          sub={components.title_detail
+            ? `${components.title_detail.flips_24m ?? 0} flips / ${components.title_detail.transactions_24m ?? 0} tx · 24m · v3 con RPP Y2`
+            : 'Heurística W3.4B · v3 con RPP Y2'}
         />
         <ComponentCard
           title="Percepción"
-          status="placeholder"
-          value="—"
-          sub="V2 con ENVIPE INEGI (W3.4B)"
+          status={components.percepcion_score != null ? 'active' : 'placeholder'}
+          value={components.percepcion_score != null ? components.percepcion_score.toFixed(1) : '—'}
+          sub={components.percepcion_detail
+            ? `ENVIPE ${components.percepcion_detail.year || ''} · ${components.percepcion_detail.perception_pct ?? '—'}% inseguridad`
+            : 'ENVIPE INEGI anual (W3.4B)'}
         />
       </div>
 

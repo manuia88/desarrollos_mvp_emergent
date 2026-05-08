@@ -1257,3 +1257,54 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - ✅ statsmodels + sklearn coexisten requirements.txt sin conflicto
 - ✅ `yarn build` limpio · ESLint clean · Python lint cosmético (E702 multi-statement aceptado)
 
+
+---
+
+## W3.4B ZZ.4 — Risk Layer Part 2 (V2 multi-source + UI alert engine) (2026-05-08)
+
+**Risk Layer cierra**: V2 composite ponderado con 4 dimensiones reales. Letter change alert engine con email Resend automático en bajadas críticas. RiskScoreFullBadge marketplace con tooltip 4 mini-bars + drill drawer. Sustituye 3 placeholders V2 reservados en schema W3.4A.
+
+### Backend nuevos
+- **NEW** `natural_risk_engine.py` — Atlas CDMX + CENAPRED GeoJSON layers (sísmica/inundación/hundimiento) · `upsert_zone_layer` operator helper · `compute_natural_risk_zone` con composite formula 0.40 sismic + 0.35 flood + 0.25 subsidence · cron `cenapred_atlas_quarterly_ingest` 1ro mes 09:00 MX (jan/abr/jul/oct)
+- **NEW** `perception_risk_engine.py` — INEGI ENVIPE indicador 6207067968 (% percepción inseguridad) · 16 alcaldías CDMX mapeadas · `upsert_perception` operator helper · score inverso (más percepción inseguridad → más risk)
+- **NEW** `routes_risk_alerts.py` — list/filters/days · timeline per zone · acknowledge mutation (audit)
+
+### Backend ediciones
+- **EDIT** `risk_score_engine.py` — `compute_risk_score_v2(db, zone_id)`: composite 4 dims con `WEIGHTS_V2={crime:0.40, natural:0.25, title:0.15, perception:0.20}` · renormaliza weights cuando dimensiones unavailable · `_title_risk_heuristic` mejorado con Transaction Network W3.2 (flips ≥3 en 24m) · `detect_letter_change` engine con system_alerts + Resend email crítico cuando delta>2 letters · `get_risk_score_or_compute` ahora usa V2 + dispara letter detection · `cron_risk_score_zone_daily` ahora computa V2 + detect change · `FORMULA_VERSION="2.0.0"`
+- **EDIT** `routes_risk_score.py` — extiende public shape con `placeholder_flags` + `weights` + 4-dim breakdown enterprise tier
+- **EDIT** `crime_data_engine.py` — `cron_sesnsp_monthly_ingest` ahora absorbe ENVIPE annual update (NO new cron, perception data is yearly)
+- **EDIT** `routes_bulletins.py` — `/api/public/methodology` retorna Risk Score V2 con `status=active_v2_multisource`, dimensions detalle (crime/natural/title/perception), version 2.0.0
+- **EDIT** `server.py` — registra `risk_alerts_router` + 2 ensure_indexes (natural_risk_layers, perception_risk_data)
+- **EDIT** `scheduler_ie.py` — boot cron `cenapred_atlas_quarterly_ingest`
+- **EDIT** `cron_heartbeat.py` — label cenapred (sistema total: 31 crons)
+
+### Frontend nuevos
+- **NEW** `api/riskAlerts.js` (3 fns)
+- **NEW** `components/marketplace/RiskScoreFullBadge.js` — sustituye `RiskScoreBadge` V1: badge A-F + hover tooltip con 4 mini-bars (crime/natural/title/perception) + click drawer breakdown
+- **NEW** `components/superadmin/RiskAlertCard.js` — letter pill prev→new + delta_letters + severity color + button "Ver historia zona" (timeline modal) + ack button
+- **NEW** `pages/superadmin/SuperadminRiskAlerts.js` — KPI strip (critical_open, drops, rises) + filtros severity/days/zone search + paginación
+
+### Frontend ediciones
+- **EDIT** `components/developer/RiskScoreBreakdown.js` — sustituye 3 V2 placeholders por componentes reales con detalles (sismic_zone/flood_pct/subsidence_mm_year, flips_24m/transactions_24m, perception_pct/year)
+- **EDIT** `pages/superadmin/SuperadminRiskScore.js` — tabla extendida con 4 cols (Crime/Natural/Título/Percep.) + col Fuentes muestra count
+- **EDIT** `pages/public/MethodologyPage.js` — Risk Score section completa V2 con weights + dimensions + alert_engine descripción
+- **EDIT** `components/marketplace/PropertyCard.js` — sustituye `RiskScoreBadge` por `RiskScoreFullBadge`
+- **EDIT** `App.js` — ruta `/superadmin/risk-alerts`
+- **EDIT** `config/navByRole.js` — `AlertTriangle` import + nav item "Risk Alerts" tier 2
+
+### Acceptance criteria validados (curl)
+- ✅ `compute_risk_score_v2(polanco)` → letter=B, numeric=75.8, ALL placeholder_flags=false, sources=[sesnsp, atlas_cdmx, transaction_network, envipe_inegi]
+- ✅ Components: crime=83.6, natural=68.5, title=86.0, perception=61.5 (4 dims pobladas)
+- ✅ Zone Score W3.1A consume V2 automáticamente (risk component pasó de 83.6 V1 → 75.8 V2; sin cambios additional)
+- ✅ Atlas CDMX `fetch_atlas_cdmx_layers` operator-friendly: si URLs fail → system_alert.warning · operator puede `upsert_zone_layer` manual
+- ✅ ENVIPE `fetch_envipe_perception` 16 alcaldías · token IE_INEGI_TOKEN reused · operator helper `upsert_perception` para CSV manual
+- ✅ Letter change detection: B→D simulado → INSERT risk_letter_changes (severity=warning delta=2) + system_alert.warning
+- ✅ Email Resend critical drop: solo dispara cuando delta>2 letters (verified: B→D delta=2 → warning, NO email; 5+ delta → critical + email)
+- ✅ `/api/superadmin/risk-alerts` list paginado con KPIs (critical_open, drops_in_window, rises_in_window)
+- ✅ Timeline per zone retorna histórico letter changes
+- ✅ Acknowledge marca `acknowledged_at` + `acknowledged_by` + audit log
+- ✅ `/api/public/methodology` retorna Risk V2 status=active_v2_multisource con 4 dimensiones detalladas
+- ✅ 31 crons en `/api/superadmin/health/crons` (incluye `cenapred_atlas_quarterly_ingest`)
+- ✅ RBAC 403 asesor en risk-alerts/timeline; público OK en methodology + risk-score/zone
+- ✅ `yarn build` limpio · ESLint clean
+
