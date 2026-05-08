@@ -29,7 +29,24 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 
 ---
 
-## 2026-05-07 — W2.8 · Phase Z.1 Consolidated Metrics Cube OLAP
+## 2026-05-08 — W3.1A · Phase 5 Foundation: DENUE + Construction Cost + Zone Score A-F
+
+### Completed
+- Backend: `denue_engine.py`, `construction_cost_engine.py`, `zone_score_engine.py`, `routes_phase5_foundation.py`
+- Frontend: `ZoneScoreBadge`, `ZoneScoreBreakdown`, `ConstructionCostPanel`, `SuperadminPhase5Foundation`, `api/phase5Foundation.js`
+- 9 endpoints (`/api/superadmin/phase5/*` + `/api/public/zone-score/{zone_id}`)
+- 3 crons: `denue_sync_weekly`, `construction_costs_monthly`, `zone_score_daily_refresh`
+- BANXICO live (6.5% inflación construcción real)
+- DENUE: estructura correcta, token pendiente registro (`IE_DENUE_TOKEN`)
+- `yarn build` limpio, 403 guards verificados
+
+### Pending (DENUE activation)
+- Register token at https://www.inegi.org.mx/app/api/denue/v1/tokenVerify.aspx
+- Add `IE_DENUE_TOKEN=<token>` to `/app/backend/.env`
+
+---
+
+
 
 ### Backend
 - `cube_olap_engine.py` — `compute_slice`, `compute_cross_cut` (multi-dim `$facet`), `compare_slices` (diff %), `materialize_view`, `start_backfill` (asyncio task).
@@ -1854,7 +1871,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://compacto-nav.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://spatial-decisions-mx.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -2810,7 +2827,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://compacto-nav.preview.emergentagent.com
+https://spatial-decisions-mx.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales

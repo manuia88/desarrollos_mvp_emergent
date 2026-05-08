@@ -184,6 +184,14 @@ from routes_superadmin_intelligence_hub import router as superadmin_intelligence
 from intelligence_insights_engine import ensure_indexes as ensure_intelligence_indexes
 app.include_router(superadmin_intelligence_hub_router)
 
+# W3.1A Phase 5 Foundation — DENUE + Construction Cost + Zone Score
+from routes_phase5_foundation import router as phase5_router, pub_router as phase5_pub_router
+from denue_engine import ensure_indexes as ensure_denue_indexes
+from construction_cost_engine import ensure_indexes as ensure_cost_indexes
+from zone_score_engine import ensure_indexes as ensure_zone_score_indexes
+app.include_router(phase5_router)
+app.include_router(phase5_pub_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -666,6 +674,13 @@ async def startup():
         await ensure_intelligence_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] intelligence hub indexes failed: {e}")
+    # W3.1A Phase 5 Foundation — DENUE + Construction Cost + Zone Score indexes
+    try:
+        await ensure_denue_indexes(db)
+        await ensure_cost_indexes(db)
+        await ensure_zone_score_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] phase5 foundation indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

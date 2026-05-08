@@ -747,5 +747,73 @@
         "review_subtitle": "Todos los proyectos extraídos fueron procesados."
       }
     }
+  },
+  "phase5_foundation": {
+    "page_eyebrow": "W3.1A · Phase 5 Foundation",
+    "page_title": "Foundation Phase 5",
+    "page_sub": "DENUE · Costos de Construcción · Zone Score A-F",
+    "tabs": {
+      "denue": "DENUE",
+      "costos": "Costos Construcción",
+      "zone_scores": "Zone Scores"
+    },
+    "denue": {
+      "zone_label": "Zona (zone_id)",
+      "sync_btn": "Sincronizar DENUE",
+      "syncing": "Sincronizando…",
+      "load_btn": "Cargar",
+      "businesses_total": "negocios",
+      "density": "/km²",
+      "lookup_placeholder": "Nombre empresa, ej: Oxxo",
+      "lookup_title": "Búsqueda de empresas (enrichment de leads)",
+      "no_results": "Sin resultados para",
+      "categories": {
+        "restaurants": "Restaurantes",
+        "gyms": "Gimnasios",
+        "markets": "Mercados",
+        "schools": "Escuelas",
+        "hospitals": "Hospitales",
+        "pharmacies": "Farmacias",
+        "banks": "Bancos"
+      }
+    },
+    "costs": {
+      "cost_per_m2": "Costo / m²",
+      "confidence": "Confianza",
+      "total_cost": "Total",
+      "projection": "Proyección 12 meses",
+      "inflation_note": "+6% anual estimado",
+      "sources": "Fuentes",
+      "no_sources": "Sin datos externos (tokens pendientes)",
+      "cached": "Resultado en caché",
+      "calculated_now": "Calculado ahora",
+      "types": {
+        "vertical": "Vertical",
+        "horizontal": "Horizontal"
+      },
+      "tiers": {
+        "entry": "Económico",
+        "mid": "Medio",
+        "luxury": "Lujo"
+      }
+    },
+    "scores": {
+      "filter_tier": "Filtrar tier:",
+      "all": "Todos",
+      "recompute": "Recomputar",
+      "recomputing": "Calculando…",
+      "loading": "Cargando…",
+      "no_data": "Sin datos de zona. Ejecuta el cron o espera el próximo ciclo.",
+      "estimated": "estimado",
+      "formula_note": "Score compuesto de 6 dimensiones. Dimensiones marcadas \"estimado\" serán sustituidas por datos reales en W3.3 (DRPI) y W3.4 (Risk).",
+      "dimensions": {
+        "liquidez": "Liquidez",
+        "supply": "Presión de oferta",
+        "demand": "Crecimiento demanda",
+        "risk": "Riesgo",
+        "yield_score": "Yield estimado",
+        "denue_density": "Densidad DENUE"
+      }
+    }
   }
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Car, Ruler, Heart, ArrowRight, Leaf, Route, Shield, Store } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
+import ZoneScoreBadge from './ZoneScoreBadge';
 
 const SCORE_ICON = { vida: Leaf, movilidad: Route, seguridad: Shield, comercio: Store };
 
@@ -72,6 +73,19 @@ export default function PropertyCard({ property, index = 0, colonia }) {
             {colonia?.momentum}
           </span>
         </div>
+        {/* W3.1A Zone Score badge — bottom-right of photo; renders only when zone_score_letter is present */}
+        {property.zone_score_letter && (
+          <div style={{ position: 'absolute', bottom: 10, right: 12 }}>
+            <ZoneScoreBadge
+              zone_id={property.colonia || property.zone_id}
+              score_letter={property.zone_score_letter}
+              score_numeric={property.zone_score_numeric}
+              zone_name={property.colonia}
+              size="sm"
+              showBreakdown={true}
+            />
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>

@@ -143,6 +143,7 @@ const SuperadminFounderConsole       = lazy(() => import('./pages/superadmin/Sup
 const SuperadminDataLake             = lazy(() => import('./pages/superadmin/SuperadminDataLake'));
 // W2.9 Phase Z.2 — Intelligence Hub (executive bird's-eye)
 const SuperadminIntelligenceHub      = lazy(() => import('./pages/superadmin/SuperadminIntelligenceHub'));
+const SuperadminPhase5Foundation     = lazy(() => import('./pages/superadmin/SuperadminPhase5Foundation'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -173,9 +174,6 @@ const PreferenciasPage           = lazy(() => import('./pages/configuracion/Pref
 
 // Phase 4 Batch 19 — Branding page
 const BrandingPage               = lazy(() => import('./pages/configuracion/BrandingPage'));
-
-// Phase 4 Batch 21 Sub-A — Team metrics
-const MetricasEquipo             = lazy(() => import('./pages/developer/MetricasEquipo'));
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -489,6 +487,7 @@ function AppRouter() {
       <Route path="/superadmin/metrics-cube" element={<AdvisorRoute Page={SuperadminMetricsCube} />} />
       <Route path="/superadmin/data-lake" element={<AdvisorRoute Page={SuperadminDataLake} />} />
       <Route path="/superadmin/intelligence-hub" element={<AdvisorRoute Page={SuperadminIntelligenceHub} />} />
+      <Route path="/superadmin/phase5-foundation" element={<AdvisorRoute Page={SuperadminPhase5Foundation} />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
