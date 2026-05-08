@@ -192,6 +192,11 @@ from zone_score_engine import ensure_indexes as ensure_zone_score_indexes
 app.include_router(phase5_router)
 app.include_router(phase5_pub_router)
 
+# W3.2 ZZ.2 Transaction Network
+from routes_transaction_network import router as txn_network_router
+from transaction_network_engine import ensure_indexes as ensure_txn_indexes
+app.include_router(txn_network_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -681,6 +686,11 @@ async def startup():
         await ensure_zone_score_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] phase5 foundation indexes failed: {e}")
+    # W3.2 Transaction Network indexes
+    try:
+        await ensure_txn_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] transaction network indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

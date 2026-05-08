@@ -20,6 +20,9 @@ const COLS = [
   { key: 'leads', label: 'Leads', accessor: r => (r.kpis || {}).leads_count || 0, sortable: true, mono: true },
   { key: 'ie', label: 'IE', accessor: r => (r.kpis || {}).ie_score_promedio,
     sortable: true, fmt: v => v != null ? v.toFixed(1) : '—', mono: true },
+  // W3.2 — verified transactions count per zona
+  { key: 'verified_txs', label: 'Verified TXs', accessor: r => r.verified_transactions_count ?? null,
+    sortable: true, fmt: v => v != null ? String(v) : '—', mono: true },
 ];
 
 const PAGE_SIZE = 50;
@@ -145,6 +148,25 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
                 {cols.map(c => {
                   const v = c.accessor(r);
                   const display = c.fmt ? c.fmt(v) : (v != null ? v : '—');
+                  // W3.2 — Verified TXs column: clickable link to transaction network
+                  if (c.key === 'verified_txs' && v != null && v > 0) {
+                    return (
+                      <td key={c.key} style={{
+                        padding: rowPad, textAlign: 'right',
+                        fontFamily: 'DM Mono, monospace', fontSize: dense ? 11.5 : 12.5,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <a
+                          href={`/superadmin/transactions?zone_id=${encodeURIComponent(r.tier_id)}`}
+                          onClick={e => e.stopPropagation()}
+                          style={{ color: '#a5b4fc', textDecoration: 'none', fontWeight: 600 }}
+                          data-testid={`txn-link-${r.tier_id}`}
+                        >
+                          {display}
+                        </a>
+                      </td>
+                    );
+                  }
                   return (
                     <td key={c.key} style={{
                       padding: rowPad, textAlign: c.mono ? 'right' : 'left',

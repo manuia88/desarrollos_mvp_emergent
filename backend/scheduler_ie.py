@@ -398,6 +398,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_zone_score_error", error=str(e))
 
+    # W3.2 Transaction Network — price index daily refresh (04:30 MX)
+    try:
+        from transaction_network_engine import schedule_price_index_cron
+        schedule_price_index_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_transaction_price_index_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

@@ -748,6 +748,52 @@
       }
     }
   },
+  "transaction_network": {
+    "page_eyebrow": "W3.2 · ZZ.2 Transaction Network",
+    "page_title": "Transaction Network",
+    "page_sub": "Closings anonimizados verificados · Foundation DRPI y Fraud Detection",
+    "ingest_btn": "Manual ingest CSV",
+    "ingest_modal_title": "Importar transacciones CSV",
+    "ingest_columns_hint": "Columnas requeridas: zone_id, closing_price_mxn, closed_at",
+    "ingest_source": "Fuente",
+    "ingest_sources": {
+      "bulk_ingest": "Importación masiva",
+      "notary_partner": "Notaría partner",
+      "dev_self_report": "Desarrollador self-report"
+    },
+    "ingest_result": "Importación completada",
+    "kpi_total": "Total verificadas",
+    "kpi_dom": "DOM promedio",
+    "kpi_discount": "Descuento promedio",
+    "kpi_top_zone": "Top zona velocidad",
+    "feed_title": "Últimas transacciones",
+    "feed_anon_note": "Datos anonimizados (LFPDPPP)",
+    "k_anon_gate": "Datos no disponibles — k-anonymity gate",
+    "k_anon_reason": "Esta zona tiene {current}/{min} transacciones mínimas para publicar datos.",
+    "anomaly_title": "Detector de anomalía de precio (W3.4 foundation)",
+    "anomaly_ok": "Normal",
+    "anomaly_amber": "Revisar",
+    "anomaly_red": "Alerta",
+    "price_index_title": "Índice de precios",
+    "price_index_median": "Mediana /m²",
+    "price_index_iqr": "IQR",
+    "price_index_txns": "Transacciones",
+    "price_index_discount_med": "Descuento med.",
+    "heatmap_title": "Heatmap precio mediano / m² por zona",
+    "types": {
+      "depto": "Departamento", "casa": "Casa", "loft": "Loft",
+      "town": "Town", "PH": "Penthouse"
+    },
+    "sources": {
+      "dmx_native": "DMX", "dev_self_report": "Desarrollador",
+      "notary_partner": "Notaría", "bulk_ingest": "Importación"
+    },
+    "cols": {
+      "closed_at": "Cierre", "zone": "Zona", "type": "Tipo",
+      "m2": "m²", "price": "Lista → Cierre", "dom": "DOM",
+      "source": "Fuente", "confidence": "Conf."
+    }
+  },
   "phase5_foundation": {
     "page_eyebrow": "W3.1A · Phase 5 Foundation",
     "page_title": "Foundation Phase 5",

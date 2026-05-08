@@ -1,6 +1,25 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W3.2 — ZZ.2 Transaction Network (2026-05-08)
+
+Sistema de tracking de closings anonimizados + comparables matrix verificada + price index per zona/tipo.
+
+### Backend (2 nuevos · 4 editados)
+- **NEW** `transaction_network_engine.py`: SHA-256 anonymización, $geoNear comparables, median/IQR price index, anomaly detection severity ok|amber|red, CSV bulk ingest (NUMERIC_CSV_COLS incluye days_on_market), compute_stats KPIs, cron_price_index_refresh 04:30 MX.
+- **NEW** `routes_transaction_network.py` (7 endpoints): list+k-anon gate, comparables, price-index+history, heatmap GeoJSON, detect-anomaly, manual-ingest CSV, stats.
+- **EDIT** `routes_dev_batch4.py`: `LeadPatch.closing_price` + auto-ingest hook cerrado_ganado → asyncio.create_task, audit `transaction_auto_ingested`.
+- **EDIT** `server.py`, `cron_heartbeat.py`, `scheduler_ie.py`: txn router, ensure_txn_indexes, label+cron. Total crons: 25.
+
+### Frontend (4 nuevos · 3 editados)
+- **NEW** `api/superadminTransactionNetwork.js` (7 fn), `TransactionFeed.js` (chips+k-anon gate), `PriceIndexChart.js` (SVG área chart), `SuperadminTransactionNetwork.js` (KPI strip, 2-col, heatmap, AnomalyChecker, IngestModal).
+- **EDIT** `CubeDrilldownTable.js` (col Verified TXs → link), `App.js`, `navByRole.js`, `i18n`.
+
+### Edge Cases
+- `days_on_market` faltaba en NUMERIC_CSV_COLS → corregido.
+- Heatmap requiere cube_aggregations geo (0 features en sandbox, funcional en producción).
+- Auto-ingest verificado por code review (sin leads activos en sandbox).
+
 ## W3.1A — Phase 5 Foundation: DENUE + Construction Cost + Zone Score A-F (2026-05-08)
 
 Tres motores que alimentan DRPI (W3.3), Investment Explorer (W3.3.4) y Risk Score multi-fuente (W3.4).

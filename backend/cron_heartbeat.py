@@ -44,6 +44,7 @@ SCHEDULE_LABELS = {
     "denue_sync_weekly":            "lunes · 05:00 MX",
     "construction_costs_monthly":   "mensual · día 1 · 07:00 MX",
     "zone_score_daily_refresh":     "diario · 04:00 MX",
+    "transaction_price_index_refresh": "diario · 04:30 MX",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -72,6 +73,7 @@ SCHEDULE_INTERVAL_SEC = {
     "denue_sync_weekly":            7 * 86400 + 3600,
     "construction_costs_monthly":   32 * 86400,
     "zone_score_daily_refresh":     86400 + 600,
+    "transaction_price_index_refresh": 86400 + 900,
 }
 
 
