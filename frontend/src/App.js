@@ -156,6 +156,9 @@ const BulletinPage                   = lazy(() => import('./pages/public/Bulleti
 const SuperadminFraudAlerts          = lazy(() => import('./pages/superadmin/SuperadminFraudAlerts'));
 const SuperadminRiskScore            = lazy(() => import('./pages/superadmin/SuperadminRiskScore'));
 const SuperadminRiskAlerts           = lazy(() => import('./pages/superadmin/SuperadminRiskAlerts'));
+// W3.5 — Public API + Stripe
+const SuperadminApiKeys              = lazy(() => import('./pages/superadmin/SuperadminApiKeys'));
+const ApiDocsPage                    = lazy(() => import('./pages/public/ApiDocsPage'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));

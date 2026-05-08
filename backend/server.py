@@ -223,6 +223,12 @@ from natural_risk_engine import ensure_indexes as ensure_natural_indexes
 from perception_risk_engine import ensure_indexes as ensure_perception_indexes
 app.include_router(risk_alerts_router)
 
+# W3.5 — Public API v1 + Stripe Billing
+from routes_public_api_v1 import router as public_api_v1_router
+from public_api_auth import ensure_indexes as ensure_public_api_indexes
+from stripe_billing_engine import ensure_indexes as ensure_stripe_indexes
+app.include_router(public_api_v1_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -737,6 +743,12 @@ async def startup():
         await ensure_perception_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W3.4B indexes failed: {e}")
+    # W3.5 — Public API + Stripe indexes
+    try:
+        await ensure_public_api_indexes(db)
+        await ensure_stripe_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W3.5 indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
