@@ -439,6 +439,26 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+### W3.8 partner objetivo H2: SOC Asesores (Sociedad Operadora de Crédito)
+- **Origen**: founder analysis 2026-05-08 cross-sell partners realistas MX
+- **Destino**: H2 cuando founder firme partnership
+- **Qué**: SOC Asesores (https://socasesores.com/) — primera y mayor red asesores financieros MX 25 años. 30+ institutional partnerships (Banamex · Banorte · HSBC · Santander · Scotiabank · GBM · AXA · Zurich · etc.). Multi-producto: **hipotecas + seguros vida/médico/hogar/auto + créditos PYME + auto financing + inversiones GBM**.
+- **Por qué SOC y NO Loanco**:
+  - **SOC = bróker establecido** que recibe nuestros leads → cobra comisión banco → revenue share a DMX
+  - **Loanco = SaaS para que TÚ seas bróker** ($999-2999/mes suscripción) → modelo inverso, NO encaja DMX
+- **Beneficio crítico**: 1 sola partnership SOC cubre **4 de 5 categorías cross-sell** W3.8 (hipoteca + seguros + auto + inversiones). Founder no necesita firmar 5 partnerships separados.
+- **Bandera amarilla**: NO tienen API B2B documentada · integración H2 requiere custom integration negociada (sandbox webhook + branded landing pages co-marketing).
+- **Activación H2**:
+  1. Founder negocia + firma con SOC
+  2. Superadmin: cambia `partner.status = "pending_partnership"` → `"active"`
+  3. Update label "Bróker Hipotecario [Pending]" → "SOC Asesores"
+  4. Configurar webhook receiver con SOC API custom
+  5. SOC paga DMX revenue share por cada deal cerrado attribution-tracked
+- **Otros canales separados** (notarías + avalúos + mudanzas): partnerships individuales founder firma post-SOC
+- **Loanco DESCARTADO**: modelo inverso (SaaS para crear brókers, no para integrar con bróker existente)
+
+---
+
 ## 💼 H2 COMMERCIAL (Teseo expansion ronda 1 · sin código H1)
 
 ### #5 DMX Insights consultoría premium
