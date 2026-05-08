@@ -263,6 +263,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+### Compliance badge footer público "LFPDPPP Compliant · k-anon ≥5"
+- **Origen**: W3.7 emergent potential improvement 2026-05-08
+- **Destino**: **W3.9 Polish (Claude Code, ~30 min)** — absorbed sin sumar horas significativas
+- **Qué**: badge visible en footer marketplace público + landing pages SEO `/zona/{slug}` con texto "LFPDPPP Compliant · k-anonymity ≥5 · Audited Trail" + link a `/methodology` y `/privacy/dsr`
+- **Por qué**: brand authority + confianza B2B (bancos/aseguradoras lo ven en widget embebible) + diferenciación vs Inmuebles24/Lamudi que NO tienen compliance público
+- **Costo**: ~30 min (1 component + mount en CtaFooter + Schema.org markup)
+
 ### Bulletins subscribe + RiskWatchlist público multi-zone (PRE-Wave 4)
 - **Origen**: W3.3 + W3.4A + W3.4B emergent potential improvements 2026-05-08 (3 ideas unificadas)
 - **Destino**: **W3.9 Polish (Claude Code, ~7-9h)** — meto YO antes de cierre Wave 3
