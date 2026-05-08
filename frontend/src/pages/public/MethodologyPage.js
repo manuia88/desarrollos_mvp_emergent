@@ -122,7 +122,25 @@ export default function MethodologyPage() {
 
         {/* Risk */}
         <Section title="3 · Risk Score">
-          {data?.risk_score && <p>{data.risk_score.status}</p>}
+          {data?.risk_score && (
+            <>
+              <p>
+                <strong style={{ color: 'var(--cream)' }}>V1 activo</strong> (W3.4A): capa de criminalidad
+                via SESNSP (Secretariado Ejecutivo del Sistema Nacional de Seguridad Pública).
+              </p>
+              <ul style={{ paddingLeft: 22, margin: '8px 0 14px' }}>
+                <li>Fuente: SESNSP CSV mensual (gratuito, sin token).</li>
+                <li>Frecuencia: ingesta mensual (1ro de mes 08:00 MX) · refresh diario 05:00 MX.</li>
+                <li>6 categorías: robo a casa habitación · robo a transeúnte · homicidio doloso · secuestro · extorsión · violencia familiar.</li>
+                <li>Normalización: incidentes por 100,000 habitantes en ventana de 6 meses.</li>
+                <li>Score: 0-100 (0 incidentes → 100; 5,000 incidentes/100k → 0). Letter A-F.</li>
+              </ul>
+              <p style={{ color: 'var(--cream-3)' }}>
+                <strong>V2 pendiente</strong> (W3.4B): natural risk (CENAPRED + Atlas Riesgo CDMX) ·
+                title risk (RPP partnership Y2) · percepción (ENVIPE INEGI).
+              </p>
+            </>
+          )}
         </Section>
 
         {/* Construction Cost */}

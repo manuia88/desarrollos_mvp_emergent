@@ -419,6 +419,27 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_bulletins_monthly_error", error=str(e))
 
+    # W3.4A — SESNSP monthly ingest (1ro mes 08:00 MX)
+    try:
+        from crime_data_engine import schedule_sesnsp_monthly_cron
+        schedule_sesnsp_monthly_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_sesnsp_monthly_error", error=str(e))
+
+    # W3.4A — Fraud detection daily (03:00 MX)
+    try:
+        from fraud_detection_engine import schedule_fraud_detection_cron
+        schedule_fraud_detection_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_fraud_detection_error", error=str(e))
+
+    # W3.4A — Risk Score zone daily (05:00 MX, post zone_score 04:00)
+    try:
+        from risk_score_engine import schedule_risk_score_cron
+        schedule_risk_score_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_risk_score_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

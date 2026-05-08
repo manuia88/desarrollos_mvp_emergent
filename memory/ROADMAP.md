@@ -35,7 +35,8 @@
 - [x] W3.1A Phase 5 Foundation (DENUE + Construction Cost + Zone Score) ✅
 - [x] W3.2 Transaction Network (Anonymized closings + price index) ✅
 - [x] W3.3 ZZ.3 DRPI ampliado (Hedonic + Bulletins + Methodology + Investment Explorer) ✅ 2026-05-08
-- [ ] W3.4 Risk Score multi-source (Fraud Detection AI, Risk badge en marketplace) — sustituye placeholders en Zone Score + Investment Explorer
+- [x] W3.4A ZZ.4 Risk Layer Part 1 (Fraud Detection AI + Risk Score V1 SESNSP) ✅ 2026-05-08
+- [ ] W3.4B Risk Layer Part 2 (V2 multi-source: CENAPRED + ENVIPE + RPP + UI badge alert engine)
 - [ ] Phase 7.10: Tab Avance de Obra
 - [ ] WhatsApp Business real integration (`whatsapp-web.js` + Caya UI)
 - [ ] W3 Billing & Stripe Wiring real (test key disponible en pod)

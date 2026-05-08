@@ -163,7 +163,17 @@ async def compute_zone_score(
     dim_liquidez      = 50.0   # placeholder until DRPI W3.3
     dim_supply        = _score_supply_pressure(kpis)
     dim_demand        = _score_demand_growth(leads_now, leads_prev)
-    dim_risk          = 50.0   # placeholder until W3.4
+    # W3.4A — Risk score real (sustituye placeholder)
+    try:
+        from risk_score_engine import get_risk_score_or_compute
+        risk_doc = await get_risk_score_or_compute(db, zone_id)
+        if risk_doc.get("available") and isinstance(risk_doc.get("score_numeric"), (int, float)):
+            dim_risk = float(risk_doc["score_numeric"])
+        else:
+            dim_risk = 50.0
+    except Exception as e:
+        log.warning(f"[score] risk integration failed {zone_id}: {e}")
+        dim_risk = 50.0
     dim_yield         = _score_yield(avg_rental, avg_price)
     dim_denue         = _score_denue_density(denue_density_km2)
 
@@ -193,8 +203,8 @@ async def compute_zone_score(
         "components": components,
         "formula_version": FORMULA_VERSION,
         "placeholder_flags": {
-            "liquidez": True,   # DRPI W3.3 pending
-            "risk": True,       # W3.4 pending
+            "liquidez": True,   # DRPI W3.3 pending integration into Zone Score
+            "risk": False,      # W3.4A active (SESNSP V1)
         },
         "computed_at": _iso(),
         "computed_at_dt": now,

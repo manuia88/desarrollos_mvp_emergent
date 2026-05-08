@@ -170,6 +170,8 @@ const SUPERADMIN_NAV = [
       { key: 'drpi',             to: '/superadmin/drpi',                  label: 'DRPI',                   Icon: TrendingUp },
       { key: 'bulletins',        to: '/superadmin/bulletins',             label: 'Boletines',              Icon: FileText },
       { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer',   Icon: Target },
+      { key: 'fraud-alerts',     to: '/superadmin/fraud-alerts',          label: 'Fraud Alerts',           Icon: Shield },
+      { key: 'risk-score',       to: '/superadmin/risk-score',            label: 'Risk Score',             Icon: Shield },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },

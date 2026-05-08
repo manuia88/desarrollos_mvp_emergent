@@ -208,6 +208,15 @@ app.include_router(drpi_router)
 app.include_router(bulletins_router)
 app.include_router(investment_explorer_router)
 
+# W3.4A ZZ.4 — Fraud Detection + Risk Score V1 (SESNSP)
+from routes_fraud_detection import router as fraud_router
+from routes_risk_score import router as risk_score_router
+from fraud_detection_engine import ensure_indexes as ensure_fraud_indexes
+from crime_data_engine import ensure_indexes as ensure_crime_indexes
+from risk_score_engine import ensure_indexes as ensure_risk_indexes
+app.include_router(fraud_router)
+app.include_router(risk_score_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -709,6 +718,13 @@ async def startup():
         await ensure_bulletins_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W3.3 DRPI indexes failed: {e}")
+    # W3.4A ZZ.4 — Fraud Detection + SESNSP + Risk Score indexes
+    try:
+        await ensure_fraud_indexes(db)
+        await ensure_crime_indexes(db)
+        await ensure_risk_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W3.4A indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

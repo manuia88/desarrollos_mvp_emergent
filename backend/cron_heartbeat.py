@@ -47,6 +47,9 @@ SCHEDULE_LABELS = {
     "transaction_price_index_refresh": "diario · 04:30 MX",
     "drpi_monthly_snapshot":            "mensual · día 1 · 06:00 MX",
     "bulletins_monthly_generate":       "mensual · día 1 · 07:00 MX",
+    "sesnsp_monthly_ingest":            "mensual · día 1 · 08:00 MX",
+    "fraud_detection_daily":            "diario · 03:00 MX",
+    "risk_score_zone_daily":            "diario · 05:00 MX",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -78,6 +81,9 @@ SCHEDULE_INTERVAL_SEC = {
     "transaction_price_index_refresh": 86400 + 900,
     "drpi_monthly_snapshot":            32 * 86400,
     "bulletins_monthly_generate":       32 * 86400,
+    "sesnsp_monthly_ingest":            32 * 86400,
+    "fraud_detection_daily":            86400 + 600,
+    "risk_score_zone_daily":            86400 + 600,
 }
 
 
