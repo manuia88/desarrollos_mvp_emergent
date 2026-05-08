@@ -159,6 +159,13 @@ const SuperadminRiskAlerts           = lazy(() => import('./pages/superadmin/Sup
 // W3.5 — Public API + Stripe
 const SuperadminApiKeys              = lazy(() => import('./pages/superadmin/SuperadminApiKeys'));
 const ApiDocsPage                    = lazy(() => import('./pages/public/ApiDocsPage'));
+// W3.6 — Vertical Data Products + Data Licensing (Phase Z.4)
+const SuperadminVerticalProducts     = lazy(() => import('./pages/superadmin/SuperadminVerticalProducts'));
+const SuperadminDataLicensing        = lazy(() => import('./pages/superadmin/SuperadminDataLicensing'));
+const BankAvmWidget                  = lazy(() => import('./pages/public/widgets/BankAvmWidget'));
+const InsuranceRiskWidget            = lazy(() => import('./pages/public/widgets/InsuranceRiskWidget'));
+const NotariaTitleWidget             = lazy(() => import('./pages/public/widgets/NotariaTitleWidget'));
+const InvestorYieldWidget            = lazy(() => import('./pages/public/widgets/InvestorYieldWidget'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -516,6 +523,16 @@ function AppRouter() {
       <Route path="/docs/api" element={<ApiDocsPage />} />
       <Route path="/methodology" element={<MethodologyPage />} />
       <Route path="/boletin/:slug/:period" element={<BulletinPage />} />
+      {/* W3.5 — Public API + Stripe routes */}
+      <Route path="/superadmin/api-keys" element={<AdvisorRoute Page={SuperadminApiKeys} />} />
+      <Route path="/docs/api" element={<ApiDocsPage />} />
+      {/* W3.6 — Vertical Data Products + Data Licensing */}
+      <Route path="/superadmin/vertical-products" element={<AdvisorRoute Page={SuperadminVerticalProducts} />} />
+      <Route path="/superadmin/data-licensing" element={<AdvisorRoute Page={SuperadminDataLicensing} />} />
+      <Route path="/widget/bank-avm" element={<BankAvmWidget />} />
+      <Route path="/widget/insurance-risk" element={<InsuranceRiskWidget />} />
+      <Route path="/widget/notaria-title-check" element={<NotariaTitleWidget />} />
+      <Route path="/widget/investor-yield" element={<InvestorYieldWidget />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
