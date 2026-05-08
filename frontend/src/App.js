@@ -512,6 +512,8 @@ function AppRouter() {
       <Route path="/superadmin/fraud-alerts" element={<AdvisorRoute Page={SuperadminFraudAlerts} />} />
       <Route path="/superadmin/risk-score" element={<AdvisorRoute Page={SuperadminRiskScore} />} />
       <Route path="/superadmin/risk-alerts" element={<AdvisorRoute Page={SuperadminRiskAlerts} />} />
+      <Route path="/superadmin/api-keys" element={<AdvisorRoute Page={SuperadminApiKeys} />} />
+      <Route path="/docs/api" element={<ApiDocsPage />} />
       <Route path="/methodology" element={<MethodologyPage />} />
       <Route path="/boletin/:slug/:period" element={<BulletinPage />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
