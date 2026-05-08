@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-07 PM (Wave 2 ✅ CERRADA · expansion ronda 2 Teseo+AirDNA+cofounder +100h H1)
-**Total H1 restante**: ~613h (de ~783h tras +177h adiciones combinadas)
-**Shipped to date**: ~498h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + Wave 2 119h
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 193h (+53h) + Wave 4 420h (+124h) = 733h pending — ver `memory/DATA_SOURCES.md`
+**Última actualización**: 2026-05-08 (Wave 3 W3.1A+W3.2 shipped pending push · Phase Y reorientación ML +23h)
+**Total H1 restante**: ~636h (de ~806h tras +200h adiciones combinadas)
+**Shipped to date**: ~498h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + Wave 2 119h (W3.1A+W3.2 shipped pending push +39h al confirmar)
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 193h (+53h) + Wave 4 443h (+147h) = 756h pending — ver `memory/DATA_SOURCES.md` + Phase Y casos ML concretos en `memory/PRD.md`
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -35,7 +35,7 @@ Formato canónico per-batch (founder request):
 | **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 + ZZ.1.1 | 50h | 37.5h | 100% | ✅ CERRADA |
 | **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 49h | 41% | 🟡 EN CURSO |
 | **Wave 3** — Authority + Verticals + Risk Layer + Zone Score (+53h vs original) | + Zone Score A-F (E) + Investment Explorer (F) | 193h | 0h | 0% | 🟡 NEXT |
-| **Wave 4** — Agentic + Brand Strategy + Intelligence Layer + Polish (+124h vs original) | + Amenities Validator #18 + MCP Brand Strategy #22 + Diagnostic Engine A + Real-time Demand C + Recommendation engine + Comparables proactivo + State of CDMX Report G + DMX Bot home (absorbed Phase 10) | 420h | 0h | 0% | ⏳ pending |
+| **Wave 4** — Agentic + Brand + Intelligence Layer + Behavioral ML + Polish (+147h vs original) | + Amenities Validator + MCP Brand Strategy + Diagnostic Engine + Real-time Demand + Recommendation Marketplace ML + Behavioral Tracking Foundation + Phase Y reorientada casos ML concretos + State of CDMX Report + Comparables proactivo | 443h | 0h | 0% | ⏳ pending |
 
 ---
 

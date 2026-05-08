@@ -3464,3 +3464,125 @@ Análisis 2026-05-07 del módulo superadmin actual vs lo que necesita ser ("mód
 
 **Categoría posicionamiento**: DMX Operating System for residential real estate MX. Sin competidores LATAM con: pre-construction validation + post-construction continuous diagnostic + AI agentic departments + public MCP API + Risk Layer per propiedad + Authority data products integrados.
 
+═══════════════════════════════════════════════════════════
+## Phase Y reorientación 2026-05-08 — casos ML concretos por sub-agent
+═══════════════════════════════════════════════════════════
+
+**Origen**: founder catch crítico — Phase Y original (Wave 4, 110h) describía "5 sub-agents genéricos" abstractos. Sin casos ML concretos, riesgo emergent shippea sub-agents vacíos sin valor real. Replanteamos scope (sin sumar horas) para que cada sub-agent tenga 1-2 ML casos accionables data-driven sobre interacciones reales DMX.
+
+### Mapping concreto sub-agent → casos ML accionables
+
+**Pricing Manager (Phase Y.2)**:
+- **Optimal pricing per unit ML** — eleva Pricing Lab existing (B6) de rules-based a sklearn dynamic. Predice precio óptimo balance velocity vs margin per unit basado en histórico velocity-vs-price + comparables W3.2 + Risk Score W3.4 + Construction Cost W3.1A.
+- **Inventory mix optimization** — recomienda combinación studios+1bed+2bed+PH para max rotación basado en demand patterns cubo Z W2.5.
+
+**Marketing Manager (Phase Y.2)**:
+- **Channel ROI prediction** — predice ROI invertir $X en Meta Ads vs Google Ads vs WhatsApp campaigns basado en histórico marketing spend + tracking links B20.
+- **Multi-touch attribution ML** — qué canal REALMENTE cerró este deal (Markov chain/Shapley value attribution).
+- **AutoNewsletter Pulse** ya planeado (Phase 8 ext +10h).
+
+**Lead Manager (Phase Y.2)**:
+- **Lead-to-asesor optimal matching ML** — eleva B30/B34 Smart Match de rules-based a sklearn classification. Predice "Este lead X + asesor Y → P(cierra)=0.42" basado en cross-historical assignments + conversion patterns.
+- **Conversion drop-off prediction** — alerta proactiva al asesor "Lead X se va a caer en stage Y, llámalo HOY". Drop-off detection con sklearn time-series.
+- **Re-engagement timing optimal** — cuándo mandar follow-up max conversion per buyer profile.
+
+**Construction Manager (Phase Y.2)**:
+- **Project velocity prediction + Risk-of-stalling** — "Tu proyecto venderá en 14-18 meses con CI 95%" + alert "Tu proyecto X va a estancarse si no haces Y" basado en comparables velocity + market signals. **Game-changer devs**.
+- **Demand absorption forecast** — "Zona X absorberá 145 ± 30 unidades next 6 meses".
+
+**Compliance Manager (Phase Y.2)**:
+- **Fraud Detection W3.4** ya planeado (sklearn IsolationForest title chain + price anomaly + duplicate listings).
+- **No-show prediction visits** — flag visits que se cancelarán basado en histórico visit completion patterns.
+- **Anomaly detection W2.6** ya shipped (extiende a más métricas).
+
+### Por qué este mapping vale
+
+- **Concreto vs abstracto**: emergent en Wave 4 sabe EXACTAMENTE qué shipear, no inventa
+- **Data-driven**: cada caso usa data DMX real (interactions PostHog F0.11 + funnel B20 + cubo Z + audit log F0.1 + Transaction Network W3.2)
+- **ML técnicamente factible**: todos sklearn classification/regression supervised, no requieren GPU/RL
+- **Valor mensurable**: cada caso tiene KPI claro (P(cierra), reduction stalling, forecast accuracy MAE)
+
+### Scope sin sumar horas
+Phase Y total stays 110h Wave 4. Solo se reorienta scope dentro de los sub-agents. Cada sub-agent ahora tiene 18-22h asignadas con casos concretos vs "agentic genérico".
+
+═══════════════════════════════════════════════════════════
+## Wave 4 NEW batches: Recommendation Engine + Behavioral Tracking (+23h)
+═══════════════════════════════════════════════════════════
+
+**Origen**: founder catch 2026-05-08 — DMX subutiliza data interacciones (clicks, vistas, scroll, comparator usage). Sin foundation tracking + recommendation, todos los modelos ML Phase Y operan con data parcial.
+
+### W4.NEW Recommendation Engine Marketplace (+15h)
+
+**Concepto**: collaborative filtering Netflix-style sobre buyers DMX. "Buyers parecidos a ti vieron también..." en marketplace + drill-downs.
+
+**Tech**: sklearn matrix factorization (NMF/SVD) o `implicit` library para implicit feedback (clicks/views ≠ ratings explícitos). Nightly batch entrenamiento + Redis-style cache top-N recommendations per buyer.
+
+**Schema `db.buyer_interactions`**: `{buyer_id, interaction_type:"view|favorite|compare|contact|inquiry|visit_scheduled", property_id, timestamp, dwell_seconds?, scroll_pct?, comparator_session_id?}` index `(buyer_id, timestamp desc)` + `(property_id, interaction_type)`. TTL 1 año.
+
+**Schema `db.buyer_recommendations`**: `{buyer_id, generated_at, top_n:[{property_id, score, reason}], algo_version}` index unique buyer_id. Refresh nightly.
+
+**Endpoints (3)**:
+- `GET /api/comprador/recommendations` — buyer authenticated, top 10 recos personalizadas
+- `GET /api/marketplace/properties/{id}/similar` — "También te puede interesar" public (collaborative filtering basado en buyers anónimos del último 30d)
+- `POST /api/internal/recommendations/recompute` — superadmin manual trigger
+
+**Cron `recommendations_nightly_train`** 02:00 MX (instrumentado cron_heartbeat). Re-train + cache top-N per buyer.
+
+**Frontend**:
+- Marketplace property detail page: sección "Propiedades similares" (placeholder ya existe en B27 comparador, ahora ML-powered)
+- Buyer dashboard `/comprador`: section "Recomendaciones para ti" con explanation tooltips
+
+**Network effect**: a más buyers usan DMX → mejores recos → más buyers se quedan → moat.
+
+**Costo**: 15h Wave 4. Multiplicador inmediato sobre engagement comprador.
+
+### W4.NEW DMX Behavioral Tracking Foundation (+8h)
+
+**Concepto**: foundation crítica para alimentar TODOS los modelos ML Phase Y. Captura las señales que hoy NO trackeamos sistemáticamente.
+
+**Gap actual**:
+- ❌ Dwell time per listing (cuánto tiempo mira cada propiedad)
+- ❌ Scroll depth (lee toda la ficha o solo glance)
+- ❌ Comparator usage detail (qué propiedades compara · cómo)
+- ❌ Search refinement patterns (filtros usados/abandonados)
+- ❌ Photo viewing behavior (cuáles fotos miran más)
+
+**Implementación**:
+- Frontend hook `useBehavioralTracking()` con throttle/debounce (no spam analytics)
+- Backend endpoint `POST /api/internal/track` batch ingest behavioral events → escribe a `db.buyer_interactions` (W4.NEW Recommendation engine schema reuse)
+- Integration con PostHog F0.11 existing (custom events `dmx_behavioral_*`)
+
+**4 eventos críticos**:
+- `dwell_time_recorded` (al salir de listing detail page, segundos)
+- `scroll_depth_max` (al salir de página, % alcanzado)
+- `comparator_session` (init + properties added/removed + dwell + final action)
+- `search_filter_changed` (cada cambio filtro con timestamps)
+
+**Privacy**:
+- Anonymized si buyer no logueado (session_id hash)
+- Opt-out via cookie banner (LFPDPPP compliance)
+- TTL 1 año
+
+**Costo**: 8h Wave 4. Foundation que alimenta:
+- Recommendation Engine (W4.NEW arriba)
+- Conversion drop-off prediction (Lead Manager)
+- Re-engagement timing (Lead Manager)
+- Search intent inference futuro
+
+### Total Wave 4 actualizado
+Wave 4: 420h → **443h** (+23h)
+- W4.NEW Recommendation Engine Marketplace: 15h
+- W4.NEW Behavioral Tracking Foundation: 8h
+- Phase Y reorientada (scope concreto, sin sumar horas): 110h igual
+
+### Total H1 actualizado
+- 783h → **806h** (+23h, +33% sobre baseline 606h)
+
+### ML frontier innovations DEFERRED post-W3.4 review
+3 ideas frontier evaluadas pero deferred — revisar cuando tengamos data madurada:
+- **Multi-Armed Bandits (MAB)** para A/B testing dinámico Amenities Validator (+5-8h)
+- **Causal Inference** (DoWhy/EconML) para diferenciar correlación vs causalidad (+10-15h)
+- **Property/Buyer Embeddings** foundational (sentence-transformers fine-tuned) (+25-30h)
+
+Persisted en `memory/BACKLOG_ENHANCEMENTS.md` sección "ML Frontier Wave 4+".
+

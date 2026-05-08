@@ -35,16 +35,17 @@
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
 | **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | 🟡 EN CURSO 49/120h | ~120h |
 | **Wave 3 — Authority + Verticals + Risk Layer + Zone Score** (Teseo+AirDNA expansion: ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 + DENUE + Risk Score + Cost Predictor + R² públicos + Methodology + Zone Score A-F + Investment Explorer) | 🟡 pending | ~193h |
-| **Wave 4 — Agentic + Investor Sim + Brand Strategy + Intelligence Layer + Polish** (Phase Y + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy + Diagnostic Engine + Recommendation Engine + Comparables Proactivo + Real-time Demand + State of CDMX Report + Free audit) | 🟡 pending | ~420h |
+| **Wave 4 — Agentic + Investor Sim + Brand + Intelligence Layer + Behavioral ML + Polish** (Phase Y reorientada con casos ML concretos + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy + Diagnostic Engine + Recommendation Engine Marketplace + Behavioral Tracking + Comparables Proactivo + Real-time Demand + State of CDMX Report + Free audit) | 🟡 pending | ~443h |
 
-**Total H1 restante**: ~733h (Wave 2 71h + Wave 3 193h + Wave 4 420h + buffers + integraciones Teseo+AirDNA+cofounder +100h sobre Teseo base)
+**Total H1 restante**: ~756h (Wave 2 71h + Wave 3 193h + Wave 4 443h + buffers + integraciones Teseo+AirDNA+cofounder +100h sobre Teseo base + Phase Y reorientación ML concretos +23h Recommendation+Behavioral)
 
 **Shipped to date**: ~498h (Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 50h + Wave 2 119h)
 
 **Origin de adiciones**:
 - **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).
 - **+100h Teseo+AirDNA+cofounder ronda 2 (2026-05-07 PM)**: 9 game-changers post-análisis cofounder.co + AirDNA tier strategy + audio webinar Dania (Teseo). Filtro objetivo aplicado: 5 ideas DEFER (Pinterest scrapers, ML clustering, DMX Explorer, Pre-pre-construction Lot Simulator, Buyer educación contextual, White-Label) + DMX Bot home absorbido en Phase 10 Caya (cero overlap).
-- **Total H1 adiciones sobre baseline 606h**: +177h. Total H1 = **783h** estimado.
+- **+23h Phase Y reorientación + Behavioral ML (2026-05-08)**: founder catch crítico de subutilización data interacciones. Phase Y reorientado de "5 sub-agents abstractos" a casos ML concretos data-driven (Optimal pricing · Lead matching ML · Project velocity · Drop-off prediction · etc.). +Recommendation Engine Marketplace 15h + Behavioral Tracking Foundation 8h.
+- **Total H1 adiciones sobre baseline 606h**: +200h. Total H1 = **806h** estimado.
 
 Detalles: `memory/DATA_SOURCES.md` + secciones "Wave 3 detailed plan" / "Wave 4 detailed plan" en `PRD.md`.
 

@@ -271,6 +271,52 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Costo:** ~1h
 - **Pre-requisito:** ≥30 días `db.model_validation_runs` ejecutados
 
+## 🧠 ML Frontier Wave 4+ (review post-W3.4 cuando data madurada)
+
+### Multi-Armed Bandits para A/B testing dinámico Amenities Validator
+- **Origen**: análisis ML frontier 2026-05-08 (founder pregunta scikit-learn timing)
+- **Destino**: extends Wave 4 #18 Amenities Validator (review post-W3.4 ship)
+- **Qué**: convierte A/B testing static (50/50 split) a dynamic traffic optimization. Bandit redirige presupuesto Meta Ads a variante ganadora MIENTRAS corre el experimento. 3-5x más eficiente que Teseo static testing.
+- **Tech**: librería `mab` Python o Thompson Sampling custom
+- **Por qué defer**: depends on #18 ship + data baseline. Validar primero static A/B testing antes de añadir bandit complexity.
+- **Costo**: +5-8h sobre #18 (20h)
+- **Trigger reconsideration**: post-W3.4 ship cuando Transaction Network tenga ≥1000 transactions baseline
+
+### Causal Inference (DoWhy/EconML) para diferenciar correlación vs causalidad
+- **Origen**: análisis ML frontier 2026-05-08
+- **Destino**: extends Phase Y.2 Construction Manager + W4 #18 Amenities Validator + ZZ.3 DRPI methodology
+- **Qué**: hoy DMX dice "lavandería correlaciona con +0.4% apreciación". Causal inference dice "lavandería CAUSA +0.4% apreciación con 90% confianza". Diferenciador estadístico citable académicamente.
+- **Tech**: `DoWhy` (Microsoft Research) + `EconML`
+- **Por qué defer**: requiere domain expertise estadístico para interpretar correctamente. Validar primero correlation insights antes de causal claims (overpromising risk).
+- **Costo**: +10-15h
+- **Trigger reconsideration**: post-W3.3 DRPI ship + W4 #18 Amenities Validator data acumulada
+
+### Property/Buyer Embeddings foundational ("GPT inmobiliario MX")
+- **Origen**: análisis ML frontier 2026-05-08
+- **Destino**: extends Phase D1 RAG (ya shipped) + Phase Y.2 sub-agents foundation
+- **Qué**: pre-entrenar modelo (sentence-transformers fine-tuned) sobre TODA data DMX. Genera embeddings unified que capturan "esencia" propiedades + buyers. Multiplicador downstream: Smart Match dimensional + Comparables visual + Recommendation collaborative + Anomaly clustering.
+- **Tech**: `sentence-transformers` + `pgvector`/`Pinecone` extension RAG existing
+- **Por qué defer**: one-shot grande (~25-30h) que requiere data baseline madura. Mejor shipear Recommendation Engine W4.NEW collaborative filtering simple primero, validar valor, después invertir en embeddings foundational.
+- **Costo**: +25-30h
+- **Trigger reconsideration**: post-Recommendation Engine W4.NEW ship + ≥10K buyer interactions trackeadas
+
+---
+
+## DEFERRED — Wave 4 ML innovations (review post-Phase Y ship)
+
+### Zone Score: dimensión Yield auto-calculada con datos Airbnb/STR
+- **Origen**: W3.1A Phase 5 Foundation emergent potential improvement 2026-05-07
+- **Destino**: H2 vertical STR si valida demanda · Wave 4 backlog post-PMF
+- **Qué**: dimensión Yield del Zone Score hoy es `alquiler-promedio-zone / precio-mediano-zone × 100` con datos básicos. Mejorar con scraping Airbnb (tipo AirDNA) o AMPI API.
+- **Razón defer**:
+  - DMX foco residencial venta, no short-term rental principal
+  - AirDNA cobra $$$ por data Airbnb
+  - Scraping Airbnb legal-grey, mantenimiento alto
+  - AMPI API descartado (founder confirmó no tiene data unique value)
+  - Yield actual con base alquiler tradicional es suficiente para Score A-F
+- **Reconsiderar**: si validamos demanda inversionistas STR vertical (Cancún, Vallarta, Tulum focus). H2 si.
+- **Costo**: ~10-15h scraping pipeline + matching property-to-listing
+
 ### Founder Console: deep-link compartible anomalías
 - **Origen:** W2.6 SA8 emergent potential improvement 2026-05-07
 - **Destino:** Wave 4 / post-launch cuando founder tenga equipo (CTO/CFO/COO)
