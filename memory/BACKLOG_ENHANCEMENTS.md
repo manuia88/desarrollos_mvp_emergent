@@ -309,7 +309,51 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
-## 💼 H2 COMMERCIAL (Teseo expansion 2026-05-07 · sin código H1)
+## 🚫 DEFERRED — Teseo+AirDNA+cofounder ronda 2 (post-filtro objetivo 2026-05-07 PM)
+
+### Pinterest/Instagram/TikTok scrapers (Demanda digital signals #19)
+- **Origen**: ronda 2 análisis Teseo audio + cofounder
+- **Razón defer**: Apify scrapers legal-grey (Pinterest/TikTok), mantenimiento alto (APIs cambian), hipótesis sin validar (¿pin Pinterest predice intent comprar depto $5M? probablemente correlación débil). Mejor validar hipótesis con experimento pequeño antes de invertir 10h.
+- **Reconsiderar**: post-launch cuando tengamos data baseline para correlacionar pinterest/instagram trends vs conversion real
+
+### ML clustering 6-12 micro-segments (#20)
+- **Origen**: ronda 2 (audio Dania)
+- **Razón defer**: depende de #19 + sub-agent Phase Y.2 ya hace clustering parcial. Sobreingeniería sin validar baseline.
+- **Reconsiderar**: post Phase Y.2 ship cuando tengamos data sobre necesidad real
+
+### DMX Explorer lead magnet público (#23)
+- **Origen**: ronda 2 (Teseo regala "Explorador" en webinars)
+- **Razón defer**: 5h en feature sin canal de distribución. Teseo lo regala en sus webinars cautivos. DMX no tiene canal webinar establecido. **Sin distribución, feature = waste**.
+- **Reconsiderar**: cuando tengamos canal webinar/podcast/eventos establecido (post-launch, brand)
+
+### Pre-pre-construction Lot Acquisition Simulator (D)
+- **Origen**: ronda 2 inspirado Teseo Investment Validation
+- **Razón defer**: 12h subestimado (real ~25h+). Producto separado nicho premium devs serios. Mejor H2 enterprise tier cuando tengamos credibility con devs grandes.
+- **Reconsiderar**: H2 enterprise tier post-PMF con devs grandes
+
+### Buyer educación contextual ("92% valoran Pet Park...") (G)
+- **Origen**: ronda 2 cross-feature
+- **Razón defer**: Riesgo percibido como "nag" por buyers. Validar en user-test ANTES de shipear. UX inversion sin certeza no vale 4h.
+- **Reconsiderar**: post-launch con A/B test user research
+
+### DMX White-Label enterprise (idea #4 ronda cofounder)
+- **Origen**: cofounder.co inspiration
+- **Razón defer**: founder cuestionó válidamente "si RE/MAX presenta como suyo, brand DMX desaparece + dependencia de 1-2 clientes enormes = riesgo brutal". Construir base directa primero (50-100 devs propios + asesores/inmobiliarias) antes de white-label.
+- **Reconsiderar**: H2 cuando tengamos base directa construida + brand DMX establecido
+
+### Regulación Score SEDUVI (AirDNA-inspired)
+- **Origen**: ronda 2 análisis AirDNA Regulation Score
+- **Razón defer**: data SEDUVI fragile (scraping mantenimiento alto), payoff incierto, ~8h estimado.
+- **Reconsiderar**: H2 si verticals B2B (Z.4) lo demandan
+
+### Slack/GitHub bots + browser extension (cofounder-inspired add-ons)
+- **Origen**: ronda 2 análisis cofounder
+- **Razón defer**: out of scope target asesor/dev/inmobiliaria MX (no son tech-savvy en estos canales). Mejor vehículos: WhatsApp + email + plataforma directa.
+- **Reconsiderar**: nunca probablemente
+
+---
+
+## 💼 H2 COMMERCIAL (Teseo expansion ronda 1 · sin código H1)
 
 ### #5 DMX Insights consultoría premium
 - **Origen:** Teseo Data analysis 2026-05-07 (servicios consulting $150-300K MXN/project)

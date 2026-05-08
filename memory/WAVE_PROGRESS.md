@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-07 (Wave 2 49h / 120h · 41% · Teseo expansion +77h H1)
-**Total H1 restante**: ~584h (de ~683h tras +77h Teseo)
-**Shipped to date**: ~379h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 completa (~50h) + W2.1-W2.4 (~49h)
-**H1 nuevos totales**: Wave 2 120h + Wave 3 177h (+37h) + Wave 4 336h (+40h) = 633h pending — ver `memory/DATA_SOURCES.md`
+**Última actualización**: 2026-05-07 PM (Wave 2 ✅ CERRADA · expansion ronda 2 Teseo+AirDNA+cofounder +100h H1)
+**Total H1 restante**: ~613h (de ~783h tras +177h adiciones combinadas)
+**Shipped to date**: ~498h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + Wave 2 119h
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 193h (+53h) + Wave 4 420h (+124h) = 733h pending — ver `memory/DATA_SOURCES.md`
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -34,8 +34,8 @@ Formato canónico per-batch (founder request):
 |---|---|---|---|---|---|
 | **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 + ZZ.1.1 | 50h | 37.5h | 100% | ✅ CERRADA |
 | **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 49h | 41% | 🟡 EN CURSO |
-| **Wave 3** — Authority + Verticals + Risk Layer (+37h Teseo) | ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 + DENUE + Risk Score + Cost Predictor + Hedonic DRPI + Methodology + Boletines | 177h | 0h | 0% | ⏳ pending |
-| **Wave 4** — Agentic + Investor Sim + Outbound + Polish (+40h Teseo) | Phase Y + 5/6/8 ext/10/11/16/19 ext/20 + CC + Investment Sim + Lead Journey + AutoNewsletter + Free audit | 336h | 0h | 0% | ⏳ pending |
+| **Wave 3** — Authority + Verticals + Risk Layer + Zone Score (+53h vs original) | + Zone Score A-F (E) + Investment Explorer (F) | 193h | 0h | 0% | 🟡 NEXT |
+| **Wave 4** — Agentic + Brand Strategy + Intelligence Layer + Polish (+124h vs original) | + Amenities Validator #18 + MCP Brand Strategy #22 + Diagnostic Engine A + Real-time Demand C + Recommendation engine + Comparables proactivo + State of CDMX Report G + DMX Bot home (absorbed Phase 10) | 420h | 0h | 0% | ⏳ pending |
 
 ---
 

@@ -71,7 +71,29 @@ Mapa exhaustivo de fuentes de información que DMX consume o consumirá. Estado 
 
 ---
 
-## ⏳ A INTEGRAR — Wave 4 (Phase Y + Polish + Launch)
+## ⏳ A INTEGRAR — Wave 4 ronda 2 (Teseo+AirDNA+cofounder expansion)
+
+### Para Idea #18 Amenities Validator (Phase 16 ext)
+
+| Fuente | URL | Auth | Notas |
+|---|---|---|---|
+| **Meta Marketing API** | https://developers.facebook.com/docs/marketing-apis/ | Facebook Business Manager + App Review (~2-4 sem) | Crítico para auto-launch A/B campaigns. V1 manual launch (export brief), V2 auto-launch. |
+| **Google Ads API** (opcional) | https://developers.google.com/google-ads/api/docs | Developer token + OAuth | Channel adicional A/B testing, defer si Meta basta |
+
+### Para Idea #22 MCP Server público (W4.NEW DMX Brand Strategy)
+
+| Fuente / Lib | URL | Notas |
+|---|---|---|
+| **fastmcp Python** | https://github.com/jlowin/fastmcp | Open source, mature, mantenida por Anthropic ecosystem |
+| **MCP Spec Anthropic** | https://modelcontextprotocol.io/ | Estandar abierto |
+
+### Para SEO landing pages PER ZONA (W4.NEW)
+
+Sin externos. Usa cubo Z W2.5 + DRPI + Risk Score. Sitemap.xml dinámico + Schema.org PostalAddress + RealEstateListing markup.
+
+---
+
+## ⏳ A INTEGRAR — Wave 4 ronda 1 (Phase Y + Polish + Launch)
 
 ### Para Idea #6 Investment Simulator (Phase 19 ext)
 

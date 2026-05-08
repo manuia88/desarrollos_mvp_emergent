@@ -34,14 +34,19 @@
 | Phase 3 Asesor | ✅ **100% COMPLETO** (B31+B32+B33+B34 vía PR #14 + #15) | ~25h |
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
 | **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | 🟡 EN CURSO 49/120h | ~120h |
-| **Wave 3 — Authority + Verticals + Risk Layer** (ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 + DENUE + Risk Score #12 + Cost Predictor #13 + R² públicos #3 + Methodology #14) | 🟡 pending | ~177h |
-| **Wave 4 — Phase Y Agentic + Investor Sim + Outbound + Polish** (Phase Y + 5/6/8 ext/10/11/16/19 ext/20 + CC + Investment Sim #6 + Lead Journey #7 + AutoNewsletter #8 + Free audit #17) | 🟡 pending | ~336h |
+| **Wave 3 — Authority + Verticals + Risk Layer + Zone Score** (Teseo+AirDNA expansion: ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 + DENUE + Risk Score + Cost Predictor + R² públicos + Methodology + Zone Score A-F + Investment Explorer) | 🟡 pending | ~193h |
+| **Wave 4 — Agentic + Investor Sim + Brand Strategy + Intelligence Layer + Polish** (Phase Y + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy + Diagnostic Engine + Recommendation Engine + Comparables Proactivo + Real-time Demand + State of CDMX Report + Free audit) | 🟡 pending | ~420h |
 
-**Total H1 restante**: ~633h (Wave 2 71h + Wave 3 177h + Wave 4 336h + buffers + integraciones Teseo +77h)
+**Total H1 restante**: ~733h (Wave 2 71h + Wave 3 193h + Wave 4 420h + buffers + integraciones Teseo+AirDNA+cofounder +100h sobre Teseo base)
 
-**Shipped to date**: ~379h (Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + W2.1-W2.4 ~49h)
+**Shipped to date**: ~498h (Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 50h + Wave 2 119h)
 
-**Origin del +77h**: análisis Teseo Data 2026-05-07 — distribución 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit). Detalles en `memory/DATA_SOURCES.md` + sección "Wave 3 detailed plan" / "Wave 4 detailed plan" en PRD.md.
+**Origin de adiciones**:
+- **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).
+- **+100h Teseo+AirDNA+cofounder ronda 2 (2026-05-07 PM)**: 9 game-changers post-análisis cofounder.co + AirDNA tier strategy + audio webinar Dania (Teseo). Filtro objetivo aplicado: 5 ideas DEFER (Pinterest scrapers, ML clustering, DMX Explorer, Pre-pre-construction Lot Simulator, Buyer educación contextual, White-Label) + DMX Bot home absorbido en Phase 10 Caya (cero overlap).
+- **Total H1 adiciones sobre baseline 606h**: +177h. Total H1 = **783h** estimado.
+
+Detalles: `memory/DATA_SOURCES.md` + secciones "Wave 3 detailed plan" / "Wave 4 detailed plan" en `PRD.md`.
 
 ---
 
@@ -75,31 +80,40 @@
 - Phase Z.2 Superadmin Intelligence Hub UI (12h)
 - Buffer ~8h
 
-#### Wave 3 — Authority + Verticals + Risk Layer (~177h, +37h Teseo expansion)
+#### Wave 3 — Authority + Verticals + Risk Layer + Zone Score (~193h, +53h vs original 140h)
+**Adiciones ronda 1 Teseo (+37h)**: Hedonic DRPI · Boletines · Risk Score · DENUE · Cost Predictor · Methodology · R² públicos.
+**Adiciones ronda 2 Teseo+AirDNA (+16h)**: Zone Score A-F unified (E +10h) · Investment Explorer view (F +6h).
+
 - ZZ.2 Transaction Network (18h)
-- **ZZ.3 Index Provider DRPI** (20h, +5h) — incluye Hedonic regression #2 + Boletín mensual #4 + Sectoral bulletins per zona #11 + `/methodology` page #14 (todos absorbidos)
-- **ZZ.4 Risk Layer ampliado** (40h, +18h) — Fraud Detection AI ORIGINAL (22h) + DMX Risk Score per propiedad #12 (+18h: SESNSP crime + CENAPRED riesgos + ENVIPE percepción + Atlas Riesgo CDMX. V1 SESNSP only ~10h, V2 multi-source +8h)
+- **ZZ.3 Index Provider DRPI ampliado** (26h, +6h) — Hedonic regression #2 + Boletín mensual #4 + Sectoral bulletins per zona #11 + `/methodology` page #14 + **F Investment Explorer view** (+6h: tabla colonias sortable por Score/Yield/Growth/Risk/DOM, filtros buyer-objective)
+- **ZZ.4 Risk Layer ampliado** (40h, +18h) — Fraud Detection AI (22h) + DMX Risk Score per propiedad #12 (+18h: SESNSP + CENAPRED + ENVIPE + Atlas Riesgo CDMX)
 - Phase Z.3 Public API + Stripe billing (10h)
 - Phase Z.4 Vertical Data Products (Bank AVM/Insurance/Notaría/Investor) (14h)
 - Phase Z.5 Anonymization + Compliance (6h)
 - Phase Z.6 Cross-sell Intelligence (8h)
-- **Phase 5 IE Engine completion ampliada** (56h, +11h) — IE original (45h) + DENUE integration #1 (+6h) + Construction Cost Predictor #13 (+5h reuse BANXICO/INPC)
-- **Z.0 Data Lake spec ampliado** (+3h) — R² + IC validation públicos #3 (preparación cubo)
+- **Phase 5 IE Engine completion ampliada** (66h, +21h) — IE original (45h) + DENUE #1 (+6h) + Construction Cost Predictor #13 (+5h) + **E Zone Score A-F unified** (+10h: composite supply/demand/risk/yield/regulation per colonia, AirDNA-style)
+- **Z.0 Data Lake spec ampliado** (+3h R² + IC validation públicos #3)
+- W3 Polish + Smoke + Audit (4h Claude Code)
 - Buffer ~2h
 
-#### Wave 4 — Phase Y Agentic + Investor Sim + Outbound + Polish (~336h, +40h Teseo expansion)
-- Phase Y completa Y.0-Y.5 (110h)
+#### Wave 4 — Agentic + Investor Sim + Brand Strategy + Intelligence Layer + Polish (~420h, +124h vs original 296h)
+**Adiciones ronda 1 Teseo (+40h)**: AutoNewsletter Pulse · Lead Journey Outbound · Investment Simulator · Free audit.
+**Adiciones ronda 2 Teseo+AirDNA+cofounder (+84h)**: Amenities Validator · MCP Brand Strategy · Diagnostic Engine · Real-time Demand · State of CDMX Report · Recommendation engine · Comparables proactivo. **DMX Bot home absorbido en Phase 10 Caya** (cero overlap, -6h ahorrado).
+
+- Phase Y completa Y.0-Y.5 (110h) — Y.3 absorbe **C Real-time demand** (+8h dentro 28h existing → 36h)
 - Phase 6 Studio Wave 1.5+2 (36h)
-- **Phase 8 ext** (25h, +10h) — WhatsApp + Coms (15h) + AutoNewsletter DMX Pulse semanal #8 segmentado (+10h reuse Resend + Claude Haiku, segments dev/asesor/buyer/inversionista)
-- Phase 10 Caya + A11 (26h)
+- **Phase 8 ext** (25h, +10h) — WhatsApp + Coms + AutoNewsletter DMX Pulse semanal #8 segmentado
+- **Phase 10 Caya + A11 ext** (26h, sin sumar) — extiende Caya para cubrir queries generales mercado en home `dmx.mx` (absorbe DMX Bot público)
 - Phase 11 Dubai (38h)
-- **Phase 16 NEW** (12h) — Lead Journey Outbound asesor→dev #7 (engine captación devs por asesor con qualification AI + tracking conversion). Antes era H2 implícito.
-- **Phase 19 ext** (29h, +15h) — Buyer Coach + Mortgage (14h) + Investment Simulator #6 (+15h DatAlpine clone: per-unit ROI + Monte Carlo sensitivity + compare CETES/Fibras + freemium captador inversionistas)
+- **Phase 16 ext** (32h, +12h orig + 20h nueva) — Lead Journey Outbound asesor→dev #7 (12h) + **#18 Amenities Validator** (+20h: dev sube proyecto pre-construction → DMX corre A/B campañas Meta Ads automatizadas → recomendaciones cuantificadas % apreciación + ROI + reducción ciclo)
+- **Phase 19 ext** (29h, +15h) — Buyer Coach + Mortgage + Investment Simulator #6
 - Phase 20 Polish + Launch (23h)
-- **W4 marketing/pre-launch** (3h) — Free 30-min audit landing #17 (lead magnet asesores/devs)
+- **W4 marketing/pre-launch ext** (8h, +3h orig + 5h nueva) — Free audit landing #17 + **G State of CDMX Annual Report** (PDF anual auto-generado + AI narrative + media mention play)
+- **W4.NEW DMX Brand Strategy** (25h NEW batch) — **#22 MCP server** core (10h) + OG meta tags Schema.org rich (3h) + watermarks + QR exports (2h) + landing pages SEO PER ZONA `/zona/{slug}` 700 colonias auto-generadas (10h)
+- **W4.NEW Intelligence Layer** (26h NEW batch) — **A Diagnóstico "por qué no se vende"** (15h) + Recommendation engine in-app always-on (6h) + Comparables matrix proactivo via anomaly detection (5h)
 - F0 sweep restante (22h)
 - Cross-cutting CC1-4 (28h)
-- Buffer integration testing ~-16h optimistic
+- Buffer integration testing ~-15h optimistic
 
 ---
 

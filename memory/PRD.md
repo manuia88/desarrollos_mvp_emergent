@@ -3408,3 +3408,59 @@ Análisis 2026-05-07 del módulo superadmin actual vs lo que necesita ser ("mód
 - `db.outbound_campaigns` + `db.outbound_leads` (Phase 16 Lead Journey)
 - `db.newsletter_subscribers` + `db.newsletter_segments` (Phase 8 ext)
 
+═══════════════════════════════════════════════════════════
+## Wave 4 expansion ronda 2 (+84h cofounder+AirDNA+Teseo audio · 2026-05-07 PM)
+═══════════════════════════════════════════════════════════
+
+**Origin**: análisis combinado cofounder.co + AirDNA tier strategy + audio webinar Dania (Teseo amenidades). Filtro objetivo: 5 ideas defer (Pinterest scrapers · ML clustering · DMX Explorer · Pre-pre-construction · Buyer educación) + DMX Bot home absorbido en Phase 10 Caya (cero overlap, -6h ahorrados).
+
+### Adiciones (9 ideas)
+
+| # | Idea | h | Batch destino | Concepto |
+|---|---|---|---|---|
+| #18 | **DMX Amenities Validator** | +20 | Phase 16 ext (12→32h) | Dev sube proyecto pre-construction → DMX corre A/B Meta Ads automatizadas con variantes amenidades → 7-14d devuelve recomendaciones cuantificadas (% apreciación · ROI · reducción ciclo). Game-changer comercial vs Teseo $150K MXN/test |
+| #22 | **MCP Server público + Brand Strategy** | +25 | NEW W4 batch | MCP server core (10h) + OG meta tags Schema.org rich (3h) + watermarks + QR exports (2h) + landing pages SEO PER ZONA `/zona/{slug}` 700 colonias auto-generadas (10h). AirDNA-style tier strategy: free zona-level + paid per-property |
+| A | **Diagnóstico "por qué no se vende"** | +15 | NEW W4 batch | Cuando proyecto velocity baja → dashboard auto root-cause (precio sobre median · amenidades faltantes · CTR digital · unit mix sobre-oferta). Teseo consultoría AUTOMATIZADA continuous |
+| C | **Real-time demand desde marketplace** | +8 | Phase Y.3 ext (28→36h) | USP atómico vs Teseo: usa base de buyers reales viendo propiedades en vivo. *"No 350 encuestados, 12K buyers REALES esta semana"* |
+| E | **DMX Zone Score A-F unified** | +10 | Phase 5 ext (56→66h, en Wave 3) | AirDNA Investability Score equivalent. Composite: liquidez + supply + demand + risk + yield per colonia. Visible marketplace + drill-down + free MCP tier (sin números) |
+| F | **Investment Explorer view** | +6 | ZZ.3 ext (20→26h, en Wave 3) | AirDNA-style tabla colonias sortable por Score/Yield/Growth/Risk/DOM. Filtros buyer-objective. Investors love |
+| G | **State of CDMX Annual Report** | +5 | W4 marketing ext (3→8h) | PDF anual auto-generado con data DMX + AI Sonnet narrative + media play (Forbes/El Financiero). Lead magnet + brand authority |
+| Recommendation | **Recommendation engine in-app** | +6 | NEW W4 batch | Sidebar siempre-visible en proyecto detail dev: "Recomendamos lavandería: +0.4% apreciación, +12d reducción ciclo, basado en 87 deals comparables 90d" |
+| Comparables | **Comparables matrix proactivo** | +5 | NEW W4 batch | Anomaly detection W2.6 ext: detecta proyectos similares con velocity superior + alerta dev "El proyecto X vendió 15 unidades en 45d, similares al tuyo. Diferencia: gimnasio. Trigger A/B test?" |
+
+**Total ronda 2: +100h** (84h Wave 4 + 16h Wave 3 con Zone Score E + Investment Explorer F)
+
+### Schemas nuevos ronda 2
+- `db.amenities_validations` + `db.ab_campaigns` (#18 · Phase 16 ext)
+- `db.zone_scores` (E · Phase 5 ext) — composite per colonia
+- `db.diagnostic_reports` (A · NEW batch)
+- `db.annual_reports` (G · W4 marketing)
+- Extiende `db.system_alerts` (Comparables proactivo)
+- Extiende `db.user_actions` + `db.search_queries` (C · Phase Y.3)
+
+### Reuse Wave 1+2+3 (foundation 100% lista)
+- ai_budget · cubo Z W2.5 · cube_olap W2.8 · facts_daily_zone W2.7 · intelligence_insights W2.9 · anomaly_detection W2.6 · diagnostic_engine B0.5 · Caya RAG Phase D2 · branding_helpers (B5/B19 PDF) · permissions.require_superadmin W1.1 · cron_heartbeat W1.3 · audit_log F0.1 · Resend · Mapbox · Claude Sonnet/Haiku via emergentintegrations
+
+### Externals nuevas (DATA_SOURCES.md)
+- **Meta Marketing API** (#18, ~2-4 sem app review) — V1 manual launch · V2 auto
+- **Google Ads API** (opcional #18) — defer si Meta basta
+- **fastmcp Python lib** (#22) — open source mature
+
+### Defers ronda 2 (BACKLOG_ENHANCEMENTS.md)
+- ❌ Pinterest/Insta/TikTok scrapers — hipótesis sin validar
+- ❌ ML clustering 6-12 micro-segments — depende de defer arriba
+- ❌ DMX Explorer lead magnet — sin canal distribución
+- ❌ Pre-pre-construction Lot Acquisition Simulator — H2 enterprise tier
+- ❌ Buyer educación contextual — riesgo "nag", validar user-test antes
+- ❌ DMX White-Label enterprise — H2 post-base directa construida
+- ❌ Regulación Score SEDUVI — data fragile
+- ❌ Slack/GitHub bots, browser extension — out of scope target
+
+### Total H1 nuevo
+- Baseline: 606h
+- Ronda 1 Teseo (+77h): 683h
+- Ronda 2 Teseo+AirDNA+cofounder (+100h): **783h**
+- Crecimiento: +29% sobre baseline original
+
+**Categoría posicionamiento**: DMX Operating System for residential real estate MX. Sin competidores LATAM con: pre-construction validation + post-construction continuous diagnostic + AI agentic departments + public MCP API + Risk Layer per propiedad + Authority data products integrados.
+
