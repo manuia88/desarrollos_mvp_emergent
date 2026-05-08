@@ -3552,3 +3552,47 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - `cron_risk_score_zone_daily` corre detect en bucle por zona — best-effort, errores no abortan cron
 - WEIGHTS_V2 renormaliza dynamically cuando dimensiones unavailable (e.g. zona sin natural data → crime+title+perception cubren 100%)
 
+
+
+---
+
+## W3.7 — Phase Z.5 Anonymization + Compliance LFPDPPP (2026-05-08) ✅ IMPLEMENTADO
+
+### Capa de privacidad LFPDPPP envolviendo todos los endpoints públicos
+
+**Nuevos archivos backend**:
+- `anonymization_engine.py` — `strip_pii(record, level)` · `check_k_anonymity(db, query_params, k_min=5)` · `add_differential_privacy_noise(value, epsilon, sensitivity)`
+- `compliance_engine.py` — DSR lifecycle · audit trail · `process_dsr_deletion` · `send_dsr_confirmation_email` (Resend) · `cron_compliance_audit_retention_check` · `ensure_compliance_indexes`
+- `routes_compliance.py` — 5 endpoints compliance
+
+**Wrapping endpoints existentes**:
+- `routes_public_api_v1.py`: k-anon gate en `v1_snapshot` · PII strip en `v1_comparables` + `v1_valuation` · compliance logging en todos
+- `routes_vertical_products.py`: PII strip enterprise + compliance logging en `notaria-title-check`
+- `routes_drpi.py`: Laplace noise (ε=1.0) en DRPI snapshot free tier + compliance logging
+- `routes_risk_score.py`: compliance logging en todos los tiers
+
+### Schemas DB nuevos
+- `db.dsr_requests`: `{id, request_type, subject_email, subject_phone, status:"pending|verified|completed|rejected", verification_token, verified_at, completed_at, justification, requestor_ip, audit_evidence, created_at}` · index (status, created_at) + (subject_email)
+- `db.compliance_audit`: `{id, ts, action, endpoint, api_key_id, response_pii_stripped, k_anonymity_passed, records_returned, requestor_ip}` · index (ts desc) · TTL 5 años
+
+### Cron nuevo (sistema total: 32)
+- `compliance_audit_retention` 1ro mes 10:00 MX — flagea DSR pendientes >30d + system alert
+
+### Endpoints nuevos
+**Públicos**: `POST /api/privacy/dsr` · `GET /api/privacy/dsr/{id}/verify`
+**Superadmin**: `GET /api/superadmin/compliance/dsr-requests` · `POST /api/superadmin/compliance/dsr-requests/{id}/process` · `GET /api/superadmin/compliance/audit-trail`
+
+### Rutas frontend nuevas (2)
+- `/privacy/dsr` — Formulario ARCO público + schema.org TechArticle + sección derechos ARCO + compliance statement
+- `/superadmin/compliance` — KPI strip (4 KPIs) + DSR tab (filtros status/días) + Audit trail tab (filtro endpoint + CSV export)
+
+### Componentes nuevos (1)
+- `DsrRequestCard` — status pill + type badge + process button (verified only) + evidence summary + overdue warning (>30d)
+
+### Edge cases conservadores documentados
+- Resend key ausente → email stub (`debug_verify_url` expuesta solo en respuesta JSON, nunca en email)
+- k-anonymity check falla por error DB → conservador: permite la consulta (no bloquea)
+- `process_dsr_deletion` con colección inexistente → captura error por colección, continúa con otras
+- DP noise aplica solo cuando `snap.available=True` y `index_value is not None` (free tier DRPI)
+- TTL index 5 años en compliance_audit — segunda creación ignora error (ya existe)
+- Compliance cron registrado en heartbeat DB al startup → visible en /superadmin/health/crons sin necesidad de primer run

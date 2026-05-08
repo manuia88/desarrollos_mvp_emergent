@@ -236,6 +236,11 @@ from vertical_products_engine import ensure_indexes as ensure_vertical_products_
 app.include_router(vertical_products_router)
 app.include_router(data_licensing_router)
 
+# W3.7 — Phase Z.5 Anonymization + Compliance (LFPDPPP)
+from routes_compliance import router as compliance_router
+from compliance_engine import ensure_compliance_indexes
+app.include_router(compliance_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -761,6 +766,11 @@ async def startup():
         await ensure_vertical_products_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W3.6 indexes failed: {e}")
+    # W3.7 — Compliance LFPDPPP indexes
+    try:
+        await ensure_compliance_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W3.7 compliance indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

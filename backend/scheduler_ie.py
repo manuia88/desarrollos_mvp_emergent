@@ -447,6 +447,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_atlas_quarterly_error", error=str(e))
 
+    # W3.7 — Compliance audit retention check (1ro mes 10:00 MX)
+    try:
+        from compliance_engine import schedule_compliance_audit_retention_cron
+        schedule_compliance_audit_retention_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_compliance_retention_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

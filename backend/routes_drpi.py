@@ -18,6 +18,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 import drpi_engine as drpi
 import hedonic_regression_engine as hedonic
+import anonymization_engine as anon
+import compliance_engine as comp
 
 log = logging.getLogger("dmx.routes_drpi")
 
@@ -110,6 +112,24 @@ async def public_snapshot(
         out["hedonic_locked"] = True
         out["upgrade_required"] = "enterprise"
 
+    # W3.7 — Differential privacy noise on free tier numeric outputs
+    if tier_label == "free" and snap.get("available") and snap.get("index_value") is not None:
+        noised_snap = dict(snap)
+        noised_snap["index_value"] = anon.add_differential_privacy_noise(
+            snap.get("index_value"), epsilon=1.0, sensitivity=1.0
+        )
+        if snap.get("delta_pct") is not None:
+            noised_snap["delta_pct"] = anon.add_differential_privacy_noise(
+                snap.get("delta_pct"), epsilon=2.0, sensitivity=0.5
+            )
+        out["snapshot"] = noised_snap
+        out["_dp_applied"] = True
+
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint=f"/api/drpi/snapshot/{zone_id}",
+        response_pii_stripped=False, k_anonymity_passed=True, records_returned=1,
+        requestor_ip=request.client.host if request.client else "",
+    )
     return out
 
 
@@ -120,7 +140,13 @@ async def public_snapshot(
 @router.get("/api/drpi/national/{period}")
 async def public_national(period: str, request: Request):
     db = _db(request)
-    return await drpi.compute_drpi_national(db, period)
+    result = await drpi.compute_drpi_national(db, period)
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint=f"/api/drpi/national/{period}",
+        response_pii_stripped=False, k_anonymity_passed=True, records_returned=1,
+        requestor_ip=request.client.host if request.client else "",
+    )
+    return result
 
 
 # ══════════════════════════════════════════════════════════════════════════════

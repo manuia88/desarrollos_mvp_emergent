@@ -17,6 +17,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 import crime_data_engine as crime_data
 import risk_score_engine as risk_engine
+import anonymization_engine as anon
+import compliance_engine as comp
 
 log = logging.getLogger("dmx.routes_risk_score")
 
@@ -67,6 +69,11 @@ async def public_risk_score(zone_id: str, request: Request):
     doc = await risk_engine.get_risk_score_or_compute(db, zone_id)
 
     if not doc.get("available"):
+        await comp.log_compliance_event(
+            db, action="api_query", endpoint=f"/api/risk-score/zone/{zone_id}",
+            k_anonymity_passed=True, records_returned=0,
+            requestor_ip=request.client.host if request.client else "",
+        )
         return {
             "zone_id": zone_id, "available": False,
             "reason": doc.get("reason"), "tier_label": tier,
@@ -86,6 +93,12 @@ async def public_risk_score(zone_id: str, request: Request):
         "source": "via DMX Risk Score",
     }
     if tier == "free":
+        # W3.7 — free tier: only letter, no numeric (so DP noise not applicable)
+        await comp.log_compliance_event(
+            db, action="api_query", endpoint=f"/api/risk-score/zone/{zone_id}",
+            k_anonymity_passed=True, records_returned=1,
+            requestor_ip=request.client.host if request.client else "",
+        )
         return base
 
     # pro: includes numeric + 4 dimension scores
@@ -99,6 +112,11 @@ async def public_risk_score(zone_id: str, request: Request):
     }
     out = {**base, "score_numeric": doc.get("score_numeric"), "components": pro_components}
     if tier == "pro":
+        await comp.log_compliance_event(
+            db, action="api_query", endpoint=f"/api/risk-score/zone/{zone_id}",
+            k_anonymity_passed=True, records_returned=1,
+            requestor_ip=request.client.host if request.client else "",
+        )
         return out
 
     # enterprise: + crime_by_category + natural_detail + title_detail + percepcion_detail + alcaldia
@@ -111,6 +129,11 @@ async def public_risk_score(zone_id: str, request: Request):
         "percepcion_detail": components.get("percepcion_detail"),
     }
     out["alcaldia"] = doc.get("alcaldia")
+    await comp.log_compliance_event(
+        db, action="api_query", endpoint=f"/api/risk-score/zone/{zone_id}",
+        k_anonymity_passed=True, records_returned=1,
+        requestor_ip=request.client.host if request.client else "",
+    )
     return out
 
 

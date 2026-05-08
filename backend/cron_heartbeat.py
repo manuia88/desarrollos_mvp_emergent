@@ -51,6 +51,7 @@ SCHEDULE_LABELS = {
     "fraud_detection_daily":            "diario · 03:00 MX",
     "risk_score_zone_daily":            "diario · 05:00 MX",
     "cenapred_atlas_quarterly_ingest":  "trimestral · día 1 (jan/abr/jul/oct) · 09:00 MX",
+    "compliance_audit_retention":       "mensual · día 1 · 10:00 MX",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -86,6 +87,7 @@ SCHEDULE_INTERVAL_SEC = {
     "fraud_detection_daily":            86400 + 600,
     "risk_score_zone_daily":            86400 + 600,
     "cenapred_atlas_quarterly_ingest":  100 * 86400,
+    "compliance_audit_retention":       32 * 86400,
 }
 
 

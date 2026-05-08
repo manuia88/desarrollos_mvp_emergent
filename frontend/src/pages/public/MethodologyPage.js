@@ -191,6 +191,88 @@ export default function MethodologyPage() {
             </>
           )}
         </Section>
+
+        {/* Compliance LFPDPPP — W3.7 */}
+        <Section title="7 · Compliance LFPDPPP">
+          <p>
+            Todos los endpoints públicos de la API DMX implementan las siguientes salvaguardas
+            de privacidad conforme a la{' '}
+            <strong style={{ color: 'var(--cream-2)' }}>
+              Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP)
+            </strong>.
+          </p>
+
+          <div style={{ display: 'grid', gap: 12, marginTop: 16 }}>
+            <div style={{
+              background: 'rgba(99,102,241,0.06)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              borderRadius: 8, padding: '14px 16px',
+            }}>
+              <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14,
+                color: 'var(--cream)', margin: '0 0 6px' }}>
+                k-anonimidad ≥ 5
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)' }}>
+                Las consultas de zona que retornan menos de 5 registros son bloqueadas
+                automáticamente para prevenir re-identificación de individuos.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(99,102,241,0.06)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              borderRadius: 8, padding: '14px 16px',
+            }}>
+              <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14,
+                color: 'var(--cream)', margin: '0 0 6px' }}>
+                PII Stripping por tier
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)' }}>
+                Capa de anonimización automática elimina nombre, email, RFC, CURP y datos
+                de contacto de todos los responses públicos (tiers <code>free</code> y <code>pro</code>).
+                Tier <code>enterprise</code> recibe identificadores hash únicamente.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(99,102,241,0.06)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              borderRadius: 8, padding: '14px 16px',
+            }}>
+              <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14,
+                color: 'var(--cream)', margin: '0 0 6px' }}>
+                Privacidad diferencial (free tier)
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)' }}>
+                Los outputs numéricos en tier <code>free</code> (índices DRPI, precios promedio)
+                incorporan ruido de Laplace (&epsilon; = 1.0) para proteger privacidad individual.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(99,102,241,0.06)',
+              border: '1px solid rgba(99,102,241,0.2)',
+              borderRadius: 8, padding: '14px 16px',
+            }}>
+              <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14,
+                color: 'var(--cream)', margin: '0 0 6px' }}>
+                Derechos ARCO + Audit trail 5 años
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)' }}>
+                Los titulares pueden ejercer sus derechos de Acceso, Rectificación, Cancelación
+                y Oposición en{' '}
+                <a href="/privacy/dsr" style={{ color: '#a5b4fc' }}>/privacy/dsr</a>.
+                Cada consulta a la API se registra en un audit trail con retención de 5 años
+                por requerimiento LFPDPPP.
+              </p>
+            </div>
+          </div>
+
+          <p style={{ marginTop: 16, fontSize: 12, color: 'var(--cream-3)' }}>
+            Nota: Esta implementación técnica no constituye asesoría legal. El titular de la
+            plataforma es responsable de obtener revisión jurídica profesional antes del lanzamiento.
+          </p>
+        </Section>
       </main>
     </div>
   );

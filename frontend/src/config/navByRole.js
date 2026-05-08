@@ -177,6 +177,7 @@ const SUPERADMIN_NAV = [
       { key: 'api-keys',          to: '/superadmin/api-keys',              label: 'API Keys + Stripe',      Icon: Key },
       { key: 'vertical-products', to: '/superadmin/vertical-products',     label: 'Productos Verticales',   Icon: Package },
       { key: 'data-licensing',    to: '/superadmin/data-licensing',        label: 'Data Licensing',         Icon: Briefcase },
+      { key: 'compliance',        to: '/superadmin/compliance',            label: 'Compliance',             Icon: Shield },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },
