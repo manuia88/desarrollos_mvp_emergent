@@ -263,7 +263,24 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
-### Bulletins subscribe + Risk Score subscribe widget (PRE-Wave 4)
+### Bulletins subscribe + RiskWatchlist público multi-zone (PRE-Wave 4)
+- **Origen**: W3.3 + W3.4A + W3.4B emergent potential improvements 2026-05-08 (3 ideas unificadas)
+- **Destino**: **W3.9 Polish (Claude Code, ~7-9h)** — meto YO antes de cierre Wave 3
+- **Qué (3 features unificadas en 1 backend)**:
+  1. Endpoint público `POST /api/watchlist/subscribe` body `{email, zone_ids:[], scope:"bulletins|risk_alerts|both"}`
+  2. Schema `db.watchlist_subscribers`: `{email, zone_ids[], scope, active, created_at, last_email_sent_at}` con double opt-in
+  3. **MethodologyPage** form capture (W3.3 deferred bulletins subscribe)
+  4. **RiskScoreSubscribeWidget** marketplace single-zone (W3.4A deferred)
+  5. **`<RiskWatchlist/>` público en `/inteligencia`** multi-zone paste list (W3.4B deferred)
+  6. Cron post-risk_score_daily envía email Resend si cualquier zona del watchlist cambió letter negativamente (throttle 1/sem per email)
+  7. Endpoint manage subscription (resubscribe/unsubscribe/edit zones)
+- **Por qué keep ahora (no defer)**:
+  - Cron `bulletins_monthly_generate` corre 1ro mes — sin subscribers, primer boletín no distribuye
+  - Risk Score recién shipped (W3.4A+W3.4B) — capturar leads ANTES de Forbes/El Financiero foundation authority launch
+  - Unificar 3 ideas en 1 backend evita duplicate work
+  - Lead magnet orgánico tier-free → conversion path a Pro cuando piden alertas instantáneas
+- **Costo**: ~9h total (1 endpoint + 1 schema + 3 frontend surfaces + 1 cron + double opt-in flow + manage subscription)
+- **Ejecutor**: Claude Code en W3.9 polish (sin scope creep emergent)
 - **Origen**: W3.3 + W3.4A emergent potential improvements 2026-05-08
 - **Destino**: **W3.9 Polish (Claude Code, ~5h)** — meto YO antes de cierre Wave 3
 - **Qué (combinado)**:
