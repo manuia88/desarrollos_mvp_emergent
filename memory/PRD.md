@@ -3644,3 +3644,36 @@ DesarrollosMX establece autoridad estadística pública con DRPI (DMX Residentia
 - `drpi_monthly_snapshot` 1ro mes 06:00 MX
 - `bulletins_monthly_generate` 1ro mes 07:00 MX
 
+═══════════════════════════════════════════════════════════
+## Wave 3-4 expansion ronda 3: Kalshi-inspired (+22h · 2026-05-08)
+═══════════════════════════════════════════════════════════
+
+**Origin**: análisis Kalshi.com (prediction markets CFTC-regulated, Series C $185M @ $2B Paradigm jun-2025). 5 ideas filtradas objetivamente — Kalshi UX patterns aplicables a real estate sin necesidad de crear market real.
+
+### Adiciones (5 ideas)
+
+| # | Idea | h | Wave/Batch | Concepto |
+|---|---|---|---|---|
+| **A** | **Probability indicators UX** style Kalshi | +8 | Wave 4 (extends Phase Y.2 + Diagnostic A) | Mostrar % probabilidad estilo Kalshi en cada propiedad/proyecto/zona, basado en Phase Y forecasting + DRPI W3.3 + Risk W3.4. Sin market real. Ej: *"82% probabilidad Polanco DRPI sube 3 meses · 95% CI"* · *"73% probabilidad este proyecto vende completo en 12m"*. Translate números crudos → narrative humano que decide. |
+| **B** | **Event-driven smart notifications** | +6 | Wave 4 (extends NotificationsBell B14 + anomaly W2.6) | Notifications Kalshi-style: language financiero/event-based, no "tienes 1 lead nuevo". Ej: *"🟡 Polanco DRPI moved +1.2% últimas 24h. Tu proyecto X compite ahí."* · *"🔴 Comparable cerró 8% bajo tu precio listed."* · *"🟢 Risk Score zona X subió a B+. Nueva oportunidad inversionistas."* |
+| **C** | **Embeddable widgets** DRPI/Risk/Probability | +4 | Wave 4 (extends MCP Brand Strategy #22: 25→29h) | iframe widgets para blogs inmobiliarios, El Financiero/Forbes, social media. `<iframe src="dmx.mx/widget/drpi/polanco" />`. Cada widget = ad pasivo + backlink SEO + brand authority. Patterns Kalshi widgets para news sites mostrando market prices. |
+| **D** | **Daily content "Movimientos del mercado"** | 0 (absorbed) | Phase 8 ext AutoNewsletter Pulse (sin sumar) | Reorienta scope Phase 8 ext para incluir formato Kalshi-style "Markets to watch": Daily push (dev/asesor) "Movimientos del día CDMX" + Weekly digest "Esta semana en CDMX". Higher frequency + más urgente que boletín mensual W3.3. |
+| **F** | **Data licensing institutional bundles** | +4 | Wave 3 (extends Phase Z.4 W3.6: 14→18h) | Patterns Kalshi data licensing institutional traders. Vender datasets DMX bulk anual ($50-200K USD/cliente) a hedge funds, REITs, banks. Solo packaging + sales sheet sobre Phase Z.4 Verticals existing. |
+
+**Total ronda 3: +22h** (18h Wave 4 + 4h Wave 3)
+
+### Por qué probability UX es game-changer subliminal
+Hoy DMX da NÚMEROS crudos (DRPI +0.8%, Risk B+). Kalshi/Robinhood translate a probabilidades que humanos digieren. **Diferencia entre Bloomberg Terminal (analistas) y Robinhood (retail masivo)**. DMX hoy = Bloomberg-style. Probability UX nos convierte en "Robinhood for residential RE MX" → adopción retail masiva.
+
+### Descartado (out of scope)
+- ❌ Real prediction markets sobre real estate (regulación CNBV/SHCP enorme · capital reserve · defer Y2-Y3)
+- ❌ Wisdom of crowds polling sin dinero (lite version interesante pero baja prioridad vs probability ML)
+- ❌ Orderbook trading infrastructure (DMX no es financial exchange)
+- ❌ Mobile native app iOS+Android (defer Y2 · PWA en W4 polish puede dar 80% valor)
+- ❌ News integration each listing (scope creep, low ROI)
+
+### Total H1 actualizado
+- 806h → **828h** (+22h, +37% sobre baseline original 606h)
+- Wave 3: 193h → 197h (+4h F data licensing)
+- Wave 4: 443h → 461h (+18h A+B+C)
+

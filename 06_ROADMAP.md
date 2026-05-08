@@ -34,10 +34,10 @@
 | Phase 3 Asesor | ✅ **100% COMPLETO** (B31+B32+B33+B34 vía PR #14 + #15) | ~25h |
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
 | **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | 🟡 EN CURSO 49/120h | ~120h |
-| **Wave 3 — Authority + Verticals + Risk Layer + Zone Score** (Teseo+AirDNA expansion: ZZ.2-ZZ.4 + Z.3-Z.4 + Phase 5 + DENUE + Risk Score + Cost Predictor + R² públicos + Methodology + Zone Score A-F + Investment Explorer) | 🟡 pending | ~193h |
-| **Wave 4 — Agentic + Investor Sim + Brand + Intelligence Layer + Behavioral ML + Polish** (Phase Y reorientada con casos ML concretos + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy + Diagnostic Engine + Recommendation Engine Marketplace + Behavioral Tracking + Comparables Proactivo + Real-time Demand + State of CDMX Report + Free audit) | 🟡 pending | ~443h |
+| **Wave 3 — Authority + Verticals + Risk Layer + Zone Score + Data Licensing** (Teseo+AirDNA expansion + Kalshi data licensing F: ZZ.2-ZZ.4 + Z.3-Z.4 ext + Phase 5 + DENUE + Risk Score + Cost Predictor + R² públicos + Methodology + Zone Score A-F + Investment Explorer + Data Licensing Bundles) | 🟡 EN CURSO 66/197h | ~197h |
+| **Wave 4 — Agentic + Investor Sim + Brand + Intelligence + Behavioral ML + Probability UX + Polish** (Phase Y reorientada ML + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy ext + Diagnostic Engine + Recommendation Marketplace + Behavioral Tracking + Comparables Proactivo + Real-time Demand + State of CDMX Report + Free audit + Probability UX A + Smart Notifications B + Embeddable Widgets C) | 🟡 pending | ~461h |
 
-**Total H1 restante**: ~756h (Wave 2 71h + Wave 3 193h + Wave 4 443h + buffers + integraciones Teseo+AirDNA+cofounder +100h sobre Teseo base + Phase Y reorientación ML concretos +23h Recommendation+Behavioral)
+**Total H1 restante**: ~778h (Wave 2 71h + Wave 3 197h - 66h shipped + Wave 4 461h + buffers + integraciones Teseo+AirDNA+cofounder + Phase Y reorientación ML + Kalshi-inspired probability UX + smart notifications + embeddable widgets + data licensing bundles)
 
 **Shipped to date**: ~498h (Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 50h + Wave 2 119h)
 
@@ -45,7 +45,8 @@
 - **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).
 - **+100h Teseo+AirDNA+cofounder ronda 2 (2026-05-07 PM)**: 9 game-changers post-análisis cofounder.co + AirDNA tier strategy + audio webinar Dania (Teseo). Filtro objetivo aplicado: 5 ideas DEFER (Pinterest scrapers, ML clustering, DMX Explorer, Pre-pre-construction Lot Simulator, Buyer educación contextual, White-Label) + DMX Bot home absorbido en Phase 10 Caya (cero overlap).
 - **+23h Phase Y reorientación + Behavioral ML (2026-05-08)**: founder catch crítico de subutilización data interacciones. Phase Y reorientado de "5 sub-agents abstractos" a casos ML concretos data-driven (Optimal pricing · Lead matching ML · Project velocity · Drop-off prediction · etc.). +Recommendation Engine Marketplace 15h + Behavioral Tracking Foundation 8h.
-- **Total H1 adiciones sobre baseline 606h**: +200h. Total H1 = **806h** estimado.
+- **+22h Kalshi-inspired ronda 3 (2026-05-08 PM)**: análisis Kalshi.com (prediction markets CFTC $185M Series C). 5 ideas: Probability UX (A +8h Wave 4) · Smart notifications (B +6h Wave 4) · Embeddable widgets (C +4h Wave 4) · Data licensing bundles (F +4h Wave 3) · Daily content (D absorbed Phase 8 ext sin sumar). Translate números crudos → narrative humano = "Robinhood for residential RE MX".
+- **Total H1 adiciones sobre baseline 606h**: +222h. Total H1 = **828h** estimado.
 
 Detalles: `memory/DATA_SOURCES.md` + secciones "Wave 3 detailed plan" / "Wave 4 detailed plan" en `PRD.md`.
 

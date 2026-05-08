@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-08 (Wave 3 W3.1A+W3.2 shipped pending push · Phase Y reorientación ML +23h)
-**Total H1 restante**: ~636h (de ~806h tras +200h adiciones combinadas)
-**Shipped to date**: ~498h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + Wave 2 119h (W3.1A+W3.2 shipped pending push +39h al confirmar)
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 193h (+53h) + Wave 4 443h (+147h) = 756h pending — ver `memory/DATA_SOURCES.md` + Phase Y casos ML concretos en `memory/PRD.md`
+**Última actualización**: 2026-05-08 PM (Wave 3 66h shipped: W3.1A+W3.2+W3.3 + Kalshi-inspired ronda 3 +22h)
+**Total H1 restante**: ~564h (de ~828h tras +222h adiciones combinadas)
+**Shipped to date**: ~564h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + Wave 2 119h + Wave 3 W3.1A+W3.2+W3.3 ~66h
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h (+57h) + Wave 4 461h (+165h) = 778h plan — ver `memory/DATA_SOURCES.md` + secciones expansion en `memory/PRD.md`
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
