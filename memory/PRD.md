@@ -3716,3 +3716,32 @@ Primer uso de ML clásico (scikit-learn IsolationForest) en DMX para fraud detec
 - `RiskScoreBreakdown` — drawer 4 cards (crime V1 active + 3 V2 placeholders honestos)
 - `FraudAlertCard` — severity colored + evidence collapsible + 2 actions con modal nota
 
+---
+
+## W3.4B ZZ.4 — Risk Layer Part 2 (2026-05-08) ✅ SHIPPED
+
+### Risk Layer cierra V2
+Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDMX + CENAPRED) · title (heurística mejorada Transaction Network W3.2) · perception (ENVIPE INEGI). Letter change alert engine con email Resend automático.
+
+### Componentes
+- **Natural risk** (Atlas CDMX + CENAPRED): 3 sub-componentes (sismic 40% + flood 35% + subsidence 25%). Operator helper `upsert_zone_layer` para ingesta manual cuando GeoJSON URL fail
+- **Perception risk** (ENVIPE INEGI): 16 alcaldías mapeadas a INEGI municipio codes, indicador 6207067968 (% percepción inseguridad). Anual, absorbed en SESNSP monthly cron (NO new cron)
+- **Title risk** (V2.1): heurística mejorada con Transaction Network W3.2 (≥3 flips por property_id_hash en 24m → score inverso). V3 con RPP partnership Y2
+- **Letter change engine**: cada compute_v2 dispara `detect_letter_change` que compara con prev cached doc. Severity: drop>2 letras → critical + email Resend; drop ≤2 → warning; rise → info
+- **RiskScoreFullBadge marketplace**: badge A-F + hover tooltip con 4 mini-bars + click drawer breakdown completo
+- **Tier-gating extendido**: pro=4 dim numéricos · enterprise=+detalles (categorías SESNSP, sismic_zone, flood_pct, subsidence_mm_year, flips_24m, perception_pct)
+
+### Schemas DB nuevos
+- `db.natural_risk_layers`: `{zone_id, sismic_zone:"A|B|C|D", sismic_score, flood_pct, flood_score, subsidence_mm_year, subsidence_score, composite_score, fetched_at, sources:[]}` · unique zone_id
+- `db.perception_risk_data`: `{alcaldia, year, perception_inseguridad_pct, sample_size, computed_at}` · unique (alcaldia, year)
+- `db.risk_letter_changes`: `{id, zone_id, prev_letter, new_letter, prev_score, new_score, delta_letters, severity, changed_at, acknowledged_at, acknowledged_by}` · TTL 180d · index (zone_id, changed_at desc)
+
+### Cron nuevo (sistema total: 31)
+- `cenapred_atlas_quarterly_ingest` 1ro mes 09:00 MX (jan/abr/jul/oct)
+
+### Endpoints nuevos
+**Superadmin**: `/api/superadmin/risk-alerts[?days=30]` · `/api/superadmin/risk-alerts/timeline/{zone_id}` · `/api/superadmin/risk-alerts/{id}/acknowledge`
+**Extended (public)**: `/api/risk-score/zone/{zone_id}` retorna 4 dimensiones en pro/enterprise tier · `/api/public/methodology` reflects V2 con 4 dimensiones
+
+### Ruta frontend nueva
+- `/superadmin/risk-alerts` — KPI strip + filtros severity/days/zone + RiskAlertCard list + timeline modal

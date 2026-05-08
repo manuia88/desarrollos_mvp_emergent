@@ -14,6 +14,7 @@ import {
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -172,6 +173,7 @@ const SUPERADMIN_NAV = [
       { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer',   Icon: Target },
       { key: 'fraud-alerts',     to: '/superadmin/fraud-alerts',          label: 'Fraud Alerts',           Icon: Shield },
       { key: 'risk-score',       to: '/superadmin/risk-score',            label: 'Risk Score',             Icon: Shield },
+      { key: 'risk-alerts',      to: '/superadmin/risk-alerts',           label: 'Risk Alerts',            Icon: AlertTriangle },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },

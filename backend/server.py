@@ -217,6 +217,12 @@ from risk_score_engine import ensure_indexes as ensure_risk_indexes
 app.include_router(fraud_router)
 app.include_router(risk_score_router)
 
+# W3.4B ZZ.4 — Risk V2 multi-source + Risk Alerts
+from routes_risk_alerts import router as risk_alerts_router
+from natural_risk_engine import ensure_indexes as ensure_natural_indexes
+from perception_risk_engine import ensure_indexes as ensure_perception_indexes
+app.include_router(risk_alerts_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -725,6 +731,12 @@ async def startup():
         await ensure_risk_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W3.4A indexes failed: {e}")
+    # W3.4B ZZ.4 — Natural Risk + Perception indexes
+    try:
+        await ensure_natural_indexes(db)
+        await ensure_perception_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W3.4B indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

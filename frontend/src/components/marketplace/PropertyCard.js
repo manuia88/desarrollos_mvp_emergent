@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Car, Ruler, Heart, ArrowRight, Leaf, Route, Shield, Store } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
 import ZoneScoreBadge from './ZoneScoreBadge';
-import RiskScoreBadge from './RiskScoreBadge';
+import RiskScoreFullBadge from './RiskScoreFullBadge';
 
 const SCORE_ICON = { vida: Leaf, movilidad: Route, seguridad: Shield, comercio: Store };
 
@@ -73,9 +73,9 @@ export default function PropertyCard({ property, index = 0, colonia }) {
           <span className={colonia?.momentum_positive ? 'mom-pill mom-up' : 'mom-pill mom-dn'}>
             {colonia?.momentum}
           </span>
-          {/* W3.4A — Risk Score badge (placed bottom-left to avoid overlap with top-left tag and bottom-right Zone Score) */}
+          {/* W3.4B — Risk Score full badge (hover tooltip + click drawer 4 dimensions) */}
           {(property.colonia || property.zone_id) && (
-            <RiskScoreBadge zoneId={property.colonia || property.zone_id} size="sm" />
+            <RiskScoreFullBadge zoneId={property.colonia || property.zone_id} size="sm" />
           )}
         </div>
         {/* W3.1A Zone Score badge — bottom-right of photo; renders only when zone_score_letter is present */}

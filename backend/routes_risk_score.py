@@ -81,12 +81,14 @@ async def public_risk_score(zone_id: str, request: Request):
         "computed_at": doc.get("computed_at"),
         "formula_version": doc.get("formula_version"),
         "sources_active": doc.get("sources_active"),
+        "placeholder_flags": doc.get("placeholder_flags"),
+        "weights": doc.get("weights"),
         "source": "via DMX Risk Score",
     }
     if tier == "free":
         return base
 
-    # pro: includes numeric + components numeric (sin breakdown SESNSP cats)
+    # pro: includes numeric + 4 dimension scores
     components = doc.get("components") or {}
     pro_components = {
         "crime_score": components.get("crime_score"),
@@ -99,11 +101,14 @@ async def public_risk_score(zone_id: str, request: Request):
     if tier == "pro":
         return out
 
-    # enterprise: + crime_by_category breakdown
+    # enterprise: + crime_by_category + natural_detail + title_detail + percepcion_detail + alcaldia
     out["components"] = {
         **pro_components,
         "crime_total_incidents_6m": components.get("crime_total_incidents_6m"),
         "crime_by_category": components.get("crime_by_category"),
+        "natural_detail": components.get("natural_detail"),
+        "title_detail": components.get("title_detail"),
+        "percepcion_detail": components.get("percepcion_detail"),
     }
     out["alcaldia"] = doc.get("alcaldia")
     return out

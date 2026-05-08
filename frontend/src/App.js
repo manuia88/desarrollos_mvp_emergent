@@ -155,6 +155,7 @@ const BulletinPage                   = lazy(() => import('./pages/public/Bulleti
 // W3.4A ZZ.4 — Fraud Detection + Risk Score
 const SuperadminFraudAlerts          = lazy(() => import('./pages/superadmin/SuperadminFraudAlerts'));
 const SuperadminRiskScore            = lazy(() => import('./pages/superadmin/SuperadminRiskScore'));
+const SuperadminRiskAlerts           = lazy(() => import('./pages/superadmin/SuperadminRiskAlerts'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -507,6 +508,7 @@ function AppRouter() {
       {/* W3.4A ZZ.4 — Fraud Detection + Risk Score */}
       <Route path="/superadmin/fraud-alerts" element={<AdvisorRoute Page={SuperadminFraudAlerts} />} />
       <Route path="/superadmin/risk-score" element={<AdvisorRoute Page={SuperadminRiskScore} />} />
+      <Route path="/superadmin/risk-alerts" element={<AdvisorRoute Page={SuperadminRiskAlerts} />} />
       <Route path="/methodology" element={<MethodologyPage />} />
       <Route path="/boletin/:slug/:period" element={<BulletinPage />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />

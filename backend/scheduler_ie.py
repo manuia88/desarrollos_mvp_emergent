@@ -440,6 +440,13 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_risk_score_error", error=str(e))
 
+    # W3.4B — CENAPRED + Atlas CDMX quarterly ingest (1ro mes 09:00 MX, jan/abr/jul/oct)
+    try:
+        from natural_risk_engine import schedule_atlas_quarterly_cron
+        schedule_atlas_quarterly_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_atlas_quarterly_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

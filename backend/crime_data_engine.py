@@ -224,7 +224,8 @@ async def aggregate_crime_zone(
 
 async def cron_sesnsp_monthly_ingest(db) -> Dict[str, Any]:
     """Cron: 1ro de mes 08:00 MX. Best-effort fetch SESNSP. NEVER raises so the
-    cron heartbeat stays green — failures persisted as system_alerts."""
+    cron heartbeat stays green — failures persisted as system_alerts.
+    Also triggers ENVIPE annual perception update (W3.4B, no new cron)."""
     now = datetime.now(timezone.utc)
     # Fetch month is two months back (SESNSP publishes with ~30-60d lag)
     target_month = now.month - 2
@@ -242,6 +243,16 @@ async def cron_sesnsp_monthly_ingest(db) -> Dict[str, Any]:
             })
         except Exception:
             pass
+
+    # W3.4B — absorb ENVIPE annual update (cheap, runs monthly but data updates yearly)
+    try:
+        import perception_risk_engine as perception
+        perc_out = await perception.fetch_envipe_perception(db, year=now.year)
+        out["envipe"] = perc_out
+    except Exception as e:
+        log.warning(f"[sesnsp cron] envipe absorbed update failed: {e}")
+        out["envipe"] = {"ok": False, "error": str(e)[:120]}
+
     out["target"] = f"{target_year}-{target_month:02d}"
     out["completed_at"] = _iso()
     return out

@@ -131,17 +131,39 @@ async def public_methodology(request: Request):
     }
 
     risk_score_meta = {
-        "name": "Risk Score V1 (W3.4A)",
-        "status": "active_v1_sesnsp",
-        "method": "Crime layer SESNSP normalizado per 100K hab (6m rolling)",
-        "sources_active": ["sesnsp"],
-        "sources_pending_v2": ["cenapred", "atlas_riesgo_cdmx", "rpp", "envipe"],
-        "categories": [
-            "robo_casa_habitacion", "robo_a_transeunte", "homicidio_doloso",
-            "secuestro", "extorsion", "violencia_familiar",
-        ],
-        "frequency": "ingesta mensual SESNSP · refresh diario 05:00 MX",
-        "version": "1.0.0",
+        "name": "Risk Score V2 (W3.4B)",
+        "status": "active_v2_multisource",
+        "method": "Composite weighted: crime 40% · natural 25% · title 15% · perception 20%",
+        "sources_active": ["sesnsp", "atlas_cdmx", "envipe_inegi", "transaction_network"],
+        "sources_pending_v3": ["rpp_partnership_y2"],
+        "dimensions": {
+            "crime": {
+                "source": "SESNSP CSV mensual",
+                "categories": ["robo_casa_habitacion", "robo_a_transeunte", "homicidio_doloso",
+                               "secuestro", "extorsion", "violencia_familiar"],
+                "normalization": "incidentes per 100k hab · 6 meses",
+            },
+            "natural": {
+                "source": "Atlas CDMX + CENAPRED",
+                "components": ["sismic_zone (A-D, peso 40%)",
+                               "flood_pct (peso 35%)",
+                               "subsidence_mm_year (peso 25%)"],
+                "frequency": "trimestral",
+            },
+            "title": {
+                "source": "Transaction Network W3.2 (heurística mejorada V2.1)",
+                "method": "flips ≥3 en 24m + tasa de flips → score inverso",
+                "v3_pending": "RPP partnership Y2",
+            },
+            "perception": {
+                "source": "ENVIPE INEGI anual",
+                "indicator": "Indicador 6207067968 (% percepción inseguridad municipal)",
+                "frequency": "anual · absorbed en SESNSP cron mensual",
+            },
+        },
+        "frequency": "ingesta crime mensual · natural trimestral · perception anual · refresh diario 05:00 MX",
+        "alert_engine": "letter change daily detection + Resend email on critical drops",
+        "version": "2.0.0",
     }
 
     construction_meta = {

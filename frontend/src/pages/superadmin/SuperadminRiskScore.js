@@ -80,11 +80,14 @@ export default function SuperadminRiskScore() {
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
                   <Th>Zona</Th><Th>Letter</Th><Th>Score</Th>
-                  <Th>Crime / 100k · 6m</Th><Th>Fuentes</Th><Th>Computado</Th>
+                  <Th>Crime</Th><Th>Natural</Th><Th>Título</Th><Th>Percep.</Th>
+                  <Th>Fuentes</Th><Th>Computado</Th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((z) => (
+                {items.map((z) => {
+                  const c = z.components || {};
+                  return (
                   <tr key={z.zone_id}
                     data-testid={`risk-row-${z.zone_id}`}
                     onClick={() => setDrawerZone(z)}
@@ -99,13 +102,15 @@ export default function SuperadminRiskScore() {
                         : <Badge tone="warn">—</Badge>}
                     </Td>
                     <Td>{fmt(z.score_numeric, 1)}</Td>
-                    <Td>{(z.components || {}).crime_normalized_per_100k != null
-                      ? Number(z.components.crime_normalized_per_100k).toLocaleString('es-MX')
-                      : '—'}</Td>
-                    <Td>{(z.sources_active || []).join(', ') || '—'}</Td>
+                    <Td>{fmt(c.crime_score, 1)}</Td>
+                    <Td>{fmt(c.natural_score, 1)}</Td>
+                    <Td>{fmt(c.title_risk_score, 1)}</Td>
+                    <Td>{fmt(c.percepcion_score, 1)}</Td>
+                    <Td>{(z.sources_active || []).length}</Td>
                     <Td>{(z.computed_at || '').slice(0, 19).replace('T', ' ')}</Td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

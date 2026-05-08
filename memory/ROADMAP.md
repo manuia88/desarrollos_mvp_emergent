@@ -36,7 +36,8 @@
 - [x] W3.2 Transaction Network (Anonymized closings + price index) ✅
 - [x] W3.3 ZZ.3 DRPI ampliado (Hedonic + Bulletins + Methodology + Investment Explorer) ✅ 2026-05-08
 - [x] W3.4A ZZ.4 Risk Layer Part 1 (Fraud Detection AI + Risk Score V1 SESNSP) ✅ 2026-05-08
-- [ ] W3.4B Risk Layer Part 2 (V2 multi-source: CENAPRED + ENVIPE + RPP + UI badge alert engine)
+- [x] W3.4B ZZ.4 Risk Layer Part 2 (V2 multi-source + UI alert engine) ✅ 2026-05-08
+- [ ] W3.5 Public API + Stripe Billing
 - [ ] Phase 7.10: Tab Avance de Obra
 - [ ] WhatsApp Business real integration (`whatsapp-web.js` + Caya UI)
 - [ ] W3 Billing & Stripe Wiring real (test key disponible en pod)
