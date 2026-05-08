@@ -108,6 +108,35 @@ Antes de llamar Claude (Sonnet/Haiku): verificar `ai_budget.is_within_budget(org
 - Spanish UI copy, English code identifiers
 - Strings UI nuevas → siempre en es-MX common.json
 
+## ═══ URL-Encoding rules (Wave 3 fix-pass) ═══
+
+Path params con potenciales acentos: `zone_id`, `tier_id`, `alcaldia`, `colonia` (CDMX tiene Cuauhtémoc, Tláhuac, Álvaro Obregón, Coyoacán, Tlalpan).
+
+**Frontend SIEMPRE**:
+- `encodeURIComponent(zoneId)` antes de meter en URL path
+- O usa `URLSearchParams({zone_id})` que auto-encoda
+
+```javascript
+// ✅ CORRECTO
+fetch(`${BASE}/${encodeURIComponent(tier)}/${encodeURIComponent(tierId)}`)
+const p = new URLSearchParams({ zone_id, tier });
+
+// ❌ INCORRECTO — Cloudflare rechaza acentos raw
+fetch(`${BASE}/${tier}/${tierId}`)
+```
+
+**Backend defensive** (importar desde permissions.py):
+```python
+from permissions import safe_path_param
+
+@router.get("/zone/{zone_id}")
+async def get_zone(zone_id: str):
+    zone_id = safe_path_param(zone_id)  # normaliza acentos + lowercase + NFC unicode
+    doc = await db.zones.find_one({"id": zone_id})
+```
+
+`safe_path_param()` hace: URL-decode si necesario · NFC unicode normalize · lowercase · trim. Es idempotente (no-op si ya viene clean de FastAPI).
+
 ## ═══ Reusable primitives by batch ═══
 
 - B0: PortalLayout · EntityCard · EntityDrawer · KPIStrip · UniversalSearch · SmartWizard · NotificationsBell

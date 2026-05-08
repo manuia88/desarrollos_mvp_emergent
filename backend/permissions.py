@@ -292,3 +292,28 @@ def is_dev_or_superadmin(user) -> bool:
         return False
     role = getattr(user, "role", None)
     return role == "superadmin" or role in DEV_IN_HOUSE_ROLES
+
+
+# ─── URL-encoding utilities (Wave 3 fix-pass · zone_id accent handling) ──────
+def safe_path_param(value: str) -> str:
+    """
+    Defensive normalization for URL path params with potential accents/special chars.
+
+    FastAPI auto-decodes URL-encoded path params, but this helper ensures consistent
+    behavior even if upstream proxies (e.g. Cloudflare) re-encode in transit.
+
+    Use case: zone_id like 'cuauhtémoc' or 'álvaro-obregón' arrives via URL.
+    - Frontend MUST always encodeURIComponent() before fetch.
+    - Backend uses this helper as belt-and-suspenders defense before MongoDB query.
+
+    Returns lowercase trimmed string, decoded if URL-encoded, NFC unicode normalized.
+    """
+    if not value:
+        return ""
+    from urllib.parse import unquote
+    import unicodedata
+    # Decode if still URL-encoded (idempotent — no-op if already decoded by FastAPI)
+    decoded = unquote(value) if "%" in value else value
+    # Normalize unicode (compose accents consistently)
+    normalized = unicodedata.normalize("NFC", decoded)
+    return normalized.strip().lower()
