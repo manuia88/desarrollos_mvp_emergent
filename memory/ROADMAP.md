@@ -32,13 +32,20 @@
 - Batch 34: Smart Match Lead-to-Asesor + "Tu Día Hoy" feed ✅
 
 ## P1 — Próximas tareas
+- [x] W3.1A Phase 5 Foundation (DENUE + Construction Cost + Zone Score) ✅
+- [x] W3.2 Transaction Network (Anonymized closings + price index) ✅
+- [x] W3.3 ZZ.3 DRPI ampliado (Hedonic + Bulletins + Methodology + Investment Explorer) ✅ 2026-05-08
+- [ ] W3.4 Risk Score multi-source (Fraud Detection AI, Risk badge en marketplace) — sustituye placeholders en Zone Score + Investment Explorer
 - [ ] Phase 7.10: Tab Avance de Obra
 - [ ] WhatsApp Business real integration (`whatsapp-web.js` + Caya UI)
+- [ ] W3 Billing & Stripe Wiring real (test key disponible en pod)
+- [ ] Multi-subscriber digest (Wave 4 #8 AutoNewsletter) — ampliar Resend distribution boletines
 - [ ] Briefing tráfico: integrar dentro de fichas de proyecto (auto-fill destination)
 - [ ] Argumentario: ampliar KB con casos de éxito reales del equipo
 - [ ] Compartir perfil público asesor en marketing assets / firma email
 
 ## P2 — Backlog
+- [ ] W3.7 Public API: Export Excel/CSV para Intelligence Hub
 - [ ] Microsoft OAuth Integration activation
 - [ ] Phase 8: LinkedIn OAuth real (deja de ser manual stub)
 - [ ] Phase 17 / ML Observability extension

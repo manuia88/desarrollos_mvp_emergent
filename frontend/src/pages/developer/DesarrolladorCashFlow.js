@@ -10,6 +10,7 @@ import {
   Sparkle, Activity, Download, AlertTriangle, BarChart, TrendUp, TrendDown, Check, Clock,
 } from '../../components/icons';
 import * as api from '../../api/developer';
+import ConstructionCostPanel from '../../components/developer/ConstructionCostPanel';
 
 const SCENARIO_TONE = {
   pesimista: 'rgba(239,68,68,0.10)',
@@ -303,6 +304,9 @@ export default function DesarrolladorCashFlow({ user, onLogout }) {
           cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
         }}><Download size={11} /> Exportar PDF</button>
       </div>
+
+      {/* W3.1A Construction Cost Panel — antes del forecast */}
+      <ConstructionCostPanel zone_id={doc?.zone_id || slug} zone_name={doc?.project_name} />
 
       {/* Stats strip */}
       <div data-testid="cf-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 16 }}>

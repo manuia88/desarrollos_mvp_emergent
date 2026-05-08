@@ -298,6 +298,7 @@ class LeadPatch(BaseModel):
     project_id: Optional[str] = None
     budget_range: Optional[LeadBudget] = None
     lost_reason: Optional[str] = None
+    closing_price: Optional[float] = None  # W3.2 — trigger auto-ingest on cerrado_ganado
 
 
 @router.patch("/leads/{lead_id}")
@@ -328,6 +329,8 @@ async def patch_lead(lead_id: str, payload: LeadPatch, request: Request):
         if data["lost_reason"] not in LOST_REASONS:
             raise HTTPException(400, f"lost_reason inválido: {data['lost_reason']}")
         patch["lost_reason"] = data["lost_reason"]
+    if "closing_price" in data and data["closing_price"] is not None:
+        patch["closing_price"] = data["closing_price"]
 
     # Enforce lost_reason when closing as lost
     target_status = patch.get("status", old.get("status"))
@@ -362,6 +365,46 @@ async def patch_lead(lead_id: str, payload: LeadPatch, request: Request):
             "lost_reason": updated.get("lost_reason"),
             "source": old.get("source"),
         })
+
+        # W3.2 Auto-ingestion hook: cerrado_ganado + closing_price → insert transaction
+        if patch["status"] == "cerrado_ganado":
+            closing_price = (
+                updated.get("closing_price")
+                or (updated.get("budget_range") or {}).get("max")
+            )
+            if closing_price:
+                import asyncio
+                async def _auto_ingest_txn(db_ref, lead_doc, price_val, days_val):
+                    try:
+                        from transaction_network_engine import ingest_transaction
+                        from audit_log import log_mutation
+                        raw = {
+                            "zone_id":            lead_doc.get("zone_id") or lead_doc.get("project_id") or "unknown",
+                            "tier":               lead_doc.get("tier", "colonia"),
+                            "property_type":      lead_doc.get("property_type", "depto"),
+                            "m2":                 lead_doc.get("m2"),
+                            "recamaras":          lead_doc.get("recamaras"),
+                            "baños":              lead_doc.get("baños"),
+                            "year_built":         lead_doc.get("year_built"),
+                            "listed_price_mxn":   (lead_doc.get("budget_range") or {}).get("max"),
+                            "closing_price_mxn":  price_val,
+                            "days_on_market":     days_val,
+                            "buyer_id":           lead_doc.get("contact", {}).get("email", ""),
+                            "property_id":        lead_doc.get("project_id", ""),
+                            "closed_at":          datetime.now(timezone.utc).isoformat(),
+                        }
+                        tx = await ingest_transaction(db_ref, raw, source="dmx_native")
+                        await log_mutation(
+                            db_ref, None, "create", "transaction_auto_ingested", tx["id"],
+                            before=None,
+                            after={"lead_id": lead_doc["id"], "transaction_id": tx["id"]},
+                            request=None,
+                        )
+                    except Exception as e:
+                        import logging as _log
+                        _log.getLogger("dmx.batch4_hook").warning(f"[auto-ingest] failed: {e}")
+                # Fire and forget
+                asyncio.create_task(_auto_ingest_txn(db, updated, closing_price, days))
 
     await _safe_audit_ml(
         db, user, action="update", entity_type="lead", entity_id=lead_id,

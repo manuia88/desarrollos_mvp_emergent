@@ -263,6 +263,15 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+### Bulletins: distribución real + endpoint /subscribe público (PRE-Wave 4)
+- **Origen**: W3.3 emergent potential improvement 2026-05-08
+- **Destino**: **W3.9 Polish (Claude Code, ~3h)** — meto YO antes de cierre Wave 3
+- **Qué**: activar distribución real boletines vía Resend con seed mínimo subscribers (`db.bulletin_subscribers`) + endpoint público `POST /api/bulletins/subscribe` para que landing capture suscriptores ANTES del próximo 1ro mes cron.
+- **Por qué keep ahora (no defer)**: el cron `bulletins_monthly_generate` corre 1ro de cada mes. Si no tenemos subscribers list cuando corra → primer boletín no distribuye. Pre-warm la lista vía landing capture es low-cost high-leverage marketing.
+- **Costo**: ~3h (schema bulletin_subscribers + 1 endpoint POST + 1 form en MethodologyPage + double opt-in email Resend confirmation)
+- **Ejecutor**: Claude Code en W3.9 polish (sin scope creep emergent)
+- **Diferencia vs W4 #8 AutoNewsletter Pulse**: este es solo boletines mensuales (Wave 3), AutoNewsletter Pulse es semanal segmentado dev/asesor/buyer/inversionista (Wave 4)
+
 ### Data Lake: R² trend sparkline 30 runs (model health monitoring)
 - **Origen:** W2.7 Phase Z.0 emergent potential improvement 2026-05-07
 - **Destino:** Wave 4 Polish — cuando ≥30 días validation data acumulada

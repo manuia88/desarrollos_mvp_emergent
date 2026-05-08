@@ -377,6 +377,48 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_intelligence_insights_error", error=str(e))
 
+    # W3.1A Phase 5 — DENUE sync weekly (Mon 05:00 MX)
+    try:
+        from denue_engine import schedule_denue_sync_cron
+        schedule_denue_sync_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_denue_sync_error", error=str(e))
+
+    # W3.1A Phase 5 — Construction Costs monthly (1ro mes 07:00 MX)
+    try:
+        from construction_cost_engine import schedule_construction_costs_cron
+        schedule_construction_costs_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_construction_costs_error", error=str(e))
+
+    # W3.1A Phase 5 — Zone Score daily refresh (04:00 MX post-ETL 03:00)
+    try:
+        from zone_score_engine import schedule_zone_score_cron
+        schedule_zone_score_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_zone_score_error", error=str(e))
+
+    # W3.2 Transaction Network — price index daily refresh (04:30 MX)
+    try:
+        from transaction_network_engine import schedule_price_index_cron
+        schedule_price_index_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_transaction_price_index_error", error=str(e))
+
+    # W3.3 ZZ.3 — DRPI monthly snapshot (1ro mes 06:00 MX)
+    try:
+        from drpi_engine import schedule_drpi_monthly_cron
+        schedule_drpi_monthly_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_drpi_monthly_error", error=str(e))
+
+    # W3.3 ZZ.3 — Bulletins monthly generate (1ro mes 07:00 MX, post DRPI)
+    try:
+        from bulletins_engine import schedule_bulletins_monthly_cron
+        schedule_bulletins_monthly_cron(_scheduler, db)
+    except Exception as e:
+        _emit("scheduler_bulletins_monthly_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

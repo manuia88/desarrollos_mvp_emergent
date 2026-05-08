@@ -1,6 +1,79 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W3.2 — ZZ.2 Transaction Network (2026-05-08)
+
+Sistema de tracking de closings anonimizados + comparables matrix verificada + price index per zona/tipo.
+
+### Backend (2 nuevos · 4 editados)
+- **NEW** `transaction_network_engine.py`: SHA-256 anonymización, $geoNear comparables, median/IQR price index, anomaly detection severity ok|amber|red, CSV bulk ingest (NUMERIC_CSV_COLS incluye days_on_market), compute_stats KPIs, cron_price_index_refresh 04:30 MX.
+- **NEW** `routes_transaction_network.py` (7 endpoints): list+k-anon gate, comparables, price-index+history, heatmap GeoJSON, detect-anomaly, manual-ingest CSV, stats.
+- **EDIT** `routes_dev_batch4.py`: `LeadPatch.closing_price` + auto-ingest hook cerrado_ganado → asyncio.create_task, audit `transaction_auto_ingested`.
+- **EDIT** `server.py`, `cron_heartbeat.py`, `scheduler_ie.py`: txn router, ensure_txn_indexes, label+cron. Total crons: 25.
+
+### Frontend (4 nuevos · 3 editados)
+- **NEW** `api/superadminTransactionNetwork.js` (7 fn), `TransactionFeed.js` (chips+k-anon gate), `PriceIndexChart.js` (SVG área chart), `SuperadminTransactionNetwork.js` (KPI strip, 2-col, heatmap, AnomalyChecker, IngestModal).
+- **EDIT** `CubeDrilldownTable.js` (col Verified TXs → link), `App.js`, `navByRole.js`, `i18n`.
+
+### Edge Cases
+- `days_on_market` faltaba en NUMERIC_CSV_COLS → corregido.
+- Heatmap requiere cube_aggregations geo (0 features en sandbox, funcional en producción).
+- Auto-ingest verificado por code review (sin leads activos en sandbox).
+
+## W3.1A — Phase 5 Foundation: DENUE + Construction Cost + Zone Score A-F (2026-05-08)
+
+Tres motores que alimentan DRPI (W3.3), Investment Explorer (W3.3.4) y Risk Score multi-fuente (W3.4).
+
+### Backend (4 nuevos · 3 editados)
+- **NEW** `denue_engine.py`:
+  - `fetch_businesses_by_zone(lat, lng, radius_m)` — llama DENUE BuscarEntorno por keyword de categoría. URL format: `{condicion}/{lat},{lng}/{distancia}/{token}`. Token: `IE_DENUE_TOKEN` (fallback `IE_INEGI_TOKEN`).
+  - 7 categorías: restaurants, gyms, markets, schools, hospitals, pharmacies, banks.
+  - `compute_zone_density(db, zone_id, tier)` — upsert `db.denue_zone_density` con businesses_per_km2 + by_category.
+  - `cron_denue_sync_weekly` (lunes 05:00 MX) — top 100 zonas activas.
+  - `ensure_indexes(db)` — índices sobre zone_id, scian, name (text).
+- **NEW** `construction_cost_engine.py`:
+  - `predict_cost_per_m2(zone_id, building_type, tier)` — combina BANXICO SF61745 (% inflación real) + INEGI INPP 914339 + constantes base por tier × tipo × zone_premium.
+  - BANXICO live: token `IE_BANXICO_TOKEN` confirmado — retorna 6.5% inflación anual construcción.
+  - Honest fallback: `stub_reason` visible si BANXICO/INEGI no disponible. No crashea.
+  - `forecast_total(db, zone_id, m2, tier)` — total hoy + evolución 12 meses (+6% anual base).
+  - `cron_construction_costs_monthly` (día 1 mes 07:00 MX).
+  - `ensure_indexes(db)` — índice único (zone_id, building_type, tier).
+- **NEW** `zone_score_engine.py`:
+  - `compute_zone_score(db, zone_id, tier)` — 6 dimensiones: Liquidez (placeholder W3.3), Supply pressure, Demand growth (leads delta 30d), Risk (placeholder W3.4), Yield estimado, DENUE density.
+  - Letter grades: A≥80, B 65-79, C 50-64, D 35-49, E 20-34, F<20.
+  - `db.zone_scores` — TTL 90d, index (zone_id, computed_at desc).
+  - `cron_zone_score_daily_refresh` (04:00 MX post-ETL 03:00).
+- **NEW** `routes_phase5_foundation.py` — prefix `/api/superadmin/phase5`:
+  1. `GET /denue/zone/{zone_id}/density` — density + SCIAN breakdown.
+  2. `GET /denue/business/lookup?empresa=` — búsqueda por nombre (lead enrichment).
+  3. `POST /denue/sync/zone/{zone_id}` — trigger manual.
+  4. `GET /construction-cost/zone/{zone_id}?type=&tier=` — predicción + sources + confidence.
+  5. `POST /construction-cost/forecast` — costo total + evolución 12 meses.
+  6. `GET /zone-score/{zone_id}` — score + 6 componentes.
+  7. `GET /zone-score/all?tier=&limit=50` — lista paginada top zonas.
+  8. `GET /zone-score/{zone_id}/history?days=90` — serie temporal.
+  9. `GET /api/public/zone-score/{zone_id}` — **PUBLIC SIN AUTH** — letra + numérico + "via DMX" (sin breakdown). Preparado para MCP W4.
+- **EDIT** `server.py` — include_router phase5_router + phase5_pub_router + ensure indexes en startup.
+- **EDIT** `scheduler_ie.py` — 3 nuevos crons: denue_sync_weekly, construction_costs_monthly, zone_score_daily_refresh.
+- **EDIT** `cron_heartbeat.py` — labels + intervals para los 3 nuevos crons. Total crons sistema: 24.
+
+### Frontend (5 nuevos · 4 editados)
+- **NEW** `api/phase5Foundation.js` — 9 funciones cliente.
+- **NEW** `components/marketplace/ZoneScoreBadge.js` — badge circular A-F con color coding + click → ZoneScoreBreakdown drawer.
+- **NEW** `components/developer/ZoneScoreBreakdown.js` — drawer 6 dimension cards con barra visual + tooltip.
+- **NEW** `components/developer/ConstructionCostPanel.js` — sparkline 12m, filtros tipo/tier, m2 input, fuentes citadas, stub_reason visible.
+- **NEW** `pages/superadmin/SuperadminPhase5Foundation.js` — ruta `/superadmin/phase5-foundation`, 3 tabs: DENUE | Costos Construcción | Zone Scores.
+- **EDIT** `components/marketplace/PropertyCard.js` — slot ZoneScoreBadge bottom-right, backwards-compat (renderiza solo si zone_score_letter presente en property).
+- **EDIT** `pages/developer/DesarrolladorCashFlow.js` — ConstructionCostPanel montado antes del forecast.
+- **EDIT** `App.js` — route `/superadmin/phase5-foundation` + fix pre-existing duplicate MetricasEquipo declaration.
+- **EDIT** `config/navByRole.js` — "Foundation Phase 5" en SUPERADMIN_NAV tier 2.
+- **EDIT** `i18n/locales/es-MX/common.json` — namespace `phase5_foundation.*` completo.
+
+### Edge Cases Reportados
+- **DENUE token**: `IE_INEGI_TOKEN=latam-desarrollos` es un project ID para INEGI BISE, no un DENUE token registrado. El motor retorna 0 negocios con estructura correcta (honest stub). Para activar DENUE real, registrar en https://www.inegi.org.mx/app/api/denue/v1/tokenVerify.aspx y configurar `IE_DENUE_TOKEN` en backend .env.
+- **BANXICO SF61745**: retorna 6.5 (% inflación anual), no un índice base-100. Fórmula corregida: `1 + (val/100)`. ✅
+- **Duplicate MetricasEquipo**: bug pre-existente en App.js corregido (impedía `yarn build`).
+
 ## W2.9 — Phase Z.2 Superadmin Intelligence Hub UI (2026-05-07)
 
 Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prepara venta verticals B2B Z.4).
@@ -1077,3 +1150,54 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 
 ## Batch 1-23 — Developer Portal (2026-01 to 2026-04)
 - Full developer CRM: Units, Leads, Canales, AI pricing, OAuth Calendar, Caya, RAG, ML, etc.
+
+---
+
+## W3.3 ZZ.3 — DRPI Index Provider Ampliado (2026-05-08)
+
+**Foundation Authority play**: media partnerships Forbes / El Financiero · DRPI mensual con regresión hedónica OLS sobre Transaction Network · /methodology page pública · boletines mensuales (general + sectoriales top 6) · Investment Explorer AirDNA-style.
+
+### Backend nuevos
+- **NEW** `hedonic_regression_engine.py` — fit OLS via statsmodels (variables m2/recamaras/baños/year_built/floor/proximity_metro_m/denue_density/construction_cost_index) · IC95% por coeficiente · honest stub si <30 transactions
+- **NEW** `drpi_engine.py` — `compute_drpi_snapshot` (anclado base=100), `compute_drpi_national` (weighted avg), `compute_drpi_history` 12 períodos · cron `drpi_monthly_snapshot` 1ro mes 06:00 MX · system alert critical si <30% cobertura
+- **NEW** `bulletins_engine.py` — `generate_bulletin_general` + `generate_bulletin_zone` (top 6: Polanco/Roma/Lomas/Condesa/Del Valle/Coyoacán) · narrative Claude Sonnet 4.5 (ai_budget gated) · PDF branded (B5/B19 navy+cream) · Resend distribution · cron `bulletins_monthly_generate` 1ro mes 07:00 MX
+- **NEW** `routes_drpi.py` — public snapshot tier-gated (free=last, pro=12 history, enterprise=hedonic) + national + superadmin recompute + coefficients + list
+- **NEW** `routes_bulletins.py` — public HTML + PDF + `/api/public/methodology` + superadmin list/generate
+- **NEW** `routes_investment_explorer.py` — table sortable (score/yield/growth_30d/risk/dom) × buyer_objective (cashflow/appreciation/balanced) + drill-down detail con scorecard
+
+### Backend ediciones
+- **EDIT** `server.py` — registra 3 routers (`drpi_router`, `bulletins_router`, `investment_explorer_router`) + ensure_indexes (hedonic_models, drpi_snapshots, dmx_bulletins, bulletin_subscribers)
+- **EDIT** `scheduler_ie.py` — boot 2 nuevos crons (drpi_monthly_snapshot, bulletins_monthly_generate)
+- **EDIT** `cron_heartbeat.py` — labels + intervals (sistema total: 27 crons)
+- **EDIT** `requirements.txt` — `statsmodels==0.14.6`, `scipy==1.17.1`, `patsy==1.0.2`
+
+### Frontend nuevos
+- **NEW** `api/drpi.js`, `api/bulletins.js`, `api/investmentExplorer.js`
+- **NEW** `components/public/DrpiHeroWidget.js` — card grande mensual con Nacional + 6 colonias top, gradient eyebrow
+- **NEW** `components/superadmin/HedonicCoefficientsTable.js` — tabla coeficientes + IC95% + R²/RMSE pills
+- **NEW** `pages/public/MethodologyPage.js` — `/methodology` con 6 secciones (DRPI, Zone Score, Risk, Construction Cost, Validation, Citation) + Schema.org Dataset markup
+- **NEW** `pages/public/BulletinPage.js` — `/boletin/{slug}/{period}` con KPIs strip + html_content + download PDF + share (WhatsApp/LinkedIn/X) + Schema.org Article
+- **NEW** `pages/superadmin/SuperadminDRPI.js` — tabla snapshots filtros tier + drawer coeficientes + recompute manual + export CSV
+- **NEW** `pages/superadmin/SuperadminBulletins.js` — tabla bulletins + filtros + preview HTML + generate per zona top 6 + PDF
+- **NEW** `pages/superadmin/SuperadminInvestmentExplorer.js` — tabla density-aware sortable + filtros sort/tier/objective + drill drawer scorecard + export CSV
+
+### Frontend ediciones
+- **EDIT** `App.js` — 5 rutas nuevas (`/methodology`, `/boletin/:slug/:period`, `/superadmin/drpi`, `/superadmin/bulletins`, `/superadmin/investment-explorer`) + DrpiHeroWidget en Home post-ColoniasBento
+- **EDIT** `config/navByRole.js` — SUPERADMIN_NAV tier 2: 3 items nuevos (DRPI, Boletines, Investment Explorer)
+
+### Acceptance criteria validados (curl)
+- `POST /superadmin/drpi/recompute` → 200 (refit + insert snapshots, refreshed=3, insufficient=39 sin data)
+- `GET /api/drpi/snapshot/polanco` → public 200 con `available=true`, R²=0.049, sample=45 tras seed
+- `GET /api/drpi/snapshot/polanco?include=history` (free) → `history_locked=true upgrade_required=pro`
+- `GET /api/drpi/snapshot/polanco?include=hedonic` (superadmin) → `hedonic` con coefs + R²
+- `POST /superadmin/bulletins/generate` (general + zone) → PDF + html_content + slug correcto
+- `GET /api/bulletins/general/2026-05` → HTML page payload (kpis + html_content)
+- `GET /api/bulletins/general/2026-05/pdf` → 200 application/pdf valid (%PDF-1.4)
+- `GET /api/public/methodology` → shape complete (drpi + zone_score + construction_cost + validation + citation)
+- `GET /superadmin/investment-explorer/zones?sort=yield&buyer_objective=cashflow` → 200 con `recommended_for_objective`
+- 27 crons en `/api/superadmin/health/crons` (incluye drpi_monthly_snapshot + bulletins_monthly_generate)
+- Roles ≠ superadmin → 403 en endpoints protegidos · públicos → 200
+- DRPI <30 transactions → honest stub `available=false reason=insufficient_data`
+- ai_budget exceeded → bulletin generation skip + system_alert
+- `yarn build` limpio · ruff cosmético · ESLint clean
+
