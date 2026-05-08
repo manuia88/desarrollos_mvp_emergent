@@ -3677,3 +3677,42 @@ Hoy DMX da NÚMEROS crudos (DRPI +0.8%, Risk B+). Kalshi/Robinhood translate a p
 - Wave 3: 193h → 197h (+4h F data licensing)
 - Wave 4: 443h → 461h (+18h A+B+C)
 
+---
+
+## W3.4A ZZ.4 — Risk Layer Part 1 (2026-05-08) ✅ SHIPPED
+
+### Risk Layer foundation
+Primer uso de ML clásico (scikit-learn IsolationForest) en DMX para fraud detection. Crime layer SESNSP integrado como V1. Zone Score W3.1A ahora consume Risk Score real (no más placeholder=50).
+
+### Componentes
+- **Fraud Detection AI** (3 detectores orquestados):
+  1. Price anomaly via IsolationForest (5 features: closing_price, m2, recamaras, baños, year_built); cache modelo 24h zone-scoped
+  2. Duplicate listings: rapidfuzz WRatio ≥85 + price ±5% + geo <500m
+  3. Title chain: heurística honesta (>2 tx en 24m + Δprice >50%) — placeholder hasta RPP partnership Y2
+- **SESNSP integration**: `crime_data_sesnsp` collection · 6 categorías (robo casa habitación, robo a transeúnte, homicidio doloso, secuestro, extorsión, violencia familiar) · normalización per 100K hab via `dim_zones.population_2020`
+- **Risk Score V1**: solo crime layer · A-F · 0-100 score · CRIME_NORM_HIGH=5000/100k → score 0
+- **Tier-gating** público: free=letter · pro=numeric+components · enterprise=+categorías+alcaldia
+
+### Schemas DB nuevos
+- `db.fraud_alerts`: `{id, listing_id_hash (sha256+salt), zone_id, severity, source, evidence, confidence_pct, ml_score, similarity_match_id, status:"open|investigating|resolved|dismissed", resolved_by, resolution_note}`
+- `db.crime_data_sesnsp`: `{municipio, year_month, category, incidents_count, ingested_at}` · unique (municipio, year_month, category)
+- `db.risk_scores_zone`: `{zone_id, alcaldia, score_letter, score_numeric, components{crime_score, crime_normalized_per_100k, crime_total_incidents_6m, crime_by_category, natural_score:null, title_risk_score:null, percepcion_score:null}, sources_active:["sesnsp"], formula_version, computed_at}` · TTL 90d
+
+### Crons nuevos (sistema total: 30)
+- `fraud_detection_daily` 03:00 MX · throttle email Resend critical 1/día
+- `risk_score_zone_daily` 05:00 MX (post zone_score 04:00)
+- `sesnsp_monthly_ingest` 1ro mes 08:00 MX
+
+### Endpoints nuevos
+**Públicos**: `/api/risk-score/zone/{zone_id}` (tier-gated)
+**Superadmin**: `/api/superadmin/fraud-alerts[/{id}/{resolve|dismiss}|scan]` · `/api/superadmin/risk-score/{all|recompute}` · `/api/superadmin/crime-data/{zone_id}/breakdown`
+
+### Rutas frontend nuevas (2)
+- `/superadmin/fraud-alerts` — KPI strip + filter chips + FraudAlertCard list + paginación
+- `/superadmin/risk-score` — tabla + drawer breakdown V1 + recompute manual
+
+### Componentes nuevos (3)
+- `RiskScoreBadge` — circular A-F color semáforo, mounted en PropertyCard bottom-LEFT
+- `RiskScoreBreakdown` — drawer 4 cards (crime V1 active + 3 V2 placeholders honestos)
+- `FraudAlertCard` — severity colored + evidence collapsible + 2 actions con modal nota
+

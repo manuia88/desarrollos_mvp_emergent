@@ -263,14 +263,21 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
-### Bulletins: distribución real + endpoint /subscribe público (PRE-Wave 4)
-- **Origen**: W3.3 emergent potential improvement 2026-05-08
-- **Destino**: **W3.9 Polish (Claude Code, ~3h)** — meto YO antes de cierre Wave 3
-- **Qué**: activar distribución real boletines vía Resend con seed mínimo subscribers (`db.bulletin_subscribers`) + endpoint público `POST /api/bulletins/subscribe` para que landing capture suscriptores ANTES del próximo 1ro mes cron.
-- **Por qué keep ahora (no defer)**: el cron `bulletins_monthly_generate` corre 1ro de cada mes. Si no tenemos subscribers list cuando corra → primer boletín no distribuye. Pre-warm la lista vía landing capture es low-cost high-leverage marketing.
-- **Costo**: ~3h (schema bulletin_subscribers + 1 endpoint POST + 1 form en MethodologyPage + double opt-in email Resend confirmation)
+### Bulletins subscribe + Risk Score subscribe widget (PRE-Wave 4)
+- **Origen**: W3.3 + W3.4A emergent potential improvements 2026-05-08
+- **Destino**: **W3.9 Polish (Claude Code, ~5h)** — meto YO antes de cierre Wave 3
+- **Qué (combinado)**:
+  1. Endpoint público `POST /api/bulletins/subscribe` + schema `db.bulletin_subscribers` (W3.3 deferred)
+  2. Form capture en MethodologyPage + double opt-in Resend confirmation
+  3. **`<RiskScoreSubscribeWidget/>`** en marketplace cuando user filtra por zona — captura email para alertas auto cuando zona favorita cae a Risk D-F (W3.4A connection)
+  4. Cron post-risk_score_daily checks subscriber zones y dispara alerts via Resend (throttle 1/sem per subscriber)
+- **Por qué keep ahora (no defer)**:
+  - Cron `bulletins_monthly_generate` corre 1ro mes — sin subscribers list, primer boletín no distribuye
+  - Risk Score recién shipped (W3.4A) — capturar subscribers ANTES de Forbes/El Financiero launch foundation authority
+  - Combinar ambos en 1 batch evita scope dispersion
+- **Costo**: ~5h total (3h bulletins subscribe + 2h Risk widget + alerts cron)
 - **Ejecutor**: Claude Code en W3.9 polish (sin scope creep emergent)
-- **Diferencia vs W4 #8 AutoNewsletter Pulse**: este es solo boletines mensuales (Wave 3), AutoNewsletter Pulse es semanal segmentado dev/asesor/buyer/inversionista (Wave 4)
+- **Diferencia vs W4 #8 AutoNewsletter Pulse**: este es boletines mensuales + Risk alerts (Wave 3), AutoNewsletter Pulse es semanal segmentado 4 segments (Wave 4)
 
 ### Data Lake: R² trend sparkline 30 runs (model health monitoring)
 - **Origen:** W2.7 Phase Z.0 emergent potential improvement 2026-05-07

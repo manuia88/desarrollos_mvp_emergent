@@ -131,8 +131,17 @@ async def public_methodology(request: Request):
     }
 
     risk_score_meta = {
-        "name": "Risk Score (próximamente)",
-        "status": "placeholder hasta W3.4 — Multi-source Fraud Detection",
+        "name": "Risk Score V1 (W3.4A)",
+        "status": "active_v1_sesnsp",
+        "method": "Crime layer SESNSP normalizado per 100K hab (6m rolling)",
+        "sources_active": ["sesnsp"],
+        "sources_pending_v2": ["cenapred", "atlas_riesgo_cdmx", "rpp", "envipe"],
+        "categories": [
+            "robo_casa_habitacion", "robo_a_transeunte", "homicidio_doloso",
+            "secuestro", "extorsion", "violencia_familiar",
+        ],
+        "frequency": "ingesta mensual SESNSP · refresh diario 05:00 MX",
+        "version": "1.0.0",
     }
 
     construction_meta = {

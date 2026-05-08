@@ -1201,3 +1201,59 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - ai_budget exceeded → bulletin generation skip + system_alert
 - `yarn build` limpio · ruff cosmético · ESLint clean
 
+
+---
+
+## W3.4A ZZ.4 — Risk Layer Part 1 (Fraud Detection AI + Risk Score V1) (2026-05-08)
+
+**Risk Layer foundation**: ML clásico con scikit-learn (primer uso en DMX) + crime layer SESNSP. Establece la columna que W3.4B después amplía con CENAPRED + ENVIPE + RPP. Risk Score real integrado en Zone Score W3.1A (sustituye placeholder=50).
+
+### Backend nuevos
+- **NEW** `fraud_detection_engine.py` — 3 detectores orquestados (`detect_listing_fraud`):
+  - **Price anomaly**: sklearn IsolationForest sobre Transaction Network W3.2 (5 features), threshold severity (-0.5/-0.1), cache modelo 24h zone-scoped + global fallback
+  - **Duplicate listings**: rapidfuzz WRatio (≥85) + price tolerance ±5% + geo proximity Haversine <500m. Severity=critical si ≥92 sim
+  - **Title chain anomaly**: heurística honesta (>2 tx en 24m + Δprice >50% en 12m → amber). Placeholder hasta RPP partnership Y2
+  - `cron_fraud_detection_daily` 03:00 MX · throttle email Resend critical 1/día
+  - `resolve_alert` / `dismiss_alert` con audit trail
+- **NEW** `crime_data_engine.py` — SESNSP CSV mensual: `parse_sesnsp_csv` + `aggregate_crime_zone` (6m rolling, normaliza per 100K hab via `dim_zones.population_2020`) + cron `sesnsp_monthly_ingest` 1ro mes 08:00 MX. Filtra 6 categorías relevantes para riesgo residencial
+- **NEW** `risk_score_engine.py` — `compute_risk_score_v1` (V1 solo crime, A-F, 0-100 score con CRIME_NORM_HIGH=5000/100k = score 0) · `get_risk_score_or_compute` cache 24h · cron `risk_score_zone_daily` 05:00 MX (post zone_score 04:00) · TTL 90d
+- **NEW** `routes_fraud_detection.py` — list paginated/filters + detail/match + resolve/dismiss + scan manual
+- **NEW** `routes_risk_score.py` — public tier-gated (free=letter, pro=numeric+components, enterprise=+cats+alcaldia) + superadmin list/recompute + crime breakdown
+
+### Backend ediciones
+- **EDIT** `server.py` — registra 2 routers (`fraud_router`, `risk_score_router`) + 3 ensure_indexes (fraud_alerts, crime_data_sesnsp, risk_scores_zone)
+- **EDIT** `scheduler_ie.py` — boot 3 nuevos crons
+- **EDIT** `cron_heartbeat.py` — 3 labels (sistema total: 30 crons)
+- **EDIT** `requirements.txt` — `scikit-learn==1.8.0`, `joblib==1.5.3`, `threadpoolctl==3.6.0`
+- **EDIT** `zone_score_engine.py` — sustituye `dim_risk=50.0` placeholder por call real `risk_score_engine.get_risk_score_or_compute()`. `placeholder_flags.risk` ahora es `False` (W3.4A activo). Verificado: polanco letter=A, score=83.6 (no más 50)
+- **EDIT** `routes_bulletins.py` — `/api/public/methodology` retorna Risk Score V1 con `status=active_v1_sesnsp`, sources_active, 6 categorías, frequency
+
+### Frontend nuevos
+- **NEW** `api/fraudDetection.js` (5 fns) · `api/riskScore.js` (4 fns)
+- **NEW** `components/marketplace/RiskScoreBadge.js` — circular A-F con colores semáforo (A verde → F rojo crítico). Self-fetches via fetchRiskScore. Honest stub `?` cuando no available
+- **NEW** `components/developer/RiskScoreBreakdown.js` — drawer con 4 ComponentCards (crime active V1 + natural/title/percepción placeholders V2) + categorías SESNSP grid
+- **NEW** `components/superadmin/FraudAlertCard.js` — severity colored card + source pill + evidence collapsible (JSON pretty) + 2 acciones (Resolver/Descartar) con modal nota
+- **NEW** `pages/superadmin/SuperadminFraudAlerts.js` — KPI strip (critical_open, amber_open) + filter chips (severity/source/status) + paginación "Cargar más" skip+=20 + manual scan button
+- **NEW** `pages/superadmin/SuperadminRiskScore.js` — tabla zonas con score letter + crime/100k + sources + computed_at + drawer con `<RiskScoreBreakdown/>` + manual recompute + tier filter
+
+### Frontend ediciones
+- **EDIT** `App.js` — 2 rutas nuevas (`/superadmin/fraud-alerts`, `/superadmin/risk-score`)
+- **EDIT** `config/navByRole.js` — SUPERADMIN_NAV: 2 items nuevos (Fraud Alerts · Risk Score, ambos icon Shield)
+- **EDIT** `components/marketplace/PropertyCard.js` — RiskScoreBadge mounted bottom-LEFT (junto a momentum pill). Conservative decision: spec pedía top-LEFT pero la posición top-LEFT ya tiene `tag` chip; bottom-LEFT evita overlap manteniendo el widget visible. ZoneScoreBadge sigue bottom-RIGHT
+- **EDIT** `pages/public/MethodologyPage.js` — Risk Score section: V1 activo SESNSP con 5 bullets (fuente, frecuencia, 6 categorías, normalización, formula 0-100). V2 mantiene placeholder honesto
+
+### Acceptance criteria validados (curl)
+- ✅ scikit-learn install OK · IsolationForest entrenó sobre 135 transactions seed
+- ✅ `cron_fraud_detection_daily` (manual scan): scanned=69 alerts_inserted=69 critical_open_24h=40 — IsolationForest detectó outliers en seed
+- ✅ Fraud alert detail incluye `match_listing` cuando source=duplicate (similarity_match_id resuelto)
+- ✅ Resolve idempotent (status=resolved en ambas llamadas)
+- ✅ SESNSP CSV download es best-effort (URL placeholder) — fallback honest a system_alert WARNING. Test: seed manual 30 rows polanco/miguel-hidalgo + verificación
+- ✅ `compute_risk_score_v1(polanco)` → score_letter=A, score_numeric=83.6, crime_score=83.6, crime_normalized_per_100k=821.43, alcaldia=miguel-hidalgo
+- ✅ Zone Score W3.1A (polanco) → risk component=83.6 (NO más 50), placeholder_flags.risk=false
+- ✅ GET /api/risk-score/zone/polanco free → solo {score_letter, sources_active}; pro → +score_numeric+components numéricos; enterprise → +crime_by_category+alcaldia
+- ✅ 30 crons en `/api/superadmin/health/crons` (incluye sesnsp_monthly_ingest, fraud_detection_daily, risk_score_zone_daily)
+- ✅ Roles ≠ superadmin → 403 en endpoints autenticados (Fraud list/Risk recompute/Crime breakdown). Public risk → 200
+- ✅ Marketplace card muestra ambos badges (ZoneScoreBadge bottom-RIGHT + RiskScoreBadge bottom-LEFT) sin overlap
+- ✅ statsmodels + sklearn coexisten requirements.txt sin conflicto
+- ✅ `yarn build` limpio · ESLint clean · Python lint cosmético (E702 multi-statement aceptado)
+
