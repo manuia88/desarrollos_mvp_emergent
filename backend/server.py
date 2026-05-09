@@ -346,6 +346,10 @@ app.include_router(recommendations_router)
 from routes_comparable_alerts import router as comparable_alerts_router
 app.include_router(comparable_alerts_router)
 
+# W4.2A — MCP server (Model Context Protocol HTTP interface)
+from mcp_server import router as mcp_router, ensure_mcp_indexes
+app.include_router(mcp_router, prefix="/api/mcp")
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -845,6 +849,11 @@ async def startup():
         await ensure_comparable_alert_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.1D comparable alert indexes failed: {e}")
+    # W4.2A — MCP usage log indexes
+    try:
+        await ensure_mcp_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.2A MCP indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
