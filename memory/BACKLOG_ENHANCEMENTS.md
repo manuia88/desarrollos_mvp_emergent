@@ -854,6 +854,17 @@ backend/routes/
 
 ---
 
+## 📥 W4.5 Y.2B-C — Sub-Agents enhancements diferidos (2026-05-09)
+
+### Digest semanal automático top-3 recomendaciones Pricing+Marketing+Lead vía Resend
+- **Origen:** emergent enhancement W4.5 Y.2B (re-pegado en summary Y.2C)
+- **Destino propuesto:** **absorber dentro de W4.10 Phase 8 ext AutoNewsletter Pulse semanal** (ya en plan, 25h)
+- **Razón diferir + absorber:** W4.10 ya construye Pulse semanal segmentado por rol (dev/asesor/buyer/inversionista). El digest sub-agents = sub-feature del Pulse al rol "dev" (sección "Tus recomendaciones top 3 esta semana"). Crear batch separado = email duplicado compitiendo por inbox. Mejor: una sola comunicación semanal personalizada.
+- **Nota implementación W4.10:** asegurar que prompt incluya integración con sub-agents (Pricing/Marketing/Lead/Construction/Compliance) para alimentar la sección personalizada del Pulse del dev
+- **Costo absorbido:** 0h adicional (incluido en 25h W4.10)
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:

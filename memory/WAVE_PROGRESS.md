@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.5 Y.2B Marketing shipped · W4.18.1 Apify Trends autorizado · Wave 4 ~176/573h · próximo: W4.18.1 Apify Trends 3h, después Y.2C)
-**Total H1 restante**: ~397h (Wave 4 pending de los 573h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 176h = 543h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 573h (176h shipped, 397h pending) = 890h plan
+**Última actualización**: 2026-05-09 (W4.5 Y.2C Lead Sub-Agent shipped · W4.18.1 Apify Trends en curso · Wave 4 ~182/573h · Phase Y 70/137h)
+**Total H1 restante**: ~391h (Wave 4 pending de los 573h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 182h = 549h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 573h (182h shipped, 391h pending) = 890h plan
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -147,7 +147,7 @@ Formato canónico per-batch (founder request):
 | W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | absorbido en Y.2 sub-chunks |
 | W4.5 Y.2A | Pricing Sub-Agent + 3 capas resilience (LocalCache/FallbackChain/CircuitBreaker reusable) | 6 | 6 | emergent | ✅ | `c021ecc` | sub_agents/ package + resilience.py + pricing_agent.py 3-layer (LLM→cache→heuristic) + 6 endpoints + Director 7mo tool + PricingAgentPanel + tab Sub-Agents |
 | W4.5 Y.2B | Marketing Sub-Agent + 3 capas resilience (reusa resilience.py) | 6 | 6 | emergent | ✅ | `39b3fb5` | marketing_agent.py 3-layer + 4 tools internos + 5 issues detectados (low_views/low_ctr/low_conversion/missing_assets/stale_copy) + 5 endpoints + Director 8vo tool + MarketingAgentPanel + sub-tabs Pricing\|Marketing |
-| W4.5 Y.2C | Lead Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
+| W4.5 Y.2C | Lead Sub-Agent + 3 capas resilience | 6 | 6 | emergent | ✅ | `9039bf3` | lead_agent 689L · 5 tools (leads_by_status/asesor_conversion/funnel_dropoff/segment_response/lead_age) · 5 issues (stale_lead/low_conversion_asesor/drop_at_stage/underperforming_segment/missing_followup) · Director 9no tool · 3er sub-tab Lead |
 | W4.5 Y.2D | Construction Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
 | W4.5 Y.2E | Compliance Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
@@ -171,9 +171,9 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 176h / 570h (30.9%) 🟡
-**Pendiente Wave 4**: ~394h
-**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A 6h ✅ + Y.2B 6h ✅ = 64h shipped · Y.2C-E + W4.6-W4.8 = 73h pending)
+**Acumulado Wave 4**: 182h / 573h (31.8%) 🟡
+**Pendiente Wave 4**: ~391h
+**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A 6h ✅ + Y.2B 6h ✅ + Y.2C 6h ✅ = 70h shipped · Y.2D-E + W4.6-W4.8 = 67h pending)
 **Atlax bloque**: ✅ **CERRADO 38/38h** · Y.1E + Unification + fix-pass + rename + Home extension
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
@@ -186,6 +186,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-09 | **W4.5 Y.2C Lead Sub-Agent + 3 capas resilience** | 6h | `9039bf3` (merge `77cac3d`) | lead_agent 5 tools + 5 issues funnel · Director 9no tool · 3er sub-tab Lead · Phase Y 70/137h ✅ |
 | 2026-05-09 | **W4.5 Y.2B Marketing Sub-Agent + 3 capas resilience** | 6h | `39b3fb5` (merge `f67b6d2`) | marketing_agent reusa resilience.py + 4 tools + 5 issues + Director 8vo tool + sub-tabs · Phase Y 64/137h ✅ |
 | 2026-05-09 | **W4.5 Y.2A Pricing Sub-Agent + 3 capas resilience** | 6h | `c021ecc` (merge `1ace57d`) | sub_agents/ + resilience.py reusable + pricing_agent 3-layer + 6 endpoints + Director 7mo tool + PricingAgentPanel · Phase Y 58/137h ✅ |
 | 2026-05-09 | **W4.11a Phase 10 Atlax home extension · ATLAX BLOQUE CERRADO** | 16h | `1060018` (merge `8c2be1a`) | 3 tools macro + atlax_threads + ThreadsSidebar + 6 chips + AtlaxHomeHero · Atlax 38/38h ✅ |
