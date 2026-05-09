@@ -3830,3 +3830,30 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - `director_session_summary` con sesión de otro org → 403 "Sesión no pertenece a esta organización".
 - `director_retrieve_memory` filtrado por `org_id` del API key (vía `DirectorMemoryEngine`).
 
+
+---
+
+## 2026-05-09 — W4.4D · Phase Y.1D · What-if Simulator
+
+### Backend (2 NEW · 3 EDIT)
+- **NEW** `whatif_engine.py` · **NEW** `routes_whatif.py`
+- **EDIT** `server.py` (wiring + indexes), `director_agent_engine.py` (6to tool), `mcp_tools.py` (9th MCP tool)
+
+### Frontend (2 NEW · 2 EDIT)
+- **NEW** `api/whatifApi.js` · `components/whatif/WhatIfPanel.js`
+- **EDIT** `DesarrolladorDashboard.js` (3rd tab) · `i18n/es-MX/common.json` (whatif.*)
+
+### Schema nuevo
+- `db.whatif_scenarios`: `{_id, org_id, developer_id, project_id, user_id, scenario_type, inputs, outputs, base_metrics, simulated_at_tier, created_at, deleted}`
+- Indexes: `(org_id, created_at)`, `(developer_id, scenario_type, created_at)`, `(project_id, created_at)`
+
+### Tier gating + caps
+- Master switch via `phase_y_settings.agentic_enabled` · tier vía `feature_tiers.whatif_simulator` (fallback `diagnostic_engine`)
+- Tier off → 403 "What-if requires T1+"
+- Caps diarios: T1=100/día/org · T2=500 · T3+=ilimitado
+- simulation_mode → outputs.simulated=true (números reales pero flag de sandbox)
+
+### MCP exposure
+- 9th tool `whatif_simulate` · auth X-DMX-API-Key · tier_director T1+ · Phase Y master enforcement
+- Director Agent puede dispararla autónomamente cuando user pregunta "simula un aumento de N%"
+

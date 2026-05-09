@@ -95,6 +95,15 @@ TOOLS Y PARAMS:
    devuelve: lista de memorias relevantes (diagnósticos, scores, sesiones previas)
    source_types válidos: "diagnostic", "ie_score", "behavioral", "director_summary"
 
+6. whatif_simulate
+   params: { "project_id": str, "scenario_type": "price_change"|"promo"|"delay"|"mix", "inputs": dict }
+   devuelve: outputs con forecast, confidence_low/high, comparables_used, recommendation_text
+   inputs por tipo:
+     • price_change: { "proposed_delta_pct": float, "horizon_months": 3|6|12 }
+     • promo:        { "promo_type": "discount"|"gift"|"financing", "promo_value": float, "duration_weeks": int }
+     • delay:        { "delay_months": int (1-12) }
+     • mix:          { "scenarios": [{ "type": str, "params": dict }, ...] (max 5) }
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -139,8 +148,15 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 top_k=int(params.get("top_k", 5)),
                 source_types=params.get("source_types"),
             )
+        elif tool_name == "whatif_simulate":
+            return await _tool_whatif_simulate(
+                db, org_id,
+                project_id=str(params.get("project_id", "")),
+                scenario_type=str(params.get("scenario_type", "")),
+                inputs=params.get("inputs") or {},
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -288,6 +304,58 @@ async def _tool_retrieve_memory(
             }
             for h in hits
         ],
+    }
+
+
+async def _tool_whatif_simulate(
+    db,
+    org_id: str,
+    project_id: str,
+    scenario_type: str,
+    inputs: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Tool 6: ejecuta WhatIfEngine y persiste el resultado."""
+    if not project_id or not scenario_type:
+        return {"error": "project_id y scenario_type son requeridos"}
+    from whatif_engine import (
+        run_simulation, PhaseYDisabledError, WhatIfCapExceededError, WhatIfInputError,
+    )
+    try:
+        result = await run_simulation(
+            db, org_id=org_id, user_id="director_agent",
+            project_id=project_id, scenario_type=scenario_type,
+            inputs=inputs or {}, persist=True,
+        )
+    except PhaseYDisabledError as e:
+        return {"error": f"Phase Y disabled: {e}"}
+    except WhatIfCapExceededError as e:
+        return {"error": f"Cap diario alcanzado: {e}"}
+    except WhatIfInputError as e:
+        return {"error": f"Input inválido: {e}"}
+    except Exception as e:
+        log.warning(f"[director_tool] whatif_simulate failed: {e}")
+        return {"error": f"Simulador falló: {e}"}
+
+    # Compact response (LLM no necesita sub_scenarios completos)
+    outs = result.get("outputs") or {}
+    return {
+        "scenario_id": result.get("scenario_id"),
+        "scenario_type": result.get("scenario_type"),
+        "tier": result.get("tier"),
+        "simulated": outs.get("simulated", False),
+        "outputs_summary": {
+            "projected_revenue_delta_mxn": outs.get("projected_revenue_delta_mxn"),
+            "projected_velocity_change_pct": outs.get("projected_velocity_change_pct"),
+            "projected_lift_pct": outs.get("projected_lift_pct"),
+            "projected_ie_score_delta": outs.get("projected_ie_score_delta"),
+            "projected_drpi_change": outs.get("projected_drpi_change"),
+            "projected_holding_cost_mxn": outs.get("projected_holding_cost_mxn"),
+            "confidence_low": outs.get("confidence_low"),
+            "confidence_high": outs.get("confidence_high"),
+            "data_quality": outs.get("data_quality"),
+            "recommendation_text": outs.get("recommendation_text"),
+        },
+        "comparables_used": outs.get("comparables_used") or [],
     }
 
 

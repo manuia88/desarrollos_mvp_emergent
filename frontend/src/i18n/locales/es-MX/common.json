@@ -877,6 +877,40 @@
         "source_behavioral": "Sesión",
         "source_director_summary": "Resumen"
       }
+    },
+    "whatif": {
+      "tab_label": "What-if",
+      "empty_state": "Selecciona un escenario y simula el impacto antes de ejecutar.",
+      "disabled_message": "El simulador What-if está desactivado por superadmin para tu organización. Contacta a tu administrador para activarlo.",
+      "scenario": {
+        "price_change": "Cambio de precio",
+        "promo": "Promo / Descuento",
+        "delay": "Retraso de entrega"
+      },
+      "form": {
+        "project_label": "Proyecto",
+        "project_placeholder": "— Selecciona un proyecto —",
+        "current_price_per_m2": "Precio actual / m² (MXN)",
+        "proposed_delta": "Cambio propuesto",
+        "horizon": "Horizonte",
+        "promo_type": "Tipo de promo",
+        "promo_value": "Valor de la promo",
+        "duration_weeks": "Duración (semanas)",
+        "delay_months": "Retraso (meses)",
+        "submit_button": "Simular impacto",
+        "submit_loading": "Simulando…"
+      },
+      "results": {
+        "title": "Forecast",
+        "confidence_band": "Banda de confianza",
+        "comparables_used": "Comparables usados",
+        "recommendation": "Recomendación",
+        "data_quality": "Calidad de datos",
+        "history_label": "Historial",
+        "simulated_badge": "SIMULATED",
+        "tier_badge": "Tier {tier}"
+      },
+      "recommendation_label": "Recomendación"
     }
   }
 }

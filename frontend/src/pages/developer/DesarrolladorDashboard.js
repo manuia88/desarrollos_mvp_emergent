@@ -14,6 +14,7 @@ import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, 
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { blurPriceCSS } from '../../lib/anonymize';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
+import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -144,7 +145,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
       {/* Tab navigation */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4 }}>
-        {[['resumen', 'Resumen'], ['director', 'Director AI']].map(([key, label]) => (
+        {[['resumen', 'Resumen'], ['director', 'Director AI'], ['whatif', 'What-if']].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
             style={{
               padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,
@@ -160,6 +161,20 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {/* Director AI tab */}
       {activeTab === 'director' && (
         <DirectorChatPanel user={user} />
+      )}
+
+      {/* What-if tab */}
+      {activeTab === 'whatif' && (
+        <WhatIfPanel
+          user={user}
+          projects={(data?.developments || data?.projects || []).map(p => ({
+            id: p.id || p.slug || p._id,
+            name: p.name,
+            price_from: p.price_from,
+            price_to: p.price_to,
+            m2_range: p.m2_range,
+          }))}
+        />
       )}
 
       {/* Resumen tab (existing content) */}
