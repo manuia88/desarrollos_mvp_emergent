@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### MCP tool `search_developments` extension (filters bedrooms/m2/parking/stage)
+- **Origen:** W4.2B spec gap 2026-05-09 (emergent skipeó esta extensión)
+- **Destino:** W4.2C inline mini-fix (~30 min)
+- **Qué:** Hoy `search_developments` MCP tool acepta solo `{colonia_id, price_max_mxn, type}`. Falta agregar `bedrooms_min`, `bedrooms_max`, `m2_min`, `m2_max`, `parking_min`, `stage` (preventa/en_construccion/entrega_inmediata). Sin esto Claude/ChatGPT no pueden filtrar correctamente queries tipo "depas 2 recs Polanco <15M con 2 cajones".
+- **Por qué:** pieza chica pero crítica para AI assistant capability. Ya estaba en spec original W4.2B pero emergent omitió.
+- **Costo:** 30 min en W4.2C como sub-chunk extra.
+
 ### Arquitectura nota: K8s routing requiere prefix `/api/*` para backend
 - **Origen:** W4.2A emergent constraint 2026-05-09
 - **Destino:** Documentar en `prompt_standards.md` (next sweep)
