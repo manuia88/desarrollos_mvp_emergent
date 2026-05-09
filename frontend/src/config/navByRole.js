@@ -180,6 +180,7 @@ const SUPERADMIN_NAV = [
       { key: 'compliance',        to: '/superadmin/compliance',            label: 'Compliance',             Icon: Shield },
       { key: 'partners',          to: '/superadmin/partners',              label: 'Partners',               Icon: HeartHandshake },
       { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell Analytics',   Icon: BarChart2 },
+      { key: 'landing-leads',     to: '/superadmin/landing-leads',         label: 'Leads landing',          Icon: Megaphone },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },

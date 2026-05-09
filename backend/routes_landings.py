@@ -255,5 +255,209 @@ async def ensure_landing_indexes(db) -> None:
         await db.landing_leads.create_index("email", background=True)
         await db.landing_leads.create_index("zone_interest", background=True)
         await db.landing_leads.create_index("created_at", background=True)
+        await db.landing_leads.create_index(
+            "last_nurture_sent_at", background=True, sparse=True,
+        )
     except Exception as e:
         log.warning(f"[landings] index create failed: {e}")
+
+
+# ─── Superadmin dashboard endpoints (W4.2D3.5) ────────────────────────────────
+sa_router = APIRouter(prefix="/api/superadmin/landing-leads", tags=["superadmin-landing-leads"])
+
+
+async def _require_superadmin(request: Request):
+    from server import get_current_user
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    if user.role != "superadmin":
+        raise HTTPException(403, "Solo superadmin")
+    return user
+
+
+def _zone_interest_to_page_type(zi: str) -> str:
+    if zi.startswith("zone-"):
+        return "colonia"
+    if zi.startswith("alcaldia-"):
+        return "alcaldia"
+    if zi.startswith("intent-"):
+        return "intent"
+    return "other"
+
+
+def _zone_interest_slug(zi: str) -> str:
+    for prefix in ("zone-", "alcaldia-", "intent-"):
+        if zi.startswith(prefix):
+            return zi[len(prefix):]
+    return zi
+
+
+@sa_router.get("")
+async def list_landing_leads(
+    request: Request,
+    zone_interest: Optional[str] = None,
+    page_type: Optional[str] = None,
+    since: Optional[str] = None,
+    limit: int = 200,
+):
+    """Listado paginado de landing_leads con filtros opcionales."""
+    await _require_superadmin(request)
+    db = request.app.state.db
+
+    q: Dict[str, Any] = {}
+    if zone_interest:
+        q["zone_interest"] = zone_interest.strip().lower()
+    if since:
+        q["created_at"] = {"$gte": since}
+
+    # page_type filter via prefix match on zone_interest
+    if page_type:
+        prefix_map = {"colonia": "zone-", "alcaldia": "alcaldia-", "intent": "intent-"}
+        prefix = prefix_map.get(page_type)
+        if prefix:
+            q["zone_interest"] = {"$regex": f"^{prefix}"}
+
+    limit = max(1, min(500, int(limit)))
+    docs = await db.landing_leads.find(q, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(length=limit)
+
+    items = []
+    for d in docs:
+        zi = d.get("zone_interest", "")
+        items.append({
+            "lead_id": d.get("lead_id"),
+            "email": d.get("email"),
+            "zone_interest": zi,
+            "zone_slug": _zone_interest_slug(zi),
+            "page_type": _zone_interest_to_page_type(zi),
+            "notes": d.get("notes") or "",
+            "source_url": d.get("source_url") or "",
+            "created_at": d.get("created_at"),
+            "status": d.get("status") or "pending_inventory",
+            "last_nurture_sent_at": d.get("last_nurture_sent_at"),
+        })
+
+    total = await db.landing_leads.count_documents(q)
+    return {"items": items, "total": total, "limit": limit}
+
+
+@sa_router.get("/by-zone")
+async def landing_leads_by_zone(request: Request):
+    """Aggregation por zone_interest con count + last_lead_at."""
+    await _require_superadmin(request)
+    db = request.app.state.db
+
+    pipeline = [
+        {"$group": {
+            "_id": "$zone_interest",
+            "lead_count": {"$sum": 1},
+            "last_lead_at": {"$max": "$created_at"},
+            "first_lead_at": {"$min": "$created_at"},
+        }},
+        {"$sort": {"lead_count": -1, "last_lead_at": -1}},
+        {"$limit": 200},
+    ]
+    rows = await db.landing_leads.aggregate(pipeline).to_list(length=200)
+    out = []
+    for r in rows:
+        zi = r.get("_id", "")
+        out.append({
+            "zone_interest": zi,
+            "zone_slug": _zone_interest_slug(zi),
+            "page_type": _zone_interest_to_page_type(zi),
+            "lead_count": r.get("lead_count", 0),
+            "last_lead_at": r.get("last_lead_at"),
+            "first_lead_at": r.get("first_lead_at"),
+        })
+    return {"items": out, "total_zones": len(out)}
+
+
+@sa_router.get("/summary")
+async def landing_leads_summary(request: Request):
+    """KPI strip data: total leads, last 7d, unique zones, top zone."""
+    await _require_superadmin(request)
+    db = request.app.state.db
+
+    total = await db.landing_leads.count_documents({})
+    cutoff_7d = (datetime.now(timezone.utc).timestamp() - 7 * 86400)
+    seven_d_iso = datetime.fromtimestamp(cutoff_7d, tz=timezone.utc).isoformat()
+    last_7d = await db.landing_leads.count_documents({"created_at": {"$gte": seven_d_iso}})
+
+    distinct_zones = await db.landing_leads.distinct("zone_interest")
+    unique_zones = len(distinct_zones)
+
+    top = None
+    if total > 0:
+        top_pipeline = [
+            {"$group": {"_id": "$zone_interest", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 1},
+        ]
+        rows = await db.landing_leads.aggregate(top_pipeline).to_list(length=1)
+        if rows:
+            zi = rows[0].get("_id", "")
+            top = {
+                "zone_interest": zi,
+                "zone_slug": _zone_interest_slug(zi),
+                "page_type": _zone_interest_to_page_type(zi),
+                "lead_count": rows[0].get("count", 0),
+            }
+
+    return {
+        "total": total,
+        "last_7d": last_7d,
+        "unique_zones": unique_zones,
+        "top_zone": top,
+    }
+
+
+@sa_router.get("/export.csv")
+async def export_landing_leads_csv(
+    request: Request,
+    zone_interest: Optional[str] = None,
+    page_type: Optional[str] = None,
+    since: Optional[str] = None,
+):
+    """Stream CSV con todos los leads (filtrados opcionalmente)."""
+    from fastapi.responses import StreamingResponse
+    import csv
+    import io
+
+    await _require_superadmin(request)
+    db = request.app.state.db
+
+    q: Dict[str, Any] = {}
+    if zone_interest:
+        q["zone_interest"] = zone_interest.strip().lower()
+    if since:
+        q["created_at"] = {"$gte": since}
+    if page_type:
+        prefix_map = {"colonia": "zone-", "alcaldia": "alcaldia-", "intent": "intent-"}
+        prefix = prefix_map.get(page_type)
+        if prefix:
+            q["zone_interest"] = {"$regex": f"^{prefix}"}
+
+    docs = await db.landing_leads.find(q, {"_id": 0}).sort("created_at", -1).limit(10000).to_list(length=10000)
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["email", "zone_interest", "page_type", "zone_slug", "notes", "source_url", "created_at", "status"])
+    for d in docs:
+        zi = d.get("zone_interest", "")
+        writer.writerow([
+            d.get("email", ""),
+            zi,
+            _zone_interest_to_page_type(zi),
+            _zone_interest_slug(zi),
+            (d.get("notes") or "").replace("\n", " "),
+            d.get("source_url") or "",
+            d.get("created_at") or "",
+            d.get("status") or "",
+        ])
+
+    buf.seek(0)
+    headers = {
+        "Content-Disposition": f'attachment; filename="landing_leads_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M")}.csv"',
+    }
+    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv; charset=utf-8", headers=headers)
+
