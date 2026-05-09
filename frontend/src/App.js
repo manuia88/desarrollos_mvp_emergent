@@ -21,6 +21,7 @@ import Faq from './components/landing/Faq';
 import CtaFooter from './components/landing/CtaFooter';
 import AuthModal from './components/landing/AuthModal';
 import RolePicker from './components/landing/RolePicker';
+import AtlaxBubble from './components/landing/AtlaxBubble';
 const DrpiHeroWidget = lazy(() => import('./components/public/DrpiHeroWidget'));
 
 // ─── Lazy-loaded page routes ───────────────────────────────────────────────────
@@ -699,6 +700,7 @@ function LandingPage() {
         <Hero />
         <SearchBar />
         <LiveTicker />
+        <AtlaxHomeHero />
         <ColoniasBento />
         <DrpiHeroWidget />
         <ColoniaComparator />
@@ -710,6 +712,112 @@ function LandingPage() {
         <CtaFooter />
       </main>
     </div>
+  );
+}
+
+// W4.11a · Atlax home hero section — featured CTA card + inline embedded bubble
+function AtlaxHomeHero() {
+  return (
+    <section
+      data-testid="atlax-home-hero"
+      style={{
+        padding: '64px 24px 48px',
+        background: 'radial-gradient(circle at 20% 20%, rgba(99,102,241,0.08), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.06), transparent 50%)',
+      }}
+    >
+      <div style={{
+        maxWidth: 1200, margin: '0 auto',
+        display: 'grid', gap: 32, alignItems: 'stretch',
+        gridTemplateColumns: 'minmax(0, 1fr)',
+      }} className="atlax-home-grid">
+        {/* Copy column */}
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16 }}>
+          <div style={{
+            display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 6,
+            padding: '5px 12px', borderRadius: 9999,
+            background: 'rgba(99,102,241,0.10)',
+            border: '1px solid rgba(99,102,241,0.32)',
+            color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700,
+            letterSpacing: '0.10em', textTransform: 'uppercase',
+          }}>
+            <span aria-hidden="true">●</span> Nuevo · Atlax IA
+          </div>
+          <h2 style={{
+            fontFamily: 'Outfit', fontWeight: 700,
+            fontSize: 'clamp(28px, 4vw, 44px)',
+            color: 'var(--cream)', letterSpacing: '-0.02em', lineHeight: 1.1,
+            margin: 0,
+          }}>
+            Pregúntale al mercado de CDMX
+          </h2>
+          <p style={{
+            fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-3)',
+            lineHeight: 1.6, maxWidth: 520, margin: 0,
+          }}>
+            Atlax es nuestro asistente de inteligencia inmobiliaria. Explora visión general
+            de la ciudad, zonas con mayor crecimiento, tendencias de precio por alcaldía y
+            desarrollos en preventa — todo con datos verificados de DesarrollosMX.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+            <a
+              href="/asistente"
+              data-testid="atlax-hero-cta-asistente"
+              style={{
+                padding: '11px 18px', borderRadius: 9999,
+                background: 'var(--grad)', color: '#fff', textDecoration: 'none',
+                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
+                letterSpacing: '0.02em',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                border: 'none',
+              }}
+            >
+              Abrir conversación completa →
+            </a>
+            <a
+              href="/inteligencia"
+              data-testid="atlax-hero-cta-inteligencia"
+              style={{
+                padding: '11px 18px', borderRadius: 9999,
+                background: 'rgba(255,255,255,0.04)', color: 'var(--cream)', textDecoration: 'none',
+                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
+                letterSpacing: '0.02em',
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                border: '1px solid var(--border)',
+              }}
+            >
+              Inteligencia inmobiliaria
+            </a>
+          </div>
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 8,
+            color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 11,
+          }}>
+            <span>16 colonias premium</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>Datos en tiempo real</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>Sin login requerido</span>
+          </div>
+        </div>
+
+        {/* Embedded Atlax (home mode) */}
+        <div data-testid="atlax-home-embed-wrap" style={{
+          width: '100%',
+          maxWidth: 480,
+          justifySelf: 'center',
+        }}>
+          <AtlaxBubble mode="home" />
+        </div>
+      </div>
+      <style>{`
+        @media (min-width: 900px) {
+          .atlax-home-grid {
+            grid-template-columns: 1.1fr 0.9fr !important;
+            gap: 48px !important;
+          }
+        }
+      `}</style>
+    </section>
   );
 }
 

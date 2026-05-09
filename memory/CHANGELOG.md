@@ -1814,3 +1814,67 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - **Aria-label cambió** ("Abrir chat Atlax") pero el testid `data-testid="caya-bubble"` se mantuvo: prioridad accessibility/branding sobre limpieza de testids.
 
 ### SHA: pending (auto-commit por plataforma)
+
+
+## W4.11a — Phase 10 · Atlax home extension (2026-02-09)
+
+### Resumen
+Atlax pasa de ser un bubble flotante a ser **el corazón de la home pública** de DesarrollosMX:
+- Hero card "Pregúntale al mercado de CDMX" con dos CTAs (asistente completo + inteligencia).
+- AtlaxBubble embebido inline (`mode="home"`) abierto por default — no hay que hacer click para verlo.
+- 6 macro chips con emojis aprobados por spec: Visión general, Crecimiento, Recomendar colonia, Tendencias, Comparar alcaldías, Preventa.
+- Sidebar lateral "Historial" para navegar entre conversaciones (threads) anónimas.
+
+### Backend
+- **`asistente_engine.py`**: 3 nuevas tools macro públicas
+  - `get_market_overview_cdmx` (params: `{}`) — visión agregada CDMX (16 colonias, alcaldías, precio m² promedio, momentum 24m, devs por etapa).
+  - `get_zone_top_growth` (params: `{limit}`) — top zonas por momentum 24m y por score plusvalía.
+  - `get_price_trends_macro` (params: `{group_by: "alcaldia"|"tier"}`) — agregación de precio m² por agrupación con cambio 24m %.
+  - System prompt expande sección "TOOLS Y PARAMS" + REGLAS para enrutar al tool correcto según intent.
+- **`atlax_engine.py`**:
+  - `AtlaxQueryIn.thread_id: Optional[str]` — null = backend crea thread automáticamente.
+  - Helper `_resolve_thread()` valida thread_id existente y pertenencia a session_token; sino crea nuevo.
+  - Helper `_truncate_title()` — título de thread = primer mensaje del usuario truncado a 60 chars en límite de palabra (no requiere LLM call extra).
+  - `_bump_thread()` incrementa `message_count` y `last_message_at`.
+  - `caya_messages` ahora persiste `thread_id` en cada mensaje (back-compat: docs antiguos sin campo).
+  - Response incluye `thread_id` en cada `/api/atlax/query` para sync cliente.
+- **Nuevos endpoints**:
+  - `GET /api/atlax/threads?session_token=asis_*&limit=30` — lista threads de la sesión, ordenados `last_message_at` DESC.
+  - `GET /api/atlax/threads/{thread_id}/messages` — devuelve `{thread, messages, count}` cronológico ASC.
+- **`ensure_atlax_indexes`**:
+  - `atlax_threads.thread_id` (unique).
+  - `atlax_threads.{session_token, last_message_at}` (compound desc).
+  - `caya_messages.{thread_id, created_at}` (compound asc).
+
+### Frontend
+- **`components/landing/AtlaxThreadsSidebar.js`** (nuevo): renderiza lista de threads con título, msj count, tiempo relativo (es-MX). CTA "Nueva conversación" + selector. Errores y empty state.
+- **`components/landing/AtlaxBubble.js`**: 
+  - Acepta props `{ mode = 'floating', startOpen = false }`. `mode="home"` → panel inline (relative position) abierto siempre, oculta el botón flotante y el botón close.
+  - Estado `threadId` persistido en localStorage `dmx.atlax.active_thread_id`.
+  - `send()` envía `thread_id` en payload y sincroniza con response.
+  - `selectThread(id)` carga mensajes de un thread existente vía `/api/atlax/threads/{id}/messages`.
+  - `startNewThread()` resetea `threadId=null`, borra historial UI; backend creará thread nuevo en próximo query.
+  - 6 macro chips render condicional (`isHome && messages.length===0`) en grid 2-col con emojis 📊 📈 🏘️ 💰 🗺️ 🏗️ (excepción aprobada por spec — chips son la única excepción a la regla "zero emojis").
+  - Botón Clock "atlax-threads-toggle" en header → muestra `<AtlaxThreadsSidebar />` overlay absolute inset-0.
+- **`App.js`**:
+  - Nuevo componente `AtlaxHomeHero` insertado entre `<LiveTicker />` y `<ColoniasBento />`.
+  - Hero card con badge "NUEVO · ATLAX IA", título H2 "Pregúntale al mercado de CDMX", subtítulo descriptivo, 2 CTAs `rounded-full` (gradient + outline), 3 trust signals.
+  - Mount embebido: `<AtlaxBubble mode="home" />`.
+  - Removido el mount flotante secundario para evitar duplicación de instancias en localStorage/UI.
+
+### Constraints respetados
+- ✅ Buttons `rounded-full` (9999px) — sin `rounded-sm/md/lg`.
+- ✅ Cero `shadow-2xl` (uso `box-shadow: 0 16px 40px rgba(0,0,0,0.45)` o `border + backdrop-blur`).
+- ✅ Strings es-MX en toda la UI ("Historial", "Nueva conversación", "Sin conversaciones todavía", "Pregúntame…", etc.).
+- ✅ Emojis en 6 chips macro (excepción específica autorizada en handoff). Resto del UI cero emojis.
+- ✅ data-testids en cada elemento interactivo: `atlax-home-hero`, `atlax-home-panel`, `atlax-hero-cta-asistente`, `atlax-hero-cta-inteligencia`, `atlax-macro-chip-{0..5}`, `atlax-threads-toggle`, `atlax-threads-sidebar`, `atlax-thread-{id}`, `atlax-thread-new`, `atlax-threads-close`, `atlax-threads-empty`, `atlax-threads-error`, `atlax-home-chips`, `atlax-home-embed-wrap`.
+
+### Testing manual (curl + screenshot)
+- ✅ POST `/api/atlax/query` (sin thread_id) → crea thread auto, devuelve `thread_id` + `asistente_session_token`.
+- ✅ Tool `get_zone_top_growth` ejecutada por LLM ante query "¿Qué zonas tienen mayor crecimiento?" — respuesta menciona Doctores 12%, Juárez 11%, Roma Sur 9% (data correcta de COLONIAS).
+- ✅ GET `/api/atlax/threads?session_token=asis_*` → lista 1 thread con `title="Visión general del mercado en CDMX"`, `message_count=2`.
+- ✅ GET `/api/atlax/threads/{thread_id}/messages` → devuelve user + assistant mensajes en orden cronológico.
+- ✅ Edge cases: bad token (400 con msg es-MX), missing session_token (422), thread inexistente (404).
+- ✅ Frontend Playwright: 6 chips renderizados, click chip 1 → user msg + assistant msg generados → threads sidebar muestra historial con 1 thread "¿Qué zonas tienen el mayor crecimiento de precio en los…" 2 msj · Ahora.
+
+### SHA: pending (auto-commit por plataforma)
