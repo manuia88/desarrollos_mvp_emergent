@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (Data sources + 3DGS + Studio video upgrades autorizados · Wave 4 496h → 556h)
-**Total H1 restante**: ~458h (Wave 4 pending de los 556h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 98h = 465h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 556h (98h shipped, 458h pending) = 873h plan (con Phase Y + Data sources + 3DGS upgrades)
+**Última actualización**: 2026-05-09 (W4.4 Phase Y.1A Director Agent core shipped · Wave 4 ~108h)
+**Total H1 restante**: ~448h (Wave 4 pending de los 556h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 108h = 475h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 556h (108h shipped, 448h pending) = 873h plan (con Phase Y + Data sources + 3DGS upgrades)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -136,7 +136,12 @@ Formato canónico per-batch (founder request):
 | W4.2.5A | Embeddable Score + Risk Widgets (`/widgets/score/{slug}` + `/widgets/risk/{slug}`) + design system fix-pass W4.2.5.1 | 4 | 5 | emergent | ✅ | `29f0bd8` + `62ed233` (W4.2.5.1) | ScoreWidgetPage.js + RiskWidgetPage.js + routes_widgets.py + ConnectMcpPage embed snippets · cream bg + gradient top bar + dark glass stats verificados live |
 | W4.2.5B | `/prensa` Media Kit page (8 stat cards copy-as-quote + 4 download cards + JSON-LD NewsMediaOrganization) | 3 | 3 | emergent | ✅ | `29f0bd8` | PrensaPage.js + routes_press.py |
 | W4.3 | Phase Y.0 Foundation + Behavioral Tracking | 16 | 16 | emergent | ✅ | `2498e8e` | routes_phase_y_controls.py + behavioral_tracking_engine.py + routes_behavioral.py + PhaseYControlsPanel + tracker keepalive |
-| W4.4 | Phase Y.1 Director Agent + Memory + MCP exposure + What-if Simulator + chat público `/asistente` | 39 | — | emergent | ⏳ | — | 5 chunks · Y.1A core + Y.1B memory layer RAG + Y.1C MCP exposure agents + Y.1D What-if Simulator + Y.1E `/asistente` público |
+| W4.4A | Phase Y.1A — Director Agent core orchestration (4 tools internas: get_ie_score / get_unit_score / get_comparables / get_org_kpis) | 10 | 10 | emergent | ✅ | `de46500` | DirectorAgent class + 5 endpoints REST + DirectorChatPanel UI + simulation mode + tier caps T1-T4 + sonnet-4-5 (LiteLLM proxy sin sonnet-4-6) |
+| W4.4B | Phase Y.1B — Memory layer RAG sobre diagnostic_reports + ie_scores + behavioral_events | 8 | — | emergent | ⏳ | — | retrieval híbrido (vector + filtros) · contexto inyectado en system prompt · TTL aware |
+| W4.4C | Phase Y.1C — MCP exposure de Director (5 tools del MCP server llaman al Director Agent) | 4 | — | emergent | ⏳ | — | extiende /api/mcp existente · auth X-DMX-API-Key |
+| W4.4D | Phase Y.1D — What-if Simulator (dev simula impacto de cambiar precio/promo/timing) | 6 | — | emergent | ⏳ | — | feature #3 killer · usa Director + scenarios |
+| W4.4E | Phase Y.1E — Chat público `/asistente` (comprador frontstage) | 8 | — | emergent | ⏳ | — | feature #1 killer · session anónima · rate limit anti-abuse |
+| W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | embedded en Y.1B-E sub-chunks |
 | W4.5 | Phase Y.2 5 sub-agents ML + 3 capas resilience por agente | 30 | — | emergent | ⏳ | — | 5 chunks · Pricing/Marketing/Lead/Construction/Compliance · cada uno con cache + fallback + circuit breaker |
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
 | W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
@@ -157,9 +162,9 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 98h / 556h (17.6%) 🟡
-**Pendiente Wave 4**: ~458h
-**Phase Y total upgraded**: 137h (W4.3 16h ✅ shipped + W4.4-W4.8 121h pending = Y.1 39h + Y.2 30h + Y.3 36h + Y.4 17h + Y.5 15h)
+**Acumulado Wave 4**: 108h / 556h (19.4%) 🟡
+**Pendiente Wave 4**: ~448h
+**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ shipped = 26h shipped · W4.4B-E + W4.5-W4.8 = 111h pending)
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
@@ -171,6 +176,8 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-09 | **W4.4A Phase Y.1A — Director Agent core** | 10h | `de46500` (merge `b3cf110`) | DirectorAgent + 4 tools internas + simulation mode + tier caps + chat panel UI |
+| 2026-05-09 | **W4.3 Phase Y.0 Foundation + Behavioral Tracking** | 16h | `2498e8e` (merge `d63e4f0`) | Master switch + 9 tiers + behavioral_tracking_engine LFPDPPP-compliant |
 | 2026-05-07 | **Wave 1 CERRADA** — W1.6 Polish + push consolidado | 4h | TBD | E2E pytest 23 endpoints · audit limpio · founder test guide · PRD/ROADMAP closure |
 | 2026-05-07 | W1.5 ZZ.1.1 Quality + Dedup + DiffVisualizer | 6h | merge `054b0a6` | InlineEdit + MergeDiffVisualizer + force-match + recompute Haiku + extracted_overrides |
 | 2026-05-07 | W1.4 ZZ.1 Bulk Drive Ingestion | 10h | merge `054b0a6` | Pipeline async Drive→Haiku→dedup rapidfuzz→schema disgregado + 8 endpoints |
