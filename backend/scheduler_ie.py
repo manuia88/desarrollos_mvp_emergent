@@ -185,14 +185,24 @@ async def run_daily_score_recompute(db):
     except ImportError:
         proyecto_zones = []
 
-    _emit("daily_score_recompute_start", colonia=len(colonia_zones), proyecto=len(proyecto_zones))
+    # All units — DMX-internal, ~450 units universe
+    try:
+        from data_developments import ALL_UNITS
+        unit_zones = [u["id"] for u in ALL_UNITS if u.get("id")]
+    except ImportError:
+        unit_zones = []
+
+    _emit("daily_score_recompute_start", colonia=len(colonia_zones),
+          proyecto=len(proyecto_zones), unit=len(unit_zones))
     engine = ScoreEngine(db)
 
     col_codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == "colonia"]
     proy_codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == "proyecto"]
+    unit_codes = [c for c, r in all_recipes().items() if getattr(r, "scope", "colonia") == "unit"]
 
     stats = {"colonia": {"zones": 0, "real": 0, "stub": 0},
-             "proyecto": {"zones": 0, "real": 0, "stub": 0}}
+             "proyecto": {"zones": 0, "real": 0, "stub": 0},
+             "unit": {"zones": 0, "real": 0, "stub": 0}}
 
     for z in colonia_zones:
         try:
@@ -212,8 +222,37 @@ async def run_daily_score_recompute(db):
         except Exception as e:  # noqa: BLE001
             _emit("daily_score_recompute_zone_error", zone=z, scope="proyecto", error=str(e))
 
+    for z in unit_zones:
+        try:
+            results = await engine.compute_many(z, unit_codes, allow_paid=False)
+            stats["unit"]["zones"] += 1
+            stats["unit"]["real"] += sum(1 for r in results if not r.is_stub and r.value is not None)
+            stats["unit"]["stub"] += sum(1 for r in results if r.is_stub)
+        except Exception as e:  # noqa: BLE001
+            _emit("daily_score_recompute_zone_error", zone=z, scope="unit", error=str(e))
+
     _emit("daily_score_recompute_done", stats=stats)
     return stats
+
+
+# ─── Helper: initial recompute on first boot (W3.1B-5) ───────────────────────
+async def run_initial_recompute_if_empty(db):
+    """One-shot: si ie_scores collection está vacía (nunca corrió cron), ejecuta recompute completo.
+    Garantiza que ui_mode='real' esté disponible en primer deploy sin esperar 02:00 AM."""
+    try:
+        existing = await db.ie_scores.count_documents({}, limit=1)
+    except Exception as e:  # noqa: BLE001
+        _emit("initial_recompute_check_error", error=str(e))
+        return
+    if existing > 0:
+        _emit("initial_recompute_skip", reason="ie_scores collection ya tiene docs")
+        return
+    _emit("initial_recompute_start")
+    try:
+        stats = await run_daily_score_recompute(db)
+        _emit("initial_recompute_done", stats=stats)
+    except Exception as e:  # noqa: BLE001
+        _emit("initial_recompute_error", error=str(e))
 
 
 # ─── Scheduler boot/teardown ────────────────────────────────────────────────

@@ -886,6 +886,13 @@ async def startup():
         logging.warning(f"dev_overlays preload failed: {e}")
     # IE Engine — Phase A4: APScheduler (cron daily + hourly status check)
     sched = start_scheduler(db)
+    # W3.1B-5 — initial recompute (background) if ie_scores collection is empty
+    try:
+        import asyncio as _asyncio_w3_1b5
+        from scheduler_ie import run_initial_recompute_if_empty
+        _asyncio_w3_1b5.create_task(run_initial_recompute_if_empty(db))
+    except Exception as e:
+        logging.warning(f"[startup] initial recompute task failed to schedule: {e}")
     # Phase 4 Batch 4.3 — register reminder + post-cita jobs on same scheduler
     if sched:
         try:
