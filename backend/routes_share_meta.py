@@ -238,6 +238,13 @@ async def share_compare_og_image(
         log.warning(f"[share_meta] og-image generation failed: {ex}")
         raise HTTPException(status_code=500, detail="Error generando og:image")
 
+    # W4.2C — brand watermark
+    try:
+        from export_brand import add_watermark
+        png_bytes = add_watermark(png_bytes)
+    except Exception as wm_ex:
+        log.warning(f"[share_meta] watermark failed (non-fatal): {wm_ex}")
+
     # Cache write
     try:
         with open(cache_path, "wb") as f:
@@ -247,3 +254,29 @@ async def share_compare_og_image(
 
     return Response(content=png_bytes, media_type="image/png",
                     headers={"Cache-Control": "public, max-age=86400"})
+
+
+# ─── W4.2C — QR export endpoint ──────────────────────────────────────────────
+
+@router.get("/api/exports/qr")
+async def export_qr(url: str):
+    """Generate a brand QR code PNG for any URL.
+
+    Query param: url (required) — the URL to encode.
+    Returns PNG image (200×200 approx) in DMX brand colors.
+    """
+    if not url:
+        from fastapi import HTTPException as _HE
+        raise _HE(status_code=400, detail="url parameter requerido")
+    try:
+        from export_brand import generate_qr
+        qr_bytes = generate_qr(url)
+    except Exception as e:
+        log.warning(f"[share_meta] QR generation failed: {e}")
+        from fastapi import HTTPException as _HE
+        raise _HE(status_code=500, detail="Error generando QR")
+    return Response(
+        content=qr_bytes,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )

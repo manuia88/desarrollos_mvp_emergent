@@ -83,6 +83,26 @@ MCP_TOOLS: List[Dict[str, Any]] = [
                     "enum": ["preventa", "en_construccion", "entrega_inmediata"],
                     "description": "Development stage filter.",
                 },
+                "bedrooms_min": {
+                    "type": "integer",
+                    "description": "Mínimo de recámaras (e.g. 2).",
+                },
+                "bedrooms_max": {
+                    "type": "integer",
+                    "description": "Máximo de recámaras.",
+                },
+                "m2_min": {
+                    "type": "integer",
+                    "description": "Superficie mínima en m² (e.g. 80).",
+                },
+                "m2_max": {
+                    "type": "integer",
+                    "description": "Superficie máxima en m².",
+                },
+                "parking_min": {
+                    "type": "integer",
+                    "description": "Mínimo cajones de estacionamiento.",
+                },
             },
             "required": [],
         },
@@ -160,6 +180,11 @@ async def handle_search_developments(_db, params: Dict[str, Any]) -> Dict[str, A
     colonia_id = params.get("colonia_id")
     price_max = params.get("price_max_mxn")
     stage = params.get("stage")
+    b_min = params.get("bedrooms_min")
+    b_max = params.get("bedrooms_max")
+    m_min = params.get("m2_min")
+    m_max = params.get("m2_max")
+    p_min = params.get("parking_min")
 
     results = []
     for d in DEVELOPMENTS:
@@ -169,6 +194,31 @@ async def handle_search_developments(_db, params: Dict[str, Any]) -> Dict[str, A
             continue
         if stage and d.get("stage") != stage:
             continue
+
+        # bedrooms_range filter
+        if b_min is not None or b_max is not None:
+            rng = d.get("bedrooms_range")
+            if rng and len(rng) == 2:
+                if b_min is not None and rng[1] < b_min:
+                    continue
+                if b_max is not None and rng[0] > b_max:
+                    continue
+
+        # m2_range filter
+        if m_min is not None or m_max is not None:
+            rng = d.get("m2_range")
+            if rng and len(rng) == 2:
+                if m_min is not None and rng[1] < m_min:
+                    continue
+                if m_max is not None and rng[0] > m_max:
+                    continue
+
+        # parking_range filter
+        if p_min is not None:
+            rng = d.get("parking_range")
+            if rng and len(rng) == 2 and rng[1] < p_min:
+                continue
+
         results.append({
             "id": d["id"],
             "name": d.get("name"),
@@ -178,6 +228,9 @@ async def handle_search_developments(_db, params: Dict[str, Any]) -> Dict[str, A
             "price_from": d.get("price_from"),
             "price_to": d.get("price_to"),
             "developer_id": d.get("developer_id"),
+            "bedrooms_range": d.get("bedrooms_range"),
+            "m2_range": d.get("m2_range"),
+            "parking_range": d.get("parking_range"),
         })
 
     return {"developments": results, "count": len(results)}
