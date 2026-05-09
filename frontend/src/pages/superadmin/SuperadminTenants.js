@@ -14,6 +14,7 @@ import { startImpersonation } from '../../hooks/useImpersonation';
 import { PhaseYControlsPanel } from '../../components/superadmin/PhaseYControlsPanel';
 import PricingAgentPanel from '../../components/director/PricingAgentPanel';
 import MarketingAgentPanel from '../../components/director/MarketingAgentPanel';
+import LeadAgentPanel from '../../components/director/LeadAgentPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -574,6 +575,7 @@ function SubAgentsTabs({ orgId, projectsSummary }) {
   const agentTabs = [
     ['pricing',   'Pricing'],
     ['marketing', 'Marketing'],
+    ['lead',      'Lead'],
   ];
 
   return (
@@ -609,6 +611,9 @@ function SubAgentsTabs({ orgId, projectsSummary }) {
         )}
         {activeAgent === 'marketing' && (
           <MarketingAgentPanel orgId={orgId} projectsSummary={projectsSummary} />
+        )}
+        {activeAgent === 'lead' && (
+          <LeadAgentPanel orgId={orgId} />
         )}
       </div>
     </div>

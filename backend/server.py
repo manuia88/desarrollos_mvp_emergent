@@ -425,6 +425,7 @@ app.include_router(asistente_sa_router)
 from routes_subagents import router as subagents_router, sa_router as subagents_sa_router
 from sub_agents.pricing_agent import ensure_pricing_indexes
 from sub_agents.marketing_agent import ensure_marketing_indexes
+from sub_agents.lead_agent import ensure_lead_indexes
 app.include_router(subagents_router)
 app.include_router(subagents_sa_router)
 
@@ -977,6 +978,11 @@ async def startup():
         await ensure_marketing_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.5 marketing sub-agent indexes failed: {e}")
+    # W4.5 Y.2C — Lead Sub-Agent indexes
+    try:
+        await ensure_lead_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.5 lead sub-agent indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

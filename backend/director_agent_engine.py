@@ -114,6 +114,11 @@ TOOLS Y PARAMS:
    devuelve: lista de recomendaciones de marketing digital con issue_detected, severity, suggested_action_text, expected_lift_pct
    Úsalo cuando el usuario pregunta "¿por qué no se ven mis unidades?", "¿qué mejoro en marketing?", baja conversión, falta de leads
 
+9. delegate_lead_optimization
+   params: { "period_days": int (default 30) }
+   devuelve: lista de recomendaciones del funnel de leads con issue_detected, target_type, severity, suggested_action_text
+   Úsalo cuando user pregunta "¿qué pasa con mis leads?", "¿qué asesor está performeando peor?", "¿dónde pierdo leads?", funnel, conversión
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -175,8 +180,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 db, org_id,
                 project_id=str(params.get("project_id", "")),
             )
+        elif tool_name == "delegate_lead_optimization":
+            return await _tool_delegate_lead_optimization(
+                db, org_id,
+                period_days=int(params.get("period_days", 30)),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -376,6 +386,44 @@ async def _tool_whatif_simulate(
             "recommendation_text": outs.get("recommendation_text"),
         },
         "comparables_used": outs.get("comparables_used") or [],
+    }
+
+
+async def _tool_delegate_lead_optimization(db, org_id: str, period_days: int = 30) -> Dict[str, Any]:
+    """Tool 9: invoca LeadAgent para detectar issues en el funnel de leads."""
+    try:
+        from sub_agents.lead_agent import (
+            LeadAgent, LeadAgentDisabledError, LeadAgentRateLimitError,
+        )
+        agent = LeadAgent(db=db, org_id=org_id)
+        result = await agent.analyze_funnel(period_days=period_days)
+    except LeadAgentDisabledError as e:
+        return {"error": f"Lead Agent desactivado: {e}"}
+    except LeadAgentRateLimitError as e:
+        return {"error": f"Rate limit lead agent: {e}"}
+    except Exception as e:
+        log.warning(f"[director_tool] delegate_lead_optimization failed: {e}")
+        return {"error": str(e)}
+
+    recs = result.get("recommendations") or []
+    return {
+        "org_id": org_id,
+        "run_id": result.get("run_id"),
+        "layer_used": result.get("layer_used"),
+        "recommendations_count": result.get("recommendations_count", len(recs)),
+        "top_recommendations": [
+            {
+                "target_id": r.get("target_id"),
+                "target_type": r.get("target_type"),
+                "issue_detected": r.get("issue_detected"),
+                "severity": r.get("severity"),
+                "suggested_action_text": (r.get("suggested_action_text") or "")[:150],
+                "expected_lift_pct": r.get("expected_lift_pct"),
+                "confidence_score": r.get("confidence_score"),
+            }
+            for r in recs[:5]
+        ],
+        "cost_usd": result.get("cost_usd"),
     }
 
 
