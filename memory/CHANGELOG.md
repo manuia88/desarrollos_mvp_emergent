@@ -1,6 +1,42 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W4.2.5 — Brand Strategy · Embed widgets + Press kit (2026-05-09)
+
+Cierra ciclo SEO/GEO compounding: bloggers/journalists pueden embeber widgets DMX (cada embed = backlink natural) + página `/prensa` con stats live listas-para-pegar (cada cita Forbes/El Financiero = autoridad SEO + AI training data).
+
+### Backend (2 nuevos · 1 editado)
+- **NEW** `routes_widgets.py` — `GET /api/widgets/score/{slug}` y `/risk/{slug}` con `Access-Control-Allow-Origin: *` (CORS abierto). Cache CDN 5 min. Score retorna `{ie_score_avg, drpi_value, drpi_delta_30d_pct, risk_tier, risk_letter, ie_sample_size, deep_link, powered_by}`. Risk retorna `{risk_tier, risk_letter, risk_score, sources_count, available, deep_link}`. OPTIONS preflight handler. Tier derivation desde letter cuando doc tier es null.
+- **NEW** `routes_press.py` — `GET /api/public/press/stats` retorna 13+ fields live (zones, landings, devs, recipes, drpi, sources, MCP usage, compliance flags). Cache CDN 10 min.
+- **EDIT** `server.py` — wire `widgets_router` + `press_router`.
+
+### Frontend (3 nuevos · 2 editados)
+- **NEW** `pages/public/widgets/ScoreWidgetPage.js` — ruta `/widgets/score/:slug` standalone (SIN Navbar/Footer). White card 360px max-width, eyebrow gradient indigo→pink "Score IE · DesarrollosMX", big score 36px Outfit800 con tier color, mini stats inline (DRPI/m², Risk letter, Muestra IE), watermark "Powered by DesarrollosMX · desarrollosmx.io →" linkeado al deep link de zona. document.body transparent para iframe-friendly. `data-testid="score-widget"`.
+- **NEW** `pages/public/widgets/RiskWidgetPage.js` — `/widgets/risk/:slug` similar. Big risk letter 44px (verde A/B, amarillo C/D, rojo E), label "Riesgo Bajo/Moderado/Alto", risk_score/100, fuentes oficiales count + lista `SESNSP · CENAPRED · ENVIPE · RPP`. `data-testid="risk-widget"`.
+- **NEW** `pages/public/PrensaPage.js` — `/prensa` Media Kit. Hero "DesarrollosMX en Prensa" Outfit 800 clamp 32-56px. 8 StatCard con valor + cita lista-para-pegar + botón "Copiar como cita" (clipboard API + state "Copiado" 2s). 4 DownloadCard (logo PNG/SVG, media-kit PDF, founder bio). 3 ContactRow (prensa@desarrollosmx.io, WhatsApp, LinkedIn). Schema.org NewsMediaOrganization JSON-LD con foundingDate, contactPoint type=press, sameAs links. Footer "Stats actualizados … cache 10 min · API pública GET /api/public/press/stats".
+- **EDIT** `ConnectMcpPage.js` — Step 7 "Embed widgets en tu blog" agregado: 2 iframes preview (score+risk de polanco) lado a lado + 2 CopyBlock con snippets `<iframe src="https://desarrollosmx.io/widgets/{type}/polanco" width="360" height="220|240" loading="lazy">`. Texto explicativo "cada embed = backlink natural · CORS abierto · cache CDN 5 min".
+- **EDIT** `App.js` — lazy `ScoreWidgetPage`, `RiskWidgetPage`, `PrensaPage` + 3 Routes públicas (`/widgets/score/:slug`, `/widgets/risk/:slug`, `/prensa`).
+
+### Acceptance criteria validados
+- ✅ `GET /api/widgets/score/polanco` HTTP 200 · `Access-Control-Allow-Origin: *` · payload completo (score=52.7, drpi=$95k, risk=B/green derived, sample=17)
+- ✅ `GET /api/widgets/risk/polanco` HTTP 200 · risk B/neutral 75.8 sources=4
+- ✅ `GET /api/public/press/stats` HTTP 200 · 16 zones, 75 landings, 18 devs, 63 recipes, 12 sources, 3 MCP calls
+- ✅ `/widgets/score/polanco` standalone PASS · sin Navbar · score=53 · zone="Polanco" · footer link · iframe-friendly
+- ✅ `/widgets/risk/polanco` standalone PASS · big "B" yellow tier · 75.8/100 · 4 fuentes
+- ✅ `/prensa` PASS · 8 stat cards · botón "Copiar como cita" funcional · JSON-LD NewsMediaOrganization · Navbar+CtaFooter
+- ✅ `/connect/mcp` Step 7 PASS · 2 iframes preview · 2 CopyBlock snippets reales
+- ✅ `yarn build` limpio 40s · ESLint+ruff sin warnings · `/api/health` 200
+
+### Embeds reales para test
+```
+<iframe src="https://desarrollosmx.io/widgets/score/polanco" width="360" height="220" frameborder="0" loading="lazy" style="border:0; max-width:100%;"></iframe>
+
+<iframe src="https://desarrollosmx.io/widgets/risk/polanco" width="360" height="240" frameborder="0" loading="lazy" style="border:0; max-width:100%;"></iframe>
+```
+Mientras `desarrollosmx.io` esté en preview (latam-realestate-ai…), reemplaza el host por el preview URL para test inmediato. Cuando se promueva a producción, el dominio canónico funciona out-of-the-box.
+
+
+
 ## W4.2D3.5 — Landing Leads Dashboard + Lead Nurture Cron (2026-05-09)
 
 Cierra el loop de W4.2D3: founder ahora puede VER las leads capturadas en `/superadmin/landing-leads` y cron diaria 04:00 MX matchea leads con inventario nuevo + envía email vía Resend.

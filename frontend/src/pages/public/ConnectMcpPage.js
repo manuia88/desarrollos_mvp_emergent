@@ -5,8 +5,12 @@ import Navbar from '../../components/landing/Navbar';
 import { Check } from '../../components/icons';
 import { useAuth } from '../../App';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://desarrollosmx.com';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://desarrollosmx.io';
+const PUBLIC_BASE = 'https://desarrollosmx.io';
 const MCP_URL = `${BASE_URL}/api/mcp`;
+
+const EMBED_SCORE_SNIPPET = `<iframe src="${PUBLIC_BASE}/widgets/score/polanco" width="360" height="220" frameborder="0" loading="lazy" style="border:0; max-width:100%;"></iframe>`;
+const EMBED_RISK_SNIPPET  = `<iframe src="${PUBLIC_BASE}/widgets/risk/polanco" width="360" height="240" frameborder="0" loading="lazy" style="border:0; max-width:100%;"></iframe>`;
 
 const CLAUDE_CONFIG = JSON.stringify({
   mcpServers: {
@@ -218,6 +222,65 @@ export default function ConnectMcpPage() {
   -H "Content-Type: application/json" \\
   -d '{"zone_id": "polanco"}'`}
           />
+        </Section>
+
+        {/* Step 7 — Embed widgets en blogs */}
+        <Section step="7" title="Embed widgets en tu blog">
+          <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 16 }}>
+            Pega cualquier <code style={{ background: 'rgba(99,102,241,0.12)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>&lt;iframe&gt;</code>{' '}
+            de DesarrollosMX en tu blog o página. Los widgets son responsive, branded y
+            se actualizan automáticamente con datos live. Cambia <code>polanco</code> por
+            cualquier slug de colonia ({' '}
+            <a href="/marketplace" style={{ color: '#a5b4fc' }}>ver lista</a>
+            {' '}).
+          </p>
+
+          <div style={{ display: 'grid', gap: 18, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', marginBottom: 18 }}>
+            <div data-testid="embed-preview-score">
+              <div style={{
+                fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+                color: 'var(--cream-3)', letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: 8,
+              }}>
+                Widget Score · Preview
+              </div>
+              <iframe
+                title="DMX Score Widget Preview"
+                src={`${PUBLIC_BASE}/widgets/score/polanco`}
+                width="360"
+                height="220"
+                frameBorder="0"
+                loading="lazy"
+                style={{ border: 0, maxWidth: '100%', borderRadius: 14, background: 'transparent' }}
+              />
+            </div>
+            <div data-testid="embed-preview-risk">
+              <div style={{
+                fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
+                color: 'var(--cream-3)', letterSpacing: '0.08em', textTransform: 'uppercase',
+                marginBottom: 8,
+              }}>
+                Widget Risk · Preview
+              </div>
+              <iframe
+                title="DMX Risk Widget Preview"
+                src={`${PUBLIC_BASE}/widgets/risk/polanco`}
+                width="360"
+                height="240"
+                frameBorder="0"
+                loading="lazy"
+                style={{ border: 0, maxWidth: '100%', borderRadius: 14, background: 'transparent' }}
+              />
+            </div>
+          </div>
+
+          <CopyBlock label="Embed Score widget" code={EMBED_SCORE_SNIPPET} />
+          <CopyBlock label="Embed Risk widget" code={EMBED_RISK_SNIPPET} />
+
+          <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', marginTop: -4 }}>
+            Cada embed dispara un backlink natural a desarrollosmx.io · ayuda autoridad
+            de dominio y compounding SEO/GEO. CORS abierto · cache CDN 5 min.
+          </p>
         </Section>
 
       </main>
