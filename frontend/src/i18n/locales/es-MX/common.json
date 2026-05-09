@@ -867,7 +867,16 @@
       "disabled_message": "Phase Y está desactivado para tu organización. Contacta a tu administrador para activarlo.",
       "input_placeholder": "Pregúntame sobre tu portfolio, comparables, leads o KPIs…",
       "send_button": "Enviar",
-      "tier_badge_template": "Tier {tier}"
+      "tier_badge_template": "Tier {tier}",
+      "memory": {
+        "used_label": "Memorias usadas",
+        "expand_label": "Expandir memorias",
+        "empty": "Sin memorias previas para esta consulta",
+        "source_diagnostic": "Diagnóstico",
+        "source_ie_score": "Score IE",
+        "source_behavioral": "Sesión",
+        "source_director_summary": "Resumen"
+      }
     }
   }
 }

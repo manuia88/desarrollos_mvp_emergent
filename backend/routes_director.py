@@ -182,6 +182,7 @@ async def send_message(session_id: str, body: SendMessageIn, request: Request):
             "tokens_out": result["tokens_out"],
             "cost_usd": result["cost_usd"],
             "simulated": result.get("simulated", False),
+            "memory_hits": result.get("memory_hits", []),
         },
         status_code=201,
     )

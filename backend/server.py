@@ -401,6 +401,12 @@ from director_agent_engine import ensure_indexes as ensure_director_indexes
 app.include_router(director_router)
 app.include_router(director_sa_router)
 
+# W4.4B — Phase Y.1B · Director Memory Layer
+from routes_director_memory import router as director_memory_router, sa_router as director_memory_sa_router
+from director_memory_engine import ensure_indexes as ensure_memory_indexes
+app.include_router(director_memory_router)
+app.include_router(director_memory_sa_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -928,6 +934,10 @@ async def startup():
         await ensure_director_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.4 director indexes failed: {e}")
+    try:
+        await ensure_memory_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.4B memory indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

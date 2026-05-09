@@ -1,9 +1,11 @@
 """W4.4 — Phase Y.1A · Director Agent core orchestration engine.
+W4.4B — Phase Y.1B · Memory Layer RAG integration.
 
 LLM: claude-sonnet-4-6 vía emergentintegrations.LlmChat
 Tool calling: structured prompt + <tool_call> tag parsing (2-pass agentic loop)
 Session caps: T1=50k/10k · T2=100k/20k · T3=200k/40k · T4=unlimited
 Simulation mode: full logic, zero Anthropic calls, response prefixed [SIM]
+Memory: auto-inject en start_session (tier ≥ T2) + retrieve antes de cada chat + 5to tool
 """
 from __future__ import annotations
 
@@ -40,6 +42,9 @@ PRICE_OUT_PER_TOK = 15.0 / 1_000_000  # $15 / 1M output
 # Tool call regex
 _TOOL_CALL_RE = re.compile(r"<tool_call>(.*?)</tool_call>", re.DOTALL)
 
+# Tiers que activan memory injection
+_MEMORY_TIERS = {"T2", "T3", "T4"}
+
 # ─── Custom exceptions ────────────────────────────────────────────────────────
 class PhaseYDisabledError(Exception):
     """Phase Y master switch OFF o tier=off para este org."""
@@ -51,7 +56,13 @@ class TierCapExceededError(Exception):
     """La sesión superó el cap de tokens del tier."""
 
 # ─── System prompt builder ─────────────────────────────────────────────────────
-def _build_system_prompt(org_id: str, role: str, tier: str, sim_mode: bool) -> str:
+def _build_system_prompt(
+    org_id: str,
+    role: str,
+    tier: str,
+    sim_mode: bool,
+    memory_context: Optional[str] = None,
+) -> str:
     now_mx = datetime.now(timezone(timedelta(hours=-6))).strftime("%d %b %Y, %H:%M hora CDMX")
     sim_note = "\n\n⚠️  SIMULATION MODE: esta es una sesión de prueba. Tu lógica se ejecuta normalmente pero la sesión NO produce acciones reales." if sim_mode else ""
 
@@ -79,12 +90,21 @@ TOOLS Y PARAMS:
    params: { "org_id": str, "period_days": int (default 30) }
    devuelve: leads_count, matches_count, conversion_rate, avg_response_time_hours
 
+5. retrieve_memory
+   params: { "query": str, "top_k": int (default 5), "source_types": list[str] | null }
+   devuelve: lista de memorias relevantes (diagnósticos, scores, sesiones previas)
+   source_types válidos: "diagnostic", "ie_score", "behavioral", "director_summary"
+
 REGLAS DE TOOLS:
-- Puedes incluir hasta 4 tool_calls en una respuesta
+- Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
 - Después de recibir los resultados, da tu respuesta final COMPLETA (sin más tool_calls)
 - Si el sistema retorna {"error": "..."}, explica que el dato no está disponible y continúa
 """
+
+    memory_section = ""
+    if memory_context:
+        memory_section = f"\n## Memorias recientes relevantes:\n{memory_context}\n"
 
     return f"""Eres el Director AI de DesarrollosMX (DMX), asistente inteligente de decisión para un desarrollador inmobiliario en México.
 
@@ -93,7 +113,7 @@ Organización: {org_id}
 Rol del usuario: {role}
 Tier Phase Y activo: {tier}
 {sim_note}
-
+{memory_section}
 Tu función es ayudar al equipo a tomar mejores decisiones sobre su portafolio: pricing, comparables, KPIs operativos, alertas de riesgo y oportunidades de mercado.
 
 TONO: Directo, profesional, en español (es-MX). Nada de anglicismos innecesarios. Respuestas concisas pero completas. Usa datos concretos cuando los tengas.
@@ -112,8 +132,15 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
             return await _tool_get_comparables(db, params.get("unit_id", ""), float(params.get("radius_km", 2.0)))
         elif tool_name == "get_org_kpis":
             return await _tool_get_org_kpis(db, params.get("org_id", org_id), int(params.get("period_days", 30)))
+        elif tool_name == "retrieve_memory":
+            return await _tool_retrieve_memory(
+                db, org_id,
+                query=str(params.get("query", "")),
+                top_k=int(params.get("top_k", 5)),
+                source_types=params.get("source_types"),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -233,6 +260,37 @@ async def _tool_get_org_kpis(db, org_id: str, period_days: int = 30) -> Dict[str
     }
 
 
+async def _tool_retrieve_memory(
+    db,
+    org_id: str,
+    query: str,
+    top_k: int = 5,
+    source_types: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Tool 5: retrieval explícito de memoria desde el LLM."""
+    if not query:
+        return {"error": "query requerido para retrieve_memory"}
+    if top_k > 10:
+        top_k = 10
+    from director_memory_engine import DirectorMemoryEngine
+    engine = DirectorMemoryEngine(db, org_id)
+    hits = await engine.retrieve(query_text=query, top_k=top_k, source_types=source_types, recency_weight=0.3)
+    return {
+        "query": query,
+        "hits_count": len(hits),
+        "memories": [
+            {
+                "memory_id": h["memory_id"],
+                "source_type": h["source_type"],
+                "summary": h.get("content_summary", "")[:200],
+                "created_at": h.get("created_at"),
+                "score": round(h.get("final_score", 0), 3),
+            }
+            for h in hits
+        ],
+    }
+
+
 # ─── Conversation history helpers ─────────────────────────────────────────────
 def _estimate_tokens(text: str) -> int:
     """Estimación: 4 chars ≈ 1 token (heurística estándar)."""
@@ -295,7 +353,7 @@ async def _agentic_loop(
 
         # Ejecutar todas las tools de este round
         results_parts = []
-        for spec in tool_call_specs[:4]:  # max 4 tools por round
+        for spec in tool_call_specs[:5]:  # max 5 tools por round (incluyendo retrieve_memory)
             tool_name = spec.get("tool", "")
             params = spec.get("params") or {}
             t0 = time.monotonic()
@@ -345,6 +403,22 @@ class DirectorAgent:
 
         session_id = f"dses_{uuid.uuid4().hex[:16]}"
         now = datetime.now(timezone.utc)
+
+        # W4.4B — Memory injection for tier ≥ T2
+        initial_memory_ids: List[str] = []
+        if tier in _MEMORY_TIERS:
+            try:
+                from director_memory_engine import DirectorMemoryEngine
+                mem_engine = DirectorMemoryEngine(self.db, self.org_id)
+                recent_mems = await mem_engine.retrieve(
+                    query_text="contexto reciente organización",
+                    top_k=3,
+                    recency_weight=0.7,
+                )
+                initial_memory_ids = [m["memory_id"] for m in recent_mems]
+            except Exception as e:
+                log.warning(f"[director] memory retrieval on start_session failed: {e}")
+
         await self.db.director_sessions.insert_one({
             "_id": session_id,
             "org_id": self.org_id,
@@ -358,8 +432,9 @@ class DirectorAgent:
             "total_tokens_in": 0,
             "total_tokens_out": 0,
             "total_cost_usd": 0.0,
+            "initial_memory_ids": initial_memory_ids,
         })
-        log.info(f"[director] session started: {session_id} org={self.org_id} tier={tier}")
+        log.info(f"[director] session started: {session_id} org={self.org_id} tier={tier} memories={len(initial_memory_ids)}")
         return session_id
 
     async def chat(self, session_id: str, user_message: str) -> Dict[str, Any]:
@@ -442,7 +517,31 @@ class DirectorAgent:
         if not api_key:
             raise RuntimeError("EMERGENT_LLM_KEY no configurado")
 
-        system_prompt = _build_system_prompt(self.org_id, self.role, tier, sim_mode)
+        # W4.4B — Retrieve relevant memories for this message (tier ≥ T2)
+        message_memory_hits: List[Dict[str, Any]] = []
+        memory_context_str: Optional[str] = None
+        if tier in _MEMORY_TIERS and len(user_message) >= 10:
+            try:
+                from director_memory_engine import DirectorMemoryEngine
+                mem_engine = DirectorMemoryEngine(db, self.org_id)
+                memory_hits = await mem_engine.retrieve(
+                    query_text=user_message,
+                    top_k=5,
+                    recency_weight=0.3,
+                )
+                message_memory_hits = memory_hits
+                if memory_hits:
+                    ctx_lines = []
+                    for h in memory_hits:
+                        ctx_lines.append(f"- [{h['source_type']}] {h.get('content_summary', '')[:150]}")
+                    memory_context_str = "\n".join(ctx_lines)
+            except Exception as e:
+                log.warning(f"[director] memory retrieval in chat failed: {e}")
+
+        system_prompt = _build_system_prompt(
+            self.org_id, self.role, tier, sim_mode,
+            memory_context=memory_context_str,
+        )
 
         # Load conversation history
         history = await _load_history_as_openai(db, session_id, limit=40)
@@ -462,6 +561,21 @@ class DirectorAgent:
         latency_ms = int((time.monotonic() - t0) * 1000)
         cost = tok_in * PRICE_IN_PER_TOK + tok_out * PRICE_OUT_PER_TOK
 
+        # Check if retrieve_memory was called explicitly in tool loop
+        explicit_memory_calls = [tc for tc in tool_calls_log if tc["tool_name"] == "retrieve_memory"]
+
+        # Merge memory hits (auto + explicit)
+        all_memory_used = list(message_memory_hits)
+        for tc in explicit_memory_calls:
+            output = tc.get("output") or {}
+            for m in (output.get("memories") or []):
+                if not any(x.get("memory_id") == m.get("memory_id") for x in all_memory_used):
+                    all_memory_used.append({
+                        "memory_id": m.get("memory_id"),
+                        "source_type": m.get("source_type"),
+                        "content_summary": m.get("summary", ""),
+                    })
+
         # Persist assistant message
         await db.director_messages.insert_one({
             "_id": msg_id_asst,
@@ -475,6 +589,10 @@ class DirectorAgent:
             "cost_usd": round(cost, 8),
             "latency_ms": latency_ms,
             "simulated": False,
+            "memory_hits": [
+                {"memory_id": m.get("memory_id"), "source_type": m.get("source_type"), "content_summary": m.get("content_summary", "")[:80]}
+                for m in all_memory_used
+            ] or None,
             "created_at": datetime.now(timezone.utc),
         })
 
@@ -514,6 +632,7 @@ class DirectorAgent:
             "tokens_out": tok_out,
             "cost_usd": round(cost, 8),
             "simulated": False,
+            "memory_hits": all_memory_used,
         }
 
     async def end_session(self, session_id: str) -> None:
