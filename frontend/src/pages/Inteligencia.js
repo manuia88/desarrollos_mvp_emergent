@@ -7,6 +7,7 @@ import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { Sparkle, Database, BarChart, Route, Shield, Leaf, Store, ArrowRight } from '../components/icons';
 import CayaBubble from '../components/landing/CayaBubble';
+import RiskWatchlist from '../components/watchlist/RiskWatchlist';
 import { useAuth } from '../App';
 
 const CATEGORIES = [
@@ -152,6 +153,7 @@ export default function Inteligencia() {
             Ver el motor en acción <ArrowRight size={12} />
           </a>
         </div>
+        <RiskWatchlist />
       </main>
       <CtaFooter />
 
