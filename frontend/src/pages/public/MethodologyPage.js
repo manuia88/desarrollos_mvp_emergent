@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchMethodology } from '../../api/bulletins';
 import Navbar from '../../components/landing/Navbar';
-import WatchlistSubscribeForm from '../../components/watchlist/WatchlistSubscribeForm';
 
 function Section({ title, children }) {
   return (
@@ -273,29 +272,6 @@ export default function MethodologyPage() {
             Nota: Esta implementación técnica no constituye asesoría legal. El titular de la
             plataforma es responsable de obtener revisión jurídica profesional antes del lanzamiento.
           </p>
-        </Section>
-
-        {/* W3.9b — Watchlist subscribe (bulletins + risk alerts) */}
-        <Section title="6 · Suscripción a boletines y alertas">
-          <p style={{ marginBottom: 14 }}>
-            Recibe el boletín mensual del DRPI y alertas cuando una zona en tu lista cambie a tier
-            de riesgo crítico (Risk Score). Sin spam: throttle de 1 alerta por semana por email.
-          </p>
-          <div data-testid="methodology-subscribe" style={{
-            background: 'rgba(13,16,23,0.5)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12, padding: 18,
-            maxWidth: 480,
-          }}>
-            <WatchlistSubscribeForm
-              defaultScope="bulletins"
-              defaultZoneIds={[]}
-              showScopeSelector={true}
-              showZonesField={true}
-              zoneFieldLabel="Zonas a seguir (opcional, slugs separados por coma)"
-              ctaLabel="Suscribirme"
-            />
-          </div>
         </Section>
       </main>
     </div>

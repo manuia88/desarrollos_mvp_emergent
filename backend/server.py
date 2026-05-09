@@ -248,10 +248,6 @@ from cross_sell_engine import ensure_indexes as ensure_cross_sell_indexes
 app.include_router(cross_sell_router)
 app.include_router(partners_router)
 
-# W3.9b — Public Watchlist Subscribe (bulletins + risk alerts unified)
-from routes_watchlist import router as watchlist_router, ensure_indexes as ensure_watchlist_indexes
-app.include_router(watchlist_router)
-
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -790,11 +786,6 @@ async def startup():
         await seed_demo_offers(db)
     except Exception as e:
         logging.warning(f"[startup] W3.8 cross-sell seed failed: {e}")
-    # W3.9b — Watchlist subscribers indexes
-    try:
-        await ensure_watchlist_indexes(db)
-    except Exception as e:
-        logging.warning(f"[startup] W3.9b watchlist indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
