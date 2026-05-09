@@ -1,6 +1,35 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W4.2D2 — Programmatic SEO · Zone landing pages + FAQ Schema (2026-05-09)
+
+Landing pages programmatic SEO `/zona/:slug` por colonia CDMX con datos auditables (IE Top 3, DRPI, Risk Score, devs activos, comparables) + JSON-LD Place + FAQPage. 16 zonas seedadas en sitemap.
+
+### Backend (1 nuevo · 3 editados)
+- **NEW** `routes_public_zones.py` — `GET /api/public/zones/{slug}` público (sin auth), agrega IE scores summary (top 3 real, ui_mode real|preparing), DRPI snapshot último, Risk Score V2 composite con fallback a seed.scores.seguridad, active_developments, 3 comparable_zones por mapping. 404 si slug no en COLONIAS_BY_ID.
+- **EDIT** `seo_combos_seed.py` — domain canónico `desarrollosmx.io`, función `seed_zone_pages_in_sitemap()` que upserta 1 entry por COLONIA (16) con type=zone_page.
+- **EDIT** `routes_seo_files.py` — domain canónico `desarrollosmx.io`. Sitemap dinámico ya pickup automático de zone_page entries.
+- **EDIT** `server.py` — wire `public_zones_router`, llama `seed_zone_pages_in_sitemap()` en startup hook después de `seed_seo_combos`.
+
+### Frontend (2 nuevos · 1 editado)
+- **NEW** `pages/public/ZonePage.js` — `useParams.slug` → fetch `/api/public/zones/:slug`. Layout: Navbar+CtaFooter, breadcrumb (Inicio › Zonas › X), hero (clamp 32-56px Outfit 800 + alcaldia/tier gradient), 4 KPI cards (IE Top, DRPI/m², Risk letter+value, # devs), Top 3 IE cards (tier-colored), grid comparables Link, FaqAccordion 5 preguntas, CTAs `rounded-full` (Ver desarrollos en X · Suscribir alertas Risk). Empty state si IE real_count<3 ("Datos en preparación · DMX cubre esta zona, próximamente"). 404 graceful con CTA fallback.
+- **NEW** `components/seo/ZoneStructuredData.js` — Inyecta 2 JSON-LD scripts en document.head: schema.org/Place (name, alcaldia, addressCountry MX) + schema.org/FAQPage (5 mainEntity Q&A). Cleanup en unmount. `buildFaqs(zone)` exportado para que ZonePage renderice mismas preguntas en accordion visible (paridad SEO ↔ UI).
+- **EDIT** `App.js` — lazy import `ZonePage`, `<Route path="/zona/:slug">` público sin AdvisorRoute.
+
+### Acceptance criteria validados
+- ✅ `GET /api/public/zones/polanco` 200 → ie_real=17/35, drpi=$95k/m² avail=true period 2026-05, risk=B·75.8 tier=neutral, devs=2, comparables=[Lomas Chapultepec, Anzures, Condesa]
+- ✅ `GET /api/public/zones/no-existe` 404
+- ✅ `/zona/polanco` renderiza con `data-testid="zone-page"`, `zone-name="Polanco"`, `zone-faq` accordion, 4 KPI cards, Top 3 IE Score cards, 3 comparable Links, FAQ 5 Q&A
+- ✅ 2 `<script type="application/ld+json" data-zone-jsonld>` en head (place + faq)
+- ✅ `/api/seo/sitemap.xml` incluye 16 URLs `/zona/{slug}` además de combos filtros
+- ✅ `/api/health` 200 · backend hot-reload clean · lint ESLint+ruff sin warnings
+- ✅ Domain canónico `https://desarrollosmx.io` en JSON-LD y sitemap
+
+### Comparable zones map
+16 colonias × 3 vecinas hard-coded por afinidad tier/alcaldía: polanco↔lomas-chapultepec/anzures/condesa, roma-norte↔condesa/juarez/roma-sur, condesa↔roma-norte/escandon/juarez, santa-fe↔pedregal/polanco/lomas-chapultepec, etc.
+
+
+
 ## W3.2 — ZZ.2 Transaction Network (2026-05-08)
 
 Sistema de tracking de closings anonimizados + comparables matrix verificada + price index per zona/tipo.

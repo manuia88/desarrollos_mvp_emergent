@@ -167,6 +167,8 @@ const SuperadminCompliance           = lazy(() => import('./pages/superadmin/Sup
 const PrivacyDsrPage                 = lazy(() => import('./pages/public/PrivacyDsrPage'));
 // W4.2B — MCP connect page
 const ConnectMcpPage                 = lazy(() => import('./pages/public/ConnectMcpPage'));
+// W4.2D2 — Programmatic SEO zone landing pages
+const ZonePage                       = lazy(() => import('./pages/public/ZonePage'));
 // W3.8 — Cross-sell Intelligence
 const SuperadminPartners             = lazy(() => import('./pages/superadmin/SuperadminPartners'));
 const SuperadminCrossSellAnalytics   = lazy(() => import('./pages/superadmin/SuperadminCrossSellAnalytics'));
@@ -542,6 +544,8 @@ function AppRouter() {
       <Route path="/privacy/dsr" element={<PrivacyDsrPage />} />
       {/* W4.2B — MCP connect page */}
       <Route path="/connect/mcp" element={<ConnectMcpPage />} />
+      {/* W4.2D2 — Programmatic SEO zone landing */}
+      <Route path="/zona/:slug" element={<ZonePage />} />
       {/* W3.8 — Cross-sell Intelligence */}
       <Route path="/superadmin/partners" element={<AdvisorRoute Page={SuperadminPartners} />} />
       <Route path="/superadmin/cross-sell-analytics" element={<AdvisorRoute Page={SuperadminCrossSellAnalytics} />} />

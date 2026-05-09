@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 
 log = logging.getLogger("dmx.seo_combos_seed")
 
-_BASE_URL = "https://desarrollosmx.com"
+_BASE_URL = "https://desarrollosmx.io"
 
 TOP_COMBOS: List[Dict[str, Any]] = [
     # ── Polanco ──────────────────────────────────────────────────────────────
@@ -115,3 +115,35 @@ async def seed_seo_combos(db) -> None:
     # Ensure indexes
     await db.seo_filter_combos.create_index("canonical_url", unique=True, background=True)
     await db.seo_filter_combos.create_index("last_seen_at", background=True)
+
+
+async def seed_zone_pages_in_sitemap(db) -> None:
+    """W4.2D2 — Upsert one entry per CDMX colonia for /zona/{slug} programmatic SEO."""
+    try:
+        from data_seed import COLONIAS
+    except ImportError:
+        log.warning("[seo_combos_seed] data_seed.COLONIAS not available, skipping zone pages")
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    inserted = 0
+    for c in COLONIAS:
+        slug = c["id"]
+        canonical_url = f"{_BASE_URL}/zona/{slug}"
+        result = await db.seo_filter_combos.update_one(
+            {"canonical_url": canonical_url},
+            {"$set": {
+                "type": "zone_page",
+                "slug": slug,
+                "filters": {},
+                "canonical_url": canonical_url,
+                "query_string": "",
+                "last_seen_at": now,
+            }},
+            upsert=True,
+        )
+        if result.upserted_id:
+            inserted += 1
+
+    total_zone = await db.seo_filter_combos.count_documents({"type": "zone_page"})
+    log.info(f"[seo_combos_seed] zone_pages upserted={inserted} total={total_zone}")
