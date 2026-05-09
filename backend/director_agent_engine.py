@@ -104,6 +104,11 @@ TOOLS Y PARAMS:
      • delay:        { "delay_months": int (1-12) }
      • mix:          { "scenarios": [{ "type": str, "params": dict }, ...] (max 5) }
 
+7. delegate_pricing_optimization
+   params: { "project_id": str }
+   devuelve: lista de recomendaciones de ajuste de precios con confidence_score, delta_pct, rationale
+   Úsalo cuando el usuario pregunta sobre precios sub-óptimos, "¿qué precios ajustar?", oportunidades de pricing
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -155,8 +160,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 scenario_type=str(params.get("scenario_type", "")),
                 inputs=params.get("inputs") or {},
             )
+        elif tool_name == "delegate_pricing_optimization":
+            return await _tool_delegate_pricing_optimization(
+                db, org_id,
+                project_id=str(params.get("project_id", "")),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -356,6 +366,45 @@ async def _tool_whatif_simulate(
             "recommendation_text": outs.get("recommendation_text"),
         },
         "comparables_used": outs.get("comparables_used") or [],
+    }
+
+
+async def _tool_delegate_pricing_optimization(db, org_id: str, project_id: str) -> Dict[str, Any]:
+    """Tool 7: invoca PricingAgent para detectar unidades sub-optimizadas."""
+    if not project_id:
+        return {"error": "project_id requerido para delegate_pricing_optimization"}
+    try:
+        from sub_agents.pricing_agent import (
+            PricingAgent, PricingAgentDisabledError, PricingAgentRateLimitError,
+        )
+        agent = PricingAgent(db=db, org_id=org_id)
+        result = await agent.analyze_project(project_id=project_id)
+    except PricingAgentDisabledError as e:
+        return {"error": f"Pricing Agent desactivado: {e}"}
+    except PricingAgentRateLimitError as e:
+        return {"error": f"Rate limit pricing agent: {e}"}
+    except Exception as e:
+        log.warning(f"[director_tool] delegate_pricing_optimization failed: {e}")
+        return {"error": str(e)}
+
+    recs = result.get("recommendations") or []
+    return {
+        "project_id": project_id,
+        "run_id": result.get("run_id"),
+        "layer_used": result.get("layer_used"),
+        "recommendations_count": result.get("recommendations_count", len(recs)),
+        "top_recommendations": [
+            {
+                "unit_id": r.get("unit_id"),
+                "current_price_per_m2": r.get("current_price_per_m2"),
+                "suggested_price_per_m2": r.get("suggested_price_per_m2"),
+                "delta_pct": r.get("delta_pct"),
+                "confidence_score": r.get("confidence_score"),
+                "rationale": (r.get("rationale_text") or "")[:150],
+            }
+            for r in recs[:5]
+        ],
+        "cost_usd": result.get("cost_usd"),
     }
 
 

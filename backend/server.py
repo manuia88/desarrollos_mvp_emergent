@@ -424,6 +424,12 @@ from asistente_engine import ensure_indexes as ensure_asistente_indexes
 app.include_router(asistente_router)
 app.include_router(asistente_sa_router)
 
+# W4.5 Y.2A — Pricing Sub-Agent
+from routes_subagents import router as subagents_router, sa_router as subagents_sa_router
+from sub_agents.pricing_agent import ensure_pricing_indexes
+app.include_router(subagents_router)
+app.include_router(subagents_sa_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -968,6 +974,11 @@ async def startup():
         await ensure_asistente_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.4E asistente indexes failed: {e}")
+    # W4.5 Y.2A — Pricing Sub-Agent indexes
+    try:
+        await ensure_pricing_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.5 pricing sub-agent indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
