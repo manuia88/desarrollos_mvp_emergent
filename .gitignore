@@ -23,6 +23,7 @@ dist/
 .vscode/
 .idea/
 .DS_Store
+.claude/
 
 # Test reports (regenerated each run)
 test_reports/

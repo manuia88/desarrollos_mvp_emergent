@@ -18,7 +18,10 @@ import httpx
 log = logging.getLogger("dmx.lead_nurture_engine")
 
 NURTURE_THROTTLE_DAYS = 7
-RESEND_FROM = "DesarrollosMX <no-reply@desarrollosmx.io>"
+RESEND_FROM = os.environ.get(
+    "RESEND_FROM_LEAD_NURTURE",
+    "DesarrollosMX <no-reply@desarrollosmx.io>",  # default canónico .io
+)
 SITE_BASE = "https://desarrollosmx.io"
 
 

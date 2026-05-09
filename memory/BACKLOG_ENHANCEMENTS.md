@@ -8,6 +8,20 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Embed Analytics · trackear qué sitios embeben widgets DMX
+- **Origen:** W4.2.5 emergent suggested 2026-05-09
+- **Destino:** Wave 4 W4.10 (post Phase Y) ó early W4.16 marketing
+- **Qué:** GET endpoint ligero `/api/widgets/{type}/{slug}/track?ref={hostname}` invocado al cargar el widget. Persiste `db.widget_embeds` con `{slug, hostname, count, last_seen_at}`. Dashboard superadmin muestra "Forbes embebe Polanco · El Financiero embebe Condesa" → priorizar outreach prensa data-driven.
+- **Por qué:** cierra el loop "embed widget → SEO equity → press relationships". Sin esto, founder NO sabe quién está usando los widgets organicamente.
+- **Costo:** ~2h (endpoint + dashboard + minimal UI).
+
+### Widget design system fix · gradient eyebrow + tier colors + dark theme variant
+- **Origen:** W4.2.5 design audit founder 2026-05-09
+- **Destino:** W4.2.5.1 mini fix-pass (~30 min emergent)
+- **Qué:** ajustar `ScoreWidgetPage.js` y `RiskWidgetPage.js`: (1) número grande con gradient indigo→pink Outfit 800; (2) eyebrow "SCORE IE · DESARROLLOSMX" con gradient mask; (3) Risk pill con tier color real (B=cream-green, etc); (4) opción `?theme=dark` URL param para variant dark navy bg + cream text; (5) "Powered by DesarrollosMX" Outfit 700 indigo.
+- **Por qué:** widgets actuales se ven genéricos · pierden brand identity · cada embed externo debe ser unmistakable DMX.
+- **Costo:** ~30 min (estilos + prop theme).
+
 ### Migrar DMX a MongoDB Atlas + setup Mongo MCP read-only para Claude Code
 - **Origen:** founder request 2026-05-09 (Mongo MCP setup option A)
 - **Destino:** W4.15 Phase 20 Polish + Launch o W4.2.6 prelaunch batch

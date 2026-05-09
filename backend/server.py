@@ -379,6 +379,12 @@ from routes_landings import (
 )
 app.include_router(landings_router)
 app.include_router(landings_sa_router)
+
+# W4.2.5 — Embeddable widgets + Press kit live stats (CORS open)
+from routes_widgets import router as widgets_router
+from routes_press import router as press_router
+app.include_router(widgets_router)
+app.include_router(press_router)
 try:
     from seo_combos_seed import seed_landings_in_sitemap as _seed_landings_import
 except ImportError:
