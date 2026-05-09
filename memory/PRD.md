@@ -3808,3 +3808,25 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 ### Phase Y Foundation ready
 - `get_phase_y_settings(db, org_id)` helper listo para que W4.1A (diagnostic), W4.1C (recommendation), W4.2D3.5 (lead nurture) respeten master switch + simulation_mode.
 - `db.behavioral_events` alimentando ML continuous training (Phase 17 seed).
+
+---
+
+## 2026-05-09 — W4.4C · Phase Y.1C · Director Agent MCP Exposure
+
+### Backend (2 editados)
+- **EDIT** `mcp_tools.py` — 3 tools nuevas (`director_chat`, `director_retrieve_memory`, `director_session_summary`). Total tools MCP: 8. Helper `_resolve_org_user` + dispatcher actualizado para pasar `key_doc` solo a tools de Director.
+- **EDIT** `mcp_server.py` — propaga `key_doc` a `dispatch_tool`, captura `McpToolError` con HTTP 403 / JSON-RPC -32603 para Phase Y master switch off + tier insufficient + cross-tenant blocks.
+
+### Frontend (1 editado)
+- **EDIT** `pages/public/ConnectMcpPage.js` — Step 6 nuevo con 3 cards Director Agent + 3 curl examples. Hero badge "8 herramientas". Embed widgets desplazado a Step 8.
+
+### Tier gating MCP
+- `director_chat`, `director_session_summary` — tier ≥ T1 (resuelto desde `key_doc.tier_director` o fallback `phase_y_settings.diagnostic_engine`).
+- `director_retrieve_memory` — tier ≥ T2.
+- Phase Y master switch off → 403 en cualquiera de las 3.
+
+### Multi-tenant safety
+- `director_chat` con `session_id` cruzado entre orgs → ignora session_id y crea nuevo.
+- `director_session_summary` con sesión de otro org → 403 "Sesión no pertenece a esta organización".
+- `director_retrieve_memory` filtrado por `org_id` del API key (vía `DirectorMemoryEngine`).
+

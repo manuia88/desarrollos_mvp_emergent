@@ -5,7 +5,7 @@ Implementa el protocolo MCP JSON sin dependencia del SDK oficial
 (SDK mcp>=0.1.0 incompatible con fastapi 0.104.1/anyio<4 en este entorno).
 
 Endpoints:
-  GET  /mcp/tools                  → lista 5 tools con descripción + inputSchema
+  GET  /mcp/tools                  → lista 8 tools con descripción + inputSchema
   POST /mcp/call/{tool_name}       → llama una tool (body = params JSON)
   POST /mcp                        → protocolo MCP JSON-RPC estándar (tools/list + tools/call)
 
@@ -23,7 +23,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from mcp_tools import MCP_TOOLS, dispatch_tool
+from mcp_tools import MCP_TOOLS, dispatch_tool, McpToolError
 
 log = logging.getLogger("dmx.mcp_server")
 
@@ -123,10 +123,13 @@ async def call_tool_rest(tool_name: str, request: Request):
 
     status = "ok"
     try:
-        result = await dispatch_tool(db, tool_name, params)
+        result = await dispatch_tool(db, tool_name, params, key_doc=key_doc)
     except ValueError as e:
         await _log_usage(db, key_doc.get("id", ""), tool_name, params, "error_unknown_tool")
         raise HTTPException(404, str(e))
+    except McpToolError as e:
+        await _log_usage(db, key_doc.get("id", ""), tool_name, params, "error_phase_y")
+        raise HTTPException(403, str(e))
     except Exception as e:
         log.warning(f"[mcp] call_tool {tool_name}: {e}")
         status = "error"
@@ -169,10 +172,13 @@ async def mcp_jsonrpc(body: McpJsonRpcBody, request: Request):
         arguments = params.get("arguments", {})
         status = "ok"
         try:
-            result = await dispatch_tool(db, tool_name, arguments)
+            result = await dispatch_tool(db, tool_name, arguments, key_doc=key_doc)
         except ValueError as e:
             await _log_usage(db, key_doc.get("id", ""), tool_name, arguments, "error_unknown_tool")
             return {"id": rpc_id, "error": {"code": 404, "message": str(e)}}
+        except McpToolError as e:
+            await _log_usage(db, key_doc.get("id", ""), tool_name, arguments, "error_phase_y")
+            return {"id": rpc_id, "error": {"code": -32603, "message": str(e)}}
         except Exception as e:
             log.warning(f"[mcp] jsonrpc tools/call {tool_name}: {e}")
             status = "error"

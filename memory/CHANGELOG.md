@@ -1548,3 +1548,31 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - ✅ yarn build 38s · /api/health 200
 
 ### SHA: 17eaa3d
+
+
+## W4.4C — Phase Y.1C · Director Agent MCP Exposure (2026-05-09)
+
+### Backend (2 editados)
+- **EDIT** `mcp_tools.py` — 3 nuevas MCP tools en `MCP_TOOLS` schema (total 8) + 3 handlers + dispatch_tool ahora pasa `key_doc` a tools de Director:
+  - `director_chat` (T1+): conversa con DirectorAgent. Auto-crea sesión si omites `session_id`. Verifica que session existente pertenezca al org del API key. Retorna assistant_message, tokens, cost, simulated, memory_hits_count.
+  - `director_retrieve_memory` (T2+): retrieve híbrido del DirectorMemoryEngine, filtrado por org_id. Soporta `top_k` (1-10) + `source_types` filter.
+  - `director_session_summary` (T1+): metadata + últimos N mensajes (default 10, max 50). Bloqueado si la sesión es de otro org (cross-tenant safety).
+  - Helper `_resolve_org_user(key_doc)` extrae `tenant_id`/`created_by` del API key.
+- **EDIT** `mcp_server.py` — pasa `key_doc` a `dispatch_tool`, captura `McpToolError` (HTTP 403 / JSON-RPC -32603) para Phase Y gating + cross-tenant blocks.
+
+### Frontend (1 editado)
+- **EDIT** `pages/public/ConnectMcpPage.js` — Step 6 nuevo "3 herramientas Director Agent · Phase Y" con tier badges (T1+/T2+/T1+), 3 cards `data-testid="mcp-director-tool-{name}"`, 3 bloques curl (JSON-RPC + REST). Hero "5 herramientas" → "8 herramientas". Step "Embed widgets" reorganizado a Step 8.
+
+### Acceptance Criteria validados (curl)
+- ✅ GET /api/mcp/tools → 8 tools listadas (5 IE + 3 Director)
+- ✅ director_chat con T2 sim_mode → session_id creado, [SIM] response, simulated=true
+- ✅ director_chat con Phase Y off → HTTP 403 "Phase Y disabled by superadmin"
+- ✅ director_retrieve_memory con T2 → hits_count válido
+- ✅ director_retrieve_memory con T1 → HTTP 403 "Memory layer requires T2+"
+- ✅ director_session_summary → metadata + 2 mensajes cronológicos
+- ✅ JSON-RPC tools/call (id=42) con session_id existente → session_created=false (continua sesión)
+- ✅ Cross-tenant blocked: key dmx → session test-org-123 → HTTP 403
+- ✅ Validación: `{}` payload → "message es requerido"
+- ✅ yarn build 39s · 3 testids verificados en preview URL
+
+### SHA: pending

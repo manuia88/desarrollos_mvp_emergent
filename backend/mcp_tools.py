@@ -1,18 +1,75 @@
 """W4.2A — MCP Tools definitions.
+W4.4C — Phase Y.1C · Director Agent tools (3 nuevas).
 
-5 tools expuestos por el servidor MCP de DMX:
-  1. get_zone_score      — scores de colonia/proyecto/unidad
-  2. get_dev_diagnostic  — diagnóstico W4.1A para un desarrollo
-  3. search_developments — búsqueda de desarrollos con filtros opcionales
-  4. get_unit_scores     — scores de una unidad específica
-  5. get_methodology     — metodología DRPI + Zone Score + Risk Score
+5 tools W4.2A expuestas:
+  1. get_zone_score, 2. get_dev_diagnostic, 3. search_developments,
+  4. get_unit_scores, 5. get_methodology
+
+3 tools W4.4C Director:
+  6. director_chat, 7. director_retrieve_memory, 8. director_session_summary
+
+Total: 8 tools.
 """
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 log = logging.getLogger("dmx.mcp_tools")
+
+# ─── Error class para Phase Y gating ─────────────────────────────────────────
+class McpToolError(Exception):
+    """Raised by tool handlers for JSON-RPC -32603 internal errors."""
+    def __init__(self, message: str, code: int = -32603):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+# Tier comparison helpers
+_TIER_ORDER = {"off": 0, "T1": 1, "T2": 2, "T3": 3, "T4": 4}
+
+
+def _tier_gte(tier: str, minimum: str) -> bool:
+    return _TIER_ORDER.get(tier, 0) >= _TIER_ORDER.get(minimum, 99)
+
+
+async def _get_director_tier(db, tenant_id: str, key_doc: Optional[Dict]) -> str:
+    """Resolve director tier: key_doc.tier_director → fallback Phase Y settings."""
+    if key_doc and key_doc.get("tier_director"):
+        return key_doc["tier_director"]
+    # Fallback: lee diagnostic_engine tier de Phase Y settings
+    try:
+        from routes_phase_y_controls import get_phase_y_settings
+        settings = await get_phase_y_settings(db, tenant_id)
+        if not settings.get("agentic_enabled", False):
+            return "off"
+        return (settings.get("feature_tiers") or {}).get("diagnostic_engine", "off")
+    except Exception:
+        return "off"
+
+
+async def _check_phase_y(db, tenant_id: str, min_tier: str, key_doc: Optional[Dict]) -> str:
+    """Check Phase Y master switch + tier gate. Returns effective tier. Raises McpToolError."""
+    # Master switch check via phase_y_settings
+    try:
+        from routes_phase_y_controls import get_phase_y_settings
+        settings = await get_phase_y_settings(db, tenant_id)
+        if not settings.get("agentic_enabled", False):
+            raise McpToolError("Phase Y disabled by superadmin")
+    except McpToolError:
+        raise
+    except Exception as e:
+        raise McpToolError(f"No se pudo verificar Phase Y settings: {e}")
+
+    tier = await _get_director_tier(db, tenant_id, key_doc)
+    if not _tier_gte(tier, min_tier):
+        if min_tier == "T1":
+            raise McpToolError("Phase Y Director not enabled for this API key tier")
+        else:
+            raise McpToolError(f"Memory layer requires T2+ (current tier: {tier})")
+    return tier
 
 
 # ─── MCP JSON-schema definitions ─────────────────────────────────────────────
@@ -136,6 +193,93 @@ MCP_TOOLS: List[Dict[str, Any]] = [
             "type": "object",
             "properties": {},
             "required": [],
+        },
+    },
+    # ── W4.4C · Director Agent tools (Phase Y.1C) ──────────────────────────
+    {
+        "name": "director_chat",
+        "description": (
+            "Conversa con el DMX Director AI Agent para esta organización. Phase Y must be ENABLED "
+            "for the tenant. Tier ≥ T1 required. Acepta una pregunta en español sobre el portafolio, "
+            "comparables, leads, KPIs operativos o IE scores; el Director responde con datos reales "
+            "de la organización (multi-tenant safe). Si omites session_id, se crea una nueva sesión "
+            "y se retorna en la respuesta para mensajes posteriores. "
+            "Ejemplo: director_chat(message='¿Cuál es la conversión de leads de los últimos 30 días?')."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "Pregunta o instrucción del usuario en español (es-MX).",
+                },
+                "session_id": {
+                    "type": "string",
+                    "description": (
+                        "Opcional. ID de sesión existente para mantener contexto multi-turn. "
+                        "Si se omite o es inválido, se crea una sesión nueva y se devuelve session_id."
+                    ),
+                },
+            },
+            "required": ["message"],
+        },
+    },
+    {
+        "name": "director_retrieve_memory",
+        "description": (
+            "Recupera memorias RAG indexadas del Director Agent (diagnósticos previos, cambios "
+            "significativos de IE score, sesiones behavioral y resúmenes de sesiones del director). "
+            "Multi-tenant: solo retorna memorias del org del API key. Tier ≥ T2 requerido. "
+            "Búsqueda híbrida: 70% text-score (índice $text en español) + 30% recency. "
+            "Ejemplo: director_retrieve_memory(query='pricing Polanco', top_k=5)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Texto de búsqueda en español (palabras clave o frase corta).",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "Número máximo de memorias a retornar (1-10, default 5).",
+                },
+                "source_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": ["diagnostic", "ie_score", "behavioral", "director_summary"],
+                    },
+                    "description": (
+                        "Filtra por tipo de fuente. Omite para incluir todas."
+                    ),
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "director_session_summary",
+        "description": (
+            "Devuelve metadatos y resumen de mensajes recientes de una sesión del Director Agent. "
+            "Útil para consultar uso de tokens, costo acumulado, tier al inicio, status, y los "
+            "últimos N mensajes (user/assistant) ordenados cronológicamente. Tier ≥ T1 requerido. "
+            "Multi-tenant: solo se permite consultar sesiones del org del API key. "
+            "Ejemplo: director_session_summary(session_id='dses_abc123', limit=10)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": {
+                    "type": "string",
+                    "description": "ID de la sesión a consultar (formato dses_*).",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Número de mensajes recientes a incluir (1-50, default 10).",
+                },
+            },
+            "required": ["session_id"],
         },
     },
 ]
@@ -287,20 +431,205 @@ async def handle_get_methodology(_db, _params: Dict[str, Any]) -> Dict[str, Any]
     }
 
 
+# ─── W4.4C · Director Agent handlers ─────────────────────────────────────────
+
+def _resolve_org_user(key_doc: Optional[Dict]) -> Tuple[str, str]:
+    """Extract (org_id, user_id) from MCP api_key document."""
+    if not key_doc:
+        raise McpToolError("API key context requerido para tools de Director")
+    org_id = key_doc.get("tenant_id") or ""
+    if not org_id:
+        raise McpToolError("API key sin tenant_id asociado")
+    user_id = key_doc.get("created_by") or f"mcp_{key_doc.get('id', 'anon')}"
+    return org_id, user_id
+
+
+async def handle_director_chat(db, params: Dict[str, Any], key_doc: Optional[Dict] = None) -> Dict[str, Any]:
+    """W4.4C — Conversa con el Director Agent. Crea sesión si no se provee session_id."""
+    message = (params.get("message") or "").strip()
+    if not message:
+        return {"error": "message es requerido"}
+
+    org_id, user_id = _resolve_org_user(key_doc)
+    await _check_phase_y(db, org_id, "T1", key_doc)
+
+    from director_agent_engine import DirectorAgent, PhaseYDisabledError, SessionEndedError, TierCapExceededError
+
+    agent = DirectorAgent(db, org_id=org_id, user_id=user_id, role="mcp_client")
+    session_id = (params.get("session_id") or "").strip()
+
+    # Verifica que la sesión existente pertenezca al mismo org (multi-tenant safety)
+    if session_id:
+        sess = await db.director_sessions.find_one(
+            {"_id": session_id}, {"_id": 0, "org_id": 1, "status": 1}
+        )
+        if not sess or sess.get("org_id") != org_id or sess.get("status") == "ended":
+            session_id = ""  # invalid → crear nueva
+
+    created_new = False
+    if not session_id:
+        try:
+            session_id = await agent.start_session()
+            created_new = True
+        except PhaseYDisabledError as e:
+            raise McpToolError(str(e))
+
+    try:
+        result = await agent.chat(session_id, message)
+    except (SessionEndedError, TierCapExceededError) as e:
+        raise McpToolError(str(e))
+    except ValueError as e:
+        raise McpToolError(str(e))
+    except Exception as e:
+        log.warning(f"[mcp] director_chat error: {e}")
+        raise McpToolError(f"Director chat falló: {e}")
+
+    return {
+        "session_id": session_id,
+        "session_created": created_new,
+        "assistant_message": result.get("assistant_message"),
+        "tool_calls": [tc.get("tool_name") for tc in (result.get("tool_calls") or [])],
+        "tokens_in": result.get("tokens_in", 0),
+        "tokens_out": result.get("tokens_out", 0),
+        "cost_usd": result.get("cost_usd", 0.0),
+        "simulated": result.get("simulated", False),
+        "memory_hits_count": len(result.get("memory_hits") or []),
+    }
+
+
+async def handle_director_retrieve_memory(db, params: Dict[str, Any], key_doc: Optional[Dict] = None) -> Dict[str, Any]:
+    """W4.4C — Recupera memorias RAG del org. Tier ≥ T2 requerido."""
+    query = (params.get("query") or "").strip()
+    if not query:
+        return {"error": "query es requerido"}
+
+    org_id, _ = _resolve_org_user(key_doc)
+    await _check_phase_y(db, org_id, "T2", key_doc)
+
+    top_k = int(params.get("top_k") or 5)
+    if top_k < 1:
+        top_k = 1
+    if top_k > 10:
+        top_k = 10
+    source_types = params.get("source_types") or None
+
+    from director_memory_engine import DirectorMemoryEngine
+    engine = DirectorMemoryEngine(db, org_id)
+    hits = await engine.retrieve(
+        query_text=query, top_k=top_k,
+        source_types=source_types, recency_weight=0.3,
+    )
+    return {
+        "org_id": org_id,
+        "query": query,
+        "hits_count": len(hits),
+        "memories": [
+            {
+                "memory_id": h.get("memory_id"),
+                "source_type": h.get("source_type"),
+                "summary": (h.get("content_summary") or "")[:300],
+                "created_at": h.get("created_at"),
+                "score": round(h.get("final_score", 0), 3),
+                "metadata": h.get("metadata") or {},
+            }
+            for h in hits
+        ],
+    }
+
+
+async def handle_director_session_summary(db, params: Dict[str, Any], key_doc: Optional[Dict] = None) -> Dict[str, Any]:
+    """W4.4C — Resumen de sesión del Director: metadata + últimos N mensajes."""
+    session_id = (params.get("session_id") or "").strip()
+    if not session_id:
+        return {"error": "session_id es requerido"}
+
+    org_id, _ = _resolve_org_user(key_doc)
+    await _check_phase_y(db, org_id, "T1", key_doc)
+
+    limit = int(params.get("limit") or 10)
+    if limit < 1:
+        limit = 1
+    if limit > 50:
+        limit = 50
+
+    sess = await db.director_sessions.find_one(
+        {"_id": session_id},
+        {
+            "_id": 0, "org_id": 1, "user_id": 1, "role": 1, "status": 1,
+            "created_at": 1, "last_message_at": 1, "tier_at_start": 1,
+            "simulation_mode": 1, "total_tokens_in": 1, "total_tokens_out": 1,
+            "total_cost_usd": 1, "initial_memory_ids": 1,
+        },
+    )
+    if not sess:
+        return {"error": f"Sesión '{session_id}' no existe"}
+    if sess.get("org_id") != org_id:
+        raise McpToolError("Sesión no pertenece a esta organización")
+
+    messages = await db.director_messages.find(
+        {"session_id": session_id, "role": {"$in": ["user", "assistant"]}},
+        {
+            "_id": 0, "role": 1, "content": 1, "tokens_in": 1, "tokens_out": 1,
+            "tool_calls": 1, "simulated": 1, "created_at": 1,
+        },
+    ).sort("created_at", -1).limit(limit).to_list(length=limit)
+    messages.reverse()  # cronológico ascendente
+    for m in messages:
+        ts = m.get("created_at")
+        if hasattr(ts, "isoformat"):
+            m["created_at"] = ts.isoformat()
+
+    msg_count = await db.director_messages.count_documents({"session_id": session_id})
+
+    created_at = sess.get("created_at")
+    last_msg_at = sess.get("last_message_at")
+    return {
+        "session_id": session_id,
+        "org_id": sess.get("org_id"),
+        "user_id": sess.get("user_id"),
+        "role": sess.get("role"),
+        "status": sess.get("status"),
+        "tier_at_start": sess.get("tier_at_start"),
+        "simulation_mode": sess.get("simulation_mode", False),
+        "created_at": created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at or ""),
+        "last_message_at": last_msg_at.isoformat() if hasattr(last_msg_at, "isoformat") else str(last_msg_at or ""),
+        "total_tokens_in": sess.get("total_tokens_in", 0),
+        "total_tokens_out": sess.get("total_tokens_out", 0),
+        "total_cost_usd": sess.get("total_cost_usd", 0.0),
+        "initial_memory_ids": sess.get("initial_memory_ids") or [],
+        "messages_total": msg_count,
+        "messages_returned": len(messages),
+        "messages": messages,
+    }
+
+
 # ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 _HANDLERS = {
-    "get_zone_score":      handle_get_zone_score,
-    "get_dev_diagnostic":  handle_get_dev_diagnostic,
-    "search_developments": handle_search_developments,
-    "get_unit_scores":     handle_get_unit_scores,
-    "get_methodology":     handle_get_methodology,
+    "get_zone_score":             handle_get_zone_score,
+    "get_dev_diagnostic":         handle_get_dev_diagnostic,
+    "search_developments":        handle_search_developments,
+    "get_unit_scores":            handle_get_unit_scores,
+    "get_methodology":            handle_get_methodology,
+    "director_chat":              handle_director_chat,
+    "director_retrieve_memory":   handle_director_retrieve_memory,
+    "director_session_summary":   handle_director_session_summary,
 }
 
+# Tools que requieren key_doc (Phase Y gating + tenant resolution)
+_KEY_DOC_TOOLS = {"director_chat", "director_retrieve_memory", "director_session_summary"}
 
-async def dispatch_tool(db, name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+
+async def dispatch_tool(
+    db,
+    name: str,
+    params: Dict[str, Any],
+    key_doc: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """Dispatch a tool call by name. Raises ValueError if unknown."""
     handler = _HANDLERS.get(name)
     if handler is None:
         raise ValueError(f"Tool desconocida: '{name}'. Disponibles: {list(_HANDLERS)}")
+    if name in _KEY_DOC_TOOLS:
+        return await handler(db, params, key_doc)
     return await handler(db, params)
