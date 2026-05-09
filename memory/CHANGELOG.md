@@ -1713,3 +1713,50 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - `channel="web_bubble"` solo se setea en sesiones NEW. Legacy migradas se setean correctamente. Sesiones existentes pre-W4.4E.5 mantienen channel="web" (no breaking).
 
 ### SHA: pending (auto-commit por plataforma)
+
+
+## W4.4E.5.1 — Fix-pass: security legacy mapping + lead form CayaBubble (2026-05-09)
+
+### Backend (3 EDIT)
+- **EDIT** `asistente_engine.py`:
+  - `get_or_create_from_legacy(legacy_caya_session_id, ip, ua)` ahora valida que el `legacy_caya_session_id` exista en `db.caya_sessions` ANTES de mapear. Si NO existe, aplica rate limit por ip_hash (5 sessions/hora) usando el mismo bucket que `start_session`. Si supera límite → `AsistenteRateLimitError("legacy mapping rate limit exceeded")`. Si existe, mapping idempotente sin rate limit (no penaliza usuarios legítimos). Audit log entry `asistente.legacy_mapping_rejected` con `reason="legacy_session_not_found" + legacy_id_attempted + ip_hash` para forensics. Field `legacy_validated` (bool) persistido en asistente_sessions y caya_sessions_migration.
+  - `capture_lead(...)` ahora acepta parámetro opcional `source` (default `"asistente_publico"`). Caya bubble usa `source="caya_bubble"`.
+- **EDIT** `caya_engine.py`:
+  - Catch `AsistenteRateLimitError` distingue rate limit normal vs legacy mapping (string match `"legacy mapping"`). Si legacy → response con `hand_off_reason="rate_limit_legacy_mapping"` + copy "Demasiadas solicitudes desde tu conexión. Intenta nuevamente en unos minutos." + HTTP **429 explícito** vía `JSONResponse(status_code=429, ...)`.
+- **EDIT** `routes_asistente.py`:
+  - `CaptureLeadIn` agregado field `source: Optional[str]` para permitir override desde el cliente.
+  - Endpoint `capture_lead` propaga el field a `engine.capture_lead(..., source=body.source)`.
+
+### Frontend (3 EDIT · 1 NEW)
+- **NEW** `api/cayaApi.js`: helper `captureLeadFromCaya(asistenteToken, payload)` que llama POST `/api/asistente/sessions/{token}/capture-lead` con `source: "caya_bubble"` hardcoded. **NOTA**: spec decía EDIT pero el archivo no existía → creado.
+- **EDIT** `components/landing/CayaBubble.js`:
+  - Nuevo componente `LeadCaptureMiniForm` inline (card glass dark con border + backdrop-blur(24px)): heading "¿Te conectamos con un asesor?" + 3 inputs (Nombre / WhatsApp / Email opcional) + botón "Conectarme" rounded-full gradient. Validación: nombre ≥2 chars, WhatsApp regex `/^(?:52)?\d{10}$/` (acepta con/sin prefix +52, espacios, guiones — sanitiza con `replace(/[^0-9]/g, '')`). Estados loading/success/error. Success state checkmark + copy "Te contactaremos pronto · Usaremos WhatsApp" + botón OK que cierra el form (no la conversación).
+  - Estados nuevos: `leadCaptured` (lee localStorage `dmx.caya.lead_captured.{token}` al mount), `showLeadForm` (auto-toggleado por useEffect cuando última `assistant` msg tiene `hand_off || suggested_capture`).
+  - Form se inserta en messages container DESPUÉS del último mensaje y ANTES del input. Conversación NO se bloquea post-captura — input sigue funcional.
+  - Persistencia exitosa: `localStorage.setItem('dmx.caya.lead_captured.{token}', 'true')` para no re-mostrar form en misma session post-captura.
+  - Dynamic import de `cayaApi` (`await import('../../api/cayaApi')`) para tree-shaking.
+- **EDIT** `i18n/locales/es-MX/common.json`: nueva sub-key `caya.lead_form.{title, name, whatsapp, email_optional, submit, success, error}` (7 strings).
+
+### Acceptance Criteria validados (curl + screenshot)
+- ✅ POST /api/caya/query con session_id REAL `dmx_caya_fabea4dc6af0` → mapping idempotente, sin rate limit
+- ✅ POST con session_id FAKE `dmx_caya_FAKE_1..7` desde misma IP: HTTP 200×5, HTTP 429×2 (rate limit aplicado)
+- ✅ Response 429 shape: `{ok:false, hand_off_recommended:true, hand_off_reason:"rate_limit_legacy_mapping", answer:"Demasiadas solicitudes desde tu conexión..."}`
+- ✅ Audit log: 8 entries `asistente.legacy_mapping_rejected` con reason="legacy_session_not_found" + ip_hash + legacy_id_attempted
+- ✅ POST capture-lead con `source:"caya_bubble"` → lead persistido en `db.leads` con `source: 'caya_bubble'` (verificado con find_one)
+- ✅ UI screenshot /marketplace con localStorage seeded (history+token+hand_off=true): caya-panel ✓, caya-lead-form ✓, caya-lead-nombre ✓, caya-lead-whatsapp ✓, caya-lead-email ✓, caya-lead-submit ✓, caya-expand-btn ✓, caya-handoff ✓ (8/8 testids visibles)
+- ✅ Form valida: nombre ≥2 chars + WhatsApp regex 10 dígitos · botón disabled hasta cumplir
+- ✅ localStorage flag `dmx.caya.lead_captured.{token}` se setea post-captura
+- ✅ Conversación continúa post-captura (input no se bloquea)
+- ✅ yarn build 38.7s clean · /api/health 200
+
+### Edge cases conservadores
+- **`cayaApi.js` no existía en el repo**: spec marcó EDIT pero file era NEW. Creado con shape mínimo (`captureLeadFromCaya` helper). Reportado.
+- **Rate limit shared bucket**: `_session_buckets` se comparte entre `start_session` y `get_or_create_from_legacy` (decisión consciente: una IP que crea sesiones nuevas Y mapea legacy IDs fake usa el mismo presupuesto de 5/hora).
+- **Audit log best-effort**: si `db.activity_log.insert_one` falla (e.g., collection no existe), no rompe el flow — try/except silencioso. La rejection sigue siendo enforced.
+- **WhatsApp regex permisivo**: acepta input con espacios/guiones/+52 prefix porque sanitiza con `replace(/[^0-9]/g, '')` antes de validar. Cubre formatos comunes mexicanos: `+52 555 123 4567`, `5551234567`, `55-5123-4567`, `+525551234567`.
+- **`source` field en CaptureLeadIn pydantic**: ya estaba como Optional pero no se propagaba. Ahora se propaga al engine. Backwards-compat: si client no manda `source`, default sigue siendo `"asistente_publico"`.
+- **localStorage flag por token**: `dmx.caya.lead_captured.{token}` es per-asistente_token. Si user abre en incognito o limpia storage, form re-aparece (comportamiento esperado).
+- **Form re-aparece después de cerrar?**: `setShowLeadForm(false)` solo oculta sin marcar como capturado. La auto-toggle useEffect lo re-mostrará en próxima respuesta hand_off — para eso existe `leadCaptured` que persiste.
+- **Hand_off banner vs LeadCaptureMiniForm**: ambos visibles simultáneamente (banner amarillo de WhatsApp + form inline). Decisión: dar al user opción de WhatsApp directo (1-click) O capturar contacto (asesor te llama). No competen.
+
+### SHA: pending (auto-commit por plataforma)

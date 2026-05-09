@@ -48,6 +48,7 @@ class CaptureLeadIn(BaseModel):
     whatsapp: str
     email: Optional[str] = None
     mensaje: Optional[str] = None
+    source: Optional[str] = None  # override: "caya_bubble" o "asistente_publico" (default)
 
 
 # ─── Public endpoints ─────────────────────────────────────────────────────────
@@ -138,6 +139,7 @@ async def capture_lead(session_token: str, body: CaptureLeadIn, request: Request
             session_token,
             nombre=body.nombre, whatsapp=body.whatsapp,
             email=body.email, mensaje=body.mensaje,
+            source=body.source,
         )
     except ValueError as e:
         raise HTTPException(404, str(e))

@@ -943,7 +943,16 @@
     },
     "caya": {
       "expand_button": "Expandir conversación",
-      "unified_with_asistente_label": "Powered by Director AI · DesarrollosMX"
+      "unified_with_asistente_label": "Powered by Director AI · DesarrollosMX",
+      "lead_form": {
+        "title": "¿Te conectamos con un asesor?",
+        "name": "Nombre",
+        "whatsapp": "WhatsApp (+52 ...)",
+        "email_optional": "Email (opcional)",
+        "submit": "Conectarme",
+        "success": "Te contactaremos pronto · Usaremos WhatsApp.",
+        "error": "No pudimos guardar tus datos. Intenta de nuevo."
+      }
     }
   }
 }

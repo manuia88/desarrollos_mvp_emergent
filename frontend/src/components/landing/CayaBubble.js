@@ -30,8 +30,132 @@ function saveHistory(h) {
 }
 
 
-function MemoryHitsBlock({ hits }) {
-  const [open, setOpen] = useState(false);
+// ─── LeadCaptureMiniForm (W4.4E.5.1) ─────────────────────────────────────
+function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose }) {
+  const [nombre, setNombre] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
+
+  const validNombre = nombre.trim().length >= 2;
+  // Acepta 10 dígitos mexicanos (con o sin prefix +52, espacios, guiones)
+  const wsClean = whatsapp.replace(/[^0-9]/g, '');
+  const validWs = /^(?:52)?\d{10}$/.test(wsClean);
+  const valid = validNombre && validWs && !submitting;
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault?.();
+    if (!valid) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const { captureLeadFromCaya } = await import('../../api/cayaApi');
+      await captureLeadFromCaya(asistenteToken, {
+        nombre: nombre.trim(),
+        whatsapp: whatsapp.trim(),
+        email: email.trim() || null,
+      });
+      setSuccess(true);
+      try { localStorage.setItem(`dmx.caya.lead_captured.${asistenteToken}`, 'true'); } catch (_) {/*ignore*/}
+      onSuccess?.();
+    } catch (err) {
+      setError(err.message || 'No pudimos guardar tus datos.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div data-testid="caya-lead-success" style={{
+        padding: 12, borderRadius: 12, marginTop: 8,
+        background: 'rgba(74,222,128,0.10)', border: '1px solid rgba(74,222,128,0.32)',
+        backdropFilter: 'blur(24px)', display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#86efac', flex: 1, lineHeight: 1.5 }}>
+          Te contactaremos pronto · Usaremos WhatsApp.
+        </div>
+        <button onClick={onClose} style={{
+          padding: '4px 10px', borderRadius: 9999, background: 'transparent',
+          border: '1px solid rgba(74,222,128,0.32)', color: '#86efac',
+          fontFamily: 'DM Sans', fontSize: 10, cursor: 'pointer',
+        }}>OK</button>
+      </div>
+    );
+  }
+
+  return (
+    <form data-testid="caya-lead-form" onSubmit={handleSubmit} style={{
+      padding: 12, borderRadius: 12, marginTop: 8,
+      background: 'rgba(13,16,23,0.85)',
+      border: '1px solid rgba(99,102,241,0.32)',
+      backdropFilter: 'blur(24px)',
+      display: 'flex', flexDirection: 'column', gap: 7,
+    }}>
+      <div style={{
+        fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: 'var(--cream)',
+        letterSpacing: '-0.01em',
+      }}>
+        ¿Te conectamos con un asesor?
+      </div>
+      <input
+        data-testid="caya-lead-nombre"
+        value={nombre} onChange={e => setNombre(e.target.value)}
+        placeholder="Nombre"
+        style={miniInput()}
+      />
+      <input
+        data-testid="caya-lead-whatsapp"
+        value={whatsapp} onChange={e => setWhatsapp(e.target.value)}
+        placeholder="WhatsApp (+52 ...)"
+        style={miniInput()}
+      />
+      <input
+        data-testid="caya-lead-email"
+        value={email} onChange={e => setEmail(e.target.value)}
+        placeholder="Email (opcional)"
+        style={miniInput()}
+      />
+      {error && (
+        <div data-testid="caya-lead-error" style={{
+          fontFamily: 'DM Sans', fontSize: 10, color: '#fca5a5',
+          padding: '4px 8px', borderRadius: 6, background: 'rgba(239,68,68,0.10)',
+          border: '1px solid rgba(239,68,68,0.30)',
+        }}>{error}</div>
+      )}
+      <button
+        type="submit"
+        data-testid="caya-lead-submit"
+        disabled={!valid}
+        style={{
+          marginTop: 2, padding: '7px 12px', borderRadius: 9999,
+          background: valid ? 'var(--grad)' : 'rgba(255,255,255,0.08)',
+          color: '#fff', border: 'none', cursor: valid ? 'pointer' : 'not-allowed',
+          fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
+          opacity: valid ? 1 : 0.6,
+        }}
+      >
+        {submitting ? 'Enviando…' : 'Conectarme'}
+      </button>
+    </form>
+  );
+}
+
+function miniInput() {
+  return {
+    width: '100%', boxSizing: 'border-box',
+    padding: '7px 10px', borderRadius: 8,
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.10)',
+    color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 11.5,
+    outline: 'none',
+  };
+}
+
+
+function MemoryHitsBlock({ hits }) {  const [open, setOpen] = useState(false);
   if (!hits || hits.length === 0) return null;
   return (
     <div data-testid="caya-memory-hits" style={{ marginTop: 6 }}>
@@ -101,7 +225,28 @@ export default function CayaBubble() {
     try { return localStorage.getItem('dmx.caya.asistente_token') || null; } catch { return null; }
   });
   const [tier, setTier] = useState(null);
+  const [leadCaptured, setLeadCaptured] = useState(false);
+  const [showLeadForm, setShowLeadForm] = useState(false);
   const scrollRef = useRef(null);
+
+  // Check localStorage flag once asistenteToken is known
+  useEffect(() => {
+    if (!asistenteToken) return;
+    try {
+      if (localStorage.getItem(`dmx.caya.lead_captured.${asistenteToken}`) === 'true') {
+        setLeadCaptured(true);
+      }
+    } catch (_) { /* ignore */ }
+  }, [asistenteToken]);
+
+  // Auto-show lead form when latest assistant msg recommends hand_off or capture
+  useEffect(() => {
+    if (leadCaptured || !asistenteToken) return;
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+    if (lastAssistant && (lastAssistant.hand_off || lastAssistant.suggested_capture)) {
+      setShowLeadForm(true);
+    }
+  }, [messages, leadCaptured, asistenteToken]);
 
   useEffect(() => { saveHistory(messages); }, [messages]);
   useEffect(() => {
@@ -347,6 +492,15 @@ export default function CayaBubble() {
               }}>
                 Caya está pensando<span className="caya-dots">…</span>
               </div>
+            )}
+
+            {/* Lead capture mini-form (W4.4E.5.1) */}
+            {showLeadForm && asistenteToken && !leadCaptured && (
+              <LeadCaptureMiniForm
+                asistenteToken={asistenteToken}
+                onSuccess={() => setLeadCaptured(true)}
+                onClose={() => setShowLeadForm(false)}
+              />
             )}
           </div>
 
