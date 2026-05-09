@@ -165,6 +165,8 @@ const SuperadminDataLicensing        = lazy(() => import('./pages/superadmin/Sup
 // W3.7 — Phase Z.5 Compliance LFPDPPP
 const SuperadminCompliance           = lazy(() => import('./pages/superadmin/SuperadminCompliance'));
 const PrivacyDsrPage                 = lazy(() => import('./pages/public/PrivacyDsrPage'));
+// W4.2B — MCP connect page
+const ConnectMcpPage                 = lazy(() => import('./pages/public/ConnectMcpPage'));
 // W3.8 — Cross-sell Intelligence
 const SuperadminPartners             = lazy(() => import('./pages/superadmin/SuperadminPartners'));
 const SuperadminCrossSellAnalytics   = lazy(() => import('./pages/superadmin/SuperadminCrossSellAnalytics'));
@@ -536,6 +538,8 @@ function AppRouter() {
       {/* W3.7 — Phase Z.5 Compliance */}
       <Route path="/superadmin/compliance" element={<AdvisorRoute Page={SuperadminCompliance} />} />
       <Route path="/privacy/dsr" element={<PrivacyDsrPage />} />
+      {/* W4.2B — MCP connect page */}
+      <Route path="/connect/mcp" element={<ConnectMcpPage />} />
       {/* W3.8 — Cross-sell Intelligence */}
       <Route path="/superadmin/partners" element={<AdvisorRoute Page={SuperadminPartners} />} />
       <Route path="/superadmin/cross-sell-analytics" element={<AdvisorRoute Page={SuperadminCrossSellAnalytics} />} />

@@ -347,6 +347,13 @@ app.include_router(comparable_alerts_router)
 from mcp_server import router as mcp_router, ensure_mcp_indexes
 app.include_router(mcp_router, prefix="/api/mcp")
 
+# W4.2B — SEO/GEO static files (NO /api prefix — llms.txt, sitemap.xml, ai-plugin.json)
+# NOTE: in this Kubernetes environment, non-/api paths go to the React frontend.
+# Static files are served from frontend/public/ for the canonical paths.
+# This backend router provides /api/seo/* mirror for API clients.
+from routes_seo_files import router as seo_router
+app.include_router(seo_router, prefix="/api/seo")
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)

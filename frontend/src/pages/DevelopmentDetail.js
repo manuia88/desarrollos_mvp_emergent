@@ -25,6 +25,8 @@ import VirtualTourPlaceholder from '../components/marketplace/VirtualTourPlaceho
 import WhatsAppAsesorCTA from '../components/marketplace/WhatsAppAsesorCTA';
 // Phase 4 Batch 28 — buyer view tracking (auth-gated)
 import { trackPropertyView } from '../lib/funnelTracker';
+// W4.2B — SEO structured data
+import StructuredData from '../components/seo/StructuredData';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -111,6 +113,24 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
+      {/* W4.2B — RealEstateListing structured data */}
+      <StructuredData
+        type="RealEstateListing"
+        data={{
+          name: dev.name,
+          description: dev.description || '',
+          url: `https://desarrollosmx.com/desarrollo/${dev.id}`,
+          image: (dev.images || [])[0] || '',
+          address: dev.address_full || '',
+          colonia: dev.colonia || '',
+          postal_code: dev.postal_code || '',
+          lat: dev.center ? dev.center[1] : undefined,
+          lng: dev.center ? dev.center[0] : undefined,
+          price_from: dev.price_from,
+          price_to: dev.price_to,
+          m2_range: dev.m2_range,
+        }}
+      />
       <main style={{ paddingTop: 80 }}>
         <section style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 32px 64px' }}>
 

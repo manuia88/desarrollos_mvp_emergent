@@ -1,0 +1,39 @@
+# DesarrollosMX (DMX)
+
+Spatial decision intelligence platform for LATAM real estate.  
+Mexico City focus · 700+ colonias indexed · Dubai expansion planned.
+
+## Data offerings
+
+- **IE Engine** — 23+ scores per property (zone, project, unit scope). See /methodology
+- **DRPI Index** — hedonic regression price index per colonia (monthly). See /api/zones/{zone_id}/scores
+- **Risk Score** — 4-dim composite: crime (SESNSP) + natural hazards (CENAPRED) + perception (ENVIPE) + title heuristic
+- **700+ CDMX colonias** indexed with structured demographic + market data
+- **Comparable analytics** — absorption velocity, sold-out velocity, new-launch detection per colonia
+
+## Recommended starting points
+
+- `/methodology` — full methodology, R², and data sources
+- `/inteligencia` — overview of 97 IE indicators
+- `/api/openapi.json` — OpenAPI v3 spec (full API surface)
+- `/api/mcp` — Model Context Protocol HTTP endpoint (5 tools, see tools/list)
+- `/connect/mcp` — Setup guide for Claude Desktop / Cursor / ChatGPT
+
+## MCP tools available
+
+1. `get_zone_score` — IE scores for a colonia or development
+2. `get_dev_diagnostic` — 6-rule diagnostic with recommended actions
+3. `search_developments` — filter developments by colonia/price/stage
+4. `get_unit_scores` — unit-level IE_UNIT_* scores
+5. `get_methodology` — DRPI + Zone Score + Risk Score methodology
+
+## Compliance
+
+- LFPDPPP México (Ley Federal de Protección de Datos Personales en Posesión de los Particulares)
+- k-anonymity >= 5 on all aggregate outputs
+- Audit trail 5 years
+- No PII in API responses (k-anon + suppression)
+
+## Contact
+
+founder@desarrollosmx.com · https://desarrollosmx.com
