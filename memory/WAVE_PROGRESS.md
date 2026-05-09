@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.2.5 shipped · Wave 4 ~81.5h: + Embed widgets + Press kit + design system fix Claude Code)
-**Total H1 restante**: ~379.5h (Wave 4 pending de los 461h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 81.5h = 448.5h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 461h (81.5h shipped, 379.5h pending) = 778h plan
+**Última actualización**: 2026-05-09 (W4.2.5.1 design fix-pass shipped · Wave 4 ~82h: widgets + press kit + design system convergencia)
+**Total H1 restante**: ~379h (Wave 4 pending de los 461h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 82h = 449h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 461h (82h shipped, 379h pending) = 778h plan
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -133,7 +133,7 @@ Formato canónico per-batch (founder request):
 | W4.2D2 | Zone landing pages `/zona/{slug}` (16 zonas seed) + FAQ Schema + Place JSON-LD + sitemap | 8 | 8 | emergent | ✅ | `fbdf7e9` | routes_public_zones.py + ZonePage.js + ZoneStructuredData.js |
 | W4.2D3 | Programmatic SEO Tier 1+2 (61 landing pages: 40 colonias + 16 alcaldías + 5 intents) + lead capture anti-doorway | 8 | 8 | emergent | ✅ | `1a14ac7` | seo_landings_config.py + routes_landings.py + AlcaldiaPage.js + IntentLandingPage.js + LandingLeadCaptureForm.js |
 | W4.2D3.5 | Landing Leads Dashboard + Lead Nurture Cron 04:00 MX | 5 | 5 | emergent | ✅ | `bb94f16` | lead_nurture_engine.py + SuperadminLandingLeads.js + 4 endpoints superadmin + cron schedule |
-| W4.2.5A | Embeddable Score + Risk Widgets (`/widgets/score/{slug}` + `/widgets/risk/{slug}`) + design system fix Claude Code | 4 | 4.5 | emergent + CC | ✅ | `29f0bd8` + `ca691e2` (CC fix) | ScoreWidgetPage.js + RiskWidgetPage.js + routes_widgets.py + ConnectMcpPage embed snippets · CC: cream bg + gradient top bar + dark glass stats |
+| W4.2.5A | Embeddable Score + Risk Widgets (`/widgets/score/{slug}` + `/widgets/risk/{slug}`) + design system fix-pass W4.2.5.1 | 4 | 5 | emergent | ✅ | `29f0bd8` + `62ed233` (W4.2.5.1) | ScoreWidgetPage.js + RiskWidgetPage.js + routes_widgets.py + ConnectMcpPage embed snippets · cream bg + gradient top bar + dark glass stats verificados live |
 | W4.2.5B | `/prensa` Media Kit page (8 stat cards copy-as-quote + 4 download cards + JSON-LD NewsMediaOrganization) | 3 | 3 | emergent | ✅ | `29f0bd8` | PrensaPage.js + routes_press.py |
 | W4.3 | Phase Y.0 Foundation + Behavioral Tracking | 16 | — | emergent | ⏳ | — | opt-in tiers + event collectors |
 | W4.4 | Phase Y.1 Director Agent + Memory layer | 25 | — | emergent | ⏳ | — | vector embeddings |
@@ -154,8 +154,8 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 81.5h / 461h (17.7%) 🟡
-**Pendiente Wave 4**: ~379.5h
+**Acumulado Wave 4**: 82h / 461h (17.8%) 🟡
+**Pendiente Wave 4**: ~379h
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
 **Por emergent en Wave 4**: ~395h
 
