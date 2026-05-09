@@ -7,7 +7,7 @@ import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import { MapPin, Leaf, Route, Shield, Store, ArrowRight } from '../components/icons';
-import CayaBubble from '../components/landing/CayaBubble';
+import AtlaxBubble from '../components/landing/AtlaxBubble';
 import { useAuth } from '../App';
 
 const FACTORS = [
@@ -168,7 +168,7 @@ export default function Barrios() {
         code={explain?.code}
         onClose={() => setExplain(null)}
       />
-      <CayaBubble />
+      <AtlaxBubble />
     </div>
   );
 }

@@ -9,6 +9,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
@@ -24,6 +25,20 @@ from asistente_engine import (
 )
 
 log = logging.getLogger("dmx.routes_asistente")
+
+# W4.4E.5.2 · Rate limit capture-lead: 3 leads/hora/ip_hash
+_lead_capture_buckets: Dict[str, list] = defaultdict(list)
+
+
+def _check_capture_rate(ip_hash: str, limit: int = 3, window_s: int = 3600) -> bool:
+    import time
+    now = time.monotonic()
+    _lead_capture_buckets[ip_hash] = [t for t in _lead_capture_buckets[ip_hash] if now - t < window_s]
+    if len(_lead_capture_buckets[ip_hash]) >= limit:
+        return False
+    _lead_capture_buckets[ip_hash].append(now)
+    return True
+
 
 router = APIRouter(prefix="/api/asistente", tags=["asistente"])
 sa_router = APIRouter(prefix="/api/superadmin/asistente", tags=["asistente-admin"])
@@ -134,6 +149,27 @@ async def capture_lead(session_token: str, body: CaptureLeadIn, request: Request
         raise HTTPException(422, "Nombre requerido")
     if not body.whatsapp or not body.whatsapp.strip():
         raise HTTPException(422, "WhatsApp requerido")
+
+    # W4.4E.5.2 · Rate limit 3 leads/hora/ip_hash
+    from behavioral_tracking_engine import _hash_ip
+    ip_raw = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    ip_hash = _hash_ip(ip_raw)
+    if not _check_capture_rate(ip_hash, limit=3, window_s=3600):
+        try:
+            await db.activity_log.insert_one({
+                "type": "asistente.lead_capture_rate_limited",
+                "ip_hash": ip_hash,
+                "session_token": session_token,
+                "created_at": datetime.now(timezone.utc),
+            })
+        except Exception:
+            pass
+        raise HTTPException(429, detail={
+            "ok": False,
+            "error": "rate_limit_capture_lead",
+            "retry_after_seconds": 3600,
+        })
+
     try:
         result = await engine.capture_lead(
             session_token,

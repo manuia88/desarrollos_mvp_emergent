@@ -1760,3 +1760,57 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - **Hand_off banner vs LeadCaptureMiniForm**: ambos visibles simultáneamente (banner amarillo de WhatsApp + form inline). Decisión: dar al user opción de WhatsApp directo (1-click) O capturar contacto (asesor te llama). No competen.
 
 ### SHA: pending (auto-commit por plataforma)
+
+
+## W4.4E.5.2 — Brand rename Caya→Atlax + 2 UX upgrades (2026-05-09)
+
+### Backend (4 EDIT · 1 NEW · 1 DELETE)
+- **RENAME** `caya_engine.py` → `atlax_engine.py`. Cambios: docstring W4.4E.5.2, logger `dmx.atlax`, router prefix `/api/atlax/*` (`/api/atlax/query` + `/api/atlax/sessions/{id}/history`), class `CayaQueryIn`→`AtlaxQueryIn`, function `caya_query`→`atlax_query`, `ensure_caya_indexes`→`ensure_atlax_indexes`. Nuevo session_id prefix para sesiones nuevas: `dmx_atlax_*` (en vez de `dmx_caya_*`). Lógica DB intacta: collections `caya_sessions`, `caya_messages`, `caya_sessions_migration` mantienen su nombre para preservar datos históricos sin migración destructiva.
+- **NEW** `routes_caya_legacy.py` (35L): `@router.api_route("/api/caya/{rest_path:path}", methods=[GET,POST,PUT,DELETE,PATCH])` retorna 308 Permanent Redirect a `/api/atlax/{rest_path}` con header `X-Atlax-Migration: deprecated-90d`. Preserva query string. `# TODO(2026-08-07): eliminar` post-window de 90 días.
+- **EDIT** `server.py`: imports actualizados (`from atlax_engine import router as atlax_router` + `from routes_caya_legacy import router as caya_legacy_router`), ambos routers montados, `ensure_atlax_indexes` reemplaza `ensure_caya_indexes`.
+- **EDIT** `routes_asistente.py`:
+  - Import `defaultdict` agregado · constante `_lead_capture_buckets: Dict[str, list]` separada del bucket de sesiones · helper `_check_capture_rate(ip_hash, limit=3, window_s=3600)`.
+  - POST `/api/asistente/sessions/{token}/capture-lead` ahora valida ip_hash NO ha excedido 3 leads/hora ANTES de persistir. Si excedido → 429 con detail `{ok:false, error:"rate_limit_capture_lead", retry_after_seconds:3600}`. Audit log `asistente.lead_capture_rate_limited` con ip_hash + session_token.
+- **DELETE** `caya_engine.py` (renamed file removed).
+- **NO CHANGE** `asistente_engine.get_or_create_from_legacy`: ya acepta cualquier prefix porque busca por `session_id` en `caya_sessions` collection sin validar prefix. Ambos `dmx_caya_*` y `dmx_atlax_*` funcionan.
+
+### Frontend (5 EDIT · 1 RENAME · 1 RENAME · 1 DELETE × 2)
+- **RENAME** `components/landing/CayaBubble.js` → `AtlaxBubble.js`. Cambios:
+  - Component name `CayaBubble`→`AtlaxBubble`.
+  - localStorage keys `dmx.caya.*` → `dmx.atlax.*` (session_id, history.v1, asistente_token, lead_captured.{token}).
+  - **Migration silenciosa**: helper `migrateLegacyLocalStorage()` ejecutado en `useState(() => {...})` SINCRÓNICO antes de cualquier otro state init (crítico para evitar que `saveHistory([])` sobrescriba). Mueve valores legacy a nuevos keys + elimina los originales.
+  - Endpoint URL `${API}/api/caya/query` → `${API}/api/atlax/query` (frontend bubble usa endpoint nuevo directo, no via redirect).
+  - Deep-link query param: `?atlax=open` (nuevo) Y `?caya=open` (fallback legacy).
+  - Header brand: "Caya" → "Atlax", subtitle "Asistente DMX · Beta" → "DesarrollosMX · Beta", typing indicator "Caya está pensando" → "Atlax está pensando", aria-label "Abrir chat Caya" → "Abrir chat Atlax".
+  - Anonymous session prefix `caya_anon_*` → `atlax_anon_*`.
+  - Dynamic import: `cayaApi` → `atlaxApi`, helper `captureLeadFromCaya` → `captureLeadFromAtlax`.
+  - **Fix #3 (form/banner mutex)**: nuevo state `formDismissed`. Banner amarillo handoff render condicional `m.hand_off && (leadCaptured || formDismissed)` — solo aparece cuando form está oculto/cerrado. Form X button setea `formDismissed=true` (state, NO localStorage — re-aparece en próxima session/refresh). Mutex garantizado: nunca visible simultáneamente.
+  - Nuevo botón X dentro del form (`data-testid="caya-lead-dismiss"`) en el header del form al lado del título.
+- **RENAME** `api/cayaApi.js` → `api/atlaxApi.js`. Función `captureLeadFromCaya` → `captureLeadFromAtlax`, source override `"caya_bubble"` → `"atlax_bubble"` (registro analítico distinto del legacy).
+- **EDIT** 4 pages: `pages/Marketplace.js`, `pages/DevelopmentDetail.js`, `pages/Inteligencia.js`, `pages/Barrios.js` — `import CayaBubble from '../components/landing/CayaBubble'` → `import AtlaxBubble from '../components/landing/AtlaxBubble'`, `<CayaBubble />` → `<AtlaxBubble />`.
+- **EDIT** `i18n/locales/es-MX/common.json`: top-level key `caya.*` → `atlax.*` preservando contenido (subkeys lead_form.{title, name, whatsapp, email_optional, submit, success, error, expand_button, unified_with_asistente_label}).
+
+### Acceptance Criteria validados (curl + screenshots)
+- ✅ POST `/api/atlax/query` retorna ok=true, session_id prefix `dmx_atlax_888b72f36178` (nuevo), tier=T1, real LLM response es-MX
+- ✅ POST `/api/caya/query` → HTTP **308 Permanent Redirect** a `/api/atlax/query`, header `x-atlax-migration: deprecated-90d` ✓
+- ✅ `curl -L /api/caya/query` (follow redirect) → response 200 con session_id prefix `dmx_atlax_*` ✓
+- ✅ localStorage migration silenciosa: legacy keys (`dmx.caya.session_id`, `.asistente_token`, `.history.v1` con 2 msgs) seedeadas → reload → `caya_keys=[]`, `atlax_keys=[token, session_id, history.v1]` con 206 chars (history preserved)
+- ✅ AtlaxBubble en /marketplace muestra header "Atlax · DESARROLLOSMX · BETA" + funcional con history hidratada
+- ✅ Capture-lead 3/hora/ip: HTTP 201×3, HTTP **429×2** con body `{detail:{ok:false, error:"rate_limit_capture_lead", retry_after_seconds:3600}}`
+- ✅ Audit log: `asistente.lead_capture_rate_limited` 2 entries, leads count source=atlax_bubble: 3
+- ✅ **Fix #3 mutex**: hand_off=true response → form aparece (caya-lead-form=1), banner NO (caya-handoff=0). Click X → form oculta (caya-lead-form=0), banner amarillo aparece (caya-handoff=1). Visualmente confirmado en 2 screenshots.
+- ✅ Botón "Expandir conversación" sigue funcional (gradient rounded-full)
+- ✅ yarn build 38.65s clean · /api/health 200
+
+### Edge cases conservadores
+- **DB collections NO renombradas**: `caya_sessions`, `caya_messages`, `caya_sessions_migration` mantienen nombre legacy. Migración del nombre DB requeriría dump+restore destructivo. Decisión: el brand UI/API es Atlax pero el DB schema preserva nombre histórico.
+- **Migration localStorage debe ser síncrona**: el primer intento (en useEffect) fue sobrescrito por el `saveHistory(messages)` useEffect que corre en initial render con messages=[]. Fix: mover migration a un `useState(() => {})` initializer al INICIO del componente (antes de los otros state inits).
+- **Endpoint redirect window 90 días**: `routes_caya_legacy.py` tiene comentario `# TODO(2026-08-07): eliminar`. Después de esa fecha, /api/caya/* retornará 404. Cliente bubble nuevo usa /api/atlax/* directo, solo redirect protege clientes externos (e.g., un script de un partner que cacheó la URL antigua).
+- **`channel="web_bubble"` en payload bubble**: ya estaba seteado desde W4.4E.5.1 — no breaking.
+- **`source="atlax_bubble"` distingue del legacy**: leads capturados desde el bubble post-rename quedarán con source nuevo. Leads pre-rename mantienen source="caya_bubble". Reportes superadmin pueden distinguir cohort.
+- **Migration per-token flags**: `dmx.caya.lead_captured.{token}` también se migra a `dmx.atlax.lead_captured.{token}` (loop sobre Object.keys).
+- **Deep-link backward compat**: usuarios con bookmark `?caya=open` siguen abriendo el bubble (fallback en useState init).
+- **`testid` data-testids NO renombrados** (caya-panel, caya-lead-form, etc.): mantenidos para no romper test suites externos. Audit/fix futuro si necesario.
+- **Aria-label cambió** ("Abrir chat Atlax") pero el testid `data-testid="caya-bubble"` se mantuvo: prioridad accessibility/branding sobre limpieza de testids.
+
+### SHA: pending (auto-commit por plataforma)

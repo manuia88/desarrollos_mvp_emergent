@@ -6,7 +6,7 @@ import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { Sparkle, Database, BarChart, Route, Shield, Leaf, Store, ArrowRight } from '../components/icons';
-import CayaBubble from '../components/landing/CayaBubble';
+import AtlaxBubble from '../components/landing/AtlaxBubble';
 import RiskWatchlist from '../components/watchlist/RiskWatchlist';
 import { useAuth } from '../App';
 
@@ -163,7 +163,7 @@ export default function Inteligencia() {
         code={explainCode}
         onClose={() => setExplainCode(null)}
       />
-      <CayaBubble />
+      <AtlaxBubble />
     </div>
   );
 }
