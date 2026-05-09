@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (Caya bloque planeado: Y.1E corriendo + W4.4E.5 unification + W4.11a Caya home · W4.11b A11 movido a W4.15 · Wave 4 556h → 563h)
-**Total H1 restante**: ~437h (Wave 4 pending de los 563h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 126h = 493h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 563h (126h shipped, 437h pending) = 880h plan (con Phase Y + Data sources + 3DGS + Caya unification upgrades)
+**Última actualización**: 2026-05-09 (W4.4E Phase Y.1E `/asistente` shipped · Wave 4 ~134h · próximo W4.4E.5 Unification)
+**Total H1 restante**: ~429h (Wave 4 pending de los 563h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 134h = 501h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 563h (134h shipped, 429h pending) = 880h plan (con Phase Y + Data sources + 3DGS + Caya unification upgrades)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -140,7 +140,7 @@ Formato canónico per-batch (founder request):
 | W4.4B | Phase Y.1B — Memory layer RAG sobre diagnostic_reports + ie_scores + behavioral_events | 8 | 8 | emergent | ✅ | `17eaa3d` | DirectorMemoryEngine + 5to tool retrieve_memory + auto-inject T2+ + cron daily 04:30 + cron weekly expire 180d + MongoDB TEXT index español + MemoryHitsBlock UI |
 | W4.4C | Phase Y.1C — MCP exposure de Director (3 nuevas tools en /api/mcp existente) | 4 | 4 | emergent | ✅ | `e2d9aa7` | director_chat T1+ + director_retrieve_memory T2+ + director_session_summary T1+ · ConnectMcpPage Step 6 + 3 cards + curl examples · total 8 MCP tools · cross-tenant safety + master switch validados |
 | W4.4D | Phase Y.1D — What-if Simulator (price_change/promo/delay/mix · 4 escenarios) | 6 | 6 | emergent | ✅ | `a85d7d9` | whatif_engine + 4 scenarios + Director 6th tool + MCP 9th tool + WhatIfPanel · caps T1=100/T2=500/T3+=∞ · cross-tenant safety + DSR soft delete |
-| W4.4E | Phase Y.1E — Chat público `/asistente` (comprador frontstage) | 8 | — | emergent | ⏳ | — | feature #1 killer · session anónima · rate limit anti-abuse |
+| W4.4E | Phase Y.1E — Chat público `/asistente` (comprador frontstage) | 8 | 8 | emergent | ✅ | `af6195d` | asistente_engine + 4 endpoints + 3 public tools + LFPDPPP IP hash + intent regex + lead capture wireado a leads source=asistente_publico + cron expire 03:30 + AsistentePage UI full-page + 4 chips empty state |
 | W4.4E.5 | Caya/Asistente Unification + Upgrade (refactor caya_engine → invoca asistente_engine · CayaBubble hereda Director Agent + tools + Phase Y settings + LFPDPPP + lead capture) | 7 | — | emergent | ⏳ | — | autorizado 2026-05-09 · cero duplicación · 2 surfaces (bubble cross-page + /asistente full) compartiendo backend |
 | W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | absorbido en Y.2 sub-chunks |
 | W4.5 | Phase Y.2 5 sub-agents ML + 3 capas resilience por agente | 30 | — | emergent | ⏳ | — | 5 chunks · Pricing/Marketing/Lead/Construction/Compliance · cada uno con cache + fallback + circuit breaker |
@@ -164,10 +164,10 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 126h / 563h (22.4%) 🟡
-**Pendiente Wave 4**: ~437h
-**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ + W4.4B 8h ✅ + W4.4C 4h ✅ + W4.4D 6h ✅ = 44h shipped · W4.4E-F + W4.5-W4.8 = 93h pending)
-**Caya bloque coherente (autorizado 2026-05-09)**: 31h totales = W4.4E `/asistente` 8h + W4.4E.5 unification 7h + W4.11a Caya home 16h · cierra módulo Caya end-to-end antes de saltar a Y.2
+**Acumulado Wave 4**: 134h / 563h (23.8%) 🟡
+**Pendiente Wave 4**: ~429h
+**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ + W4.4B 8h ✅ + W4.4C 4h ✅ + W4.4D 6h ✅ + W4.4E 8h ✅ = 52h shipped · W4.4F + W4.5-W4.8 = 85h pending)
+**Caya bloque coherente (autorizado 2026-05-09)**: 31h totales · 8h ✅ shipped (Y.1E) + W4.4E.5 unification 7h ⏳ + W4.11a Caya home 16h ⏳ · cierra módulo Caya end-to-end antes de saltar a Y.2
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
@@ -179,6 +179,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-09 | **W4.4E Phase Y.1E — `/asistente` público comprador** | 8h | `af6195d` (merge `4cb7674`) | Chat público sin login + 3 public tools + LFPDPPP + lead capture · Y.1 cierra al 53% · falta W4.4E.5 Unification |
 | 2026-05-09 | **W4.4D Phase Y.1D — What-if Simulator** | 6h | `a85d7d9` (merge `eace9e4`) | 4 escenarios price/promo/delay/mix + Director 6th tool + MCP 9th tool + WhatIfPanel UI |
 | 2026-05-09 | **W4.4C Phase Y.1C — MCP Exposure Director** | 4h | `e2d9aa7` (merge `d4a162a`) | 3 nuevas tools MCP (director_chat/retrieve_memory/session_summary) · 8 tools total · cross-tenant safety |
 | 2026-05-09 | **W4.4B Phase Y.1B — Director Memory Layer RAG** | 8h | `17eaa3d` (merge `87ef728`) | DirectorMemoryEngine + retrieve_memory tool + auto-inject T2+ + cron daily/weekly + TEXT index español |

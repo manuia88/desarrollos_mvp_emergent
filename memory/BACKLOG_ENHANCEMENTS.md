@@ -782,6 +782,33 @@ backend/routes/
 
 ---
 
+## 📥 W4.4E — Phase Y.1E `/asistente` enhancements diferidos (2026-05-09)
+
+### Routing inteligente lead → desarrolladora según intent/zona detectada
+- **Origen:** emergent W4.4E P2
+- **Destino propuesto:** **W4.4E.5 Unification** (incorporar al refactor) o W4.6 Phase Y.3 Smart Routing Lead
+- **Razón diferir:** hoy todos los leads van a `dev_org_id="dmx"` default · routing por intent (zona/presupuesto/tipología) requiere reglas + tabla de mapping dev↔zonas · sinérgico con W4.6 Smart Routing
+- **Costo estimado:** 3-4h (incluido en scope W4.6)
+
+### Resume sesión expirada con auto-reset en UI
+- **Origen:** emergent W4.4E P2
+- **Destino propuesto:** F0 sweep
+- **Razón diferir:** hoy localStorage trae session expirada → muestra error inline pero NO hace reset · UX degradada pero no rompe · 1h fix
+- **Costo estimado:** 1h
+
+### Tier `asistente_publico` explícito en feature_tiers (UI superadmin)
+- **Origen:** emergent edge case W4.4E (igual patrón que W4.4D `whatif_simulator`)
+- **Destino propuesto:** **F0 sweep** (combinar con tier `whatif_simulator` faltante de W4.4D · ambos requieren mismo seed update)
+- **Razón diferir:** fallback temporal a `diagnostic_engine` funciona · agregar tiers propios + UI superadmin permite gating granular
+- **Costo estimado:** 3h (combinado con W4.4D tier seed: ambos en una pasada)
+
+### Sitemap.xml regression .com → .io
+- **Origen:** Claude Code catch durante merge W4.4E (founder rule canonical desarrollosmx.io)
+- **Destino propuesto:** ✅ **YA FIXED** durante merge (línea privacy/dsr era único .com restante)
+- **Estado:** RESOLVED en commit `4cb7674`
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
