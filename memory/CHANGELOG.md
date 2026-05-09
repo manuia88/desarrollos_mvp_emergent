@@ -1671,3 +1671,45 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - Lead capture asociado a `dev_org_id="dmx"` por default → asignación a desarrolladora real depende del intent detected (TODO: routing inteligente fase futura)
 
 ### SHA: pending (auto-commit por plataforma)
+
+
+## W4.4E.5 — Caya/Asistente Unification (2026-05-09)
+
+### Backend (3 EDIT · 2 NEW)
+- **EDIT** `caya_engine.py` (220L → 285L): refactor a thin wrapper sobre AsistenteEngine. `caya_query` ahora orquesta: (1) Phase Y check vía AsistenteEngine, (2) resolver legacy `dmx_caya_*` → asistente_token via `caya_sessions_migration`, (3) RAG `semantic_search` para citations en paralelo, (4) `AsistenteEngine.chat()` para LLM + 3 tools públicas, (5) lead_score heurístico + suggested_lead_capture → `hand_off_recommended`, (6) persistencia DUAL en `caya_messages` (legacy back-compat) Y `asistente_messages` (canonical). Response shape backwards-compatible + nuevos campos: `tier`, `asistente_session_token`, `simulated`, `memory_hits`, `tool_calls`, `intent_detected`. Fallback graceful para Phase Y OFF / rate limit / cap exceeded.
+- **EDIT** `asistente_engine.py`: nuevo método `get_or_create_from_legacy(legacy_id, ip, ua)` para mapping cross-collection idempotente. `start_session` ahora persiste `channel="web_bubble"` cuando `referral_source=="caya_bubble"` (vs default "web"). `chat()` retorna `tier` adicional.
+- **EDIT** `routes_asistente.py`: nuevo GET `/api/asistente/sessions/{token}` (público) que hidrata historial completo de mensajes user/assistant cronológico. 410 si sesión expirada · 404 si no existe.
+- **NEW** `migrations/__init__.py` + `migrations/migrate_caya_to_asistente.py`: script CLI idempotente. `python -m migrations.migrate_caya_to_asistente` lee caya_sessions con migrated≠True, crea asistente_sessions con channel=web_bubble + message_count contado real, persiste mapping en caya_sessions_migration, copia caya_messages → asistente_messages dedupando por (session_token, role, content, created_at). Output: stats {sessions_seen, sessions_migrated, sessions_already_mapped, messages_migrated, skipped_dup_messages, errors}.
+
+### Frontend (3 EDIT · 0 NEW)
+- **EDIT** `components/landing/CayaBubble.js`: nuevos estados `asistenteToken` (localStorage `dmx.caya.asistente_token`) y `tier` (sincronizado desde response). Tier badge gradient junto al header "ASISTENTE DMX · BETA". Nuevo componente `MemoryHitsBlock` colapsable que muestra `data-testid="caya-memory-hits"` cuando `memory_hits.length > 0`. Botón "Expandir conversación →" (`data-testid="caya-expand-btn"`) visible cuando `messages.length >= 5` OR último assistant tiene `hand_off || suggested_capture`; click → `window.location.href = /asistente?session_token=${asistenteToken}`. Channel actualizado a `web_bubble`. Sync de session_id con backend si nuevo. `tool_calls` y `intent_detected` propagados al state.
+- **EDIT** `pages/public/AsistentePage.js`: lógica de hidratación 3-niveles: (1) si `?session_token=X` query param → fetch GET /api/asistente/sessions/X, hidrata mensajes + appended "Continuamos tu conversación previa". (2) Si 404/410 → fallback start nueva con copy "Sesión anterior expiró, comenzamos de nuevo". (3) Sin query param → resume localStorage o start nueva (comportamiento existente).
+- **EDIT** `i18n/locales/es-MX/common.json`: 4 nuevas keys: `asistente.session_resumed`, `asistente.session_expired_fallback`, `caya.expand_button`, `caya.unified_with_asistente_label`.
+
+### Migration ejecutada
+- Run 1: stats={sessions_seen=4, sessions_migrated=4, messages_migrated=10, errors=0}
+- Run 2 (idempotency check): stats={sessions_seen=0, sessions_migrated=0, messages_migrated=0} ✓
+
+### Acceptance Criteria validados (curl + screenshot)
+- ✅ POST /api/caya/query sin session_id → crea asis_* token + retorna shape con asistente_session_token + tier=T1 + tool_calls=[search_developments_public, get_zone_info] + lead_score=35 + 5 citations + 5 top_results
+- ✅ POST con legacy `dmx_caya_*` session_id → mapea a token existente, persiste en BOTH collections (caya_messages=4, asistente_messages=4 sincronizados)
+- ✅ Shape backwards-compatible: keys [ok, session_id, channel, answer, top_results, citations, hand_off_recommended, hand_off_reason, lead_score, model, cost_usd, message_id] + nuevos opcionales [tier, asistente_session_token, simulated, memory_hits, tool_calls, intent_detected]
+- ✅ Phase Y OFF → retorna ok=false, hand_off_recommended=true, hand_off_reason=phase_y_disabled, copy "Asistente temporalmente fuera de servicio. Te conecto con un asesor humano."
+- ✅ Migration idempotente (segunda run = 0 nuevos)
+- ✅ GET /api/asistente/sessions/{token} retorna messages cronológicos con channel=web_bubble
+- ✅ /asistente?session_token=X hidrata 4 mensajes legacy de caya + appended "Continuamos tu conversación previa" (screenshot validado)
+- ✅ /asistente NO renderiza CayaBubble (DOM check: caya-bubble=0, caya-panel=0)
+- ✅ App.js: CayaBubble NO está en layout global → 0 cambios necesarios (ya cumple spec)
+- ✅ yarn build 39.1s clean · /api/health 200
+
+### Edge cases conservadores
+- App.js NO requirió edits porque CayaBubble ya está mounted solo en páginas individuales (Marketplace, Inteligencia, Barrios, DevelopmentDetail), no global → reportado como "ya cumple spec"
+- Sesiones legacy migradas tienen `ip_hash="_legacy_caya_"` (placeholder) porque caya_sessions nunca persistió IP raw → rate limiting será `0 sessions/hora/_legacy_caya_` post-migration; futuras llamadas con esos tokens vienen del bubble que ya tiene rate por IP real → impacto nulo
+- `memory_hits` retornado vacío `[]` por defecto desde caya_engine (AsistenteEngine.chat NO incluye RAG retrieve por default, solo el Director tiene esa tool). Se mantiene el campo para shape pero sólo se popula si en futuro caya_engine inyecta los hits; spec dice "mostrar memory_hits collapsible si vienen" → implementación cumple.
+- Caya legacy `caya_messages` permanecen intactos para back-compat del endpoint `/api/caya/sessions/{id}/history` (no se borran).
+- Mapping new→legacy: cuando viene asistente_token directo (`asis_*`), no se crea `dmx_caya_*` legacy nuevo → response.session_id reusa el token (front-compat: solo se crea uno nuevo si payload.session_id era null).
+- `MemoryHitsBlock` componente agregado a CayaBubble pero el wiring desde backend para popular `memory_hits` es cero por ahora (placeholder estructural — espera Director RAG public adapter futuro).
+- Endpoint POST capture-lead heredado de /api/asistente sigue público para Caya bubble si alguna vez agregamos UI lead capture en bubble.
+- `channel="web_bubble"` solo se setea en sesiones NEW. Legacy migradas se setean correctamente. Sesiones existentes pre-W4.4E.5 mantienen channel="web" (no breaking).
+
+### SHA: pending (auto-commit por plataforma)
