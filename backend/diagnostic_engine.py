@@ -354,3 +354,269 @@ async def ensure_diagnostic_indexes(db):
     await db.user_problem_reports.create_index("id", unique=True, background=True)
     await db.diagnostic_ai_cache.create_index("sig", unique=True, background=True)
     await db.diagnostic_ai_cache.create_index("expires_at", expireAfterSeconds=86400, background=True)
+    # W4.1A — analyze_dev cache
+    await db.diagnostic_reports.create_index("dev_id", background=True)
+    await db.diagnostic_reports.create_index("generated_at", background=True)
+    try:
+        await db.diagnostic_reports.create_index(
+            "generated_at", expireAfterSeconds=86400, background=True,
+            name="diagnostic_reports_ttl_24h"
+        )
+    except Exception:
+        pass  # ignora conflicto si ya existe índice sin TTL sobre generated_at
+
+
+# ─── W4.1A · analyze_dev — 6-rule Intelligence Diagnostic ────────────────────
+
+@dataclass
+class DiagnosticFinding:
+    rule_id: str
+    severity: str          # "high" | "medium" | "low"
+    title: str
+    explanation: str
+    recommended_action: str
+    estimated_cost_mxn: str
+    estimated_impact_pct: float   # max of range for sorting
+    confidence: str        # "high" | "low"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class DiagnosticReport:
+    dev_id: str
+    dev_name: str
+    generated_at: str
+    findings: List[DiagnosticFinding]
+    summary_score: int     # 0-100
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        return d
+
+
+_SEVERITY_RANK = {"high": 0, "medium": 1, "low": 2}
+
+
+async def _get_score(db, dev_id: str, code: str) -> Optional[float]:
+    """Return score value if real (non-stub), else None."""
+    doc = await db.ie_scores.find_one(
+        {"zone_id": dev_id, "code": code, "is_stub": False},
+        {"_id": 0, "value": 1},
+    )
+    if doc and doc.get("value") is not None:
+        return float(doc["value"])
+    return None
+
+
+async def _is_stub(db, dev_id: str, code: str) -> bool:
+    doc = await db.ie_scores.find_one(
+        {"zone_id": dev_id, "code": code},
+        {"_id": 0, "is_stub": 1},
+    )
+    if doc:
+        return bool(doc.get("is_stub", True))
+    return True  # missing = treat as stub
+
+
+def _compute_summary_score(findings: List[DiagnosticFinding]) -> int:
+    highs = sum(1 for f in findings if f.severity == "high")
+    mediums = sum(1 for f in findings if f.severity == "medium")
+    lows = sum(1 for f in findings if f.severity == "low")
+    raw = 100 - (highs * 15 + mediums * 8 + lows * 3)
+    return max(0, min(100, raw))
+
+
+async def analyze_dev(db, dev_id: str) -> DiagnosticReport:
+    """Run 6-rule deterministic analysis for a development project.
+
+    Rules:
+      R1 PRECIO_ELEVADO     — IE_PROY_PRECIO_RANK_PERCENTIL < 40
+      R2 LISTING_ANTIGUO    — IE_PROY_RECENCY_LAUNCH < 30
+      R3 AMENIDADES_DEFICIT — IE_PROY_AMENIDADES < 50
+      R4 FUNNEL_VIEW_TO_LEAD— view→click_reservar ratio <5% (last 30d)
+      R5 CONCENTRACION_DEV  — IE_PROY_DEVELOPER_CONCENTRATION > 40
+      R6 INVENTORY_ATYPICAL — IE_PROY_INVENTORY_DEPTH_RELATIVE < 30
+    """
+    from data_developments import DEVELOPMENTS_BY_ID
+    dev = DEVELOPMENTS_BY_ID.get(dev_id, {})
+    dev_name = dev.get("name", dev_id)
+
+    findings_raw: List[DiagnosticFinding] = []
+
+    # ── R1 PRECIO_ELEVADO ─────────────────────────────────────────────────────
+    score_r1 = await _get_score(db, dev_id, "IE_PROY_PRECIO_RANK_PERCENTIL")
+    stub_r1 = await _is_stub(db, dev_id, "IE_PROY_PRECIO_RANK_PERCENTIL")
+    if score_r1 is not None and score_r1 < 40:
+        findings_raw.append(DiagnosticFinding(
+            rule_id="R1_PRECIO_ELEVADO",
+            severity="high",
+            title="Precio elevado vs universo comparables",
+            explanation=(
+                f"IE_PROY_PRECIO_RANK_PERCENTIL={score_r1:.1f} — el proyecto está en el "
+                f"top {100 - score_r1:.0f}% más caro del universo de comparables. "
+                "Proyectos en percentil <40 presentan absorción significativamente menor."
+            ),
+            recommended_action=(
+                "Ajustar precio -8% a -12% mediante esquema flex (descuento cliente por "
+                "enganche anticipado o modelo referidos). Costo: $0 MXN. "
+                "Impacto estimado: +15-25% absorción en 90 días."
+            ),
+            estimated_cost_mxn="$0",
+            estimated_impact_pct=25.0,
+            confidence="high" if not stub_r1 else "low",
+        ))
+
+    # ── R2 LISTING_ANTIGUO ────────────────────────────────────────────────────
+    score_r2 = await _get_score(db, dev_id, "IE_PROY_RECENCY_LAUNCH")
+    stub_r2 = await _is_stub(db, dev_id, "IE_PROY_RECENCY_LAUNCH")
+    if score_r2 is not None and score_r2 < 30:
+        findings_raw.append(DiagnosticFinding(
+            rule_id="R2_LISTING_ANTIGUO",
+            severity="medium",
+            title="Listing con bajo índice de frescura",
+            explanation=(
+                f"IE_PROY_RECENCY_LAUNCH={score_r2:.1f} — el lanzamiento es antiguo "
+                "o las actualizaciones de materiales están desactualizadas, reduciendo "
+                "engagement orgánico en el marketplace."
+            ),
+            recommended_action=(
+                "Re-lanzar con video tour 360 + nuevas fotos profesionales. "
+                "Costo estimado: $25,000–$40,000 MXN. "
+                "Impacto estimado: +20-30% engagement views en 30 días."
+            ),
+            estimated_cost_mxn="$25,000–$40,000",
+            estimated_impact_pct=30.0,
+            confidence="high" if not stub_r2 else "low",
+        ))
+
+    # ── R3 AMENIDADES_DEFICIT ─────────────────────────────────────────────────
+    score_r3 = await _get_score(db, dev_id, "IE_PROY_AMENIDADES")
+    stub_r3 = await _is_stub(db, dev_id, "IE_PROY_AMENIDADES")
+    if score_r3 is not None and score_r3 < 50:
+        tipo_fit = await _get_score(db, dev_id, "IE_PROY_TIPO_FIT_COLONIA")
+        tipo_hint = f" (Fit colonia={tipo_fit:.0f}/100)" if tipo_fit is not None else ""
+        findings_raw.append(DiagnosticFinding(
+            rule_id="R3_AMENIDADES_DEFICIT",
+            severity="medium",
+            title="Déficit de amenidades vs demanda de la zona",
+            explanation=(
+                f"IE_PROY_AMENIDADES={score_r3:.1f}{tipo_hint} — score inferior al umbral "
+                "de mercado (50). Los compradores de la zona priorizan amenidades de uso "
+                "cotidiano que el desarrollo no ofrece en suficiente densidad."
+            ),
+            recommended_action=(
+                "Agregar 2-3 amenidades top-demanda de la zona "
+                "(consultar IE_PROY_TIPO_FIT_COLONIA para fit específico). "
+                "Costo estimado: $200,000–$2,000,000 MXN según amenidad. "
+                "Impacto estimado: +5-10% precio de venta promedio."
+            ),
+            estimated_cost_mxn="$200,000–$2,000,000",
+            estimated_impact_pct=10.0,
+            confidence="high" if not stub_r3 else "low",
+        ))
+
+    # ── R4 FUNNEL_BOTTLENECK_VIEW_TO_LEAD ─────────────────────────────────────
+    from datetime import timedelta
+    cutoff_30d = (_now() - timedelta(days=30)).isoformat()
+    views = await db.funnel_events.count_documents({
+        "project_id": dev_id,
+        "event_type": "view_ficha",
+        "created_at": {"$gte": cutoff_30d},
+    })
+    reservar_clicks = await db.funnel_events.count_documents({
+        "project_id": dev_id,
+        "event_type": "click_reservar",
+        "created_at": {"$gte": cutoff_30d},
+    })
+    total_funnel = views + reservar_clicks
+    confidence_r4 = "high" if total_funnel >= 100 else "low"
+    if views > 0:
+        ratio_pct = (reservar_clicks / views) * 100
+    else:
+        ratio_pct = 0.0
+
+    if ratio_pct < 5.0:
+        findings_raw.append(DiagnosticFinding(
+            rule_id="R4_FUNNEL_VIEW_TO_LEAD",
+            severity="high",
+            title="Cuello de botella en conversión vista→lead",
+            explanation=(
+                f"Ratio click_reservar/view_ficha={ratio_pct:.1f}% en últimos 30 días "
+                f"({reservar_clicks} clicks / {views} vistas) — inferior al umbral "
+                "mínimo del 5%. El tráfico llega pero no convierte en leads capturados."
+            ),
+            recommended_action=(
+                "Mejorar fotos hero + CTA WhatsApp visible above-the-fold + "
+                "agregar virtual tour interactivo. "
+                "Costo estimado: $15,000 MXN. "
+                "Impacto estimado: +30-50% lead capture en 60 días."
+            ),
+            estimated_cost_mxn="$15,000",
+            estimated_impact_pct=50.0,
+            confidence=confidence_r4,
+        ))
+
+    # ── R5 CONCENTRACION_DEVELOPER ────────────────────────────────────────────
+    score_r5 = await _get_score(db, dev_id, "IE_PROY_DEVELOPER_CONCENTRATION")
+    stub_r5 = await _is_stub(db, dev_id, "IE_PROY_DEVELOPER_CONCENTRATION")
+    if score_r5 is not None and score_r5 > 40:
+        findings_raw.append(DiagnosticFinding(
+            rule_id="R5_CONCENTRACION_DEVELOPER",
+            severity="low",
+            title="Alta concentración de proyectos por desarrollador",
+            explanation=(
+                f"IE_PROY_DEVELOPER_CONCENTRATION={score_r5:.1f} — el desarrollador tiene "
+                "presencia elevada en el mercado (>10 proyectos activos). Alta concentración "
+                "puede diluir percepción de marca y reducir urgencia de compra por zona."
+            ),
+            recommended_action=(
+                "Considerar segmentación de marca por tipología o zona "
+                "(e.g. marca premium vs. accesible, o marca por alcaldía). "
+                "Costo: solo estratégico (tiempo + consultoría). "
+                "Impacto: diferenciación de propuesta de valor."
+            ),
+            estimated_cost_mxn="$0 (estratégico)",
+            estimated_impact_pct=8.0,
+            confidence="high" if not stub_r5 else "low",
+        ))
+
+    # ── R6 INVENTORY_DEPTH_ATYPICAL ───────────────────────────────────────────
+    score_r6 = await _get_score(db, dev_id, "IE_PROY_INVENTORY_DEPTH_RELATIVE")
+    stub_r6 = await _is_stub(db, dev_id, "IE_PROY_INVENTORY_DEPTH_RELATIVE")
+    if score_r6 is not None and score_r6 < 30:
+        findings_raw.append(DiagnosticFinding(
+            rule_id="R6_INVENTORY_ATYPICAL",
+            severity="medium",
+            title="Inventario atípicamente elevado vs colonia",
+            explanation=(
+                f"IE_PROY_INVENTORY_DEPTH_RELATIVE={score_r6:.1f} — el proyecto tiene "
+                ">2x el inventario promedio de proyectos comparables en la colonia. "
+                "Saturación de oferta desincentiva urgencia y deprime precio."
+            ),
+            recommended_action=(
+                "Lanzamiento por torres/etapas para controlar oferta disponible y "
+                "mantener presión de demanda. Costo: solo de planeación. "
+                "Impacto estimado: +5-12% precio/m² por escasez percibida."
+            ),
+            estimated_cost_mxn="$0 (planeación)",
+            estimated_impact_pct=12.0,
+            confidence="high" if not stub_r6 else "low",
+        ))
+
+    # ── Top-3 selection + summary ─────────────────────────────────────────────
+    sorted_findings = sorted(
+        findings_raw,
+        key=lambda f: (_SEVERITY_RANK.get(f.severity, 9), -f.estimated_impact_pct),
+    )
+    top3 = sorted_findings[:3]
+    summary = _compute_summary_score(top3)
+
+    return DiagnosticReport(
+        dev_id=dev_id,
+        dev_name=dev_name,
+        generated_at=_now().isoformat(),
+        findings=top3,
+        summary_score=summary,
+    )

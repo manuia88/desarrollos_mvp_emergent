@@ -31,7 +31,7 @@ from pydantic import BaseModel
 
 from diagnostic_engine import (
     run_diagnostics, run_auto_fix, ai_recommend_for_failure, ProbeResult,
-    PROBE_REGISTRY,
+    PROBE_REGISTRY, analyze_dev, DiagnosticReport,
 )
 
 log = logging.getLogger("dmx.diag.routes")
@@ -782,3 +782,92 @@ register_auto_fix("recompute_ie_score", _fix_recompute_ie_score)
 register_auto_fix("recompute_lead_heat", _fix_recompute_lead_heat)
 register_auto_fix("recompute_cash_flow", _fix_recompute_cash_flow)
 register_auto_fix("generate_narratives", _fix_generate_narratives)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# W4.1A — GET /api/diagnostic/dev/{dev_id}
+# Returns DiagnosticReport with up-to-3 findings + summary_score (0-100).
+# Cache 6h in db.diagnostic_reports. Permission: superadmin OR dev_admin owner.
+# ═════════════════════════════════════════════════════════════════════════════
+
+_CACHE_TTL_HOURS = 6
+
+
+@router.get("/diagnostic/dev/{dev_id}")
+async def get_dev_diagnostic(dev_id: str, request: Request, force: bool = False):
+    """Intelligence diagnostic for a development project.
+
+    Args:
+        dev_id: development slug / id (e.g. "altavista-polanco")
+        force:  bypass cache and recompute (superadmin only)
+
+    Returns DiagnosticReport shape:
+        {dev_id, dev_name, generated_at, findings: [...], summary_score}
+    Each finding: {rule_id, severity, title, explanation,
+                   recommended_action, estimated_cost_mxn, estimated_impact_pct,
+                   confidence}
+    """
+    user = await _auth(request)
+    db = _db(request)
+
+    # ── Permission check ───────────────────────────────────────────────────
+    if user.role not in ("superadmin", "developer_admin"):
+        raise HTTPException(403, "Solo superadmin o developer_admin pueden ver diagnósticos.")
+
+    if user.role == "developer_admin":
+        # Verify ownership: dev must belong to user's org
+        from data_developments import DEVELOPMENTS_BY_ID
+        dev = DEVELOPMENTS_BY_ID.get(dev_id)
+        if not dev:
+            raise HTTPException(404, f"Desarrollo '{dev_id}' no encontrado.")
+        dev_developer_id = dev.get("developer_id", "")
+        user_org = getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or ""
+        if dev_developer_id != user_org:
+            raise HTTPException(
+                403,
+                f"No tienes permiso para ver diagnósticos de '{dev_id}'. "
+                f"El desarrollo pertenece a '{dev_developer_id}'."
+            )
+
+    # ── Cache lookup ───────────────────────────────────────────────────────
+    if not force:
+        cutoff = (_now() - timedelta(hours=_CACHE_TTL_HOURS)).isoformat()
+        cached = await db.diagnostic_reports.find_one(
+            {"dev_id": dev_id, "generated_at": {"$gte": cutoff}},
+            {"_id": 0},
+            sort=[("generated_at", -1)],
+        )
+        if cached:
+            cached["cached"] = True  # siempre marcar True al servir desde cache
+            return cached
+
+    # ── Run fresh analysis ─────────────────────────────────────────────────
+    report: DiagnosticReport = await analyze_dev(db, dev_id)
+    doc = report.to_dict()
+    doc["cached"] = False
+
+    # Persist (upsert by dev_id; keep TTL via index)
+    await db.diagnostic_reports.update_one(
+        {"dev_id": dev_id},
+        {"$set": doc},
+        upsert=True,
+    )
+
+    # Audit + ML event (best-effort)
+    try:
+        from observability import emit_ml_event
+        import asyncio as _asyncio
+        _asyncio.create_task(emit_ml_event(
+            db, "dev_diagnostic_run",
+            user.user_id, getattr(user, "tenant_id", None), user.role,
+            context={
+                "dev_id": dev_id,
+                "findings_count": len(doc["findings"]),
+                "summary_score": doc["summary_score"],
+                "forced": force,
+            },
+        ))
+    except Exception as e:
+        log.warning(f"[w4.1a] emit_ml_event failed: {e}")
+
+    return doc
