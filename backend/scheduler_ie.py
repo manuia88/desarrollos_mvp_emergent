@@ -235,6 +235,99 @@ async def run_daily_score_recompute(db):
     return stats
 
 
+# ─── Job: watchlist alerts (W3.9b, 02:30 MX, after daily score recompute) ────
+async def run_watchlist_alerts(db):
+    """Check active risk_alerts subscribers; fire Resend email if any subscribed
+    zone has tier='red' currently. Throttle: 1 email per subscriber per 7 days.
+    Runs after run_daily_score_recompute (chained 02:30 MX)."""
+    import os
+    from datetime import timedelta
+
+    now = datetime.now(timezone.utc)
+    cursor = db.watchlist_subscribers.find(
+        {"active": True, "scope": {"$in": ["risk_alerts", "both"]}},
+        {"_id": 0},
+    )
+    subs = await cursor.to_list(length=10000)
+    _emit("watchlist_alerts_start", subs=len(subs))
+
+    sent = 0
+    throttled = 0
+    no_match = 0
+    errors = 0
+    resend_key = os.environ.get("RESEND_API_KEY", "")
+    public_url = os.environ.get("DMX_PUBLIC_URL", "https://dmx.mx").rstrip("/")
+
+    for sub in subs:
+        try:
+            last = sub.get("last_email_sent_at")
+            if last and (now - last) < timedelta(days=7):
+                throttled += 1
+                continue
+            zone_ids = sub.get("zone_ids") or []
+            if not zone_ids:
+                no_match += 1
+                continue
+            red_zones = await db.ie_scores.distinct(
+                "zone_id",
+                {"zone_id": {"$in": zone_ids}, "tier": "red", "is_stub": False},
+            )
+            if not red_zones:
+                no_match += 1
+                continue
+
+            email = sub.get("email")
+            manage_token = sub.get("manage_token", "")
+            manage_url = f"{public_url}/watchlist/manage?token={manage_token}"
+
+            if resend_key and email:
+                try:
+                    import httpx
+                    items = "".join(f"<li>{z}</li>" for z in red_zones[:20])
+                    html = (
+                        f"<div style='font-family:DM Sans,sans-serif;color:#1a1a1a;max-width:540px;margin:0 auto;padding:24px'>"
+                        f"<h2 style='font-family:Outfit,sans-serif;font-weight:700'>Alerta de riesgo · DMX Watchlist</h2>"
+                        f"<p>Las siguientes zonas en tu watchlist están en tier <strong>rojo</strong>:</p>"
+                        f"<ul>{items}</ul>"
+                        f"<p style='font-size:12px;color:#666;margin-top:24px'>Gestionar o darse de baja: <a href='{manage_url}'>{manage_url}</a></p>"
+                        f"<p style='font-size:11px;color:#999'>LFPDPPP — DMX. Audit trail conservado.</p>"
+                        f"</div>"
+                    )
+                    body = {
+                        "from": "DMX Watchlist <no-reply@desarrollosmx.com>",
+                        "to": [email],
+                        "subject": "Alerta de riesgo en tu watchlist · DMX",
+                        "html": html,
+                    }
+                    async with httpx.AsyncClient() as client:
+                        await client.post(
+                            "https://api.resend.com/emails",
+                            headers={"Authorization": f"Bearer {resend_key}"},
+                            json=body,
+                            timeout=10,
+                        )
+                except Exception as e:  # noqa: BLE001
+                    _emit("watchlist_alert_email_error", email=email, error=str(e))
+                    errors += 1
+                    continue
+            else:
+                _emit("watchlist_alert_stub", email=email, red_zones=len(red_zones))
+
+            await db.watchlist_subscribers.update_one(
+                {"manage_token": manage_token},
+                {"$set": {"last_email_sent_at": now}},
+            )
+            sent += 1
+        except Exception as e:  # noqa: BLE001
+            _emit("watchlist_alert_subscriber_error", email=sub.get("email"), error=str(e))
+            errors += 1
+
+    _emit("watchlist_alerts_done", subs=len(subs), sent=sent,
+          throttled=throttled, no_match=no_match, errors=errors)
+    return {"subs": len(subs), "sent": sent, "throttled": throttled,
+            "no_match": no_match, "errors": errors}
+
+
 # ─── Helper: initial recompute on first boot (W3.1B-5) ───────────────────────
 async def run_initial_recompute_if_empty(db):
     """One-shot: si ie_scores collection está vacía (nunca corrió cron), ejecuta recompute completo.
@@ -292,6 +385,13 @@ def start_scheduler(db):
         wrap_apscheduler_job(run_daily_score_recompute, "ie_daily_score_recompute"),
         CronTrigger(hour=2, minute=0, timezone=TZ),
         args=[db], id="ie_daily_score_recompute", replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    # W3.9b — Watchlist alerts (02:30 MX, post score recompute)
+    _scheduler.add_job(
+        wrap_apscheduler_job(run_watchlist_alerts, "watchlist_alerts"),
+        CronTrigger(hour=2, minute=30, timezone=TZ),
+        args=[db], id="watchlist_alerts", replace_existing=True,
         misfire_grace_time=3600,
     )
     # Phase 7.11 — Drive watcher every 6h (FALLBACK; webhooks are realtime)
@@ -517,4 +617,6 @@ async def trigger_now(db, job: str):
         return await run_hourly_status_check(db)
     if job == "daily_score_recompute":
         return await run_daily_score_recompute(db)
+    if job == "watchlist_alerts":
+        return await run_watchlist_alerts(db)
     raise ValueError(f"Unknown cron job: {job}")
