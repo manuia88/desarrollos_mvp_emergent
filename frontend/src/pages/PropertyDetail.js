@@ -10,6 +10,8 @@ import BriefingCard from '../components/property/BriefingCard';
 import ShareMenu from '../components/property/ShareMenu';
 import MiniMap from '../components/property/MiniMap';
 import PropertyCard from '../components/marketplace/PropertyCard';
+// W3.8
+import CrossSellOffersBar from '../components/comprador/CrossSellOffersBar';
 
 const SCORE_ICON = { vida: Leaf, movilidad: Route, seguridad: Shield, comercio: Store };
 
@@ -165,6 +167,9 @@ export default function PropertyDetail({ user, onLogin, onLogout }) {
 
               {/* Briefing + WA share */}
               <BriefingCard property={property} />
+
+              {/* W3.8 — Cross-sell offers bar (shows only when active partners exist) */}
+              <CrossSellOffersBar propertyId={property.id} />
 
               {/* Description */}
               <div>

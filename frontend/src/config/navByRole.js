@@ -178,6 +178,8 @@ const SUPERADMIN_NAV = [
       { key: 'vertical-products', to: '/superadmin/vertical-products',     label: 'Productos Verticales',   Icon: Package },
       { key: 'data-licensing',    to: '/superadmin/data-licensing',        label: 'Data Licensing',         Icon: Briefcase },
       { key: 'compliance',        to: '/superadmin/compliance',            label: 'Compliance',             Icon: Shield },
+      { key: 'partners',          to: '/superadmin/partners',              label: 'Partners',               Icon: HeartHandshake },
+      { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell Analytics',   Icon: BarChart2 },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },
