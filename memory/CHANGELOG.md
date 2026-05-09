@@ -1,6 +1,41 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W4.2D3 — Programmatic SEO Tier 1+2 · 61 landing pages + lead capture (2026-05-09)
+
+Extiende W4.2D2 a 40 colonias DMX target (16 con IE data + 24 nuevas anti-doorway) + 16 alcaldías CDMX completas + 5 intent landings (preventa, entrega-inmediata, estrenar, departamentos, casas). Cada landing sin inventario incluye lead capture form + colonias cercanas con datos.
+
+### Backend (2 nuevos · 2 editados)
+- **NEW** `seo_landings_config.py` — 40 COLONIAS_TARGET (con `has_ie_data` flag y `alcaldia_slug`), 16 ALCALDIAS_CDMX, 5 INTENT_LANDINGS (con stage_filter/tipo_filter). Helpers `colonias_by_alcaldia`, `top_colonias_with_data`, `comparable_colonias`.
+- **NEW** `routes_landings.py` (4 endpoints públicos):
+  - `GET /api/public/landing/colonia/{slug}` — tier1 (forwards a routes_public_zones full data) o tier2 (metadata + 4 comparables + lead_capture_enabled).
+  - `GET /api/public/landing/alcaldia/{slug}` — datos alcaldía + colonias_with_data + colonias_pending + active_developments + 4 comparables.
+  - `GET /api/public/landing/intent/{intent}` — top 8 colonias + recent_developments filtered por stage/tipo + 5 FAQ adapted.
+  - `POST /api/public/landing/lead` — captura lead anti-doorway en `db.landing_leads` con email/zone_interest/notes/source_url + audit_logs hook. IP hash sha256.
+- **EDIT** `seo_combos_seed.py` — `seed_landings_in_sitemap()` upserta 40 `colonia_landing_*` + 16 `alcaldia_landing` + 5 `intent_landing` en `db.seo_filter_combos`.
+- **EDIT** `server.py` — wire `landings_router`, `ensure_landing_indexes`, llama `seed_landings_in_sitemap` en startup.
+
+### Frontend (3 nuevos · 2 editados)
+- **NEW** `pages/public/AlcaldiaPage.js` — `/alcaldia/:slug`. Hero + 4 KPI cards (colonias_count, with_data, pending, devs) + grid colonias_with_data (Link a /zona/:slug) + grid colonias_pending + LandingLeadCaptureForm (si lead_capture_enabled) + FAQ 5 Q&A + JSON-LD Place containsPlace + FAQPage.
+- **NEW** `pages/public/IntentLandingPage.js` — `/cdmx/:intent`. Hero (label+description), top colonias grid, recent_developments grid (Link a /desarrollo/:id con price_from_mxn nfMxn formatted), LandingLeadCaptureForm si devs vacíos, FAQ 5 Q&A, JSON-LD SearchResultsPage + FAQPage. document.title set para SEO.
+- **NEW** `components/seo/LandingLeadCaptureForm.js` — Form `rounded-full` con email/notes textarea, POST a `/api/public/landing/lead`. States: idle | loading | ok | error. Validation client-side email + email server-side regex. Source URL auto-detection. Success state inline reemplaza form.
+- **EDIT** `pages/public/ZonePage.js` — fetch redireccionado a `/api/public/landing/colonia/{slug}`. Branch tier 2 nueva (`zone.has_ie_data === false`): hero alcaldía + LandingLeadCaptureForm + 4 comparables Link grid + CTA "Explorar {alcaldía}" + FAQ 5 adapted (sin métricas reales). Tier 1 sin regression — preserva `tier="Premium"` original (renombrado a `landing_tier` para metadata interno).
+- **EDIT** `App.js` — lazy imports + `<Route path="/alcaldia/:slug">` + `<Route path="/cdmx/:intent">` públicos.
+
+### Acceptance criteria validados
+- ✅ `/zona/granada` → tier2 PASS · zone-name='Granada' · lead-capture form · 4 comparables Polanco/Lomas/Escandón/Anzures · 2 JSON-LD scripts · breadcrumb a `/alcaldia/miguel-hidalgo`
+- ✅ `/zona/polanco` → tier1 OK sin regression · 4 KPI cards · `tier=Premium` preservado · DRPI $95k/m² · Risk B·75.8 · 2 JSON-LD scripts
+- ✅ `/alcaldia/iztapalapa` → PASS · 4 KPI cards · lead-capture (sin colonias seedeadas) · 2 JSON-LD scripts · 5 FAQ
+- ✅ `/cdmx/preventa` → PASS · 8 top colonias · 9 desarrollos disponibles con precios formateados · 2 JSON-LD scripts
+- ✅ `/api/public/landing/lead` POST → 201 + lead_id devuelto + persistido en db.landing_leads
+- ✅ Sitemap: 145 URLs totales · 71 unique landing URLs (40 zona + 16 alcaldía + 5 cdmx + 10 zone_page legacy)
+- ✅ `/api/health` 200 · backend hot-reload clean · ESLint+ruff sin warnings
+
+### Anti-doorway compliance
+Cada page tier 2 sin inventario tiene: hero geo + descripción única (no boilerplate) + lead capture + 4 colonias cercanas con IE data (Link clickable) + breadcrumb funcional + Schema.org Place + FAQPage 5 preguntas adaptadas. Cero contenido duplicado entre slugs.
+
+
+
 ## W4.2D2 — Programmatic SEO · Zone landing pages + FAQ Schema (2026-05-09)
 
 Landing pages programmatic SEO `/zona/:slug` por colonia CDMX con datos auditables (IE Top 3, DRPI, Risk Score, devs activos, comparables) + JSON-LD Place + FAQPage. 16 zonas seedadas en sitemap.

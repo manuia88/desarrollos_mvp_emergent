@@ -147,3 +147,77 @@ async def seed_zone_pages_in_sitemap(db) -> None:
 
     total_zone = await db.seo_filter_combos.count_documents({"type": "zone_page"})
     log.info(f"[seo_combos_seed] zone_pages upserted={inserted} total={total_zone}")
+
+
+async def seed_landings_in_sitemap(db) -> None:
+    """W4.2D3 — Upsert all programmatic SEO landings (40 colonia + 16 alcaldía + 5 intent)."""
+    try:
+        from seo_landings_config import COLONIAS_TARGET, ALCALDIAS_CDMX, INTENT_LANDINGS
+    except ImportError:
+        log.warning("[seo_combos_seed] seo_landings_config not available, skipping landings")
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    inserted_col = inserted_alc = inserted_int = 0
+
+    # 40 colonias_target → /zona/{slug} (reusa la ruta W4.2D2)
+    for slug, info in COLONIAS_TARGET.items():
+        canonical_url = f"{_BASE_URL}/zona/{slug}"
+        ttype = "colonia_landing_tier1" if info.get("has_ie_data") else "colonia_landing_tier2"
+        result = await db.seo_filter_combos.update_one(
+            {"canonical_url": canonical_url},
+            {"$set": {
+                "type": ttype,
+                "slug": slug,
+                "filters": {},
+                "canonical_url": canonical_url,
+                "query_string": "",
+                "last_seen_at": now,
+                "alcaldia_slug": info.get("alcaldia_slug"),
+            }},
+            upsert=True,
+        )
+        if result.upserted_id:
+            inserted_col += 1
+
+    # 16 alcaldías → /alcaldia/{slug}
+    for slug in ALCALDIAS_CDMX:
+        canonical_url = f"{_BASE_URL}/alcaldia/{slug}"
+        result = await db.seo_filter_combos.update_one(
+            {"canonical_url": canonical_url},
+            {"$set": {
+                "type": "alcaldia_landing",
+                "slug": slug,
+                "filters": {},
+                "canonical_url": canonical_url,
+                "query_string": "",
+                "last_seen_at": now,
+            }},
+            upsert=True,
+        )
+        if result.upserted_id:
+            inserted_alc += 1
+
+    # 5 intents → /cdmx/{intent}
+    for intent in INTENT_LANDINGS:
+        canonical_url = f"{_BASE_URL}/cdmx/{intent}"
+        result = await db.seo_filter_combos.update_one(
+            {"canonical_url": canonical_url},
+            {"$set": {
+                "type": "intent_landing",
+                "slug": intent,
+                "filters": {},
+                "canonical_url": canonical_url,
+                "query_string": "",
+                "last_seen_at": now,
+            }},
+            upsert=True,
+        )
+        if result.upserted_id:
+            inserted_int += 1
+
+    total = await db.seo_filter_combos.count_documents({})
+    log.info(
+        f"[seo_combos_seed] landings upserted: colonia={inserted_col} alcaldia={inserted_alc} "
+        f"intent={inserted_int} total_combos={total}"
+    )

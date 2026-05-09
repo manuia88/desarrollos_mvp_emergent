@@ -371,6 +371,14 @@ except ImportError:
 from routes_public_zones import router as public_zones_router
 app.include_router(public_zones_router)
 
+# W4.2D3 — Programmatic SEO Tier 1+2 (40 colonias + 16 alcaldías + 5 intents + lead capture)
+from routes_landings import router as landings_router, ensure_landing_indexes
+app.include_router(landings_router)
+try:
+    from seo_combos_seed import seed_landings_in_sitemap as _seed_landings_import
+except ImportError:
+    _seed_landings_import = None
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -887,6 +895,13 @@ async def startup():
             await _seed_zone_pages_import(db)
     except Exception as e:
         logging.warning(f"[startup] W4.2D2 zone pages seed failed: {e}")
+    # W4.2D3 — Landings (40 colonias + 16 alcaldías + 5 intents) sitemap + indexes
+    try:
+        if _seed_landings_import:
+            await _seed_landings_import(db)
+        await ensure_landing_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.2D3 landings seed/indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

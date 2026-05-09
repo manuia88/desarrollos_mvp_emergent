@@ -1,12 +1,15 @@
-// W4.2D2 — ZonePage.js
+// W4.2D2 — ZonePage.js  (extended W4.2D3 — anti-doorway tier 2)
 // Landing page programmatic SEO por colonia: /zona/:slug
 // Hero · KPIs · Top 3 IE · Comparables · FAQ · CTAs
+// Tier 1 (has IE data): full content. Tier 2 (no IE data): empty state +
+// LandingLeadCaptureForm + lista comparables.
 // Public route (sin auth). Inyecta JSON-LD Place + FAQPage.
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import CtaFooter from '../../components/landing/CtaFooter';
 import ZoneStructuredData, { buildFaqs } from '../../components/seo/ZoneStructuredData';
+import LandingLeadCaptureForm from '../../components/seo/LandingLeadCaptureForm';
 import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -159,7 +162,7 @@ export default function ZonePage() {
     setError(null);
     setZone(null);
 
-    fetch(`${API}/api/public/zones/${slug}`)
+    fetch(`${API}/api/public/landing/colonia/${slug}`)
       .then(async r => {
         if (cancelled) return;
         if (r.status === 404) {
@@ -200,6 +203,173 @@ export default function ZonePage() {
             Cargando datos de la zona…
           </div>
         </main>
+      </div>
+    );
+  }
+
+  // ── Tier 2 (W4.2D3) — colonia sin IE data: anti-doorway con lead capture ──
+  if (zone && zone.has_ie_data === false) {
+    const compsT2 = zone.comparable_colonias || [];
+    return (
+      <div data-testid="zone-page" data-zone-tier="tier2" data-landing-tier="tier2" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)' }}>
+        <ZoneStructuredData zone={{
+          slug: zone.slug,
+          name: zone.name,
+          alcaldia: zone.alcaldia,
+          drpi: { current_value: null, available: false },
+          risk_score: { value: null, letter: null, tier: 'unknown' },
+          active_developments: 0,
+          comparable_zones: compsT2.map(c => ({ slug: c.slug, name: c.name, alcaldia: c.alcaldia })),
+        }} />
+        <Navbar user={user} />
+        <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 24px 80px' }}>
+          {/* Breadcrumb */}
+          <nav aria-label="breadcrumb" style={{
+            fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)',
+            marginBottom: 18, letterSpacing: '0.04em',
+          }}>
+            <Link to="/" style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>Inicio</Link>
+            <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
+            <Link to={`/alcaldia/${zone.alcaldia_slug || ''}`} style={{ color: 'var(--cream-3)', textDecoration: 'none' }}>
+              {zone.alcaldia}
+            </Link>
+            <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
+            <span style={{ color: 'var(--cream-2)' }}>{zone.name}</span>
+          </nav>
+
+          {/* Hero tier 2 */}
+          <header style={{ marginBottom: 28 }}>
+            <div style={{
+              fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
+              textTransform: 'uppercase', marginBottom: 10,
+              backgroundImage: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              {zone.alcaldia} · CDMX
+            </div>
+            <h1 data-testid="zone-name" style={{
+              fontFamily: 'Outfit', fontWeight: 800,
+              fontSize: 'clamp(32px, 6vw, 56px)',
+              margin: '0 0 14px', letterSpacing: '-0.025em',
+            }}>
+              {zone.name}
+            </h1>
+            <p style={{
+              fontFamily: 'DM Sans', fontSize: 16, color: 'var(--cream-2)',
+              lineHeight: 1.7, margin: 0, maxWidth: 720,
+            }}>
+              DesarrollosMX cubre {zone.name}, en {zone.alcaldia}, Ciudad de México. Aún no
+              publicamos desarrollos verificados aquí — suscríbete y te avisamos en cuanto
+              haya inventario auditado, o explora colonias cercanas con datos completos.
+            </p>
+          </header>
+
+          {/* Anti-doorway: lead capture + comparables */}
+          <section style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1fr)',
+            gap: 24, marginBottom: 40, alignItems: 'start',
+          }}>
+            <LandingLeadCaptureForm
+              zoneInterest={`zone-${zone.slug}`}
+              sourceUrl={`/zona/${zone.slug}`}
+              title={`Avísame cuando haya inventario en ${zone.name}`}
+              description={`Te enviaremos un correo cuando publiquemos desarrollos verificados en ${zone.name}. DesarrollosMX rastrea el inventario activo en CDMX continuamente.`}
+            />
+
+            <div>
+              <h2 style={sectionTitleStyle}>Colonias cercanas con datos completos</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {compsT2.length > 0 ? compsT2.map(c => (
+                  <Link
+                    key={c.slug}
+                    to={`/zona/${c.slug}`}
+                    data-testid={`zone-compare-${c.slug}`}
+                    style={{
+                      padding: '14px 16px', borderRadius: 14, textDecoration: 'none',
+                      border: '1px solid rgba(99,102,241,0.20)',
+                      background: 'rgba(99,102,241,0.05)',
+                      transition: 'background 0.18s ease',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.05)'; }}
+                  >
+                    <div>
+                      <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)' }}>
+                        {c.name}
+                      </div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)' }}>
+                        {c.alcaldia}
+                      </div>
+                    </div>
+                    <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#a5b4fc' }}>
+                      Ver perfil →
+                    </span>
+                  </Link>
+                )) : (
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 13.5, color: 'var(--cream-3)' }}>
+                    Sin colonias cercanas seedeadas todavía.
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <Link
+                  to={`/alcaldia/${zone.alcaldia_slug || ''}`}
+                  data-testid="zone-cta-alcaldia"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13.5,
+                    padding: '9px 20px', borderRadius: 9999,
+                    background: 'transparent', color: 'var(--cream)',
+                    textDecoration: 'none',
+                    border: '1px solid rgba(255,255,255,0.18)',
+                    transition: 'background 0.18s ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  Explorar {zone.alcaldia}
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* FAQ tier2 (versión adaptada sin métricas reales) */}
+          <section
+            data-testid="zone-faq"
+            style={{ marginBottom: 32 }}
+          >
+            <h2 style={sectionTitleStyle}>Preguntas frecuentes sobre {zone.name}</h2>
+            <FaqAccordion faqs={[
+              {
+                question: `¿Hay desarrollos en venta en ${zone.name}?`,
+                answer: `Por ahora no tenemos inventario verificado publicado en ${zone.name}. Suscríbete para recibir aviso cuando DesarrollosMX integre desarrollos auditados en esta zona.`,
+              },
+              {
+                question: `¿Cuándo tendrá DesarrollosMX datos completos para ${zone.name}?`,
+                answer: `Estamos onboardeando colonias progresivamente. ${zone.name} está en nuestro pipeline; las colonias con muestra mínima estadística (DRPI + Risk Score) se priorizan primero.`,
+              },
+              {
+                question: `¿Qué colonias cercanas a ${zone.name} sí tienen datos?`,
+                answer: compsT2.length
+                  ? `Las colonias más cercanas con análisis completo son: ${compsT2.map(c => c.name).join(', ')}. Tienen DRPI hedónico, Risk Score multi-fuente y desarrollos activos.`
+                  : `Estamos integrando colonias cercanas al inicio de cada trimestre.`,
+              },
+              {
+                question: `¿Cómo verifica DesarrollosMX la información de ${zone.alcaldia}?`,
+                answer: `Integramos fuentes oficiales: INEGI (demografía), SESNSP (delictivo), CENAPRED (riesgos naturales), DENUE (comercios), SHF/INFONAVIT/RPP (transacciones), todo k-anonymized (k≥5) y LFPDPPP-compliant.`,
+              },
+              {
+                question: `¿Puedo registrar interés sin compromiso?`,
+                answer: `Sí. Solo deja tu correo y zona de interés; te avisamos cuando publiquemos inventario verificado. Cero spam, cancelas cuando quieras.`,
+              },
+            ]} />
+          </section>
+        </main>
+
+        <CtaFooter />
       </div>
     );
   }
