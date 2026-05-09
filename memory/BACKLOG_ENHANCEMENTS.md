@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### W4.1A index dup fix · diagnostic_reports.generated_at TTL conflict
+- **Origen:** W4.1A Sentry alert 2026-05-09 ("equivalent index already exist with different name and options")
+- **Destino:** W4.1C (mini-fix inline, ~5 min)
+- **Qué:** En `diagnostic_engine.py::ensure_diagnostic_indexes` el bloque W4.1A crea 2 índices sobre `generated_at` (uno sin TTL, otro con TTL 24h). Mongo rechaza el segundo. Try/except lo absorbe pero Sentry suena. Eliminar la línea `await db.diagnostic_reports.create_index("generated_at", background=True)` (sin TTL); el TTL index ya cubre query patterns equivalentes.
+- **Por qué:** ruido en Sentry · no bloquea funcionalidad pero ensucia signal hygiene.
+- **Costo:** 5 min (1 línea)
+
 ### Página `/watchlist/manage?token=...` (frontend manage UI)
 - **Origen:** W3.9c emergent suggested 2026-05-08
 - **Destino:** Wave 3 closure ó early Wave 4
