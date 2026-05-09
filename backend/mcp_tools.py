@@ -282,6 +282,42 @@ MCP_TOOLS: List[Dict[str, Any]] = [
             "required": ["session_id"],
         },
     },
+    # ── W4.4D · What-if Simulator (Phase Y.1D) ─────────────────────────────
+    {
+        "name": "whatif_simulate",
+        "description": (
+            "Ejecuta el DMX What-if Simulator del proyecto: cambio de precio, promo/descuento, "
+            "retraso de entrega, o mix combinado. Retorna forecast + confidence band + comparables_used "
+            "+ recommendation_text. Phase Y must be ENABLED y tier ≥ T1. Multi-tenant: usa el org del API key. "
+            "Caps diarios: T1=100 · T2=500 · T3+=ilimitado. "
+            "Ejemplo: whatif_simulate(project_id='altavista-polanco', scenario_type='price_change', "
+            "inputs={'proposed_delta_pct': 5, 'horizon_months': 6})."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_id": {
+                    "type": "string",
+                    "description": "Slug del desarrollo (e.g. 'altavista-polanco').",
+                },
+                "scenario_type": {
+                    "type": "string",
+                    "enum": ["price_change", "promo", "delay", "mix"],
+                    "description": (
+                        "Tipo de escenario. price_change requiere proposed_delta_pct + horizon_months. "
+                        "promo requiere promo_type + promo_value + duration_weeks. "
+                        "delay requiere delay_months. "
+                        "mix requiere scenarios:[{type,params},...]."
+                    ),
+                },
+                "inputs": {
+                    "type": "object",
+                    "description": "Parámetros específicos del scenario_type. Ver descripción.",
+                },
+            },
+            "required": ["project_id", "scenario_type"],
+        },
+    },
 ]
 
 
@@ -603,6 +639,52 @@ async def handle_director_session_summary(db, params: Dict[str, Any], key_doc: O
     }
 
 
+# ─── W4.4D · What-if Simulator handler ───────────────────────────────────────
+
+async def handle_whatif_simulate(db, params: Dict[str, Any], key_doc: Optional[Dict] = None) -> Dict[str, Any]:
+    """W4.4D — Ejecuta WhatIfEngine via MCP. Tier ≥ T1 + Phase Y enabled."""
+    project_id = (params.get("project_id") or "").strip()
+    scenario_type = (params.get("scenario_type") or "").strip()
+    inputs = params.get("inputs") or {}
+    if not project_id:
+        return {"error": "project_id es requerido"}
+    if not scenario_type:
+        return {"error": "scenario_type es requerido"}
+
+    org_id, user_id = _resolve_org_user(key_doc)
+    # Phase Y master + tier T1 check (using existing helper before whatif's own gate)
+    await _check_phase_y(db, org_id, "T1", key_doc)
+
+    from whatif_engine import (
+        run_simulation, PhaseYDisabledError, WhatIfCapExceededError, WhatIfInputError,
+    )
+    try:
+        result = await run_simulation(
+            db, org_id=org_id, user_id=user_id,
+            project_id=project_id, scenario_type=scenario_type,
+            inputs=inputs, persist=True,
+        )
+    except PhaseYDisabledError as e:
+        raise McpToolError(str(e))
+    except WhatIfCapExceededError as e:
+        raise McpToolError(str(e))
+    except WhatIfInputError as e:
+        return {"error": str(e)}
+    except Exception as e:
+        log.warning(f"[mcp] whatif_simulate failed: {e}")
+        return {"error": f"Simulador falló: {e}"}
+
+    return {
+        "scenario_id": result.get("scenario_id"),
+        "scenario_type": result.get("scenario_type"),
+        "tier": result.get("tier"),
+        "simulation_mode": result.get("simulation_mode"),
+        "inputs": result.get("inputs"),
+        "outputs": result.get("outputs"),
+        "base_metrics": result.get("base_metrics"),
+    }
+
+
 # ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 _HANDLERS = {
@@ -614,10 +696,14 @@ _HANDLERS = {
     "director_chat":              handle_director_chat,
     "director_retrieve_memory":   handle_director_retrieve_memory,
     "director_session_summary":   handle_director_session_summary,
+    "whatif_simulate":            handle_whatif_simulate,
 }
 
 # Tools que requieren key_doc (Phase Y gating + tenant resolution)
-_KEY_DOC_TOOLS = {"director_chat", "director_retrieve_memory", "director_session_summary"}
+_KEY_DOC_TOOLS = {
+    "director_chat", "director_retrieve_memory", "director_session_summary",
+    "whatif_simulate",
+}
 
 
 async def dispatch_tool(

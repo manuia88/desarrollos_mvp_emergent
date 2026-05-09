@@ -1576,3 +1576,48 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - ✅ yarn build 39s · 3 testids verificados en preview URL
 
 ### SHA: pending
+
+
+## W4.4D — Phase Y.1D · What-if Simulator (2026-05-09)
+
+### Backend (2 NEW · 3 EDIT)
+- **NEW** `whatif_engine.py` — `WhatIfEngine` class con 4 métodos: `simulate_price_change` (elasticidad de comparables misma colonia + price_history fallback), `simulate_promo` (lift desde behavioral_events.high_intent o benchmark sectorial cuando <50 events), `simulate_delay` (decay IE_PROY + DRPI + holding cost 1.2%/mes), `simulate_mix` (combina max 5 escenarios). Helper `_check_phase_y` valida master switch + tier whatif_simulator (fallback diagnostic_engine). `_check_daily_cap` enforce caps T1=100/T2=500/T3+=ilimitado. `_confidence_band` ajusta amplitud por sample_size. Función pública `run_simulation(db, org_id, user_id, project_id, scenario_type, inputs, persist=True)`.
+- **NEW** `routes_whatif.py` — 5 endpoints: POST `/api/whatif/simulate`, GET `/api/whatif/scenarios?project_id=&scenario_type=&limit=`, GET `/api/whatif/scenarios/{id}` (con `comparables_inflated`), DELETE soft delete (DSR), GET `/api/superadmin/whatif/usage?org_id=&days=` (counts + by_scenario_type + by_tier + by_org). Rate limit 30/min/user. Multi-tenant 403 cross-org · superadmin any org.
+- **EDIT** `server.py` — wire `whatif_router` + `whatif_sa_router` + `ensure_whatif_indexes` en startup.
+- **EDIT** `director_agent_engine.py` — 6to tool `whatif_simulate` en `_exec_tool` dispatch + `_tool_whatif_simulate` helper. Sistema prompt actualizado con schema y ejemplo (4 sub-types: price_change, promo, delay, mix).
+- **EDIT** `mcp_tools.py` — 9th MCP tool `whatif_simulate` (T1+, key_doc-aware) + `handle_whatif_simulate` handler con Phase Y check vía `_check_phase_y(db, org_id, "T1", key_doc)`.
+
+### Frontend (2 NEW · 2 EDIT)
+- **NEW** `api/whatifApi.js` — 4 funciones: `simulate`, `listScenarios`, `getScenario`, `deleteScenario`.
+- **NEW** `components/whatif/WhatIfPanel.js` — 3 selector cards (Cambio de precio / Promo / Retraso) · forms dinámicos (slider rango -20%/+20% para delta, range para duración/delay, select tipo promo/horizon) · ResultCard con 6 métricas posibles (velocidad, lift, IE_PROY Δ, DRPI Δ, ingreso, holding cost), banda de confianza SVG con gradient, comparables chips, recommendation card. Skeleton loading. Empty state. PhaseY-disabled state. Historial colapsable últimas 10 simulaciones · click → re-load. Mobile responsive (1col → 2col en >760px).
+- **EDIT** `pages/developer/DesarrolladorDashboard.js` — 3rd tab "What-if" + WhatIfPanel mount con projects mapeados desde `data.developments`.
+- **EDIT** `i18n/locales/es-MX/common.json` — sección `whatif.*` (tab_label, empty_state, disabled_message, scenario.*, form.*, results.*).
+
+### Acceptance Criteria validados (curl + screenshot)
+- ✅ POST `/api/whatif/simulate` price_change → outputs.projected_velocity_change_pct=-3.6, projected_revenue_delta_mxn=7.4M, comparables_used=['polanco-moderno'], elasticity_used=-0.72, scenario_id persistido
+- ✅ POST promo sin behavioral_events (count=0) → fallback benchmark, data_quality="low", confidence band ampliado
+- ✅ POST delay → IE_PROY Δ=-2.4 (4m), DRPI=-1.6, holding=58.3M MXN con sample_size=20 (data_quality="high")
+- ✅ GET `/api/whatif/scenarios?project_id=altavista-polanco` → solo del org del user (orgs tras superadmin: dmx, test-org-123)
+- ✅ DELETE → status:"deleted" (soft delete con timestamp)
+- ✅ POST con scenario_type="bogus" → HTTP 422 lista válidos
+- ✅ POST mix con price_change + promo → suma deltas + intersect confidence + concatena recommendations
+- ✅ GET scenario detail → comparables_inflated con name/colonia/price_from/stage
+- ✅ MCP `tools/list` → 9 tools (incluye whatif_simulate)
+- ✅ MCP `whatif_simulate` con T2 sim_mode → outputs.simulated=true, T2 tier
+- ✅ MCP Phase Y OFF → HTTP 403 "Phase Y disabled by superadmin"
+- ✅ Director Agent: 6to tool wireado en `_exec_tool` (compact response con outputs_summary)
+- ✅ UI WhatIfPanel renders: 3 selector cards, form dinámico (Proyecto, Precio/m², slider delta, Horizonte), Simular impacto rounded-full gradient · 7 testids verificados en screenshot
+- ✅ Superadmin usage: total_simulations=5, by_scenario_type [delay×2, mix, promo, price_change], by_tier [T1×4, T2×1]
+- ✅ yarn build 39s clean · /api/health 200
+
+### Edge cases conservadores
+- DEVELOPMENTS in-memory (no en mongo) → engine resuelve vía `data_developments.DEVELOPMENTS_BY_ID`
+- IE_PROY values can be None → coerce con `(d.get("value") or 0)` para evitar TypeError
+- price_to ausente → fallback price_from
+- units_total ausente → default 50
+- behavioral_events para org_id=None → 0 events count, fallback benchmark
+- mix con scenarios donde confidence bands no se solapan → reporta cl > ch (UI debe interpretar)
+- Comparables vacíos → benchmark elasticity (-0.6)
+- Single-session enforcement bloquea screenshot login post-curl → workaround: `page.request.post` antes de navegar
+
+### SHA: pending (auto-commit por plataforma)
