@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.4D Phase Y.1D What-if Simulator shipped · Wave 4 ~126h)
-**Total H1 restante**: ~430h (Wave 4 pending de los 556h totales)
+**Última actualización**: 2026-05-09 (Caya bloque planeado: Y.1E corriendo + W4.4E.5 unification + W4.11a Caya home · W4.11b A11 movido a W4.15 · Wave 4 556h → 563h)
+**Total H1 restante**: ~437h (Wave 4 pending de los 563h totales)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 126h = 493h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 556h (126h shipped, 430h pending) = 873h plan (con Phase Y + Data sources + 3DGS upgrades)
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 563h (126h shipped, 437h pending) = 880h plan (con Phase Y + Data sources + 3DGS + Caya unification upgrades)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -141,7 +141,8 @@ Formato canónico per-batch (founder request):
 | W4.4C | Phase Y.1C — MCP exposure de Director (3 nuevas tools en /api/mcp existente) | 4 | 4 | emergent | ✅ | `e2d9aa7` | director_chat T1+ + director_retrieve_memory T2+ + director_session_summary T1+ · ConnectMcpPage Step 6 + 3 cards + curl examples · total 8 MCP tools · cross-tenant safety + master switch validados |
 | W4.4D | Phase Y.1D — What-if Simulator (price_change/promo/delay/mix · 4 escenarios) | 6 | 6 | emergent | ✅ | `a85d7d9` | whatif_engine + 4 scenarios + Director 6th tool + MCP 9th tool + WhatIfPanel · caps T1=100/T2=500/T3+=∞ · cross-tenant safety + DSR soft delete |
 | W4.4E | Phase Y.1E — Chat público `/asistente` (comprador frontstage) | 8 | — | emergent | ⏳ | — | feature #1 killer · session anónima · rate limit anti-abuse |
-| W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | embedded en Y.1B-E sub-chunks |
+| W4.4E.5 | Caya/Asistente Unification + Upgrade (refactor caya_engine → invoca asistente_engine · CayaBubble hereda Director Agent + tools + Phase Y settings + LFPDPPP + lead capture) | 7 | — | emergent | ⏳ | — | autorizado 2026-05-09 · cero duplicación · 2 surfaces (bubble cross-page + /asistente full) compartiendo backend |
+| W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | absorbido en Y.2 sub-chunks |
 | W4.5 | Phase Y.2 5 sub-agents ML + 3 capas resilience por agente | 30 | — | emergent | ⏳ | — | 5 chunks · Pricing/Marketing/Lead/Construction/Compliance · cada uno con cache + fallback + circuit breaker |
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
 | W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
@@ -150,11 +151,12 @@ Formato canónico per-batch (founder request):
 | W4.9.5 | Virtual staging IA (planos vacíos → mueblar via Replicate/Flux) | 8 | — | emergent | ⏳ | — | preventa CDMX 90% obra nueva |
 | W4.9.6 | 3D Gaussian Splatting tour virtual (Luma API + viewer mkkellogg/GaussianSplats3D embebido en /unidad/[id]) | 16 | — | emergent | ⏳ | — | gap real vs Inm24/Lamudi · ventana 6-9 meses |
 | W4.10 | Phase 8 ext WhatsApp + AutoNewsletter | 25 | — | emergent | ⏳ | — | WA Business + Pulse semanal |
-| W4.11 | Phase 10 Caya home + A11 ext | 26 | — | emergent | ⏳ | — | Caya en desarrollosmx.io para queries mercado |
+| W4.11a | Phase 10 Caya home extension (Caya bubble en `/` homepage + threads sidebar conversational + queries macro mercado · absorbe DMX Bot público) | 16 | — | emergent | ⏳ | — | después de W4.4E.5 unification · cierra módulo Caya end-to-end |
+| ~~W4.11b~~ | ~~A11 accessibility audit~~ → **MOVIDO a W4.15 Phase 20 polish (pre-launch)** | 10 | — | — | 📦 movido | — | A11 debe ser último: cualquier feature nueva post-audit lo rompe |
 | W4.12 | Phase 11 Dubai | 38 | — | emergent | ⏳ | — | i18n + flow Dubai-specific |
 | W4.13 | Phase 16 ext (Lead Journey + Amenities Validator) | 32 | — | emergent | ⏳ | — | A/B Meta Ads automatizadas |
 | W4.14 | Phase 19 ext (Buyer Coach + Mortgage + Investment Sim) | 29 | — | emergent | ⏳ | — | — |
-| W4.15 | Phase 20 Polish + Launch | 23 | — | emergent + CC | ⏳ | — | UX polish + perf + a11y + final QA |
+| W4.15 | Phase 20 Polish + Launch + **A11 accessibility audit absorbido (W4.11b · 10h)** | 33 | — | emergent + CC | ⏳ | — | UX polish + perf + a11y completo + final QA · A11 audit último para no romper con features nuevas |
 | W4.16 | W4 marketing (Free audit landing + State of CDMX Report) | 5 | — | emergent | ⏳ | — | -3h press kit movido a W4.2.5B |
 | W4.17 | Kalshi (Probability UX + Smart Notifications) | 14 | — | emergent | ⏳ | — | -4h widgets movidos a W4.2.5A |
 | W4.18 | Data Sources gov MX bundle (BANXICO SIE API + SIGCDMX uso suelo + Atlas Riesgos CDMX + Catastro CDMX + GTFS + OSM Geofabrik) | 22 | — | emergent | ⏳ | — | links verificados en memory/DATA_SOURCES.md · diferencial vs Inm24 |
@@ -162,9 +164,10 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 126h / 556h (22.7%) 🟡
-**Pendiente Wave 4**: ~430h
+**Acumulado Wave 4**: 126h / 563h (22.4%) 🟡
+**Pendiente Wave 4**: ~437h
 **Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ + W4.4B 8h ✅ + W4.4C 4h ✅ + W4.4D 6h ✅ = 44h shipped · W4.4E-F + W4.5-W4.8 = 93h pending)
+**Caya bloque coherente (autorizado 2026-05-09)**: 31h totales = W4.4E `/asistente` 8h + W4.4E.5 unification 7h + W4.11a Caya home 16h · cierra módulo Caya end-to-end antes de saltar a Y.2
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
