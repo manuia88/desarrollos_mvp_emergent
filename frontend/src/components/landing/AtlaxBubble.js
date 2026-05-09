@@ -1,14 +1,17 @@
 // AtlaxBubble — Public marketplace chat bubble powered by /api/atlax/query (RAG).
 // W4.4E.5.2 — renamed from CayaBubble. localStorage migration silenciosa caya.*→atlax.*.
+// W4.11a — adds: mode="home" (homepage hero), threads sidebar, 6 macro chips, thread_id support.
 // Anonymous session_id persisted in localStorage. No auth required.
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle } from '../icons';
+import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle, Clock } from '../icons';
+import AtlaxThreadsSidebar from './AtlaxThreadsSidebar';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const SS_KEY = 'dmx.atlax.session_id';
 const SS_HISTORY = 'dmx.atlax.history.v1';
 const SS_TOKEN = 'dmx.atlax.asistente_token';
+const SS_THREAD = 'dmx.atlax.active_thread_id';
 
 // Legacy keys (W4.4E.5.2 migration)
 const LEGACY_SS_KEY = 'dmx.caya.session_id';
@@ -258,17 +261,31 @@ function CitationPill({ cite, onNav }) {  const handle = () => {
 }
 
 
-export default function AtlaxBubble() {
+// W4.11a · 6 macro market chips (home mode) — emojis EXCEPCIÓN APROBADA por spec
+const HOME_MACRO_CHIPS = [
+  { emoji: '📊', label: 'Visión general CDMX', prompt: 'Dame una visión general del mercado inmobiliario en CDMX.' },
+  { emoji: '📈', label: 'Zonas con mayor crecimiento', prompt: '¿Qué zonas tienen el mayor crecimiento de precio en los últimos 24 meses?' },
+  { emoji: '🏘️', label: 'Recomendar colonia', prompt: 'Recomiéndame una colonia para vivir en CDMX según mi presupuesto.' },
+  { emoji: '💰', label: 'Tendencias de precios', prompt: 'Muéstrame las tendencias de precios por alcaldía en CDMX.' },
+  { emoji: '🗺️', label: 'Comparar alcaldías', prompt: 'Compara precios y plusvalía entre alcaldías de CDMX.' },
+  { emoji: '🏗️', label: 'Desarrollos en preventa', prompt: '¿Qué desarrollos en preventa hay disponibles en CDMX?' },
+];
+
+export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {}) {
   // W4.4E.5.2 · One-time silent localStorage migration caya.*→atlax.* (synchronous, BEFORE state init)
   const [_migrated] = useState(() => { migrateLegacyLocalStorage(); return true; });
 
   const navigate = useNavigate();
+  const isHome = mode === 'home';
   const [open, setOpen] = useState(() => {
     try {
       const sp = new URLSearchParams(window.location.search);
       // Acepta ?atlax=open (nuevo) Y ?caya=open (legacy fallback)
-      return sp.get('atlax') === 'open' || sp.get('caya') === 'open';
-    } catch { return false; }
+      if (sp.get('atlax') === 'open' || sp.get('caya') === 'open') return true;
+      // En modo home siempre abierto (renderizado inline por el parent)
+      if (mode === 'home') return true;
+      return !!startOpen;
+    } catch { return mode === 'home' || !!startOpen; }
   });
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState('');
@@ -277,6 +294,10 @@ export default function AtlaxBubble() {
   const [asistenteToken, setAsistenteToken] = useState(() => {
     try { return localStorage.getItem(SS_TOKEN) || null; } catch { return null; }
   });
+  const [threadId, setThreadId] = useState(() => {
+    try { return localStorage.getItem(SS_THREAD) || null; } catch { return null; }
+  });
+  const [showThreads, setShowThreads] = useState(false);
   const [tier, setTier] = useState(null);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
@@ -308,19 +329,24 @@ export default function AtlaxBubble() {
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, open, busy]);
 
-  const send = async (e) => {
+  const send = async (e, overrideQuery) => {
     e?.preventDefault?.();
-    const q = input.trim();
+    const q = (overrideQuery ?? input).trim();
     if (!q || busy) return;
     setBusy(true);
-    setInput('');
+    if (!overrideQuery) setInput('');
     const userMsg = { role: 'user', content: q, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     try {
       const r = await fetch(`${API}/api/atlax/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web_bubble' }),
+        body: JSON.stringify({
+          query: q,
+          session_id: sessionId,
+          channel: 'web_bubble',
+          thread_id: threadId || null,
+        }),
       });
       const d = await r.json();
       // Persist asistente_session_token for /asistente expand link
@@ -332,6 +358,11 @@ export default function AtlaxBubble() {
       if (d.session_id && d.session_id !== sessionId) {
         setSessionId(d.session_id);
         try { localStorage.setItem(SS_KEY, d.session_id); } catch (_) { /* ignore */ }
+      }
+      // W4.11a · sync thread_id (backend may auto-create one)
+      if (d.thread_id && d.thread_id !== threadId) {
+        setThreadId(d.thread_id);
+        try { localStorage.setItem(SS_THREAD, d.thread_id); } catch (_) { /* ignore */ }
       }
       if (d.tier) setTier(d.tier);
       const assistantMsg = {
@@ -364,10 +395,47 @@ export default function AtlaxBubble() {
     saveHistory([]);
   };
 
+  // W4.11a · selecciona thread existente y carga sus mensajes desde backend
+  const selectThread = async (newThreadId) => {
+    if (!newThreadId || newThreadId === threadId) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/api/atlax/threads/${newThreadId}/messages`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      const loaded = (d.messages || []).map(m => ({
+        role: m.role,
+        content: m.content || '',
+        citations: m.citations || [],
+        hand_off: m.hand_off_recommended,
+        simulated: m.simulated,
+        tool_calls: m.tool_calls || [],
+        ts: m.created_at ? new Date(m.created_at).getTime() : Date.now(),
+      }));
+      setMessages(loaded);
+      setThreadId(newThreadId);
+      try { localStorage.setItem(SS_THREAD, newThreadId); } catch (_) { /* ignore */ }
+    } catch (err) {
+      // silent fail
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // W4.11a · inicia nuevo thread (limpia mensajes UI y deja que el backend cree thread_id)
+  const startNewThread = () => {
+    setThreadId(null);
+    try { localStorage.removeItem(SS_THREAD); } catch (_) { /* ignore */ }
+    setMessages([]);
+    saveHistory([]);
+    setShowLeadForm(false);
+    setFormDismissed(false);
+  };
+
   return (
     <>
-      {/* Bubble trigger */}
-      {!open && (
+      {/* Bubble trigger — hidden in home mode (rendered inline by parent) */}
+      {!open && !isHome && (
         <button
           data-testid="caya-bubble"
           onClick={() => setOpen(true)}
@@ -390,16 +458,29 @@ export default function AtlaxBubble() {
 
       {/* Panel */}
       {open && (
-        <div data-testid="caya-panel" style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
-          width: 'min(380px, calc(100vw - 24px))',
-          height: 'min(540px, calc(100vh - 48px))',
+        <div data-testid={isHome ? "atlax-home-panel" : "caya-panel"} style={{
+          position: isHome ? 'relative' : 'fixed',
+          bottom: isHome ? 'auto' : 24,
+          right: isHome ? 'auto' : 24,
+          zIndex: isHome ? 'auto' : 9999,
+          width: isHome ? '100%' : 'min(380px, calc(100vw - 24px))',
+          height: isHome ? 'min(560px, 70vh)' : 'min(540px, calc(100vh - 48px))',
           background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
           border: '1px solid var(--border)', borderRadius: 18,
-          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          boxShadow: isHome ? '0 16px 40px rgba(0,0,0,0.45)' : '0 24px 60px rgba(0,0,0,0.6)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           animation: 'caya-pop 0.22s ease-out',
         }}>
+          {/* W4.11a · Threads sidebar overlay */}
+          {showThreads && (
+            <AtlaxThreadsSidebar
+              asistenteToken={asistenteToken}
+              activeThreadId={threadId}
+              onSelect={selectThread}
+              onNewThread={startNewThread}
+              onClose={() => setShowThreads(false)}
+            />
+          )}
           {/* Header */}
           <div style={{
             padding: '14px 16px', borderBottom: '1px solid var(--border)',
@@ -430,10 +511,24 @@ export default function AtlaxBubble() {
                 }}>{tier}</span>
               )}
             </div>
-            <button data-testid="caya-close" onClick={() => setOpen(false)} style={{
-              padding: 6, background: 'transparent', border: '1px solid var(--border)',
-              borderRadius: 9999, color: 'var(--cream-3)', cursor: 'pointer',
-            }}><X size={12} /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button data-testid="atlax-threads-toggle"
+                onClick={() => setShowThreads(s => !s)}
+                aria-label="Historial de conversaciones"
+                title="Historial"
+                style={{
+                  padding: 6, background: 'transparent', border: '1px solid var(--border)',
+                  borderRadius: 9999, color: 'var(--cream-3)', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              ><Clock size={11} /></button>
+              {!isHome && (
+                <button data-testid="caya-close" onClick={() => setOpen(false)} style={{
+                  padding: 6, background: 'transparent', border: '1px solid var(--border)',
+                  borderRadius: 9999, color: 'var(--cream-3)', cursor: 'pointer',
+                }}><X size={12} /></button>
+              )}
+            </div>
           </div>
 
           {/* Messages */}
@@ -450,21 +545,54 @@ export default function AtlaxBubble() {
                 <div style={{ fontFamily: 'Outfit', fontWeight: 600, fontSize: 14, color: 'var(--cream-2)', margin: '8px 0 4px' }}>
                   ¿En qué te ayudo?
                 </div>
-                Pregúntame por desarrollos, colonias, precios o documentos verificados.
-                <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[
-                    'Casa familiar en Polanco bajo 15M',
-                    'Mejor calidad de aire en CDMX',
-                    'Desarrollos en preventa con amenidades',
-                  ].map((s, i) => (
-                    <button key={i} data-testid={`caya-suggest-${i}`} onClick={() => setInput(s)} style={{
-                      padding: '8px 12px', borderRadius: 9999, fontSize: 11.5,
-                      background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
-                      color: 'var(--cream-2)', fontFamily: 'DM Sans', cursor: 'pointer',
-                      textAlign: 'left',
-                    }}>{s}</button>
-                  ))}
-                </div>
+                {isHome
+                  ? 'Explora el mercado de CDMX con datos en tiempo real.'
+                  : 'Pregúntame por desarrollos, colonias, precios o documentos verificados.'}
+
+                {isHome ? (
+                  <div data-testid="atlax-home-chips" style={{
+                    marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6,
+                  }}>
+                    {HOME_MACRO_CHIPS.map((chip, i) => (
+                      <button
+                        key={i}
+                        data-testid={`atlax-macro-chip-${i}`}
+                        onClick={() => send(null, chip.prompt)}
+                        disabled={busy}
+                        style={{
+                          padding: '9px 10px', borderRadius: 9999, fontSize: 10.5,
+                          background: 'rgba(99,102,241,0.10)',
+                          border: '1px solid rgba(99,102,241,0.28)',
+                          color: 'var(--cream-2)', fontFamily: 'DM Sans', cursor: busy ? 'not-allowed' : 'pointer',
+                          textAlign: 'left', lineHeight: 1.3, fontWeight: 600,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          transition: 'background 0.15s ease, border-color 0.15s ease',
+                          opacity: busy ? 0.5 : 1,
+                        }}
+                        onMouseEnter={(e) => { if (!busy) e.currentTarget.style.background = 'rgba(99,102,241,0.18)'; }}
+                        onMouseLeave={(e) => { if (!busy) e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; }}
+                      >
+                        <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>{chip.emoji}</span>
+                        <span>{chip.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[
+                      'Casa familiar en Polanco bajo 15M',
+                      'Mejor calidad de aire en CDMX',
+                      'Desarrollos en preventa con amenidades',
+                    ].map((s, i) => (
+                      <button key={i} data-testid={`caya-suggest-${i}`} onClick={() => setInput(s)} style={{
+                        padding: '8px 12px', borderRadius: 9999, fontSize: 11.5,
+                        background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                        color: 'var(--cream-2)', fontFamily: 'DM Sans', cursor: 'pointer',
+                        textAlign: 'left',
+                      }}>{s}</button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

@@ -130,10 +130,25 @@ TOOLS Y PARAMS:
    params: {{}}
    devuelve: pulso del mercado CDMX últimos 30 días (precios, demanda, tendencias agregadas)
 
+4. get_market_overview_cdmx
+   params: {{}}
+   devuelve: visión general agregada de CDMX (colonias, alcaldías, precio m² promedio, momentum 24m, desarrollos por etapa)
+
+5. get_zone_top_growth
+   params: {{ "limit": int (default 5, max 10) }}
+   devuelve: top zonas por momentum 24m y por score de plusvalía DMX
+
+6. get_price_trends_macro
+   params: {{ "group_by": "alcaldia"|"tier" (default "alcaldia") }}
+   devuelve: tendencia de precio m² agrupada (avg, min, max, cambio 24m %)
+
 REGLAS:
 - Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
-- Si user pregunta zona/precio/comparables → usa tools
+- Si user pregunta zona/precio/comparables → usa tools (1, 2 o 3)
+- Si user pregunta visión general / mercado / panorama / CDMX → usa get_market_overview_cdmx
+- Si user pregunta crecimiento / plusvalía / dónde invertir → usa get_zone_top_growth
+- Si user pregunta tendencias / por alcaldía / cómo evoluciona → usa get_price_trends_macro
 - Si user menciona presupuesto/intención de comprar/cita/WhatsApp → al final del response sugiere capturar contacto: "Si quieres, te conectamos con un asesor especializado para resolver dudas concretas."
 - NUNCA inventes precios o nombres de proyectos. Si no tienes data, di "no tengo ese dato actualizado, te conecto con un asesor".
 - Si pregunta sobre algo fuera de CDMX (otras ciudades), responde: "Por ahora solo cubrimos CDMX en detalle, pero próximamente expandimos a Monterrey y Guadalajara."
@@ -150,6 +165,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_get_zone_info(db, params.get("zone_slug", ""))
         if tool_name == "get_market_pulse_public":
             return await _tool_get_market_pulse_public(db)
+        # W4.11a · 3 macro tools (Atlax home extension)
+        if tool_name == "get_market_overview_cdmx":
+            return await _tool_get_market_overview_cdmx(db)
+        if tool_name == "get_zone_top_growth":
+            return await _tool_get_zone_top_growth(db, params.get("limit", 5))
+        if tool_name == "get_price_trends_macro":
+            return await _tool_get_price_trends_macro(db, params.get("group_by", "alcaldia"))
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -250,6 +272,130 @@ async def _tool_get_market_pulse_public(db) -> Dict[str, Any]:
         "min_price_mxn": min_price,
         "max_price_mxn": max_price,
         "platform_visits_30d": events_30d,
+    }
+
+
+# ─── W4.11a · Macro tools (Atlax home extension) ──────────────────────────────
+async def _tool_get_market_overview_cdmx(db) -> Dict[str, Any]:
+    """Visión general agregada CDMX: precio m² promedio, total colonias, alcaldías,
+    desarrollos publicados y momentum agregado. Públicas, sin org_id."""
+    from data_seed import COLONIAS
+    from data_developments import DEVELOPMENTS
+
+    if not COLONIAS:
+        return {"error": "Sin data de colonias disponible"}
+
+    price_m2_values = [c.get("price_m2_num") or 0 for c in COLONIAS if c.get("price_m2_num")]
+    avg_price_m2 = round(sum(price_m2_values) / len(price_m2_values)) if price_m2_values else None
+
+    alcaldias = sorted({c.get("alcaldia") for c in COLONIAS if c.get("alcaldia")})
+
+    # Momentum agregado: parsea "+8%" → 8 (signed)
+    momentum_parsed: List[float] = []
+    for c in COLONIAS:
+        m = (c.get("momentum") or "").strip()
+        if not m:
+            continue
+        try:
+            momentum_parsed.append(float(m.replace("%", "").replace("+", "")))
+        except ValueError:
+            continue
+    avg_momentum_pct = round(sum(momentum_parsed) / len(momentum_parsed), 2) if momentum_parsed else None
+
+    by_stage: Dict[str, int] = {}
+    for d in DEVELOPMENTS:
+        s = d.get("stage", "desconocido")
+        by_stage[s] = by_stage.get(s, 0) + 1
+
+    return {
+        "scope": "CDMX (16 colonias premium)",
+        "colonias_total": len(COLONIAS),
+        "alcaldias_total": len(alcaldias),
+        "alcaldias": alcaldias,
+        "avg_price_m2_mxn": avg_price_m2,
+        "min_price_m2_mxn": min(price_m2_values) if price_m2_values else None,
+        "max_price_m2_mxn": max(price_m2_values) if price_m2_values else None,
+        "avg_momentum_24m_pct": avg_momentum_pct,
+        "developments_total": len(DEVELOPMENTS),
+        "by_stage": by_stage,
+    }
+
+
+async def _tool_get_zone_top_growth(_db, limit: int = 5) -> Dict[str, Any]:
+    """Top zonas por momentum 24m (crecimiento %) y plusvalía. Públicas."""
+    from data_seed import COLONIAS
+
+    parsed = []
+    for c in COLONIAS:
+        m = (c.get("momentum") or "").strip()
+        try:
+            mom_pct = float(m.replace("%", "").replace("+", "")) if m else 0.0
+        except ValueError:
+            mom_pct = 0.0
+        parsed.append({
+            "zone_slug": c.get("id"),
+            "name": c.get("name"),
+            "alcaldia": c.get("alcaldia"),
+            "momentum_pct": mom_pct,
+            "price_m2_mxn": c.get("price_m2_num"),
+            "tier": c.get("tier"),
+            "plusvalia_score": (c.get("scores") or {}).get("plusvalia"),
+            "inventory": c.get("inventory"),
+        })
+
+    by_momentum = sorted(parsed, key=lambda x: x["momentum_pct"], reverse=True)[:max(1, min(limit, 10))]
+    by_plusvalia = sorted(
+        parsed, key=lambda x: (x.get("plusvalia_score") or 0), reverse=True,
+    )[:max(1, min(limit, 10))]
+
+    return {
+        "top_by_momentum_24m": by_momentum,
+        "top_by_plusvalia_score": by_plusvalia,
+        "limit": limit,
+    }
+
+
+async def _tool_get_price_trends_macro(_db, group_by: str = "alcaldia") -> Dict[str, Any]:
+    """Tendencias agregadas de precio m² agrupadas por alcaldía o tier."""
+    from data_seed import COLONIAS
+
+    valid_groups = {"alcaldia", "tier"}
+    if group_by not in valid_groups:
+        group_by = "alcaldia"
+
+    buckets: Dict[str, List[Dict[str, Any]]] = {}
+    for c in COLONIAS:
+        key = c.get(group_by) or "Sin clasificar"
+        buckets.setdefault(key, []).append(c)
+
+    rows = []
+    for key, items in buckets.items():
+        prices = [c.get("price_m2_num") or 0 for c in items if c.get("price_m2_num")]
+        if not prices:
+            continue
+        # Tendencia: usa promedio del trend[0] vs trend[-1] (24m)
+        deltas = []
+        for c in items:
+            tr = c.get("trend") or []
+            if len(tr) >= 2 and tr[0]:
+                try:
+                    deltas.append(((tr[-1] - tr[0]) / tr[0]) * 100.0)
+                except ZeroDivisionError:
+                    continue
+        rows.append({
+            "group": key,
+            "colonias_count": len(items),
+            "avg_price_m2_mxn": round(sum(prices) / len(prices)),
+            "min_price_m2_mxn": min(prices),
+            "max_price_m2_mxn": max(prices),
+            "avg_24m_change_pct": round(sum(deltas) / len(deltas), 2) if deltas else None,
+        })
+
+    rows.sort(key=lambda r: r["avg_price_m2_mxn"], reverse=True)
+    return {
+        "group_by": group_by,
+        "rows": rows,
+        "total_groups": len(rows),
     }
 
 

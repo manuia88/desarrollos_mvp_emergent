@@ -32,6 +32,7 @@ class AtlaxQueryIn(BaseModel):
     query: str = Field(..., min_length=2, max_length=500)
     session_id: Optional[str] = None
     channel: str = Field(default="web", pattern=r"^(whatsapp|web|web_bubble)$")
+    thread_id: Optional[str] = None  # W4.11a · null = creates new thread auto
 
 
 def _now() -> datetime:
@@ -51,6 +52,10 @@ async def ensure_atlax_indexes(db) -> None:
         await db.caya_messages.create_index([("session_id", 1), ("created_at", 1)], name="idx_caya_msg_session_time", background=True)
         await db.caya_sessions_migration.create_index("legacy_id", unique=True, name="idx_caya_migration_legacy", background=True)
         await db.caya_sessions_migration.create_index("asistente_token", name="idx_caya_migration_token", background=True)
+        # W4.11a · atlax_threads
+        await db.atlax_threads.create_index("thread_id", unique=True, name="idx_atlax_thread_id_unique", background=True)
+        await db.atlax_threads.create_index([("session_token", 1), ("last_message_at", -1)], name="idx_atlax_thread_session_recent", background=True)
+        await db.caya_messages.create_index([("thread_id", 1), ("created_at", 1)], name="idx_caya_msg_thread_time", background=True)
     except Exception as e:
         log.warning(f"[caya] ensure_indexes warning: {e}")
 
@@ -104,6 +109,64 @@ async def _resolve_asistente_token(
         upsert=True,
     )
     return legacy_id, token, True
+
+
+# ─── W4.11a · Thread management ───────────────────────────────────────────────
+def _truncate_title(query: str, max_len: int = 60) -> str:
+    """Genera título de thread a partir del primer mensaje del usuario.
+
+    Lightweight: trunca a max_len palabras completas, sin LLM call.
+    """
+    q = (query or "").strip().replace("\n", " ")
+    if len(q) <= max_len:
+        return q or "Conversación"
+    # Recorta a último espacio antes de max_len
+    cut = q[:max_len].rsplit(" ", 1)[0]
+    return (cut or q[:max_len]).rstrip(",.;:!?") + "…"
+
+
+async def _resolve_thread(
+    db, asistente_token: str, payload_thread_id: Optional[str], query: str,
+) -> tuple[str, bool]:
+    """Resuelve thread_id existente o crea uno nuevo.
+
+    Returns: (thread_id, is_new)
+    """
+    if payload_thread_id:
+        existing = await db.atlax_threads.find_one(
+            {"thread_id": payload_thread_id, "session_token": asistente_token},
+            {"_id": 0, "thread_id": 1},
+        )
+        if existing:
+            return payload_thread_id, False
+        # thread_id no pertenece a esta sesión → crear nuevo
+    thread_id = f"thr_{uuid.uuid4().hex[:14]}"
+    title = _truncate_title(query)
+    now = _now()
+    await db.atlax_threads.insert_one({
+        "thread_id": thread_id,
+        "session_token": asistente_token,
+        "title": title,
+        "first_message_at": now,
+        "last_message_at": now,
+        "message_count": 0,
+        "status": "active",
+    })
+    return thread_id, True
+
+
+async def _bump_thread(db, thread_id: str, increment: int = 2) -> None:
+    """Incrementa message_count y actualiza last_message_at.
+
+    increment=2 = mensaje user + mensaje assistant en una misma transacción atlax_query.
+    """
+    try:
+        await db.atlax_threads.update_one(
+            {"thread_id": thread_id},
+            {"$set": {"last_message_at": _now()}, "$inc": {"message_count": increment}},
+        )
+    except Exception as e:
+        log.warning(f"[atlax_thread] bump failed {thread_id}: {e}")
 
 
 @router.post("/api/atlax/query")
@@ -187,12 +250,18 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
             upsert=True,
         )
 
+    # ─── 3b. W4.11a · Resolve thread (auto-create if missing/foreign)
+    thread_id, _thread_is_new = await _resolve_thread(
+        db, asistente_token, payload.thread_id, payload.query,
+    )
+
     # ─── 4. Persist user message in legacy caya_messages (back-compat)
     user_msg_id = uuid.uuid4().hex
     await db.caya_messages.insert_one({
         "id": user_msg_id,
         "session_id": legacy_session_id,
         "asistente_token": asistente_token,
+        "thread_id": thread_id,
         "role": "user",
         "content": payload.query,
         "channel": payload.channel,
@@ -258,6 +327,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         "id": msg_id,
         "session_id": legacy_session_id,
         "asistente_token": asistente_token,
+        "thread_id": thread_id,
         "role": "assistant",
         "content": answer,
         "citations": citations,
@@ -272,6 +342,9 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         "simulated": simulated,
         "tier": tier,
     })
+
+    # ─── 9b. W4.11a · Bump thread metadata (user msg + assistant msg)
+    await _bump_thread(db, thread_id, increment=2)
 
     # ─── 10. Budget tracking (best-effort)
     try:
@@ -288,6 +361,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         "ok": True,
         "session_id": legacy_session_id,
         "asistente_session_token": asistente_token,
+        "thread_id": thread_id,
         "channel": payload.channel,
         "answer": answer,
         "top_results": [
@@ -348,3 +422,52 @@ async def atlax_history(session_id: str, request: Request):
             m["created_at"] = m["created_at"].isoformat()
         msgs.append(m)
     return {"session_id": session_id, "count": len(msgs), "messages": msgs}
+
+
+# ─── W4.11a · Threads endpoints ───────────────────────────────────────────────
+@router.get("/api/atlax/threads")
+async def atlax_list_threads(request: Request, session_token: str, limit: int = 30):
+    """Lista threads de una sesión asistente_token, ordenados por last_message_at desc."""
+    db = request.app.state.db
+    if not session_token or not session_token.startswith("asis_"):
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": "session_token requerido (formato asis_*)"},
+        )
+    limit = max(1, min(int(limit or 30), 100))
+    cursor = db.atlax_threads.find(
+        {"session_token": session_token},
+        {"_id": 0},
+    ).sort("last_message_at", -1).limit(limit)
+    threads = []
+    async for t in cursor:
+        for k in ("first_message_at", "last_message_at"):
+            if isinstance(t.get(k), datetime):
+                t[k] = t[k].isoformat()
+        threads.append(t)
+    return {"session_token": session_token, "count": len(threads), "threads": threads}
+
+
+@router.get("/api/atlax/threads/{thread_id}/messages")
+async def atlax_thread_messages(thread_id: str, request: Request):
+    """Mensajes de un thread, en orden cronológico."""
+    db = request.app.state.db
+    thread = await db.atlax_threads.find_one({"thread_id": thread_id}, {"_id": 0})
+    if not thread:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "Thread no encontrado"},
+        )
+    for k in ("first_message_at", "last_message_at"):
+        if isinstance(thread.get(k), datetime):
+            thread[k] = thread[k].isoformat()
+    cursor = db.caya_messages.find(
+        {"thread_id": thread_id},
+        {"_id": 0, "id": 1, "role": 1, "content": 1, "citations": 1, "tool_calls": 1, "created_at": 1, "hand_off_recommended": 1, "simulated": 1, "tier": 1},
+    ).sort("created_at", 1)
+    msgs = []
+    async for m in cursor:
+        if isinstance(m.get("created_at"), datetime):
+            m["created_at"] = m["created_at"].isoformat()
+        msgs.append(m)
+    return {"thread": thread, "messages": msgs, "count": len(msgs)}

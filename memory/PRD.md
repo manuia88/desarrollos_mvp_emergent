@@ -3747,3 +3747,43 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 ### Schema preservation
 - DB collections (`caya_sessions`, `caya_messages`, `caya_sessions_migration`) NO renombradas (decisión conservadora: brand UI/API cambió, DB preserva nombre histórico)
 
+
+
+---
+
+## W4.11a · Phase 10 Atlax Home Extension — DONE (2026-02-09)
+
+### Status: ✅ COMPLETED · tested manually (curl + Playwright)
+
+**Goal**: Convertir Atlax en el corazón de la home pública — featured CTA hero card + 6 macro chips + threads sidebar + 3 nuevas tools macro.
+
+### Componentes nuevos
+- **Backend**:
+  - 3 tools macro en `asistente_engine.py`: `get_market_overview_cdmx`, `get_zone_top_growth`, `get_price_trends_macro`.
+  - Thread tracking en `atlax_engine.py`: helpers `_resolve_thread`, `_truncate_title`, `_bump_thread`.
+  - Endpoints REST: `GET /api/atlax/threads`, `GET /api/atlax/threads/{thread_id}/messages`.
+  - Indexes: `atlax_threads.{thread_id, session_token+last_message_at}`, `caya_messages.{thread_id, created_at}`.
+- **Frontend**:
+  - `components/landing/AtlaxThreadsSidebar.js` (nuevo).
+  - `components/landing/AtlaxBubble.js`: extendido con `mode="home"`, threads UI, macro chips, thread_id state.
+  - `App.js`: nuevo componente `AtlaxHomeHero` integrado en LandingPage entre LiveTicker y ColoniasBento.
+
+### Schema atlax_threads (nuevo)
+```json
+{
+  "_id": "ObjectId",
+  "thread_id": "thr_<14hex>",
+  "session_token": "asis_<20hex>",
+  "title": "<primer mensaje truncado a 60 chars>",
+  "first_message_at": "datetime",
+  "last_message_at": "datetime",
+  "message_count": "int",
+  "status": "active"
+}
+```
+
+### Validation
+- POST `/api/atlax/query` retorna `thread_id` campo nuevo (back-compat con clientes legacy: campo opcional ignorable).
+- Tools macro accesibles vía LLM tool-calling (verified vía query "¿Qué zonas crecen más?" → tool_calls=["get_zone_top_growth"]).
+- Threads UI funcional (Historial · Nueva conversación · Sin conversaciones todavía).
+- Embedded Atlax visible en home sin click (`mode="home"`) con 6 chips emoji autorizados.
