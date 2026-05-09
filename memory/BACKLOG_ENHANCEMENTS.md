@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Página `/watchlist/manage?token=...` (frontend manage UI)
+- **Origen:** W3.9c emergent suggested 2026-05-08
+- **Destino:** Wave 3 closure ó early Wave 4
+- **Qué:** Page que llame `getWatchlistManage`/`updateWatchlistManage`/`unsubscribeWatchlist` (helpers ya existen en `frontend/src/api/watchlist.js`). Usuario puede editar zonas, cambiar scope, darse de baja desde el link del email opt-in.
+- **Por qué:** cierra el loop end-to-end del watchlist. Sin esto el email de doble opt-in tiene un link manage que rompe a 404 en frontend.
+- **Costo:** ~30 min (1 page + 3 forms + Route + nav).
+
 ### Endpoint Superadmin `/api/superadmin/watchlist/stats`
 - **Origen:** W3.9b emergent suggested 2026-05-08
 - **Destino:** Wave 3 closure ó early Wave 4
