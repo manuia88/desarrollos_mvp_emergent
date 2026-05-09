@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.4E.5.1 fix-pass security + lead form shipped · Wave 4 ~143h · próximo: rename brand chat + W4.11a Caya home)
-**Total H1 restante**: ~422h (Wave 4 pending de los 565h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 143h = 510h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 565h (143h shipped, 422h pending) = 882h plan (con Phase Y + Data sources + 3DGS + Caya unification + fix-pass)
+**Última actualización**: 2026-05-09 (W4.4E.5.2 Brand rename Caya→Atlax + 2 UX upgrades shipped · Wave 4 ~148h · próximo: W4.11a Atlax home)
+**Total H1 restante**: ~422h (Wave 4 pending de los 570h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 148h = 515h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 570h (148h shipped, 422h pending) = 887h plan (con Phase Y + Data sources + 3DGS + Atlax unification + rename + UX fixes)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -143,6 +143,7 @@ Formato canónico per-batch (founder request):
 | W4.4E | Phase Y.1E — Chat público `/asistente` (comprador frontstage) | 8 | 8 | emergent | ✅ | `af6195d` | asistente_engine + 4 endpoints + 3 public tools + LFPDPPP IP hash + intent regex + lead capture wireado a leads source=asistente_publico + cron expire 03:30 + AsistentePage UI full-page + 4 chips empty state |
 | W4.4E.5 | Caya/Asistente Unification + Upgrade | 7 | 7 | emergent | ✅ | `fbb9484` | caya_engine thin wrapper sobre AsistenteEngine · get_or_create_from_legacy + channel web_bubble + tier en response · GET /api/asistente/sessions/{token} hydrate · migration idempotente (4 sessions migradas) · CayaBubble tier badge + MemoryHitsBlock + expand button · AsistentePage hydrate 3-niveles |
 | W4.4E.5.1 | Fix-pass: security legacy mapping + lead form CayaBubble | 2 | 2 | emergent | ✅ | `e72853c` | get_or_create_from_legacy valida session existe antes de mapear · 429 con reason=rate_limit_legacy_mapping · audit log · LeadCaptureMiniForm inline 3 inputs · localStorage flag · capture-lead source override |
+| W4.4E.5.2 | Brand rename Caya→Atlax + 2 UX upgrades | 5 | 5 | emergent | ✅ | `1fac885` | atlax_engine.py + routes_caya_legacy.py 308 redirect 90d · AtlaxBubble + atlaxApi + i18n atlax.* + 4 pages imports · localStorage migration síncrona · capture-lead rate limit 3/hora/ip · form/banner mutex |
 | W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | absorbido en Y.2 sub-chunks |
 | W4.5 | Phase Y.2 5 sub-agents ML + 3 capas resilience por agente | 30 | — | emergent | ⏳ | — | 5 chunks · Pricing/Marketing/Lead/Construction/Compliance · cada uno con cache + fallback + circuit breaker |
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
@@ -152,7 +153,7 @@ Formato canónico per-batch (founder request):
 | W4.9.5 | Virtual staging IA (planos vacíos → mueblar via Replicate/Flux) | 8 | — | emergent | ⏳ | — | preventa CDMX 90% obra nueva |
 | W4.9.6 | 3D Gaussian Splatting tour virtual (Luma API + viewer mkkellogg/GaussianSplats3D embebido en /unidad/[id]) | 16 | — | emergent | ⏳ | — | gap real vs Inm24/Lamudi · ventana 6-9 meses |
 | W4.10 | Phase 8 ext WhatsApp + AutoNewsletter | 25 | — | emergent | ⏳ | — | WA Business + Pulse semanal |
-| W4.11a | Phase 10 Caya home extension (Caya bubble en `/` homepage + threads sidebar conversational + queries macro mercado · absorbe DMX Bot público) | 16 | — | emergent | ⏳ | — | después de W4.4E.5 unification · cierra módulo Caya end-to-end |
+| W4.11a | Phase 10 Atlax home extension (Atlax bubble en `/` homepage + threads sidebar conversational + queries macro mercado · absorbe DMX Bot público) | 16 | — | emergent | ⏳ | — | después de W4.4E.5.2 rename · cierra módulo Atlax end-to-end |
 | ~~W4.11b~~ | ~~A11 accessibility audit~~ → **MOVIDO a W4.15 Phase 20 polish (pre-launch)** | 10 | — | — | 📦 movido | — | A11 debe ser último: cualquier feature nueva post-audit lo rompe |
 | W4.12 | Phase 11 Dubai | 38 | — | emergent | ⏳ | — | i18n + flow Dubai-specific |
 | W4.13 | Phase 16 ext (Lead Journey + Amenities Validator) | 32 | — | emergent | ⏳ | — | A/B Meta Ads automatizadas |
@@ -165,10 +166,10 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 143h / 565h (25.3%) 🟡
+**Acumulado Wave 4**: 148h / 570h (26.0%) 🟡
 **Pendiente Wave 4**: ~422h
 **Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ + W4.4B 8h ✅ + W4.4C 4h ✅ + W4.4D 6h ✅ + W4.4E 8h ✅ = 52h shipped · W4.4F + W4.5-W4.8 = 85h pending)
-**Caya bloque coherente (autorizado 2026-05-09)**: 33h totales · **17/33h ✅ shipped** (Y.1E 8h + W4.4E.5 Unification 7h + W4.4E.5.1 fix-pass 2h) + W4.11a Caya home 16h ⏳ · cierra módulo Caya end-to-end antes de saltar a Y.2
+**Atlax bloque coherente (renamed de Caya 2026-05-09)**: 38h totales · **22/38h ✅ shipped** (Y.1E 8h + Unification 7h + fix-pass 2h + rename Atlax 5h) + W4.11a Atlax home 16h ⏳ · cierra módulo Atlax end-to-end antes de saltar a Y.2
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
