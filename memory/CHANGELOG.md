@@ -1489,3 +1489,35 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - ✅ yarn build limpio 41s | /api/health 200
 
 ### SHA: 2498e8e
+
+
+## W4.4 — Phase Y.1A · Director Agent core orchestration (2026-05-09)
+
+### Backend (2 nuevos · 1 editado)
+- **NEW** `director_agent_engine.py` — `DirectorAgent` class con `start_session()`, `chat()`, `end_session()`. 4 tools internas (`get_ie_score`, `get_unit_score`, `get_comparables`, `get_org_kpis`). Agentic loop 2-pass via `<tool_call>` tag parsing (no streaming Y.1A). Simulation mode: full logic, zero Anthropic calls, `[SIM]` prefix. Tier caps T1(50k/10k), T2(100k/20k), T3(200k/40k), T4(ilimitado). LFPDPPP-compliant. Usa `get_phase_y_settings` de W4.3. ensure_indexes para 3 collections.
+- **NEW** `routes_director.py` — 5 REST endpoints + superadmin usage metrics. Rate limit: 5 sessions/hora/user + 30 messages/min/user. Permission: developer/inmobiliaria→own org, superadmin→cualquier org.
+- **EDIT** `server.py` — mount director routers + ensure_director_indexes en startup.
+
+### Frontend (2 nuevos · 2 editados)
+- **NEW** `api/directorApi.js` — startSession/sendMessage/getSession/getMessages/endSession.
+- **NEW** `components/director/DirectorChatPanel.js` — Chat completo: header (tier badge + sim chip + token progress bar), message bubbles (cream=user, dark glass=assistant), tool chips inline, skeleton loading, empty state con suggestions, PhaseY-off card, autoresize textarea, send button rounded-full gradient.
+- **EDIT** `DesarrolladorDashboard.js` — tabs "Resumen | Director AI" en la parte superior del dashboard. Resumen tab preserva todo el contenido original.
+- **EDIT** `i18n/locales/es-MX/common.json` — sección `director` con 6 keys: tab_label, empty_state, disabled_message, input_placeholder, send_button, tier_badge_template.
+
+### ENV
+- `DIRECTOR_MODEL=claude-sonnet-4-5-20250929`, `DIRECTOR_MAX_TOKENS_IN_T1=50000`, `DIRECTOR_MAX_TOKENS_OUT_T1=10000`
+
+### Acceptance Criteria
+- ✅ Start session con tier T2 retorna session_id
+- ✅ Send message → assistant responde (real LLM) + tokens persisted
+- ✅ Simulation mode ON → simulated=True, starts_with_[SIM]=True, zero Anthropic calls
+- ✅ End session → status=ended · siguiente message → 410 Gone
+- ✅ GET /api/superadmin/director/usage → sessions_count + tool_calls_breakdown
+- ✅ GET /api/director/sessions/{id}/messages → historial paginado
+- ✅ Sans auth → 401/403 según caso
+- ✅ yarn build 42s · /api/health 200
+
+### Edge cases conservadores
+- `DIRECTOR_MODEL` seteado a `claude-sonnet-4-5-20250929` (nombre verificado en repo) en lugar de `claude-sonnet-4-6` (spec) — el modelo `claude-sonnet-4-6` no tiene precedente en la codebase y podría no ser válido en LiteLLM proxy. Reportado.
+
+### SHA: de46500

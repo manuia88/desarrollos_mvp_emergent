@@ -860,6 +860,14 @@
         "yield_score": "Yield estimado",
         "denue_density": "Densidad DENUE"
       }
+    },
+    "director": {
+      "tab_label": "Director AI",
+      "empty_state": "Pregúntame sobre tu portfolio, comparables, leads, o KPIs de tu org",
+      "disabled_message": "Phase Y está desactivado para tu organización. Contacta a tu administrador para activarlo.",
+      "input_placeholder": "Pregúntame sobre tu portfolio, comparables, leads o KPIs…",
+      "send_button": "Enviar",
+      "tier_badge_template": "Tier {tier}"
     }
   }
 }
