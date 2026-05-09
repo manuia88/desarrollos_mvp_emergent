@@ -356,7 +356,6 @@ async def ensure_diagnostic_indexes(db):
     await db.diagnostic_ai_cache.create_index("expires_at", expireAfterSeconds=86400, background=True)
     # W4.1A — analyze_dev cache
     await db.diagnostic_reports.create_index("dev_id", background=True)
-    await db.diagnostic_reports.create_index("generated_at", background=True)
     try:
         await db.diagnostic_reports.create_index(
             "generated_at", expireAfterSeconds=86400, background=True,
