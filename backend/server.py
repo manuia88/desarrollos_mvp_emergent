@@ -390,6 +390,14 @@ try:
 except ImportError:
     _seed_landings_import = None
 
+# W4.3 — Phase Y.0 Foundation + Behavioral Tracking
+from routes_phase_y_controls import router as phase_y_router, ensure_indexes as ensure_phase_y_indexes
+from routes_behavioral import router as behavioral_router, sa_router as behavioral_sa_router
+from behavioral_tracking_engine import ensure_indexes as ensure_behavioral_indexes
+app.include_router(phase_y_router)
+app.include_router(behavioral_router)
+app.include_router(behavioral_sa_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -913,6 +921,11 @@ async def startup():
         await ensure_landing_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.2D3 landings seed/indexes failed: {e}")
+    try:
+        await ensure_phase_y_indexes(db)
+        await ensure_behavioral_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.3 phase-y/behavioral indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

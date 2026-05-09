@@ -1871,7 +1871,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://latam-realestate-ai.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://dmx-preview.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -2827,7 +2827,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://latam-realestate-ai.preview.emergentagent.com
+https://dmx-preview.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
@@ -3780,3 +3780,31 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 
 ### Componentes nuevos (1)
 - `DsrRequestCard` — status pill + type badge + process button (verified only) + evidence summary + overdue warning (>30d)
+
+### Edge cases conservadores documentados
+- Resend key ausente → email stub (`debug_verify_url` expuesta solo en respuesta JSON, nunca en email)
+- k-anonymity check falla por error DB → conservador: permite la consulta (no bloquea)
+- `process_dsr_deletion` con colección inexistente → captura error por colección, continúa con otras
+- DP noise aplica solo cuando `snap.available=True` y `index_value is not None` (free tier DRPI)
+- TTL index 5 años en compliance_audit — segunda creación ignora error (ya existe)
+- Compliance cron registrado en heartbeat DB al startup → visible en /superadmin/health/crons sin necesidad de primer run
+
+---
+
+## 2026-05-09 — W4.3 · Phase Y.0 Foundation + Behavioral Tracking
+
+### Backend (3 nuevos · 1 editado)
+- **NEW** `routes_phase_y_controls.py` — Endpoints GET/PATCH/POST `/api/superadmin/phase-y/{org_id}`. Schema `db.phase_y_settings` con 9 feature tiers, master switch, simulation mode.
+- **NEW** `behavioral_tracking_engine.py` — Ingest + aggregate + TTL 90d. IP hash LFPDPPP.
+- **NEW** `routes_behavioral.py` — POST `/api/track` público (100/min/session). GET events + aggregate superadmin.
+- **EDIT** `server.py` — wire 2 routers + ensure_indexes en startup.
+
+### Frontend (2 nuevos · 2 editados)
+- **NEW** `utils/behavioralTracker.js` — track() + usePageViewTracking() hook.
+- **NEW** `components/superadmin/PhaseYControlsPanel.js` — Panel configuración Phase Y con master switch, sim mode, 9 feature tiers.
+- **EDIT** `App.js` — mount usePageViewTracking en AppRouter.
+- **EDIT** `pages/superadmin/SuperadminTenants.js` — tab "Phase Y" en TenantDrawer.
+
+### Phase Y Foundation ready
+- `get_phase_y_settings(db, org_id)` helper listo para que W4.1A (diagnostic), W4.1C (recommendation), W4.2D3.5 (lead nurture) respeten master switch + simulation_mode.
+- `db.behavioral_events` alimentando ML continuous training (Phase 17 seed).

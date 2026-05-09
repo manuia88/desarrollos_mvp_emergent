@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { UndoProvider } from './components/shared/UndoSnackbar';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { PresentationModeProvider } from './hooks/usePresentationMode';
+// W4.3 — Behavioral tracker (auto page_view on route change)
+import { usePageViewTracking } from './utils/behavioralTracker';
 
 // Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
@@ -376,6 +378,9 @@ function AuthCallback() {
 // ─── Router ───────────────────────────────────────────────────────────────────
 function AppRouter() {
   const location = useLocation();
+
+  // W4.3 — Behavioral page view tracking (auto-fire on route change)
+  usePageViewTracking();
 
   // Phase 4 Batch 13 — Capture ?ref=asesor_id tracking cookie on initial load
   useEffect(() => {

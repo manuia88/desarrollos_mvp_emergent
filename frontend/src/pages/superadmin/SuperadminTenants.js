@@ -12,6 +12,7 @@ import {
 } from '../../api/superadminTenants';
 import { startImpersonation } from '../../hooks/useImpersonation';
 import StripeSubscriptionPanel from '../../components/superadmin/StripeSubscriptionPanel';
+import { PhaseYControlsPanel } from '../../components/superadmin/PhaseYControlsPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -183,7 +184,7 @@ function TenantDrawer({ tenantId, onClose }) {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4 }}>
-              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['billing', 'Billing']].map(([k, l]) => (
+              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['billing', 'Billing'], ['phase-y', 'Phase Y']].map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} data-testid={`drawer-tab-${k}`}
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
@@ -291,6 +292,10 @@ function TenantDrawer({ tenantId, onClose }) {
 
             {tab === 'billing' && (
               <StripeSubscriptionPanel tenantId={data.tenant_id || data.id} />
+            )}
+
+            {tab === 'phase-y' && (
+              <PhaseYControlsPanel orgId={data.tenant_id || tenantId} />
             )}
           </>
         )}
