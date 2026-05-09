@@ -169,6 +169,7 @@ const SuperadminCompliance           = lazy(() => import('./pages/superadmin/Sup
 const PrivacyDsrPage                 = lazy(() => import('./pages/public/PrivacyDsrPage'));
 // W4.2B — MCP connect page
 const ConnectMcpPage                 = lazy(() => import('./pages/public/ConnectMcpPage'));
+const AsistentePage                  = lazy(() => import('./pages/public/AsistentePage'));
 // W4.2D2 — Programmatic SEO zone landing pages
 const ZonePage                       = lazy(() => import('./pages/public/ZonePage'));
 // W4.2D3 — Programmatic SEO Tier 1+2 (alcaldías + intents)
@@ -556,6 +557,7 @@ function AppRouter() {
       <Route path="/privacy/dsr" element={<PrivacyDsrPage />} />
       {/* W4.2B — MCP connect page */}
       <Route path="/connect/mcp" element={<ConnectMcpPage />} />
+      <Route path="/asistente" element={<AsistentePage />} />
       {/* W4.2D2 — Programmatic SEO zone landing */}
       <Route path="/zona/:slug" element={<ZonePage />} />
       {/* W4.2D3 — Programmatic SEO alcaldía + intent landings */}

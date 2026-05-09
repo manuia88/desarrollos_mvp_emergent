@@ -3665,3 +3665,28 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - 9th tool `whatif_simulate` · auth X-DMX-API-Key · tier_director T1+ · Phase Y master enforcement
 - Director Agent puede dispararla autónomamente cuando user pregunta "simula un aumento de N%"
 
+
+---
+
+## 2026-05-09 — W4.4E · Phase Y.1E · Asistente público comprador
+
+### Backend (2 NEW · 2 EDIT)
+- **NEW** `asistente_engine.py` (480L) · `routes_asistente.py` (175L)
+- **EDIT** `server.py` (router + indexes) · `scheduler_ie.py` (cron 03:30 MX)
+
+### Frontend (3 NEW · 3 EDIT)
+- **NEW** `api/asistenteApi.js` · `pages/public/AsistentePage.js` · `components/asistente/AsistenteChat.js`
+- **EDIT** `App.js` (route) · `i18n/es-MX/common.json` (asistente.*) · `public/sitemap.xml`
+
+### Schemas
+- `db.asistente_sessions`, `db.asistente_messages` (4 índices)
+
+### LLM
+- Modelo: `claude-sonnet-4-5-20250929` vía `emergentintegrations.LlmChat`
+- 3 tools públicas (subset, no acceso interno por org): `search_developments_public`, `get_zone_info`, `get_market_pulse_public`
+- Caps: 30 msgs/session, 5 sessions/hora/ip, 20 msgs/min/session, 200 tokens out máx, 2 agentic rounds máx
+
+### Lead capture
+- POST `/capture-lead` → `leads` collection existente con `source="asistente_publico"`
+- Nurture cron existente recoge auto
+
