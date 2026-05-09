@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.4 Phase Y.1A Director Agent core shipped · Wave 4 ~108h)
-**Total H1 restante**: ~448h (Wave 4 pending de los 556h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 108h = 475h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 556h (108h shipped, 448h pending) = 873h plan (con Phase Y + Data sources + 3DGS upgrades)
+**Última actualización**: 2026-05-09 (W4.4B Phase Y.1B Director Memory Layer RAG shipped · Wave 4 ~116h)
+**Total H1 restante**: ~440h (Wave 4 pending de los 556h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 116h = 483h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 556h (116h shipped, 440h pending) = 873h plan (con Phase Y + Data sources + 3DGS upgrades)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -137,7 +137,7 @@ Formato canónico per-batch (founder request):
 | W4.2.5B | `/prensa` Media Kit page (8 stat cards copy-as-quote + 4 download cards + JSON-LD NewsMediaOrganization) | 3 | 3 | emergent | ✅ | `29f0bd8` | PrensaPage.js + routes_press.py |
 | W4.3 | Phase Y.0 Foundation + Behavioral Tracking | 16 | 16 | emergent | ✅ | `2498e8e` | routes_phase_y_controls.py + behavioral_tracking_engine.py + routes_behavioral.py + PhaseYControlsPanel + tracker keepalive |
 | W4.4A | Phase Y.1A — Director Agent core orchestration (4 tools internas: get_ie_score / get_unit_score / get_comparables / get_org_kpis) | 10 | 10 | emergent | ✅ | `de46500` | DirectorAgent class + 5 endpoints REST + DirectorChatPanel UI + simulation mode + tier caps T1-T4 + sonnet-4-5 (LiteLLM proxy sin sonnet-4-6) |
-| W4.4B | Phase Y.1B — Memory layer RAG sobre diagnostic_reports + ie_scores + behavioral_events | 8 | — | emergent | ⏳ | — | retrieval híbrido (vector + filtros) · contexto inyectado en system prompt · TTL aware |
+| W4.4B | Phase Y.1B — Memory layer RAG sobre diagnostic_reports + ie_scores + behavioral_events | 8 | 8 | emergent | ✅ | `17eaa3d` | DirectorMemoryEngine + 5to tool retrieve_memory + auto-inject T2+ + cron daily 04:30 + cron weekly expire 180d + MongoDB TEXT index español + MemoryHitsBlock UI |
 | W4.4C | Phase Y.1C — MCP exposure de Director (5 tools del MCP server llaman al Director Agent) | 4 | — | emergent | ⏳ | — | extiende /api/mcp existente · auth X-DMX-API-Key |
 | W4.4D | Phase Y.1D — What-if Simulator (dev simula impacto de cambiar precio/promo/timing) | 6 | — | emergent | ⏳ | — | feature #3 killer · usa Director + scenarios |
 | W4.4E | Phase Y.1E — Chat público `/asistente` (comprador frontstage) | 8 | — | emergent | ⏳ | — | feature #1 killer · session anónima · rate limit anti-abuse |
@@ -162,9 +162,9 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 108h / 556h (19.4%) 🟡
-**Pendiente Wave 4**: ~448h
-**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ shipped = 26h shipped · W4.4B-E + W4.5-W4.8 = 111h pending)
+**Acumulado Wave 4**: 116h / 556h (20.9%) 🟡
+**Pendiente Wave 4**: ~440h
+**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ + W4.4B 8h ✅ = 34h shipped · W4.4C-F + W4.5-W4.8 = 103h pending)
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
@@ -176,6 +176,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-09 | **W4.4B Phase Y.1B — Director Memory Layer RAG** | 8h | `17eaa3d` (merge `87ef728`) | DirectorMemoryEngine + retrieve_memory tool + auto-inject T2+ + cron daily/weekly + TEXT index español |
 | 2026-05-09 | **W4.4A Phase Y.1A — Director Agent core** | 10h | `de46500` (merge `b3cf110`) | DirectorAgent + 4 tools internas + simulation mode + tier caps + chat panel UI |
 | 2026-05-09 | **W4.3 Phase Y.0 Foundation + Behavioral Tracking** | 16h | `2498e8e` (merge `d63e4f0`) | Master switch + 9 tiers + behavioral_tracking_engine LFPDPPP-compliant |
 | 2026-05-07 | **Wave 1 CERRADA** — W1.6 Polish + push consolidado | 4h | TBD | E2E pytest 23 endpoints · audit limpio · founder test guide · PRD/ROADMAP closure |
