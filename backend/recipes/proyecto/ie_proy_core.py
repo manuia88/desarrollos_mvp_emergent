@@ -15,6 +15,9 @@ Los 12 recipes están distribuidos en 4 secciones:
 from __future__ import annotations
 
 import math
+import statistics
+from bisect import bisect_left
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from score_engine import register
@@ -401,4 +404,211 @@ class IEProyCompetitionPressure(ProjectRecipe):
             f"Competidores activos en {dev.get('colonia')}: {len(peers)}",
             f"Score = min(100, n × 20). Lower-better → {value}",
             "Peers: " + ", ".join(p.get("name", "?") for p in peers[:5]) if peers else "Sin competidores",
+        ]
+
+
+# ─── 5. Phase B (W3.1B-1) — 6 recipes nuevos ─────────────────────────────────
+_CDMX_BENCHMARK_SCORE = 65.0
+
+
+@register
+class IEProyScoreVsNacional(ProjectRecipe):
+    code = "IE_PROY_SCORE_VS_NACIONAL"
+    version = "1.0"
+    tier_logic = "higher_better"
+    description = "Score IE colonia del proyecto vs benchmark CDMX (avg colonias en _dmx_all_devs)."
+
+    def apply_proj(self, dev, ctx):
+        scores = ctx["colonia_scores"]
+        if len(scores) < 3:
+            return None
+        vals = [s.get("value") for s in scores if s.get("value") is not None]
+        if len(vals) < 3:
+            return None
+        score_proy = sum(vals) / len(vals)
+        return max(0.0, min(100.0, 50.0 + (score_proy - _CDMX_BENCHMARK_SCORE)))
+
+    def explanation_proj(self, dev, ctx, value):
+        vals = [s.get("value") for s in ctx["colonia_scores"] if s.get("value") is not None]
+        score_proy = sum(vals) / len(vals) if vals else 0.0
+        delta = score_proy - _CDMX_BENCHMARK_SCORE
+        return [
+            f"Score promedio colonia: {score_proy:.1f}",
+            f"Benchmark CDMX: {_CDMX_BENCHMARK_SCORE:.1f}",
+            f"Delta: {delta:+.1f}",
+        ]
+
+
+@register
+class IEProyPrecioRankPercentil(ProjectRecipe):
+    code = "IE_PROY_PRECIO_RANK_PERCENTIL"
+    version = "1.0"
+    tier_logic = "lower_better"
+    description = "Percentil precio_m2 vs universo DMX. Más accesible = mejor."
+
+    def apply_proj(self, dev, ctx):
+        precio = dev.get("price_m2_avg")
+        if precio is None:
+            return None
+        universo = sorted(
+            d["price_m2_avg"] for d in ctx["all_devs"] if d.get("price_m2_avg") is not None
+        )
+        if len(universo) < 5:
+            return None
+        rank = bisect_left(universo, precio)
+        return (1.0 - rank / len(universo)) * 100.0
+
+    def explanation_proj(self, dev, ctx, value):
+        precio = dev.get("price_m2_avg") or 0
+        universo = sorted(
+            d["price_m2_avg"] for d in ctx["all_devs"] if d.get("price_m2_avg") is not None
+        )
+        rank = bisect_left(universo, precio) if universo else 0
+        n = len(universo)
+        return [
+            f"Precio m²: {precio:,.0f} MXN",
+            f"Rank: {rank}/{n}",
+            f"Percentil accesibilidad: {value:.0f}" if value is not None else "Percentil accesibilidad: n/a",
+        ]
+
+
+@register
+class IEProyRecencyLaunch(ProjectRecipe):
+    code = "IE_PROY_RECENCY_LAUNCH"
+    version = "1.0"
+    tier_logic = "higher_better"
+    description = "Frescura del proyecto vs same_colonia_devs."
+
+    def _parse_iso(self, raw):
+        if not raw or not isinstance(raw, str):
+            return None
+        try:
+            return datetime.strptime(raw[:10], "%Y-%m-%d")
+        except ValueError:
+            return None
+
+    def apply_proj(self, dev, ctx):
+        dev_dt = self._parse_iso(dev.get("launch_date"))
+        if dev_dt is None:
+            return None
+        now = datetime.utcnow()
+        dev_days = (now - dev_dt).days
+        same_days: List[int] = []
+        for d in ctx["same_colonia_devs"]:
+            d_dt = self._parse_iso(d.get("launch_date"))
+            if d_dt is not None:
+                same_days.append((now - d_dt).days)
+        if len(same_days) < 2:
+            return None
+        mediana = statistics.median(same_days)
+        delta_pct = (mediana - dev_days) / max(1.0, mediana)
+        return max(0.0, min(100.0, 50.0 + delta_pct * 50.0))
+
+    def explanation_proj(self, dev, ctx, value):
+        dev_dt = self._parse_iso(dev.get("launch_date"))
+        now = datetime.utcnow()
+        dev_days = (now - dev_dt).days if dev_dt else 0
+        same_days: List[int] = []
+        for d in ctx["same_colonia_devs"]:
+            d_dt = self._parse_iso(d.get("launch_date"))
+            if d_dt is not None:
+                same_days.append((now - d_dt).days)
+        mediana = statistics.median(same_days) if same_days else 0.0
+        return [
+            f"Días desde launch: {dev_days}",
+            f"Mediana misma colonia: {mediana:.0f}",
+            "Más reciente que mediana" if dev_days < mediana else "Más antiguo que mediana",
+        ]
+
+
+@register
+class IEProyTipoFitColonia(ProjectRecipe):
+    code = "IE_PROY_TIPO_FIT_COLONIA"
+    version = "1.0"
+    tier_logic = "higher_better"
+    description = "% de same_colonia_devs con mismo type que dev → demanda revelada del tipo."
+
+    def apply_proj(self, dev, ctx):
+        tipo = dev.get("type")
+        if tipo is None:
+            return None
+        same = ctx["same_colonia_devs"]
+        if len(same) < 3:
+            return None
+        n_match = sum(1 for d in same if d.get("type") == tipo)
+        return n_match / len(same) * 100.0
+
+    def explanation_proj(self, dev, ctx, value):
+        tipo = dev.get("type")
+        same = ctx["same_colonia_devs"]
+        n_match = sum(1 for d in same if d.get("type") == tipo)
+        n_total = len(same)
+        pct = (value if value is not None else 0.0)
+        return [
+            f"Tipo dev: {tipo}",
+            f"Devs misma colonia mismo tipo: {n_match}/{n_total}",
+            f"Fit zona: {pct:.0f}%",
+        ]
+
+
+@register
+class IEProyInventoryDepthRelative(ProjectRecipe):
+    code = "IE_PROY_INVENTORY_DEPTH_RELATIVE"
+    version = "1.0"
+    tier_logic = "band"
+    description = "Tamaño dev vs avg same_colonia. Banda ±30% = óptimo."
+
+    def apply_proj(self, dev, ctx):
+        units = dev.get("units_total")
+        if units is None:
+            return None
+        same_units = [d["units_total"] for d in ctx["same_colonia_devs"] if d.get("units_total") is not None]
+        if len(same_units) < 2:
+            return None
+        avg = sum(same_units) / len(same_units)
+        if avg <= 0:
+            return None
+        ratio = units / avg
+        return max(0.0, 100.0 - abs(ratio - 1.0) * 100.0)
+
+    def explanation_proj(self, dev, ctx, value):
+        units = dev.get("units_total") or 0
+        same_units = [d["units_total"] for d in ctx["same_colonia_devs"] if d.get("units_total") is not None]
+        avg = (sum(same_units) / len(same_units)) if same_units else 0.0
+        ratio = (units / avg) if avg > 0 else 0.0
+        return [
+            f"Units dev: {units}",
+            f"Avg misma colonia: {avg:.0f}",
+            f"Ratio: {ratio:.2f}x",
+            f"Score banda: {value:.0f}" if value is not None else "Score banda: n/a",
+        ]
+
+
+@register
+class IEProyDeveloperConcentration(ProjectRecipe):
+    code = "IE_PROY_DEVELOPER_CONCENTRATION"
+    version = "1.0"
+    tier_logic = "band"
+    description = "Concentración del developer en universo DMX. Banda 2-5 proyectos = track record sin sobre-exposición."
+
+    def apply_proj(self, dev, ctx):
+        dev_id = dev.get("developer_id")
+        if dev_id is None:
+            return None
+        n = sum(1 for d in ctx["all_devs"] if d.get("developer_id") == dev_id)
+        if n == 1:
+            return 50.0
+        if 2 <= n <= 5:
+            return 90.0
+        if 6 <= n <= 10:
+            return 70.0
+        return 40.0
+
+    def explanation_proj(self, dev, ctx, value):
+        dev_id = dev.get("developer_id")
+        n = sum(1 for d in ctx["all_devs"] if d.get("developer_id") == dev_id)
+        return [
+            f"Developer: {dev_id}",
+            f"Proyectos en universo DMX: {n}",
+            f"Banda concentración: {value:.0f}" if value is not None else "Banda concentración: n/a",
         ]
