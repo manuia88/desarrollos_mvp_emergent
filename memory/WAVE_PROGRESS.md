@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.4E.5 Caya/Asistente Unification shipped · Wave 4 ~141h · Caya bloque 15/31h)
-**Total H1 restante**: ~422h (Wave 4 pending de los 563h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 141h = 508h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 563h (141h shipped, 422h pending) = 880h plan (con Phase Y + Data sources + 3DGS + Caya unification upgrades)
+**Última actualización**: 2026-05-09 (W4.4E.5.1 fix-pass security + lead form shipped · Wave 4 ~143h · próximo: rename brand chat + W4.11a Caya home)
+**Total H1 restante**: ~422h (Wave 4 pending de los 565h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 143h = 510h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 565h (143h shipped, 422h pending) = 882h plan (con Phase Y + Data sources + 3DGS + Caya unification + fix-pass)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -142,6 +142,7 @@ Formato canónico per-batch (founder request):
 | W4.4D | Phase Y.1D — What-if Simulator (price_change/promo/delay/mix · 4 escenarios) | 6 | 6 | emergent | ✅ | `a85d7d9` | whatif_engine + 4 scenarios + Director 6th tool + MCP 9th tool + WhatIfPanel · caps T1=100/T2=500/T3+=∞ · cross-tenant safety + DSR soft delete |
 | W4.4E | Phase Y.1E — Chat público `/asistente` (comprador frontstage) | 8 | 8 | emergent | ✅ | `af6195d` | asistente_engine + 4 endpoints + 3 public tools + LFPDPPP IP hash + intent regex + lead capture wireado a leads source=asistente_publico + cron expire 03:30 + AsistentePage UI full-page + 4 chips empty state |
 | W4.4E.5 | Caya/Asistente Unification + Upgrade | 7 | 7 | emergent | ✅ | `fbb9484` | caya_engine thin wrapper sobre AsistenteEngine · get_or_create_from_legacy + channel web_bubble + tier en response · GET /api/asistente/sessions/{token} hydrate · migration idempotente (4 sessions migradas) · CayaBubble tier badge + MemoryHitsBlock + expand button · AsistentePage hydrate 3-niveles |
+| W4.4E.5.1 | Fix-pass: security legacy mapping + lead form CayaBubble | 2 | 2 | emergent | ✅ | `e72853c` | get_or_create_from_legacy valida session existe antes de mapear · 429 con reason=rate_limit_legacy_mapping · audit log · LeadCaptureMiniForm inline 3 inputs · localStorage flag · capture-lead source override |
 | W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | absorbido en Y.2 sub-chunks |
 | W4.5 | Phase Y.2 5 sub-agents ML + 3 capas resilience por agente | 30 | — | emergent | ⏳ | — | 5 chunks · Pricing/Marketing/Lead/Construction/Compliance · cada uno con cache + fallback + circuit breaker |
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
@@ -164,10 +165,10 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 141h / 563h (25.0%) 🟡
+**Acumulado Wave 4**: 143h / 565h (25.3%) 🟡
 **Pendiente Wave 4**: ~422h
 **Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ + W4.4B 8h ✅ + W4.4C 4h ✅ + W4.4D 6h ✅ + W4.4E 8h ✅ = 52h shipped · W4.4F + W4.5-W4.8 = 85h pending)
-**Caya bloque coherente (autorizado 2026-05-09)**: 31h totales · **15/31h ✅ shipped** (Y.1E 8h + W4.4E.5 Unification 7h) + W4.11a Caya home 16h ⏳ · cierra módulo Caya end-to-end antes de saltar a Y.2
+**Caya bloque coherente (autorizado 2026-05-09)**: 33h totales · **17/33h ✅ shipped** (Y.1E 8h + W4.4E.5 Unification 7h + W4.4E.5.1 fix-pass 2h) + W4.11a Caya home 16h ⏳ · cierra módulo Caya end-to-end antes de saltar a Y.2
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
