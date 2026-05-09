@@ -17,6 +17,9 @@ import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/ico
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
 import { useNavigate } from 'react-router-dom';
+// W4.2D1 — URL state sync helpers
+import { urlToFilters, filtersToUrl } from '../utils/marketplaceUrlState';
+import MarketplaceMetaTags from '../components/seo/MarketplaceMetaTags';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -48,6 +51,27 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
+
+  // W4.2D1 — Hydrate state from URL params on mount
+  useEffect(() => {
+    const { filters: urlFilters, coloniaFilter: urlColonia } = urlToFilters(window.location.search);
+    if (urlColonia) setColoniaFilter(urlColonia);
+    if (Object.keys(urlFilters).length > 0) {
+      // Exclude colonia array (handled by coloniaFilter above)
+      const { colonia: _ignored, ...restFilters } = urlFilters;
+      if (Object.keys(restFilters).length > 0) setFilters(prev => ({ ...prev, ...restFilters }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // W4.2D1 — Sync URL when filters or coloniaFilter change (replaceState, no reload)
+  useEffect(() => {
+    const qs = filtersToUrl(filters, coloniaFilter);
+    const newUrl = `/marketplace${qs ? '?' + qs : ''}`;
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [filters, coloniaFilter]);
 
   useEffect(() => { fetchColonias().then(setColonias); }, []);
 
@@ -121,6 +145,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      {/* W4.2D1 — Dynamic meta tags */}
+      <MarketplaceMetaTags filters={filters} coloniaFilter={coloniaFilter} resultCount={developments.length} />
       <Navbar user={user} onLogin={onLogin} onLogout={onLogout} />
       <main style={{ paddingTop: 60 }}>
         <section style={{ maxWidth: 1440, margin: '0 auto', padding: '32px 32px 12px' }}>

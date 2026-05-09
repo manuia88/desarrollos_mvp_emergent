@@ -5,7 +5,7 @@ Sirve rutas públicas sin prefijo /api:
   GET /sitemap.xml           — XML sitemap
   GET /.well-known/ai-plugin.json — OpenAI plugin manifest
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse, Response
 
 router = APIRouter(tags=["seo"])
@@ -84,18 +84,43 @@ async def serve_llms_txt():
 
 
 @router.get("/sitemap.xml")
-async def serve_sitemap():
-    urls = "\n".join(
+async def serve_sitemap(request: Request):
+    """Dynamic sitemap: base URLs + SEO filter combos from db.seo_filter_combos."""
+    # Base static URLs
+    entries = list(_SITEMAP_URLS)
+
+    # Dynamic combos from MongoDB (if request.app.state.db available)
+    try:
+        db = request.app.state.db
+        combos = await db.seo_filter_combos.find(
+            {}, {"_id": 0, "canonical_url": 1}
+        ).limit(500).to_list(500)
+        for c in combos:
+            cu = c.get("canonical_url", "")
+            if cu and cu.startswith(BASE_URL):
+                path = cu[len(BASE_URL):]
+                entries.append(path)
+    except Exception:
+        pass  # fallback to static only
+
+    seen = set()
+    unique_entries = []
+    for e in entries:
+        if e not in seen:
+            seen.add(e)
+            unique_entries.append(e)
+
+    urls_xml = "\n".join(
         f"""  <url>
     <loc>{BASE_URL}{path}</loc>
     <changefreq>weekly</changefreq>
-    <priority>{'1.0' if path == '/' else '0.8'}</priority>
+    <priority>{'1.0' if path == '/' else '0.7'}</priority>
   </url>"""
-        for path in _SITEMAP_URLS
+        for path in unique_entries
     )
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{urls}
+{urls_xml}
 </urlset>"""
     return Response(content=xml, media_type="application/xml")
 
