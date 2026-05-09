@@ -10,7 +10,7 @@ from fastapi.responses import PlainTextResponse, Response
 
 router = APIRouter(tags=["seo"])
 
-BASE_URL = "https://desarrollosmx.com"
+BASE_URL = "https://desarrollosmx.io"
 
 _LLMS_TXT = """\
 # DesarrollosMX (DMX)

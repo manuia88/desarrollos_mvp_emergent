@@ -356,9 +356,17 @@ app.include_router(seo_router, prefix="/api/seo")
 
 # W4.2D1 — seed SEO filter combos on startup
 try:
-    from seo_combos_seed import seed_seo_combos as _seed_seo_combos_import
+    from seo_combos_seed import (
+        seed_seo_combos as _seed_seo_combos_import,
+        seed_zone_pages_in_sitemap as _seed_zone_pages_import,
+    )
 except ImportError:
     _seed_seo_combos_import = None
+    _seed_zone_pages_import = None
+
+# W4.2D2 — Public zones router (programmatic SEO landing pages)
+from routes_public_zones import router as public_zones_router
+app.include_router(public_zones_router)
 
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
@@ -865,6 +873,12 @@ async def startup():
             await _seed_seo_combos_import(db)
     except Exception as e:
         logging.warning(f"[startup] W4.2D1 seo combos seed failed: {e}")
+    # W4.2D2 — Zone pages seed in sitemap
+    try:
+        if _seed_zone_pages_import:
+            await _seed_zone_pages_import(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.2D2 zone pages seed failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
