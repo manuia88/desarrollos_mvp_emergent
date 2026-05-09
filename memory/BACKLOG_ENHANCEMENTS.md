@@ -8,6 +8,20 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Lead Nurture Cron · matching landing_leads → nuevo inventario + email
+- **Origen:** W4.2D3 emergent suggested 2026-05-09
+- **Destino:** Wave 4 W4.10 (Phase 8 ext WhatsApp + AutoNewsletter) ó early W4.3
+- **Qué:** Cron diario que: query `db.landing_leads` (de W4.2D3 lead capture forms en zonas tier 2 sin inventario), por cada lead match con `db.developments` que apareció nuevo en `zone_interest`, dispara Resend email "Tu zona favorita {Granada} ya tiene inventario nuevo".
+- **Por qué:** convierte tráfico SEO en revenue real · cierra el loop tier 2 (capturas leads → entregas valor cuando hay inventario) · LFPDPPP compliant (opt-in en form ya está).
+- **Costo:** ~3h (cron job + matching logic + email template).
+
+### Endpoint Superadmin `/api/superadmin/landing-leads` con count agrupado por zone_interest
+- **Origen:** W4.2D3 emergent suggested 2026-05-09
+- **Destino:** Wave 4 closure ó Phase 20 polish
+- **Qué:** GET endpoint admin que retorna `[{zone_slug, lead_count, last_lead_at}]` ordenado por count desc. Permite a founder priorizar qué colonias tier 2 onboardear primero (data-driven roadmap).
+- **Por qué:** las leads ya se persisten en `db.landing_leads` (W4.2D3) — solo falta el dashboard. Founder ve "150 leads para Granada → priorizar onboarding inventario allí".
+- **Costo:** ~30 min (aggregation + UI minimal en SuperadminDashboard).
+
 ### Integración INEGI demographics en `/api/public/zones/{slug}`
 - **Origen:** W4.2D2 emergent suggested 2026-05-09
 - **Destino:** Phase 7.2 (DENUE/INEGI cuts) ó Wave 5
