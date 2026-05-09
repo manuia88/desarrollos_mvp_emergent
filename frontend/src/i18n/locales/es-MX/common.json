@@ -1021,6 +1021,50 @@
         "error_ratelimit": "Demasiadas ejecuciones simultáneas. Intenta en 60 segundos.",
         "last_run_label": "Última ejecución",
         "cost_label": "Costo IA"
+      },
+      "lead": {
+        "title": "Sub-agente de Leads",
+        "analyze_button": "Analizar funnel",
+        "analyzing_label": "Analizando…",
+        "no_recommendations": "No se detectaron issues en el funnel de leads.",
+        "apply_button": "Aplicar",
+        "reject_button": "Rechazar",
+        "expected_lift_label": "Lift esperado",
+        "confidence_label": "Confianza",
+        "issue": {
+          "stale_lead": "Lead sin contacto",
+          "low_conversion_asesor": "Conv. asesor baja",
+          "drop_at_stage": "Drop-off en etapa",
+          "underperforming_segment": "Segmento bajo",
+          "missing_followup": "Sin seguimiento"
+        },
+        "severity": {
+          "high": "Alta",
+          "medium": "Media",
+          "low": "Baja"
+        },
+        "target_type": {
+          "lead": "Lead",
+          "asesor": "Asesor",
+          "funnel_stage": "Etapa",
+          "segment": "Segmento"
+        },
+        "layer_used": {
+          "llm": "LLM",
+          "cache": "Caché",
+          "heuristic": "Heurística"
+        },
+        "status": {
+          "pending": "Pendiente",
+          "applied": "Aplicada",
+          "rejected": "Rechazada",
+          "expired": "Vencida"
+        },
+        "error_disabled": "El Lead Agent requiere tier T1 o superior. Actívalo en configuración Phase Y.",
+        "error_ratelimit": "Demasiadas ejecuciones simultáneas. Intenta en 60 segundos.",
+        "period_label": "Período de análisis",
+        "last_run_label": "Última ejecución",
+        "cost_label": "Costo IA"
       }
     }
   }

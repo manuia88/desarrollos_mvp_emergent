@@ -1930,3 +1930,26 @@ Atlax pasa de ser un bubble flotante a ser **el corazón de la home pública** d
 
 ### Acceptance criteria: ✅ todos verificados (simulation mode, tier OFF→403, apply/reject, runs)
 ### Edge case real: LLM layer (Layer 1) retorna 502 en el entorno preview por timeout de proxy (~30s). El backend procesa correctamente — la 502 es del proxy del entorno preview, no del backend. Heurística y caché funcionan sin timeout.
+
+---
+
+## W4.5 Y.2C — Lead Sub-Agent + 3 Capas Resilience (2026-05-09)
+
+### Backend (nuevo)
+- `/app/backend/sub_agents/lead_agent.py`: LeadAgent 3-layer con 5 tools internos
+  (get_leads_by_status, get_asesor_conversion_metrics, get_funnel_dropoff, get_segment_response_rates, get_lead_age_distribution)
+
+### Backend (editado)
+- `/app/backend/routes_subagents.py`: 5 nuevos endpoints lead/* (analyze, list, apply, reject, runs)
+- `/app/backend/director_agent_engine.py`: 9no tool delegate_lead_optimization + handler
+- `/app/backend/server.py`: ensure_lead_indexes en startup
+
+### Frontend (nuevo)
+- `/app/frontend/src/components/director/LeadAgentPanel.js`: panel con filtros status+target_type, IssueBadge, TargetBadge, SeverityBadge
+
+### Frontend (editado)
+- `/app/frontend/src/pages/superadmin/SuperadminTenants.js`: 3er sub-tab Lead en SubAgentsTabs
+- `/app/frontend/src/i18n/locales/es-MX/common.json`: claves subagents.lead.*
+
+### Acceptance criteria: ✅ todos verificados
+### Edge case: heuristic retornó 0 recs en el entorno de prueba porque los leads del DB tienen status distintos a active/new/contacted. Comportamiento correcto (no false positives).
