@@ -241,6 +241,13 @@ from routes_compliance import router as compliance_router
 from compliance_engine import ensure_compliance_indexes
 app.include_router(compliance_router)
 
+# W3.8 — Cross-sell Intelligence
+from routes_cross_sell import router as cross_sell_router
+from routes_partners import router as partners_router
+from cross_sell_engine import ensure_indexes as ensure_cross_sell_indexes
+app.include_router(cross_sell_router)
+app.include_router(partners_router)
+
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
@@ -771,6 +778,14 @@ async def startup():
         await ensure_compliance_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W3.7 compliance indexes failed: {e}")
+    # W3.8 — Cross-sell Intelligence indexes + seed partners
+    try:
+        await ensure_cross_sell_indexes(db)
+        from cross_sell_engine import seed_initial_partners, seed_demo_offers
+        await seed_initial_partners(db)
+        await seed_demo_offers(db)
+    except Exception as e:
+        logging.warning(f"[startup] W3.8 cross-sell seed failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes

@@ -9,6 +9,8 @@ import { fetchDashboard } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
 import SmartMatchWidget from '../../components/comprador/SmartMatchWidget';
 import { Search, Heart, Clock, Bell, ArrowRight } from '../../components/icons';
+// W3.8 — Cross-sell
+import CompradorCrossSellSection from '../../components/comprador/CompradorCrossSellSection';
 
 function fmtMxn(n) {
   if (!n) return '—';
@@ -229,6 +231,9 @@ export default function CompradorDashboard() {
         <div style={{ marginTop: 18 }}>
           <SmartMatchWidget />
         </div>
+
+        {/* W3.8 — Servicios para tu compra (solo si hay partners activos) */}
+        <CompradorCrossSellSection />
 
         {hasNothing && (
           <div data-testid="empty-state" style={{
