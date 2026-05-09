@@ -178,10 +178,18 @@ async def zone_coverage(zone_id: str, request: Request):
     """Tells the UI whether to show real scores or fall back to seed with 'estimado' badge.
     Counts only recipes with matching scope (colonia vs proyecto) to avoid diluting coverage."""
     db = request.app.state.db
-    # Detect scope: if zone_id matches a development.id → scope=proyecto, else colonia
+    # Detect scope: proyecto if zone matches a dev id; unit if zone is `{dev_id}-...`; else colonia
     try:
         from data_developments import DEVELOPMENTS_BY_ID
-        scope = "proyecto" if zone_id in DEVELOPMENTS_BY_ID else "colonia"
+        if zone_id in DEVELOPMENTS_BY_ID:
+            scope = "proyecto"
+        else:
+            matched_dev = next(
+                (d_id for d_id in DEVELOPMENTS_BY_ID
+                 if zone_id.startswith(d_id + "-") and zone_id != d_id),
+                None,
+            )
+            scope = "unit" if matched_dev else "colonia"
     except ImportError:
         scope = "colonia"
 
@@ -202,6 +210,12 @@ async def zone_coverage(zone_id: str, request: Request):
 async def public_development_scores(dev_id: str, request: Request):
     """Public endpoint — alimenta el bloque 'Score IE del proyecto' en /desarrollo/:slug."""
     return await zone_coverage(dev_id, request)
+
+
+@pub_router.get("/units/{unit_id}/scores", response_model=ZoneCoverageOut)
+async def public_unit_scores(unit_id: str, request: Request):
+    """Public endpoint — alimenta IeUnitScoreCard en drawer de unit."""
+    return await zone_coverage(unit_id, request)
 
 
 class ScoreExplainOut(BaseModel):

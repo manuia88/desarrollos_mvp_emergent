@@ -9,6 +9,7 @@ import {
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
 import useInlineSaver from '../../hooks/useInlineSaver';
+import IeUnitScoreCard from './IeUnitScoreCard';
 import { ChevronRight, TrendUp, BarChart, Users, Building, FileText, Star } from '../../components/icons';
 
 const fmtMXN = (v) => {
@@ -573,6 +574,8 @@ export default function UnitDrawerContent({ unit, devId, user, onUnitUpdated }) 
       <DrawerSection id="documentos" title="Documentos y assets">
         <DocumentosSection unit={unit} devId={devId} />
       </DrawerSection>
+
+      <IeUnitScoreCard unitId={unit?.id || unit?.unit_id || unit?.unit_number} />
 
       <DrawerFooter unit={unit} devId={devId} user={user} onUnitUpdated={onUnitUpdated} />
     </div>

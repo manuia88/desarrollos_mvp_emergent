@@ -138,3 +138,40 @@ class IEUnitOrientacionPremium(UnitRecipe):
             f"Orientación: {ori}",
             f"Score: {v:.0f} (Norte máximo, Poniente mínimo)",
         ]
+
+
+@register
+class IEUnitM2Value(UnitRecipe):
+    code = "IE_UNIT_M2_VALUE"
+    version = "1.0"
+    tier_logic = "lower_better"
+    description = "Precio/m² del unit vs avg dev. Lower = mejor valor."
+
+    def apply_unit(self, unit, ctx):
+        precio = unit.get("price")
+        m2 = unit.get("m2_privative")
+        if not precio or not m2 or m2 <= 0:
+            return None
+        unit_pm2 = precio / m2
+        peers_pm2 = []
+        for p in ctx["dev_peers"]:
+            pp = p.get("price")
+            pm = p.get("m2_privative")
+            if pp and pm and pm > 0:
+                peers_pm2.append(pp / pm)
+        if len(peers_pm2) < 2:
+            return None
+        avg_pm2 = sum(peers_pm2) / len(peers_pm2)
+        if avg_pm2 <= 0:
+            return None
+        ratio = unit_pm2 / avg_pm2
+        return max(0.0, min(100.0, 100.0 - (ratio - 1.0) * 100.0))
+
+    def explanation_unit(self, unit, ctx, value):
+        precio = unit.get("price") or 0
+        m2 = unit.get("m2_privative") or 0
+        unit_pm2 = (precio / m2) if m2 > 0 else 0
+        return [
+            f"Precio/m² unit: {unit_pm2:,.0f} MXN",
+            "Score 0-100 (más alto = más accesible vs edificio)",
+        ]
