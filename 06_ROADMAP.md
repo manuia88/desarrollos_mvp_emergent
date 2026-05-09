@@ -33,13 +33,13 @@
 | Phase 13/14/15/18 (whitelist + inhouse + directorios + inmobiliaria) | ✅ **100% COMPLETO** (B35+B36+B37+B38 vía PR #12+#15+#16) | ~46h |
 | Phase 3 Asesor | ✅ **100% COMPLETO** (B31+B32+B33+B34 vía PR #14 + #15) | ~25h |
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
-| **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | 🟡 EN CURSO 49/120h | ~120h |
-| **Wave 3 — Authority + Verticals + Risk Layer + Zone Score + Data Licensing** (Teseo+AirDNA expansion + Kalshi data licensing F: ZZ.2-ZZ.4 + Z.3-Z.4 ext + Phase 5 + DENUE + Risk Score + Cost Predictor + R² públicos + Methodology + Zone Score A-F + Investment Explorer + Data Licensing Bundles) | 🟡 EN CURSO 66/197h | ~197h |
-| **Wave 4 — Agentic + Investor Sim + Brand + Intelligence + Behavioral ML + Probability UX + Polish** (Phase Y reorientada ML + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy ext + Diagnostic Engine + Recommendation Marketplace + Behavioral Tracking + Comparables Proactivo + Real-time Demand + State of CDMX Report + Free audit + Probability UX A + Smart Notifications B + Embeddable Widgets C) | 🟡 pending | ~461h |
+| **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | ✅ **100% COMPLETO** (W2.1-W2.10 · 2026-05-08) | ~120h |
+| **Wave 3 — Authority + Verticals + Risk Layer + IE Engine + Watchlist** (Teseo+AirDNA expansion + Kalshi data licensing F: ZZ.2-ZZ.4 + Z.3-Z.4 ext + Phase 5 + IE Engine Phase B + Risk Score V2 + Cross-sell + LFPDPPP badge + Watchlist subscribe) | ✅ **100% COMPLETO** (W3.0 → W3.9c · 2026-05-09) | ~197h |
+| **Wave 4 — Agentic + Investor Sim + Brand + Intelligence + Behavioral ML + Probability UX + Polish** (Phase Y reorientada ML + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy ext + Diagnostic Engine ✅ + Recommendation Banner ✅ + Comparable Anomaly ✅ + MCP server ✅ + GEO foundation ✅ + Behavioral Tracking + Real-time Demand + State of CDMX Report + Free audit + Probability UX A + Smart Notifications B + Embeddable Widgets C) | 🟡 EN CURSO 46/461h (W4.1+W4.2A+W4.2B shipped) | ~461h |
 
-**Total H1 restante**: ~778h (Wave 2 71h + Wave 3 197h - 66h shipped + Wave 4 461h + buffers + integraciones Teseo+AirDNA+cofounder + Phase Y reorientación ML + Kalshi-inspired probability UX + smart notifications + embeddable widgets + data licensing bundles)
+**Total H1 restante**: ~415h (Wave 1+2+3 cerradas · Wave 4 = 461h - 46h shipped = 415h pending)
 
-**Shipped to date**: ~498h (Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 50h + Wave 2 119h)
+**Shipped to date**: ~770h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 46h)
 
 **Origin de adiciones**:
 - **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).

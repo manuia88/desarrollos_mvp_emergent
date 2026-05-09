@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-08 PM (Wave 3 66h shipped: W3.1A+W3.2+W3.3 + Kalshi-inspired ronda 3 +22h)
-**Total H1 restante**: ~564h (de ~828h tras +222h adiciones combinadas)
-**Shipped to date**: ~564h Phase 4-refactor + 1 + 2 + 3 + B2B + Wave 1 ~50h + Wave 2 119h + Wave 3 W3.1A+W3.2+W3.3 ~66h
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h (+57h) + Wave 4 461h (+165h) = 778h plan — ver `memory/DATA_SOURCES.md` + secciones expansion en `memory/PRD.md`
+**Última actualización**: 2026-05-09 (Wave 3 100% CERRADA · Wave 4 ~46h shipped: W4.1 Intelligence Layer + W4.2A MCP server + W4.2B GEO foundation)
+**Total H1 restante**: ~415h (Wave 4 pending de los 461h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 46h = 413h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 461h (46h shipped, 415h pending) = 778h plan — ver `memory/DATA_SOURCES.md` + secciones expansion en `memory/PRD.md`
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -32,10 +32,10 @@ Formato canónico per-batch (founder request):
 
 | Wave | Foco | Estimado | Shipped | % | Status |
 |---|---|---|---|---|---|
-| **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 + ZZ.1.1 | 50h | 37.5h | 100% | ✅ CERRADA |
-| **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 49h | 41% | 🟡 EN CURSO |
-| **Wave 3** — Authority + Verticals + Risk Layer + Zone Score (+53h vs original) | + Zone Score A-F (E) + Investment Explorer (F) | 193h | 0h | 0% | 🟡 NEXT |
-| **Wave 4** — Agentic + Brand + Intelligence Layer + Behavioral ML + Polish (+147h vs original) | + Amenities Validator + MCP Brand Strategy + Diagnostic Engine + Real-time Demand + Recommendation Marketplace ML + Behavioral Tracking Foundation + Phase Y reorientada casos ML concretos + State of CDMX Report + Comparables proactivo | 443h | 0h | 0% | ⏳ pending |
+| **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 + ZZ.1.1 | 50h | 50h | 100% | ✅ CERRADA 2026-05-07 |
+| **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 120h | 100% | ✅ CERRADA 2026-05-08 |
+| **Wave 3** — Authority + Verticals + Risk Layer + Zone Score | + Zone Score A-F + Investment Explorer + IE Engine completion + W3.9 Polish (LFPDPPP + Watchlist) | 197h | 197h | 100% | ✅ CERRADA 2026-05-09 |
+| **Wave 4** — Agentic + Brand + Intelligence Layer + Behavioral ML + Polish (+147h vs original) | + Amenities Validator + MCP Brand Strategy + Diagnostic Engine + Real-time Demand + Recommendation Marketplace ML + Behavioral Tracking Foundation + Phase Y reorientada casos ML concretos + State of CDMX Report + Comparables proactivo | 461h | 46h | 10% | 🟡 EN CURSO |
 
 ---
 
@@ -68,64 +68,95 @@ Formato canónico per-batch (founder request):
 
 ---
 
-## 🟡 Wave 2 — Commercial + Intelligence Hub (~120h) — EN CURSO
+## ✅ Wave 2 — Commercial + Intelligence Hub (~120h) — CERRADA 2026-05-08
 
 **Objetivo**: monetización + dashboard ejecutivo cross-org.
 
+| # | Batch | h est. | h real | Quién | Status | Notas |
+|---|---|---|---|---|---|---|
+| W2.1 | SA2 Data Sources Hub | 10 | 10 | emergent | ✅ | 11 connectors + healthcheck + retry/replay + audit |
+| W2.2 | SA3 Audit Log Viewer | 8 | 8 | emergent | ✅ | 7 endpoints + BeforeAfterDiff + bulk_ingest enrichment |
+| W2.3 | SA4 AI Cost Observatory | 12 | 12 | emergent | ✅ | 9 endpoints + dual-write + caps hard_block + sparkline |
+| W2.4 | SA5 Commercial Foundation | 19 | 19 | emergent | ✅ | feature flags + plan templates + trial cron + GHL snapshots |
+| W2.5 | SA6 Granular Metrics Cube UI | 15 | 15 | emergent | ✅ | drill-down nano→macro + Mapbox heatmap + comparables (~607 líneas backend) |
+| W2.6 | SA8 Founder Console | 14 | 14 | emergent | ✅ | Cmd+K + KPIs ejecutivos + anomalías (~528 líneas backend) |
+| W2.7 | Phase Z.0 Data Lake + Warehouse | 13 | 13 | emergent | ✅ | time-series + ETL diaria + geo indexing AGEB (~404 líneas backend) |
+| W2.8 | Phase Z.1 Consolidated Metrics Cube | 12 | 12 | emergent | ✅ | OLAP aggregations + materialized views (~537 líneas backend) |
+| W2.9 | Phase Z.2 Intelligence Hub UI | 12 | 12 | emergent | ✅ | Dashboard ejecutivo cross-org (~332 líneas backend + UI) |
+| W2.10 | Polish + Smoke + Audit | 4 | 4 | Claude Code | ✅ | E2E audit + permission gates + closure |
+| Buffer | Imprevistos | 1 | 1 | mixto | ✅ | — |
+
+**Acumulado Wave 2**: 120h / 120h (100%) ✅
+
+---
+
+## ✅ Wave 3 — Authority + Verticals + Risk Layer + IE Engine (~197h) — CERRADA 2026-05-09
+
+**Objetivo**: data products B2B (bancos/aseguradoras/notarías) + DMX como autoridad + IE Engine completion + risk layer + watchlist público.
+
+| # | Batch | h | Status | SHA notable | Notas |
+|---|---|---|---|---|---|
+| W3.0 | URL accents fix (zone_id) | 1 | ✅ | `6b5d7e8` | safe_path_param helper |
+| W3.1A | Phase 5 Foundation (DENUE + Cost + Zone Score) | 21 | ✅ | shipped | foundation prepa W3 |
+| W3.1B-1..5 | IE Engine Phase B (18 IE_PROY + 5 IE_UNIT recipes + cron + endpoint público + UI + IeUnitScoreCard) | 12 | ✅ | varios | unit scope agregado · cron 02:00 + 02:30 |
+| W3.2 | ZZ.2 Transaction Network | 18 | ✅ | shipped | comparables matrix verificada |
+| W3.3 | ZZ.3 Index Provider DRPI ampliado | 26 | ✅ | shipped | hedonic regression + boletines |
+| W3.4 | ZZ.4 Risk Layer (Fraud + Crime + Natural + Perception) | 40 | ✅ | shipped | IsolationForest + 4 fuentes |
+| W3.5 | Public API + Stripe billing (con W3.5.5 fix-pass) | 10 | ✅ | `be91d76` | OpenAPI + 3 tiers + audit logs |
+| W3.6 | Vertical Data Products (Bank AVM/Insurance/Notaría/Investor) | 14 | ✅ | shipped | 4 verticales SuperadminVerticalProducts |
+| W3.7 | Phase Z.5 Anonymization + Compliance | 6 | ✅ | shipped | k-anon ≥5 + Laplace + DSR |
+| W3.8 | Cross-sell Engine (5 partners + lead capture) | 8 | ✅ | `e83831c` | mortgage/insurance/notaría/avalúo/moving |
+| W3.9a | LFPDPPP badge + IE polish (percentile fix + include_unit) | 2 | ✅ | `50ba492` | + Sentry index fix |
+| W3.9b | Watchlist subscribe backend (5 endpoints + cron 02:30) | 4 | ✅ | `d0d5eb8` | double opt-in + Resend stub |
+| W3.9c | Watchlist frontend 3 surfaces (Methodology + Inteligencia + Marketplace) | 3 | ✅ | `16ac673` | WatchlistSubscribeForm + RiskWatchlist + RiskScoreSubscribeWidget |
+| Buffer | — | 2 | ✅ | — | — |
+
+**Acumulado Wave 3**: 197h / 197h (100%) ✅
+
+---
+
+## 🟡 Wave 4 — Agentic + Brand + Intelligence Layer + Polish (~461h) — EN CURSO
+
+**Objetivo**: AI agentic + closure phases pending + brand strategy GEO + programmatic SEO + polish + launch.
+
 | # | Batch | h est. | h real | Quién | Status | SHA | Notas |
 |---|---|---|---|---|---|---|---|
-| W2.1 | SA2 Data Sources Hub | 10 | 10 | emergent | ✅ | merge `cb7a530` | 11 connectors + healthcheck cada 10min + retry/replay + audit |
-| W2.2 | SA3 Audit Log Viewer | 8 | 8 | emergent | ✅ | merge `cb7a530` | 7 endpoints + BeforeAfterDiff + bulk_ingest enrichment (cierra W1.5 deferred) |
-| W2.3 | SA4 AI Cost Observatory | 12 | 12 | emergent | ✅ | merge `cb7a530` | 9 endpoints + dual-write ai_call_events + caps hard_block + sparkline + donut |
-| W2.4 | SA5 Commercial Foundation | 19 | 19 | emergent | ✅ | merge `cb7a530` | feature flags + plan templates + trial cron + GHL snapshots + UpgradeTeaser + cierra W2.3 deferred |
-| **W2.5** | **SA6 Granular Metrics Cube UI** | **15** | — | emergent | ⏳ NEXT | — | Vista nano→macro con drill-down + Mapbox heatmap + comparables |
-| W2.6 | SA8 Founder Console | 14 | — | emergent | ⏳ | — | Cmd+K extended + KPIs ejecutivos + alertas anomalías |
-| W2.7 | Phase Z.0 Data Lake + Warehouse | 10 | — | emergent | ⏳ | — | Time-series store + ETL diaria + geo indexing AGEB |
-| W2.8 | Phase Z.1 Consolidated Metrics Cube | 12 | — | emergent | ⏳ | — | OLAP aggregations + materialized views + Redis cache |
-| W2.9 | Phase Z.2 Intelligence Hub UI | 12 | — | emergent | ⏳ | — | Dashboard ejecutivo cross-org + heatmaps + comparables matrix |
-| W2.10 | Polish + Smoke + push consolidado | 6 | — | Claude Code | ⏳ | — | Pytest E2E + permission audit + docs closure |
-| Buffer | Imprevistos | 2 | — | mixto | ⏳ | — | — |
+| W4.1A | Diagnostic Engine backend (6 reglas + endpoint cache 6h) | 10 | 10 | emergent | ✅ | `ed05ef0` | analyze_dev + DiagnosticReport |
+| W4.1B | DiagnosticPanel frontend dashboard portal dev | 5 | 5 | emergent | ✅ | `7b4a90c` | mount in DesarrolladorIEDetail |
+| W4.1C | Recommendation banner + Sentry index fix | 6 | 6 | emergent | ✅ | `bed63cd` | `/api/recommendations/top` + DeveloperLayout mount |
+| W4.1D | Comparable Anomaly Engine + cron 03:00 | 5 | 5 | emergent | ✅ | `0c0808e` | 3 detectores: PRICE_DROP/SOLD_OUT/NEW_LAUNCH |
+| W4.2A | MCP HTTP server (5 tools · /api/mcp · X-DMX-API-Key) | 10 | 10 | emergent | ✅ | `8f021ae` | JSON-RPC compatible, sin SDK (FastAPI puro) |
+| W4.2B | GEO foundation (llms.txt + sitemap + Schema.org + ConnectMcpPage + FAQPage) | 5.5 | 5.5 | emergent | ✅ | `ed497cf` | static files + JSON-LD generator |
+| **W4.2C** | **Watermarks + QR exports + MCP tool ext (bedrooms/m2/parking/stage)** | **2.5** | — | emergent | 🟡 EN CURSO | — | Mini-fix MCP tool gap W4.2B incluido |
+| W4.2D1 | Filter URL infrastructure (SSR + dynamic sitemap) | 5 | — | emergent | ⏳ | — | — |
+| (research) | Top 200 queries CDMX (SEMrush + AMPI) | 2 | — | Claude Code | ⏳ | — | Antes de D2 |
+| W4.2D2 | 700 zone pages template + FAQ schema | 8 | — | emergent | ⏳ | — | — |
+| W4.2D3 | Top 200-500 filter combo pages | 5 | — | emergent | ⏳ | — | depa-2recs-polanco-15M etc |
+| W4.2.5A | Embeddable Score Widget | 4 | — | emergent | ⏳ | — | iframe + script para bloggers |
+| W4.2.5B | `/prensa` Media Kit page | 3 | — | emergent | ⏳ | — | stats listas-para-pegar |
+| W4.3 | Phase Y.0 Foundation + Behavioral Tracking | 16 | — | emergent | ⏳ | — | opt-in tiers + event collectors |
+| W4.4 | Phase Y.1 Director Agent + Memory layer | 25 | — | emergent | ⏳ | — | vector embeddings |
+| W4.5 | Phase Y.2 5 sub-agents ML | 25 | — | emergent | ⏳ | — | Pricing/Marketing/Lead/Construction/Compliance |
+| W4.6 | Phase Y.3 Agentic CRM workflows | 28 | — | emergent | ⏳ | — | + Reply Classifier + DISC Inferencer + Real-time demand |
+| W4.7 | Phase Y.4 Adaptive features per-user/org | 15 | — | emergent | ⏳ | — | Caya per-user + Match weights |
+| W4.8 | Phase Y.5 Observability + Audit replay | 9 | — | emergent | ⏳ | — | ML accuracy metrics |
+| W4.9 | Phase 6 Studio Wave 1.5+2 | 36 | — | emergent | ⏳ | — | extensions B25/B26 |
+| W4.10 | Phase 8 ext WhatsApp + AutoNewsletter | 25 | — | emergent | ⏳ | — | WA Business + Pulse semanal |
+| W4.11 | Phase 10 Caya home + A11 ext | 26 | — | emergent | ⏳ | — | Caya en dmx.mx para queries mercado |
+| W4.12 | Phase 11 Dubai | 38 | — | emergent | ⏳ | — | i18n + flow Dubai-specific |
+| W4.13 | Phase 16 ext (Lead Journey + Amenities Validator) | 32 | — | emergent | ⏳ | — | A/B Meta Ads automatizadas |
+| W4.14 | Phase 19 ext (Buyer Coach + Mortgage + Investment Sim) | 29 | — | emergent | ⏳ | — | — |
+| W4.15 | Phase 20 Polish + Launch | 23 | — | emergent + CC | ⏳ | — | UX polish + perf + a11y + final QA |
+| W4.16 | W4 marketing (Free audit landing + State of CDMX Report) | 5 | — | emergent | ⏳ | — | -3h press kit movido a W4.2.5B |
+| W4.17 | Kalshi (Probability UX + Smart Notifications) | 14 | — | emergent | ⏳ | — | -4h widgets movidos a W4.2.5A |
+| F0 | Sweep tech debt | 22 | — | CC lead | ⏳ | — | rolling cleanup |
+| CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
+| Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 2**: 49h / 120h (41%)
-**Por Claude Code**: 0h shipped (+ 6h pending W2.10)
-**Por emergent**: 49h shipped (+ 63h pending W2.5-W2.9)
-
----
-
-## ⏳ Wave 3 — Authority + Verticals (~140h)
-
-**Objetivo**: data products B2B (bancos/aseguradoras/notarías) + DMX como autoridad.
-
-| # | Batch | h | Status |
-|---|---|---|---|
-| W3.1 | ZZ.2 Transaction Network | 18 | ⏳ |
-| W3.2 | ZZ.3 Index Provider DRPI | 15 | ⏳ |
-| W3.3 | ZZ.4 Fraud Detection AI | 22 | ⏳ |
-| W3.4 | Phase Z.3 Public API + Stripe billing | 10 | ⏳ |
-| W3.5 | Phase Z.4 Vertical Data Products (Bank/Insurance/Notaría/Investor) | 14 | ⏳ |
-| W3.6 | Phase Z.5 Anonymization + Compliance | 6 | ⏳ |
-| W3.7 | Phase Z.6 Cross-sell Intelligence | 8 | ⏳ |
-| W3.8 | Phase 5 IE Engine completion | 45 | ⏳ |
-| Buffer | — | 2 | ⏳ |
-
----
-
-## ⏳ Wave 4 — Phase Y Agentic + Polish (~296h)
-
-**Objetivo**: AI agentic + closure de phases pending + polish + launch.
-
-| # | Batch | h | Status |
-|---|---|---|---|
-| W4.1 | Phase Y completa Y.0-Y.5 | 110 | ⏳ |
-| W4.2 | Phase 6 Studio Wave 1.5+2 | 36 | ⏳ |
-| W4.3 | Phase 8 WhatsApp + Coms | 15 | ⏳ |
-| W4.4 | Phase 10 Caya + A11 | 26 | ⏳ |
-| W4.5 | Phase 11 Dubai | 38 | ⏳ |
-| W4.6 | Phase 19 Buyer Coach + Mortgage | 14 | ⏳ |
-| W4.7 | Phase 20 Polish + Launch | 23 | ⏳ |
-| W4.8 | F0 sweep restante | 22 | ⏳ |
-| W4.9 | Cross-cutting CC1-4 | 28 | ⏳ |
-| Buffer | Integration testing | -16 | ⏳ |
+**Acumulado Wave 4**: 46h / 461h (10%) 🟡
+**Pendiente Wave 4**: ~415h
+**Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
+**Por emergent en Wave 4**: ~395h
 
 ---
 
