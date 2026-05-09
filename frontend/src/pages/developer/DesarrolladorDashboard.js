@@ -13,6 +13,7 @@ import { resolveQuickActions } from '../../config/quickActions';
 import { ArrowRight, Sparkle, TrendUp, TrendDown, Activity, AlertCircle, Users, Calendar, Building } from '../../components/icons';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { blurPriceCSS } from '../../lib/anonymize';
+import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -110,6 +111,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [syncPending, setSyncPending] = useState({ count: 0, items: [] });
+  const [activeTab, setActiveTab] = useState('resumen');
 
   // B19 Sub-C — Presentation mode
   const { isActive: pmActive, config: pmConfig } = usePresentationMode();
@@ -140,6 +142,29 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
         sub="Panorama operativo del portafolio en tiempo real."
       />
 
+      {/* Tab navigation */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4 }}>
+        {[['resumen', 'Resumen'], ['director', 'Director AI']].map(([key, label]) => (
+          <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
+            style={{
+              padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,
+              fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: activeTab === key ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.05)',
+              color: activeTab === key ? '#fff' : 'rgba(240,235,224,0.55)',
+              transition: 'background 0.18s, color 0.18s',
+            }}
+          >{label}</button>
+        ))}
+      </div>
+
+      {/* Director AI tab */}
+      {activeTab === 'director' && (
+        <DirectorChatPanel user={user} />
+      )}
+
+      {/* Resumen tab (existing content) */}
+      {activeTab === 'resumen' && (
+        <>
       {/* Weekly Brief */}
       <WeeklyBriefWidget />
 
@@ -246,6 +271,10 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
             </div>
           </>
         )}
+
+      {/* END resumen tab */}
+        </>
+      )}
 
       {/* Floating Quick Actions */}
       {quickActions.length > 0 && (
