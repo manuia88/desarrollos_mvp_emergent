@@ -342,6 +342,10 @@ app.include_router(diagnostic_router)
 from routes_recommendations import router as recommendations_router
 app.include_router(recommendations_router)
 
+# W4.1D — Comparable alerts
+from routes_comparable_alerts import router as comparable_alerts_router
+app.include_router(comparable_alerts_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -835,6 +839,12 @@ async def startup():
     await ensure_preferences_indexes(db)
     # Phase 4 Batch 0.5 — Diagnostic Engine indexes
     await ensure_diagnostic_indexes(db)
+    # W4.1D — Comparable anomaly alert indexes
+    try:
+        from comparable_anomaly_engine import ensure_comparable_alert_indexes
+        await ensure_comparable_alert_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.1D comparable alert indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

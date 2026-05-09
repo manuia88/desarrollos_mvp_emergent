@@ -352,6 +352,23 @@ async def run_initial_recompute_if_empty(db):
 _scheduler: Optional[AsyncIOScheduler] = None
 
 
+# W4.1D — Comparable anomaly detection (cron 03:00 MX)
+async def run_comparable_anomaly_detection(db):
+    """Iterate all DEVELOPMENTS and fire detect_anomalies_for_dev for each."""
+    from data_developments import DEVELOPMENTS_BY_ID
+    from comparable_anomaly_engine import detect_anomalies_for_dev
+
+    total_alerts = 0
+    for dev_id in DEVELOPMENTS_BY_ID:
+        try:
+            alerts = await detect_anomalies_for_dev(db, dev_id)
+            total_alerts += len(alerts)
+        except Exception as e:
+            _emit("comparable_anomaly_error", dev=dev_id, error=str(e))
+    _emit("comparable_anomaly_done", total=total_alerts)
+    return {"total_alerts": total_alerts}
+
+
 def start_scheduler(db):
     global _scheduler
     if _scheduler is not None:
@@ -592,6 +609,18 @@ def start_scheduler(db):
         schedule_compliance_audit_retention_cron(_scheduler, db)
     except Exception as e:
         _emit("scheduler_compliance_retention_error", error=str(e))
+
+    # W4.1D — Comparable anomaly detection 03:00 MX (después de score recompute 02:00)
+    try:
+        from comparable_anomaly_engine import detect_anomalies_for_dev
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_comparable_anomaly_detection, "comparable_anomalies"),
+            CronTrigger(hour=3, minute=0, timezone=TZ),
+            args=[db], id="comparable_anomalies", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_comparable_anomaly_error", error=str(e))
 
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
