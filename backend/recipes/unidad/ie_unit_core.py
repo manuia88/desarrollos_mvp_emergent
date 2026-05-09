@@ -7,6 +7,7 @@ Scope:
 """
 from __future__ import annotations
 
+from bisect import bisect_left
 from typing import Any, Dict, List, Optional
 
 from score_engine import register
@@ -16,33 +17,29 @@ from recipes.unidad._helpers import UnitRecipe
 @register
 class IEUnitPrecioVsPrototype(UnitRecipe):
     code = "IE_UNIT_PRECIO_VS_PROTOTYPE"
-    version = "1.0"
+    version = "1.1"
     tier_logic = "lower_better"
-    description = "Precio del unit vs avg same-prototype peers. Lower = más accesible."
+    description = "Percentil precio del unit vs same-prototype peers. Más bajo (rank menor) = más accesible."
 
     def apply_unit(self, unit, ctx):
         precio = unit.get("price")
         if precio is None:
             return None
-        peers_prices = [p.get("price") for p in ctx["same_proto"] if p.get("price")]
+        peers_prices = sorted(p["price"] for p in ctx["same_proto"] if p.get("price"))
         if len(peers_prices) < 2:
             return None
-        avg = sum(peers_prices) / len(peers_prices)
-        if avg <= 0:
-            return None
-        ratio = precio / avg
-        return max(0.0, min(100.0, 100.0 - (ratio - 1.0) * 100.0))
+        rank = bisect_left(peers_prices, precio)
+        # lower price = better → rank 0 (cheapest) → 100, rank N (most expensive) → 0
+        return (1.0 - rank / len(peers_prices)) * 100.0
 
     def explanation_unit(self, unit, ctx, value):
-        peers_prices = [p.get("price") for p in ctx["same_proto"] if p.get("price")]
-        avg = (sum(peers_prices) / len(peers_prices)) if peers_prices else 0.0
         precio = unit.get("price") or 0
-        ratio = (precio / avg) if avg > 0 else 0.0
+        peers_prices = sorted(p["price"] for p in ctx["same_proto"] if p.get("price"))
+        rank = bisect_left(peers_prices, precio) if peers_prices else 0
         return [
             f"Prototype: {unit.get('prototype')}",
             f"Precio unit: {precio:,.0f} MXN",
-            f"Avg same-proto peers ({len(peers_prices)}): {avg:,.0f} MXN",
-            f"Ratio: {ratio:.2f}x",
+            f"Rank: {rank}/{len(peers_prices)} (más bajo = más accesible)",
             f"Score: {value:.0f}" if value is not None else "Score: n/a",
         ]
 

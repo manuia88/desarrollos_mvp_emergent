@@ -128,6 +128,7 @@ async def list_recipes_meta(request: Request):
             "description": r.description,
             "is_paid": r.is_paid,
             "dependencies": r.dependencies,
+            "layer": getattr(r, "layer", "descriptive"),
         })
     return {"recipes": out, "total": len(out)}
 
@@ -432,6 +433,7 @@ class RecomputeAllRequest(BaseModel):
     allow_paid: bool = False            # si true, incluye recipes AirROI (paga)
     include_colonia: bool = True
     include_proyecto: bool = True
+    include_unit: bool = True           # W3.9a: 496 unidades scope=unit
     codes: List[str] = Field(default_factory=list)  # opcional: restringir a ciertos codes
     layer: str = "all"                  # "all" | "descriptive" | "predictive"
 
@@ -519,6 +521,14 @@ async def recompute_all(payload: RecomputeAllRequest, request: Request):
                 plan.append({"zone_id": d["id"], "scope": "proyecto"})
         except ImportError:
             pass
+    if payload.include_unit:
+        try:
+            from data_developments import ALL_UNITS
+            for u in ALL_UNITS:
+                if u.get("id"):
+                    plan.append({"zone_id": u["id"], "scope": "unit"})
+        except ImportError:
+            pass
 
     task_id = f"task_{uuid.uuid4().hex[:16]}"
     now = datetime.now(timezone.utc)
@@ -528,6 +538,7 @@ async def recompute_all(payload: RecomputeAllRequest, request: Request):
         "scope_filter": {
             "include_colonia": payload.include_colonia,
             "include_proyecto": payload.include_proyecto,
+            "include_unit": payload.include_unit,
             "allow_paid": payload.allow_paid,
             "codes": payload.codes,
         },
