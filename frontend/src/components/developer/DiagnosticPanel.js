@@ -1,7 +1,8 @@
 // W4.1B — DiagnosticPanel
-// Renders analyze_dev findings (R1-R6) + summary score circle
+// Renders analyze_dev findings (R1-R6) + comparable alerts (W4.1D) + summary score circle
 import React, { useEffect, useState, useCallback } from 'react';
 import { fetchDevDiagnostic } from '../../api/diagnostic';
+import { fetchComparableAlerts } from '../../api/comparableAlerts';
 
 const SEV_COLORS = {
   high:   { fg: '#fca5a5', bg: 'rgba(252,165,165,0.10)', bd: 'rgba(252,165,165,0.28)' },
@@ -23,13 +24,18 @@ export default function DiagnosticPanel({ devId, devName }) {
   const [data, setData] = useState(null);
   const [errDetail, setErrDetail] = useState('');
   const [reanalyzing, setReanalyzing] = useState(false);
+  const [comparableAlerts, setComparableAlerts] = useState([]);
 
   const load = useCallback(async (force = false) => {
     if (force) setReanalyzing(true);
     else setState('loading');
     try {
-      const d = await fetchDevDiagnostic(devId, force);
+      const [d, ca] = await Promise.all([
+        fetchDevDiagnostic(devId, force),
+        fetchComparableAlerts(devId),
+      ]);
       setData(d);
+      setComparableAlerts(ca.alerts || []);
       setState((d.findings || []).length === 0 ? 'empty' : 'ok');
     } catch (e) {
       setErrDetail(e.status ? `HTTP ${e.status}` : String(e));
@@ -128,6 +134,66 @@ export default function DiagnosticPanel({ devId, devName }) {
 
       {state === 'ok' && data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+          {/* ── Alertas comparables (W4.1D) ─────────────────────────────── */}
+          <div
+            data-testid="comparable-alerts-section"
+            style={{
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.03)',
+              padding: '14px 16px',
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: comparableAlerts.length ? 12 : 0 }}>
+              Alertas comparables · {comparableAlerts.length}
+            </div>
+
+            {comparableAlerts.length === 0 ? (
+              <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', margin: 0, marginTop: 6 }}>
+                Sin movimientos significativos en tu colonia esta semana.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {comparableAlerts.map(a => {
+                  const sev = SEV_COLORS[a.severity] || SEV_COLORS.low;
+                  const fired = a.last_fired_at
+                    ? new Date(a.last_fired_at).toLocaleDateString('es-MX', { dateStyle: 'short' })
+                    : '';
+                  return (
+                    <div key={`${a.comparable_id}-${a.anomaly_type}`}
+                      data-testid={`comparable-alert-${a.anomaly_type}`}
+                      style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10,
+                          padding: '2px 8px', borderRadius: 9999,
+                          background: sev.bg, border: `1px solid ${sev.bd}`, color: sev.fg,
+                        }}>
+                          {SEV_LABEL[a.severity] || a.severity.toUpperCase()}
+                        </span>
+                        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>
+                          {a.title}
+                        </span>
+                        {fired && (
+                          <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', marginLeft: 'auto' }}>
+                            {fired}
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', margin: 0, lineHeight: 1.55 }}>
+                        {a.message}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Findings list ───────────────────────────────────────────── */}
           {(data.findings || []).map((f) => {
             const sev = SEV_COLORS[f.severity] || SEV_COLORS.low;
             return (
