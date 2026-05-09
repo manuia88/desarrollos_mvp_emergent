@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Endpoint Superadmin `/api/superadmin/watchlist/stats`
+- **Origen:** W3.9b emergent suggested 2026-05-08
+- **Destino:** Wave 3 closure ó early Wave 4
+- **Qué:** GET que retorna metrics: count subs por scope · % confirmation rate · % unsubscribe rate · throttled vs sent ratio últimos 30 días.
+- **Por qué:** dashboard founder para medir adopción del watchlist sin depender de Mixpanel/Amplitude.
+- **Costo:** ~20 min (aggregation pipeline sobre db.watchlist_subscribers).
+
 ### Trust Score Badge en cards marketplace
 - **Origen:** B32 (Asesor Identity)
 - **Destino:** B36 (Phase 13 Marketplace asesor whitelist) o sweep pre-launch
