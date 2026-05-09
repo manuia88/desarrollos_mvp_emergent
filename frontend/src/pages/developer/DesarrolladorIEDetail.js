@@ -6,6 +6,7 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import { Sparkle, ArrowRight, X, Target, Activity, TrendUp, TrendDown } from '../../components/icons';
+import DiagnosticPanel from '../../components/developer/DiagnosticPanel';
 
 const TIER_COLORS = {
   excellent: { fg: '#86efac', bg: 'rgba(34,197,94,0.14)', bd: 'rgba(34,197,94,0.35)' },
@@ -99,6 +100,9 @@ export default function DesarrolladorIEDetail({ user, onLogout }) {
       {benchmark && !benchmark.error && benchmark.projects_count > 0 && (
         <ColoniaBenchmarkCard myData={data} benchmark={benchmark} />
       )}
+
+      {/* W4.1A Diagnostic Panel */}
+      <DiagnosticPanel devId={slug} devName={data.project_name} />
 
       {/* Categories */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 14 }}>
