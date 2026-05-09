@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Developer self-serve onboarding flow + tier selection
+- **Origen:** W4.2C emergent suggested 2026-05-09
+- **Destino:** Wave 4 W4.10-W4.11 area (post Phase Y para que onboarding use agentic features)
+- **Qué:** Public signup page para developers · tier selection (free/pro/enterprise) · org_id provisioning automático · welcome email Resend · onboarding checklist UI primer login.
+- **Por qué:** sin esto, founder hace onboarding manual 1-on-1 cada developer nuevo. No escala.
+- **Costo:** ~12h (signup form + tier picker + org creation + welcome email + checklist UI).
+
 ### MCP tool `search_developments` extension (filters bedrooms/m2/parking/stage)
 - **Origen:** W4.2B spec gap 2026-05-09 (emergent skipeó esta extensión)
 - **Destino:** W4.2C inline mini-fix (~30 min)
