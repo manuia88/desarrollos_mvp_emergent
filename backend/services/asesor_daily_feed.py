@@ -241,7 +241,7 @@ async def _send_email_followup(db, lead: Dict[str, Any]) -> Dict[str, Any]:
                 headers={"Authorization": f"Bearer {RESEND_API_KEY}",
                          "Content-Type": "application/json"},
                 json={
-                    "from": "asesor@desarrollosmx.com",
+                    "from": "asesor@desarrollosmx.io",
                     "to": [email],
                     "subject": "Te contactamos desde DesarrollosMX",
                     "html": html,

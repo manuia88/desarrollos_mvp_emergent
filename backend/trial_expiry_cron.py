@@ -35,7 +35,7 @@ async def _send_resend_email(to_email: str, subject: str, text: str) -> bool:
         log.info(f"[trial_cron] (no RESEND_API_KEY) would email {to_email}: {subject}")
         return False
     body = {
-        "from": "DMX Platform <no-reply@desarrollosmx.com>",
+        "from": "DMX Platform <no-reply@desarrollosmx.io>",
         "to": [to_email],
         "subject": subject,
         "text": text,
@@ -60,7 +60,7 @@ async def _resolve_admin_email(db, tenant_id: str) -> str:
             return org.get("admin_email") or org.get("contact_email")
     except Exception:
         pass
-    return os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.com")
+    return os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.io")
 
 
 async def _was_alerted_today(db, tenant_id: str, feature_key: str, threshold_days: int) -> bool:

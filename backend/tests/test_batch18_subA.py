@@ -16,7 +16,7 @@ import pytest
 
 API = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 
-ADMIN_EMAIL = "admin@desarrollosmx.com"
+ADMIN_EMAIL = "admin@desarrollosmx.io"
 ADMIN_PASSWORD = "Admin2026!"
 DEV_EMAIL = "developer@demo.com"
 DEV_PASSWORD = "Dev2026!"

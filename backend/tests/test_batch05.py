@@ -4,7 +4,7 @@ import requests
 API = "http://localhost:8001"
 DEV_EMAIL = "developer@demo.com"
 DEV_PASS = "Dev2026!"
-SA_EMAIL = "admin@desarrollosmx.com"
+SA_EMAIL = "admin@desarrollosmx.io"
 SA_PASS = "Admin2026!"
 
 

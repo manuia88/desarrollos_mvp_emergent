@@ -400,7 +400,7 @@ async def _email_completion(job: Dict[str, Any]) -> None:
         import resend  # type: ignore
         resend.api_key = key
         resend.Emails.send({
-            "from": "DMX Platform <noreply@desarrollosmx.com>",
+            "from": "DMX Platform <noreply@desarrollosmx.io>",
             "to": admin,
             "subject": f"[DMX] Bulk ingest completado · {job.get('items_total', 0)} proyectos",
             "html": (

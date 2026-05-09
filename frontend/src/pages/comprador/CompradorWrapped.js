@@ -148,7 +148,7 @@ export default function CompradorWrapped() {
       // Copy to clipboard
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(
-          `https://desarrollosmx.com${info.share_url}`
+          `https://desarrollosmx.io${info.share_url}`
         );
       }
     } catch (e) {

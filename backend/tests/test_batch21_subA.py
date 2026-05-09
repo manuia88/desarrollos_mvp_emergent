@@ -24,7 +24,7 @@ def _login(email, password):
 
 @pytest.fixture(scope="module")
 def admin_cookies():
-    return _login("admin@desarrollosmx.com", "Admin2026!")
+    return _login("admin@desarrollosmx.io", "Admin2026!")
 
 
 @pytest.fixture(scope="module")

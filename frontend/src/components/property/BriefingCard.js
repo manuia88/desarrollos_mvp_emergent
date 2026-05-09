@@ -27,7 +27,7 @@ export default function BriefingCard({ property }) {
 
   const waUrl = (() => {
     const phone = (property.advisor?.phone || '').replace(/\D/g, '');
-    const msg = text ? `${text}\n\n— vía DMX https://dmx.mx/propiedad/${property.id}` : t('detail.wa_prefill', { colonia: property.colonia, title: property.titulo });
+    const msg = text ? `${text}\n\n— vía DMX https://desarrollosmx.io/propiedad/${property.id}` : t('detail.wa_prefill', { colonia: property.colonia, title: property.titulo });
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   })();
 

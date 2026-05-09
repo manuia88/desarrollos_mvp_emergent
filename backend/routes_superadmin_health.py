@@ -370,7 +370,7 @@ async def _send_critical_email(source: str, message: str) -> bool:
         import resend  # type: ignore
         resend.api_key = key
         resend.Emails.send({
-            "from": "DMX Platform <noreply@desarrollosmx.com>",
+            "from": "DMX Platform <noreply@desarrollosmx.io>",
             "to": admin,
             "subject": f"[DMX CRITICAL] {source} down",
             "html": (

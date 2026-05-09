@@ -2,7 +2,7 @@
 
 Acciones manuales que founder ejecuta para validar Wave 1 end-to-end antes de cerrar y pasar a Wave 2.
 
-**Pre-requisitos:** logged in como `admin@desarrollosmx.com` en preview env.
+**Pre-requisitos:** logged in como `admin@desarrollosmx.io` en preview env.
 
 ---
 

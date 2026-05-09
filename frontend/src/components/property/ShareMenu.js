@@ -10,7 +10,7 @@ export default function ShareMenu({ property }) {
 
   const url = typeof window !== 'undefined'
     ? `${window.location.origin}/propiedad/${property.id}`
-    : `https://dmx.mx/propiedad/${property.id}`;
+    : `https://desarrollosmx.io/propiedad/${property.id}`;
   const msg = `${property.titulo} — ${property.price_display} · ${url}`;
 
   const copy = async () => {

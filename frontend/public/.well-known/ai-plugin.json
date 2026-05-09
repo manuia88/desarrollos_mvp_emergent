@@ -10,9 +10,9 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://desarrollosmx.com/api/openapi.json"
+    "url": "https://desarrollosmx.io/api/openapi.json"
   },
-  "logo_url": "https://desarrollosmx.com/logo192.png",
-  "contact_email": "founder@desarrollosmx.com",
-  "legal_info_url": "https://desarrollosmx.com/terminos"
+  "logo_url": "https://desarrollosmx.io/logo192.png",
+  "contact_email": "founder@desarrollosmx.io",
+  "legal_info_url": "https://desarrollosmx.io/terminos"
 }

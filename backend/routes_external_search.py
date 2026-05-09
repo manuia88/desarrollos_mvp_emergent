@@ -252,7 +252,7 @@ async def confirm_saved_search(token: str, request: Request):
     confirmed = await confirm_search(db, token)
 
     # Redirigir al marketplace
-    frontend_url = "https://desarrollosmx.com/marketplace?confirmed=ok"
+    frontend_url = "https://desarrollosmx.io/marketplace?confirmed=ok"
     return RedirectResponse(url=frontend_url, status_code=302)
 
 
@@ -263,5 +263,5 @@ async def unsubscribe_saved_search(token: str, request: Request):
     from services.saved_searches import unsubscribe
     deleted = await unsubscribe(db, token)
 
-    frontend_url = "https://desarrollosmx.com/marketplace?unsubscribed=ok"
+    frontend_url = "https://desarrollosmx.io/marketplace?unsubscribed=ok"
     return RedirectResponse(url=frontend_url, status_code=302)

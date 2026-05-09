@@ -17,7 +17,7 @@ import httpx
 log = logging.getLogger("dmx.lead_capture")
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-FROM_EMAIL = "leads@desarrollosmx.com"
+FROM_EMAIL = "leads@desarrollosmx.io"
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
 
 VALID_SOURCES = {"colonia_report", "quiz", "comparator", "mortgage_calc", "virtual_tour_request"}
@@ -164,7 +164,7 @@ async def send_quiz_results_email(
   </h1>
   {cards}
   <div style="text-align:center;margin-top:24px;">
-    <a href="https://desarrollosmx.com/marketplace" style="display:inline-block;padding:12px 28px;background:linear-gradient(90deg,#6366F1,#EC4899);border-radius:9999px;color:#fff;font-weight:700;font-size:14px;text-decoration:none;">Ver desarrollos</a>
+    <a href="https://desarrollosmx.io/marketplace" style="display:inline-block;padding:12px 28px;background:linear-gradient(90deg,#6366F1,#EC4899);border-radius:9999px;color:#fff;font-weight:700;font-size:14px;text-decoration:none;">Ver desarrollos</a>
   </div>
 </body></html>
 """

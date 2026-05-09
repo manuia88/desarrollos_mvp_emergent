@@ -43,7 +43,7 @@ export default function MethodologyPage() {
       'name': 'DMX Residential Price Index (DRPI)',
       'description': 'Índice mensual de precios residenciales de CDMX por colonia, basado en regresión hedónica OLS sobre cierres verificados.',
       'creator': { '@type': 'Organization', 'name': 'DesarrollosMX' },
-      'license': 'https://desarrollosmx.com/terminos',
+      'license': 'https://desarrollosmx.io/terminos',
       'temporalCoverage': '2026/..',
       'spatialCoverage': 'Ciudad de México, México',
       'keywords': ['real estate','CDMX','price index','hedonic regression','LATAM'],

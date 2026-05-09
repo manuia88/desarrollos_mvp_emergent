@@ -331,7 +331,7 @@ def generate_colonia_report_pdf(
     ))
     story.append(Spacer(1, 16))
     cta_table = Table(
-        [[Paragraph("<b>Agenda una cita gratuita: desarrollosmx.com/cita</b>",
+        [[Paragraph("<b>Agenda una cita gratuita: desarrollosmx.io/cita</b>",
                     _style("cta", fontName="Helvetica-Bold", fontSize=11,
                            textColor=C_CREAM, alignment=TA_CENTER))]],
         colWidths=[PAGE_W - 1.2 * inch],

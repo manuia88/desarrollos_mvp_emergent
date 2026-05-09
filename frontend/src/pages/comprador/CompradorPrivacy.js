@@ -166,7 +166,7 @@ export default function CompradorPrivacy() {
               color: 'rgba(240,235,224,0.4)',
               display: 'flex', flexWrap: 'wrap', gap: 14,
             }}>
-              <span>DPO: privacidad@desarrollosmx.com</span>
+              <span>DPO: privacidad@desarrollosmx.io</span>
               <span>·</span>
               <a href="/legal/privacidad" style={{ color: 'rgba(99,102,241,0.8)', textDecoration: 'none' }}>Política de privacidad</a>
               <span>·</span>

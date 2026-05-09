@@ -887,7 +887,7 @@ async def check_pending_distributions(db) -> Dict[str, int]:
                     resend.api_key = resend_key
                     for r in dist.get("recipients", []):
                         resend.Emails.send({
-                            "from": "reportes@desarrollosmx.com",
+                            "from": "reportes@desarrollosmx.io",
                             "to": [r["email"]],
                             "subject": f"Reporte {template['name']} · {period_to_dt.strftime('%b %Y')}",
                             "html": (f"<p>Hola {r.get('name', 'estimado')},</p>"

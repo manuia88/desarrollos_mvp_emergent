@@ -228,7 +228,7 @@ async def _maybe_email_past_due(db, cust_id: str) -> None:
         "details": {"cust_id": cust_id}, "resolved_at": None,
     })
     resend_key = os.environ.get("RESEND_API_KEY")
-    alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.com")
+    alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.io")
     if not resend_key:
         return
     try:
@@ -238,7 +238,7 @@ async def _maybe_email_past_due(db, cust_id: str) -> None:
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {resend_key}"},
                 json={
-                    "from": "DMX Billing <no-reply@desarrollosmx.com>",
+                    "from": "DMX Billing <no-reply@desarrollosmx.io>",
                     "to": [alert_email],
                     "subject": f"[DMX] Stripe past_due · {cust_id}",
                     "text": (

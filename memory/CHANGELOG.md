@@ -737,7 +737,7 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 
 ### Tests (curl + screenshot, sin testing subagent)
 - ✅ `yarn build` clean · lint 0 issues
-- ✅ `GET /api/superadmin/tenants` (admin@desarrollosmx.com superadmin) → 2 tenants (Constructora Ariel dev + Inmobiliaria Demo Test inm), totals correctos
+- ✅ `GET /api/superadmin/tenants` (admin@desarrollosmx.io superadmin) → 2 tenants (Constructora Ariel dev + Inmobiliaria Demo Test inm), totals correctos
 - ✅ Filter `?type=inm` → 1 inm, `is_system_default=true` excluida
 - ✅ `GET /api/superadmin/tenants/constructora_ariel` → name/members_total=6/audit=20/projects=0/ai_breakdown
 - ✅ `POST /impersonate` → cookies `access_token` + `dmx_impersonate_session` ambas HttpOnly+Secure+Max-Age=1800; SameSite=lax en cookie de impersonación; response shape `{impersonation_token, target_user_id, target_role, target_tenant_id, target_name, expires_at, audit_id}`

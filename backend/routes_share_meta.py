@@ -183,7 +183,7 @@ def _make_og_image(names: list, entity_type: str) -> bytes:
     f_cta = _font(20, bold=True)
     d.rectangle([48, OG_H - 70, 360, OG_H - 30], fill=INDIGO)
     d.rectangle([200, OG_H - 70, 360, OG_H - 30], fill=ROSE)
-    d.text((68, OG_H - 64), "desarrollosmx.com/comparar", fill=CREAM, font=f_cta)
+    d.text((68, OG_H - 64), "desarrollosmx.io/comparar", fill=CREAM, font=f_cta)
 
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)

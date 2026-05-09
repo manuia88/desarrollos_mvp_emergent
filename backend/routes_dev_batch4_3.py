@@ -98,7 +98,7 @@ def _fmt_date_legible(dt_iso: str) -> str:
 
 
 def _frontend_url() -> str:
-    return os.environ.get("FRONTEND_PUBLIC_URL") or os.environ.get("REACT_APP_BACKEND_URL", "https://desarrollosmx.com").rstrip("/")
+    return os.environ.get("FRONTEND_PUBLIC_URL") or os.environ.get("REACT_APP_BACKEND_URL", "https://desarrollosmx.io").rstrip("/")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -120,7 +120,7 @@ async def _build_ics(apt: Dict, project_name: str, contact_name: str) -> str:
         f"DTSTART:{dt.strftime('%Y%m%dT%H%M%SZ')}\r\n"
         f"DTEND:{dt_end.strftime('%Y%m%dT%H%M%SZ')}\r\n"
         f"DTSTAMP:{_now().strftime('%Y%m%dT%H%M%SZ')}\r\n"
-        f"UID:{safe_token}@desarrollosmx.com\r\n"
+        f"UID:{safe_token}@desarrollosmx.io\r\n"
         f"SUMMARY:Cita {pname} -- {cname}\r\nLOCATION:{pname}\r\n"
         f"STATUS:CONFIRMED\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
     )
@@ -200,7 +200,7 @@ async def _send_reminder(db, apt: Dict, window: str) -> Dict[str, Any]:
                 except Exception:
                     pass
                 resend.Emails.send({
-                    "from": "citas@desarrollosmx.com",
+                    "from": "citas@desarrollosmx.io",
                     "to": [contact_email],
                     "subject": f"Recordatorio: tu cita en {project_name} - {fecha_legible}",
                     "html": _reminder_email_html(

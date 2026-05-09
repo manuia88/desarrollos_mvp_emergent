@@ -383,7 +383,7 @@ async def _send_welcome_email(sub: Dict[str, Any]) -> str:
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {resend_key}"},
                 json={
-                    "from": "DMX Licensing <licensing@desarrollosmx.com>",
+                    "from": "DMX Licensing <licensing@desarrollosmx.io>",
                     "to": [sub["contact_email"]],
                     "subject": (
                         f"[DMX] Bienvenido · {sub.get('bundle_name')} · "

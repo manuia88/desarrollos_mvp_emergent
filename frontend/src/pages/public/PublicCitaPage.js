@@ -170,7 +170,7 @@ function Footer() {
       fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)',
       textAlign: 'center', margin: '20px 0 0', lineHeight: 1.5,
     }}>
-      Si tienes problemas con este enlace, escríbenos a <a href="mailto:soporte@desarrollosmx.com" style={{ color: 'var(--cream-2)' }}>soporte@desarrollosmx.com</a>
+      Si tienes problemas con este enlace, escríbenos a <a href="mailto:soporte@desarrollosmx.io" style={{ color: 'var(--cream-2)' }}>soporte@desarrollosmx.io</a>
     </p>
   );
 }

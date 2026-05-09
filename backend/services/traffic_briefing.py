@@ -24,7 +24,7 @@ log = logging.getLogger("dmx.traffic_briefing")
 
 MAPBOX_TOKEN = os.environ.get("MAPBOX_TOKEN", "")
 TTL_MINUTES = int(os.environ.get("TRAFFIC_BRIEFING_TTL_MIN", "15"))
-USER_AGENT = "DesarrollosMX/1.0 (contacto@desarrollosmx.com)"
+USER_AGENT = "DesarrollosMX/1.0 (contacto@desarrollosmx.io)"
 
 
 # ─── Time utils ───────────────────────────────────────────────────────────────

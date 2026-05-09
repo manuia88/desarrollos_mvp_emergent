@@ -1,6 +1,6 @@
 """W4.2C — Brand watermark + QR helpers for DMX exports.
 
-add_watermark(image_path_or_bytes) — overlay "DesarrollosMX · dmx.mx" bottom-right.
+add_watermark(image_path_or_bytes) — overlay "DesarrollosMX · desarrollosmx.io" bottom-right.
 generate_qr(url)                   — QR PNG in DMX brand colors.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ from typing import Union
 
 log = logging.getLogger("dmx.export_brand")
 
-WATERMARK_TEXT = "DesarrollosMX · dmx.mx"
+WATERMARK_TEXT = "DesarrollosMX · desarrollosmx.io"
 WATERMARK_COLOR = (240, 235, 224, 153)   # cream #F0EBE0 at opacity ~0.6
 WATERMARK_FONT_SIZE = 18
 WATERMARK_PADDING = 14

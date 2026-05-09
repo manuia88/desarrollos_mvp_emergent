@@ -326,8 +326,8 @@ export default function PrivacyDsrPage() {
             </p>
             <p>
               Para consultas adicionales contacta: {' '}
-              <a href="mailto:privacidad@desarrollosmx.com" style={{ color: '#818cf8' }}>
-                privacidad@desarrollosmx.com
+              <a href="mailto:privacidad@desarrollosmx.io" style={{ color: '#818cf8' }}>
+                privacidad@desarrollosmx.io
               </a>
             </p>
           </div>

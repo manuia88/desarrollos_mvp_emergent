@@ -347,14 +347,14 @@ async def detect_letter_change(
         try:
             import os, httpx
             resend_key = os.environ.get("RESEND_API_KEY")
-            alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.com")
+            alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.io")
             if resend_key:
                 async with httpx.AsyncClient(timeout=10) as client:
                     await client.post(
                         "https://api.resend.com/emails",
                         headers={"Authorization": f"Bearer {resend_key}"},
                         json={
-                            "from": "DMX Risk <no-reply@desarrollosmx.com>",
+                            "from": "DMX Risk <no-reply@desarrollosmx.io>",
                             "to": [alert_email],
                             "subject": f"[DMX] Risk drop crítico · {zone_id}: {prev_letter}→{new_letter}",
                             "text": (

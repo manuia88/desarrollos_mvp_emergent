@@ -246,7 +246,7 @@ async def _send_export_email(to: str, export_json: Dict[str, Any]) -> bool:
         <li>{len(views)} eventos en tu histórico</li>
       </ul>
       <p style="color:rgba(240,235,224,0.45);font-size:11px;margin:18px 0 0;">
-        Adjunto encontrarás el archivo JSON completo. Si no solicitaste esta exportación, contacta a privacidad@desarrollosmx.com.
+        Adjunto encontrarás el archivo JSON completo. Si no solicitaste esta exportación, contacta a privacidad@desarrollosmx.io.
       </p>
     </body></html>"""
 

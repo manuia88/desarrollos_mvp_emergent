@@ -19,7 +19,7 @@ import httpx
 log = logging.getLogger("dmx.saved_searches")
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-FROM_EMAIL = "alertas@desarrollosmx.com"
+FROM_EMAIL = "alertas@desarrollosmx.io"
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
 
 
@@ -142,7 +142,7 @@ def _alert_html(
     </p>
     {cards}
     <div style="text-align:center;margin:28px 0;">
-      <a href="https://desarrollosmx.com/marketplace"
+      <a href="https://desarrollosmx.io/marketplace"
          style="display:inline-block;padding:12px 28px;background:linear-gradient(90deg,#6366F1,#EC4899);border-radius:9999px;color:#fff;font-weight:700;font-size:14px;text-decoration:none;">
         Ver todas en el marketplace
       </a>

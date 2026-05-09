@@ -404,7 +404,7 @@ async def _maybe_send_summary_email(db, count: int) -> None:
             "details": {"count": count}, "resolved_at": None,
         })
         resend_key = os.environ.get("RESEND_API_KEY")
-        alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.com")
+        alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.io")
         if not resend_key:
             return
         import httpx
@@ -413,7 +413,7 @@ async def _maybe_send_summary_email(db, count: int) -> None:
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {resend_key}"},
                 json={
-                    "from": "DMX Fraud <no-reply@desarrollosmx.com>",
+                    "from": "DMX Fraud <no-reply@desarrollosmx.io>",
                     "to": [alert_email],
                     "subject": f"[DMX] {count} alertas críticas de fraude · 24h",
                     "text": (

@@ -42,7 +42,7 @@ function CreateModal({ onClose, onCreated }) {
         {err && <div style={{ padding: '8px 12px', borderRadius: 7, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', fontFamily: 'DM Sans', fontSize: 12, marginBottom: 12 }}>{err}</div>}
         {[
           { k: 'name', label: 'Nombre', placeholder: 'Juan Pérez', testid: 'inm-name-input' },
-          { k: 'email', label: 'Email', placeholder: 'juan@desarrollosmx.com', type: 'email', testid: 'inm-email-input' },
+          { k: 'email', label: 'Email', placeholder: 'juan@desarrollosmx.io', type: 'email', testid: 'inm-email-input' },
         ].map(f => (
           <div key={f.k} style={{ marginBottom: 12 }}>
             <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 }}>{f.label}</label>

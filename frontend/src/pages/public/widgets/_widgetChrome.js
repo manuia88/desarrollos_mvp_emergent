@@ -44,7 +44,7 @@ export function PoweredBy() {
       letterSpacing: '0.12em', textTransform: 'uppercase',
     }}>
       Powered by{' '}
-      <a href="https://desarrollosmx.com/docs/api"
+      <a href="https://desarrollosmx.io/docs/api"
         target="_blank" rel="noopener noreferrer"
         style={{
           backgroundImage: 'linear-gradient(90deg,#6366F1,#EC4899)',

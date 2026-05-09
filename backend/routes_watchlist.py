@@ -61,7 +61,7 @@ def _now() -> datetime:
 
 
 def _public_url() -> str:
-    return os.environ.get("DMX_PUBLIC_URL", "https://dmx.mx").rstrip("/")
+    return os.environ.get("DMX_PUBLIC_URL", "https://desarrollosmx.io").rstrip("/")
 
 
 async def _send_opt_in_email(email: str, confirm_token: str, manage_token: str, scope: str) -> None:
@@ -88,7 +88,7 @@ async def _send_opt_in_email(email: str, confirm_token: str, manage_token: str, 
             f"</div>"
         )
         body = {
-            "from": "DMX Watchlist <no-reply@desarrollosmx.com>",
+            "from": "DMX Watchlist <no-reply@desarrollosmx.io>",
             "to": [email],
             "subject": "Confirma tu suscripción · DMX Watchlist",
             "html": html,

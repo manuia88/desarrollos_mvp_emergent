@@ -65,7 +65,7 @@ function buildJsonLd(type, data) {
         'name': data.name || '',
         'description': data.description || '',
         'creator': { '@type': 'Organization', 'name': 'DesarrollosMX' },
-        'license': data.license || 'https://desarrollosmx.com/terminos',
+        'license': data.license || 'https://desarrollosmx.io/terminos',
         'distribution': data.api_url ? [{
           '@type': 'DataDownload',
           'encodingFormat': 'application/json',

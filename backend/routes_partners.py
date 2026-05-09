@@ -197,7 +197,7 @@ async def create_partner(body: PartnerCreateBody, request: Request):
                     "https://api.resend.com/emails",
                     headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
                     json={
-                        "from": "DesarrollosMX <partners@desarrollosmx.com>",
+                        "from": "DesarrollosMX <partners@desarrollosmx.io>",
                         "to": [body.contact_email],
                         "subject": f"Registro partnership DMX — {body.name}",
                         "html": html,

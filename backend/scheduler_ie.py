@@ -256,7 +256,7 @@ async def run_watchlist_alerts(db):
     no_match = 0
     errors = 0
     resend_key = os.environ.get("RESEND_API_KEY", "")
-    public_url = os.environ.get("DMX_PUBLIC_URL", "https://dmx.mx").rstrip("/")
+    public_url = os.environ.get("DMX_PUBLIC_URL", "https://desarrollosmx.io").rstrip("/")
 
     for sub in subs:
         try:
@@ -294,7 +294,7 @@ async def run_watchlist_alerts(db):
                         f"</div>"
                     )
                     body = {
-                        "from": "DMX Watchlist <no-reply@desarrollosmx.com>",
+                        "from": "DMX Watchlist <no-reply@desarrollosmx.io>",
                         "to": [email],
                         "subject": "Alerta de riesgo en tu watchlist · DMX",
                         "html": html,

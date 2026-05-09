@@ -30,7 +30,7 @@ def _get_prefs(cookies):
 
 @pytest.fixture(scope="module")
 def dev_cookies():
-    return _login("admin@desarrollosmx.com", "Admin2026!")
+    return _login("admin@desarrollosmx.io", "Admin2026!")
 
 
 @pytest.fixture(scope="module")

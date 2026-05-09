@@ -14,7 +14,7 @@ API = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "desarrollosmx")
 
-ADMIN_EMAIL = "admin@desarrollosmx.com"
+ADMIN_EMAIL = "admin@desarrollosmx.io"
 ADMIN_PASSWORD = "Admin2026!"
 DEV_EMAIL = "developer@demo.com"
 DEV_PASSWORD = "Dev2026!"

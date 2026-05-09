@@ -10,7 +10,7 @@ from fastapi.responses import PlainTextResponse, Response
 
 router = APIRouter(tags=["seo"])
 
-BASE_URL = "https://desarrollosmx.com"
+BASE_URL = "https://desarrollosmx.io"
 
 _LLMS_TXT = """\
 # DesarrollosMX (DMX)
@@ -51,7 +51,7 @@ Mexico City focus · 700+ colonias indexed · Dubai expansion planned.
 
 ## Contact
 
-founder@desarrollosmx.com · https://desarrollosmx.com
+founder@desarrollosmx.io · https://desarrollosmx.io
 """
 
 _SITEMAP_URLS = [
@@ -125,6 +125,6 @@ async def serve_ai_plugin():
             "url": f"{BASE_URL}/api/openapi.json",
         },
         "logo_url": f"{BASE_URL}/logo192.png",
-        "contact_email": "founder@desarrollosmx.com",
+        "contact_email": "founder@desarrollosmx.io",
         "legal_info_url": f"{BASE_URL}/terminos",
     }

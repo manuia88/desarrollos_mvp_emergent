@@ -376,7 +376,7 @@ async def send_lead_to_partner(db, offer_id: str) -> dict:
     try:
         import httpx
         payload = {
-            "from": "DesarrollosMX <leads@desarrollosmx.com>",
+            "from": "DesarrollosMX <leads@desarrollosmx.io>",
             "to": [partner["contact_email"]],
             "subject": f"Nuevo lead DMX: {offer.get('offer_type','lead')} · {buyer_email}",
             "html": html_body,
@@ -426,7 +426,7 @@ async def send_buyer_confirmation_email(
     try:
         import httpx
         payload = {
-            "from": "DesarrollosMX <servicios@desarrollosmx.com>",
+            "from": "DesarrollosMX <servicios@desarrollosmx.io>",
             "to": [buyer_email],
             "subject": f"Tu solicitud fue enviada a {partner_name}",
             "html": html_body,

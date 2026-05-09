@@ -37,7 +37,7 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
   }, [activePrice, down, dev.delivery_estimate]);
 
   const waPhone = (dev.contact_phone || '+525512345678').replace(/\D/g, '');
-  const waText = `Hola, me interesa ${dev.name} en ${dev.colonia}. ${typeof window !== 'undefined' ? window.location.origin : 'https://dmx.mx'}/desarrollo/${dev.id}`;
+  const waText = `Hola, me interesa ${dev.name} en ${dev.colonia}. ${typeof window !== 'undefined' ? window.location.origin : 'https://desarrollosmx.io'}/desarrollo/${dev.id}`;
   const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 
   const slider = { width: '100%', accentColor: '#6366F1' };

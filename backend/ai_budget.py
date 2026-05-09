@@ -155,7 +155,7 @@ async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
 
         # W2.4 SA5: per-tenant threshold + email override
         threshold = ALERT_THRESHOLD_PCT
-        alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.com")
+        alert_email = os.environ.get("ALERT_EMAIL", "admin@desarrollosmx.io")
         try:
             cap_doc = await db.ai_budget_caps.find_one(
                 {"tenant_id": dev_org_id}, {"_id": 0},
@@ -187,7 +187,7 @@ async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
                 import httpx
                 pct = round((spent / cap) * 100, 1)
                 body = {
-                    "from": "DMX Platform <no-reply@desarrollosmx.com>",
+                    "from": "DMX Platform <no-reply@desarrollosmx.io>",
                     "to": [alert_email],
                     "subject": f"[DMX] Alerta presupuesto IA {pct}% utilizado — {dev_org_id}",
                     "text": (

@@ -5,7 +5,7 @@ import Navbar from '../../components/landing/Navbar';
 import { Check } from '../../components/icons';
 import { useAuth } from '../../App';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://desarrollosmx.com';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://desarrollosmx.io';
 const MCP_URL = `${BASE_URL}/api/mcp`;
 
 const CLAUDE_CONFIG = JSON.stringify({

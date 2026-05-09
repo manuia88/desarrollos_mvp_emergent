@@ -51,7 +51,7 @@ def _alert_email_html(alert_type: str, payload: Dict[str, Any], user_email: str)
             text-transform:uppercase;letter-spacing:0.08em;margin-bottom:24px;">Portal Comprador</div>
           <div style="font-size:18px;font-weight:700;color:#F0EBE0;margin-bottom:12px;">{title}</div>
           {f'<div style="font-size:14px;color:rgba(240,235,224,0.75);line-height:1.6;margin-bottom:20px;">{summary}</div>' if summary else ''}
-          <a href="https://desarrollosmx.com/comprador"
+          <a href="https://desarrollosmx.io/comprador"
             style="display:inline-block;padding:12px 24px;border-radius:9999px;
             background:linear-gradient(90deg,#6366F1,#EC4899);
             color:#fff;font-size:13px;font-weight:700;text-decoration:none;">

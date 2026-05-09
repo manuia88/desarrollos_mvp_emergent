@@ -216,7 +216,7 @@ def _generate_ics(apt_datetime: str, duration_min: int, project_name: str,
         "PRODID:-//DesarrollosMX//DMX Citas//ES\r\nCALSCALE:GREGORIAN\r\n"
         "BEGIN:VEVENT\r\n"
         f"DTSTART:{dtstart}\r\nDTEND:{dtend}\r\nDTSTAMP:{dtstamp}\r\n"
-        f"UID:{safe_token}@desarrollosmx.com\r\n"
+        f"UID:{safe_token}@desarrollosmx.io\r\n"
         f"SUMMARY:Cita {pname} -- {cname}\r\n"
         f"DESCRIPTION:Modalidad: {modal_label}\\nDesarrollo: {pname}\\nRegistrada en DesarrollosMX\r\n"
         f"LOCATION:{pname}\r\nSTATUS:CONFIRMED\r\n"
@@ -254,7 +254,7 @@ async def _send_cita_email(
         except Exception:
             pass
         resend.Emails.send({
-            "from": "citas@desarrollosmx.com",
+            "from": "citas@desarrollosmx.io",
             "to": [to_email],
             "subject": f"Cita confirmada: {project_name}",
             "html": (
@@ -552,7 +552,7 @@ async def seed_dmx_inmobiliaria(db) -> None:
     if existing:
         return
     now_iso = _now().isoformat()
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.com")
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
     dmx = {
         "id": "dmx_root",
         "name": "DesarrollosMX",

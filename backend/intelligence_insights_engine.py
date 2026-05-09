@@ -31,7 +31,7 @@ FRESH_DAYS = 7
 TTL_DAYS = 90
 DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
 INTERNAL_TENANT = "dmx_internal"
-FOUNDER_EMAIL = os.environ.get("FOUNDER_ALERT_EMAIL", "founder@desarrollosmx.com")
+FOUNDER_EMAIL = os.environ.get("FOUNDER_ALERT_EMAIL", "founder@desarrollosmx.io")
 
 
 def _iso() -> str:
@@ -626,7 +626,7 @@ async def _email_founder_digest(items: List[Dict[str, Any]], summary: Dict[str, 
         for it in items[:20]
     ])
     body = {
-        "from": "DMX Intelligence Hub <no-reply@desarrollosmx.com>",
+        "from": "DMX Intelligence Hub <no-reply@desarrollosmx.io>",
         "to": [FOUNDER_EMAIL],
         "subject": f"[DMX] Inteligencia ejecutiva semanal · {summary.get('refreshed')} zonas",
         "html": (
@@ -642,7 +642,7 @@ async def _email_founder_digest(items: List[Dict[str, Any]], summary: Dict[str, 
             "<th style='padding:6px 8px;text-align:left;'>Confianza</th>"
             f"</tr></thead><tbody>{rows_html}</tbody></table>"
             "<p style='margin-top:16px;'>"
-            "<a href='https://desarrollosmx.com/superadmin/intelligence-hub' "
+            "<a href='https://desarrollosmx.io/superadmin/intelligence-hub' "
             "style='background:linear-gradient(90deg,#6366F1,#EC4899);color:#fff;"
             "padding:10px 22px;border-radius:9999px;text-decoration:none;font-weight:700;'>"
             "Abrir Intelligence Hub</a></p></div>"

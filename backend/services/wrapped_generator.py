@@ -425,7 +425,7 @@ async def _notify_wrapped_ready(db, user_id: str, year_month: str, wrapped: Dict
             Viste <strong>{n} propiedades</strong>{f' · zona favorita: <strong>{top_zona}</strong>' if top_zona else ''}.
             Tu resumen personalizado está listo.
           </div>
-          <a href="https://desarrollosmx.com/comprador/wrapped/{year_month}"
+          <a href="https://desarrollosmx.io/comprador/wrapped/{year_month}"
             style="display:inline-block;padding:13px 26px;border-radius:9999px;
             background:linear-gradient(90deg,#6366F1,#EC4899);
             color:#fff;font-size:14px;font-weight:700;text-decoration:none;">
@@ -488,7 +488,7 @@ async def send_annual_optin_emails(db, year: int) -> Dict[str, Any]:
           <div style="font-size:14px;color:rgba(240,235,224,0.75);line-height:1.6;margin-bottom:24px;">
             Este año exploraste el mercado inmobiliario de CDMX. Genera tu resumen anual personalizado con IA.
           </div>
-          <a href="https://desarrollosmx.com/comprador/wrapped?annual={year}"
+          <a href="https://desarrollosmx.io/comprador/wrapped?annual={year}"
             style="display:inline-block;padding:13px 26px;border-radius:9999px;
             background:linear-gradient(90deg,#6366F1,#EC4899);
             color:#fff;font-size:14px;font-weight:700;text-decoration:none;">

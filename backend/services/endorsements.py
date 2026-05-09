@@ -25,7 +25,7 @@ import httpx
 log = logging.getLogger("dmx.endorsements")
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-FROM_EMAIL = "reseñas@desarrollosmx.com"
+FROM_EMAIL = "reseñas@desarrollosmx.io"
 BASE_URL = os.environ.get("PUBLIC_BASE_URL", "") or os.environ.get(
     "REACT_APP_BACKEND_URL", "http://localhost:8001",
 )

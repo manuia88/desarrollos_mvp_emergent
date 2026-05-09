@@ -425,7 +425,7 @@ async def generate_comparison_pdf(matrix: Dict[str, Any], buyer_tier: str = "pub
     story.append(comp_table)
     story.append(Spacer(1, 20))
     story.append(Paragraph(
-        "Generado por DesarrollosMX · desarrollosmx.com",
+        "Generado por DesarrollosMX · desarrollosmx.io",
         _sty("footer", fontName="Helvetica", fontSize=7,
              textColor=colors.HexColor("#555566"), alignment=TA_CENTER),
     ))

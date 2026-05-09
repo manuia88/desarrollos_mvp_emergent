@@ -1273,7 +1273,7 @@ Requiere `SENTRY_AUTH_TOKEN` (ya en .env backend como SENTRY_TOKEN) + org/projec
 
 ### Verificación Playwright smoke ✅
 - `/desarrollador/site-selection` → click study INEGI → click zona Polanco en ranking → drawer abre con `demographics-section`=1, `demographics-nse-bar`=1, sin runtime errors ✅
-- `/superadmin/data-sources` (admin@desarrollosmx.com) → `inegi-cache-row`=1 con stats live (Entries:18, Hit rate:0%, Lookups:0, TTL:30d, estimate:18), botón `inegi-refresh-btn` visible ✅
+- `/superadmin/data-sources` (admin@desarrollosmx.io) → `inegi-cache-row`=1 con stats live (Entries:18, Hit rate:0%, Lookups:0, TTL:30d, estimate:18), botón `inegi-refresh-btn` visible ✅
 
 ### Áreas mocked / pendientes (transparentes)
 - **AGEB-level real**: requiere shapefiles INEGI (`inegi_shapefiles` declarado pero no enchufado a este endpoint todavía). Por eso el scope max es `inegi_municipio` cuando token funciona, `estimate` cuando no.
@@ -2756,7 +2756,7 @@ DataPending is_stub=true (19): el resto — esperan ingest específicos (Lamudi 
 ---
 
 ## Credenciales de prueba (ver `/app/memory/test_credentials.md`)
-- `admin@desarrollosmx.com` / `Admin2026!` → superadmin
+- `admin@desarrollosmx.io` / `Admin2026!` → superadmin
 - `asesor@demo.com` / `Asesor2026!` → advisor
 - `developer@demo.com` / `Dev2026!` → developer_admin
 
@@ -3656,7 +3656,7 @@ DesarrollosMX establece autoridad estadística pública con DRPI (DMX Residentia
 |---|---|---|---|---|
 | **A** | **Probability indicators UX** style Kalshi | +8 | Wave 4 (extends Phase Y.2 + Diagnostic A) | Mostrar % probabilidad estilo Kalshi en cada propiedad/proyecto/zona, basado en Phase Y forecasting + DRPI W3.3 + Risk W3.4. Sin market real. Ej: *"82% probabilidad Polanco DRPI sube 3 meses · 95% CI"* · *"73% probabilidad este proyecto vende completo en 12m"*. Translate números crudos → narrative humano que decide. |
 | **B** | **Event-driven smart notifications** | +6 | Wave 4 (extends NotificationsBell B14 + anomaly W2.6) | Notifications Kalshi-style: language financiero/event-based, no "tienes 1 lead nuevo". Ej: *"🟡 Polanco DRPI moved +1.2% últimas 24h. Tu proyecto X compite ahí."* · *"🔴 Comparable cerró 8% bajo tu precio listed."* · *"🟢 Risk Score zona X subió a B+. Nueva oportunidad inversionistas."* |
-| **C** | **Embeddable widgets** DRPI/Risk/Probability | +4 | Wave 4 (extends MCP Brand Strategy #22: 25→29h) | iframe widgets para blogs inmobiliarios, El Financiero/Forbes, social media. `<iframe src="dmx.mx/widget/drpi/polanco" />`. Cada widget = ad pasivo + backlink SEO + brand authority. Patterns Kalshi widgets para news sites mostrando market prices. |
+| **C** | **Embeddable widgets** DRPI/Risk/Probability | +4 | Wave 4 (extends MCP Brand Strategy #22: 25→29h) | iframe widgets para blogs inmobiliarios, El Financiero/Forbes, social media. `<iframe src="desarrollosmx.io/widget/drpi/polanco" />`. Cada widget = ad pasivo + backlink SEO + brand authority. Patterns Kalshi widgets para news sites mostrando market prices. |
 | **D** | **Daily content "Movimientos del mercado"** | 0 (absorbed) | Phase 8 ext AutoNewsletter Pulse (sin sumar) | Reorienta scope Phase 8 ext para incluir formato Kalshi-style "Markets to watch": Daily push (dev/asesor) "Movimientos del día CDMX" + Weekly digest "Esta semana en CDMX". Higher frequency + más urgente que boletín mensual W3.3. |
 | **F** | **Data licensing institutional bundles** | +4 | Wave 3 (extends Phase Z.4 W3.6: 14→18h) | Patterns Kalshi data licensing institutional traders. Vender datasets DMX bulk anual ($50-200K USD/cliente) a hedge funds, REITs, banks. Solo packaging + sales sheet sobre Phase Z.4 Verticals existing. |
 

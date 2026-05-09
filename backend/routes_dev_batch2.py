@@ -954,7 +954,7 @@ async def _fire_competitor_price_alert(
                 import resend
                 resend.api_key = resend_key
                 resend.Emails.send({
-                    "from": "DMX Alerts <alerts@desarrollosmx.com>",
+                    "from": "DMX Alerts <alerts@desarrollosmx.io>",
                     "to": recipient_email,
                     "subject": f"Alerta precio: {competitor_name} bajó {-delta_pct}%",
                     "html": (

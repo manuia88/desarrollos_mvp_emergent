@@ -359,7 +359,7 @@ async def distribute_bulletin(
                     continue
                 try:
                     body = {
-                        "from": "DMX Boletines <no-reply@desarrollosmx.com>",
+                        "from": "DMX Boletines <no-reply@desarrollosmx.io>",
                         "to": [email],
                         "subject": f"[DMX] Boletín DRPI · {bul.get('period')}",
                         "html": (
@@ -367,7 +367,7 @@ async def distribute_bulletin(
                             f"<h2 style='color:#06080F'>Boletín DesarrollosMX · {bul.get('period')}</h2>"
                             f"<p>Tu boletín mensual ya está disponible.</p>"
                             f"<p>Lee el boletín completo en línea: "
-                            f"<a href='https://desarrollosmx.com/boletin/{bul.get('slug')}/{bul.get('period')}'>Abrir boletín</a></p>"
+                            f"<a href='https://desarrollosmx.io/boletin/{bul.get('slug')}/{bul.get('period')}'>Abrir boletín</a></p>"
                             f"<p style='color:#807e78;font-size:12px'>"
                             f"Metodología abierta: /methodology · DesarrollosMX</p>"
                             f"</div>"

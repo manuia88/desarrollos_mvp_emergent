@@ -12,7 +12,7 @@ const TIER_BG = {
 
 function CurlSample({ path, tier }) {
   const sample = `curl -H "Authorization: Bearer dmx_test_<your_key>" \\
-  "https://api.desarrollosmx.com/api/v1${path}"`;
+  "https://api.desarrollosmx.io/api/v1${path}"`;
   return (
     <pre style={{
       background: 'rgba(0,0,0,0.45)', padding: 12, borderRadius: 10,
@@ -89,7 +89,7 @@ export default function ApiDocsPage() {
             ))}
           </div>
           <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginTop: 14 }}>
-            Solicita tu API key escribiendo a <a href="mailto:api@desarrollosmx.com" style={{ color: '#a5b4fc' }}>api@desarrollosmx.com</a>.
+            Solicita tu API key escribiendo a <a href="mailto:api@desarrollosmx.io" style={{ color: '#a5b4fc' }}>api@desarrollosmx.io</a>.
             Enterprise se negocia con cuotas y SLAs custom.
           </p>
         </section>

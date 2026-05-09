@@ -314,7 +314,7 @@ async def send_dsr_confirmation_email(dsr: dict, verify_url: str) -> dict:
     try:
         import httpx  # already in requirements from other modules
         payload = {
-            "from": "DesarrollosMX <privacidad@desarrollosmx.com>",
+            "from": "DesarrollosMX <privacidad@desarrollosmx.io>",
             "to": [dsr["subject_email"]],
             "subject": f"Confirma tu solicitud LFPDPPP: {label}",
             "html": html_body,

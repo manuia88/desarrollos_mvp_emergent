@@ -183,7 +183,7 @@ async def public_methodology(request: Request):
         "validation_endpoint": "/api/data-lake/public/validation",
         "citation": {
             "doi_placeholder": "10.xxxx/dmx-drpi",
-            "press_contact": "press@dmx.mx",
+            "press_contact": "press@desarrollosmx.io",
             "guideline": (
                 "Para citar: 'Fuente: DesarrollosMX (DRPI), %s.' "
                 "Compartir libremente para uso editorial con atribución."

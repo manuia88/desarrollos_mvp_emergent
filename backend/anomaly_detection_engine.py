@@ -28,7 +28,7 @@ ANOMALY_SOURCES = (
     "ai_cost", "tenant_activity", "metrics_cube", "ingestion", "conversion",
 )
 
-FOUNDER_ALERT_EMAIL = os.environ.get("FOUNDER_ALERT_EMAIL", "founder@desarrollosmx.com")
+FOUNDER_ALERT_EMAIL = os.environ.get("FOUNDER_ALERT_EMAIL", "founder@desarrollosmx.io")
 
 
 def _iso() -> str:
@@ -343,7 +343,7 @@ async def _maybe_email_founder(db, anomaly: Dict[str, Any]) -> bool:
         import httpx
         ev = anomaly.get("evidence") or {}
         body = {
-            "from": "DMX Founder Console <no-reply@desarrollosmx.com>",
+            "from": "DMX Founder Console <no-reply@desarrollosmx.io>",
             "to": [FOUNDER_ALERT_EMAIL],
             "subject": f"[DMX] Anomalía CRÍTICA · {source}",
             "html": (
@@ -355,7 +355,7 @@ async def _maybe_email_founder(db, anomaly: Dict[str, Any]) -> bool:
                 f"<p><strong>Evidencia:</strong></p>"
                 f"<pre style='background:#F0EBE0;padding:10px;border-radius:6px;font-size:11px;'>"
                 f"{ev}</pre>"
-                f"<p><a href='https://desarrollosmx.com/superadmin' "
+                f"<p><a href='https://desarrollosmx.io/superadmin' "
                 f"style='background:linear-gradient(90deg,#6366F1,#EC4899);color:#fff;"
                 f"padding:8px 18px;border-radius:9999px;text-decoration:none;'>"
                 f"Abrir Founder Console</a></p>"

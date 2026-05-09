@@ -142,7 +142,7 @@ Formato canónico per-batch (founder request):
 | W4.8 | Phase Y.5 Observability + Audit replay | 9 | — | emergent | ⏳ | — | ML accuracy metrics |
 | W4.9 | Phase 6 Studio Wave 1.5+2 | 36 | — | emergent | ⏳ | — | extensions B25/B26 |
 | W4.10 | Phase 8 ext WhatsApp + AutoNewsletter | 25 | — | emergent | ⏳ | — | WA Business + Pulse semanal |
-| W4.11 | Phase 10 Caya home + A11 ext | 26 | — | emergent | ⏳ | — | Caya en dmx.mx para queries mercado |
+| W4.11 | Phase 10 Caya home + A11 ext | 26 | — | emergent | ⏳ | — | Caya en desarrollosmx.io para queries mercado |
 | W4.12 | Phase 11 Dubai | 38 | — | emergent | ⏳ | — | i18n + flow Dubai-specific |
 | W4.13 | Phase 16 ext (Lead Journey + Amenities Validator) | 32 | — | emergent | ⏳ | — | A/B Meta Ads automatizadas |
 | W4.14 | Phase 19 ext (Buyer Coach + Mortgage + Investment Sim) | 29 | — | emergent | ⏳ | — | — |
