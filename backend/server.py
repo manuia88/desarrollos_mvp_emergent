@@ -369,8 +369,13 @@ from routes_public_zones import router as public_zones_router
 app.include_router(public_zones_router)
 
 # W4.2D3 — Programmatic SEO Tier 1+2 (40 colonias + 16 alcaldías + 5 intents + lead capture)
-from routes_landings import router as landings_router, ensure_landing_indexes
+from routes_landings import (
+    router as landings_router,
+    sa_router as landings_sa_router,
+    ensure_landing_indexes,
+)
 app.include_router(landings_router)
+app.include_router(landings_sa_router)
 try:
     from seo_combos_seed import seed_landings_in_sitemap as _seed_landings_import
 except ImportError:

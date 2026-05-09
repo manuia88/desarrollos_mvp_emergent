@@ -1,6 +1,56 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W4.2D3.5 — Landing Leads Dashboard + Lead Nurture Cron (2026-05-09)
+
+Cierra el loop de W4.2D3: founder ahora puede VER las leads capturadas en `/superadmin/landing-leads` y cron diaria 04:00 MX matchea leads con inventario nuevo + envía email vía Resend.
+
+### Backend (1 nuevo · 2 editados)
+- **NEW** `lead_nurture_engine.py` — cron entry `run_lead_nurture_match(db)`:
+  - `find_matches(db)`: query `landing_leads` con `last_nurture_sent_at` ausente o más viejo que 7d. Para cada lead resuelve kind (zone/alcaldia/intent), busca `data_developments.DEVELOPMENTS` que matchean colonia/alcaldía/stage+tipo. Filter por `created_at >= lead.created_at`. Limit 5 devs/email.
+  - `send_nurture_email(email, zone_name, zone_url, devs)`: HTML responsive (Outfit-like Arial fallback) con CTA gradient `rounded-full` linkeando a `desarrollosmx.io/zona|alcaldia|cdmx/{slug}`. Resend HTTP API. Si `RESEND_API_KEY` ausente → log "Resend stub" y retorna False (no crash).
+  - Throttle anti-spam: 7 días (`NURTURE_THROTTLE_DAYS`) entre emails al mismo (email, zone). Update `last_nurture_sent_at` + `last_nurture_match_count` cuando envío exitoso.
+- **EDIT** `routes_landings.py` — agregado `sa_router` (4 endpoints superadmin):
+  - `GET /api/superadmin/landing-leads` — list paginado (filters: zone_interest, page_type=colonia|alcaldia|intent, since, limit≤500). Auth gate: 401 sin sesión, 403 si role≠superadmin.
+  - `GET /api/superadmin/landing-leads/by-zone` — aggregation `$group` por zone_interest con lead_count + first/last_lead_at.
+  - `GET /api/superadmin/landing-leads/summary` — KPI strip: total, last_7d, unique_zones, top_zone (top 1 por count).
+  - `GET /api/superadmin/landing-leads/export.csv` — StreamingResponse CSV (header: email, zone_interest, page_type, zone_slug, notes, source_url, created_at, status). Content-Disposition attachment con timestamp.
+  - `ensure_landing_indexes` extendido con `last_nurture_sent_at` index sparse.
+- **EDIT** `scheduler_ie.py` — cron `lead_nurture` 04:00 MX (después de comparable_anomalies 03:00, antes de drive_webhook_renew 03:30).
+- **EDIT** `server.py` — wire `landings_sa_router`.
+
+### Frontend (2 nuevos · 2 editados)
+- **NEW** `pages/superadmin/SuperadminLandingLeads.js` — Dashboard con:
+  - KPI strip 4 cards (total, last_7d, unique_zones, top_zone) con tone colors (brand/ok/warn/bad).
+  - Tab toggle `Por zona` (default) / `Lista completa` con `rounded-full` chips.
+  - Tab "Por zona": tabla con zona+page_type badge+lead_count+first/last_lead_at+CTA "Ver leads" que cambia a tab list filtrando por zone.
+  - Tab "Lista completa": filters page_type chips + zone_interest text input. Tabla con email, zona, tipo badge, notas (ellipsis 280px), fecha, badge "Notificado" (verde si last_nurture_sent_at, "Pendiente" sino).
+  - Botón "Export CSV" gradient pill que dispara `window.location.href = /export.csv?...filters`.
+  - Empty states `<Empty>` para 0 leads y filtros sin matches.
+  - Errores api → Card rojo accesible.
+- **NEW** `api/superadminLandingLeads.js` — 4 helpers: `getLandingLeadsSummary`, `getLandingLeadsByZone`, `getLandingLeads(filters)`, `downloadLandingLeadsCsv(filters)`.
+- **EDIT** `App.js` — lazy `SuperadminLandingLeads` + `<Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={...}/>}>`.
+- **EDIT** `config/navByRole.js` — superadmin nav item `{key:'landing-leads', to:'/superadmin/landing-leads', label:'Leads landing', Icon: Megaphone}`.
+
+### Acceptance criteria validados
+- ✅ `GET /api/superadmin/landing-leads/summary` cookie-auth → 200 `{total:1, last_7d:1, unique_zones:1, top_zone:{slug:granada, count:1}}`
+- ✅ `GET /api/superadmin/landing-leads/by-zone` → 200 con `[{zone_interest:zone-granada, lead_count:1, last_lead_at:...}]`
+- ✅ `GET /api/superadmin/landing-leads?limit=10` → 200 con item completo (lead_id, email, zone_slug, page_type=colonia, notes, status, last_nurture_sent_at:null)
+- ✅ `GET /api/superadmin/landing-leads/export.csv` → 200 CSV header + row con todos los campos
+- ✅ `GET /api/superadmin/landing-leads/summary` SIN auth → 401
+- ✅ `run_lead_nurture_match(db)` con 0 leads → `{matches:0, sent:0, skipped:0}` sin error
+- ✅ `run_lead_nurture_match(db)` con 1 lead polanco + 2 devs → `{matches:1, sent:0, skipped:1}` (Resend stub log emit, no crash)
+- ✅ `yarn build` limpio (38s) · ESLint+ruff sin warnings · `/api/health` 200
+- ✅ Cron `lead_nurture` registered en scheduler_ie con misfire_grace_time=3600
+
+### Resend integration
+HTTP API directa (no SDK). Si `RESEND_API_KEY` ausente → log `[lead_nurture] Resend stub (no RESEND_API_KEY) → would email …` y skip envío real. Cuando user agrega key real, cron diaria empieza a enviar automático sin redeploy.
+
+### Bypass conocido
+Playwright screenshot tool no logra preservar sesión cookie en deeply-nested `/superadmin/*` routes (Issue 2 P2 BLOCKED del handoff, recurrencia 20+). Visual regression bypass: backend curl 100% verificado + yarn build 0 errores. UI validable manualmente desde nav superadmin > "Leads landing".
+
+
+
 ## W4.2D3 — Programmatic SEO Tier 1+2 · 61 landing pages + lead capture (2026-05-09)
 
 Extiende W4.2D2 a 40 colonias DMX target (16 con IE data + 24 nuevas anti-doorway) + 16 alcaldías CDMX completas + 5 intent landings (preventa, entrega-inmediata, estrenar, departamentos, casas). Cada landing sin inventario incluye lead capture form + colonias cercanas con datos.

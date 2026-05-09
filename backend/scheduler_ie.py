@@ -522,6 +522,18 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_comparable_anomaly_error", error=str(e))
 
+    # W4.2D3.5 — Lead nurture matching 04:00 MX (after risk + watchlist alerts)
+    try:
+        from lead_nurture_engine import run_lead_nurture_match
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_lead_nurture_match, "lead_nurture"),
+            CronTrigger(hour=4, minute=0, timezone=TZ),
+            args=[db], id="lead_nurture", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_lead_nurture_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

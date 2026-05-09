@@ -172,6 +172,8 @@ const ZonePage                       = lazy(() => import('./pages/public/ZonePag
 // W4.2D3 — Programmatic SEO Tier 1+2 (alcaldías + intents)
 const AlcaldiaPage                   = lazy(() => import('./pages/public/AlcaldiaPage'));
 const IntentLandingPage              = lazy(() => import('./pages/public/IntentLandingPage'));
+// W4.2D3.5 — Superadmin Landing Leads dashboard
+const SuperadminLandingLeads         = lazy(() => import('./pages/superadmin/SuperadminLandingLeads'));
 // W3.8 — Cross-sell Intelligence
 const SuperadminPartners             = lazy(() => import('./pages/superadmin/SuperadminPartners'));
 const SuperadminCrossSellAnalytics   = lazy(() => import('./pages/superadmin/SuperadminCrossSellAnalytics'));
@@ -550,6 +552,8 @@ function AppRouter() {
       {/* W4.2D3 — Programmatic SEO alcaldía + intent landings */}
       <Route path="/alcaldia/:slug" element={<AlcaldiaPage />} />
       <Route path="/cdmx/:intent" element={<IntentLandingPage />} />
+      {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
+      <Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={SuperadminLandingLeads} />} />
       {/* W3.8 — Cross-sell Intelligence */}
       <Route path="/superadmin/partners" element={<AdvisorRoute Page={SuperadminPartners} />} />
       <Route path="/superadmin/cross-sell-analytics" element={<AdvisorRoute Page={SuperadminCrossSellAnalytics} />} />
