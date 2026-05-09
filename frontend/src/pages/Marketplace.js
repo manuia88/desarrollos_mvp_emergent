@@ -8,6 +8,7 @@ import TopFilters from '../components/marketplace/TopFilters';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
 import MarketplaceHeatmapLayer from '../components/marketplace/MarketplaceHeatmapLayer';
 import ColoniaSidebar from '../components/marketplace/ColoniaSidebar';
+import RiskScoreSubscribeWidget from '../components/marketplace/RiskScoreSubscribeWidget';
 import ImageSearchModal from '../components/marketplace/ImageSearchModal';
 import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
@@ -280,6 +281,13 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     Limpiar filtro colonia
                   </button>
                 </div>
+              )}
+              {/* W3.9c — Risk score subscribe widget when zone filter is active */}
+              {coloniaFilter && (
+                <RiskScoreSubscribeWidget
+                  zoneId={String(coloniaFilter).replace(/-/g, '_')}
+                  zoneLabel={coloniaFilter}
+                />
               )}
               <TopFilters
                 colonias={colonias}
