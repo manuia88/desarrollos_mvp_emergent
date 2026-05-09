@@ -744,6 +744,28 @@ backend/routes/
 
 ---
 
+## 📥 W4.4C — Phase Y.1C MCP Exposure enhancements diferidos (2026-05-09)
+
+### Playwright runner pierde session/cookies en rutas Superadmin profundas (BLOCKED)
+- **Origen:** emergent QA W4.4C
+- **Destino propuesto:** F0 sweep tech debt + investigación dedicada
+- **Razón diferir:** bug de Playwright auth handling · NO bloquea features para usuarios reales · solo afecta automation testing
+- **Costo estimado:** 4-6h (root cause + fix)
+
+### bulk-upload-btn no renderiza en DOM (DEFERRED P2)
+- **Origen:** emergent QA W4.4C
+- **Destino propuesto:** F0 sweep
+- **Razón diferir:** bug pequeño · usuarios pueden seguir flujo alternativo · scope < 1h fix
+- **Costo estimado:** 1h
+
+### Blog post "Conecta tu Claude Desktop al Director AI de DMX" (lead magnet MCP)
+- **Origen:** emergent sugerencia W4.4C
+- **Destino propuesto:** Marketing content (no Wave 4 batch · founder/agencia)
+- **Razón diferir:** contenido marketing, NO código · founder o agencia content lo escribe · cero esfuerzo dev
+- **Costo:** content team
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
