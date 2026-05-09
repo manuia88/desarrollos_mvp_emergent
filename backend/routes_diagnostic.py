@@ -815,18 +815,30 @@ async def get_dev_diagnostic(dev_id: str, request: Request, force: bool = False)
         raise HTTPException(403, "Solo superadmin o developer_admin pueden ver diagnósticos.")
 
     if user.role == "developer_admin":
-        # Verify ownership: dev must belong to user's org
+        # Verify ownership: dev's developer_id must be in user's allowed org list
+        # Reuses the same TENANT_DEV_MAP pattern as routes_documents.py
+        _TENANT_DEV_MAP = {
+            "constructora_ariel": ["quattro", "habitare-capital", "agora-urbana"],
+        }
         from data_developments import DEVELOPMENTS_BY_ID
         dev = DEVELOPMENTS_BY_ID.get(dev_id)
         if not dev:
             raise HTTPException(404, f"Desarrollo '{dev_id}' no encontrado.")
         dev_developer_id = dev.get("developer_id", "")
         user_org = getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or ""
-        if dev_developer_id != user_org:
+        allowed = _TENANT_DEV_MAP.get(user_org)
+        if allowed is not None:
+            if dev_developer_id not in allowed:
+                raise HTTPException(
+                    403,
+                    f"No tienes permiso para ver diagnósticos de '{dev_id}'. "
+                    f"El desarrollo pertenece a '{dev_developer_id}'."
+                )
+        elif dev_developer_id != user_org:
+            # Fallback: exact match si org no está en el mapa
             raise HTTPException(
                 403,
-                f"No tienes permiso para ver diagnósticos de '{dev_id}'. "
-                f"El desarrollo pertenece a '{dev_developer_id}'."
+                f"No tienes permiso para ver diagnósticos de '{dev_id}'."
             )
 
     # ── Cache lookup ───────────────────────────────────────────────────────

@@ -59,3 +59,11 @@ export const getProbeRecurrence = (params = {}) => {
   return j(`/api/superadmin/probe-recurrence${qs ? `?${qs}` : ''}`);
 };
 export const getPerOrgDashboard = () => j('/api/superadmin/diagnostics/per-org');
+
+// ── W4.1B — fetchDevDiagnostic ──────────────────────────────────────────────
+export async function fetchDevDiagnostic(devId, force = false) {
+  const url = `${API}/api/diagnostic/dev/${encodeURIComponent(devId)}${force ? '?force=true' : ''}`;
+  const r = await fetch(url, { credentials: 'include' });
+  if (!r.ok) throw { status: r.status, body: await r.text() };
+  return r.json();
+}
