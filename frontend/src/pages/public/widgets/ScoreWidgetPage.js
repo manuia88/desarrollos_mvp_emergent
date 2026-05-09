@@ -214,10 +214,7 @@ const shellStyle = {
   minWidth: 280,
   padding: 16,
   borderRadius: 14,
-<<<<<<< HEAD
   // DMX brand: cream bg + signature gradient top bar (rendered as child div)
-=======
->>>>>>> origin/conflict_090526_0656
   background: '#F0EBE0',
   border: '1px solid rgba(13,16,23,0.10)',
   boxShadow: '0 4px 20px rgba(13,16,23,0.10)',
