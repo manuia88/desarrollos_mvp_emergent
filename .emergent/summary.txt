@@ -2,29 +2,25 @@
 Build DesarrollosMX (DMX), an AI-native Spatial Decision Intelligence Platform for LATAM real estate.
 PRODUCT REQUIREMENTS: 
 - Multi-tenant data isolation, single-session enforcement, mobile-first, robust auth.
-- Strict visual guidelines: Navy (#06080F) + Cream (#F0EBE0) + specific gradient (), Outfit/DM Sans fonts, zero emojis (use internal SVG icons only).
+- Strict visual guidelines: Navy (#06080F) + Cream (#F0EBE0) + specific gradient (), Outfit/DM Sans fonts.
+- ZERO emojis allowed (EXCEPTION: The 6 new macro chips for W4.11a specifically require emojis).
 - Buttons MUST strictly be  (9999px) — never rounded-sm/md/lg. No  allowed (use border + backdrop-blur + rgba background instead).
 - All application UI, mock data, and internal strings MUST strictly be in Spanish .
-- TESTING: NO testing subagents allowed. Rely on /, and screenshot tools.
+- TESTING: NO testing subagents allowed. Rely on //, and screenshot tools.
 - EXECUTION: If user provides 100% spec, DO NOT pause, DO NOT ask_human with a/b/c options, execute directly. Canonical domain is strictly .
 
 **User's preferred language**: Spanish (es-MX)
-**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the trajectory tag and respond strictly in Spanish (es-MX). ALL code, comments, strings, and UI MUST remain strictly in .
+**INSTRUCT NEXT AGENT**: You MUST respond in the user's preferred language ONLY (Spanish ). All code, comments, console logs, strings, and UI MUST remain strictly in .
 
 **what currently exists?** 
-A mature LATAM real estate platform with intelligent insights and MCP HTTP API. In this session, the platform was massively expanded with Programmatic SEO capabilities: creating live data landing pages for zones, alcaldías, and search intents, coupled with a lead capture system () and automated Resend email nurturing (). Additionally, embeddable SEO widgets (Score & Risk) and a Press Kit page () were implemented with strict adherence to the brand's design system.
+A mature LATAM real estate platform featuring Phase Y foundation (Director Agent, Memory Layer, MCP Tools). It includes a full 'What-if' Simulator for developers, and a public AI assistant (Atlax) unified with the backend . The platform supports deep historical context via localStorage migrations and RAG memory layers. The homepage now prominently features the Atlax assistant (W4.11a) with macro conversational chips and a persistent thread sidebar.
 
 **Last working item**:
-    - Last item agent was working: W4.2.5.1 — Brand Strategy · Design system fix-pass for embed widgets. The agent updated  and  to strictly follow the DMX design system (cream background, dark glass-morphism inner cards, 3px gradient top bar).
-    - Status: COMPLETED
+    - Last item agent was working: W4.11a — Phase 10 Atlax home extension. Agent built the , added 3 new macro tools to the LLM (, , ), created the  backend collection/endpoints, and updated the homepage UI ( in ) to feature Atlax with 6 macro chips.
+    - Status: USER VERIFICATION PENDING (Agent finished and verified fully).
     - Agent Testing Done: Y
-    - Which testing method agent to use? manual testing by yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command., Error: restart requires a process name
-restart <name>		Restart a process
-restart <gname>:*	Restart all processes in a group
-restart <name> <name>	Restart multiple processes or groups
-restart all		Restart all processes
-Note: restart does not reread config files. For that, see reread and update., and screenshot tool. (NO testing subagents allowed).
+    - Which testing method agent to use? manual testing via , yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command., and screenshot tool (Testing subagents are STRICTLY forbidden).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
@@ -45,26 +41,28 @@ Note: restart does not reread config files. For that, see reread and update., an
      - Should Test frontend/backend/both after fix? frontend
 
 **In progress Task List**: 
-None. All tasks assigned in this session were fully completed and tested.
+ None. (Task W4.11a was completely finished).
 
 **Upcoming and Future Tasks**
   Upcoming Tasks:
-  - Superadmin endpoint/dashboard to track which external domains are embedding the widgets (Suggested by agent, P1)
-  - CLI script  for founder to test lead nurture emails manually (Suggested by agent, P2)
+  - Superadmin endpoint/dashboard to track which external domains are embedding the widgets (P1)
+  - CLI script  for founder to test lead nurture emails manually (P2)
+  - Refactoring: Migrating  into a dedicated  folder (P1)
   
   Future Tasks:
   - Phase 7.10: Avance-Obra tab integration (P1)
-  - WhatsApp Business real integration via  + Caya UI (P1)
+  - WhatsApp Business real integration via  + Atlax UI (P1)
   - Multi-subscriber digest for insights (Wave 4 #8 AutoNewsletter) (P1)
   - Microsoft OAuth Integration activation (P2)
   - Integration AMPI API real (H2)
 
 **Completed work in this session**
-- W4.2D2 Programmatic SEO · Zone landing pages template + FAQ Schema (DONE)
-- W4.2D3 Programmatic SEO Tier 1+2 · 61 landing pages (Zonas, Alcaldías, Intents) + Lead capture (DONE)
-- W4.2D3.5 Landing Leads Dashboard + Lead Nurture Cron (APScheduler + Resend integration) (DONE)
-- W4.2.5 Brand Strategy · Embed widgets () + Press kit () + CORS APIs (DONE)
-- W4.2.5.1 Brand Strategy · Design system widget styling fix-pass (DONE)
+- W4.11a Phase 10 Atlax home extension (DONE).
+  -  (Added tools: , , )
+  -  (Added  generation & endpoints)
+  -  (NEW)
+  -  (Updated to handle , chips, thread_id state)
+  -  (Added inline )
 
 **Earlier issues found/mentioned but not fixed**
   - None beyond the deferred Playwright authentication timeout on deep links.
@@ -78,65 +76,56 @@ None. All tasks assigned in this session were fully completed and tested.
 
 
 **Key Technical Concepts**
-FastAPI, MongoDB, React.js, APScheduler (Lead nurture cron at 04:00 MX), Resend API (Email automation), Schema.org (JSON-LD Place/FAQ/NewsMediaOrganization), SEO CORS Widgets.
+FastAPI, MongoDB (Compound Indexing, text mapping), React.js, Phase Y Agent Orchestration, MCP, , LFPDPPP IP hashing logic, localStorage migration techniques ( to ), Rate-limiting logic (Token bucket).
 
 **key DB schema**
   - : 
   - : 
+  - : 
+  - :  (NEWLY ADDED)
 
 **changes in tech stack**
-  - Resend is actively verified and configured via  for sending automated transactional/marketing emails from .
+  - None in this specific fork, built smoothly upon the previous Caya->Atlax backend rebranding.
 
 **All files of reference** 
-  - Backend: , , , , , , , .
-  - Frontend: , , , , , , , , , .
+  -  (Contains the 3 new macro LLM tools)
+  -  (Contains thread resolution logic and new thread endpoints)
+  -  (New sidebar component for conversation history)
+  -  (Modified to support  and 6 static chips)
+  -  (Where  logic lives; updated to mount )
 
 **Areas that need refactoring**:
-  - Migrating  into a dedicated  folder as the backend API footprint continues to grow.
+  - Migrating all  files into a dedicated  folder (P1).
 
 **key api endpoints**
-  -  (Zone IE data)
-  -  &  &  (Programmatic SEO)
-  -  &  &  (Superadmin leads)
-  -  &  (Public CORS for embed)
-  -  (Live stats for media kit)
+  -  (Now processes and returns )
+  -  (Returns user's active threads)
+  -  (Retrieves past context)
+  - 
 
 **Critical Info for New Agent**
-  - **EXECUTION DIRECTIVE**: If the user provides a 100% complete spec, DO NOT use  to confirm options. Just execute it, build, and summarize.
-  - **TESTING RULE**: NO testing subagents allowed ( is forbidden). Execute testing manually via , , and verify the React build via yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.. 
-  - **LANGUAGE & UI**: Outputs, UIs, and strings must strictly be . NEVER use emojis. NEVER use . Buttons MUST be .
-  - **CANONICAL DOMAIN**: All explicit URLs in JSON-LD or embeds must point to . 
-  - **RESEND INTEGRATION**: Resend API key is configured.  is . Lead nurturing cron job runs at 04:00 MX.
+  - **EXECUTION DIRECTIVE**: The user provides 100% complete specs. DO NOT use  to confirm options. Execute fully, run tests manually, and summarize.
+  - **TESTING RULE**: NO testing subagents allowed ( is strictly forbidden). Execute testing manually via , , and verify the React build via yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. and screenshot tool.
+  - **LANGUAGE & UI**: Outputs, code, responses, and strings must strictly be . 
+  - **EMOJIS**: NEVER use emojis. EXCEPTION: The 6 macro market chips in W4.11a (already completed) were explicitly allowed.
+  - **BRANDING**: Caya was entirely renamed to Atlax.  is strictly forbidden. Buttons MUST be . 
 
 **documents and test reports created in this job**
-  -  (Updated incrementally with completed tasks).
+  -  (Updated with W4.11a completion)
+  -  (Updated with W4.11a commit details)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: Instructs to implement W4.2D2 — Zone landing pages + FAQ Schema.
- - Agent: Implemented, seeded sitemaps, verified JSON-LD.
- - User: Instructs to implement W4.2D3 — Programmatic SEO Tier 1+2 (61 pages + lead capture).
- - Agent: Configured 61 locations, built endpoints, updated frontend template pages.
- - User: Instructs to implement W4.2D3.5 — Landing Leads Dashboard + Lead Nurture Cron.
- - Agent: Created dashboard, wrote Resend logic, scheduled APScheduler cron. Noticed Resend domain verification error.
- - User: Provided instructions to fix Resend domain settings (domain is verified as ).
- - Agent: Tested and sent a successful real Resend email.
- - User: Instructs to implement W4.2.5 — Embed widgets + Press kit.
- - Agent: Built standalone widget routes, CORS APIs, Media kit page.
- - User: Requests a rebuild for preview and provides W4.2.5.1 — Design system widget styling fix.
- - Agent: Fixed styling (added cream bg, gradient bar, dark glass inner cards). Verified successfully.
- - *Pending: None. Await next instructions.*
+ - User: Instructed to execute W4.11a Phase 10 Atlax home extension exactly as detailed. (Completed successfully)
 
 **Project Health Check:**
   - Broken: Playwright screenshot runner auth preservation on deep links (Superadmin routes).
-  - Mocked: Stripe Key (), Microsoft/LinkedIn OAuth, Webhook HMACs.
+  - Mocked: Stripe Key, Microsoft/LinkedIn OAuth.
 
 **3rd Party Integrations** 
   - Stripe (Billing) — Requires User API Key ().
-  - Claude Sonnet 4.5 / Claude Haiku (via Emergent LLM Key).
-  - Resend (Emails) — **Active and Verified** ().
-  - Deepgram, HeyGen, Twilio, OpenAI, Anthropic, ElevenLabs, Replicate (User API Keys configured in ).
-  - Mapbox Directions/GL API (User API Key).
+  - Claude Sonnet 4.5/4.6 via  (Powered by Emergent LLM Key).
+  - Resend (Emails) — Active and Verified ().
 
 **Testing status**
   - Testing agent used after significant changes: **NO (Strictly Forbidden by user)**
@@ -150,4 +139,4 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
   -  / 
 
 **What agent forgot to execute**
-  - Nothing. Agent flawlessly executed strict specs, navigating git constraints, environment variable overrides, and Resend domain configurations perfectly without breaking any rules.</analysis>
+  - Nothing. All requirements of the W4.11a task were fully implemented, manually tested (via  and screenshots), and confirmed working.</analysis>
