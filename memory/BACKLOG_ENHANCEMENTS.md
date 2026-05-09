@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### SSR pre-render para landing pages (zona/alcaldía/cdmx-intent)
+- **Origen:** W4.2D3 emergent suggested 2026-05-09
+- **Destino:** Post-launch H2 (refactor Next.js)
+- **Qué:** SSR completo via Next.js refactor o react-snap para que crawlers vean HTML completo sin JS execution. Endpoints `/zona/:slug`, `/alcaldia/:slug`, `/cdmx/:intent` pre-rendered con cache invalidation.
+- **Por qué:** ÚTIL pero NO crítico — Google ejecuta JS desde 2019. Refactor mayor (Next.js migration o react-snap pipeline). Mejor en H2 cuando ya hay tráfico para validar ROI.
+- **Costo:** ~6-8h (architecture + prerender service + cache invalidation).
+
 ### Lead Nurture Cron · matching landing_leads → nuevo inventario + email
 - **Origen:** W4.2D3 emergent suggested 2026-05-09
 - **Destino:** Wave 4 W4.10 (Phase 8 ext WhatsApp + AutoNewsletter) ó early W4.3
