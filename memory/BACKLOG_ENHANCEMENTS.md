@@ -8,6 +8,18 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Migrar DMX a MongoDB Atlas + setup Mongo MCP read-only para Claude Code
+- **Origen:** founder request 2026-05-09 (Mongo MCP setup option A)
+- **Destino:** W4.15 Phase 20 Polish + Launch o W4.2.6 prelaunch batch
+- **Qué:**
+  1. Crear cluster MongoDB Atlas free tier (M0 · ~512MB · suficiente H1)
+  2. Migrar data del preview env (mongodump → mongorestore)
+  3. Actualizar `MONGO_URL` en `.env` backend
+  4. Configurar Mongo MCP server en `~/.claude/settings.json` para Claude Code (yo) — read-only auth
+  5. Documentar connection string en password manager
+- **Por qué:** hoy preview Mongo corre en K8s interno NO accesible externamente. Atlas es production-grade + me da debugging directo via Mongo MCP + backups automáticos + scaling. Necesario antes de launch H1 igualmente para production-readiness.
+- **Costo:** ~4h (cluster setup + migration + verify + MCP config)
+
 ### SSR pre-render para landing pages (zona/alcaldía/cdmx-intent)
 - **Origen:** W4.2D3 emergent suggested 2026-05-09
 - **Destino:** Post-launch H2 (refactor Next.js)
