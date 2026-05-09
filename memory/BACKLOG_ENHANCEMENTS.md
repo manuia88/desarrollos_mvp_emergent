@@ -680,6 +680,70 @@ backend/routes/
 
 ---
 
+## 📥 W4.3 — Phase Y.0 Foundation enhancements diferidos (2026-05-09)
+
+### W4.3.1 · Superadmin Widget Embed Tracker (P1)
+- **Origen:** emergent next action items W4.3
+- **Destino propuesto:** sub-chunk dentro de W4.8 Phase Y.5 (Observability) o standalone post-Y.5
+- **Razón diferir:** dashboard de dominios externos que embeden widgets `/widgets/score|risk` · útil pero no crítico para Phase Y agentic core
+- **Costo estimado:** 4h
+
+### W4.2.5.2 · CLI dry-run lead nurture (P2)
+- **Origen:** emergent next action items W4.3
+- **Destino propuesto:** F0 sweep tech debt
+- **Razón diferir:** `python -m lead_nurture_engine --dry-run` para QA pre-deploy · DX improvement, no blocker
+- **Costo estimado:** 1h
+
+### Integrar `get_phase_y_settings()` en features agentic existentes
+- **Origen:** emergent next action items W4.3
+- **Destino propuesto:** **integrar en cada batch Y.1-Y.5 al construirlo** (no diferir, hacerlo inline)
+- **Razón:** master switch + simulation mode + tier gating debe respetarse desde Y.1A en adelante · features previas (W4.1A Diagnostic, W4.1C Recommendations, W4.2D3.5 Lead Nurture) se actualizan en F0 sweep
+- **Costo estimado:** 2h F0 sweep + 0h en Y.1-Y.5 (ya en scope cada chunk)
+
+### Phase 7.10 — Avance-Obra público
+- **Origen:** emergent backlog W4.3
+- **Destino propuesto:** Phase 7 ext (no en Wave 4 actual)
+- **Razón diferir:** feature standalone, no agentic · merece su propio scoping post-Wave 4
+- **Costo estimado:** 12-16h TBD
+
+### WhatsApp Business real (vs stub actual)
+- **Origen:** emergent backlog W4.3
+- **Destino propuesto:** **W4.10 Phase 8 ext** (ya está en plan)
+- **Razón:** YA está scoped en W4.10, no es enhancement nuevo · marcar como dependencia
+- **Costo:** incluido en W4.10 (25h)
+
+### Multi-subscriber digest (Watchlist)
+- **Origen:** emergent backlog W4.3
+- **Destino propuesto:** F0 sweep o sub-chunk W4.10
+- **Razón diferir:** extensión Watchlist (W3.9b shipped) · enviar 1 email con N propiedades vs N emails con 1
+- **Costo estimado:** 3h
+
+### Microsoft OAuth (login)
+- **Origen:** emergent backlog W4.3
+- **Destino propuesto:** post-launch H2
+- **Razón diferir:** Google OAuth + email/password ya cubre 99% mercado MX · Microsoft solo requerido para enterprise grandes (Dubai H2 puede)
+- **Costo estimado:** 4h
+
+### AMPI API real (vs comparables manuales)
+- **Origen:** emergent backlog W4.3
+- **Destino propuesto:** **bloqueado** hasta firmar acuerdo AMPI
+- **Razón:** AMPI no tiene API pública · requiere relación comercial · Founder está en conversaciones
+- **Costo estimado:** TBD post-acuerdo
+
+### Refactoring `routes_*.py` → `/app/backend/routes/`
+- **Origen:** emergent backlog W4.3
+- **Destino propuesto:** F0 sweep tech debt rolling
+- **Razón diferir:** organizational, no funcional · 30+ archivos `routes_*.py` actualmente flat en backend/ · merece refactor coordinado
+- **Costo estimado:** 4h F0
+
+### Mini-dashboard "Sesiones activas HOY" en Founder Console
+- **Origen:** emergent sugerencia W4.3
+- **Destino propuesto:** W4.8 Phase Y.5 Observability
+- **Razón diferir:** real-time behavioral data ya existe (W4.3) · widget visual sirve a pitch inversionistas pero no crítico para agentic
+- **Costo estimado:** 3h
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
