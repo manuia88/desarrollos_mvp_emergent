@@ -5,6 +5,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Navbar from '../components/landing/Navbar';
 import TopFilters from '../components/marketplace/TopFilters';
+import RiskScoreSubscribeWidget from '../components/marketplace/RiskScoreSubscribeWidget';
 import DevelopmentCard from '../components/marketplace/DevelopmentCard';
 import MarketplaceHeatmapLayer from '../components/marketplace/MarketplaceHeatmapLayer';
 import ColoniaSidebar from '../components/marketplace/ColoniaSidebar';
@@ -280,6 +281,12 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     Limpiar filtro colonia
                   </button>
                 </div>
+              )}
+              {coloniaFilter && (
+                <RiskScoreSubscribeWidget
+                  zoneId={String(coloniaFilter).replace(/-/g, '_')}
+                  zoneLabel={coloniaFilter}
+                />
               )}
               <TopFilters
                 colonias={colonias}
