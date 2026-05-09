@@ -28,6 +28,8 @@ dist/
 test_reports/
 playwright-report/
 test-results/
+.playwright-mcp/
+w39a-lfpdppp-badge.png
 
 # Logs
 *.log
