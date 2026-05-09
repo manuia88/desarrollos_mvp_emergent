@@ -1,8 +1,8 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (Wave 3 100% CERRADA · Wave 4 ~46h shipped: W4.1 Intelligence Layer + W4.2A MCP server + W4.2B GEO foundation)
-**Total H1 restante**: ~415h (Wave 4 pending de los 461h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 46h = 413h shipped en H1
+**Última actualización**: 2026-05-09 (W4.2C shipped · Wave 4 ~48.5h: W4.1 Intelligence + W4.2A-C Brand Strategy/MCP/GEO/Watermarks)
+**Total H1 restante**: ~412.5h (Wave 4 pending de los 461h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 48.5h = 415.5h shipped en H1
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 461h (46h shipped, 415h pending) = 778h plan — ver `memory/DATA_SOURCES.md` + secciones expansion en `memory/PRD.md`
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
@@ -127,7 +127,7 @@ Formato canónico per-batch (founder request):
 | W4.1D | Comparable Anomaly Engine + cron 03:00 | 5 | 5 | emergent | ✅ | `0c0808e` | 3 detectores: PRICE_DROP/SOLD_OUT/NEW_LAUNCH |
 | W4.2A | MCP HTTP server (5 tools · /api/mcp · X-DMX-API-Key) | 10 | 10 | emergent | ✅ | `8f021ae` | JSON-RPC compatible, sin SDK (FastAPI puro) |
 | W4.2B | GEO foundation (llms.txt + sitemap + Schema.org + ConnectMcpPage + FAQPage) | 5.5 | 5.5 | emergent | ✅ | `ed497cf` | static files + JSON-LD generator |
-| **W4.2C** | **Watermarks + QR exports + MCP tool ext (bedrooms/m2/parking/stage)** | **2.5** | — | emergent | 🟡 EN CURSO | — | Mini-fix MCP tool gap W4.2B incluido |
+| W4.2C | Watermarks + QR exports + MCP tool ext (bedrooms/m2/parking/stage) | 2.5 | 2.5 | emergent | ✅ | `99003d5` | export_brand.py + /api/exports/qr + watermark og-image · 6 filtros MCP search_developments |
 | W4.2D1 | Filter URL infrastructure (SSR + dynamic sitemap) | 5 | — | emergent | ⏳ | — | — |
 | (research) | Top 200 queries CDMX (SEMrush + AMPI) | 2 | — | Claude Code | ⏳ | — | Antes de D2 |
 | W4.2D2 | 700 zone pages template + FAQ schema | 8 | — | emergent | ⏳ | — | — |
@@ -153,8 +153,8 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 46h / 461h (10%) 🟡
-**Pendiente Wave 4**: ~415h
+**Acumulado Wave 4**: 48.5h / 461h (10.5%) 🟡
+**Pendiente Wave 4**: ~412.5h
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
 **Por emergent en Wave 4**: ~395h
 
