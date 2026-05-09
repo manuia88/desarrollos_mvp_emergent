@@ -5,13 +5,14 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import {
   Users, Building2, Briefcase, RefreshCw, Search, X,
   Eye, UserCheck, AlertTriangle, ChevronRight, Activity, FolderOpen,
-  DollarSign, Clock, Shield,
+  DollarSign, Clock, Shield, BarChart2,
 } from 'lucide-react';
 import {
   listTenants, getTenant, impersonateTenant, patchTenantStatus,
 } from '../../api/superadminTenants';
 import { startImpersonation } from '../../hooks/useImpersonation';
 import { PhaseYControlsPanel } from '../../components/superadmin/PhaseYControlsPanel';
+import PricingAgentPanel from '../../components/director/PricingAgentPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -182,8 +183,8 @@ function TenantDrawer({ tenantId, onClose }) {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4 }}>
-              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['phase-y', 'Phase Y']].map(([k, l]) => (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4, flexWrap: 'wrap' }}>
+              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['phase-y', 'Phase Y'], ['sub-agents', 'Sub-Agents']].map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} data-testid={`drawer-tab-${k}`}
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
@@ -191,7 +192,11 @@ function TenantDrawer({ tenantId, onClose }) {
                     border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid transparent',
                     background: tab === k ? 'rgba(99,102,241,0.16)' : 'transparent',
                     color: tab === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
-                  }}>{l}</button>
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                  {k === 'sub-agents' && <BarChart2 size={11} />}
+                  {l}
+                </button>
               ))}
             </div>
 
@@ -290,6 +295,14 @@ function TenantDrawer({ tenantId, onClose }) {
             )}
             {tab === 'phase-y' && (
               <PhaseYControlsPanel orgId={data.tenant_id || tenantId} />
+            )}
+            {tab === 'sub-agents' && (
+              <div data-testid="drawer-tab-subagents-content">
+                <PricingAgentPanel
+                  orgId={data.tenant_id || tenantId}
+                  projectsSummary={data.projects_summary || []}
+                />
+              </div>
             )}
           </>
         )}

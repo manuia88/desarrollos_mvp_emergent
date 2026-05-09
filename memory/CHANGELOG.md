@@ -1878,3 +1878,29 @@ Atlax pasa de ser un bubble flotante a ser **el corazón de la home pública** d
 - ✅ Frontend Playwright: 6 chips renderizados, click chip 1 → user msg + assistant msg generados → threads sidebar muestra historial con 1 thread "¿Qué zonas tienen el mayor crecimiento de precio en los…" 2 msj · Ahora.
 
 ### SHA: pending (auto-commit por plataforma)
+
+
+---
+
+## W4.5 Y.2A — Pricing Sub-Agent + 3 Capas Resilience (2026-05-09)
+
+### Cambios implementados
+
+#### Backend (nuevo)
+- `/app/backend/sub_agents/__init__.py`: Package marker.
+- `/app/backend/sub_agents/resilience.py`: LocalCache + FallbackChain + CircuitBreaker.
+- `/app/backend/sub_agents/pricing_agent.py`: PricingAgent 3-layer + ensure_pricing_indexes.
+- `/app/backend/routes_subagents.py`: 6 endpoints (analyze, list, apply, reject, runs).
+
+#### Backend (editado)
+- `/app/backend/director_agent_engine.py`: 7mo tool delegate_pricing_optimization.
+- `/app/backend/server.py`: Router + indexes para W4.5.
+
+#### Frontend (nuevo)
+- `/app/frontend/src/components/director/PricingAgentPanel.js`: UI completo.
+
+#### Frontend (editado)
+- `/app/frontend/src/pages/superadmin/SuperadminTenants.js`: Tab Sub-Agents en TenantDrawer.
+- `/app/frontend/src/i18n/locales/es-MX/common.json`: Claves subagents.pricing.*.
+
+### Acceptance criteria: ✅ todos verificados con curl
