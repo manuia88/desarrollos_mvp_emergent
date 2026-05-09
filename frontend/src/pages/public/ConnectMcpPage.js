@@ -41,6 +41,27 @@ const TOOLS = [
   { name: 'get_methodology',      desc: 'Metodología DRPI + Zone Score + Risk Score completa', example: '{}' },
 ];
 
+const DIRECTOR_TOOLS = [
+  {
+    name: 'director_chat',
+    tier: 'T1+',
+    desc: 'Conversa con el Director AI Agent de tu organización (multi-tenant, agentic loop con 5 sub-tools).',
+    example: '{"message": "¿Cuál es la conversión de leads de los últimos 30 días?"}',
+  },
+  {
+    name: 'director_retrieve_memory',
+    tier: 'T2+',
+    desc: 'Recupera memorias RAG indexadas (diagnósticos, IE score deltas, behavioral, resúmenes).',
+    example: '{"query": "pricing Polanco", "top_k": 5}',
+  },
+  {
+    name: 'director_session_summary',
+    tier: 'T1+',
+    desc: 'Metadata + últimos N mensajes de una sesión (tokens, costo, status, role).',
+    example: '{"session_id": "dses_abc123def456", "limit": 10}',
+  },
+];
+
 function CopyBlock({ label, code }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -130,8 +151,8 @@ export default function ConnectMcpPage() {
             Conecta DMX a tu asistente IA
           </h1>
           <p style={{ fontFamily: 'DM Sans', fontSize: 16, color: 'var(--cream-2)', lineHeight: 1.7, margin: 0 }}>
-            5 herramientas · 1 minuto de setup · gratis en tier free.{' '}
-            DMX expone su Intelligence Engine directamente a Claude, Cursor y ChatGPT via MCP.
+            8 herramientas · 1 minuto de setup · gratis en tier free.{' '}
+            DMX expone su Intelligence Engine y Director Agent directamente a Claude, Cursor y ChatGPT via MCP.
           </p>
         </div>
 
@@ -193,10 +214,10 @@ export default function ConnectMcpPage() {
         </Section>
 
         {/* Step 5 — Tools reference */}
-        <Section step="5" title="5 herramientas disponibles">
+        <Section step="5" title="5 herramientas Intelligence Engine">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {TOOLS.map(t => (
-              <div key={t.name} style={{
+              <div key={t.name} data-testid={`mcp-tool-${t.name}`} style={{
                 padding: '14px 16px', borderRadius: 12,
                 border: '1px solid rgba(99,102,241,0.20)',
                 background: 'rgba(99,102,241,0.05)',
@@ -213,8 +234,71 @@ export default function ConnectMcpPage() {
           </div>
         </Section>
 
+        {/* Step 6 — Director Agent tools (Phase Y.1C) */}
+        <Section step="6" title="3 herramientas Director Agent · Phase Y">
+          <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 16 }}>
+            Conecta tu cliente MCP directamente al Director AI de tu organización. Multi-tenant, gated por
+            Phase Y master switch + tier (T1+ para chat/summary, T2+ para retrieve_memory).
+            Soporta agentic tool loop con 5 sub-tools internas (IE score, KPIs, comparables, memory).
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+            {DIRECTOR_TOOLS.map(t => (
+              <div key={t.name} data-testid={`mcp-director-tool-${t.name}`} style={{
+                padding: '14px 16px', borderRadius: 12,
+                border: '1px solid rgba(236,72,153,0.25)',
+                background: 'rgba(236,72,153,0.05)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <code style={{ fontFamily: 'monospace', fontSize: 13, color: '#f9a8d4', fontWeight: 700 }}>{t.name}</code>
+                  <span style={{
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10,
+                    padding: '2px 8px', borderRadius: 9999,
+                    background: 'linear-gradient(90deg, rgba(99,102,241,0.30), rgba(236,72,153,0.30))',
+                    color: 'var(--cream)', letterSpacing: '0.06em',
+                  }}>{t.tier}</span>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)' }}>{t.desc}</span>
+                </div>
+                <div style={{ fontFamily: 'monospace', fontSize: 11.5, color: 'var(--cream-3)', letterSpacing: '0.02em' }}>
+                  Ejemplo: <span style={{ color: '#f9a8d4' }}>{t.example}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <CopyBlock
+            label="curl · director_chat (crea sesión nueva si omites session_id)"
+            code={`curl -s -X POST "${MCP_URL}" \\
+  -H "X-DMX-API-Key: TU_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "method": "tools/call",
+    "params": {
+      "name": "director_chat",
+      "arguments": { "message": "¿Cuál es la conversión de leads de los últimos 30 días?" }
+    },
+    "id": 1
+  }'`}
+          />
+
+          <CopyBlock
+            label="curl · director_retrieve_memory (T2+)"
+            code={`curl -s -X POST "${MCP_URL}/call/director_retrieve_memory" \\
+  -H "X-DMX-API-Key: TU_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "pricing Polanco", "top_k": 5}'`}
+          />
+
+          <CopyBlock
+            label="curl · director_session_summary"
+            code={`curl -s -X POST "${MCP_URL}/call/director_session_summary" \\
+  -H "X-DMX-API-Key: TU_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"session_id": "dses_abc123def456", "limit": 10}'`}
+          />
+        </Section>
+
         {/* Curl example */}
-        <Section step="6" title="Prueba con curl">
+        <Section step="7" title="Prueba con curl">
           <CopyBlock
             label="Terminal"
             code={`curl -s -X POST "${MCP_URL}/call/get_zone_score" \\
@@ -224,8 +308,8 @@ export default function ConnectMcpPage() {
           />
         </Section>
 
-        {/* Step 7 — Embed widgets en blogs */}
-        <Section step="7" title="Embed widgets en tu blog">
+        {/* Step 8 — Embed widgets en blogs */}
+        <Section step="8" title="Embed widgets en tu blog">
           <p style={{ fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 16 }}>
             Pega cualquier <code style={{ background: 'rgba(99,102,241,0.12)', padding: '2px 6px', borderRadius: 6, fontSize: 13 }}>&lt;iframe&gt;</code>{' '}
             de DesarrollosMX en tu blog o página. Los widgets son responsive, branded y
