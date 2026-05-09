@@ -35,18 +35,19 @@
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
 | **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | ✅ **100% COMPLETO** (W2.1-W2.10 · 2026-05-08) | ~120h |
 | **Wave 3 — Authority + Verticals + Risk Layer + IE Engine + Watchlist** (Teseo+AirDNA expansion + Kalshi data licensing F: ZZ.2-ZZ.4 + Z.3-Z.4 ext + Phase 5 + IE Engine Phase B + Risk Score V2 + Cross-sell + LFPDPPP badge + Watchlist subscribe) | ✅ **100% COMPLETO** (W3.0 → W3.9c · 2026-05-09) | ~197h |
-| **Wave 4 — Agentic + Brand + Intelligence + Behavioral ML + Phase Y UPGRADED + Polish** (W4.1 Intelligence ✅ + W4.2 Brand Strategy ✅ + W4.3 Phase Y.0 Foundation ✅ + Phase Y.1-Y.5 upgraded 121h pending: Y.1 Director con `/asistente` + What-if Simulator + Y.2 5 sub-agents resilience + Y.3 CRM Smart Routing + Y.4 Adaptive + Y.5 Replay Debugger + AI ROI per-dev) | 🟡 EN CURSO 98/496h (W4.1+W4.2A-2.5+W4.3 shipped) | ~496h |
+| **Wave 4 — Agentic + Brand + Intelligence + Behavioral ML + Phase Y + Studio video + 3DGS + Data Sources + Polish** (W4.1 Intelligence ✅ + W4.2 Brand Strategy ✅ + W4.3 Phase Y.0 Foundation ✅ + Phase Y.1-Y.5 121h pending + W4.9 Studio Wave 1.5+2 ext con video bundle 50h + W4.9.5 Virtual staging 8h + W4.9.6 3D Gaussian Splatting tour 16h + W4.18 Data Sources gov MX 22h + resto pending) | 🟡 EN CURSO 98/556h (W4.1+W4.2A-2.5+W4.3 shipped) | ~556h |
 
-**Total H1 restante**: ~398h (Wave 1+2+3 cerradas · Wave 4 = 496h - 98h shipped = 398h pending)
+**Total H1 restante**: ~458h (Wave 1+2+3 cerradas · Wave 4 = 556h - 98h shipped = 458h pending)
 
-**Shipped to date**: ~813h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 98h shipped + 398h pending = 813h plan H1)
+**Shipped to date**: ~873h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 98h shipped + 458h pending = 873h plan H1)
 
 **Origin de adiciones**:
 - **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).
 - **+100h Teseo+AirDNA+cofounder ronda 2 (2026-05-07 PM)**: 9 game-changers post-análisis cofounder.co + AirDNA tier strategy + audio webinar Dania (Teseo). Filtro objetivo aplicado: 5 ideas DEFER (Pinterest scrapers, ML clustering, DMX Explorer, Pre-pre-construction Lot Simulator, Buyer educación contextual, White-Label) + DMX Bot home absorbido en Phase 10 Caya (cero overlap).
 - **+23h Phase Y reorientación + Behavioral ML (2026-05-08)**: founder catch crítico de subutilización data interacciones. Phase Y reorientado de "5 sub-agents abstractos" a casos ML concretos data-driven (Optimal pricing · Lead matching ML · Project velocity · Drop-off prediction · etc.). +Recommendation Engine Marketplace 15h + Behavioral Tracking Foundation 8h.
 - **+22h Kalshi-inspired ronda 3 (2026-05-08 PM)**: análisis Kalshi.com (prediction markets CFTC $185M Series C). 5 ideas: Probability UX (A +8h Wave 4) · Smart notifications (B +6h Wave 4) · Embeddable widgets (C +4h Wave 4) · Data licensing bundles (F +4h Wave 3) · Daily content (D absorbed Phase 8 ext sin sumar). Translate números crudos → narrative humano = "Robinhood for residential RE MX".
-- **Total H1 adiciones sobre baseline 606h**: +222h. Total H1 = **828h** estimado.
+- **+60h ronda 4 Data Sources + Studio video + 3DGS (2026-05-09)**: análisis awesome-public-datasets + VibePeak.ai + 3D Gaussian Splatting repos. **W4.18 Data Sources gov MX 22h** (BANXICO SIE API + SIGCDMX uso suelo + Atlas Riesgos CDMX + Catastro CDMX + GTFS Mobility + OSM Geofabrik MX · links verificados memory/DATA_SOURCES.md) + **W4.9 Studio video bundle +14h** (brochure→video narrado multi-ratio + auto-script + TTS ElevenLabs ES/EN/AR · 4 features VibePeak no-over-eng) + **W4.9.5 Virtual staging IA 8h** (Replicate/Flux planos vacíos) + **W4.9.6 3D Gaussian Splatting tour 16h** (Luma API + viewer mkkellogg/GaussianSplats3D MIT · gap real vs Inm24/Lamudi). Descartadas (over-eng): AI avatar presentador, decluttering, sky replacement, analytics propio, push directo portales, World Bank/OECD/Copernicus/Sentinel.
+- **Total H1 adiciones sobre baseline 606h**: +282h. Total H1 = **888h** estimado.
 
 Detalles: `memory/DATA_SOURCES.md` + secciones "Wave 3 detailed plan" / "Wave 4 detailed plan" en `PRD.md`.
 

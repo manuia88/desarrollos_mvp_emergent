@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.3 Phase Y.0 + Behavioral Tracking shipped · Wave 4 ~98h)
-**Total H1 restante**: ~398h (Wave 4 pending de los 496h totales)
+**Última actualización**: 2026-05-09 (Data sources + 3DGS + Studio video upgrades autorizados · Wave 4 496h → 556h)
+**Total H1 restante**: ~458h (Wave 4 pending de los 556h totales)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 98h = 465h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 496h (98h shipped, 398h pending) = 813h plan (con Phase Y upgrades)
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 556h (98h shipped, 458h pending) = 873h plan (con Phase Y + Data sources + 3DGS upgrades)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -35,7 +35,7 @@ Formato canónico per-batch (founder request):
 | **Wave 1** — Foundation + Authority Seeds | SA1 + ZZ.1 + ZZ.1.1 | 50h | 50h | 100% | ✅ CERRADA 2026-05-07 |
 | **Wave 2** — Commercial + Intelligence Hub | SA2-SA6+SA8 + Z.0-Z.2 | 120h | 120h | 100% | ✅ CERRADA 2026-05-08 |
 | **Wave 3** — Authority + Verticals + Risk Layer + Zone Score | + Zone Score A-F + Investment Explorer + IE Engine completion + W3.9 Polish (LFPDPPP + Watchlist) | 197h | 197h | 100% | ✅ CERRADA 2026-05-09 |
-| **Wave 4** — Agentic + Brand + Intelligence Layer + Behavioral ML + Polish (+147h vs original) | + Amenities Validator + MCP Brand Strategy + Diagnostic Engine + Real-time Demand + Recommendation Marketplace ML + Behavioral Tracking Foundation + Phase Y reorientada casos ML concretos + State of CDMX Report + Comparables proactivo | 461h | 46h | 10% | 🟡 EN CURSO |
+| **Wave 4** — Agentic + Brand + Intelligence Layer + Behavioral ML + 3DGS + Data Sources + Polish (+207h vs original) | + Amenities Validator + MCP Brand Strategy + Diagnostic Engine + Real-time Demand + Recommendation Marketplace ML + Behavioral Tracking + Phase Y casos ML concretos + State of CDMX Report + Comparables proactivo + Studio video bundle + Virtual staging IA + 3D Gaussian Splatting tour + Data sources gov MX (BANXICO + SIGCDMX + Atlas + GTFS + OSM) | 556h | 98h | 17.6% | 🟡 EN CURSO |
 
 ---
 
@@ -141,7 +141,9 @@ Formato canónico per-batch (founder request):
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
 | W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
 | W4.8 | Phase Y.5 Observability + Replay Debugger + AI ROI per-dev dashboard | 15 | — | emergent | ⏳ | — | 4 chunks · Audit Replay + ML accuracy + Replay Debugger + AI ROI per-dev portal |
-| W4.9 | Phase 6 Studio Wave 1.5+2 | 36 | — | emergent | ⏳ | — | extensions B25/B26 |
+| W4.9 | Phase 6 Studio Wave 1.5+2 + Studio video bundle (brochure→video narrado multi-ratio + auto-script + TTS ElevenLabs ES/EN/AR) | 50 | — | emergent | ⏳ | — | extensions B25/B26 + S1 video 14h |
+| W4.9.5 | Virtual staging IA (planos vacíos → mueblar via Replicate/Flux) | 8 | — | emergent | ⏳ | — | preventa CDMX 90% obra nueva |
+| W4.9.6 | 3D Gaussian Splatting tour virtual (Luma API + viewer mkkellogg/GaussianSplats3D embebido en /unidad/[id]) | 16 | — | emergent | ⏳ | — | gap real vs Inm24/Lamudi · ventana 6-9 meses |
 | W4.10 | Phase 8 ext WhatsApp + AutoNewsletter | 25 | — | emergent | ⏳ | — | WA Business + Pulse semanal |
 | W4.11 | Phase 10 Caya home + A11 ext | 26 | — | emergent | ⏳ | — | Caya en desarrollosmx.io para queries mercado |
 | W4.12 | Phase 11 Dubai | 38 | — | emergent | ⏳ | — | i18n + flow Dubai-specific |
@@ -150,15 +152,18 @@ Formato canónico per-batch (founder request):
 | W4.15 | Phase 20 Polish + Launch | 23 | — | emergent + CC | ⏳ | — | UX polish + perf + a11y + final QA |
 | W4.16 | W4 marketing (Free audit landing + State of CDMX Report) | 5 | — | emergent | ⏳ | — | -3h press kit movido a W4.2.5B |
 | W4.17 | Kalshi (Probability UX + Smart Notifications) | 14 | — | emergent | ⏳ | — | -4h widgets movidos a W4.2.5A |
+| W4.18 | Data Sources gov MX bundle (BANXICO SIE API + SIGCDMX uso suelo + Atlas Riesgos CDMX + Catastro CDMX + GTFS + OSM Geofabrik) | 22 | — | emergent | ⏳ | — | links verificados en memory/DATA_SOURCES.md · diferencial vs Inm24 |
 | F0 | Sweep tech debt | 22 | — | CC lead | ⏳ | — | rolling cleanup |
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 98h / 496h (19.8%) 🟡
-**Pendiente Wave 4**: ~398h
+**Acumulado Wave 4**: 98h / 556h (17.6%) 🟡
+**Pendiente Wave 4**: ~458h
 **Phase Y total upgraded**: 137h (W4.3 16h ✅ shipped + W4.4-W4.8 121h pending = Y.1 39h + Y.2 30h + Y.3 36h + Y.4 17h + Y.5 15h)
+**Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
+**Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
-**Por emergent en Wave 4**: ~395h
+**Por emergent en Wave 4**: ~455h
 
 ---
 
