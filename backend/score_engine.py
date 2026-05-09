@@ -123,6 +123,63 @@ def get_recipe(code: str) -> Optional[Recipe]:
     return all_recipes().get(code)
 
 
+# ─── Phase B (W3.1B-2) — derive missing dev fields for proyecto recipes ──────
+_STAGE_OFFSET_MONTHS = {
+    "preventa": 30,
+    "en_construccion": 18,
+    "entrega_inmediata": 6,
+    "exclusiva": 24,
+}
+_STAGE_OFFSET_DEFAULT = 24
+
+
+def _enrich_dev(dev: Dict[str, Any]) -> Dict[str, Any]:
+    """Shallow-copy `dev` and derive 3 fields consumed by IE_PROY_* recipes:
+    - price_m2_avg (MXN/m², weighted by m2_privative)
+    - type ("depto" — constant; CDMX W3 universe is 100% vertical)
+    - launch_date (ISO YYYY-MM-DD, derived from delivery_estimate − stage offset)
+
+    If a derivation fails (malformed data) the field is omitted; recipes will
+    return None on missing signal and the engine will emit a stub.
+    """
+    enriched = dict(dev)
+
+    # 1. price_m2_avg — weighted avg over units with valid (price, m2_privative)
+    units = dev.get("units") or []
+    total_price = 0.0
+    total_m2 = 0.0
+    for u in units:
+        price = u.get("price")
+        m2 = u.get("m2_privative")
+        if price and m2:
+            total_price += float(price)
+            total_m2 += float(m2)
+    if total_m2 > 0:
+        enriched["price_m2_avg"] = total_price / total_m2
+
+    # 2. type — constant for current CDMX W3 universe
+    enriched["type"] = "depto"
+
+    # 3. launch_date — delivery_estimate (YYYY-MM) minus stage offset
+    delivery = dev.get("delivery_estimate")
+    if isinstance(delivery, str) and len(delivery) >= 7:
+        try:
+            year = int(delivery[0:4])
+            month = int(delivery[5:7])
+            if 1 <= month <= 12 and 1900 <= year <= 2100:
+                stage = dev.get("stage")
+                offset = _STAGE_OFFSET_MONTHS.get(stage, _STAGE_OFFSET_DEFAULT)
+                # subtract `offset` months from (year, month, day=1)
+                total = year * 12 + (month - 1) - offset  # 0-indexed month
+                new_year, new_month_idx = divmod(total, 12)
+                new_month = new_month_idx + 1
+                enriched["launch_date"] = f"{new_year:04d}-{new_month:02d}-01"
+        except (ValueError, TypeError):
+            pass
+
+    return enriched
+
+
 # ─── Score engine: orchestrates recipe execution + persistence ───────────────
 class ScoreEngine:
     def __init__(self, db):
@@ -176,11 +233,11 @@ class ScoreEngine:
             {"_id": 0, "doc_type": 1, "id": 1},
         ).to_list(length=200)
         return {
-            "_dmx_dev": [{"payload": dev, "is_stub": False}],
+            "_dmx_dev": [{"payload": _enrich_dev(dev), "is_stub": False}],
             "_dmx_colonia_scores": [{"payload": d, "is_stub": False} for d in colonia_docs],
             "_dmx_own_proj_scores": [{"payload": d, "is_stub": False} for d in own_proj_scores],
-            "_dmx_same_colonia_devs": [{"payload": d, "is_stub": False} for d in same_colonia],
-            "_dmx_all_devs": [{"payload": d, "is_stub": False} for d in DEVELOPMENTS_BY_ID.values()],
+            "_dmx_same_colonia_devs": [{"payload": _enrich_dev(d), "is_stub": False} for d in same_colonia],
+            "_dmx_all_devs": [{"payload": _enrich_dev(d), "is_stub": False} for d in DEVELOPMENTS_BY_ID.values()],
             "_dmx_cross_checks": [{"payload": d, "is_stub": False} for d in cc_docs],
             "_dmx_extracted_docs": [{"payload": d, "is_stub": False} for d in extracted_docs],
         }
