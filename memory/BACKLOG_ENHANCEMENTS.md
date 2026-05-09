@@ -809,6 +809,35 @@ backend/routes/
 
 ---
 
+## 📥 W4.4E.5 — Caya/Asistente Unification edge cases reviewed (2026-05-09)
+
+### 🔴 SECURITY GAP · Rate limit en `get_or_create_from_legacy` (priority alta)
+- **Origen:** review edge case W4.4E.5 (Claude Code catch)
+- **Razón:** `get_or_create_from_legacy()` skip rate limit "para mapeo idempotente". Pero ATTACKER puede generar 10000 session_ids inventados con prefix `dmx_caya_xxx` y crear 10000 sessions sin límite (DoS amplificado por LLM cost).
+- **Destino propuesto:** **W4.4E.5.1 fix-pass (1h)** — aplicar mismo rate limit (5 sessions/hora/ip) al método legacy mapping con allowlist solo a session_ids con prefix `dmx_caya_` previamente persistido en collection `caya_sessions`.
+- **Costo estimado:** 1h (security fix)
+
+### 🟡 Lead capture mini-form en CayaBubble (parity con AsistentePage)
+- **Origen:** review post W4.4E.5 (Claude Code catch upgrade)
+- **Razón:** AsistentePage tiene LeadCaptureCard inline cuando suggested_lead_capture=True. CayaBubble NO lo tiene · solo muestra hand_off banner. Resultado: comprador en bubble debe expandir a /asistente para capturar — fricción innecesaria.
+- **Destino propuesto:** **W4.4E.5.1 fix-pass (1h, junto al rate limit)** — agregar mini-form embebido en CayaBubble cuando hand_off_recommended=True (nombre + WhatsApp · misma persistencia source=caya_bubble)
+- **Costo estimado:** 1h
+
+### 🟢 Director RAG public adapter para popular memory_hits real en Caya
+- **Origen:** emergent W4.4E.5 P2 (memory_hits=[] hardcoded)
+- **Razón:** `MemoryHitsBlock` UI listo en CayaBubble + AsistentePage pero memory_hits siempre vacío · adapter público (read-only sobre director_memory_index filtrado por source_type IN [zone, market_pulse, public_diagnostic]) habilitaría respuestas con citas memoria
+- **Destino propuesto:** W4.5 Phase Y.2 (sub-agents) o batch standalone post-Y.2
+- **Razón diferir:** Caya ya tiene RAG citations vía `rag_engine.semantic_search` (otra fuente) · memory_hits reales son nice-to-have · valor incremental modesto vs costo
+- **Costo estimado:** 4-5h
+
+### 🟢 Routing inteligente lead → desarrolladora según intent/zona detectada
+- **Origen:** emergent W4.4E P2 (ya en backlog) + W4.4E.5 reaffirmado
+- **Razón:** todos los leads van a `dev_org_id="dmx"` default · routing por intent (zona/presupuesto/tipología) requiere reglas + tabla de mapping dev↔zonas
+- **Destino propuesto:** **W4.6 Phase Y.3 Smart Routing Lead** (ya en plan)
+- **Costo estimado:** incluido en W4.6 (3-4h dentro de 36h)
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
