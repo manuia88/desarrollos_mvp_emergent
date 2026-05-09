@@ -1521,3 +1521,30 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - `DIRECTOR_MODEL` seteado a `claude-sonnet-4-5-20250929` (nombre verificado en repo) en lugar de `claude-sonnet-4-6` (spec) — el modelo `claude-sonnet-4-6` no tiene precedente en la codebase y podría no ser válido en LiteLLM proxy. Reportado.
 
 ### SHA: de46500
+
+
+## W4.4B — Phase Y.1B · Director Memory Layer RAG (2026-05-09)
+
+### Backend (2 nuevos · 4 editados)
+- **NEW** `director_memory_engine.py` — `DirectorMemoryEngine` class: `ingest_diagnostic`, `ingest_ie_score_change` (threshold ±5pts), `ingest_behavioral_session` (≥5 events), `retrieve` (hybrid 70% text + 30% recency, org_id isolation), `expire_old`. Crons: `run_memory_daily_ingest` (04:30 MX) + `expire_all_orgs` (Sunday 05:00 MX). MongoDB `$text` index en español con weights (summary 3x, content_text 1x).
+- **NEW** `routes_director_memory.py` — 5 endpoints: POST ingest/diagnostic, POST ingest/behavioral, POST retrieve (debug), DELETE (DSR), GET stats. Superadmin-only.
+- **EDIT** `director_agent_engine.py` — 5to tool `retrieve_memory`, auto-inject memory en `chat()` (tier ≥ T2), `initial_memory_ids` en `start_session()`, `memory_hits` en response, `_build_system_prompt` con `memory_context` param.
+- **EDIT** `routes_director.py` — expone `memory_hits` en `sendMessage` response.
+- **EDIT** `scheduler_ie.py` — cron diario 04:30 MX + cron semanal domingo 05:00 MX.
+- **EDIT** `server.py` — mount memory router + `ensure_memory_indexes` en startup.
+
+### Frontend (1 editado)
+- **EDIT** `DirectorChatPanel.js` — `MemoryHitsBlock` collapsible (source_type chips + summary 80 chars), `MessageBubble` tier-aware, `memory_hits` capturado al recibir respuesta.
+- **EDIT** `i18n/es-MX/common.json` — sección `director.memory` con 6 keys.
+
+### Acceptance Criteria validados
+- ✅ Ingest behavioral session → memory_id, entry en director_memory_index
+- ✅ Cross-org isolation: query en org distinta → 0 hits
+- ✅ T1 session: initial_memory_ids=[] (no memory injection)
+- ✅ T2 session: initial_memory_ids=[mem_id] (memoria inyectada)
+- ✅ DELETE → entry no aparece en próximos retrievals
+- ✅ Stats: total_entries, by_source_type breakdown, top_accessed
+- ✅ Daily ingest manual: behavioral=1 ingested
+- ✅ yarn build 38s · /api/health 200
+
+### SHA: 17eaa3d
