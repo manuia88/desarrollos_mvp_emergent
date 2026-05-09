@@ -335,6 +335,10 @@ from routes_diagnostic import (router as diagnostic_router,
 from diagnostic_engine import ensure_diagnostic_indexes
 app.include_router(diagnostic_router)
 
+# W4.1C — Recommendations banner backend
+from routes_recommendations import router as recommendations_router
+app.include_router(recommendations_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
