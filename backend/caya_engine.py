@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.caya")
@@ -132,24 +133,35 @@ async def caya_query(payload: CayaQueryIn, request: Request):
             "memory_hits": [],
         }
     except AsistenteRateLimitError as e:
-        return {
-            "ok": False,
-            "session_id": payload.session_id or "",
-            "asistente_session_token": None,
-            "channel": payload.channel,
-            "answer": str(e),
-            "top_results": [],
-            "citations": [],
-            "hand_off_recommended": True,
-            "hand_off_reason": "rate_limit",
-            "lead_score": _estimate_lead_score(payload.query),
-            "model": "claude-sonnet-4-5-20250929",
-            "cost_usd": 0.0,
-            "message_id": uuid.uuid4().hex,
-            "tier": None,
-            "simulated": False,
-            "memory_hits": [],
-        }
+        # Distinguir rate limit de mapping legacy vs general
+        msg = str(e)
+        is_legacy = "legacy mapping" in msg.lower()
+        reason = "rate_limit_legacy_mapping" if is_legacy else "rate_limit"
+        answer = (
+            "Demasiadas solicitudes desde tu conexión. Intenta nuevamente en unos minutos."
+            if is_legacy else msg
+        )
+        return JSONResponse(
+            status_code=429,
+            content={
+                "ok": False,
+                "session_id": payload.session_id or "",
+                "asistente_session_token": None,
+                "channel": payload.channel,
+                "answer": answer,
+                "top_results": [],
+                "citations": [],
+                "hand_off_recommended": True,
+                "hand_off_reason": reason,
+                "lead_score": _estimate_lead_score(payload.query),
+                "model": "claude-sonnet-4-5-20250929",
+                "cost_usd": 0.0,
+                "message_id": uuid.uuid4().hex,
+                "tier": None,
+                "simulated": False,
+                "memory_hits": [],
+            },
+        )
 
     # ─── 3. Persist legacy caya_session si no existe
     if is_new:

@@ -3904,3 +3904,18 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - 4 caya_sessions migradas → 4 asistente_sessions
 - 10 caya_messages copiados → 10 asistente_messages (zero duplicates en re-run)
 
+
+---
+
+## 2026-05-09 — W4.4E.5.1 · Fix-pass security + Caya lead form
+
+### Backend (3 EDIT)
+- **EDIT** `asistente_engine.py` (validation legacy + rate limit + capture_lead source override)
+- **EDIT** `caya_engine.py` (HTTP 429 explícito + reason="rate_limit_legacy_mapping")
+- **EDIT** `routes_asistente.py` (CaptureLeadIn.source field)
+
+### Frontend (3 EDIT · 1 NEW)
+- **NEW** `api/cayaApi.js` (captureLeadFromCaya helper)
+- **EDIT** `CayaBubble.js` (LeadCaptureMiniForm inline + auto-show + localStorage flag)
+- **EDIT** `i18n/es-MX/common.json` (caya.lead_form.* 7 keys)
+

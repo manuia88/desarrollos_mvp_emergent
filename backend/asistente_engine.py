@@ -518,8 +518,12 @@ class AsistenteEngine:
         self, session_token: str,
         nombre: str, whatsapp: str,
         email: Optional[str] = None, mensaje: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Captura lead, asocia a sesión, persiste en `leads` con source=asistente_publico."""
+        """Captura lead, asocia a sesión, persiste en `leads` con source override-able.
+
+        Default source="asistente_publico". Caya bubble usa source="caya_bubble".
+        """
         if not nombre or not whatsapp:
             raise ValueError("nombre y whatsapp son requeridos")
         sess = await self.db.asistente_sessions.find_one({"_id": session_token})
@@ -535,10 +539,11 @@ class AsistenteEngine:
 
         lead_id = f"lead_{uuid.uuid4().hex[:12]}"
         now_iso = _now().isoformat()
+        resolved_source = source or "asistente_publico"
         lead = {
             "id": lead_id,
             "dev_org_id": DMX_ORG_ID,  # default DMX org for follow-up
-            "source": "asistente_publico",
+            "source": resolved_source,
             "source_metadata": {
                 "session_token": session_token,
                 "intent_history": intent_history,
@@ -589,8 +594,12 @@ class AsistenteEngine:
     ) -> str:
         """Mapea un session_id legacy de Caya (`dmx_caya_*`) a un asistente_token.
 
-        Idempotente: si el mapping existe, retorna el token. Si no, crea sesión nueva
-        en asistente_sessions y persiste el mapping en `caya_sessions_migration`.
+        SECURITY (W4.4E.5.1): valida que el legacy_id exista en `caya_sessions`.
+        Si NO existe, aplica rate limit por IP igual que `start_session`
+        (5 sessions/hora/ip_hash) para prevenir spam de mappings inválidos.
+        Si SÍ existe, mapping idempotente sin rate limit (no penaliza usuarios legítimos).
+
+        Idempotente: si el mapping ya existe, retorna el token.
         """
         existing = await self.db.caya_sessions_migration.find_one(
             {"legacy_id": legacy_caya_session_id},
@@ -599,9 +608,35 @@ class AsistenteEngine:
         if existing and existing.get("asistente_token"):
             return existing["asistente_token"]
 
-        # Crear nueva session sin enforcement de rate limit (mapeo legacy)
         from behavioral_tracking_engine import _hash_ip
         ip_hash = _hash_ip(ip_raw or "unknown")
+
+        # ── SECURITY: validar que el legacy_id existe en caya_sessions ──────
+        legacy_doc = await self.db.caya_sessions.find_one(
+            {"session_id": legacy_caya_session_id}, {"_id": 1},
+        )
+        if not legacy_doc:
+            # Audit log para forensics
+            try:
+                await self.db.activity_log.insert_one({
+                    "id": f"act_{uuid.uuid4().hex[:12]}",
+                    "type": "asistente.legacy_mapping_rejected",
+                    "reason": "legacy_session_not_found",
+                    "legacy_id_attempted": legacy_caya_session_id[:64],
+                    "ip_hash": ip_hash,
+                    "created_at": _now(),
+                })
+            except Exception:
+                pass
+            # Aplicar rate limit (5/hora/ip) para prevenir spam de mappings fake
+            if not _check_rate(_session_buckets, ip_hash, SESSIONS_PER_HOUR_PER_IP, 3600):
+                raise AsistenteRateLimitError(
+                    "legacy mapping rate limit exceeded"
+                )
+            log.warning(
+                f"[asistente] legacy_id no existe pero IP {ip_hash} bajo rate limit · creando session nueva"
+            )
+
         ua_hash = _hash_ip(user_agent or "unknown")
         token = f"asis_{uuid.uuid4().hex[:20]}"
         now = _now()
@@ -618,6 +653,7 @@ class AsistenteEngine:
             "referral_source": "caya_bubble",
             "channel": "web_bubble",
             "legacy_caya_session_id": legacy_caya_session_id,
+            "legacy_validated": bool(legacy_doc),
         })
         await self.db.caya_sessions_migration.update_one(
             {"legacy_id": legacy_caya_session_id},
@@ -625,10 +661,11 @@ class AsistenteEngine:
                 "legacy_id": legacy_caya_session_id,
                 "asistente_token": token,
                 "created_at": now,
+                "legacy_validated": bool(legacy_doc),
             }},
             upsert=True,
         )
-        log.info(f"[asistente] mapped legacy caya {legacy_caya_session_id} → {token}")
+        log.info(f"[asistente] mapped legacy caya {legacy_caya_session_id} → {token} (validated={bool(legacy_doc)})")
         return token
 
     async def expire_old_sessions(self, hours: int = SESSION_EXPIRE_HOURS) -> int:
