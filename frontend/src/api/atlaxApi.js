@@ -1,4 +1,4 @@
-// W4.4E.5.1 — Caya API helpers (lead capture from bubble)
+// W4.4E.5.2 — Atlax API helpers (formerly cayaApi). Lead capture from bubble.
 const API = process.env.REACT_APP_BACKEND_URL;
 
 async function _fetch(url, opts = {}) {
@@ -19,17 +19,17 @@ async function _fetch(url, opts = {}) {
 }
 
 /**
- * Captura un lead desde el bubble Caya. Reusa el endpoint asistente capture-lead
- * con `source` override = "caya_bubble".
+ * Captura un lead desde el bubble Atlax. Reusa el endpoint asistente capture-lead
+ * con `source` override = "atlax_bubble".
  */
-export async function captureLeadFromCaya(asistenteToken, payload) {
+export async function captureLeadFromAtlax(asistenteToken, payload) {
   if (!asistenteToken) throw new Error('asistente_token requerido');
   const body = {
     nombre: payload.nombre,
     whatsapp: payload.whatsapp,
     email: payload.email || null,
     mensaje: payload.mensaje || null,
-    source: 'caya_bubble',
+    source: 'atlax_bubble',
   };
   return _fetch(`${API}/api/asistente/sessions/${asistenteToken}/capture-lead`, {
     method: 'POST',

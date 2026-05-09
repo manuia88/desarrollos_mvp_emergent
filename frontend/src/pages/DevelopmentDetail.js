@@ -18,7 +18,7 @@ import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
-import CayaBubble from '../components/landing/CayaBubble';
+import AtlaxBubble from '../components/landing/AtlaxBubble';
 // Phase 4 Batch 27 — Mortgage + Tour + WA CTA
 import MortgageCalculator from '../components/marketplace/MortgageCalculator';
 import VirtualTourPlaceholder from '../components/marketplace/VirtualTourPlaceholder';
@@ -347,7 +347,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           .dev-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
-      <CayaBubble />
+      <AtlaxBubble />
       <WhatsAppAsesorCTA
         asesorPhone={dev.asesor_phone}
         propiedadNombre={dev.name}

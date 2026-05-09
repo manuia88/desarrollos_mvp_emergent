@@ -11,7 +11,7 @@ import ColoniaSidebar from '../components/marketplace/ColoniaSidebar';
 import ImageSearchModal from '../components/marketplace/ImageSearchModal';
 import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
-import CayaBubble from '../components/landing/CayaBubble';
+import AtlaxBubble from '../components/landing/AtlaxBubble';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
@@ -457,7 +457,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         @media (max-width: 900px) { .dev-grid { grid-template-columns: repeat(2, 1fr) !important; } }
         @media (max-width: 560px) { .dev-grid { grid-template-columns: 1fr !important; } }
       `}</style>
-      <CayaBubble />
+      <AtlaxBubble />
     </div>
   );
 }

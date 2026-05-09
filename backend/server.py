@@ -94,8 +94,10 @@ app.include_router(rag_public_router)
 app.include_router(rag_admin_router)
 
 # Phase D2 — Caya prep stub
-from caya_engine import router as caya_router
-app.include_router(caya_router)
+from atlax_engine import router as atlax_router
+app.include_router(atlax_router)
+from routes_caya_legacy import router as caya_legacy_router
+app.include_router(caya_legacy_router)
 
 # Phase 7.11 — Drive Watch Service
 from drive_engine import router as drive_router, dev_alias as drive_dev_alias, ensure_drive_indexes
@@ -749,8 +751,8 @@ async def startup():
     except Exception as e:
         logging.warning(f"rag corpus preload failed: {e}")
     # Phase D2 — Caya indexes
-    from caya_engine import ensure_caya_indexes
-    await ensure_caya_indexes(db)
+    from atlax_engine import ensure_atlax_indexes
+    await ensure_atlax_indexes(db)
     # Phase 7.11 — Drive connection indexes
     await ensure_drive_indexes(db)
     # Phase 7.9 — units history indexes

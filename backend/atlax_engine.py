@@ -1,12 +1,16 @@
-"""W4.4E.5 — Caya/Asistente Unification.
+"""W4.4E.5 — Atlax Engine (formerly Caya, renamed W4.4E.5.2).
 
-caya_engine es ahora un THIN WRAPPER sobre AsistenteEngine (W4.4E):
-- Mantiene endpoints `/api/caya/query` y `/api/caya/sessions/{id}/history` retrocompatibles
-- Persiste en `caya_messages` (legacy) Y en `asistente_messages` (canonical, vía AsistenteEngine.chat)
-- Mapea legacy session_ids `dmx_caya_*` → asistente_token via `caya_sessions_migration`
-- Mantiene RAG semantic_search para `citations` (asistente.chat NO incluye RAG hits por default)
+atlax_engine es un THIN WRAPPER sobre AsistenteEngine (W4.4E):
+- Mantiene endpoints `/api/atlax/query` y `/api/atlax/sessions/{id}/history`
+- Persiste en `caya_messages` (legacy DB collection name kept) Y en `asistente_messages` (canonical)
+- Mapea legacy session_ids `dmx_caya_*` AND new `dmx_atlax_*` → asistente_token
+- Mantiene RAG semantic_search para `citations`
 - Combina lead_score heurístico + suggested_lead_capture del Asistente para `hand_off_recommended`
 - Nuevos campos en response: `tier`, `asistente_session_token`, `simulated`, `memory_hits`
+
+NOTA: El brand cambió a "Atlax" (W4.4E.5.2) pero las collections DB
+(caya_sessions, caya_messages, caya_sessions_migration) mantienen su nombre
+para preservar datos históricos sin migración destructiva.
 """
 from __future__ import annotations
 
@@ -19,12 +23,12 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-log = logging.getLogger("dmx.caya")
+log = logging.getLogger("dmx.atlax")
 
-router = APIRouter(tags=["caya"])
+router = APIRouter(tags=["atlax"])
 
 
-class CayaQueryIn(BaseModel):
+class AtlaxQueryIn(BaseModel):
     query: str = Field(..., min_length=2, max_length=500)
     session_id: Optional[str] = None
     channel: str = Field(default="web", pattern=r"^(whatsapp|web|web_bubble)$")
@@ -34,8 +38,13 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def ensure_caya_indexes(db) -> None:
-    """Mantiene indexes legacy + agrega index para tabla de migración."""
+async def ensure_atlax_indexes(db) -> None:
+    """Mantiene indexes legacy + agrega index para tabla de migración.
+
+    NOTA: el nombre de la función cambió de ensure_caya_indexes a ensure_atlax_indexes
+    pero las collections DB siguen siendo `caya_sessions`/`caya_messages` para
+    preservar back-compat sin migración destructiva.
+    """
     try:
         await db.caya_sessions.create_index("session_id", name="idx_caya_session_id", background=True)
         await db.caya_sessions.create_index("created_at", name="idx_caya_created_at", background=True)
@@ -85,8 +94,8 @@ async def _resolve_asistente_token(
         token = await engine.get_or_create_from_legacy(payload_session_id, ip, ua)
         return payload_session_id, token, False
 
-    # Caso 3: nueva sesión
-    legacy_id = f"dmx_caya_{uuid.uuid4().hex[:12]}"
+    # Caso 3: nueva sesión (prefix dmx_atlax_* en sesiones nuevas post-rename)
+    legacy_id = f"dmx_atlax_{uuid.uuid4().hex[:12]}"
     res = await engine.start_session(ip, ua, referral_source="caya_bubble")
     token = res["session_token"]
     await db.caya_sessions_migration.update_one(
@@ -97,9 +106,9 @@ async def _resolve_asistente_token(
     return legacy_id, token, True
 
 
-@router.post("/api/caya/query")
-async def caya_query(payload: CayaQueryIn, request: Request):
-    """W4.4E.5 thin-wrapper que orquesta AsistenteEngine + RAG citations + lead scoring."""
+@router.post("/api/atlax/query")
+async def atlax_query(payload: AtlaxQueryIn, request: Request):
+    """W4.4E.5.2 thin-wrapper que orquesta AsistenteEngine + RAG citations + lead scoring."""
     db = request.app.state.db
     ip = _extract_ip(request)
     ua = request.headers.get("user-agent", "")
@@ -305,7 +314,7 @@ async def caya_query(payload: CayaQueryIn, request: Request):
 
 
 def _error_response(
-    payload: CayaQueryIn, legacy_id: str, asistente_token: str,
+    payload: AtlaxQueryIn, legacy_id: str, asistente_token: str,
     answer: str, reason: str,
 ) -> Dict[str, Any]:
     return {
@@ -328,8 +337,8 @@ def _error_response(
     }
 
 
-@router.get("/api/caya/sessions/{session_id}/history")
-async def caya_history(session_id: str, request: Request):
+@router.get("/api/atlax/sessions/{session_id}/history")
+async def atlax_history(session_id: str, request: Request):
     """History endpoint legacy: retorna mensajes de caya_messages para back-compat."""
     db = request.app.state.db
     cursor = db.caya_messages.find({"session_id": session_id}, {"_id": 0}).sort("created_at", 1)

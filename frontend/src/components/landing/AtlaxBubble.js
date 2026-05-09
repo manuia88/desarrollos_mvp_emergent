@@ -1,18 +1,52 @@
-// CayaBubble — Public marketplace chat bubble powered by /api/caya/query (RAG).
+// AtlaxBubble — Public marketplace chat bubble powered by /api/atlax/query (RAG).
+// W4.4E.5.2 — renamed from CayaBubble. localStorage migration silenciosa caya.*→atlax.*.
 // Anonymous session_id persisted in localStorage. No auth required.
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle } from '../icons';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const SS_KEY = 'dmx.caya.session_id';
-const SS_HISTORY = 'dmx.caya.history.v1';
+const SS_KEY = 'dmx.atlax.session_id';
+const SS_HISTORY = 'dmx.atlax.history.v1';
+const SS_TOKEN = 'dmx.atlax.asistente_token';
+
+// Legacy keys (W4.4E.5.2 migration)
+const LEGACY_SS_KEY = 'dmx.caya.session_id';
+const LEGACY_SS_HISTORY = 'dmx.caya.history.v1';
+const LEGACY_SS_TOKEN = 'dmx.caya.asistente_token';
+
+// One-time silent migration caya.*→atlax.* per browser
+function migrateLegacyLocalStorage() {
+  try {
+    const map = [
+      [LEGACY_SS_KEY, SS_KEY],
+      [LEGACY_SS_HISTORY, SS_HISTORY],
+      [LEGACY_SS_TOKEN, SS_TOKEN],
+    ];
+    map.forEach(([oldK, newK]) => {
+      const oldVal = localStorage.getItem(oldK);
+      if (oldVal && !localStorage.getItem(newK)) {
+        localStorage.setItem(newK, oldVal);
+      }
+      if (oldVal !== null) localStorage.removeItem(oldK);
+    });
+    // Migrate per-token lead_captured flags
+    const keys = Object.keys(localStorage);
+    keys.forEach(k => {
+      if (k.startsWith('dmx.caya.lead_captured.')) {
+        const newKey = k.replace('dmx.caya.lead_captured.', 'dmx.atlax.lead_captured.');
+        if (!localStorage.getItem(newKey)) localStorage.setItem(newKey, localStorage.getItem(k));
+        localStorage.removeItem(k);
+      }
+    });
+  } catch (_) { /* ignore */ }
+}
 
 function getSession() {
   try {
     let sid = localStorage.getItem(SS_KEY);
     if (!sid) {
-      sid = `caya_anon_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+      sid = `atlax_anon_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
       localStorage.setItem(SS_KEY, sid);
     }
     return sid;
@@ -51,14 +85,14 @@ function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose }) {
     setError(null);
     setSubmitting(true);
     try {
-      const { captureLeadFromCaya } = await import('../../api/cayaApi');
-      await captureLeadFromCaya(asistenteToken, {
+      const { captureLeadFromAtlax } = await import('../../api/atlaxApi');
+      await captureLeadFromAtlax(asistenteToken, {
         nombre: nombre.trim(),
         whatsapp: whatsapp.trim(),
         email: email.trim() || null,
       });
       setSuccess(true);
-      try { localStorage.setItem(`dmx.caya.lead_captured.${asistenteToken}`, 'true'); } catch (_) {/*ignore*/}
+      try { localStorage.setItem(`dmx.atlax.lead_captured.${asistenteToken}`, 'true'); } catch (_) {/*ignore*/}
       onSuccess?.();
     } catch (err) {
       setError(err.message || 'No pudimos guardar tus datos.');
@@ -94,11 +128,24 @@ function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose }) {
       backdropFilter: 'blur(24px)',
       display: 'flex', flexDirection: 'column', gap: 7,
     }}>
-      <div style={{
-        fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: 'var(--cream)',
-        letterSpacing: '-0.01em',
-      }}>
-        ¿Te conectamos con un asesor?
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: 'var(--cream)',
+          letterSpacing: '-0.01em',
+        }}>
+          ¿Te conectamos con un asesor?
+        </div>
+        <button
+          type="button"
+          data-testid="caya-lead-dismiss"
+          onClick={onClose}
+          aria-label="Cerrar"
+          style={{
+            padding: 4, background: 'transparent', border: '1px solid rgba(255,255,255,0.10)',
+            borderRadius: 9999, color: 'var(--cream-3)', cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        ><X size={11} /></button>
       </div>
       <input
         data-testid="caya-lead-nombre"
@@ -211,29 +258,36 @@ function CitationPill({ cite, onNav }) {  const handle = () => {
 }
 
 
-export default function CayaBubble() {
+export default function AtlaxBubble() {
+  // W4.4E.5.2 · One-time silent localStorage migration caya.*→atlax.* (synchronous, BEFORE state init)
+  const [_migrated] = useState(() => { migrateLegacyLocalStorage(); return true; });
+
   const navigate = useNavigate();
   const [open, setOpen] = useState(() => {
-    try { return new URLSearchParams(window.location.search).get('caya') === 'open'; }
-    catch { return false; }
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      // Acepta ?atlax=open (nuevo) Y ?caya=open (legacy fallback)
+      return sp.get('atlax') === 'open' || sp.get('caya') === 'open';
+    } catch { return false; }
   });
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState(() => loadHistory());
   const [sessionId, setSessionId] = useState(() => getSession());
   const [asistenteToken, setAsistenteToken] = useState(() => {
-    try { return localStorage.getItem('dmx.caya.asistente_token') || null; } catch { return null; }
+    try { return localStorage.getItem(SS_TOKEN) || null; } catch { return null; }
   });
   const [tier, setTier] = useState(null);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
+  const [formDismissed, setFormDismissed] = useState(false);
   const scrollRef = useRef(null);
 
   // Check localStorage flag once asistenteToken is known
   useEffect(() => {
     if (!asistenteToken) return;
     try {
-      if (localStorage.getItem(`dmx.caya.lead_captured.${asistenteToken}`) === 'true') {
+      if (localStorage.getItem(`dmx.atlax.lead_captured.${asistenteToken}`) === 'true') {
         setLeadCaptured(true);
       }
     } catch (_) { /* ignore */ }
@@ -263,7 +317,7 @@ export default function CayaBubble() {
     const userMsg = { role: 'user', content: q, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     try {
-      const r = await fetch(`${API}/api/caya/query`, {
+      const r = await fetch(`${API}/api/atlax/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web_bubble' }),
@@ -272,7 +326,7 @@ export default function CayaBubble() {
       // Persist asistente_session_token for /asistente expand link
       if (d.asistente_session_token) {
         setAsistenteToken(d.asistente_session_token);
-        try { localStorage.setItem('dmx.caya.asistente_token', d.asistente_session_token); } catch (_) { /* ignore */ }
+        try { localStorage.setItem(SS_TOKEN, d.asistente_session_token); } catch (_) { /* ignore */ }
       }
       // Sync session_id with backend (may have generated new dmx_caya_* if we sent null)
       if (d.session_id && d.session_id !== sessionId) {
@@ -328,7 +382,7 @@ export default function CayaBubble() {
           }}
           onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-          aria-label="Abrir chat Caya"
+          aria-label="Abrir chat Atlax"
         >
           <Sparkle size={22} />
         </button>
@@ -362,10 +416,10 @@ export default function CayaBubble() {
               </div>
               <div>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', letterSpacing: '-0.01em' }}>
-                  Caya
+                  Atlax
                 </div>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  Asistente DMX · Beta
+                  DesarrollosMX · Beta
                 </div>
               </div>
               {tier && (
@@ -440,7 +494,9 @@ export default function CayaBubble() {
                   </div>
                 )}
 
-                {m.role === 'assistant' && m.hand_off && (
+                {/* W4.4E.5.2 Fix #3: handoff banner solo si form NO está activo
+                    (form prioritario para captura, banner como fallback) */}
+                {m.role === 'assistant' && m.hand_off && (leadCaptured || formDismissed) && (
                   <div data-testid="caya-handoff" style={{
                     marginTop: 8, padding: '10px 12px', borderRadius: 12,
                     background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.32)',
@@ -490,16 +546,16 @@ export default function CayaBubble() {
                 background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
                 color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 12, fontStyle: 'italic',
               }}>
-                Caya está pensando<span className="caya-dots">…</span>
+                Atlax está pensando<span className="caya-dots">…</span>
               </div>
             )}
 
             {/* Lead capture mini-form (W4.4E.5.1) */}
-            {showLeadForm && asistenteToken && !leadCaptured && (
+            {showLeadForm && asistenteToken && !leadCaptured && !formDismissed && (
               <LeadCaptureMiniForm
                 asistenteToken={asistenteToken}
                 onSuccess={() => setLeadCaptured(true)}
-                onClose={() => setShowLeadForm(false)}
+                onClose={() => { setShowLeadForm(false); setFormDismissed(true); }}
               />
             )}
           </div>

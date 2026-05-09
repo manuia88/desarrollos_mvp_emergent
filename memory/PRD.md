@@ -3727,3 +3727,23 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - **EDIT** `CayaBubble.js` (LeadCaptureMiniForm inline + auto-show + localStorage flag)
 - **EDIT** `i18n/es-MX/common.json` (caya.lead_form.* 7 keys)
 
+
+---
+
+## 2026-05-09 — W4.4E.5.2 · Brand rename Caya→Atlax + 2 UX upgrades
+
+### Backend (4 EDIT · 1 NEW · 1 DELETE)
+- **RENAME** `caya_engine.py` → `atlax_engine.py` (router /api/atlax/* + class AtlaxQueryIn + ensure_atlax_indexes + new session prefix `dmx_atlax_*`)
+- **NEW** `routes_caya_legacy.py` (308 redirect /api/caya/* → /api/atlax/* con `X-Atlax-Migration` header · 90-day window)
+- **EDIT** `server.py` (wiring atlax + caya_legacy redirect)
+- **EDIT** `routes_asistente.py` (rate limit 3 leads/hora/ip + audit log)
+
+### Frontend (5 EDIT)
+- **RENAME** `CayaBubble.js` → `AtlaxBubble.js` (brand "Atlax", localStorage keys atlax.*, migration silenciosa, Fix #3 form/banner mutex)
+- **RENAME** `cayaApi.js` → `atlaxApi.js` (captureLeadFromAtlax, source="atlax_bubble")
+- **EDIT** 4 pages (Marketplace, DevelopmentDetail, Inteligencia, Barrios)
+- **EDIT** i18n caya.* → atlax.*
+
+### Schema preservation
+- DB collections (`caya_sessions`, `caya_messages`, `caya_sessions_migration`) NO renombradas (decisión conservadora: brand UI/API cambió, DB preserva nombre histórico)
+
