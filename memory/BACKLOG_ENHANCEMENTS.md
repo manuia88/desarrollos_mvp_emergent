@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Integración INEGI demographics en `/api/public/zones/{slug}`
+- **Origen:** W4.2D2 emergent suggested 2026-05-09
+- **Destino:** Phase 7.2 (DENUE/INEGI cuts) ó Wave 5
+- **Qué:** Hoy `demographics: {available: false}` placeholder. Integrar INEGI Censos 2020 + Encuesta Nacional Ingresos por AGEB (área geoestadística básica) → enriquece zone pages con población, ingreso medio hogar, edad media, escolaridad, % propietarios, % renta. Datos públicos free.
+- **Por qué:** zone pages con demographics reales son 3-5x más creíbles para Google SEO (datos únicos no encontrables en Inmuebles24/Lamudi) + esenciales para inversionistas evaluando barrios.
+- **Costo:** ~6h (parser INEGI CSV + map AGEB→colonia + endpoint enrichment).
+
 ### Refactor `routes_*.py` flat → `/app/backend/routes/` directory
 - **Origen:** W4.2D1 emergent suggested 2026-05-09
 - **Destino:** F0 sweep o post-launch H2
