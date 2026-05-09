@@ -109,6 +109,11 @@ TOOLS Y PARAMS:
    devuelve: lista de recomendaciones de ajuste de precios con confidence_score, delta_pct, rationale
    Úsalo cuando el usuario pregunta sobre precios sub-óptimos, "¿qué precios ajustar?", oportunidades de pricing
 
+8. delegate_marketing_optimization
+   params: { "project_id": str }
+   devuelve: lista de recomendaciones de marketing digital con issue_detected, severity, suggested_action_text, expected_lift_pct
+   Úsalo cuando el usuario pregunta "¿por qué no se ven mis unidades?", "¿qué mejoro en marketing?", baja conversión, falta de leads
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -165,8 +170,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 db, org_id,
                 project_id=str(params.get("project_id", "")),
             )
+        elif tool_name == "delegate_marketing_optimization":
+            return await _tool_delegate_marketing_optimization(
+                db, org_id,
+                project_id=str(params.get("project_id", "")),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -366,6 +376,45 @@ async def _tool_whatif_simulate(
             "recommendation_text": outs.get("recommendation_text"),
         },
         "comparables_used": outs.get("comparables_used") or [],
+    }
+
+
+async def _tool_delegate_marketing_optimization(db, org_id: str, project_id: str) -> Dict[str, Any]:
+    """Tool 8: invoca MarketingAgent para detectar performance digital sub-óptima."""
+    if not project_id:
+        return {"error": "project_id requerido para delegate_marketing_optimization"}
+    try:
+        from sub_agents.marketing_agent import (
+            MarketingAgent, MarketingAgentDisabledError, MarketingAgentRateLimitError,
+        )
+        agent = MarketingAgent(db=db, org_id=org_id)
+        result = await agent.analyze_project(project_id=project_id)
+    except MarketingAgentDisabledError as e:
+        return {"error": f"Marketing Agent desactivado: {e}"}
+    except MarketingAgentRateLimitError as e:
+        return {"error": f"Rate limit marketing agent: {e}"}
+    except Exception as e:
+        log.warning(f"[director_tool] delegate_marketing_optimization failed: {e}")
+        return {"error": str(e)}
+
+    recs = result.get("recommendations") or []
+    return {
+        "project_id": project_id,
+        "run_id": result.get("run_id"),
+        "layer_used": result.get("layer_used"),
+        "recommendations_count": result.get("recommendations_count", len(recs)),
+        "top_recommendations": [
+            {
+                "target_id": r.get("target_id"),
+                "issue_detected": r.get("issue_detected"),
+                "severity": r.get("severity"),
+                "suggested_action_text": (r.get("suggested_action_text") or "")[:150],
+                "expected_lift_pct": r.get("expected_lift_pct"),
+                "confidence_score": r.get("confidence_score"),
+            }
+            for r in recs[:5]
+        ],
+        "cost_usd": result.get("cost_usd"),
     }
 
 

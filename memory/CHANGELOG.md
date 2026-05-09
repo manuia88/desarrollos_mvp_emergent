@@ -1904,3 +1904,29 @@ Atlax pasa de ser un bubble flotante a ser **el corazón de la home pública** d
 - `/app/frontend/src/i18n/locales/es-MX/common.json`: Claves subagents.pricing.*.
 
 ### Acceptance criteria: ✅ todos verificados con curl
+
+---
+
+## W4.5 Y.2B — Marketing Sub-Agent + 3 Capas Resilience (2026-05-09)
+
+### Backend (nuevo)
+- `/app/backend/sub_agents/marketing_agent.py`: MarketingAgent 3-layer (LLM→cache→heuristic)
+  - Layer 1: Claude Sonnet + 4 tools (get_behavioral_aggregates, get_unit_assets, get_comparable_marketing_perf, get_zone_avg_metrics)
+  - Layer 2: adapta pricing_recommendations similares (<7d, mismo colonia_id)
+  - Layer 3: heurística low_views (views < median*0.5) + missing_assets (photos < 5)
+  - ensure_marketing_indexes() con TTL 30 días
+
+### Backend (editado)
+- `/app/backend/routes_subagents.py`: 5 nuevos endpoints marketing/* (analyze, list, apply, reject, runs)
+- `/app/backend/director_agent_engine.py`: 8vo tool delegate_marketing_optimization + handler
+- `/app/backend/server.py`: ensure_marketing_indexes en startup
+
+### Frontend (nuevo)
+- `/app/frontend/src/components/director/MarketingAgentPanel.js`: panel completo con IssueBadge, SeverityBadge, LayerBadge
+
+### Frontend (editado)
+- `/app/frontend/src/pages/superadmin/SuperadminTenants.js`: SubAgentsTabs con sub-tabs Pricing|Marketing
+- `/app/frontend/src/i18n/locales/es-MX/common.json`: claves subagents.marketing.*
+
+### Acceptance criteria: ✅ todos verificados (simulation mode, tier OFF→403, apply/reject, runs)
+### Edge case real: LLM layer (Layer 1) retorna 502 en el entorno preview por timeout de proxy (~30s). El backend procesa correctamente — la 502 es del proxy del entorno preview, no del backend. Heurística y caché funcionan sin timeout.

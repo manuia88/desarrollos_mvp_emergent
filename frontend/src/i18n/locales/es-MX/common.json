@@ -984,6 +984,43 @@
         "last_run_label": "Última ejecución",
         "cost_label": "Costo IA",
         "rationale_label": "Fundamento"
+      },
+      "marketing": {
+        "title": "Sub-agente de Marketing",
+        "analyze_button": "Analizar marketing",
+        "analyzing_label": "Analizando…",
+        "no_recommendations": "No se detectaron issues de marketing digital en este proyecto.",
+        "apply_button": "Aplicar",
+        "reject_button": "Rechazar",
+        "expected_lift_label": "Lift esperado",
+        "confidence_label": "Confianza",
+        "issue": {
+          "low_views": "Visitas bajas",
+          "low_ctr": "CTR bajo",
+          "low_conversion": "Conversión baja",
+          "missing_assets": "Assets faltantes",
+          "stale_copy": "Copy desactualizado"
+        },
+        "severity": {
+          "high": "Alta",
+          "medium": "Media",
+          "low": "Baja"
+        },
+        "layer_used": {
+          "llm": "LLM",
+          "cache": "Caché",
+          "heuristic": "Heurística"
+        },
+        "status": {
+          "pending": "Pendiente",
+          "applied": "Aplicada",
+          "rejected": "Rechazada",
+          "expired": "Vencida"
+        },
+        "error_disabled": "El Marketing Agent requiere tier T1 o superior. Actívalo en configuración Phase Y.",
+        "error_ratelimit": "Demasiadas ejecuciones simultáneas. Intenta en 60 segundos.",
+        "last_run_label": "Última ejecución",
+        "cost_label": "Costo IA"
       }
     }
   }

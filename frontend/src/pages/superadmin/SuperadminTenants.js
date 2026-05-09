@@ -13,6 +13,7 @@ import {
 import { startImpersonation } from '../../hooks/useImpersonation';
 import { PhaseYControlsPanel } from '../../components/superadmin/PhaseYControlsPanel';
 import PricingAgentPanel from '../../components/director/PricingAgentPanel';
+import MarketingAgentPanel from '../../components/director/MarketingAgentPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -298,7 +299,7 @@ function TenantDrawer({ tenantId, onClose }) {
             )}
             {tab === 'sub-agents' && (
               <div data-testid="drawer-tab-subagents-content">
-                <PricingAgentPanel
+                <SubAgentsTabs
                   orgId={data.tenant_id || tenantId}
                   projectsSummary={data.projects_summary || []}
                 />
@@ -563,5 +564,53 @@ export default function SuperadminTenants({ user, onLogout }) {
       <ImpersonateConfirmModal tenant={impTarget} onClose={() => setImpTarget(null)} onConfirm={doImpersonate} busy={impBusy} />
       <StatusChangeModal tenant={statusEdit?.tenant} status={statusEdit?.newStatus} onClose={() => setStatusEdit(null)} onConfirm={doStatusChange} busy={statusBusy} />
     </SuperadminLayout>
+  );
+}
+
+// ─── SubAgentsTabs — sub-tabs Pricing | Marketing dentro del tab Sub-Agents ──
+function SubAgentsTabs({ orgId, projectsSummary }) {
+  const [activeAgent, setActiveAgent] = useState('pricing');
+
+  const agentTabs = [
+    ['pricing',   'Pricing'],
+    ['marketing', 'Marketing'],
+  ];
+
+  return (
+    <div data-testid="subagents-tabs" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Sub-tab pills */}
+      <div style={{ display: 'flex', gap: 5 }}>
+        {agentTabs.map(([k, l]) => (
+          <button
+            key={k}
+            data-testid={`subagent-subtab-${k}`}
+            onClick={() => setActiveAgent(k)}
+            style={{
+              padding: '5px 13px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 700,
+              cursor: 'pointer',
+              background: activeAgent === k
+                ? 'linear-gradient(90deg, rgba(99,102,241,0.22), rgba(236,72,153,0.18))'
+                : 'transparent',
+              border: activeAgent === k
+                ? '1px solid rgba(99,102,241,0.45)'
+                : '1px solid rgba(255,255,255,0.08)',
+              color: activeAgent === k ? 'var(--cream)' : 'rgba(240,235,224,0.45)',
+            }}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {/* Panel content */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 12 }}>
+        {activeAgent === 'pricing' && (
+          <PricingAgentPanel orgId={orgId} projectsSummary={projectsSummary} />
+        )}
+        {activeAgent === 'marketing' && (
+          <MarketingAgentPanel orgId={orgId} projectsSummary={projectsSummary} />
+        )}
+      </div>
+    </div>
   );
 }
