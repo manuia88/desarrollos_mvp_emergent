@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.5 Y.2C Lead Sub-Agent shipped · W4.18.1 Apify Trends en curso · Wave 4 ~182/573h · Phase Y 70/137h)
-**Total H1 restante**: ~391h (Wave 4 pending de los 573h totales)
+**Última actualización**: 2026-05-09 (W4.5 Y.2C Lead shipped · Y.2D+E DEFERRED H2 · Wave 4 561h · Phase Y 70/125h · próximo W4.18.1 → W4.6 Y.3)
+**Total H1 restante**: ~379h (Wave 4 pending de los 561h totales)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 182h = 549h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 573h (182h shipped, 391h pending) = 890h plan
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 561h (182h shipped, 379h pending) = 878h plan (Y.2D+E -12h diferidos a H2)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -148,8 +148,8 @@ Formato canónico per-batch (founder request):
 | W4.5 Y.2A | Pricing Sub-Agent + 3 capas resilience (LocalCache/FallbackChain/CircuitBreaker reusable) | 6 | 6 | emergent | ✅ | `c021ecc` | sub_agents/ package + resilience.py + pricing_agent.py 3-layer (LLM→cache→heuristic) + 6 endpoints + Director 7mo tool + PricingAgentPanel + tab Sub-Agents |
 | W4.5 Y.2B | Marketing Sub-Agent + 3 capas resilience (reusa resilience.py) | 6 | 6 | emergent | ✅ | `39b3fb5` | marketing_agent.py 3-layer + 4 tools internos + 5 issues detectados (low_views/low_ctr/low_conversion/missing_assets/stale_copy) + 5 endpoints + Director 8vo tool + MarketingAgentPanel + sub-tabs Pricing\|Marketing |
 | W4.5 Y.2C | Lead Sub-Agent + 3 capas resilience | 6 | 6 | emergent | ✅ | `9039bf3` | lead_agent 689L · 5 tools (leads_by_status/asesor_conversion/funnel_dropoff/segment_response/lead_age) · 5 issues (stale_lead/low_conversion_asesor/drop_at_stage/underperforming_segment/missing_followup) · Director 9no tool · 3er sub-tab Lead |
-| W4.5 Y.2D | Construction Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
-| W4.5 Y.2E | Compliance Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
+| ~~W4.5 Y.2D~~ | ~~Construction Sub-Agent~~ → **DEFERRED a H2** | 6 | — | — | 📦 H2 | — | sin data madura: cronogramas obra + costos updates no estructurados en DMX hoy · revisar post-Phase 7.10 Avance-Obra |
+| ~~W4.5 Y.2E~~ | ~~Compliance Sub-Agent~~ → **DEFERRED a H2** | 6 | — | — | 📦 H2 | — | sin data madura: depende de W4.18 SIGCDMX/Catastro + contratos no en DMX · LFPDPPP ya cubierto por W3.7 |
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
 | W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
 | W4.8 | Phase Y.5 Observability + Replay Debugger + AI ROI per-dev dashboard | 15 | — | emergent | ⏳ | — | 4 chunks · Audit Replay + ML accuracy + Replay Debugger + AI ROI per-dev portal |
@@ -171,9 +171,10 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 182h / 573h (31.8%) 🟡
-**Pendiente Wave 4**: ~391h
-**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A 6h ✅ + Y.2B 6h ✅ + Y.2C 6h ✅ = 70h shipped · Y.2D-E + W4.6-W4.8 = 67h pending)
+**Acumulado Wave 4**: 182h / 561h (32.4%) 🟡
+**Pendiente Wave 4**: ~379h
+**Phase Y H1 (Y.2D+E diferidos a H2)**: 125h totales H1 = W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A-C 18h ✅ = **70h shipped** · W4.6-W4.8 = 55h pending
+**Y.2D Construction + Y.2E Compliance**: 📦 DEFERRED H2 (sin data madura H1 · revisar cuando Phase 7.10 Avance-Obra + W4.18 SIGCDMX/Catastro estén shipped)
 **Atlax bloque**: ✅ **CERRADO 38/38h** · Y.1E + Unification + fix-pass + rename + Home extension
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)

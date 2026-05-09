@@ -865,6 +865,22 @@ backend/routes/
 
 ---
 
+## 📦 H2 — Sub-Agents diferidos (decisión 2026-05-09)
+
+### Y.2D Construction Sub-Agent (DEFERRED H2)
+- **Razón diferir:** sin data madura H1 · cronogramas obra + costos updates no estructurados en DMX hoy · 80% sería layer-3-heuristic (ruido) sin valor real
+- **Pre-requisitos para activar H2:** Phase 7.10 Avance-Obra shipped (timeline obra estructurado) + extensión Construction Cost Predictor con updates dev manuales
+- **Costo estimado H2:** 6h cuando data esté lista
+- **Caso uso real (cuando data madura):** detectar atrasos cronograma vs plan + alertar costos desviados >15% del benchmark zona + flag obras sin updates >X semanas
+
+### Y.2E Compliance Sub-Agent (DEFERRED H2)
+- **Razón diferir:** sin data madura H1 · depende de W4.18 SIGCDMX/Catastro (no shipped) + contratos no en DMX · LFPDPPP ya cubierto por W3.7 anonymization · Caso uso disclosures requiere NLP sobre copy
+- **Pre-requisitos para activar H2:** W4.18 Data Sources gov MX shipped (SIGCDMX uso suelo + Catastro CDMX) + módulo contratos en DMX (no en plan H1)
+- **Costo estimado H2:** 6h cuando data esté lista
+- **Caso uso real (cuando data madura):** validar permiso uso suelo proyecto vs SIGCDMX + flag avalúos catastrales vs precio listado (red flags lavado dinero) + NLP disclosures marketing copy
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
