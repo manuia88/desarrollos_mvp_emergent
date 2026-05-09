@@ -1458,3 +1458,34 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - ✅ RBAC 403 asesor en risk-alerts/timeline; público OK en methodology + risk-score/zone
 - ✅ `yarn build` limpio · ESLint clean
 
+
+
+## W4.3 — Phase Y.0 Foundation + Behavioral Tracking (2026-05-09)
+
+### Sub-Chunk A · Phase Y Settings Backend
+- **NEW** `routes_phase_y_controls.py` — `GET/PATCH/POST /api/superadmin/phase-y/{org_id}`. Schema `db.phase_y_settings` per-org (9 feature tiers: diagnostic_engine, recommendation_banner, comparable_alerts, lead_nurture, pricing_agent, marketing_agent, lead_agent, construction_agent, compliance_agent · valores: off/T1/T2/T3/T4). Master switch + simulation mode. Audit log en cada mutación. Permission: superadmin global | developer_admin solo su org.
+- **Helper público** `get_phase_y_settings(db, org_id)` → reusable por features agentic (W4.1A, W4.1C, W4.2D3.5) para respetar master switch + simulation_mode antes de ejecutar.
+
+### Sub-Chunk B · Behavioral Tracking Engine
+- **NEW** `behavioral_tracking_engine.py` — `ingest_event()` con LFPDPPP (IP hasheada SHA256+salt→8chars, no raw), `aggregate_by_feature()` con pipeline Mongo, `ensure_indexes()` con TTL 90 días.
+
+### Sub-Chunk C · Behavioral Routes
+- **NEW** `routes_behavioral.py` — `POST /api/track` público (rate limit 100 events/min/session, in-process TTL buckets). `GET /api/superadmin/behavioral/events` (paginado, filtros org_id/feature/since). `GET /api/superadmin/behavioral/aggregate` (by_feature + by_page + top_3_features).
+
+### Sub-Chunk D · Frontend
+- **NEW** `utils/behavioralTracker.js` — `track(event_type, opts)` con fetch keepalive:true + silent fail. `usePageViewTracking()` hook auto-dispara page_view en cada route change.
+- **NEW** `components/superadmin/PhaseYControlsPanel.js` — Master switch toggle grande, simulation mode toggle, tabla feature tiers con selects off/T1/T2/T3/T4, botones Guardar/Resetear, badge Active/Off.
+- **EDIT** `App.js` — import + mount `usePageViewTracking()` en AppRouter.
+- **EDIT** `SuperadminTenants.js` — nuevo tab "Phase Y" en TenantDrawer.
+
+### Acceptance Criteria validados
+- ✅ GET /api/superadmin/phase-y/test-org → 200 defaults (agentic_enabled=false, 9 tiers)
+- ✅ PATCH simulation_mode=true → actualiza, updated_by=user_admin_0001
+- ✅ POST /api/track {session_id, page_view, /} → 201 event_id=evt_xxx, ip_hash=8chars
+- ✅ GET /api/superadmin/behavioral/aggregate → top_3_features=["phase_y_panel"], by_page [/ y /superadmin]
+- ✅ POST /master-switch {enabled:true} → ok=true, agentic_enabled=true
+- ✅ PATCH feature_tiers {pricing_agent:T2, lead_nurture:T4} → persistido correctamente
+- ✅ Sin auth → 401 | rol incorrecto → 403
+- ✅ yarn build limpio 41s | /api/health 200
+
+### SHA: 2498e8e

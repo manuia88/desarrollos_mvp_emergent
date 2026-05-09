@@ -3596,3 +3596,23 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - DP noise aplica solo cuando `snap.available=True` y `index_value is not None` (free tier DRPI)
 - TTL index 5 años en compliance_audit — segunda creación ignora error (ya existe)
 - Compliance cron registrado en heartbeat DB al startup → visible en /superadmin/health/crons sin necesidad de primer run
+
+---
+
+## 2026-05-09 — W4.3 · Phase Y.0 Foundation + Behavioral Tracking
+
+### Backend (3 nuevos · 1 editado)
+- **NEW** `routes_phase_y_controls.py` — Endpoints GET/PATCH/POST `/api/superadmin/phase-y/{org_id}`. Schema `db.phase_y_settings` con 9 feature tiers, master switch, simulation mode.
+- **NEW** `behavioral_tracking_engine.py` — Ingest + aggregate + TTL 90d. IP hash LFPDPPP.
+- **NEW** `routes_behavioral.py` — POST `/api/track` público (100/min/session). GET events + aggregate superadmin.
+- **EDIT** `server.py` — wire 2 routers + ensure_indexes en startup.
+
+### Frontend (2 nuevos · 2 editados)
+- **NEW** `utils/behavioralTracker.js` — track() + usePageViewTracking() hook.
+- **NEW** `components/superadmin/PhaseYControlsPanel.js` — Panel configuración Phase Y con master switch, sim mode, 9 feature tiers.
+- **EDIT** `App.js` — mount usePageViewTracking en AppRouter.
+- **EDIT** `pages/superadmin/SuperadminTenants.js` — tab "Phase Y" en TenantDrawer.
+
+### Phase Y Foundation ready
+- `get_phase_y_settings(db, org_id)` helper listo para que W4.1A (diagnostic), W4.1C (recommendation), W4.2D3.5 (lead nurture) respeten master switch + simulation_mode.
+- `db.behavioral_events` alimentando ML continuous training (Phase 17 seed).
