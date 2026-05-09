@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Arquitectura nota: K8s routing requiere prefix `/api/*` para backend
+- **Origen:** W4.2A emergent constraint 2026-05-09
+- **Destino:** Documentar en `prompt_standards.md` (next sweep)
+- **Qué:** En el preview env Kubernetes, solo paths con prefix `/api/*` van al backend FastAPI. Paths como `/mcp/*` o `/health` van al frontend React. Por eso MCP server quedó en `/api/mcp` (no `/mcp` puro como spec MCP estándar).
+- **Por qué:** evitar que future emergent prompts asuman `/mcp` u otros paths sin prefix `/api/`.
+- **Costo:** 5 min documentación.
+
 ### Tenant↔Developer mapping schema (reemplazar `TENANT_DEV_MAP` hardcoded)
 - **Origen:** W4.1B emergent fix workaround 2026-05-09
 - **Destino:** Wave 4 cleanup batch ó CC2 cross-cutting
