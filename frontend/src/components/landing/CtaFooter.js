@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
+import LfpdpppBadge from './LfpdpppBadge';
 import { MapPin } from '../icons';
 
 export default function CtaFooter() {
@@ -78,6 +79,8 @@ export default function CtaFooter() {
 
       <footer data-testid="footer" style={{ background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
         <div style={{ height: 1, background: 'var(--grad)', opacity: 0.5 }} />
+
+        <LfpdpppBadge />
 
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr auto 1fr',
