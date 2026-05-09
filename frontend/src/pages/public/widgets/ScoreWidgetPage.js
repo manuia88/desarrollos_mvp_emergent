@@ -139,21 +139,21 @@ export default function ScoreWidgetPage() {
         marginBottom: 10,
       }}>
         <MiniStat
+          dark
           label="DRPI/m²"
           value={data.drpi_value ? nfMxn(data.drpi_value) : '—'}
           delta={data.drpi_delta_30d_pct}
-          dark
         />
         <MiniStat
+          dark
           label="Risk"
           value={data.risk_letter || '—'}
           color={tColor.fg}
-          dark
         />
         <MiniStat
+          dark
           label="Muestra IE"
           value={`${data.ie_sample_size}`}
-          dark
         />
       </div>
 
@@ -214,7 +214,10 @@ const shellStyle = {
   minWidth: 280,
   padding: 16,
   borderRadius: 14,
+<<<<<<< HEAD
   // DMX brand: cream bg + signature gradient top bar (rendered as child div)
+=======
+>>>>>>> origin/conflict_090526_0656
   background: '#F0EBE0',
   border: '1px solid rgba(13,16,23,0.10)',
   boxShadow: '0 4px 20px rgba(13,16,23,0.10)',
