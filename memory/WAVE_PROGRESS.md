@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.5 Y.2B Marketing Sub-Agent shipped · Wave 4 ~176h · Phase Y 64/137h · próximo: Y.2C Lead Sub-Agent)
-**Total H1 restante**: ~394h (Wave 4 pending de los 570h totales)
+**Última actualización**: 2026-05-09 (W4.5 Y.2B Marketing shipped · W4.18.1 Apify Trends autorizado · Wave 4 ~176/573h · próximo: W4.18.1 Apify Trends 3h, después Y.2C)
+**Total H1 restante**: ~397h (Wave 4 pending de los 573h totales)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 176h = 543h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 570h (176h shipped, 394h pending) = 887h plan
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 573h (176h shipped, 397h pending) = 890h plan
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -166,6 +166,7 @@ Formato canónico per-batch (founder request):
 | W4.16 | W4 marketing (Free audit landing + State of CDMX Report) | 5 | — | emergent | ⏳ | — | -3h press kit movido a W4.2.5B |
 | W4.17 | Kalshi (Probability UX + Smart Notifications) | 14 | — | emergent | ⏳ | — | -4h widgets movidos a W4.2.5A |
 | W4.18 | Data Sources gov MX bundle (BANXICO SIE API + SIGCDMX uso suelo + Atlas Riesgos CDMX + Catastro CDMX + GTFS + OSM Geofabrik) | 22 | — | emergent | ⏳ | — | links verificados en memory/DATA_SOURCES.md · diferencial vs Inm24 |
+| W4.18.1 | Apify Google Trends integration (cron diario top 50 zonas + cron semanal related queries top 20 + cache TTL 7d + Atlax tool get_trends_for_query) | 3 | — | emergent | ⏳ | — | autorizado 2026-05-09 · ~$0/mes free tier 5k queries · cache 87% hit ratio |
 | F0 | Sweep tech debt | 22 | — | CC lead | ⏳ | — | rolling cleanup |
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
