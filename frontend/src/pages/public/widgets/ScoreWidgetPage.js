@@ -80,6 +80,12 @@ export default function ScoreWidgetPage() {
 
   return (
     <div data-testid="score-widget" style={shellStyle}>
+      {/* DMX signature gradient top bar */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+        backgroundImage: 'linear-gradient(90deg, #6366F1, #EC4899)',
+        borderTopLeftRadius: 14, borderTopRightRadius: 14,
+      }} />
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -126,19 +132,25 @@ export default function ScoreWidgetPage() {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
         padding: '10px 12px', borderRadius: 10,
-        background: '#F0EBE0', marginBottom: 10,
+        background: 'rgba(13,16,23,0.92)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        marginBottom: 10,
       }}>
         <MiniStat
+          dark
           label="DRPI/m²"
           value={data.drpi_value ? nfMxn(data.drpi_value) : '—'}
           delta={data.drpi_delta_30d_pct}
         />
         <MiniStat
+          dark
           label="Risk"
           value={data.risk_letter || '—'}
           color={tColor.fg}
         />
         <MiniStat
+          dark
           label="Muestra IE"
           value={`${data.ie_sample_size}`}
         />
@@ -164,18 +176,20 @@ export default function ScoreWidgetPage() {
   );
 }
 
-function MiniStat({ label, value, color, delta }) {
+function MiniStat({ label, value, color, delta, dark }) {
+  const labelColor = dark ? 'rgba(240,235,224,0.55)' : '#6B7280';
+  const valueColor = color || (dark ? '#F0EBE0' : '#06080F');
   return (
     <div>
       <div style={{
         fontFamily: 'DM Sans', fontSize: 9, fontWeight: 700,
-        color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.1em',
+        color: labelColor, textTransform: 'uppercase', letterSpacing: '0.1em',
       }}>
         {label}
       </div>
       <div style={{
         fontFamily: 'Outfit, system-ui, sans-serif', fontWeight: 700,
-        fontSize: 13, color: color || '#06080F', marginTop: 2,
+        fontSize: 13, color: valueColor, marginTop: 2,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {value}
@@ -199,11 +213,13 @@ const shellStyle = {
   minWidth: 280,
   padding: 16,
   borderRadius: 14,
-  background: '#FFFFFF',
-  border: '1px solid rgba(0,0,0,0.08)',
-  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+  background: '#F0EBE0',
+  border: '1px solid rgba(13,16,23,0.10)',
+  boxShadow: '0 4px 20px rgba(13,16,23,0.10)',
   fontFamily: 'system-ui, sans-serif',
   margin: 0,
+  position: 'relative',
+  overflow: 'hidden',
 };
 
 const emptyShellStyle = {

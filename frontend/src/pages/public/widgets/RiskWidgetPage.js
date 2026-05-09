@@ -63,6 +63,12 @@ export default function RiskWidgetPage() {
 
   return (
     <div data-testid="risk-widget" style={shellStyle}>
+      {/* DMX signature gradient top bar */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+        backgroundImage: 'linear-gradient(90deg, #6366F1, #EC4899)',
+        borderTopLeftRadius: 14, borderTopRightRadius: 14,
+      }} />
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -127,25 +133,28 @@ export default function RiskWidgetPage() {
       {/* Sources count */}
       <div style={{
         padding: '8px 12px', borderRadius: 10,
-        background: '#F0EBE0', marginBottom: 10,
+        background: 'rgba(13,16,23,0.92)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        marginBottom: 10,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 9, fontWeight: 700,
-            color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.1em',
+            color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em',
           }}>
             Fuentes oficiales
           </div>
           <div style={{
-            fontFamily: 'DM Sans', fontSize: 11, color: '#374151', marginTop: 2,
+            fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.85)', marginTop: 2,
           }}>
             SESNSP · CENAPRED · ENVIPE · RPP
           </div>
         </div>
         <div style={{
           fontFamily: 'Outfit, system-ui, sans-serif', fontWeight: 800,
-          fontSize: 22, color: '#06080F',
+          fontSize: 22, color: '#F0EBE0',
         }}>
           {data.sources_count}
         </div>
@@ -177,11 +186,13 @@ const shellStyle = {
   minWidth: 280,
   padding: 16,
   borderRadius: 14,
-  background: '#FFFFFF',
-  border: '1px solid rgba(0,0,0,0.08)',
-  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+  background: '#F0EBE0',
+  border: '1px solid rgba(13,16,23,0.10)',
+  boxShadow: '0 4px 20px rgba(13,16,23,0.10)',
   fontFamily: 'system-ui, sans-serif',
   margin: 0,
+  position: 'relative',
+  overflow: 'hidden',
 };
 
 const emptyShellStyle = {
