@@ -8,6 +8,22 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Phase Y upgrades · 5 features killer + 3 capas resilience (autorizado founder 2026-05-09)
+- **Origen:** análisis Master Dev 2026-05-09 + autorización founder
+- **Destino:** distribuido en W4.4-W4.8 (NO batch separado)
+- **Qué (3 capas resilience embedded en cada Y.2 agent · +10h total):**
+  1. Cache local por agente (snapshots cada 30 min en colección propia · si DB principal falla, usa último snapshot)
+  2. Fallback chain 3 niveles (primary → cache → static defaults)
+  3. Circuit breaker per-agent (X errors seguidos → auto-degrade tier off + Sentry alert)
+- **Qué (5 killer features · +25h total):**
+  1. **W4.4 Director chat público `/asistente`** — comprador busca natural language · Director invoca sub-agents → respuesta con recomendaciones reales (+8h)
+  2. **W4.6 Smart Routing Lead <60 seg** — lead enriquecido + DISC + asesor asignado + WhatsApp en 1 min (+6h)
+  3. **W4.4 What-if Simulator** — dev pregunta "¿qué pasa si bajo 5% precio?" · forecast con confidence interval (+6h)
+  4. **W4.8 Replay Debugger AI** — UI con inputs/prompt/output/reasoning chain de cada decisión AI · auditable 100% (+3h)
+  5. **W4.8 AI ROI per-developer dashboard** — cada dev ve "AI ahorró Xh · accuracy Y% · conversión +Z%" en su portal (+2h)
+- **Total upgrade Phase Y: 102h → 137h (+35h)** · refleja Wave 4 nueva = 496h · H1 nuevo = 813h plan
+- **Por qué:** moat real · diferenciación vs Inmuebles24/Lamudi · justifica tier Pro premium · resilience evita cascada cuando algo falla.
+
 ### Embed Analytics · trackear qué sitios embeben widgets DMX
 - **Origen:** W4.2.5 emergent suggested 2026-05-09
 - **Destino:** Wave 4 W4.10 (post Phase Y) ó early W4.16 marketing

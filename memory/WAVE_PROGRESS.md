@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.2.5.1 design fix-pass shipped · Wave 4 ~82h: widgets + press kit + design system convergencia)
-**Total H1 restante**: ~379h (Wave 4 pending de los 461h totales)
+**Última actualización**: 2026-05-09 (Phase Y upgrade autorizado · 3 capas resilience + 5 killer features · Wave 4 461h → 496h)
+**Total H1 restante**: ~414h (Wave 4 pending de los 496h totales)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 82h = 449h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 461h (82h shipped, 379h pending) = 778h plan
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 496h (82h shipped, 414h pending) = 813h plan (con Phase Y upgrades)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -135,12 +135,12 @@ Formato canónico per-batch (founder request):
 | W4.2D3.5 | Landing Leads Dashboard + Lead Nurture Cron 04:00 MX | 5 | 5 | emergent | ✅ | `bb94f16` | lead_nurture_engine.py + SuperadminLandingLeads.js + 4 endpoints superadmin + cron schedule |
 | W4.2.5A | Embeddable Score + Risk Widgets (`/widgets/score/{slug}` + `/widgets/risk/{slug}`) + design system fix-pass W4.2.5.1 | 4 | 5 | emergent | ✅ | `29f0bd8` + `62ed233` (W4.2.5.1) | ScoreWidgetPage.js + RiskWidgetPage.js + routes_widgets.py + ConnectMcpPage embed snippets · cream bg + gradient top bar + dark glass stats verificados live |
 | W4.2.5B | `/prensa` Media Kit page (8 stat cards copy-as-quote + 4 download cards + JSON-LD NewsMediaOrganization) | 3 | 3 | emergent | ✅ | `29f0bd8` | PrensaPage.js + routes_press.py |
-| W4.3 | Phase Y.0 Foundation + Behavioral Tracking | 16 | — | emergent | ⏳ | — | opt-in tiers + event collectors |
-| W4.4 | Phase Y.1 Director Agent + Memory layer | 25 | — | emergent | ⏳ | — | vector embeddings |
-| W4.5 | Phase Y.2 5 sub-agents ML | 25 | — | emergent | ⏳ | — | Pricing/Marketing/Lead/Construction/Compliance |
-| W4.6 | Phase Y.3 Agentic CRM workflows | 28 | — | emergent | ⏳ | — | + Reply Classifier + DISC Inferencer + Real-time demand |
-| W4.7 | Phase Y.4 Adaptive features per-user/org | 15 | — | emergent | ⏳ | — | Caya per-user + Match weights |
-| W4.8 | Phase Y.5 Observability + Audit replay | 9 | — | emergent | ⏳ | — | ML accuracy metrics |
+| W4.3 | Phase Y.0 Foundation + Behavioral Tracking | 16 | — | emergent | ⏳ | — | opt-in tiers + master switch + simulation mode + event collectors |
+| W4.4 | Phase Y.1 Director Agent + Memory + MCP exposure + What-if Simulator + chat público `/asistente` | 39 | — | emergent | ⏳ | — | 5 chunks · Y.1A core + Y.1B memory layer RAG + Y.1C MCP exposure agents + Y.1D What-if Simulator + Y.1E `/asistente` público |
+| W4.5 | Phase Y.2 5 sub-agents ML + 3 capas resilience por agente | 30 | — | emergent | ⏳ | — | 5 chunks · Pricing/Marketing/Lead/Construction/Compliance · cada uno con cache + fallback + circuit breaker |
+| W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
+| W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
+| W4.8 | Phase Y.5 Observability + Replay Debugger + AI ROI per-dev dashboard | 15 | — | emergent | ⏳ | — | 4 chunks · Audit Replay + ML accuracy + Replay Debugger + AI ROI per-dev portal |
 | W4.9 | Phase 6 Studio Wave 1.5+2 | 36 | — | emergent | ⏳ | — | extensions B25/B26 |
 | W4.10 | Phase 8 ext WhatsApp + AutoNewsletter | 25 | — | emergent | ⏳ | — | WA Business + Pulse semanal |
 | W4.11 | Phase 10 Caya home + A11 ext | 26 | — | emergent | ⏳ | — | Caya en desarrollosmx.io para queries mercado |
@@ -154,8 +154,9 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 82h / 461h (17.8%) 🟡
-**Pendiente Wave 4**: ~379h
+**Acumulado Wave 4**: 82h / 496h (16.5%) 🟡
+**Pendiente Wave 4**: ~414h
+**Phase Y total upgraded**: 137h (102h original + 10h resilience + 25h killer features)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
 **Por emergent en Wave 4**: ~395h
 

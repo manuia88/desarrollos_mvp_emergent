@@ -35,11 +35,11 @@
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
 | **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | ✅ **100% COMPLETO** (W2.1-W2.10 · 2026-05-08) | ~120h |
 | **Wave 3 — Authority + Verticals + Risk Layer + IE Engine + Watchlist** (Teseo+AirDNA expansion + Kalshi data licensing F: ZZ.2-ZZ.4 + Z.3-Z.4 ext + Phase 5 + IE Engine Phase B + Risk Score V2 + Cross-sell + LFPDPPP badge + Watchlist subscribe) | ✅ **100% COMPLETO** (W3.0 → W3.9c · 2026-05-09) | ~197h |
-| **Wave 4 — Agentic + Investor Sim + Brand + Intelligence + Behavioral ML + Probability UX + Polish** (Phase Y reorientada ML + 5/6/8 ext/10/11/16 ext + Amenities Validator/19 ext/20 + CC + MCP Brand Strategy ext + Diagnostic Engine ✅ + Recommendation Banner ✅ + Comparable Anomaly ✅ + MCP server ✅ + GEO foundation ✅ + Watermarks/QR/MCP filters ✅ + Filter URL infrastructure ✅ + Zone landing pages 16 ✅ + Programmatic SEO Tier 1+2 61 landings + lead capture ✅ + Landing Leads Dashboard + Lead Nurture Cron ✅ + Embed widgets + Press kit ✅ + Behavioral Tracking + Real-time Demand + State of CDMX Report + Free audit + Probability UX A + Smart Notifications B) | 🟡 EN CURSO 81.5/461h (W4.1+W4.2A-2.5 shipped) | ~461h |
+| **Wave 4 — Agentic + Brand + Intelligence + Behavioral ML + Phase Y UPGRADED + Polish** (todo Wave 3 base ✅ + W4.1 Intelligence ✅ + W4.2 Brand Strategy ✅ + Phase Y upgraded 137h: Y.0 controls + Y.1 Director con `/asistente` público + What-if Simulator + Y.2 5 sub-agents con 3 capas resilience + Y.3 CRM con Smart Routing + Y.4 Adaptive + Y.5 Replay Debugger + AI ROI per-dev) | 🟡 EN CURSO 82/496h (W4.1+W4.2A-2.5 shipped) | ~496h |
 
-**Total H1 restante**: ~379.5h (Wave 1+2+3 cerradas · Wave 4 = 461h - 81.5h shipped = 379.5h pending)
+**Total H1 restante**: ~414h (Wave 1+2+3 cerradas · Wave 4 = 496h - 82h shipped = 414h pending · Phase Y upgrade autorizado founder 2026-05-09: +35h)
 
-**Shipped to date**: ~805.5h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 81.5h)
+**Shipped to date**: ~813h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 82h shipped + 414h pending = 813h plan H1)
 
 **Origin de adiciones**:
 - **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).
