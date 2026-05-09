@@ -242,6 +242,35 @@ class ScoreEngine:
             "_dmx_extracted_docs": [{"payload": d, "is_stub": False} for d in extracted_docs],
         }
 
+    async def _build_unit_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """For unit recipes: inject the unit doc, its enriched dev, same-prototype peers,
+        and all dev peers under pseudo source_ids."""
+        try:
+            from data_developments import DEVELOPMENTS_BY_ID
+        except ImportError:
+            return {}
+        # Longest dev_id prefix match (unit_id starts with `{dev_id}-...`)
+        candidate = None
+        for dev_id in DEVELOPMENTS_BY_ID:
+            if zone_id.startswith(dev_id + "-"):
+                if candidate is None or len(dev_id) > len(candidate):
+                    candidate = dev_id
+        if candidate is None:
+            return {}
+        dev = DEVELOPMENTS_BY_ID[candidate]
+        units = dev.get("units") or []
+        unit = next((u for u in units if u.get("id") == zone_id), None)
+        if unit is None:
+            return {}
+        same_proto = [u for u in units if u.get("prototype") == unit.get("prototype") and u.get("id") != unit.get("id")]
+        dev_peers = [u for u in units if u.get("id") != unit.get("id")]
+        return {
+            "_dmx_unit": [{"payload": unit, "is_stub": False}],
+            "_dmx_unit_dev": [{"payload": _enrich_dev(dev), "is_stub": False}],
+            "_dmx_unit_same_proto": [{"payload": u, "is_stub": False} for u in same_proto],
+            "_dmx_unit_dev_peers": [{"payload": u, "is_stub": False} for u in dev_peers],
+        }
+
     async def _build_colonia_context(self, zone_id: str) -> Dict[str, List[Dict[str, Any]]]:
         """For predictive colonia recipes: inject the colonia's own IE scores (N1-N2)
         so N4 regressions can consume them as direct features."""
@@ -265,6 +294,8 @@ class ScoreEngine:
         obs = await self._fetch_obs(recipe.dependencies, zone_id)
         if recipe.scope == "proyecto":
             obs.update(await self._build_project_context(zone_id))
+        elif recipe.scope == "unit":
+            obs.update(await self._build_unit_context(zone_id))
         elif getattr(recipe, "layer", "descriptive") == "predictive":
             # predictive colonia recipes need the colonia's own N1-N2 scores
             obs.update(await self._build_colonia_context(zone_id))

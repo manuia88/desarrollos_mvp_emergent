@@ -11,3 +11,4 @@ export const getZoneCoverage   = (zoneId) => j(`/api/zones/${zoneId}/scores/cove
 export const getZoneScores     = (zoneId) => j(`/api/zones/${zoneId}/scores`);
 export const explainScore      = (zoneId, code) => j(`/api/zones/${zoneId}/scores/explain?code=${encodeURIComponent(code)}`);
 export const getDevelopmentScores = (devId) => j(`/api/developments/${devId}/scores`);
+export const getUnitScores       = (unitId) => j(`/api/units/${unitId}/scores`);
