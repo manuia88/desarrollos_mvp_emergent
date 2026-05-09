@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.5 Y.2A Pricing Sub-Agent + resilience layers shipped · Wave 4 ~170h · Phase Y 58/137h · próximo: Y.2B Marketing Sub-Agent)
-**Total H1 restante**: ~400h (Wave 4 pending de los 570h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 170h = 537h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 570h (170h shipped, 400h pending) = 887h plan
+**Última actualización**: 2026-05-09 (W4.5 Y.2B Marketing Sub-Agent shipped · Wave 4 ~176h · Phase Y 64/137h · próximo: Y.2C Lead Sub-Agent)
+**Total H1 restante**: ~394h (Wave 4 pending de los 570h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 176h = 543h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 570h (176h shipped, 394h pending) = 887h plan
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -146,7 +146,7 @@ Formato canónico per-batch (founder request):
 | W4.4E.5.2 | Brand rename Caya→Atlax + 2 UX upgrades | 5 | 5 | emergent | ✅ | `1fac885` | atlax_engine.py + routes_caya_legacy.py 308 redirect 90d · AtlaxBubble + atlaxApi + i18n atlax.* + 4 pages imports · localStorage migration síncrona · capture-lead rate limit 3/hora/ip · form/banner mutex |
 | W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | absorbido en Y.2 sub-chunks |
 | W4.5 Y.2A | Pricing Sub-Agent + 3 capas resilience (LocalCache/FallbackChain/CircuitBreaker reusable) | 6 | 6 | emergent | ✅ | `c021ecc` | sub_agents/ package + resilience.py + pricing_agent.py 3-layer (LLM→cache→heuristic) + 6 endpoints + Director 7mo tool + PricingAgentPanel + tab Sub-Agents |
-| W4.5 Y.2B | Marketing Sub-Agent + 3 capas resilience (reusa resilience.py) | 6 | — | emergent | ⏳ | — | siguiente · 4 más sub-agents reusan patrón |
+| W4.5 Y.2B | Marketing Sub-Agent + 3 capas resilience (reusa resilience.py) | 6 | 6 | emergent | ✅ | `39b3fb5` | marketing_agent.py 3-layer + 4 tools internos + 5 issues detectados (low_views/low_ctr/low_conversion/missing_assets/stale_copy) + 5 endpoints + Director 8vo tool + MarketingAgentPanel + sub-tabs Pricing\|Marketing |
 | W4.5 Y.2C | Lead Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
 | W4.5 Y.2D | Construction Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
 | W4.5 Y.2E | Compliance Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
@@ -170,9 +170,9 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 170h / 570h (29.8%) 🟡
-**Pendiente Wave 4**: ~400h
-**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A 6h ✅ = 58h shipped · Y.2B-E + W4.6-W4.8 = 79h pending)
+**Acumulado Wave 4**: 176h / 570h (30.9%) 🟡
+**Pendiente Wave 4**: ~394h
+**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A 6h ✅ + Y.2B 6h ✅ = 64h shipped · Y.2C-E + W4.6-W4.8 = 73h pending)
 **Atlax bloque**: ✅ **CERRADO 38/38h** · Y.1E + Unification + fix-pass + rename + Home extension
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
@@ -185,6 +185,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-09 | **W4.5 Y.2B Marketing Sub-Agent + 3 capas resilience** | 6h | `39b3fb5` (merge `f67b6d2`) | marketing_agent reusa resilience.py + 4 tools + 5 issues + Director 8vo tool + sub-tabs · Phase Y 64/137h ✅ |
 | 2026-05-09 | **W4.5 Y.2A Pricing Sub-Agent + 3 capas resilience** | 6h | `c021ecc` (merge `1ace57d`) | sub_agents/ + resilience.py reusable + pricing_agent 3-layer + 6 endpoints + Director 7mo tool + PricingAgentPanel · Phase Y 58/137h ✅ |
 | 2026-05-09 | **W4.11a Phase 10 Atlax home extension · ATLAX BLOQUE CERRADO** | 16h | `1060018` (merge `8c2be1a`) | 3 tools macro + atlax_threads + ThreadsSidebar + 6 chips + AtlaxHomeHero · Atlax 38/38h ✅ |
 | 2026-05-09 | **W4.4E.5.2 Brand rename Caya→Atlax + 2 UX upgrades** | 5h | `1fac885` (merge `0d9b024`) | atlax_engine + 308 redirect 90d · capture-lead rate limit + form/banner mutex |
