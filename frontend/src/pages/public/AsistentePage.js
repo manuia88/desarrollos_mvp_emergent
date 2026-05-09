@@ -28,22 +28,56 @@ export default function AsistentePage() {
   const [disabled, setDisabled] = useState(false);
   const initRef = useRef(false);
 
-  // Initialize: resume from localStorage or start new
+  // Initialize: hydrate from query param session_token, resume from localStorage, or start new
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
     const referral = searchParams.get('utm_source') || null;
+    const queryToken = searchParams.get('session_token') || null;
     const cached = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return null; } })();
 
     const init = async () => {
       try {
-        // Try resume
+        // 1. Hydrate from query param (Caya bubble expand link)
+        if (queryToken) {
+          try {
+            const API = process.env.REACT_APP_BACKEND_URL;
+            const res = await fetch(`${API}/api/asistente/sessions/${queryToken}`);
+            if (res.ok) {
+              const data = await res.json();
+              const msgs = (data.messages || []).map(m => ({
+                role: m.role,
+                content: m.content,
+                simulated: m.simulated,
+              }));
+              const seed = msgs.length === 0
+                ? [{ role: 'assistant', content: 'Continuamos tu conversación previa.' }]
+                : [...msgs, { role: 'assistant', content: 'Continuamos tu conversación previa. ¿En qué más te ayudo?' }];
+              setSessionToken(queryToken);
+              setMessages(seed);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify({ session_token: queryToken, messages: seed }));
+              return;
+            } else if (res.status === 404 || res.status === 410) {
+              // Fallback: start new with session-expired notice
+              const fresh = await asistenteApi.startSession({ referral_source: referral });
+              setSessionToken(fresh.session_token);
+              setMessages([
+                { role: 'assistant', content: 'Sesión anterior expiró, comenzamos de nuevo.' },
+                { role: 'assistant', content: fresh.welcome_message },
+              ]);
+              return;
+            }
+          } catch (_) { /* continue to next strategy */ }
+        }
+
+        // 2. Resume from localStorage
         if (cached?.session_token && cached?.messages?.length) {
           setSessionToken(cached.session_token);
           setMessages(cached.messages);
           return;
         }
-        // Start new
+
+        // 3. Start new
         const res = await asistenteApi.startSession({ referral_source: referral });
         setSessionToken(res.session_token);
         setMessages([{ role: 'assistant', content: res.welcome_message }]);

@@ -30,8 +30,40 @@ function saveHistory(h) {
 }
 
 
-function CitationPill({ cite, onNav }) {
-  const handle = () => {
+function MemoryHitsBlock({ hits }) {
+  const [open, setOpen] = useState(false);
+  if (!hits || hits.length === 0) return null;
+  return (
+    <div data-testid="caya-memory-hits" style={{ marginTop: 6 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        padding: '3px 8px', borderRadius: 9999,
+        background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)',
+        color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600,
+        cursor: 'pointer',
+      }}>
+        {open ? '▼' : '▶'} Memorias usadas ({hits.length})
+      </button>
+      {open && (
+        <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {hits.map((h, i) => (
+            <div key={i} style={{
+              padding: '4px 8px', borderRadius: 8,
+              background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.06)',
+              fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)',
+            }}>
+              <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{h.source_type}</span>
+              {' · '}
+              <span>{(h.summary || h.content_summary || '').slice(0, 80)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function CitationPill({ cite, onNav }) {  const handle = () => {
     if (!cite?.chunk_id) return;
     // dev::altavista-polanco::card → /desarrollo/altavista-polanco
     // col::roma-norte::card → /barrios/roma-norte (or /inteligencia)
@@ -64,7 +96,11 @@ export default function CayaBubble() {
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState(() => loadHistory());
-  const [sessionId] = useState(() => getSession());
+  const [sessionId, setSessionId] = useState(() => getSession());
+  const [asistenteToken, setAsistenteToken] = useState(() => {
+    try { return localStorage.getItem('dmx.caya.asistente_token') || null; } catch { return null; }
+  });
+  const [tier, setTier] = useState(null);
   const scrollRef = useRef(null);
 
   useEffect(() => { saveHistory(messages); }, [messages]);
@@ -85,9 +121,20 @@ export default function CayaBubble() {
       const r = await fetch(`${API}/api/caya/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web' }),
+        body: JSON.stringify({ query: q, session_id: sessionId, channel: 'web_bubble' }),
       });
       const d = await r.json();
+      // Persist asistente_session_token for /asistente expand link
+      if (d.asistente_session_token) {
+        setAsistenteToken(d.asistente_session_token);
+        try { localStorage.setItem('dmx.caya.asistente_token', d.asistente_session_token); } catch (_) { /* ignore */ }
+      }
+      // Sync session_id with backend (may have generated new dmx_caya_* if we sent null)
+      if (d.session_id && d.session_id !== sessionId) {
+        setSessionId(d.session_id);
+        try { localStorage.setItem(SS_KEY, d.session_id); } catch (_) { /* ignore */ }
+      }
+      if (d.tier) setTier(d.tier);
       const assistantMsg = {
         role: 'assistant',
         content: d.answer || 'Sin respuesta.',
@@ -95,6 +142,10 @@ export default function CayaBubble() {
         top_results: d.top_results || [],
         hand_off: d.hand_off_recommended,
         hand_off_reason: d.hand_off_reason,
+        memory_hits: d.memory_hits || [],
+        tool_calls: d.tool_calls || [],
+        suggested_capture: d.intent_detected === 'cita' || d.intent_detected === 'presupuesto',
+        simulated: d.simulated,
         ts: Date.now(),
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -172,6 +223,13 @@ export default function CayaBubble() {
                   Asistente DMX · Beta
                 </div>
               </div>
+              {tier && (
+                <span data-testid="caya-tier-badge" style={{
+                  marginLeft: 4, padding: '2px 8px', borderRadius: 9999,
+                  fontFamily: 'DM Sans', fontSize: 9, fontWeight: 700, letterSpacing: '0.10em',
+                  background: 'var(--grad)', color: '#fff',
+                }}>{tier}</span>
+              )}
             </div>
             <button data-testid="caya-close" onClick={() => setOpen(false)} style={{
               padding: 6, background: 'transparent', border: '1px solid var(--border)',
@@ -275,6 +333,9 @@ export default function CayaBubble() {
                     </div>
                   </div>
                 )}
+                {m.role === 'assistant' && (m.memory_hits || []).length > 0 && (
+                  <MemoryHitsBlock hits={m.memory_hits} />
+                )}
               </div>
             ))}
 
@@ -288,6 +349,25 @@ export default function CayaBubble() {
               </div>
             )}
           </div>
+
+          {/* Expand to /asistente CTA */}
+          {asistenteToken && (messages.length >= 5 || messages.some(m => m.role === 'assistant' && (m.hand_off || m.suggested_capture))) && (
+            <div style={{ padding: '0 14px 8px' }}>
+              <button
+                data-testid="caya-expand-btn"
+                onClick={() => { window.location.href = `/asistente?session_token=${asistenteToken}`; }}
+                style={{
+                  width: '100%', padding: '8px 14px', borderRadius: 9999,
+                  background: 'var(--grad)', color: '#fff', border: 'none',
+                  fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                Expandir conversación <ArrowRight size={11} />
+              </button>
+            </div>
+          )}
 
           {/* Input */}
           <form onSubmit={send} style={{

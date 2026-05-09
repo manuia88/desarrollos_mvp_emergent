@@ -3690,3 +3690,25 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - POST `/capture-lead` → `leads` collection existente con `source="asistente_publico"`
 - Nurture cron existente recoge auto
 
+
+---
+
+## 2026-05-09 — W4.4E.5 · Caya/Asistente Unification
+
+### Backend (3 EDIT · 2 NEW)
+- **EDIT** `caya_engine.py` (thin wrapper) · `asistente_engine.py` (get_or_create_from_legacy + channel) · `routes_asistente.py` (GET hydrate)
+- **NEW** `migrations/migrate_caya_to_asistente.py` (idempotent CLI)
+
+### Frontend (3 EDIT)
+- **EDIT** `CayaBubble.js` (tier badge + memory_hits + expand button) · `AsistentePage.js` (?session_token hydrate) · `i18n/es-MX/common.json` (4 keys)
+
+### Schema cambios
+- `db.caya_sessions`: agregadas keys `migrated, asistente_token, migrated_at`
+- `db.caya_messages`: agregada key `asistente_token` (referencia cross-collection)
+- `db.caya_sessions_migration` (NEW): `{legacy_id (unique), asistente_token, created_at}`
+- `db.asistente_sessions`: agregadas keys `channel, legacy_caya_session_id, migrated_from_caya`
+
+### Migration ejecutada (2026-05-09)
+- 4 caya_sessions migradas → 4 asistente_sessions
+- 10 caya_messages copiados → 10 asistente_messages (zero duplicates en re-run)
+

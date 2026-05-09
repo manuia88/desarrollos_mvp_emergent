@@ -324,6 +324,7 @@ class AsistenteEngine:
             "captured_lead_id": None,
             "status": "active",
             "referral_source": referral_source,
+            "channel": "web_bubble" if referral_source == "caya_bubble" else "web",
         })
         log.info(f"[asistente] session start {token} ip={ip_hash} ref={referral_source}")
         return {"session_token": token, "welcome_message": WELCOME_MESSAGE}
@@ -398,6 +399,7 @@ class AsistenteEngine:
                 "suggested_lead_capture": suggested_capture,
                 "simulated": True,
                 "message_count": msg_count + 1,
+                "tier": settings.get("_resolved_tier"),
             }
 
         # ── Real LLM call ───────────────────────────────────────────────────
@@ -455,6 +457,7 @@ class AsistenteEngine:
             "suggested_lead_capture": suggested_capture,
             "simulated": False,
             "message_count": msg_count + 1,
+            "tier": settings.get("_resolved_tier"),
         }
 
     async def _agentic_loop(self, chat, user_message: str, max_rounds: int = 2) -> Tuple[str, List[Dict]]:
@@ -577,6 +580,56 @@ class AsistenteEngine:
 
         log.info(f"[asistente] lead captured {lead_id} session={session_token}")
         return {"lead_id": lead_id, "status": "captured"}
+
+    async def get_or_create_from_legacy(
+        self,
+        legacy_caya_session_id: str,
+        ip_raw: str,
+        user_agent: str,
+    ) -> str:
+        """Mapea un session_id legacy de Caya (`dmx_caya_*`) a un asistente_token.
+
+        Idempotente: si el mapping existe, retorna el token. Si no, crea sesión nueva
+        en asistente_sessions y persiste el mapping en `caya_sessions_migration`.
+        """
+        existing = await self.db.caya_sessions_migration.find_one(
+            {"legacy_id": legacy_caya_session_id},
+            {"_id": 0, "asistente_token": 1},
+        )
+        if existing and existing.get("asistente_token"):
+            return existing["asistente_token"]
+
+        # Crear nueva session sin enforcement de rate limit (mapeo legacy)
+        from behavioral_tracking_engine import _hash_ip
+        ip_hash = _hash_ip(ip_raw or "unknown")
+        ua_hash = _hash_ip(user_agent or "unknown")
+        token = f"asis_{uuid.uuid4().hex[:20]}"
+        now = _now()
+        await self.db.asistente_sessions.insert_one({
+            "_id": token,
+            "session_token": token,
+            "ip_hash": ip_hash,
+            "user_agent_hash": ua_hash,
+            "created_at": now,
+            "last_message_at": now,
+            "message_count": 0,
+            "captured_lead_id": None,
+            "status": "active",
+            "referral_source": "caya_bubble",
+            "channel": "web_bubble",
+            "legacy_caya_session_id": legacy_caya_session_id,
+        })
+        await self.db.caya_sessions_migration.update_one(
+            {"legacy_id": legacy_caya_session_id},
+            {"$set": {
+                "legacy_id": legacy_caya_session_id,
+                "asistente_token": token,
+                "created_at": now,
+            }},
+            upsert=True,
+        )
+        log.info(f"[asistente] mapped legacy caya {legacy_caya_session_id} → {token}")
+        return token
 
     async def expire_old_sessions(self, hours: int = SESSION_EXPIRE_HOURS) -> int:
         """Cron diario: marca status=expired sesiones inactivas >N horas."""

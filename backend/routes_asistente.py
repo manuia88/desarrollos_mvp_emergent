@@ -51,6 +51,40 @@ class CaptureLeadIn(BaseModel):
 
 
 # ─── Public endpoints ─────────────────────────────────────────────────────────
+@router.get("/sessions/{session_token}")
+async def get_session(session_token: str, request: Request):
+    """Hidrata sesión existente: retorna mensajes user/assistant orden cronológico."""
+    db = request.app.state.db
+    sess = await db.asistente_sessions.find_one({"_id": session_token}, {"_id": 0})
+    if not sess:
+        raise HTTPException(404, "Sesión no encontrada")
+    if sess.get("status") == "expired":
+        raise HTTPException(410, "Sesión expirada")
+
+    msgs = await db.asistente_messages.find(
+        {"session_token": session_token, "role": {"$in": ["user", "assistant"]}},
+        {"_id": 0, "role": 1, "content": 1, "tool_calls": 1, "intent_detected": 1, "simulated": 1, "created_at": 1},
+    ).sort("created_at", 1).to_list(length=200)
+    for m in msgs:
+        ts = m.get("created_at")
+        if isinstance(ts, datetime):
+            m["created_at"] = ts.isoformat()
+    sess_ts = sess.get("created_at")
+    if isinstance(sess_ts, datetime):
+        sess["created_at"] = sess_ts.isoformat()
+    last_ts = sess.get("last_message_at")
+    if isinstance(last_ts, datetime):
+        sess["last_message_at"] = last_ts.isoformat()
+
+    return JSONResponse({
+        "session_token": session_token,
+        "status": sess.get("status"),
+        "channel": sess.get("channel", "web"),
+        "message_count": sess.get("message_count", 0),
+        "messages": msgs,
+    })
+
+
 @router.post("/sessions", status_code=201)
 async def start_session(body: StartSessionIn, request: Request):
     db = request.app.state.db

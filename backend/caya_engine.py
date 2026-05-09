@@ -1,60 +1,52 @@
-"""Phase D2 · Caya prep stub (chatbot infraestructura).
+"""W4.4E.5 — Caya/Asistente Unification.
 
-Endpoint base que será usado por C11 Caya WhatsApp/web futuro.
-Solo backend + tests. NO UI. NO WhatsApp wiring.
-
-Pipeline:
-- Semantic search top-5 vía rag_engine
-- Claude conversational con context retrieved + system prompt es-MX honest
-- hand_off_recommended=true si lead_score>70 (placeholder logic)
-- Persiste session para multi-turn futuro
+caya_engine es ahora un THIN WRAPPER sobre AsistenteEngine (W4.4E):
+- Mantiene endpoints `/api/caya/query` y `/api/caya/sessions/{id}/history` retrocompatibles
+- Persiste en `caya_messages` (legacy) Y en `asistente_messages` (canonical, vía AsistenteEngine.chat)
+- Mapea legacy session_ids `dmx_caya_*` → asistente_token via `caya_sessions_migration`
+- Mantiene RAG semantic_search para `citations` (asistente.chat NO incluye RAG hits por default)
+- Combina lead_score heurístico + suggested_lead_capture del Asistente para `hand_off_recommended`
+- Nuevos campos en response: `tier`, `asistente_session_token`, `simulated`, `memory_hits`
 """
 from __future__ import annotations
 
-import os
-import uuid
-import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.caya")
 
 router = APIRouter(tags=["caya"])
 
-CAYA_SYS_PROMPT = """Eres Caya, asistente conversacional de DesarrollosMX. Hablas español de México (es-MX), profesional y cercano.
-
-REGLAS INMUTABLES:
-- Solo respondes con datos del CONTEXTO RAG. Si no encuentras data sobre algo, di "No tengo información verificada sobre eso. Te conecto con un asesor humano".
-- Cita los chunks por su chunk_id en el campo citations.
-- Si la consulta sugiere alta intención de compra (presupuesto definido, urgencia, datos personales), sugiere hand_off al asesor humano (`hand_off_recommended=true`).
-- Sin emojis. Sin frases de marketing vacío. Tono honesto.
-- Si menciones precios o datos legales, SIEMPRE cita la fuente.
-- Output: SOLO JSON válido (sin markdown) con keys: answer (string ≤500 chars), hand_off_recommended (bool), hand_off_reason (string si true, null si false), citations (array de {chunk_id, label, source_type}).
-"""
-
 
 class CayaQueryIn(BaseModel):
     query: str = Field(..., min_length=2, max_length=500)
     session_id: Optional[str] = None
-    channel: str = Field(default="web", pattern=r"^(whatsapp|web)$")
+    channel: str = Field(default="web", pattern=r"^(whatsapp|web|web_bubble)$")
 
 
-def _now():
+def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def ensure_caya_indexes(db):
-    await db.caya_sessions.create_index("session_id")
-    await db.caya_sessions.create_index("created_at")
-    await db.caya_messages.create_index([("session_id", 1), ("created_at", 1)])
+async def ensure_caya_indexes(db) -> None:
+    """Mantiene indexes legacy + agrega index para tabla de migración."""
+    try:
+        await db.caya_sessions.create_index("session_id", name="idx_caya_session_id", background=True)
+        await db.caya_sessions.create_index("created_at", name="idx_caya_created_at", background=True)
+        await db.caya_messages.create_index([("session_id", 1), ("created_at", 1)], name="idx_caya_msg_session_time", background=True)
+        await db.caya_sessions_migration.create_index("legacy_id", unique=True, name="idx_caya_migration_legacy", background=True)
+        await db.caya_sessions_migration.create_index("asistente_token", name="idx_caya_migration_token", background=True)
+    except Exception as e:
+        log.warning(f"[caya] ensure_indexes warning: {e}")
 
 
 def _estimate_lead_score(query: str) -> int:
-    """Placeholder lead-scoring heurístico. C11 real reemplazará con NLP intent classifier."""
+    """Heurístico es-MX. Mantener idéntico al original para retrocompatibilidad."""
     q = (query or "").lower()
     score = 30
     keywords_high = ["comprar", "agendar", "visitar", "presupuesto", "financiamiento", "crédito", "credito", "interesa", "precio", "cuánto"]
@@ -68,147 +60,265 @@ def _estimate_lead_score(query: str) -> int:
     return min(score, 100)
 
 
+def _extract_ip(request: Request) -> str:
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    return forwarded or (request.client.host if request.client else "unknown")
+
+
+async def _resolve_asistente_token(
+    engine, db, payload_session_id: Optional[str], ip: str, ua: str,
+) -> tuple[str, str, bool]:
+    """Resuelve session_id legacy → asistente_token.
+
+    Returns: (legacy_session_id, asistente_token, is_new)
+    """
+    # Caso 1: cliente ya nos manda asistente_token directamente (formato asis_*)
+    if payload_session_id and payload_session_id.startswith("asis_"):
+        sess = await db.asistente_sessions.find_one({"_id": payload_session_id}, {"_id": 1})
+        if sess:
+            return payload_session_id, payload_session_id, False
+        # token inválido/expirado → caemos a crear nuevo
+
+    # Caso 2: legacy dmx_caya_*
+    if payload_session_id:
+        token = await engine.get_or_create_from_legacy(payload_session_id, ip, ua)
+        return payload_session_id, token, False
+
+    # Caso 3: nueva sesión
+    legacy_id = f"dmx_caya_{uuid.uuid4().hex[:12]}"
+    res = await engine.start_session(ip, ua, referral_source="caya_bubble")
+    token = res["session_token"]
+    await db.caya_sessions_migration.update_one(
+        {"legacy_id": legacy_id},
+        {"$set": {"legacy_id": legacy_id, "asistente_token": token, "created_at": _now()}},
+        upsert=True,
+    )
+    return legacy_id, token, True
+
+
 @router.post("/api/caya/query")
 async def caya_query(payload: CayaQueryIn, request: Request):
+    """W4.4E.5 thin-wrapper que orquesta AsistenteEngine + RAG citations + lead scoring."""
     db = request.app.state.db
-    session_id = payload.session_id or uuid.uuid4().hex
-    now = _now()
+    ip = _extract_ip(request)
+    ua = request.headers.get("user-agent", "")
 
-    # Persist session if new
-    if not payload.session_id:
-        await db.caya_sessions.insert_one({
-            "session_id": session_id,
+    # ─── 1. Phase Y check (vía start_session/chat lo hacen, pero adelantamos)
+    from asistente_engine import AsistenteEngine, AsistenteDisabledError, AsistenteRateLimitError, AsistenteSessionCapError
+    engine = AsistenteEngine(db)
+
+    # ─── 2. Resolver sesión legacy/nueva → asistente_token
+    try:
+        legacy_session_id, asistente_token, is_new = await _resolve_asistente_token(
+            engine, db, payload.session_id, ip, ua,
+        )
+    except AsistenteDisabledError:
+        return {
+            "ok": False,
+            "session_id": payload.session_id or "",
+            "asistente_session_token": None,
             "channel": payload.channel,
-            "created_at": now,
-            "first_query": payload.query[:200],
-        })
+            "answer": "Asistente temporalmente fuera de servicio. Te conecto con un asesor humano.",
+            "top_results": [],
+            "citations": [],
+            "hand_off_recommended": True,
+            "hand_off_reason": "phase_y_disabled",
+            "lead_score": _estimate_lead_score(payload.query),
+            "model": "claude-sonnet-4-5-20250929",
+            "cost_usd": 0.0,
+            "message_id": uuid.uuid4().hex,
+            "tier": None,
+            "simulated": False,
+            "memory_hits": [],
+        }
+    except AsistenteRateLimitError as e:
+        return {
+            "ok": False,
+            "session_id": payload.session_id or "",
+            "asistente_session_token": None,
+            "channel": payload.channel,
+            "answer": str(e),
+            "top_results": [],
+            "citations": [],
+            "hand_off_recommended": True,
+            "hand_off_reason": "rate_limit",
+            "lead_score": _estimate_lead_score(payload.query),
+            "model": "claude-sonnet-4-5-20250929",
+            "cost_usd": 0.0,
+            "message_id": uuid.uuid4().hex,
+            "tier": None,
+            "simulated": False,
+            "memory_hits": [],
+        }
 
-    # Persist incoming message
+    # ─── 3. Persist legacy caya_session si no existe
+    if is_new:
+        await db.caya_sessions.update_one(
+            {"session_id": legacy_session_id},
+            {"$set": {
+                "session_id": legacy_session_id,
+                "asistente_token": asistente_token,
+                "channel": payload.channel,
+                "created_at": _now(),
+                "first_query": payload.query[:200],
+                "migrated": True,
+            }},
+            upsert=True,
+        )
+
+    # ─── 4. Persist user message in legacy caya_messages (back-compat)
+    user_msg_id = uuid.uuid4().hex
     await db.caya_messages.insert_one({
-        "id": uuid.uuid4().hex,
-        "session_id": session_id,
+        "id": user_msg_id,
+        "session_id": legacy_session_id,
+        "asistente_token": asistente_token,
         "role": "user",
         "content": payload.query,
         "channel": payload.channel,
-        "created_at": now,
+        "created_at": _now(),
     })
 
-    # RAG retrieval
-    from rag_engine import semantic_search
-    rag_res = await semantic_search(db, payload.query, top_k=5)
-    chunks = rag_res.get("results", []) or []
+    # ─── 5. RAG semantic search en paralelo (mantiene citations Caya legacy)
+    citations: List[Dict[str, Any]] = []
+    chunks: List[Dict[str, Any]] = []
+    try:
+        from rag_engine import semantic_search
+        rag_res = await semantic_search(db, payload.query, top_k=5)
+        chunks = rag_res.get("results", []) or []
+        citations = [
+            {
+                "chunk_id": c.get("chunk_id"),
+                "label": c.get("title", "")[:80],
+                "source_type": c.get("source_type"),
+            }
+            for c in chunks
+        ]
+    except Exception as exc:
+        log.warning(f"[caya] RAG search failed: {exc}")
 
-    # Build user prompt
-    rag_lines = ["CONTEXTO RAG (cita estos por chunk_id):"]
-    if not chunks:
-        rag_lines.append("  (vacío — no se encontraron chunks relevantes)")
-    for i, c in enumerate(chunks, 1):
-        snip = (c.get("snippet") or "")[:240].replace("\n", " ")
-        rag_lines.append(
-            f"  [{i}] chunk_id={c.get('chunk_id')} · type={c.get('source_type')} · {c.get('title','')} → {snip}"
-        )
-    user_prompt = (
-        f"Pregunta del usuario (canal {payload.channel}): {payload.query}\n\n"
-        + "\n".join(rag_lines)
-        + "\n\nResponde en es-MX con JSON válido. Si no hay context relevante, indica hand_off_recommended=true."
+    # ─── 6. Llama AsistenteEngine.chat (LLM + 3 tools públicas + persiste asistente_messages)
+    try:
+        chat_res = await engine.chat(asistente_token, payload.query)
+    except AsistenteSessionCapError as e:
+        return _error_response(payload, legacy_session_id, asistente_token, str(e), "session_cap_exceeded")
+    except AsistenteRateLimitError as e:
+        return _error_response(payload, legacy_session_id, asistente_token, str(e), "rate_limit")
+    except AsistenteDisabledError as e:
+        return _error_response(payload, legacy_session_id, asistente_token, str(e), "phase_y_disabled")
+    except Exception as exc:
+        log.warning(f"[caya] chat failed: {exc}")
+        return _error_response(payload, legacy_session_id, asistente_token,
+                               "No pude procesar tu consulta en este momento. Te conecto con un asesor humano.",
+                               "asistente_error")
+
+    answer = chat_res.get("assistant_message", "")
+    suggested_capture = bool(chat_res.get("suggested_lead_capture"))
+    simulated = bool(chat_res.get("simulated"))
+    tier = chat_res.get("tier")
+    tool_calls = chat_res.get("tool_calls") or []
+
+    # ─── 7. Lead-score override + hand_off
+    lead_score = _estimate_lead_score(payload.query)
+    hand_off = suggested_capture or (lead_score >= 70)
+    hand_off_reason = (
+        chat_res.get("intent_detected") if suggested_capture else
+        (f"lead_score={lead_score}" if lead_score >= 70 else None)
     )
 
-    # Claude call
-    answer_payload: Dict[str, Any] = {}
-    cost_usd = 0.0
-    in_tokens = (len(user_prompt) + len(CAYA_SYS_PROMPT)) // 4
-    out_tokens = 0
-    error: Optional[str] = None
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        chat = LlmChat(
-            api_key=os.environ.get("EMERGENT_LLM_KEY"),
-            session_id=f"caya_{session_id}",
-            system_message=CAYA_SYS_PROMPT,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        raw = await chat.send_message(UserMessage(text=user_prompt))
-        text = (raw or "").strip()
-        if text.startswith("```"):
-            lines = text.splitlines()
-            if lines and lines[0].startswith("```"):
-                lines = lines[1:]
-            if lines and lines[-1].startswith("```"):
-                lines = lines[:-1]
-            text = "\n".join(lines).strip()
-        try:
-            answer_payload = json.loads(text)
-        except Exception:
-            s = text.find("{")
-            e = text.rfind("}")
-            answer_payload = json.loads(text[s:e+1]) if s >= 0 and e > s else {"answer": text[:500], "hand_off_recommended": True, "hand_off_reason": "fallback parser"}
-        out_tokens = len(text) // 4
-        cost_usd = (in_tokens / 1000.0) * 0.003 + (out_tokens / 1000.0) * 0.015
-        # Budget tracking
-        try:
-            from ai_budget import track_ai_call
-            await track_ai_call(db, "caya", "claude-sonnet-4-5-20250929", 0, "caya_conversation",
-                                tokens_in=in_tokens, tokens_out=out_tokens,
-                                feature_key="copilot_chat")
-        except Exception:
-            pass
-    except Exception as e:
-        log.warning(f"Caya Claude error: {e}")
-        error = str(e)
-        answer_payload = {
-            "answer": "No pude procesar tu consulta en este momento. Te conecto con un asesor humano.",
-            "hand_off_recommended": True,
-            "hand_off_reason": "claude_error",
-            "citations": [],
-        }
+    # ─── 8. Cost rough estimate (asistente persiste su propio cost en asistente_messages;
+    # aquí calculamos uno legacy para back-compat con el shape Caya)
+    in_tokens = max(1, (len(payload.query) + 800) // 4)  # query + system prompt aprox
+    out_tokens = max(1, len(answer) // 4)
+    cost_usd = round((in_tokens / 1_000_000) * 3.0 + (out_tokens / 1_000_000) * 15.0, 6)
 
-    # Lead-score override
-    lead_score = _estimate_lead_score(payload.query)
-    hand_off = bool(answer_payload.get("hand_off_recommended")) or (lead_score >= 70)
-    answer_payload["hand_off_recommended"] = hand_off
-    if hand_off and not answer_payload.get("hand_off_reason"):
-        answer_payload["hand_off_reason"] = f"lead_score={lead_score}"
-
-    # Persist assistant message
+    # ─── 9. Persist assistant message in legacy caya_messages
     msg_id = uuid.uuid4().hex
     await db.caya_messages.insert_one({
         "id": msg_id,
-        "session_id": session_id,
+        "session_id": legacy_session_id,
+        "asistente_token": asistente_token,
         "role": "assistant",
-        "content": answer_payload.get("answer", ""),
-        "citations": answer_payload.get("citations", []) or [],
+        "content": answer,
+        "citations": citations,
         "hand_off_recommended": hand_off,
         "lead_score": lead_score,
+        "tool_calls": tool_calls,
         "channel": payload.channel,
         "created_at": _now(),
         "model": "claude-sonnet-4-5-20250929",
-        "cost_usd": round(cost_usd, 6),
+        "cost_usd": cost_usd,
         "rag_chunks_count": len(chunks),
-        "error": error,
+        "simulated": simulated,
+        "tier": tier,
     })
 
+    # ─── 10. Budget tracking (best-effort)
+    try:
+        from ai_budget import track_ai_call
+        await track_ai_call(
+            db, "caya", "claude-sonnet-4-5-20250929", 0, "caya_conversation",
+            tokens_in=in_tokens, tokens_out=out_tokens, feature_key="copilot_chat",
+        )
+    except Exception:
+        pass
+
+    # ─── 11. Response shape backwards-compatible + nuevos campos opcionales
     return {
         "ok": True,
-        "session_id": session_id,
+        "session_id": legacy_session_id,
+        "asistente_session_token": asistente_token,
         "channel": payload.channel,
-        "answer": answer_payload.get("answer", ""),
+        "answer": answer,
         "top_results": [
-            {"chunk_id": c.get("chunk_id"), "score": c.get("score"),
-             "source_type": c.get("source_type"), "title": c.get("title"),
-             "entity_id": c.get("entity_id"), "snippet": c.get("snippet")}
+            {
+                "chunk_id": c.get("chunk_id"), "score": c.get("score"),
+                "source_type": c.get("source_type"), "title": c.get("title"),
+                "entity_id": c.get("entity_id"), "snippet": c.get("snippet"),
+            }
             for c in chunks
         ],
-        "citations": answer_payload.get("citations", []) or [],
+        "citations": citations,
         "hand_off_recommended": hand_off,
-        "hand_off_reason": answer_payload.get("hand_off_reason"),
+        "hand_off_reason": hand_off_reason,
         "lead_score": lead_score,
         "model": "claude-sonnet-4-5-20250929",
-        "cost_usd": round(cost_usd, 6),
+        "cost_usd": cost_usd,
         "message_id": msg_id,
+        "tier": tier,
+        "simulated": simulated,
+        "memory_hits": [],  # placeholder: AsistenteEngine no expone retrieve_memory en chat público
+        "tool_calls": tool_calls,
+        "intent_detected": chat_res.get("intent_detected"),
+    }
+
+
+def _error_response(
+    payload: CayaQueryIn, legacy_id: str, asistente_token: str,
+    answer: str, reason: str,
+) -> Dict[str, Any]:
+    return {
+        "ok": False,
+        "session_id": legacy_id,
+        "asistente_session_token": asistente_token,
+        "channel": payload.channel,
+        "answer": answer,
+        "top_results": [],
+        "citations": [],
+        "hand_off_recommended": True,
+        "hand_off_reason": reason,
+        "lead_score": _estimate_lead_score(payload.query),
+        "model": "claude-sonnet-4-5-20250929",
+        "cost_usd": 0.0,
+        "message_id": uuid.uuid4().hex,
+        "tier": None,
+        "simulated": False,
+        "memory_hits": [],
     }
 
 
 @router.get("/api/caya/sessions/{session_id}/history")
 async def caya_history(session_id: str, request: Request):
+    """History endpoint legacy: retorna mensajes de caya_messages para back-compat."""
     db = request.app.state.db
     cursor = db.caya_messages.find({"session_id": session_id}, {"_id": 0}).sort("created_at", 1)
     msgs = []

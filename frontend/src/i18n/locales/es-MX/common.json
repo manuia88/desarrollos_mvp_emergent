@@ -937,7 +937,13 @@
         "success": "¡Listo! Un asesor te contactará por WhatsApp en menos de 4 horas hábiles."
       },
       "disabled_message": "Asistente temporalmente fuera de servicio. Estamos haciendo mejoras.",
-      "session_expired": "Sesión expirada. Recarga la página para iniciar una nueva conversación."
+      "session_expired": "Sesión expirada. Recarga la página para iniciar una nueva conversación.",
+      "session_resumed": "Continuamos tu conversación previa. ¿En qué más te ayudo?",
+      "session_expired_fallback": "Sesión anterior expiró, comenzamos de nuevo."
+    },
+    "caya": {
+      "expand_button": "Expandir conversación",
+      "unified_with_asistente_label": "Powered by Director AI · DesarrollosMX"
     }
   }
 }
