@@ -8,6 +8,21 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Refactor `routes_*.py` flat → `/app/backend/routes/` directory
+- **Origen:** W4.2D1 emergent suggested 2026-05-09
+- **Destino:** F0 sweep o post-launch H2
+- **Qué:** Hoy `backend/` tiene ~80+ archivos `routes_*.py` flat. Mover a estructura:
+```
+backend/routes/
+  scores/  (ie_engine, scores, recipes)
+  diagnostic/  (diagnostic, recommendations, comparable_alerts)
+  marketplace/  (developer, advisor, comprador)
+  superadmin/  (tenants, audit, etc)
+  public/  (mcp, seo_files, watchlist)
+```
+- **Por qué:** footprint creciente · navegación difícil para nuevos contributors · imports más limpios.
+- **Costo:** ~3h (mover archivos + ajustar imports en server.py + verificar sin breaks).
+
 ### Developer self-serve onboarding flow + tier selection
 - **Origen:** W4.2C emergent suggested 2026-05-09
 - **Destino:** Wave 4 W4.10-W4.11 area (post Phase Y para que onboarding use agentic features)
