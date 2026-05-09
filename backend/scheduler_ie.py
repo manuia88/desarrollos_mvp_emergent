@@ -634,6 +634,30 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_lead_nurture_error", error=str(e))
 
+    # W4.4B — Director Memory daily ingest 04:30 MX (post lead_nurture)
+    try:
+        from director_memory_engine import run_memory_daily_ingest
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_memory_daily_ingest, "director_memory_ingest"),
+            CronTrigger(hour=4, minute=30, timezone=TZ),
+            args=[db], id="director_memory_ingest", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_director_memory_ingest_error", error=str(e))
+
+    # W4.4B — Director Memory expire weekly Sunday 05:00 MX
+    try:
+        from director_memory_engine import expire_all_orgs
+        _scheduler.add_job(
+            wrap_apscheduler_job(expire_all_orgs, "director_memory_expire"),
+            CronTrigger(day_of_week="sun", hour=5, minute=0, timezone=TZ),
+            args=[db], id="director_memory_expire", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_director_memory_expire_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

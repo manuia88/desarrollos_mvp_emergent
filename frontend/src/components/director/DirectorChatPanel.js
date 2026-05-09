@@ -33,7 +33,63 @@ function TokenBar({ used, cap, label }) {
   );
 }
 
-// ─── Tool call chip ───────────────────────────────────────────────────────────
+// ─── Memory hits collapsible ─────────────────────────────────────────────────
+const SOURCE_TYPE_LABELS = {
+  diagnostic:         'Diagnóstico',
+  ie_score:           'Score IE',
+  behavioral:         'Sesión',
+  director_summary:   'Resumen',
+};
+
+function MemoryHitsBlock({ hits, tier }) {
+  const [expanded, setExpanded] = React.useState(false);
+  // Solo visible para tier ≥ T2
+  if (!hits || hits.length === 0 || tier === 'T1' || tier === 'off') return null;
+
+  return (
+    <div data-testid="director-memory-hits" style={{ marginTop: 5, marginLeft: 0 }}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0',
+          display: 'flex', alignItems: 'center', gap: 5,
+          color: 'rgba(240,235,224,0.45)', fontSize: 10.5, fontFamily: 'DM Sans',
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        Memorias usadas ({hits.length})
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"
+          style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {expanded && (
+        <div style={{ marginTop: 5, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {hits.map((h, i) => (
+            <div key={i} style={{
+              padding: '4px 9px', borderRadius: 7,
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              display: 'flex', alignItems: 'baseline', gap: 6,
+            }}>
+              <span style={{
+                padding: '1px 6px', borderRadius: 9999, fontSize: 9.5, fontWeight: 700,
+                background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
+                color: '#a5b4fc', whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                {SOURCE_TYPE_LABELS[h.source_type] || h.source_type}
+              </span>
+              <span style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.45)', lineHeight: 1.4 }}>
+                {(h.content_summary || '').slice(0, 80)}{(h.content_summary || '').length > 80 ? '…' : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 function ToolChip({ toolName }) {
   const labels = {
     get_ie_score:    'IE Score',
@@ -55,9 +111,10 @@ function ToolChip({ toolName }) {
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, tier }) {
   const isUser = msg.role === 'user';
   const toolCalls = msg.tool_calls || [];
+  const memoryHits = msg.memory_hits || [];
 
   return (
     <div style={{
@@ -65,34 +122,39 @@ function MessageBubble({ msg }) {
       justifyContent: isUser ? 'flex-end' : 'flex-start',
       marginBottom: 12,
     }}>
-      <div style={{
-        maxWidth: '80%',
-        padding: '10px 14px',
-        borderRadius: isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px',
-        background: isUser
-          ? 'rgba(240,235,224,0.90)'
-          : 'rgba(13,16,23,0.92)',
-        border: isUser
-          ? 'none'
-          : '1px solid rgba(255,255,255,0.09)',
-        backdropFilter: isUser ? 'none' : 'blur(24px)',
-        fontFamily: 'DM Sans',
-        fontSize: 13.5,
-        color: isUser ? '#06080F' : '#F0EBE0',
-        lineHeight: 1.55,
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}>
-        {msg.content}
-        {msg.simulated && (
-          <span style={{ display: 'block', marginTop: 4, fontSize: 10.5, color: '#fbbf24', fontWeight: 600 }}>
-            [SIMULADO]
-          </span>
-        )}
-        {toolCalls.length > 0 && (
-          <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            {toolCalls.map((t, i) => <ToolChip key={i} toolName={typeof t === 'string' ? t : t.tool_name} />)}
-          </div>
+      <div style={{ maxWidth: '80%' }}>
+        <div style={{
+          padding: '10px 14px',
+          borderRadius: isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px',
+          background: isUser
+            ? 'rgba(240,235,224,0.90)'
+            : 'rgba(13,16,23,0.92)',
+          border: isUser
+            ? 'none'
+            : '1px solid rgba(255,255,255,0.09)',
+          backdropFilter: isUser ? 'none' : 'blur(24px)',
+          fontFamily: 'DM Sans',
+          fontSize: 13.5,
+          color: isUser ? '#06080F' : '#F0EBE0',
+          lineHeight: 1.55,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}>
+          {msg.content}
+          {msg.simulated && (
+            <span style={{ display: 'block', marginTop: 4, fontSize: 10.5, color: '#fbbf24', fontWeight: 600 }}>
+              [SIMULADO]
+            </span>
+          )}
+          {toolCalls.length > 0 && (
+            <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {toolCalls.map((t, i) => <ToolChip key={i} toolName={typeof t === 'string' ? t : t.tool_name} />)}
+            </div>
+          )}
+        </div>
+        {/* Memory hits — solo en assistant msgs */}
+        {!isUser && (
+          <MemoryHitsBlock hits={memoryHits} tier={tier} />
         )}
       </div>
     </div>
@@ -246,6 +308,7 @@ export function DirectorChatPanel({ user }) {
         role: 'assistant',
         content: res.assistant_message,
         tool_calls: res.tool_calls || [],
+        memory_hits: res.memory_hits || [],
         simulated: res.simulated,
         created_at: new Date().toISOString(),
       }]);
@@ -372,14 +435,14 @@ export function DirectorChatPanel({ user }) {
         style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 8px', display: 'flex', flexDirection: 'column' }}
         onClick={handleSuggestion}
       >
-        {messages.length === 0 && !loading ? (
-          <EmptyState />
-        ) : (
-          <>
-            {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
-            {loading && <SkeletonBubble />}
-          </>
-        )}
+          {messages.length === 0 && !loading ? (
+            <EmptyState />
+          ) : (
+            <>
+              {messages.map((m, i) => <MessageBubble key={i} msg={m} tier={tier} />)}
+              {loading && <SkeletonBubble />}
+            </>
+          )}
 
         {/* Error banner */}
         {error && (
