@@ -8,6 +8,13 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Tenant↔Developer mapping schema (reemplazar `TENANT_DEV_MAP` hardcoded)
+- **Origen:** W4.1B emergent fix workaround 2026-05-09
+- **Destino:** Wave 4 cleanup batch ó CC2 cross-cutting
+- **Qué:** Hoy `routes_diagnostic.py` tiene `TENANT_DEV_MAP = {"constructora_ariel": ["quattro","habitare-capital","agora-urbana"]}` hardcoded. Reemplazar con collection `db.tenant_developer_links` schema `{tenant_id, developer_id, role, created_at}` + helper `get_developers_for_tenant(tenant_id)`.
+- **Por qué:** hardcoded mapping NO escala más allá de los 3 demo tenants. Bloquea onboarding de tenants reales sin re-deploy.
+- **Costo:** ~1.5h (schema + migration script seed actual + 2 endpoint refactor calls).
+
 ### W4.1A index dup fix · diagnostic_reports.generated_at TTL conflict
 - **Origen:** W4.1A Sentry alert 2026-05-09 ("equivalent index already exist with different name and options")
 - **Destino:** W4.1C (mini-fix inline, ~5 min)
