@@ -5,41 +5,25 @@ PRODUCT REQUIREMENTS:
 - Strict visual guidelines: Navy (#06080F) + Cream (#F0EBE0) + specific gradient (), Outfit/DM Sans fonts, zero emojis (use internal SVG icons only).
 - Buttons MUST strictly be  (9999px) — never rounded-sm/md/lg. No  allowed (use border + backdrop-blur + rgba background instead).
 - All application UI, mock data, and internal strings MUST strictly be in Spanish .
-- TESTING: NO testing subagents allowed. Rely on ============================= test session starts ==============================
-platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
-rootdir: /app
-plugins: asyncio-1.3.0, anyio-3.7.1
-asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 466 items / 1 error
-
-==================================== ERRORS ====================================
-__________________ ERROR collecting backend/tests/test_api.py __________________
-backend/tests/test_api.py:7: in <module>
-    assert BASE_URL, "REACT_APP_BACKEND_URL is required"
-E   AssertionError: REACT_APP_BACKEND_URL is required
-E   assert ''
-=========================== short test summary info ============================
-ERROR backend/tests/test_api.py - AssertionError: REACT_APP_BACKEND_URL is re...
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-=============================== 1 error in 0.40s =============================== (executed post-push by user), /, and screenshot tools.
+- TESTING: NO testing subagents allowed. Rely on /, and screenshot tools.
+- EXECUTION: If user provides 100% spec, DO NOT pause, DO NOT ask_human with a/b/c options, execute directly.
 
 **User's preferred language**: Spanish (es-MX)
-INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages and INSTRUCT next agent to respond in the user's preferred language only (Spanish es-MX). ALL code, comments, strings, and UI must remain strictly in .
+**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the trajectory tag and respond strictly in Spanish (es-MX). ALL code, comments, strings, and UI MUST remain strictly in .
 
 **what currently exists?** 
-A mature LATAM real estate platform with working AI/ML engines (Risk, Valuation, Fraud). In this session, the agent successfully implemented **W3.6 — Phase Z.4 Vertical Data Products + Data Licensing Bundles**. This includes 4 B2B white-label widgets (Bank AVM, Insurance Risk, Notaría Title Check, Investor Yield) that reuse existing engines, plus Superadmin tools to manage Data Licensing subscriptions and API key usage. 
+A mature LATAM real estate platform with working AI/ML engines (IE Engine), public widgets, and B2B integrations. In this session, the application's IE Engine (Phase B) was significantly upgraded. It now supports robust proyecto and unit scoped recipe evaluations ( to ), automatic missing-field derivation (price_m2_avg, type, launch_date), frontend score cards for individual units (), and an automated cron scheduler that boots an initial recompute to populate unit scores immediately upon deployment (). 
 
 **Last working item**:
-    - Last item agent was working: Implementation of W3.6 — Vertical Data Products (Backend engines, API routes) and Frontend widgets/superadmin pages. 
-    - Status: NONE (Completed, awaiting next user request)
-    - Agent Testing Done: Y
-    - Which testing method agent to use? manual testing by , , and yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.. (User explicitly forbade testing subagents).
-    - User Testing Done: N/A
+    - Last item agent was working: Assisting the user in syncing external GitHub commits (W3.9a LFPDPPP badge, W3.9b watchlist backend, W3.9c watchlist frontend) into the Emergent Preview Environment. The agent provided instructions on using the platform's UI Pull from GitHub and Preview buttons since terminal Git syncing isn't supported for remote previews. 
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: N
+    - Which testing method agent to use? manual testing by , , and screenshot tool. (NO testing subagents allowed).
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
   Issue 1: Phase 4 Batch 1 UI elements not rendering in DOM () (P2)
-     - Attempted fixes: Deferred to H1 sweep.
+     - Attempted fixes: Deferred to H1 sweep by the user.
      - Next debug checklist: DEFERRED. User explicitly requested to defer this bug to the final sweep of H1. DO NOT attack this bug unless prompted.
      - Why fix this issue and what will be achieved with the fix? Will fix a broken render state.
      - Status: BLOCKED (Deferred by User)
@@ -47,105 +31,111 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
      - Should Test frontend/backend/both after fix? both
   
   Issue 2: Playwright screenshot runner drops session state/cookies/times out for deeply nested routes. (P2)
-     - Attempted fixes: Agent relies on curl-validated endpoints instead of deep navigation screenshots. (Encountered again in this session when trying to screenshot ).
-     - Next debug checklist: User is aware. Continue bypassing nested screenshot checks where possible and trust your backend  tests. 
+     - Attempted fixes: Relies on  for strict backend testing.
+     - Next debug checklist: Continue bypassing nested screenshot checks where possible and trust backend  tests. 
      - Why fix this issue and what will be achieved with the fix? Allows visual tests on gated routes.
      - Status: BLOCKED
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix? frontend
 
 **In progress Task List**: 
-*(None. All tasks requested in this session were fully completed).*
+  Task 1: Verify W3.9 external commits post-sync (P0)
+     - Where to resume: Await user confirmation that they have clicked the Pull from GitHub and Preview buttons. Once the environment rebuilds, execute smoke tests on the newly merged features (W3.9a LFPDPPP badge on public footer, W3.9b , W3.9c buyer drawer watchlist surface).
+     - What will be achieved with this? Validation that external Claude Code commits successfully integrated into the preview environment without regressions.
+     - Status: TESTING PENDING
+     - Should Test frontend/backend/both after fix? both
+     - Blocked on something: User executing the UI pull/rebuild action.
 
 **Upcoming and Future Tasks**
   Upcoming Tasks:
+  - W3.9 Polish (P0) (Partially addressed by external commits, await user for remaining tasks)
+  
+  Future Tasks (Do not pivot to these until Wave 3 is strictly finished):
   - Phase 7.10: Avance-Obra tab integration (P1)
   - WhatsApp Business real integration via  + Caya UI (P1)
   - Multi-subscriber digest for insights (Wave 4 #8 AutoNewsletter) (P1)
-  - W3.6.5 — Sales Outreach Kit (Agent suggested: PDF onboarding deck real con jinja + landing pública  con pricing tiers) (P1/P2 pending user approval)
-  
-  Future Tasks:
-  - Z.3 W3.7 Public API: Export Excel/CSV for Intelligence Hub (P2)
   - Microsoft OAuth Integration activation (P2)
-  - Phase 17 / ML Observability extension (P2)
-  - Google Calendar OAuth bidireccional en Tareas (P2)
-  - Studio Wave 1.5 (P2)
-  - Phase 8: LinkedIn real OAuth + scrape profile
-  - Phase H2: Integration AMPI API real
+  - Integration AMPI API real (H2)
 
 **Completed work in this session**
-- W3.6 Phase Z.4 Vertical Data Products & Licensing Bundles (DONE)
-  -  (Bank AVM, Insurance Risk, Title Check, Yield Calculator)
-  -  & 
-  - 4 public embeddable widgets (, , , )
-  - 2 Superadmin pages (, )
-  - Full API integration (, ) and routing updates.
+- W3.1B-1 IE Engine Phase B: Added 6 new  scope recipes to  (DONE)
+- W3.1B-2 IE Engine Phase B: Added  helper to derive , , and  in  (DONE)
+- W3.1B-3 IE Engine Phase B: Added  scope support in  and implemented 4  recipes inside  (DONE)
+- W3.1B-4 IE Engine Phase B: Added  recipe,  endpoint, and mounted  in frontend (DONE)
+- W3.1B-5 IE Engine Phase B: Extended  for unit cron auto-recompute and wired  to  startup hook (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-  - Stripe testing is using a dummy placeholder key (). Subscriptions will throw Invalid API Key gracefully until a real key is provided by the owner.
   - Proxy CDN (Cloudflare) rejects URLs with accents (e.g.,  must be URL-encoded for GET requests; mitigated via W3.0  helper).
+  - Pre-existing batch index conflict warnings in MongoDB during startup (e.g., ).
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Playwright screenshot runner auth drops/timeouts for deeply nested components.
-  - Recurrence count: 19
+  - Recurrence count: 20
   - Status: BLOCKED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-React.js, Tailwind CSS, FastAPI, MongoDB (time-series native), scikit-learn (IsolationForest), statsmodels (OLS hedonic regression), Stripe Python SDK, Mapbox GL.
+FastAPI, MongoDB, React.js, Tailwind CSS, APScheduler (for Cron recompute jobs), IE Engine (Dynamic recipe score computation architecture with dynamic scopes: colonia, proyecto, unit).
 
 **key DB schema**
   - : 
-  - : 
-  - : 
+  - : (archive for recomputes)
 
 **changes in tech stack**
-  - None in this session. Reused W3.5 auth and Stripe patterns, and W3.1-W3.4 AI engines.
+  - None.
 
 **All files of reference** 
+  - 
+  - 
   - , , 
+  - 
+  - 
+  - 
+  - 
   - , 
-  -  (4 new widgets)
-  - , 
-  -  (Strict coding rules)
 
 **Areas that need refactoring**:
-  - URL encoding strategy for frontend-to-backend GET requests containing Mexican accents.
-  - As the backend grows, migrating  into a dedicated  folder (Agent noted this in earlier planning).
+  - Migrating  into a dedicated  folder as the backend API footprint continues to grow.
 
 **key api endpoints**
-  - , , , 
-  - 
+  -  (NEW)
   - 
   - 
 
 **Critical Info for New Agent**
-  - **EXECUTION DIRECTIVE**: Do NOT use  to confirm your plan if the user provides a 100% complete spec. Just execute it, build, and summarize.
+  - **EXECUTION DIRECTIVE**: If the user provides a 100% complete spec, DO NOT use  to confirm options. Just execute it, build, and summarize.
   - **TESTING RULE**: NO testing subagents allowed ( is forbidden). Execute testing manually via , , and verify the React build via yarn run v1.22.22
 info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.. 
   - **LANGUAGE & UI**: Outputs, UIs, and strings must strictly be . Never use emojis. NEVER use . Buttons MUST be .
-  - **Reusability**: The system is highly modular. Do not build new engines if existing ones (Zone Score, Hedonic Regression, Risk Layer) can be reused.
+  - **GITHUB SYNCING**: Terminal-based Git commands to pull external branches DO NOT work in the preview environment. Always instruct the user to use the UI's Pull from GitHub and Preview buttons to sync their external commits.
 
 **documents and test reports created in this job**
-  - (No new docs were requested to be updated in this exact prompt, but standard memory files remain).
+  - None. Testing done exclusively via bash/curl validation on the fly.
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: Provided massive detailed spec for W3.6 — Phase Z.4 Vertical Data Products + Data Licensing Bundles. 
- - Agent: Implemented full backend, tested via curl. Implemented full frontend, verified via yarn build. Took screenshots. Concluded task.
- - *Pending: Awaiting user's next directive or approval of the suggested W3.6.5 Sales Outreach Kit.*
+ - User: Provided W3.1B-3 spec for UNIT scope and 4 recipes.
+ - Agent: Implemented backend unit engine logic, tests, and summaries.
+ - User: Provided W3.1B-4 spec for unit score public endpoints and UI card.
+ - Agent: Implemented  and . Tested successfully.
+ - User: Provided W3.1B-5 spec for cron auto-recompute for units.
+ - Agent: Wired the cron job in  and startup trigger in . Ran checks.
+ - User: Requested preview link and developer/admin credentials.
+ - Agent: Provided the legacy auth credentials and the generic URL.
+ - User: Requested to pull external Claude Code commits (W3.9a/b/c) from GitHub via terminal and rebuild preview.
+ - Agent: Informed the user that the preview environment requires them to trigger the Pull from GitHub and Preview buttons from the platform UI. Offered to smoke test after they execute it.
+ - *Pending: Awaiting user to click Pull from GitHub + Preview, followed by main agent conducting smoke tests for W3.9 features.*
 
 **Project Health Check:**
   - Broken: Playwright screenshot runner auth preservation on deep links (Superadmin routes).
-  - Mocked: Stripe Key (), Microsoft/LinkedIn OAuth.
+  - Mocked: Stripe Key (), Microsoft/LinkedIn OAuth, Webhook HMACs.
 
 **3rd Party Integrations** 
   - Stripe (Billing) — Requires User API Key ().
   - Claude Sonnet 4.5 / Claude Haiku (via Emergent LLM Key).
   - Resend, Deepgram, HeyGen, Twilio, OpenAI, Anthropic, ElevenLabs, Replicate (User API Keys configured in ).
   - Mapbox Directions/GL API (User API Key).
-  - INEGI DENUE, SESNSP, ENVIPE & BANXICO (User API Keys / Public APIs).
 
 **Testing status**
   - Testing agent used after significant changes: **NO (Strictly Forbidden by user)**
@@ -156,10 +146,7 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 **Credentials to test flow:**
   -  /  (Superadmin)
   -  / 
+  -  / 
 
 **What agent forgot to execute**
-  - Nothing. Flawless execution.
-
-**Debugging checklist for current issue**
-  - N/A. The environment is perfectly clean, yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. is successful, and the agent is awaiting the next feature prompt.</analysis>
+  - Nothing. The agent successfully navigated the limitation of terminal-based git pulls in a cloud environment by instructing the user to use the UI buttons.</analysis>
