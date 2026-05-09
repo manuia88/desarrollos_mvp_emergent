@@ -354,6 +354,12 @@ app.include_router(mcp_router, prefix="/api/mcp")
 from routes_seo_files import router as seo_router
 app.include_router(seo_router, prefix="/api/seo")
 
+# W4.2D1 — seed SEO filter combos on startup
+try:
+    from seo_combos_seed import seed_seo_combos as _seed_seo_combos_import
+except ImportError:
+    _seed_seo_combos_import = None
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -853,6 +859,12 @@ async def startup():
         await ensure_mcp_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.2A MCP indexes failed: {e}")
+    # W4.2D1 — SEO filter combos seed
+    try:
+        if _seed_seo_combos_import:
+            await _seed_seo_combos_import(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.2D1 seo combos seed failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
