@@ -838,6 +838,22 @@ backend/routes/
 
 ---
 
+## 📥 W4.5 Y.2A — Pricing Sub-Agent enhancements diferidos (2026-05-09)
+
+### ROI Panel Pricing en TenantDrawer (suma MXN recuperables aplicadas vs rechazadas)
+- **Origen:** emergent enhancement W4.5 Y.2A
+- **Destino propuesto:** post-Y.2 cierre (cuando haya recomendaciones aplicadas reales en producción)
+- **Razón diferir:** valor pitch metric, pero NO crítico · necesita data acumulada (≥30 días con recomendaciones aplicadas) para ser relevante · prematuro hoy
+- **Costo estimado:** 3-4h
+
+### LLM-generated thread titles vs truncate 60 chars (W4.11a)
+- **Origen:** emergent W4.11a edge case (no implementado, fallback a truncate)
+- **Destino propuesto:** F0 sweep cuando UX pain real
+- **Razón diferir:** truncate funciona, costo LLM extra ($0.60/mes 1k threads) marginal pero NO crítico · 1h fix-pass futuro
+- **Costo estimado:** 1h
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:

@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.11a Phase 10 Atlax home shipped · ATLAX BLOQUE CIERRA 38/38h ✅ · Wave 4 ~164h · próximo: W4.5 Y.2 sub-agents ML)
-**Total H1 restante**: ~406h (Wave 4 pending de los 570h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 164h = 531h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 570h (164h shipped, 406h pending) = 887h plan
+**Última actualización**: 2026-05-09 (W4.5 Y.2A Pricing Sub-Agent + resilience layers shipped · Wave 4 ~170h · Phase Y 58/137h · próximo: Y.2B Marketing Sub-Agent)
+**Total H1 restante**: ~400h (Wave 4 pending de los 570h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 170h = 537h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 570h (170h shipped, 400h pending) = 887h plan
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -145,7 +145,11 @@ Formato canónico per-batch (founder request):
 | W4.4E.5.1 | Fix-pass: security legacy mapping + lead form CayaBubble | 2 | 2 | emergent | ✅ | `e72853c` | get_or_create_from_legacy valida session existe antes de mapear · 429 con reason=rate_limit_legacy_mapping · audit log · LeadCaptureMiniForm inline 3 inputs · localStorage flag · capture-lead source override |
 | W4.4E.5.2 | Brand rename Caya→Atlax + 2 UX upgrades | 5 | 5 | emergent | ✅ | `1fac885` | atlax_engine.py + routes_caya_legacy.py 308 redirect 90d · AtlaxBubble + atlaxApi + i18n atlax.* + 4 pages imports · localStorage migration síncrona · capture-lead rate limit 3/hora/ip · form/banner mutex |
 | W4.4F | Resilience embedded (cache local + circuit breaker en Director) | 3 | — | emergent | ⏳ | — | absorbido en Y.2 sub-chunks |
-| W4.5 | Phase Y.2 5 sub-agents ML + 3 capas resilience por agente | 30 | — | emergent | ⏳ | — | 5 chunks · Pricing/Marketing/Lead/Construction/Compliance · cada uno con cache + fallback + circuit breaker |
+| W4.5 Y.2A | Pricing Sub-Agent + 3 capas resilience (LocalCache/FallbackChain/CircuitBreaker reusable) | 6 | 6 | emergent | ✅ | `c021ecc` | sub_agents/ package + resilience.py + pricing_agent.py 3-layer (LLM→cache→heuristic) + 6 endpoints + Director 7mo tool + PricingAgentPanel + tab Sub-Agents |
+| W4.5 Y.2B | Marketing Sub-Agent + 3 capas resilience (reusa resilience.py) | 6 | — | emergent | ⏳ | — | siguiente · 4 más sub-agents reusan patrón |
+| W4.5 Y.2C | Lead Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
+| W4.5 Y.2D | Construction Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
+| W4.5 Y.2E | Compliance Sub-Agent + 3 capas resilience | 6 | — | emergent | ⏳ | — | — |
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
 | W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
 | W4.8 | Phase Y.5 Observability + Replay Debugger + AI ROI per-dev dashboard | 15 | — | emergent | ⏳ | — | 4 chunks · Audit Replay + ML accuracy + Replay Debugger + AI ROI per-dev portal |
@@ -166,10 +170,10 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 164h / 570h (28.8%) 🟡
-**Pendiente Wave 4**: ~406h
-**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A 10h ✅ + W4.4B 8h ✅ + W4.4C 4h ✅ + W4.4D 6h ✅ + W4.4E 8h ✅ = 52h shipped · W4.4F + W4.5-W4.8 = 85h pending)
-**Atlax bloque (renamed de Caya 2026-05-09)**: ✅ **CERRADO 38/38h** · Y.1E 8h + Unification 7h + fix-pass 2h + rename 5h + Home extension 16h · listo para usuarios end-to-end
+**Acumulado Wave 4**: 170h / 570h (29.8%) 🟡
+**Pendiente Wave 4**: ~400h
+**Phase Y total upgraded**: 137h (W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A 6h ✅ = 58h shipped · Y.2B-E + W4.6-W4.8 = 79h pending)
+**Atlax bloque**: ✅ **CERRADO 38/38h** · Y.1E + Unification + fix-pass + rename + Home extension
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
@@ -181,6 +185,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-09 | **W4.5 Y.2A Pricing Sub-Agent + 3 capas resilience** | 6h | `c021ecc` (merge `1ace57d`) | sub_agents/ + resilience.py reusable + pricing_agent 3-layer + 6 endpoints + Director 7mo tool + PricingAgentPanel · Phase Y 58/137h ✅ |
 | 2026-05-09 | **W4.11a Phase 10 Atlax home extension · ATLAX BLOQUE CERRADO** | 16h | `1060018` (merge `8c2be1a`) | 3 tools macro + atlax_threads + ThreadsSidebar + 6 chips + AtlaxHomeHero · Atlax 38/38h ✅ |
 | 2026-05-09 | **W4.4E.5.2 Brand rename Caya→Atlax + 2 UX upgrades** | 5h | `1fac885` (merge `0d9b024`) | atlax_engine + 308 redirect 90d · capture-lead rate limit + form/banner mutex |
 | 2026-05-09 | **W4.4E.5.1 Fix-pass: security legacy + lead form** | 2h | `e72853c` (merge `250b520`) | get_or_create_from_legacy validate + 429 + LeadCaptureMiniForm |
