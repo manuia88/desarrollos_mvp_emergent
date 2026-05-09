@@ -911,6 +911,33 @@
         "tier_badge": "Tier {tier}"
       },
       "recommendation_label": "Recomendación"
+    },
+    "asistente": {
+      "hero_title": "Tu asistente para encontrar casa en CDMX",
+      "hero_subtitle": "Resuelve tus dudas en segundos · 100% gratis · Sin login",
+      "empty_state": "Pregúntame: zonas en CDMX, precios por colonia, comparables, qué proyecto se ajusta a tu presupuesto…",
+      "empty_chips": [
+        "Departamento Polanco bajo 5M",
+        "Mejores zonas familiares en CDMX",
+        "¿Cuánto puedo pagar con $20K mensuales?",
+        "Quiero agendar una cita"
+      ],
+      "input_placeholder": "Escribe tu pregunta…",
+      "send_button": "Enviar",
+      "lead_capture": {
+        "title": "¿Te conectamos con un asesor especializado?",
+        "subtitle": "Déjanos tus datos y un asesor DMX te contacta por WhatsApp en menos de 4 horas hábiles.",
+        "form_labels": {
+          "nombre": "Nombre",
+          "whatsapp": "WhatsApp (+52 ...)",
+          "email": "Email (opcional)",
+          "mensaje": "Mensaje (opcional)"
+        },
+        "cta": "Conectarme",
+        "success": "¡Listo! Un asesor te contactará por WhatsApp en menos de 4 horas hábiles."
+      },
+      "disabled_message": "Asistente temporalmente fuera de servicio. Estamos haciendo mejoras.",
+      "session_expired": "Sesión expirada. Recarga la página para iniciar una nueva conversación."
     }
   }
 }

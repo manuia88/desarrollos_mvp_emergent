@@ -1621,3 +1621,53 @@ Vista bird's-eye ejecutiva del cubo Z (cierra Wave 2 visualization layer · prep
 - Single-session enforcement bloquea screenshot login post-curl → workaround: `page.request.post` antes de navegar
 
 ### SHA: pending (auto-commit por plataforma)
+
+
+## W4.4E — Phase Y.1E · Asistente público comprador (2026-05-09)
+
+### Backend (2 NEW · 2 EDIT)
+- **NEW** `asistente_engine.py` — `AsistenteEngine` con 4 métodos: `start_session` (LFPDPPP ip_hash + UA hash + UUID token), `chat` (Phase Y check + rate limit + agentic loop max 2 rounds + 3 tools públicas + intent detection), `capture_lead` (insert en `leads` con source=asistente_publico), `expire_old_sessions` (cron 24h). 3 tools públicas: `search_developments_public` (subset DEVELOPMENTS publish-only), `get_zone_info` (avg price + amenidades + IE scores), `get_market_pulse_public` (agregados últimos 30d). Intent regex es-MX (cita, presupuesto, comparables, zona). Welcome message + system prompt es-MX. Caps: 30 msgs/session, 5 sessions/hora/ip, 20 msgs/min/session, 200 tokens output máx.
+- **NEW** `routes_asistente.py` — 4 endpoints: POST `/api/asistente/sessions` (público), POST `/sessions/{token}/messages` (público), POST `/sessions/{token}/capture-lead` (público), GET `/api/superadmin/asistente/usage` (superadmin) con sessions_count + messages_count + leads_captured + conversion_rate_pct + avg_session_length + intent_breakdown + total_cost.
+- **EDIT** `server.py` — wire `asistente_router` + `asistente_sa_router` + `ensure_asistente_indexes` en startup.
+- **EDIT** `scheduler_ie.py` — cron `asistente_expire` 03:30 MX diario llamando `expire_old_sessions_cron`.
+
+### Frontend (3 NEW · 3 EDIT)
+- **NEW** `api/asistenteApi.js` — 3 funciones: startSession, sendMessage, captureLead.
+- **NEW** `pages/public/AsistentePage.js` — ruta pública `/asistente` (NO auth) · hero + chat container max-w-720 · UTM source desde searchParams · localStorage resume `dmx_asistente_session` · disabled state si Phase Y OFF · error toast.
+- **NEW** `components/asistente/AsistenteChat.js` — bubbles (user cream-right, assistant dark-glass-left), textarea autoresize, send button rounded-full gradient, 4 chips empty-state clickeables (auto-fill input), LeadCaptureCard inline (nombre + WhatsApp + email + Conectarme), loading dots animation 850ms, behavioralTracker.track('asistente.message_sent') por mensaje.
+- **EDIT** `App.js` — lazy import + `<Route path="/asistente" element={<AsistentePage />} />`.
+- **EDIT** `i18n/locales/es-MX/common.json` — sección `asistente.*` (hero, empty, chips, input, lead_capture.*, disabled, session_expired).
+- **EDIT** `public/sitemap.xml` — agregada URL `https://desarrollosmx.io/asistente` priority 0.9.
+
+### Schema (2 collections nuevas)
+- `db.asistente_sessions`: `{_id=session_token, ip_hash, user_agent_hash, created_at, last_message_at, message_count, captured_lead_id, status (active|expired), referral_source}`. Indexes: token unique, (ip_hash, created_at), (status, last_message_at).
+- `db.asistente_messages`: `{_id, session_token, role, content, tokens_in, tokens_out, cost_usd, latency_ms, tool_calls, intent_detected, simulated, created_at}`. Index: (session_token, created_at).
+
+### Lead capture wiring
+- POST `/capture-lead` inserta en collection existente `leads` con shape: `{id, dev_org_id="dmx", source="asistente_publico", source_metadata{session_token, intent_history, referral_source, ip_hash}, contact{name,phone,email}, intent, message, status="nuevo", created_at, created_by="_asistente_publico"}`.
+- Nurture cron W4.2D3.5 (existente) recoge automáticamente leads source=asistente_publico próxima ejecución.
+- log_activity tipo `asistente.lead_captured` (best-effort).
+
+### Acceptance Criteria validados (curl + screenshot)
+- ✅ POST /api/asistente/sessions (público sin auth) → 201 con session_token + welcome_message
+- ✅ POST messages "departamentos en Polanco bajo 5M" → real LLM (claude-sonnet-4-5-20250929) dispara 2 tool_calls (search_developments_public + get_zone_info), intent=zona, suggested_capture=true (Polanco price avg=13.15M sin units bajo 5M)
+- ✅ POST messages "Quiero agendar cita" → intent=cita, suggested_lead_capture=true
+- ✅ POST capture-lead → lead_id persistido en `leads` con source=asistente_publico, intent_history=['zona','cita'], ip_hash 8 chars
+- ✅ Phase Y master OFF (toggle dmx) → POST sessions retorna 503 "Asistente temporalmente fuera de servicio"
+- ✅ Rate limit 5/hora/ip: 4 sessions succeed, 5th-7th retornan 429 "Demasiadas sesiones nuevas..."
+- ✅ Cap 30 msgs/session: POST mensaje 31 → 429 "Sesión completa, agenda una cita..."
+- ✅ Superadmin usage: sessions=5, messages=4, leads=1, conversion=20%, intent_breakdown [zona×1, cita×1], cost_usd=$0.0046
+- ✅ UI /asistente renders sin auth: hero "Tu asistente para encontrar casa en CDMX" + 4 chips funcionales (click → fill input) + textarea + Enviar button gradient · 6 testids verificados
+- ✅ yarn build 38.7s clean · /api/health 200
+
+### Edge cases conservadores
+- Phase Y `tier asistente_publico` no existe en seed → fallback a `diagnostic_engine` (T1+) — implementado en `_check_phase_y`
+- IP detection: `x-forwarded-for` first hop > `request.client.host` (Kubernetes ingress)
+- LLM tool_calls extraction robusto: si JSON parse falla, omite call (no rompe loop)
+- Tool agentic loop limitado a 2 rounds para evitar ciclos infinitos
+- Sitemap: spec pidió `desarrollosmx.io` pero sitemap existente usa `.com` → mantenida la entry literal del spec (ÚNICA con dominio .io)
+- `behavioralTracker.track` puede fallar silenciosamente si endpoint /api/track no responde → no bloquea UX
+- localStorage resume puede traer session expirada → si POST messages retorna 404 "Sesión no encontrada", UI debería detectar y reset (NOTA: actualmente UI muestra el error inline, requiere refresh; mejora futura)
+- Lead capture asociado a `dev_org_id="dmx"` por default → asignación a desarrolladora real depende del intent detected (TODO: routing inteligente fase futura)
+
+### SHA: pending (auto-commit por plataforma)

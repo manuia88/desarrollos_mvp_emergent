@@ -658,6 +658,18 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_director_memory_expire_error", error=str(e))
 
+    # W4.4E — Asistente público expire 03:30 MX diario
+    try:
+        from asistente_engine import expire_old_sessions_cron
+        _scheduler.add_job(
+            wrap_apscheduler_job(expire_old_sessions_cron, "asistente_expire"),
+            CronTrigger(hour=3, minute=30, timezone=TZ),
+            args=[db], id="asistente_expire", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_asistente_expire_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",
