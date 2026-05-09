@@ -49,8 +49,49 @@ export default function MethodologyPage() {
       'keywords': ['real estate','CDMX','price index','hedonic regression','LATAM'],
     });
     document.head.appendChild(script);
+
+    // W4.2B — FAQPage structured data
+    const faqScript = document.createElement('script');
+    faqScript.type = 'application/ld+json';
+    faqScript.setAttribute('data-structured-type', 'FAQPage');
+    faqScript.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': [
+        {
+          '@type': 'Question',
+          'name': '¿Qué es el DRPI?',
+          'acceptedAnswer': { '@type': 'Answer', 'text': 'El DMX Residential Property Index (DRPI) es un índice mensual de precios por colonia en CDMX, calculado mediante regresión hedónica OLS sobre cierres de venta verificados. Controla por superficie, nivel, amenidades y accesibilidad.' },
+        },
+        {
+          '@type': 'Question',
+          'name': '¿Qué es el Risk Score?',
+          'acceptedAnswer': { '@type': 'Answer', 'text': 'El Risk Score es un índice compuesto de 4 dimensiones: crimen (datos SESNSP), riesgo natural (Atlas CENAPRED), percepción de seguridad (ENVIPE) y heurística de título de propiedad. Score 0-100; >70 indica bajo riesgo.' },
+        },
+        {
+          '@type': 'Question',
+          'name': '¿Cómo se calcula el IE Score?',
+          'acceptedAnswer': { '@type': 'Answer', 'text': 'Los IE Scores son calculados por el IE Engine de DMX mediante recetas determinísticas que combinan datos de mercado (precios, absorción, inventario), datos sociodemográficos y benchmarks de colonia. Hay scopes de colonia, proyecto y unidad, con 23+ indicadores por propiedad.' },
+        },
+        {
+          '@type': 'Question',
+          'name': '¿Es DMX LFPDPPP compliant?',
+          'acceptedAnswer': { '@type': 'Answer', 'text': 'Sí. DesarrollosMX cumple con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP). Implementamos k-anonimidad ≥5 en todos los outputs agregados, supresión de PII en respuestas de API y auditoría de acceso por 5 años.' },
+        },
+        {
+          '@type': 'Question',
+          'name': '¿Cómo accedo a la API de DMX?',
+          'acceptedAnswer': { '@type': 'Answer', 'text': 'Genera una API Key en /superadmin/api-keys (tier free: 500 llamadas/mes). La documentación OpenAPI está en /api/openapi.json. También puedes conectar DMX a Claude Desktop, Cursor o ChatGPT vía Model Context Protocol (MCP) siguiendo las instrucciones en /connect/mcp.' },
+        },
+      ],
+    });
+    document.head.appendChild(faqScript);
+
     document.title = 'Metodología · DesarrollosMX';
-    return () => { try { document.head.removeChild(script); } catch {} };
+    return () => {
+      try { document.head.removeChild(script); } catch {}
+      try { document.head.removeChild(faqScript); } catch {}
+    };
   }, []);
 
   return (

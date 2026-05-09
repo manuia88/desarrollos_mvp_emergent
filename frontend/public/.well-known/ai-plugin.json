@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "DesarrollosMX",
+  "name_for_model": "desarrollosmx",
+  "description_for_human": "Spatial decision intelligence for LATAM real estate. Access IE scores, DRPI price index, risk scores, and diagnostics for 700+ Mexico City colonias.",
+  "description_for_model": "DesarrollosMX provides structured real estate intelligence for LATAM (Mexico City). Use get_zone_score, get_dev_diagnostic, search_developments, get_unit_scores, and get_methodology to answer questions about property prices, absorption rates, risk, and market comparables. All data is LFPDPPP-compliant, k-anonymized.",
+  "auth": {
+    "type": "user_http",
+    "authorization_type": "bearer"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://desarrollosmx.com/api/openapi.json"
+  },
+  "logo_url": "https://desarrollosmx.com/logo192.png",
+  "contact_email": "founder@desarrollosmx.com",
+  "legal_info_url": "https://desarrollosmx.com/terminos"
+}
