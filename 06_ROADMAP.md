@@ -35,11 +35,11 @@
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
 | **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | ✅ **100% COMPLETO** (W2.1-W2.10 · 2026-05-08) | ~120h |
 | **Wave 3 — Authority + Verticals + Risk Layer + IE Engine + Watchlist** (Teseo+AirDNA expansion + Kalshi data licensing F: ZZ.2-ZZ.4 + Z.3-Z.4 ext + Phase 5 + IE Engine Phase B + Risk Score V2 + Cross-sell + LFPDPPP badge + Watchlist subscribe) | ✅ **100% COMPLETO** (W3.0 → W3.9c · 2026-05-09) | ~197h |
-| **Wave 4 — Agentic + Brand + Intelligence + Behavioral ML + Phase Y + Studio video + 3DGS + Data Sources + Polish** (W4.1 Intelligence ✅ + W4.2 Brand Strategy ✅ + W4.3 Phase Y.0 Foundation ✅ + W4.4A Director Agent core ✅ + W4.4B Memory Layer RAG ✅ + W4.4C MCP Exposure Director ✅ + Phase Y.1D-Y.5 99h pending + W4.9 Studio Wave 1.5+2 ext con video bundle 50h + W4.9.5 Virtual staging 8h + W4.9.6 3D Gaussian Splatting tour 16h + W4.18 Data Sources gov MX 22h + resto pending) | 🟡 EN CURSO 120/556h (W4.1+W4.2A-2.5+W4.3+W4.4A+W4.4B+W4.4C shipped) | ~556h |
+| **Wave 4 — Agentic + Brand + Intelligence + Behavioral ML + Phase Y + Studio video + 3DGS + Data Sources + Polish** (W4.1 Intelligence ✅ + W4.2 Brand Strategy ✅ + W4.3 Phase Y.0 Foundation ✅ + W4.4A Director Agent core ✅ + W4.4B Memory Layer RAG ✅ + W4.4C MCP Exposure Director ✅ + W4.4D What-if Simulator ✅ + Phase Y.1E-Y.5 93h pending + W4.9 Studio Wave 1.5+2 ext con video bundle 50h + W4.9.5 Virtual staging 8h + W4.9.6 3D Gaussian Splatting tour 16h + W4.18 Data Sources gov MX 22h + resto pending) | 🟡 EN CURSO 126/556h (W4.1+W4.2A-2.5+W4.3+W4.4A-D shipped) | ~556h |
 
-**Total H1 restante**: ~436h (Wave 1+2+3 cerradas · Wave 4 = 556h - 120h shipped = 436h pending)
+**Total H1 restante**: ~430h (Wave 1+2+3 cerradas · Wave 4 = 556h - 126h shipped = 430h pending)
 
-**Shipped to date**: ~873h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 120h shipped + 436h pending = 873h plan H1)
+**Shipped to date**: ~873h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 126h shipped + 430h pending = 873h plan H1)
 
 **Origin de adiciones**:
 - **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).

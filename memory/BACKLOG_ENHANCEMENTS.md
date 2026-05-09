@@ -766,6 +766,22 @@ backend/routes/
 
 ---
 
+## 📥 W4.4D — Phase Y.1D What-if Simulator enhancements diferidos (2026-05-09)
+
+### Tier `whatif_simulator` explícito en phase_y_settings.feature_tiers
+- **Origen:** emergent edge case W4.4D
+- **Destino propuesto:** **F0 sweep tech debt** o sub-chunk dentro de W4.4F resilience
+- **Razón diferir:** emergent fallback temporal a tier `diagnostic_engine` funciona · agregar tier propio + UI superadmin permite gating granular
+- **Costo estimado:** 2h (schema seed + UI superadmin PhaseYControlsPanel update)
+
+### Director chat single-session enforcement bloquea Playwright workaround
+- **Origen:** emergent W4.4D edge case
+- **Destino propuesto:** F0 sweep + Playwright auth enhancement (combinar con W4.4C blocked)
+- **Razón diferir:** workaround `page.request.post` antes de navegar funciona · root cause = single-session enforcement a nivel auth · no bloquea producción
+- **Costo estimado:** ya capturado en W4.4C "Playwright runner pierde session" (mismo root cause)
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
