@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.2D1 shipped · Wave 4 ~53.5h: W4.1 Intelligence + W4.2A-D1 Brand/MCP/GEO/Watermarks/Filter URLs)
-**Total H1 restante**: ~407.5h (Wave 4 pending de los 461h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 53.5h = 420.5h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 461h (53.5h shipped, 407.5h pending) = 778h plan
+**Última actualización**: 2026-05-09 (W4.2D2 shipped · Wave 4 ~61.5h: W4.1 Intelligence + W4.2A-D2 Brand/MCP/GEO/Watermarks/Filter URLs/Zone pages)
+**Total H1 restante**: ~399.5h (Wave 4 pending de los 461h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 61.5h = 428.5h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 461h (61.5h shipped, 399.5h pending) = 778h plan
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -130,7 +130,7 @@ Formato canónico per-batch (founder request):
 | W4.2C | Watermarks + QR exports + MCP tool ext (bedrooms/m2/parking/stage) | 2.5 | 2.5 | emergent | ✅ | `99003d5` | export_brand.py + /api/exports/qr + watermark og-image · 6 filtros MCP search_developments |
 | W4.2D1 | Filter URL infrastructure (URL state sync + dynamic meta tags + dynamic sitemap + 36 SEO combos seed) | 5 | 5 | emergent | ✅ | `e61e336` | marketplaceUrlState.js + MarketplaceMetaTags.js + seo_combos_seed.py |
 | (research) | Top 200 queries CDMX (SEMrush + AMPI) | 2 | — | Claude Code | ⏳ | — | Antes de D2 |
-| W4.2D2 | 700 zone pages template + FAQ schema | 8 | — | emergent | ⏳ | — | — |
+| W4.2D2 | Zone landing pages `/zona/{slug}` (16 zonas seed) + FAQ Schema + Place JSON-LD + sitemap | 8 | 8 | emergent | ✅ | `fbdf7e9` | routes_public_zones.py + ZonePage.js + ZoneStructuredData.js |
 | W4.2D3 | Top 200-500 filter combo pages | 5 | — | emergent | ⏳ | — | depa-2recs-polanco-15M etc |
 | W4.2.5A | Embeddable Score Widget | 4 | — | emergent | ⏳ | — | iframe + script para bloggers |
 | W4.2.5B | `/prensa` Media Kit page | 3 | — | emergent | ⏳ | — | stats listas-para-pegar |
@@ -153,8 +153,8 @@ Formato canónico per-batch (founder request):
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 53.5h / 461h (11.6%) 🟡
-**Pendiente Wave 4**: ~407.5h
+**Acumulado Wave 4**: 61.5h / 461h (13.3%) 🟡
+**Pendiente Wave 4**: ~399.5h
 **Por Claude Code en Wave 4**: ~36h (research + audits + F0 + CC share)
 **Por emergent en Wave 4**: ~395h
 
