@@ -600,6 +600,11 @@ from routes_private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
 app.include_router(private_beta_router)
 
+# W4.13.A — Lead Journey Outbound asesor→dev
+from routes_lead_journey import router as lead_journey_router
+from lead_journey_engine import ensure_lead_journey_indexes
+app.include_router(lead_journey_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):
@@ -1153,6 +1158,11 @@ async def startup():
         await ensure_private_beta_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.18.3 private beta indexes failed: {e}")
+    # W4.13.A — Lead Journey indexes
+    try:
+        await ensure_lead_journey_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.13.A lead journey indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
