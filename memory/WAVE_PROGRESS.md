@@ -1,8 +1,8 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-10 (W4.18.2A Mapa core ✅ shipped SHA `f4799d1` · W4.18.3 Private Beta Gate 8h aprobado · Wave 4 ~331.5h/495h · 163.5h H1 pending)
-**Total H1 restante**: ~163.5h (Wave 4 pending de los 495h totales · +32h Mapa + 1h PostHog + 8h Private Beta Gate)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 331.5h = 698.5h shipped en H1
+**Última actualización**: 2026-05-10 (W4.18.2A.0 PostHog ✅ shipped SHA `007c7a5` · W4.18.2A Mapa core ✅ shipped SHA `f4799d1` · W4.18.3 Private Beta Gate 8h aprobado · Wave 4 ~332.5h/495h · 162.5h H1 pending)
+**Total H1 restante**: ~162.5h (Wave 4 pending de los 495h totales · +32h Mapa + 1h PostHog ✅ + 8h Private Beta Gate)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 332.5h = 699.5h shipped en H1
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1
 **Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
 **Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
@@ -166,7 +166,7 @@ Formato canónico per-batch (founder request):
 | ~~W4.9.5~~ | ~~Virtual staging IA~~ → **DIFERIDO Wave 5 W5.17** | 8 | — | — | 📦 W5 | — | depende de 3DGS estabilizado · va con video bundle |
 | W4.9.6 | 3D Gaussian Splatting tour virtual (Luma API + viewer mkkellogg/GaussianSplats3D embebido en /unidad/[id]) | 16 | — | emergent | ⏳ | — | wedge competitivo · mantener H1 |
 | W4.10 | Phase 8 ext WhatsApp Business + Newsletter Pulse 4 segments + Voice Atlax + digest sub-agents absorbed | 37 | 37 | emergent | ✅ | `02210a7` | whatsapp_engine provider-agnostic (Twilio real verified) + Resend newsletter dom/lun crons + Whisper STT + ElevenLabs TTS + AtlaxVoiceButton · Lead Nurture Y.3E ahora envía WA real |
-| W4.18.2A.0 | PostHog setup (session replay + heatmaps + feature flags · standalone · complementa W4.3 behavioral) | 1 | — | emergent | ⏳ | — | autorizado 2026-05-10 · pre-W4.18.2A para grabar session replay desde lanzamiento mapa · free tier 1M events + 5K replays/mes · cero impacto W4.3 (no reemplaza) |
+| W4.18.2A.0 | PostHog setup (session replay + heatmaps + feature flags · standalone · complementa W4.3 behavioral) | 1 | 1 | emergent | ✅ | `007c7a5` | lib/posthog.js wrapper LFPDPPP-compliant (cookieless `persistence:'memory'` + `maskAllInputs:true` + opt-out gate vs `lfpdppp_consent` localStorage + identify hash SHA256 truncate 16 sin PII raw) · index.js init pre-observability · App.js useEffect pageview/identify/reset · backend/frontend .env.example documentadas · `posthog-js@1.205.1` ya en deps · legacy observability.js F0.11 PII-leaky fix con guard + email/name drop |
 | W4.18.2A | Mapa Cerebro Espacial CORE (3 capas + Atlax click + acciones agénticas one-click + filtros básicos) | 16 | 16 | emergent | ✅ | `f4799d1` | MapaCDMX page + 5 layer pills (Preventa/Usada/Catastro/Zone Score/Riesgo) + Mapbox container + Atlax sidebar contextual + 6 endpoints `/api/maps/{layers,colonias,atlax-context}` · CTA "Ver en mapa" en /marketplace · sitemap.xml entry priority 0.9 · i18n maps.* es-MX |
 | W4.18.2B | Mapa cross-features (5 únicos: funnel inverso + demand gap + match catastro→preventa + save zones + battle card) + /valores AVM público + SEO landings auto colonia | 16 | — | emergent | ⏳ | — | después W4.18.2A ✅ |
 | W4.18.3 | **Private Beta Gate brokers-only** (invite codes + role-gate signup + landing pública waitlist + admin códigos) — 2-3 meses testing pre-launch público compradores | 8 | — | emergent | ⏳ | — | autorizado 2026-05-10 · pre-launch · construye waitlist warm para growth campaign post-testing |

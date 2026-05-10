@@ -231,6 +231,14 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
+### PostHog dashboard "Funnels Mapa Cerebro" (post-launch ops)
+- **Origen:** W4.18.2A.0 emergent suggested 2026-05-10
+- **Destino:** Founder ops post-launch (cuando active API key real PostHog)
+- **Qué:** crear dashboard en posthog.com UI con funnel filtrado por `$current_url ~ /mapa*`. Steps: `Marketplace pageview` → `click ver-en-mapa-trigger` → `Mapa pageview` → `click layer pill` → `Atlax contextual button click`. Permite cuantificar conversión flow Mapa Cerebro Espacial.
+- **Por qué:** valida wedge competitivo W4.18.2 con data real desde día 1 launch · informa W4.18.2B priorización cross-features · costo cero PostHog free tier 1M events
+- **Costo:** 0h dev · ~30 min founder ops en posthog.com UI
+- **Activar cuando:** founder cargue `REACT_APP_POSTHOG_API_KEY` real en frontend/.env producción
+
 ### Widget embebible Mapa Cerebro Espacial iframe
 - **Origen:** W4.18.2A emergent suggested 2026-05-10
 - **Destino:** Wave 5 H2 W5.16 marketing distribution (junto con MCP distribution)

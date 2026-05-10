@@ -4,6 +4,12 @@ import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from
 import { PresentationModeProvider } from './hooks/usePresentationMode';
 // W4.3 — Behavioral tracker (auto page_view on route change)
 import { usePageViewTracking } from './utils/behavioralTracker';
+// W4.18.2A.0 — PostHog LFPDPPP-compliant helpers
+import {
+  capturePageview as phCapturePageview,
+  identifyUser as phIdentifyUser,
+  resetSession as phResetSession,
+} from './lib/posthog';
 
 // Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
@@ -255,8 +261,16 @@ function AuthProvider({ children }) {
       if (res.ok) {
         const u = await res.json();
         setUser(u);
-        // Phase F0.11 — identify to Sentry + PostHog
+        // Phase F0.11 — identify to Sentry + PostHog (legacy)
         try { const { identifyUser } = await import('./observability'); identifyUser(u); } catch {}
+        // W4.18.2A.0 — LFPDPPP-compliant identify (hash truncate 16 · sin PII raw)
+        try {
+          phIdentifyUser(u?.user_id || u?.id, {
+            role: u?.role,
+            tier: u?.tier,
+            tenant_slug: u?.tenant_slug || u?.tenant_id,
+          });
+        } catch {}
       } else setUser(null);
     } catch {
       setUser(null);
@@ -280,6 +294,8 @@ function AuthProvider({ children }) {
     setUser(null);
     // Phase F0.11 — reset identity
     try { const { resetUser } = await import('./observability'); resetUser(); } catch {}
+    // W4.18.2A.0 — PostHog reset (LFPDPPP — separa sesión del próximo usuario)
+    try { phResetSession(); } catch {}
   };
 
   const openAuth = useCallback((mode = 'login') => {
@@ -299,6 +315,14 @@ function AuthProvider({ children }) {
           setAuthOpen(false);
           // Phase F0.11 — identify after login
           try { import('./observability').then(m => m.identifyUser(u)); } catch {}
+          // W4.18.2A.0 — LFPDPPP-compliant identify (hash truncate 16 · sin PII raw)
+          try {
+            phIdentifyUser(u?.user_id || u?.id, {
+              role: u?.role,
+              tier: u?.tier,
+              tenant_slug: u?.tenant_slug || u?.tenant_id,
+            });
+          } catch {}
           // Phase: redirect to role-specific portal after login.
           // If URL has ?next=... (set by AdvisorRoute on protected redirect), honour it.
           const params = new URLSearchParams(window.location.search);
@@ -390,6 +414,11 @@ function AppRouter() {
 
   // W4.3 — Behavioral page view tracking (auto-fire on route change)
   usePageViewTracking();
+
+  // W4.18.2A.0 — PostHog pageview tracking (LFPDPPP — capture_pageview manual, no auto)
+  useEffect(() => {
+    try { phCapturePageview(location.pathname + location.search); } catch {}
+  }, [location.pathname, location.search]);
 
   // Phase 4 Batch 13 — Capture ?ref=asesor_id tracking cookie on initial load
   useEffect(() => {
