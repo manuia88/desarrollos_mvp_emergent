@@ -1067,5 +1067,67 @@
         "cost_label": "Costo IA"
       }
     }
+  },
+  "superadmin_trends": {
+    "title": "Google Trends · CDMX",
+    "subtitle": "Búsquedas reales de Google para keywords inmobiliarias CDMX, vía Apify Actor con caché de 7 días.",
+    "stats": {
+      "total": "Total cache",
+      "live": "Vigentes",
+      "stale": "Vencidas",
+      "actor": "Actor"
+    },
+    "lookup": {
+      "section_title": "Búsqueda en vivo",
+      "keyword_label": "KEYWORD",
+      "geo_label": "GEO",
+      "timeframe_label": "PERÍODO",
+      "btn_search": "Buscar",
+      "btn_searching": "Buscando…",
+      "btn_force_refresh": "Forzar refresh",
+      "wait_for_result_label": "Esperar resultado del actor (puede tardar 1-3 min · sólo CLI/local)",
+      "wait_for_result_hint": "Por defecto se devuelve caché stale o heurística mientras Apify refresca en background.",
+      "placeholder": "ej. departamento polanco"
+    },
+    "result": {
+      "interest_avg": "interés avg",
+      "interest_peak": "peak",
+      "no_data_period": "Sin datos en el período seleccionado.",
+      "warn_no_cache": "Apify aún no ha cacheado esta query. Refresh corriendo en background; reintenta en 1-3 min.",
+      "warn_apify_failed": "Apify no respondió. Mostrando heurística vacía. Reintenta en ~15 min o forza refresh."
+    },
+    "regions_top": "Top regiones",
+    "queries_top": "Queries relacionadas · top",
+    "queries_rising": "Queries relacionadas · rising",
+    "curated": {
+      "section_title": "Cron · keywords curadas",
+      "subtitle": "Daily refresh 05:30 MX · Weekly refresh Lun 06:00 MX. Disparo manual disponible aquí.",
+      "btn_daily": "Refresh daily",
+      "btn_weekly": "Refresh weekly",
+      "btn_running": "Ejecutando…",
+      "label_daily": "DAILY",
+      "label_weekly": "WEEKLY"
+    },
+    "cache_table": {
+      "title": "Caché · entradas recientes",
+      "btn_reload": "Recargar",
+      "empty": "Aún no hay entradas en caché. Ejecuta una búsqueda o un refresh batch.",
+      "col_query": "Query",
+      "col_geo": "Geo",
+      "col_timeframe": "Período",
+      "col_source": "Source",
+      "col_hits": "Hits",
+      "col_cached": "Cached",
+      "col_expires": "Vence",
+      "btn_invalidate": "Invalidar"
+    },
+    "cache_status": {
+      "hit": "cache hit",
+      "miss_refreshed": "cache miss · refrescada",
+      "miss_refreshing_background": "refrescando en background",
+      "stale_refreshing": "caché expirada · refrescando bg",
+      "stale_apify_error": "caché vencida · Apify falló",
+      "miss_no_cache": "sin caché y Apify falló"
+    }
   }
 }

@@ -570,6 +570,30 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_asistente_expire_error", error=str(e))
 
+    # W4.18.1 — Apify Google Trends · daily refresh (hot keywords) 05:30 MX
+    try:
+        from apify_trends_engine import run_trends_daily_refresh
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_trends_daily_refresh, "apify_trends_daily"),
+            CronTrigger(hour=5, minute=30, timezone=TZ),
+            args=[db], id="apify_trends_daily", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_apify_trends_daily_error", error=str(e))
+
+    # W4.18.1 — Apify Google Trends · weekly refresh (zonas + intents) Lun 06:00 MX
+    try:
+        from apify_trends_engine import run_trends_weekly_refresh
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_trends_weekly_refresh, "apify_trends_weekly"),
+            CronTrigger(day_of_week="mon", hour=6, minute=0, timezone=TZ),
+            args=[db], id="apify_trends_weekly", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_apify_trends_weekly_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

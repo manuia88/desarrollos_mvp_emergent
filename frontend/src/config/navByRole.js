@@ -166,6 +166,7 @@ const SUPERADMIN_NAV = [
       { key: 'metrics-cube', to: '/superadmin/metrics-cube',             label: 'Cubo de métricas', Icon: Layers },
       { key: 'data-lake',    to: '/superadmin/data-lake',                label: 'Data Lake',        Icon: Database },
       { key: 'intelligence-hub', to: '/superadmin/intelligence-hub',     label: 'Inteligencia ejecutiva', Icon: Eye },
+      { key: 'trends',           to: '/superadmin/trends',                label: 'Google Trends · CDMX',   Icon: TrendingUp },
       { key: 'phase5-foundation', to: '/superadmin/phase5-foundation',   label: 'Foundation Phase 5',     Icon: Activity },
       { key: 'transactions',     to: '/superadmin/transactions',         label: 'Transaction Network',    Icon: Network },
       { key: 'drpi',             to: '/superadmin/drpi',                  label: 'DRPI',                   Icon: TrendingUp },

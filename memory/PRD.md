@@ -3787,3 +3787,57 @@ Composite ponderado de 4 dimensiones reales: crime (W3.4A) · natural (Atlas CDM
 - Tools macro accesibles vía LLM tool-calling (verified vía query "¿Qué zonas crecen más?" → tool_calls=["get_zone_top_growth"]).
 - Threads UI funcional (Historial · Nueva conversación · Sin conversaciones todavía).
 - Embedded Atlax visible en home sin click (`mode="home"`) con 6 chips emoji autorizados.
+
+---
+
+## W4.18.1 — Apify Google Trends Integration (2026-05-09) ✅
+
+### Objetivo
+Dar al Atlax LLM acceso real-time a Google Trends CDMX vía Apify Actor con caché 7d,
+crons automáticos (daily/weekly refresh) y panel Superadmin para inspección + invalidate manual.
+
+### Endpoints (todos /api/superadmin/trends/*, requieren superadmin)
+- `GET    /lookup?query&geo&timeframe&category&force_refresh&wait_for_result`
+- `GET    /cache/stats`
+- `GET    /cache?limit=N`
+- `DELETE /cache/{cache_key}` (invalidate manual)
+- `POST   /refresh?scope=daily|weekly` (dispara batch curated)
+- `GET    /keywords`
+
+### Tool pública para Atlax LLM
+- `get_trends_for_query(query, geo="MX-CMX", timeframe="today 12-m")` registrada
+  en `asistente_engine.py` y heredada automáticamente por `atlax_engine.py`.
+  Modo background (`wait_for_result=False`) para chat snappy: si miss → heurística
+  + Apify refresh fire-and-forget.
+
+### Crons (APScheduler · timezone America/Mexico_City)
+- `apify_trends_daily` 05:30 MX → refresca CURATED_HOT_KEYWORDS (6 intent inmobiliario)
+- `apify_trends_weekly` Lun 06:00 MX → refresca CURATED_WEEKLY_KEYWORDS (12 zonas + intents)
+
+### Resilience
+- 3-layer fallback: cache live (<50ms) → Apify Actor → cache stale → heurística vacía
+- Circuit breaker (3 fallas → 15min cooldown) evita burn de ACU
+- TTL MongoDB index purga entries expiradas automáticamente
+
+### Limitación FREE plan
+Token actual en plan FREE Apify (5 USD/mes ACU credit). Actor Puppeteer
+`apify/google-trends-scraper` necesita proxies residenciales (no incluidos en FREE)
+→ runs hacen TIMED-OUT en 240s sin scraping exitoso. UI degrada graceful
+(heurística + bg refresh + breaker). Upgrade a STARTER o switch a actor pytrends
+(`data_xplorer/google-trends-fast-scraper`) destraba sin cambios de código.
+
+### Files
+- Backend nuevo: `apify_trends_engine.py`, `routes_trends.py`, `tests/test_apify_trends.py`
+- Backend editado: `server.py`, `scheduler_ie.py`, `asistente_engine.py`, `.env`, `requirements.txt`
+- Frontend nuevo: `pages/superadmin/SuperadminTrends.js`
+- Frontend editado: `App.js`, `config/navByRole.js`, `i18n/locales/es-MX/common.json`
+
+### Validation
+- ✅ Backend boot sin errors, indexes creados
+- ✅ 9 unit tests PASSED (helpers, schemas, normalización dual-schema)
+- ✅ Cache hit path: lookup retorna `{cache_status:"hit", source:"apify"}` instantáneo, hit_count incrementado
+- ✅ Cache miss bg path: lookup retorna `{cache_status:"miss_refreshing_background", source:"heuristic"}` instantáneo + bg refresh fired
+- ✅ DELETE cache/{key}: 200 con key válido, 404 con inválido
+- ✅ Refresh batch endpoints ejecutan loop sobre CURATED_HOT_KEYWORDS / CURATED_WEEKLY_KEYWORDS
+- ✅ Frontend SuperadminTrends renderiza, todas las testid presentes, gráfica + tabla + tags pills
+- ✅ Nav entry "Google Trends · CDMX" highlighted al estar en /superadmin/trends

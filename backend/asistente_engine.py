@@ -142,6 +142,10 @@ TOOLS Y PARAMS:
    params: {{ "group_by": "alcaldia"|"tier" (default "alcaldia") }}
    devuelve: tendencia de precio m² agrupada (avg, min, max, cambio 24m %)
 
+7. get_trends_for_query
+   params: {{ "query": str (keyword o frase, requerido), "geo": str (default "MX-CMX"), "timeframe": str (default "today 12-m") }}
+   devuelve: Google Trends real para CDMX vía Apify (interés histórico, regiones top, queries relacionadas, dirección rising/falling/flat). Cache 7d.
+
 REGLAS:
 - Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
@@ -149,6 +153,7 @@ REGLAS:
 - Si user pregunta visión general / mercado / panorama / CDMX → usa get_market_overview_cdmx
 - Si user pregunta crecimiento / plusvalía / dónde invertir → usa get_zone_top_growth
 - Si user pregunta tendencias / por alcaldía / cómo evoluciona → usa get_price_trends_macro
+- Si user pregunta interés / búsquedas / Google / qué se busca / popularidad → usa get_trends_for_query
 - Si user menciona presupuesto/intención de comprar/cita/WhatsApp → al final del response sugiere capturar contacto: "Si quieres, te conectamos con un asesor especializado para resolver dudas concretas."
 - NUNCA inventes precios o nombres de proyectos. Si no tienes data, di "no tengo ese dato actualizado, te conecto con un asesor".
 - Si pregunta sobre algo fuera de CDMX (otras ciudades), responde: "Por ahora solo cubrimos CDMX en detalle, pero próximamente expandimos a Monterrey y Guadalajara."
@@ -172,6 +177,14 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_get_zone_top_growth(db, params.get("limit", 5))
         if tool_name == "get_price_trends_macro":
             return await _tool_get_price_trends_macro(db, params.get("group_by", "alcaldia"))
+        # W4.18.1 · Apify Google Trends (cache 7d, fallback heurístico)
+        if tool_name == "get_trends_for_query":
+            return await _tool_get_trends_for_query(
+                db,
+                query=params.get("query") or "",
+                geo=params.get("geo") or "MX-CMX",
+                timeframe=params.get("timeframe") or "today 12-m",
+            )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -396,6 +409,41 @@ async def _tool_get_price_trends_macro(_db, group_by: str = "alcaldia") -> Dict[
         "group_by": group_by,
         "rows": rows,
         "total_groups": len(rows),
+    }
+
+
+# ─── W4.18.1 · Apify Google Trends tool (cache 7d en MongoDB) ────────────────
+async def _tool_get_trends_for_query(db, query: str, geo: str, timeframe: str) -> Dict[str, Any]:
+    """Llama ApifyTrendsEngine.get_trends_for_query y devuelve un payload compacto
+    apto para que el LLM razone sin saturar context."""
+    if not query or not query.strip():
+        return {"error": "query requerida"}
+    try:
+        from apify_trends_engine import ApifyTrendsEngine
+        engine = ApifyTrendsEngine(db)
+        full = await engine.get_trends_for_query(
+            query=query.strip(), geo=geo or "MX-CMX",
+            timeframe=timeframe or "today 12-m",
+            wait_for_result=False,  # chat ágil: si miss, refresca en bg + heurística
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[asistente_tool] get_trends_for_query failed: {e}")
+        return {"error": "Trends temporalmente no disponible", "query": query}
+
+    # Compacta para no inflar context (LLM solo necesita lo esencial)
+    return {
+        "query": full.get("query"),
+        "geo": full.get("geo"),
+        "timeframe": full.get("timeframe"),
+        "trend_direction": full.get("trend_direction"),
+        "average_interest": full.get("average_interest"),
+        "peak_interest": full.get("peak_interest"),
+        "interest_over_time_sample": (full.get("interest_over_time") or [])[-12:],
+        "top_regions": (full.get("interest_by_region") or [])[:5],
+        "related_queries_top": (full.get("related_queries_top") or [])[:5],
+        "related_queries_rising": (full.get("related_queries_rising") or [])[:5],
+        "source": full.get("source"),
+        "cache_status": full.get("cache_status"),
     }
 
 
