@@ -682,6 +682,65 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_ml_accuracy_error", error=str(e))
 
+    # W4.18 — Data Sources gov MX (6 fuentes oficiales con frecuencias óptimas)
+    try:
+        from data_sources import (
+            run_banxico_daily_cron, run_sigcdmx_monthly_cron,
+            run_atlas_yearly_cron, run_catastro_quarterly_cron,
+            run_gtfs_monthly_cron, run_gtfs_daily_cron, run_osm_weekly_cron,
+        )
+        # Banxico diario 06:00 MX
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_banxico_daily_cron, "ds_banxico_daily"),
+            CronTrigger(hour=6, minute=0, timezone=TZ),
+            args=[db], id="ds_banxico_daily", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+        # SIGCDMX mensual día 1 04:00 MX
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_sigcdmx_monthly_cron, "ds_sigcdmx_monthly"),
+            CronTrigger(day=1, hour=4, minute=0, timezone=TZ),
+            args=[db], id="ds_sigcdmx_monthly", replace_existing=True,
+            misfire_grace_time=7200,
+        )
+        # Atlas Riesgos anual día 1 enero 05:00 MX
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_atlas_yearly_cron, "ds_atlas_yearly"),
+            CronTrigger(month=1, day=1, hour=5, minute=0, timezone=TZ),
+            args=[db], id="ds_atlas_yearly", replace_existing=True,
+            misfire_grace_time=86400,
+        )
+        # Catastro trimestral (1 enero/abril/julio/octubre) 04:30 MX
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_catastro_quarterly_cron, "ds_catastro_quarterly"),
+            CronTrigger(month="1,4,7,10", day=1, hour=4, minute=30, timezone=TZ),
+            args=[db], id="ds_catastro_quarterly", replace_existing=True,
+            misfire_grace_time=14400,
+        )
+        # GTFS static mensual día 1 03:30 MX
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_gtfs_monthly_cron, "ds_gtfs_monthly"),
+            CronTrigger(day=1, hour=3, minute=30, timezone=TZ),
+            args=[db], id="ds_gtfs_monthly", replace_existing=True,
+            misfire_grace_time=7200,
+        )
+        # GTFS afluencia diario 06:30 MX
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_gtfs_daily_cron, "ds_gtfs_daily"),
+            CronTrigger(hour=6, minute=30, timezone=TZ),
+            args=[db], id="ds_gtfs_daily", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+        # OSM semanal lunes 02:30 MX
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_osm_weekly_cron, "ds_osm_weekly"),
+            CronTrigger(day_of_week="mon", hour=2, minute=30, timezone=TZ),
+            args=[db], id="ds_osm_weekly", replace_existing=True,
+            misfire_grace_time=7200,
+        )
+    except Exception as e:
+        _emit("scheduler_data_sources_error", error=str(e))
+
     # W4.4B — Director Memory daily ingest 04:30 MX (post lead_nurture)
     try:
         from director_memory_engine import run_memory_daily_ingest

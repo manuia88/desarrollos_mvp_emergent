@@ -161,6 +161,7 @@ const SUPERADMIN_NAV = [
       { key: 'health',       to: '/superadmin/health',                   label: 'Salud del sistema', Icon: Activity },
       { key: 'observability',to: '/superadmin/observability',            label: 'Observabilidad',   Icon: Eye },
       { key: 'phase-y-observability',to: '/superadmin/phase-y-observability', label: 'Phase Y · Observability', Icon: Eye },
+      { key: 'data-sources', to: '/superadmin/data-sources', label: 'Data Sources gov MX', Icon: Database },
       { key: 'audit-log',    to: '/superadmin/audit-log',                label: 'Auditoría',        Icon: Shield },
       { key: 'ai-cost',      to: '/superadmin/ai-cost',                  label: 'Costos IA',        Icon: DollarSign },
       { key: 'commercial',   to: '/superadmin/commercial',               label: 'Comercial',        Icon: Briefcase },

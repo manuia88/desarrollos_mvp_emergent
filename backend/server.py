@@ -569,6 +569,10 @@ app.include_router(argumentario_router)
 from routes_observability import router as observability_router
 app.include_router(observability_router)
 
+# W4.18 — Data Sources gov MX bundle (6 fuentes oficiales)
+from routes_data_sources import router as data_sources_router
+app.include_router(data_sources_router)
+
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
 from routes_asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)
@@ -1067,6 +1071,12 @@ async def startup():
         await ensure_observability_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.8 Y.5 observability indexes failed: {e}")
+    # W4.18 — Data Sources gov MX indexes (6 collections)
+    try:
+        from data_sources import ensure_data_sources_indexes
+        await ensure_data_sources_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.18 data_sources indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
