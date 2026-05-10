@@ -124,6 +124,11 @@ TOOLS Y PARAMS:
     devuelve: { routing_id, suggested_asesor_id, fit_score, fit_breakdown, rationale_text, routing_layer }
     Úsalo cuando user pregunta "¿quién debería atender este lead?", "asigna lead X al mejor asesor", "rutea este lead", o cuando llega un lead nuevo y necesita ruteo manual.
 
+11. delegate_visit_prep
+    params: { "lead_id": str, "asesor_id": str, "project_id": str, "visit_at": str ISO (todos requeridos) }
+    devuelve: { dossier_id, dossier_content {buyer_profile, top_3_comparables_likely_asked, likely_objections, talking_points, key_project_data, recommended_units}, layer_used, latency_ms, cost_usd }
+    Úsalo cuando user pregunta "prepárame para mi visita con X mañana", "qué debería saber para visita Y", "dame el briefing de la cita Z".
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -195,8 +200,16 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 db, org_id,
                 lead_id=str(params.get("lead_id", "")),
             )
+        elif tool_name == "delegate_visit_prep":
+            return await _tool_delegate_visit_prep(
+                db, org_id,
+                lead_id=str(params.get("lead_id", "")),
+                asesor_id=str(params.get("asesor_id", "")),
+                project_id=str(params.get("project_id", "")),
+                visit_at=str(params.get("visit_at", "")),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -474,6 +487,45 @@ async def _tool_delegate_lead_routing(db, org_id: str, lead_id: str) -> Dict[str
         "routing_layer": result.get("routing_layer"),
         "latency_ms": result.get("latency_ms"),
         "cost_usd": result.get("cost_usd"),
+    }
+
+
+# Tool 11 — Visit Prep Dossier (W4.6 Y.3B)
+async def _tool_delegate_visit_prep(db, org_id: str, lead_id: str, asesor_id: str,
+                                    project_id: str, visit_at: str) -> Dict[str, Any]:
+    if not (lead_id and asesor_id and project_id and visit_at):
+        return {"error": "lead_id, asesor_id, project_id, visit_at son requeridos para delegate_visit_prep"}
+    try:
+        from agentic_crm.visit_prep_engine import (
+            VisitPrepEngine, VisitPrepDisabledError,
+            VisitPrepRateLimitError, VisitPrepNotFoundError,
+            VisitPrepForbiddenError,
+        )
+        engine = VisitPrepEngine(db, org_id)
+        result = await engine.generate_dossier(lead_id, asesor_id, project_id, visit_at)
+    except VisitPrepDisabledError as e:
+        return {"error": f"Visit Prep desactivado: {e}"}
+    except VisitPrepRateLimitError as e:
+        return {"error": f"Rate limit visit prep: {e}"}
+    except VisitPrepNotFoundError as e:
+        return {"error": str(e)}
+    except VisitPrepForbiddenError as e:
+        return {"error": str(e)}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[director_tool] delegate_visit_prep failed: {e}")
+        return {"error": str(e)}
+
+    return {
+        "org_id": org_id,
+        "lead_id": lead_id,
+        "asesor_id": asesor_id,
+        "project_id": project_id,
+        "dossier_id": result.get("dossier_id"),
+        "dossier_content": result.get("dossier_content") or {},
+        "layer_used": result.get("layer_used"),
+        "latency_ms": result.get("latency_ms"),
+        "cost_usd": result.get("cost_usd"),
+        "data_quality": result.get("data_quality"),
     }
 
 

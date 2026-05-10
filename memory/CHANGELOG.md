@@ -2094,3 +2094,67 @@ los crons + endpoints + UI ya están listos sin cambios de código (sólo cambia
 - daily cap por tier (T1=1000, T2=5000, T3=20000, T4=ilimitado)
 - circuit breaker LLM 5 fallas → 60s recovery
 - 30 calls/min/user en endpoints
+
+---
+
+## W4.6 Y.3B — Visit Prep Automation (2026-05-10)
+
+### Backend (nuevo)
+- `agentic_crm/visit_prep_engine.py`: VisitPrepEngine 3-layer (LLM Sonnet 4.5
+  + 3 tools internos `get_lead_profile_full` / `get_relevant_comparables_for_visit`
+  / `get_likely_objections_segment` → cached <14d zone+segment+project → heuristic
+  template estático). Métodos: `generate_dossier`, `send_email` (Resend), `mark_viewed`,
+  `run_visit_prep_daily` cron entry. SLA <60s. Caps 50/día T1 → 200/día T3 → ∞ T4.
+
+### Backend (editado)
+- `routes_agentic_crm.py`: 3 endpoints visit-prep (POST generate, GET dossiers,
+  POST mark-viewed). Permission asesor own-only · superadmin any · 30/min/user.
+- `director_agent_engine.py`: 11vo tool `delegate_visit_prep(lead_id, asesor_id, project_id, visit_at)`
+  registrado en system prompt + dispatch + `_tool_delegate_visit_prep` impl.
+- `server.py`: import alias `ensure_visit_prep_dossier_indexes` (evita colisión con
+  legacy services/visit_auto_prep `ensure_visit_prep_indexes`) + startup hook.
+- `scheduler_ie.py`: cron `visit_prep_daily` 06:00 MX.
+- `routes_phase_y_controls.py`: feature key `visit_prep_dossier` default off.
+
+### Frontend (nuevo)
+- `components/agentic_crm/VisitPrepDossier.js`: card glass dark con header (project
+  + visit_date + LayerBadge), 6 secciones colapsables (perfil/comparables/objeciones/
+  talking_points/datos_proyecto/recommended_units), botones Generar/Marcar visto/
+  Descargar PDF (print-to-PDF nativo, sin nuevas deps)/Regenerar, footer tokens+cost.
+
+### Frontend (editado)
+- `pages/advisor/AsesorTareas.js`: mount VisitPrepDossier alongside legacy
+  VisitAutoPrepCard (Phase 4 Batch 33 NO removido — coexisten).
+- `i18n/locales/es-MX/common.json`: bloque `agentic_crm.visit_prep.*` (title,
+  generate/regenerate/mark_viewed/download_pdf, sections.{6}, layer_used.{4},
+  data_quality.{4}, errors, footer).
+
+### DB
+- Nueva colección `visit_prep_dossiers` con índices:
+  `(org_id, asesor_id, status)` · `(lead_id, visit_scheduled_at -1)` ·
+  `(project_id, lead_segment, lead_zone, dossier_generated_at -1)` (cache layer)
+  · `expires_at` TTL 90d.
+
+### Acceptance criteria validados
+- ✅ POST /generate con lead+asesor+project+visit_at → dossier creado, layer=`llm`,
+  latencia 54s, $0.030 USD, content shape correcto (buyer_profile, 5 talking_points,
+  3 objections, 3 recommended_units, key_project_data 5 keys)
+- ✅ Layer 1 LLM con 3 tools internos funcionando
+- ✅ Layer 3 heurística (sim mode) → data_quality=`simulated` + cost $0
+- ✅ Phase Y master OFF → 403, tier OFF → 403
+- ✅ Simulation mode → solo heuristic + data_quality=`simulated` + NO email real
+- ✅ mark_viewed actualiza status="viewed" + activity_log
+- ✅ Cron `run_visit_prep_daily` smoke: encontró 1 appointment próximo,
+  generated=1, sent=1 (Resend OK)
+- ✅ Idempotencia: 2do POST con misma visit → from_cache=True (no genera duplicado)
+- ✅ UI VisitPrepDossier mounts en AsesorTareas alongside VisitAutoPrepCard
+  (header, botón Generar gradient pill rounded-full, sin emojis)
+- ✅ yarn build limpio (41.3s) · /api/health → 200
+
+### Edge cases / notes
+- `services/visit_auto_prep.py` (Phase 4 Batch 33) ya tenía función
+  `ensure_visit_prep_indexes` con mismo nombre → import alias evita shadow.
+- Frontend file `VisitPrepDossier.js` en `agentic_crm/` (nueva ruta) NO sobreescribe
+  legacy `VisitAutoPrepCard.js` en `asesor/`.
+- PDF generation usa `window.print()` con HTML inline (no se agregó nueva
+  dependencia jspdf/html2canvas — branding_helpers no expone PDF directo).

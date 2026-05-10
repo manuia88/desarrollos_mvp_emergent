@@ -1185,6 +1185,47 @@
         "cross_org": "Cross-org acceso denegado.",
         "no_lead": "Lead no encontrado."
       }
+    },
+    "visit_prep": {
+      "title": "Dossier de visita",
+      "generate_button": "Generar dossier",
+      "generate_button_busy": "Generando dossier…",
+      "regenerate_button": "Regenerar",
+      "no_dossier": "Aún no hay dossier para esta visita. Genéralo cuando estés listo.",
+      "mark_viewed_button": "Marcar visto",
+      "mark_viewed_busy": "Marcando…",
+      "download_pdf": "Descargar PDF",
+      "section": {
+        "buyer_profile":   "Perfil del comprador",
+        "comparables":     "Top 3 comparables",
+        "objections":      "Objeciones probables",
+        "talking_points":  "Talking points",
+        "project_data":    "Datos del proyecto",
+        "recommended_units": "Unidades recomendadas"
+      },
+      "layer_used": {
+        "llm":       "LLM",
+        "cached":    "Caché",
+        "cache":     "Caché",
+        "heuristic": "Heurística"
+      },
+      "data_quality": {
+        "high":           "Alta",
+        "medium":         "Media",
+        "basic_template": "Plantilla básica",
+        "simulated":      "Simulado"
+      },
+      "errors": {
+        "disabled":   "Visit Prep requiere tier T1 o superior.",
+        "rate_limit": "Cap diario excedido. Intenta mañana.",
+        "missing_data": "Faltan datos: lead_id, asesor_id, project_id, visit_scheduled_at",
+        "cross_org":  "Cross-org acceso denegado."
+      },
+      "footer": {
+        "generated_at": "Generado",
+        "expires_at":   "Vence",
+        "tokens":       "tokens"
+      }
     }
   }
 }

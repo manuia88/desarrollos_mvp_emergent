@@ -706,6 +706,18 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_smart_routing_metrics_error", error=str(e))
 
+    # W4.6 Y.3B — Visit Prep · daily dossier generation + email 06:00 MX
+    try:
+        from agentic_crm.visit_prep_engine import run_visit_prep_daily
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_visit_prep_daily, "visit_prep_daily"),
+            CronTrigger(hour=6, minute=0, timezone=TZ),
+            args=[db], id="visit_prep_daily", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_visit_prep_daily_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

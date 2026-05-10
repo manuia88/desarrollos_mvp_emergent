@@ -9,6 +9,7 @@ import SortableList from '../../components/shared/SortableList';
 import { reorderTareas } from '../../api/batch17';
 import { useServerUndo } from '../../components/shared/UndoSnackbar';
 import VisitAutoPrepCard from '../../components/asesor/VisitAutoPrepCard';
+import VisitPrepDossier from '../../components/agentic_crm/VisitPrepDossier';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -109,6 +110,19 @@ export default function AsesorTareas({ user, onLogout }) {
           }}>Citas próximas con briefing AI</div>
           {upcomingAppts.map((a) => (
             <VisitAutoPrepCard key={a.id || a.appointment_id} appointment={a} />
+          ))}
+          {/* W4.6 Y.3B — Visit Prep Dossier (agentic_crm) · gated por Phase Y tier */}
+          {upcomingAppts.map((a) => (
+            (a.lead_id && a.asesor_id && a.project_id) ? (
+              <VisitPrepDossier
+                key={`vpd-${a.id || a.appointment_id}`}
+                leadId={a.lead_id}
+                asesorId={a.asesor_id}
+                projectId={a.project_id}
+                projectName={a.project_name || a.project_id}
+                visitScheduledAt={a.scheduled_at || a.slot_start}
+              />
+            ) : null
           ))}
         </div>
       )}
