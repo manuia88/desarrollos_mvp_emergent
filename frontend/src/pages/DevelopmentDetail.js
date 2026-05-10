@@ -29,6 +29,8 @@ import { trackPropertyView } from '../lib/funnelTracker';
 import StructuredData from '../components/seo/StructuredData';
 // W4.14 — Investment Simulator embed
 import InvestmentSimulator from '../components/investment/InvestmentSimulator';
+// W4.9 — Brochure Generator
+import BrochureGenerator from '../components/brochure/BrochureGenerator';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -49,6 +51,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const [gateContext, setGateContext] = useState(null);
   const [explain, setExplain] = useState(null); // { zoneId, code } | null
   const [briefingOpen, setBriefingOpen] = useState(false);
+  const [brochureOpen, setBrochureOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('lead');
   const contactoId = searchParams.get('contacto');
@@ -121,7 +124,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         data={{
           name: dev.name,
           description: dev.description || '',
-          url: `https://desarrollosmx.io/desarrollo/${dev.id}`,
+          url: `https://desarrollosmx.com/desarrollo/${dev.id}`,
           image: (dev.images || [])[0] || '',
           address: dev.address_full || '',
           colonia: dev.colonia || '',
@@ -341,6 +344,24 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   <Sparkle size={13} /> Briefing IE para cliente
                 </button>
               )}
+              {isAdvisor && (
+                <button
+                  data-testid="brochure-generate-cta"
+                  onClick={() => setBrochureOpen(true)}
+                  style={{
+                    marginTop: 10, width: '100%',
+                    padding: '12px 20px', borderRadius: 9999,
+                    background: 'transparent',
+                    border: '1px solid rgba(240,235,224,0.3)',
+                    color: 'var(--cream)',
+                    fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+                    letterSpacing: '0.02em',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Generar brochure PDF
+                </button>
+              )}
             </div>
           </div>
         </section>
@@ -367,6 +388,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         contactId={contactoId}
         onClose={() => setBriefingOpen(false)}
       />
+
+      {brochureOpen && (
+        <BrochureGenerator
+          projectId={dev.id}
+          projectName={dev.name}
+          onClose={() => setBrochureOpen(false)}
+        />
+      )}
 
       <style>{`
         @media (max-width: 900px) {

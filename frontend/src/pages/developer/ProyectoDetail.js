@@ -18,6 +18,7 @@ import ComercializacionTab from '../../components/developer/ComercializacionTab'
 import InsightsTab from '../../components/developer/insights/InsightsTab';
 import BulkUploadModal from '../../components/developer/BulkUploadModal';
 import DiagnosticReportContent from '../../components/developer/DiagnosticReportContent';
+import BrochureGenerator from '../../components/brochure/BrochureGenerator';
 import { EntityDrawer } from '../../components/shared/EntityDrawer';
 import { getProjectSummary } from '../../api/developer';
 import { getLatestDiagnostic } from '../../api/diagnostic';
@@ -187,6 +188,7 @@ export default function ProyectoDetail({ user, onLogout }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showBrochure, setShowBrochure] = useState(false);
 
   const activeTab = searchParams.get('tab') || 'ventas';
   const diagnosticOpen = searchParams.get('diagnostic') === 'open';
@@ -340,6 +342,19 @@ export default function ProyectoDetail({ user, onLogout }) {
             >
               Editar
             </button>
+            <button
+              data-testid="brochure-generate-cta"
+              onClick={() => setShowBrochure(true)}
+              title="Generar brochure PDF + variantes sociales"
+              style={{
+                background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                color: '#fff', border: 'none', borderRadius: 9999,
+                padding: '7px 16px', fontSize: 12, fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Brochure
+            </button>
           </div>
         </div>
 
@@ -429,6 +444,15 @@ export default function ProyectoDetail({ user, onLogout }) {
             devId={slug}
             onClose={() => setShowBulkUpload(false)}
             onCommitted={() => { setShowBulkUpload(false); load(); }}
+          />
+        )}
+
+        {/* W4.9 — Brochure Generator Modal */}
+        {showBrochure && (
+          <BrochureGenerator
+            projectId={slug}
+            projectName={summary?.name || slug}
+            onClose={() => setShowBrochure(false)}
           />
         )}
 

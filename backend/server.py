@@ -622,6 +622,11 @@ app.include_router(buyer_coach_router)
 from routes_investment_simulator import router as investment_sim_router
 app.include_router(investment_sim_router)
 
+# W4.9 — Studio Brochure (PDF + 4 social variants + custom upload)
+from routes_brochure import router as brochure_router
+from brochure_engine import ensure_brochure_indexes as ensure_brochure_indexes_fn
+app.include_router(brochure_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):
