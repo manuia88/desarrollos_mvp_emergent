@@ -595,6 +595,37 @@ app.include_router(maps_cross_router)
 from routes_avm_public import router as avm_public_router
 app.include_router(avm_public_router)
 
+# W4.18.3 — Private Beta Gate (invite codes + waitlist)
+from routes_private_beta import router as private_beta_router
+from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
+app.include_router(private_beta_router)
+
+
+@app.middleware("http")
+async def private_beta_signup_gate(request, call_next):
+    """W4.18.3 — Bloquea /api/auth/register cuando PRIVATE_BETA_MODE=true.
+    El signup broker (con invite code) sigue funcionando vía /api/auth/signup-broker.
+    Login y todos los demás endpoints siguen normales.
+    """
+    try:
+        if (
+            is_private_beta_mode()
+            and request.method == "POST"
+            and request.url.path == "/api/auth/register"
+        ):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "code": "private_beta",
+                    "message": "Próximamente · únete a la waitlist o usa código de invitación broker.",
+                    "broker_portal": "/broker-portal",
+                },
+            )
+    except Exception:
+        pass
+    return await call_next(request)
+
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
 from routes_asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)
@@ -1117,6 +1148,11 @@ async def startup():
         await ensure_maps_cross_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.18.2B maps cross indexes failed: {e}")
+    # W4.18.3 — Private Beta indexes
+    try:
+        await ensure_private_beta_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.18.3 private beta indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
