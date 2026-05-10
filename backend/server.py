@@ -441,6 +441,7 @@ app.include_router(trends_router)
 from routes_agentic_crm import router as agentic_crm_router
 from agentic_crm.smart_routing_engine import ensure_routing_indexes
 from agentic_crm.visit_prep_engine import ensure_visit_prep_indexes as ensure_visit_prep_dossier_indexes
+from agentic_crm.reply_classifier_engine import ensure_reply_indexes
 app.include_router(agentic_crm_router)
 
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
@@ -1017,6 +1018,11 @@ async def startup():
         await ensure_visit_prep_dossier_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.6 Y.3B visit-prep indexes failed: {e}")
+    # W4.6 Y.3C — Reply Classifier indexes
+    try:
+        await ensure_reply_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.6 Y.3C reply_classifier indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

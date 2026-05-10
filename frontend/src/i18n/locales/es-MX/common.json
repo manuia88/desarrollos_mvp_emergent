@@ -1226,6 +1226,59 @@
         "expires_at":   "Vence",
         "tokens":       "tokens"
       }
+    },
+    "reply_classifier": {
+      "title": "Bandeja inteligente",
+      "eyebrow": "CRM · Respuestas clasificadas",
+      "subtitle": "Respuestas de email clasificadas automáticamente con AI · 6 categorías y acciones recomendadas.",
+      "refresh": "Refrescar",
+      "mark_action_taken": "Marcar como atendida",
+      "marking": "Marcando…",
+      "received_at": "Recibido",
+      "recommended_action_eyebrow": "Acción recomendada",
+      "empty_title": "Sin respuestas en este filtro",
+      "empty_subtitle": "Cuando lleguen replies a tus campañas, aparecerán aquí clasificadas con AI.",
+      "loading": "Cargando respuestas…",
+      "filter": {
+        "pending": "Pendientes",
+        "action_taken": "Atendidas",
+        "archived": "Archivadas",
+        "all": "Todas"
+      },
+      "urgency": {
+        "all": "Todas",
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      },
+      "category": {
+        "interested": "Interesado",
+        "objection": "Objeción",
+        "question": "Pregunta",
+        "soft_silence": "Tibio",
+        "unsubscribe": "Unsubscribe",
+        "spam": "Spam"
+      },
+      "action_type": {
+        "notify_asesor": "Notificar asesor",
+        "escalate_manager": "Escalar a manager",
+        "add_watchlist": "Agregar a watchlist",
+        "advance_funnel_stage": "Avanzar funnel",
+        "mark_spam": "Marcar spam"
+      },
+      "layer_used": {
+        "llm": "LLM",
+        "cached": "Caché",
+        "cache": "Caché",
+        "heuristic": "Heurística"
+      },
+      "errors": {
+        "disabled": "Reply Classifier requiere tier T1 o superior.",
+        "rate_limit": "Cap excedido. Intenta en 60 segundos.",
+        "cross_org": "Cross-org acceso denegado.",
+        "load_failed": "Error al cargar respuestas",
+        "mark_failed": "No se pudo marcar como atendida"
+      }
     }
   }
 }

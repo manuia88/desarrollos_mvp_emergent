@@ -13,7 +13,10 @@ Rate limit handled inside SmartRoutingEngine (50/min/org).
 """
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
+import os
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -34,6 +37,14 @@ from agentic_crm.visit_prep_engine import (
     VisitPrepForbiddenError,
     VisitPrepNotFoundError,
     VisitPrepRateLimitError,
+)
+from agentic_crm.reply_classifier_engine import (
+    ReplyClassifierEngine,
+    ReplyClassifierDisabledError,
+    ReplyClassifierForbiddenError,
+    ReplyClassifierNotFoundError,
+    ReplyClassifierRateLimitError,
+    ingest_webhook_reply,
 )
 
 log = logging.getLogger("dmx.routes_agentic_crm")
@@ -426,4 +437,159 @@ async def mark_dossier_viewed(dossier_id: str, request: Request):
     except VisitPrepNotFoundError as e:
         raise HTTPException(404, str(e))
     except VisitPrepForbiddenError as e:
+        raise HTTPException(403, str(e))
+
+
+# ─── W4.6 Y.3C · Reply Classifier (Resend inbound webhooks) ───────────────────
+import hashlib  # noqa: E402
+import hmac     # noqa: E402
+import base64   # noqa: E402
+
+
+def _verify_svix_signature(secret: str, raw_body: bytes,
+                           svix_id: str, svix_timestamp: str, svix_signature: str) -> bool:
+    """Verifica firma Svix-Signature (estándar Resend webhooks).
+
+    Header svix-signature trae 1+ versiones: "v1,base64sig v1,base64sig2 ..."
+    Firma se calcula como HMAC-SHA256 sobre `{svix_id}.{svix_timestamp}.{body}`.
+    """
+    if not (secret and svix_id and svix_timestamp and svix_signature):
+        return False
+    if secret.startswith("whsec_"):
+        try:
+            secret_bytes = base64.b64decode(secret[len("whsec_"):])
+        except Exception:
+            return False
+    else:
+        secret_bytes = secret.encode("utf-8")
+    msg = f"{svix_id}.{svix_timestamp}.".encode("utf-8") + raw_body
+    expected = base64.b64encode(hmac.new(secret_bytes, msg, hashlib.sha256).digest()).decode()
+    for chunk in svix_signature.split():
+        if "," not in chunk:
+            continue
+        _ver, sig = chunk.split(",", 1)
+        if hmac.compare_digest(sig, expected):
+            return True
+    return False
+
+
+@router.post("/api/agentic-crm/webhooks/resend-inbound")
+async def resend_inbound_webhook(request: Request):
+    """PÚBLICO · valida Svix-Signature de Resend antes de procesar."""
+    secret = os.environ.get("RESEND_WEBHOOK_SECRET", "")
+    raw_body = await request.body()
+    svix_id = request.headers.get("svix-id", "")
+    svix_ts = request.headers.get("svix-timestamp", "")
+    svix_sig = request.headers.get("svix-signature", "")
+
+    # En producción, secret obligatorio. Si está vacío → solo modo dev local.
+    if secret and not _verify_svix_signature(secret, raw_body, svix_id, svix_ts, svix_sig):
+        raise HTTPException(401, "Firma Svix inválida")
+
+    try:
+        payload = json.loads(raw_body) if raw_body else {}
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Payload JSON inválido")
+
+    db = request.app.state.db
+    try:
+        ingest_result = await ingest_webhook_reply(db, payload, raw_body)
+    except Exception as e:  # noqa: BLE001
+        log.exception(f"[resend_inbound] ingest failed: {e}")
+        raise HTTPException(500, "Ingest error")
+
+    reply_id = ingest_result["reply_id"]
+    org_id = ingest_result.get("org_id") or "dmx"
+
+    # Phase Y check fast-path: si OFF, NO clasifica (guarda crudo)
+    try:
+        from routes_phase_y_controls import get_phase_y_settings
+        settings = await get_phase_y_settings(db, org_id)
+        if not settings.get("agentic_enabled", False) or \
+           (settings.get("feature_tiers") or {}).get("reply_classifier", "off") == "off":
+            # 503 con info que el reply queda guardado para review
+            return {"ok": True, "reply_id": reply_id, "classified": False,
+                    "reason": "reply_classifier_disabled"}
+    except Exception:
+        pass
+
+    # Async fire-and-forget classification
+    async def _bg_classify():
+        try:
+            engine = ReplyClassifierEngine(db, org_id)
+            await engine.classify_reply(reply_id)
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[resend_inbound] bg classify failed: {e}")
+
+    asyncio.create_task(_bg_classify())
+    return {"ok": True, "reply_id": reply_id, "classified": "async",
+            "lead_id": ingest_result.get("lead_id"),
+            "review_needed": ingest_result.get("review_needed")}
+
+
+@router.get("/api/agentic-crm/replies")
+async def list_replies(
+    request: Request,
+    asesor_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None, pattern=r"^(pending|action_taken|archived|all)$"),
+    urgency: Optional[str] = Query(None, pattern=r"^(high|medium|low|all)$"),
+    category: Optional[str] = Query(None),
+    org_id: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+):
+    user = await _require_authorized(request, org_id)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+    target_org = _resolve_org(user, org_id)
+
+    q: Dict[str, Any] = {}
+    if role != "superadmin" or org_id:
+        q["org_id"] = target_org
+    if role in {"advisor", "asesor", "asesor_freelance"}:
+        q["asesor_id"] = getattr(user, "user_id", "")
+    elif asesor_id:
+        q["asesor_id"] = asesor_id
+    if status and status != "all":
+        q["status"] = status
+    if urgency and urgency != "all":
+        q["classification.urgency"] = urgency
+    if category:
+        q["classification.category"] = category
+
+    cur = db.email_replies.find(q).sort([("classification.urgency", -1), ("received_at", -1)]).limit(limit)
+    rows = []
+    async for d in cur:
+        out = {k: v for k, v in d.items() if k != "_id"}
+        out["reply_id"] = d.get("_id")
+        for k in ("received_at", "classified_at", "action_taken_at", "expires_at"):
+            v = out.get(k)
+            if isinstance(v, datetime):
+                out[k] = v.isoformat()
+        rows.append(out)
+    return {"ok": True, "count": len(rows), "replies": rows}
+
+
+@router.post("/api/agentic-crm/replies/{reply_id}/mark-action-taken")
+async def mark_reply_action_taken(reply_id: str, request: Request):
+    user = await _get_user(request)
+    role = getattr(user, "role", "")
+    if role not in ROUTING_ROLES:
+        raise HTTPException(403, "Rol no autorizado")
+    db = request.app.state.db
+    doc = await db.email_replies.find_one({"_id": reply_id}, {"_id": 1, "org_id": 1, "asesor_id": 1})
+    if not doc:
+        raise HTTPException(404, "Reply no encontrado")
+    if role != "superadmin" and getattr(user, "tenant_id", None) != doc["org_id"]:
+        raise HTTPException(403, "Cross-org acceso denegado")
+
+    asesor_filter = None
+    if role in {"advisor", "asesor", "asesor_freelance"}:
+        asesor_filter = getattr(user, "user_id", None)
+
+    try:
+        engine = ReplyClassifierEngine(db, doc["org_id"])
+        return {"ok": True, **await engine.mark_action_taken(reply_id, asesor_id=asesor_filter)}
+    except ReplyClassifierNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except ReplyClassifierForbiddenError as e:
         raise HTTPException(403, str(e))

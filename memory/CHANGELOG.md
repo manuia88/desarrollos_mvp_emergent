@@ -1,6 +1,36 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W4.6 Y.3C — Reply Classifier · Frontend + Webhook hardening (2026-05-10)
+
+Cierra el ciclo backend+frontend del Reply Classifier (Resend inbound webhooks). Asesores ven una bandeja inteligente con respuestas de email clasificadas por AI en 6 categorías (interested/objection/question/soft_silence/unsubscribe/spam) + acción recomendada. Webhook firmado con Svix-Signature ahora rechaza payloads no autenticados (placeholder secret).
+
+### Backend (1 editado · env)
+- **EDIT** `backend/.env` · `RESEND_WEBHOOK_SECRET=whsec_<base64-32B-placeholder>` · habilita gate de firma. Cuando vacío estaba bypassed (origen del bug "wrong sig: 200").
+- Ningún cambio funcional en `routes_agentic_crm.py`: el branch `if secret and not _verify_svix_signature(...): raise HTTPException(401)` ya era correcto. Bug era de configuración, no de lógica.
+
+### Frontend (1 nuevo · 2 editados)
+- **NEW** `components/agentic_crm/RepliesInbox.js` — bandeja con filtros status (pending/action_taken/archived/all) + urgency (all/high/medium/low). Cada row muestra pills (categoría, urgencia, layer, confidence%), `recommended_action_text` resaltada gradient indigo, `key_phrases` chips, body preview 1200ch, botón "Marcar como atendida" (`POST /api/agentic-crm/replies/{id}/mark-action-taken`). Refresh manual + counts (total, ALTA). 100% es-MX, `rounded-full` strict, sin emojis, sin `shadow-2xl`.
+- **EDIT** `pages/advisor/AsesorTareas.js` · monta `<RepliesInbox asesorId={user?.user_id || user?.id} />` por encima del bloque "Citas próximas con briefing AI".
+- **EDIT** `i18n/locales/es-MX/common.json` · namespace `agentic_crm.reply_classifier.*` con sub-keys `filter`, `urgency`, `category`, `action_type`, `layer_used`, `errors`.
+
+### Acceptance criteria (curl/python)
+- POST webhook · firma incorrecta → **HTTP 401** `{"detail":"Firma Svix inválida"}` ✓
+- POST webhook · sin headers svix → **HTTP 401** ✓
+- POST webhook · firma HMAC-SHA256 válida (whsec_… base64 → secret_bytes) → **HTTP 200** `{ok:true, reply_id, classified:"async", review_needed:true}` ✓
+- POST webhook persiste 7 docs en `desarrollosmx.email_replies` (org_id=`dmx` para webhooks sin lead match) ✓
+- GET `/api/agentic-crm/replies` sin auth → **HTTP 401** ✓
+- GET `/api/agentic-crm/replies` como asesor (tenant_id `agencia_demo`) → **HTTP 200**, `count=0` (multi-tenant isolation) ✓
+- Seed reply para `agencia_demo` + asesor `user_asesor_0001` → list devuelve 1 con clasificación completa ✓
+- POST `/api/agentic-crm/replies/{id}/mark-action-taken` como asesor dueño → **HTTP 200** `{status:"action_taken"}` · `pending` count=0 después · `action_taken` count=1 con timestamp ✓
+- `yarn build` exit 0 (39.98s) ✓ · ESLint clean en `RepliesInbox.js` ✓
+
+### Notas
+- Screenshot de `/asesor/tareas` deferido: Issue #2 conocido (Playwright timeout en rutas profundas con sesión). Backend curl verificado end-to-end.
+- Phase Y guard activo: si tier `reply_classifier` = `off`, webhook devuelve `{ok:true, classified:false, reason:"reply_classifier_disabled"}` (reply persiste para review manual).
+
+
+
 ## W4.2.5 — Brand Strategy · Embed widgets + Press kit (2026-05-09)
 
 Cierra ciclo SEO/GEO compounding: bloggers/journalists pueden embeber widgets DMX (cada embed = backlink natural) + página `/prensa` con stats live listas-para-pegar (cada cita Forbes/El Financiero = autoridad SEO + AI training data).

@@ -129,6 +129,11 @@ TOOLS Y PARAMS:
     devuelve: { dossier_id, dossier_content {buyer_profile, top_3_comparables_likely_asked, likely_objections, talking_points, key_project_data, recommended_units}, layer_used, latency_ms, cost_usd }
     Úsalo cuando user pregunta "prepárame para mi visita con X mañana", "qué debería saber para visita Y", "dame el briefing de la cita Z".
 
+12. delegate_classify_reply
+    params: { "reply_id": str (requerido) }
+    devuelve: { reply_id, classification {category, confidence_score, urgency, key_phrases, recommended_action_text, next_best_action_type}, layer_used, latency_ms, dispatch }
+    Úsalo cuando user pregunta "qué dice esta respuesta?", "clasifica reply X", "qué tan urgente es esto?".
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -208,8 +213,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 project_id=str(params.get("project_id", "")),
                 visit_at=str(params.get("visit_at", "")),
             )
+        elif tool_name == "delegate_classify_reply":
+            return await _tool_delegate_classify_reply(
+                db, org_id,
+                reply_id=str(params.get("reply_id", "")),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -526,6 +536,40 @@ async def _tool_delegate_visit_prep(db, org_id: str, lead_id: str, asesor_id: st
         "latency_ms": result.get("latency_ms"),
         "cost_usd": result.get("cost_usd"),
         "data_quality": result.get("data_quality"),
+    }
+
+
+# Tool 12 — Reply Classifier (W4.6 Y.3C)
+async def _tool_delegate_classify_reply(db, org_id: str, reply_id: str) -> Dict[str, Any]:
+    if not reply_id:
+        return {"error": "reply_id requerido para delegate_classify_reply"}
+    try:
+        from agentic_crm.reply_classifier_engine import (
+            ReplyClassifierEngine, ReplyClassifierDisabledError,
+            ReplyClassifierRateLimitError, ReplyClassifierNotFoundError,
+            ReplyClassifierForbiddenError,
+        )
+        engine = ReplyClassifierEngine(db, org_id)
+        result = await engine.classify_reply(reply_id)
+    except ReplyClassifierDisabledError as e:
+        return {"error": f"Reply Classifier desactivado: {e}"}
+    except ReplyClassifierRateLimitError as e:
+        return {"error": f"Rate limit reply classifier: {e}"}
+    except ReplyClassifierNotFoundError as e:
+        return {"error": str(e)}
+    except ReplyClassifierForbiddenError as e:
+        return {"error": str(e)}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[director_tool] delegate_classify_reply failed: {e}")
+        return {"error": str(e)}
+
+    return {
+        "org_id": org_id,
+        "reply_id": reply_id,
+        "classification": result.get("classification") or {},
+        "layer_used": result.get("layer_used"),
+        "latency_ms": result.get("latency_ms"),
+        "dispatch": result.get("dispatch") or {},
     }
 
 
