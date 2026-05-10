@@ -1,6 +1,48 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W4.7 Y.4C — Argumentario Tone Behavioral-Driven (2026-05-10)
+
+Cierra Phase Y.4 al 100%. Genera argumentarios de venta personalizados por lead × asesor, adaptados al perfil DISC del comprador (D/I/S/C/MIX), Atlax Persona del org, historial de intención y replies previos. Output con 5 secciones: opening_script (call/whatsapp/email), value_pitch, 6 objection_responses, closing_technique DISC-mapped, 5 discovery_questions, followup_cadence.
+
+### Backend (engine + routes ya wired)
+- **NEW** `backend/agentic_crm/argumentario_engine.py` (807 líneas) — 3-layer resilience:
+  - **Layer 1 (LLM)**: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) vía `emergentintegrations.LlmChat` · prompt enriquecido con DISC scores, intent history (15 msgs), email replies clasificados (5), visit_prep dossier objections, atlax_persona del org. JSON-only output, normalizado.
+  - **Layer 2 (cached_similar)**: argumentarios <14d con mismo `disc_type+segment+budget_band` en la org.
+  - **Layer 3 (heuristic)**: 36-combo template estático (4 DISC × 3 budget × 3 segment).
+- DISC→closing technique mapping: D→assumptive · I→summary · S→empathy · C→evidence · MIX→balance.
+- Phase Y guard: `master_switch + feature_tiers.argumentario_adaptive ≥ T1`. Sim mode → fuerza Layer 3.
+- **Caps**: 60/min/usuario · refresh 1/12h/lead · TTL 60 días vía Mongo `expireAfterSeconds`.
+- Indices: unique `(org_id, lead_id)`, `(asesor_id, generated_at desc)`, `expires_at TTL`, `(org_id, disc_type, segment, budget_band)`.
+- Error types: `ArgumentarioDisabledError`, `ArgumentarioRateLimitError`.
+
+### Routes (ya en `routes_agentic_crm.py`)
+- `GET  /api/agentic-crm/argumentario/{lead_id}` (auto-genera si no existe) → 200 con doc completo o 403.
+- `POST /api/agentic-crm/argumentario/{lead_id}/refresh` (rate-limited 1/12h) → 429 si reciente.
+- `POST /api/agentic-crm/argumentario/{lead_id}/mark-used` (status=used + log_activity).
+
+### Director Agent (ya wired)
+- Tool registrado: `delegate_argumentario_generate(lead_id, asesor_id, org_id?)` → fallback heuristic si DisabledError.
+
+### Frontend (1 nuevo · 1 editado · i18n)
+- **NEW** `components/agentic_crm/ArgumentarioPanel.js` (526 líneas) — panel completo con secciones colapsables, channel-switcher (call/whatsapp/email) en Opening, accordion Objections (6 tipos), DISC badge dinámico (D rojo/I amber/S verde/C indigo/MIX gris), LayerBadge (LLM/Caché/Heurística), botón Refresh (rate-limit hint), botón "Marcar como usado" (gradient `#6366F1→#EC4899`), copy-to-clipboard por bloque, footer con cadencia + cost_usd. 100% es-MX · `rounded-full` strict · sin emojis · sin `shadow-2xl`.
+- **EDIT** `pages/advisor/AsesorTareas.js` · monta `<ArgumentarioPanel leadId={...} asesorId={user.user_id} leadName={...} />` debajo de `<DiscProfileCard>` cuando hay cita próxima con `lead_id`. Wrap con border + `rgba(255,255,255,0.02)` background.
+- **EDIT** `i18n/locales/es-MX/common.json` · namespace `agentic_crm.argumentario.*` con sub-keys `section`, `channel`, `objection`, `actions`, `errors`.
+
+### Acceptance criteria (curl + python)
+- GET argumentario default (Phase Y off) → **HTTP 403** `{"detail":"argumentario_adaptive desactivado (tier off)"}` ✓
+- PATCH `/api/superadmin/phase-y/agencia_demo` `{agentic_enabled:true, feature_tiers:{argumentario_adaptive:"T2"}, simulation_mode:true}` → 200 ✓
+- GET argumentario sim mode → **HTTP 200** layer=`heuristic`, disc=`MIX`, 6 objection keys, closing.recommended=`balance`, 5 discovery_questions, cadence `{first:48h, second:5d, third:10d}` ✓
+- POST mark-used → **HTTP 200** status=`used`, `used_at`, `used_by=user_asesor_0001` ✓
+- GET argumentario sim_mode=false (LLM Layer 1) → **HTTP 200** layer=`llm`, tokens=1934, cost_usd=$0.021066, opening.call+value_pitch generados por Claude ✓
+- POST refresh dentro de 12h → **HTTP 429** `{"detail":"Rate limit: puedes refrescar después de 12h. Próximo refresh en 12.0h"}` ✓
+- `yarn build` exit 0 ✓ · ESLint clean en `ArgumentarioPanel.js` y `AsesorTareas.js` ✓
+
+### Notas
+- Screenshot frontend deferido: Issue #2 conocido (Playwright session drops en rutas autenticadas profundas). Backend curl + frontend build verifican el wiring completo end-to-end.
+- Phase Y.4 ahora 100% (Y.4A Atlax persona ✓ + Y.4B Match Weights ✓ + Y.4C Argumentario ✓).
+
+
 ## W4.6 Y.3C — Reply Classifier · Frontend + Webhook hardening (2026-05-10)
 
 Cierra el ciclo backend+frontend del Reply Classifier (Resend inbound webhooks). Asesores ven una bandeja inteligente con respuestas de email clasificadas por AI en 6 categorías (interested/objection/question/soft_silence/unsubscribe/spam) + acción recomendada. Webhook firmado con Svix-Signature ahora rechaza payloads no autenticados (placeholder secret).
