@@ -558,6 +558,30 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_match_weights_error", error=str(e))
 
+    # W4.8 Y.5 — AI ROI per-dev rollup diario 02:00 MX
+    try:
+        from agentic_crm.observability_engine import run_ai_roi_daily_rollup
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_ai_roi_daily_rollup, "ai_roi_daily_rollup"),
+            CronTrigger(hour=2, minute=0, timezone=TZ),
+            args=[db], id="ai_roi_daily_rollup", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_ai_roi_error", error=str(e))
+
+    # W4.8 Y.5 — ML Accuracy rollup mensual día 1 a las 03:00 MX
+    try:
+        from agentic_crm.observability_engine import run_ml_accuracy_monthly_rollup
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_ml_accuracy_monthly_rollup, "ml_accuracy_monthly_rollup"),
+            CronTrigger(day=1, hour=3, minute=0, timezone=TZ),
+            args=[db], id="ml_accuracy_monthly_rollup", replace_existing=True,
+            misfire_grace_time=7200,
+        )
+    except Exception as e:
+        _emit("scheduler_ml_accuracy_error", error=str(e))
+
     # W4.4B — Director Memory daily ingest 04:30 MX (post lead_nurture)
     try:
         from director_memory_engine import run_memory_daily_ingest

@@ -15,6 +15,7 @@ import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { blurPriceCSS } from '../../lib/anonymize';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
+import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -145,7 +146,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
       {/* Tab navigation */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4 }}>
-        {[['resumen', 'Resumen'], ['director', 'Director AI'], ['whatif', 'What-if']].map(([key, label]) => (
+        {[['resumen', 'Resumen'], ['director', 'Director AI'], ['whatif', 'What-if'], ['roi', 'Tu ROI Phase Y']].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
             style={{
               padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,
@@ -161,6 +162,11 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
       {/* Director AI tab */}
       {activeTab === 'director' && (
         <DirectorChatPanel user={user} />
+      )}
+
+      {/* W4.8 Y.5 — AI ROI Phase Y per-Dev */}
+      {activeTab === 'roi' && (
+        <AIROIPanelDev user={user} />
       )}
 
       {/* What-if tab */}
