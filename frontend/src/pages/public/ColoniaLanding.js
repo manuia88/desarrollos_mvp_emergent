@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import CtaFooter from '../../components/landing/CtaFooter';
+import BuyerCoachWidget from '../../components/buyer_coach/BuyerCoachWidget';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -163,6 +164,7 @@ export default function ColoniaLanding() {
         </section>
       </main>
       <CtaFooter />
+      <BuyerCoachWidget colonia={slug} />
     </div>
   );
 }

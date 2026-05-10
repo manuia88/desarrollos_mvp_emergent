@@ -27,6 +27,8 @@ import WhatsAppAsesorCTA from '../components/marketplace/WhatsAppAsesorCTA';
 import { trackPropertyView } from '../lib/funnelTracker';
 // W4.2B — SEO structured data
 import StructuredData from '../components/seo/StructuredData';
+// W4.14 — Investment Simulator embed
+import InvestmentSimulator from '../components/investment/InvestmentSimulator';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -289,6 +291,30 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   precioInicial={dev.price_from || 0}
                 />
               )}
+            </div>
+
+            {/* W4.14 — Investment Simulator embed (siempre visible debajo de tabs) */}
+            <div style={{ marginTop: 32 }}>
+              <div style={{
+                background: 'rgba(13,16,23,0.9)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 14, padding: '20px 20px',
+              }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>
+                  Simulador de inversión
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 18 }}>
+                  Calcula ROI, TIR y flujo de caja en 3 escenarios para este desarrollo
+                </div>
+                <InvestmentSimulator
+                  compact
+                  prefilled={{
+                    precio: dev.price_from,
+                    m2: dev.m2_from || 80,
+                    colonia: dev.zone_id || 'del-valle',
+                  }}
+                />
+              </div>
             </div>
 
             <div>

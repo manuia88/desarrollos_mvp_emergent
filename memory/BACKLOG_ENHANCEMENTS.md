@@ -253,6 +253,16 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### Score Inversión DMX 0-100 (W4.14 enhancement · founder validado 2026-05-10)
+- **Origen:** W4.14 emergent suggested · founder validado 2026-05-10
+- **Destino:** F0 sweep tech debt (~3h) o W5.10 capa 7 MCP IA optimization
+- **Qué:** rating único 0-100 que combina TIR (40%) + Zone Score (30%) + Demand-Supply gap (20%) + Stress test resilience (10%) → label cualitativo ("AAA · investment grade · 90-100" · "AA · 80-89" · "A · 70-79" · "BBB · 60-69" · "BB · 50-59" · "B · <50") · badge UI verde/amarillo/rojo · explicación expandible 4 factores con peso
+- **Endpoint:** `GET /api/investment-simulator/score/{colonia_slug}?precio={x}&plazo={y}&m2={z}` retorna `{score, label, factors: {tir, zone_score, demand_supply, stress_resilience}, recommendation}`
+- **UI:** Badge en cada ScenarioCard W4.14 + bento home `/inteligencia` "Top 10 colonias con mejor Score Inversión DMX"
+- **Por qué:** diferenciador único vs Inmuebles24/Lamudi/Propiedades.com (ningún competidor MX tiene rating cuantificado) · paridad con Moody's/S&P para fixed income · viral content "Mi zona tiene DMX Score 87" · founder/asesor cita en pitch como anchor
+- **Costo:** ~3h (engine score_inversion_engine.py + 1 endpoint + UI badge component + bento integration · reusa hedonic + zone_score + demand-supply ya existentes)
+- **Activar:** F0 sweep próximo · alto ROI standalone · pre-launch lo más antes posible
+
 ### Digest semanal rendimiento asesor (W4.17 enhancement emergent suggested)
 - **Origen:** W4.17 emergent suggested 2026-05-10
 - **Destino:** F0 sweep tech debt (~2h) o W5.10 capa 6 dashboards

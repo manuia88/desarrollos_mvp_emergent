@@ -45,6 +45,8 @@ const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
 const SuperadminInvites  = lazy(() => import('./pages/superadmin/SuperadminInvites'));
 // W4.13.A — Lead Journey Outbound
 const AsesorOutbound     = lazy(() => import('./pages/advisor/AsesorOutbound'));
+// W4.14 — Buyer Coach + Investment Simulator
+const Simulador = lazy(() => import('./pages/public/Simulador'));
 // W4.17 — Notifications Settings
 const NotificationsSettings = lazy(() => import('./pages/portal/NotificationsSettings'));
 
@@ -473,6 +475,8 @@ function AppRouter() {
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
+      {/* W4.14 — Simulador público */}
+      <Route path="/simulador" element={<SimuladorRoute />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />
@@ -713,6 +717,11 @@ function NotifSettingsRoute() {
   if (loading) return null;
   if (!user) return null;
   return <NotificationsSettings user={user} />;
+}
+
+function SimuladorRoute() {
+  const { user, logout } = useAuth();
+  return <Simulador user={user} onLogout={logout} />;
 }
 
 function DevelopmentDetailRoute() {

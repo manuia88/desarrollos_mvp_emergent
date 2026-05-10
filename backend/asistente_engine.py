@@ -176,6 +176,16 @@ TOOLS Y PARAMS:
     params: {{ "lat": float, "lng": float, "radius_m": int (default 500), "categories": [str] (opcional) }}
     devuelve: {{ pois[], counts_by_category, walkability_score 0-100 }} desde OSM Geofabrik MX.
 
+14. buyer_coach_consult
+    params: {{ "query": str (pregunta sobre proceso de compra), "context": dict (opcional, ej. stage actual) }}
+    devuelve: orientación detallada sobre esa etapa del proceso de compra con checklist items.
+    Usar cuando: user pregunta sobre proceso compra, qué necesito para comprar, checklist visita, cómo negociar, escrituras, notario, etc.
+
+15. investment_simulate
+    params: {{ "precio": float (precio entrada MXN), "plazo": int (meses, default 120), "m2": float, "colonia": str (slug), "apreciacion_pct": float (opcional) }}
+    devuelve: 3 escenarios ROI/TIR (conservador · base · optimista) con break-even y flujo mensual.
+    Usar cuando: user pregunta ROI inversión, cuánto vale en X años, vale la pena invertir en X colonia, TIR, rendimiento.
+
 REGLAS:
 - Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
@@ -184,6 +194,8 @@ REGLAS:
 - Si user pregunta crecimiento / plusvalía / dónde invertir → usa get_zone_top_growth
 - Si user pregunta tendencias / por alcaldía / cómo evoluciona → usa get_price_trends_macro
 - Si user pregunta interés / búsquedas / Google / qué se busca / popularidad → usa get_trends_for_query
+- Si user pregunta proceso de compra / qué necesito / cómo comprar / checklist → usa buyer_coach_consult
+- Si user pregunta ROI / TIR / inversión / rendimiento / cuánto vale en X años → usa investment_simulate
 - Si user menciona presupuesto/intención de comprar/cita/WhatsApp → al final del response sugiere capturar contacto: "Si quieres, te conectamos con un asesor especializado para resolver dudas concretas."
 - NUNCA inventes precios o nombres de proyectos. Si no tienes data, di "no tengo ese dato actualizado, te conecto con un asesor".
 - Si pregunta sobre algo fuera de CDMX (otras ciudades), responde: "Por ahora solo cubrimos CDMX en detalle, pero próximamente expandimos a Monterrey y Guadalajara."
@@ -238,6 +250,22 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 lng=float(params.get("lng") or 0),
                 radius_m=int(params.get("radius_m") or 500),
                 categories=params.get("categories"),
+            )
+        # W4.14 — Buyer Coach + Investment Simulator tools (16→18)
+        if tool_name == "buyer_coach_consult":
+            return await _tool_buyer_coach_consult(
+                db,
+                query=params.get("query") or params.get("message") or "",
+                context=params.get("context") or {},
+            )
+        if tool_name == "investment_simulate":
+            return await _tool_investment_simulate(
+                db,
+                precio=float(params.get("precio") or params.get("precio_entrada") or 3_000_000),
+                plazo=int(params.get("plazo") or params.get("plazo_meses") or 120),
+                m2=float(params.get("m2") or 80),
+                colonia=params.get("colonia") or params.get("colonia_slug") or "del-valle",
+                apreciacion_pct=params.get("apreciacion_pct"),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -1025,3 +1053,84 @@ async def ensure_indexes(db) -> None:
         log.info("[asistente] indexes OK")
     except Exception as exc:
         log.warning(f"[asistente] ensure_indexes failed: {exc}")
+
+
+# ─── W4.14 Tool implementations ───────────────────────────────────────────────
+
+async def _tool_buyer_coach_consult(db, query: str, context: dict) -> Dict[str, Any]:
+    """Tool: buyer_coach_consult — responde consultas del proceso de compra."""
+    try:
+        from buyer_coach_engine import _heuristic_response, STAGE_LABELS, STAGE_CHECKLISTS
+        # Map query keywords to stage
+        q_lower = query.lower()
+        stage = 1
+        if any(w in q_lower for w in ["escritura", "notario", "cierre", "isr", "cfdi"]):
+            stage = 6
+        elif any(w in q_lower for w in ["negoci", "precio", "oferta", "descuento"]):
+            stage = 5
+        elif any(w in q_lower for w in ["visita", "revisar", "checklist", "departamento"]):
+            stage = 4
+        elif any(w in q_lower for w in ["colonia", "zona", "ubicación", "dónde"]):
+            stage = 3
+        elif any(w in q_lower for w in ["presupuesto", "pago", "mensual", "crédito"]):
+            stage = 2
+        elif any(w in q_lower for w in ["post", "después", "entrega", "seguro"]):
+            stage = 7
+
+        heuristic = _heuristic_response(stage, query)
+        checklist_items = STAGE_CHECKLISTS.get(stage, [])[:5]
+        return {
+            "stage": stage,
+            "stage_label": STAGE_LABELS.get(stage, ""),
+            "guidance": heuristic,
+            "checklist_preview": checklist_items,
+            "source": "buyer_coach_engine",
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] buyer_coach_consult failed: {exc}")
+        return {"guidance": "Para orientación en el proceso de compra, te recomiendo iniciar el Asesor de Compra en la sección de Marketplace.", "source": "fallback"}
+
+
+async def _tool_investment_simulate(
+    db, precio: float, plazo: int, m2: float, colonia: str, apreciacion_pct=None
+) -> Dict[str, Any]:
+    """Tool: investment_simulate — retorna ROI/TIR de los 3 escenarios."""
+    try:
+        from investment_simulator_engine import simulate
+        result = await simulate(db, precio, plazo, m2, colonia, apreciacion_pct)
+        base = result.get("base", {})
+        conservador = result.get("conservador", {})
+        optimista = result.get("optimista", {})
+        return {
+            "colonia": colonia,
+            "precio_entrada": precio,
+            "plazo_meses": plazo,
+            "m2": m2,
+            "tier_zona": result.get("tier_zona"),
+            "escenarios": {
+                "conservador": {
+                    "roi_pct": conservador.get("roi_pct"),
+                    "tir_anual_pct": conservador.get("tir_anual_pct"),
+                    "break_even_meses": conservador.get("break_even_meses"),
+                    "precio_final": conservador.get("precio_final"),
+                },
+                "base": {
+                    "roi_pct": base.get("roi_pct"),
+                    "tir_anual_pct": base.get("tir_anual_pct"),
+                    "break_even_meses": base.get("break_even_meses"),
+                    "precio_final": base.get("precio_final"),
+                },
+                "optimista": {
+                    "roi_pct": optimista.get("roi_pct"),
+                    "tir_anual_pct": optimista.get("tir_anual_pct"),
+                    "break_even_meses": optimista.get("break_even_meses"),
+                    "precio_final": optimista.get("precio_final"),
+                },
+            },
+            "pago_mensual_hipoteca": base.get("pago_mensual_hipoteca"),
+            "enganche": base.get("enganche"),
+            "source": "investment_simulator_engine",
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] investment_simulate failed: {exc}")
+        return {"error": str(exc), "source": "fallback"}
