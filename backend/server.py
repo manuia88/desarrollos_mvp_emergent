@@ -439,6 +439,7 @@ from routes_agentic_crm import router as agentic_crm_router
 from agentic_crm.smart_routing_engine import ensure_routing_indexes
 from agentic_crm.visit_prep_engine import ensure_visit_prep_indexes as ensure_visit_prep_dossier_indexes
 from agentic_crm.reply_classifier_engine import ensure_reply_indexes
+from agentic_crm.disc_inferencer_engine import ensure_disc_indexes as ensure_disc_inferencer_indexes
 app.include_router(agentic_crm_router)
 
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
@@ -1015,6 +1016,11 @@ async def startup():
         await ensure_reply_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.6 Y.3C reply_classifier indexes failed: {e}")
+    # W4.6 Y.3D — DISC Inferencer indexes
+    try:
+        await ensure_disc_inferencer_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.6 Y.3D disc_inferencer indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

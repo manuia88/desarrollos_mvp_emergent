@@ -18,7 +18,8 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
+import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -45,6 +46,13 @@ from agentic_crm.reply_classifier_engine import (
     ReplyClassifierNotFoundError,
     ReplyClassifierRateLimitError,
     ingest_webhook_reply,
+)
+from agentic_crm.disc_inferencer_engine import (
+    DISCInferencer,
+    DISCInferencerDisabledError,
+    DISCInferencerForbiddenError,
+    DISCInferencerNotFoundError,
+    DISCInferencerRateLimitError,
 )
 
 log = logging.getLogger("dmx.routes_agentic_crm")
@@ -569,8 +577,19 @@ async def list_replies(
     return {"ok": True, "count": len(rows), "replies": rows}
 
 
+class MarkActionTakenIn(BaseModel):
+    action_type: Optional[str] = Field(None, max_length=64)
+    action_data: Optional[Dict[str, Any]] = None
+
+
+class EscalateReplyIn(BaseModel):
+    manager_id: Optional[str] = Field(None, max_length=120)
+    reason: str = Field(..., min_length=2, max_length=500)
+
+
 @router.post("/api/agentic-crm/replies/{reply_id}/mark-action-taken")
-async def mark_reply_action_taken(reply_id: str, request: Request):
+async def mark_reply_action_taken(reply_id: str, request: Request,
+                                   payload: Optional[MarkActionTakenIn] = None):
     user = await _get_user(request)
     role = getattr(user, "role", "")
     if role not in ROUTING_ROLES:
@@ -588,8 +607,255 @@ async def mark_reply_action_taken(reply_id: str, request: Request):
 
     try:
         engine = ReplyClassifierEngine(db, doc["org_id"])
-        return {"ok": True, **await engine.mark_action_taken(reply_id, asesor_id=asesor_filter)}
+        result = await engine.mark_action_taken(reply_id, asesor_id=asesor_filter)
     except ReplyClassifierNotFoundError as e:
         raise HTTPException(404, str(e))
     except ReplyClassifierForbiddenError as e:
         raise HTTPException(403, str(e))
+
+    # Y.3C.5 — registrar action_type para tracking diferenciado
+    action_type = (payload.action_type if payload else None) or "manual"
+    try:
+        await db.activity_log.insert_one({
+            "id": f"act_{uuid.uuid4().hex[:12]}",
+            "type": f"reply_classifier.one_click.{action_type}",
+            "org_id": doc["org_id"],
+            "reply_id": reply_id,
+            "asesor_id": getattr(user, "user_id", None),
+            "action_data": (payload.action_data if payload else None) or {},
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
+
+    return {"ok": True, "action_type": action_type, **result}
+
+
+@router.post("/api/agentic-crm/replies/{reply_id}/escalate")
+async def escalate_reply(reply_id: str, payload: EscalateReplyIn, request: Request):
+    """Y.3C.5 — escala reply a developer_admin/inmobiliaria_admin · envía email Resend."""
+    user = await _get_user(request)
+    role = getattr(user, "role", "")
+    if role not in ROUTING_ROLES:
+        raise HTTPException(403, "Rol no autorizado")
+    db = request.app.state.db
+    doc = await db.email_replies.find_one({"_id": reply_id})
+    if not doc:
+        raise HTTPException(404, "Reply no encontrado")
+    if role != "superadmin" and getattr(user, "tenant_id", None) != doc["org_id"]:
+        raise HTTPException(403, "Cross-org acceso denegado")
+
+    org_id = doc["org_id"]
+    # Resolver manager (manager_id explícito o primer admin de la org)
+    if payload.manager_id:
+        mgr = await db.users.find_one(
+            {"user_id": payload.manager_id, "tenant_id": org_id,
+             "role": {"$in": ["developer_admin", "inmobiliaria_admin", "developer_director", "inmobiliaria_director"]}},
+            {"_id": 0, "user_id": 1, "name": 1, "email": 1, "role": 1},
+        )
+    else:
+        mgr = await db.users.find_one(
+            {"tenant_id": org_id,
+             "role": {"$in": ["developer_admin", "inmobiliaria_admin", "developer_director", "inmobiliaria_director"]}},
+            {"_id": 0, "user_id": 1, "name": 1, "email": 1, "role": 1},
+        )
+
+    sent_ok = False
+    sent_reason = None
+    if mgr and mgr.get("email"):
+        api_key = os.environ.get("RESEND_API_KEY")
+        if api_key:
+            cls = doc.get("classification") or {}
+            color = {"high": "#EF4444", "medium": "#F59E0B", "low": "#10B981"}.get(
+                cls.get("urgency"), "#6366F1")
+            preview = (doc.get("body_text") or "")[:600]
+            html = f"""<!doctype html><html><body style="background:#F0EBE0;padding:20px;font-family:Arial,sans-serif;">
+<div style="max-width:640px;margin:0 auto;background:#fff;border-radius:14px;padding:24px;">
+  <div style="font-size:11px;letter-spacing:0.18em;font-weight:700;color:{color};text-transform:uppercase;margin-bottom:6px;">
+    Reply ESCALADO · {(cls.get('urgency') or '?').upper()} URGENCY
+  </div>
+  <h1 style="font-size:20px;color:#06080F;margin:0 0 10px;">
+    Reply escalado por asesor: {(getattr(user, 'name', None) or getattr(user, 'user_id', '?'))}
+  </h1>
+  <div style="padding:12px;background:#fef3c7;border-radius:10px;margin-bottom:14px;">
+    <div style="font-size:11px;color:#b45309;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Razón de escalación</div>
+    <div style="font-size:13.5px;color:#06080F;margin-top:4px;">{payload.reason}</div>
+  </div>
+  <div style="padding:12px;background:#f9fafb;border-radius:10px;margin-bottom:14px;">
+    <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;">De</div>
+    <div style="font-size:13px;color:#06080F;font-weight:600;">{doc.get('from_email', '—')}</div>
+    <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-top:8px;">Asunto</div>
+    <div style="font-size:13px;color:#06080F;font-weight:600;">{doc.get('subject', '—')}</div>
+    <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-top:8px;">Body (preview)</div>
+    <div style="font-size:13px;color:#374151;white-space:pre-wrap;">{preview}</div>
+  </div>
+  <p style="font-size:10px;color:#9ca3af;margin:18px 0 0;">
+    Categoría: {cls.get('category', '?')} · Confianza: {cls.get('confidence_score', '?')}/100
+  </p>
+</div></body></html>"""
+            subject = f"[DMX · Manager] Reply ESCALADO · {doc.get('from_email', '?')}"
+            try:
+                import httpx
+                async with httpx.AsyncClient(timeout=10) as cli:
+                    r = await cli.post(
+                        "https://api.resend.com/emails",
+                        headers={"Authorization": f"Bearer {api_key}"},
+                        json={"from": os.environ.get("RESEND_FROM_LEAD_NURTURE",
+                                                      "DesarrollosMX <no-reply@desarrollosmx.io>"),
+                              "to": [mgr["email"]], "subject": subject, "html": html},
+                    )
+                sent_ok = r.status_code in (200, 202)
+                if not sent_ok:
+                    sent_reason = f"resend_{r.status_code}"
+            except Exception as e:  # noqa: BLE001
+                sent_reason = f"resend_error: {e}"[:200]
+        else:
+            sent_reason = "no_resend_key"
+    else:
+        sent_reason = "no_manager_found"
+
+    now = datetime.now(timezone.utc)
+    await db.email_replies.update_one(
+        {"_id": reply_id},
+        {"$set": {"status": "action_taken", "action_taken_at": now,
+                  "escalated_to": (mgr or {}).get("user_id"),
+                  "escalation_reason": payload.reason}},
+    )
+    try:
+        await db.activity_log.insert_one({
+            "id": f"act_{uuid.uuid4().hex[:12]}",
+            "type": "reply_classifier.one_click.escalate",
+            "org_id": org_id, "reply_id": reply_id,
+            "asesor_id": getattr(user, "user_id", None),
+            "manager_id": (mgr or {}).get("user_id"),
+            "manager_email": (mgr or {}).get("email"),
+            "reason": payload.reason,
+            "sent_ok": sent_ok, "sent_reason": sent_reason,
+            "created_at": now,
+        })
+    except Exception:
+        pass
+    return {"ok": True, "reply_id": reply_id, "escalated": True,
+            "manager_email": (mgr or {}).get("email"),
+            "email_sent": sent_ok, "reason": sent_reason}
+
+
+# ─── W4.6 Y.3D · DISC Inferencer ──────────────────────────────────────────────
+class DiscRefreshIn(BaseModel):
+    simulation_override: bool = False
+
+
+def _clean_disc_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
+    out = {k: v for k, v in doc.items() if k != "_id"}
+    out["profile_id"] = doc.get("_id") or doc.get("profile_id")
+    for k in ("inferred_at", "expires_at"):
+        v = out.get(k)
+        if isinstance(v, datetime):
+            out[k] = v.isoformat()
+    return out
+
+
+@router.get("/api/agentic-crm/disc/{lead_id}")
+async def get_disc_profile(lead_id: str, request: Request):
+    """Y.3D · retorna profile DISC del lead. Auto-infer si no existe."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "dev_org_id": 1, "id": 1})
+    if not lead:
+        raise HTTPException(404, f"Lead {lead_id} no encontrado")
+    org_id = lead.get("dev_org_id")
+    if role != "superadmin" and org_id and getattr(user, "tenant_id", None) != org_id:
+        raise HTTPException(403, "Lead pertenece a otra org")
+    target_org = _resolve_org(user, org_id)
+
+    try:
+        engine = DISCInferencer(db, target_org)
+        result = await engine.infer_profile(lead_id)
+        return {"ok": True, **result}
+    except DISCInferencerDisabledError as e:
+        raise HTTPException(403, str(e))
+    except DISCInferencerRateLimitError as e:
+        raise HTTPException(429, str(e))
+    except DISCInferencerNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except DISCInferencerForbiddenError as e:
+        raise HTTPException(403, str(e))
+
+
+@router.post("/api/agentic-crm/disc/{lead_id}/refresh")
+async def refresh_disc_profile(lead_id: str, request: Request,
+                                payload: Optional[DiscRefreshIn] = None):
+    """Y.3D · fuerza re-inference (rate-limited 1/24h por lead)."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "dev_org_id": 1, "id": 1})
+    if not lead:
+        raise HTTPException(404, f"Lead {lead_id} no encontrado")
+    org_id = lead.get("dev_org_id")
+    if role != "superadmin" and org_id and getattr(user, "tenant_id", None) != org_id:
+        raise HTTPException(403, "Lead pertenece a otra org")
+    target_org = _resolve_org(user, org_id)
+
+    sim_override = payload.simulation_override if payload else False
+    try:
+        engine = DISCInferencer(db, target_org)
+        result = await engine.infer_profile(lead_id, force_refresh=True,
+                                            simulation_override=sim_override)
+        return {"ok": True, **result}
+    except DISCInferencerDisabledError as e:
+        raise HTTPException(403, str(e))
+    except DISCInferencerRateLimitError as e:
+        raise HTTPException(429, str(e))
+    except DISCInferencerNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except DISCInferencerForbiddenError as e:
+        raise HTTPException(403, str(e))
+
+
+@router.get("/api/superadmin/agentic-crm/disc/distribution")
+async def superadmin_disc_distribution(
+    request: Request,
+    org_id: str = Query(..., min_length=2),
+    days: int = Query(90, ge=1, le=365),
+):
+    """Y.3D · stats predominant_type breakdown por org."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = request.app.state.db
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    cur = db.disc_profiles.aggregate([
+        {"$match": {"org_id": org_id, "inferred_at": {"$gte": since}}},
+        {"$group": {
+            "_id": "$predominant_type",
+            "count": {"$sum": 1},
+            "avg_confidence": {"$avg": "$confidence_score"},
+        }},
+    ])
+    by_type: Dict[str, Dict[str, Any]] = {}
+    total = 0
+    async for r in cur:
+        t = r["_id"] or "unknown"
+        by_type[t] = {"count": r["count"],
+                      "avg_confidence": round(r.get("avg_confidence") or 0, 1)}
+        total += r["count"]
+
+    layer_cur = db.disc_profiles.aggregate([
+        {"$match": {"org_id": org_id, "inferred_at": {"$gte": since}}},
+        {"$group": {"_id": "$layer_used", "count": {"$sum": 1}}},
+    ])
+    by_layer: Dict[str, int] = {}
+    async for r in layer_cur:
+        by_layer[r["_id"] or "unknown"] = r["count"]
+
+    return {
+        "ok": True, "org_id": org_id, "days": days,
+        "total_profiles": total,
+        "by_predominant_type": by_type,
+        "by_layer_used": by_layer,
+    }
+

@@ -11,6 +11,7 @@ import { useServerUndo } from '../../components/shared/UndoSnackbar';
 import VisitAutoPrepCard from '../../components/asesor/VisitAutoPrepCard';
 import VisitPrepDossier from '../../components/agentic_crm/VisitPrepDossier';
 import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
+import DiscProfileCard from '../../components/agentic_crm/DiscProfileCard';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -99,6 +100,14 @@ export default function AsesorTareas({ user, onLogout }) {
         sub="Organizadas por propiedades, clientes y generales. Las vencidas aparecen primero."
         actions={<button onClick={() => setShowNew(true)} data-testid="new-tarea-btn" className="btn btn-primary">+ Nueva tarea</button>}
       />
+
+      {/* W4.6 Y.3D — DISC Profile Card · si hay cita próxima con lead, mostrar perfil del lead más próximo */}
+      {upcomingAppts.length > 0 && upcomingAppts[0].lead_id ? (
+        <DiscProfileCard
+          leadId={upcomingAppts[0].lead_id}
+          leadName={upcomingAppts[0].lead_name || upcomingAppts[0].contact_name || upcomingAppts[0].lead_id}
+        />
+      ) : null}
 
       {/* W4.6 Y.3C — Reply Classifier Inbox · gated por Phase Y tier */}
       <RepliesInbox asesorId={user?.user_id || user?.id || null} />
