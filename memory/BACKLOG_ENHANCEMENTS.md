@@ -350,6 +350,25 @@ backend/routes/
 - **Costo:** ~30 min (copy-paste pattern existente)
 - **Activar cuando:** F0 sweep próximo · ANTES de exposición pública real
 
+### Phase Z — DMX Studio Marketing (W5.22+ Wave 5 H2 · 224h · 9 sub-chunks)
+- **Origen:** founder visión 2026-05-10 + análisis 8 plataformas (VibePeak · Mirino · PropAds · Arcads · Grazia · Higgsfield · GoHighLevel · 3DGS) + 8 preguntas críticas + 3 upgrades arquitectónicos
+- **Destino:** Wave 5 H2 (post-launch público · ~julio)
+- **Detalle completo:** `memory/STUDIO_MARKETING_RESEARCH.md` (research brutal por plataforma + 7 ventajas competitivas + arquitectura final)
+- **9 sub-chunks:**
+  - **Z.1** Brand Kit + Listing Importer (Inmuebles24/Lamudi/Vivanuncios/Propiedades.com/EasyBroker/Casas y Terrenos) + Asset Library MongoDB GridFS + per-project mood board · 16h
+  - **Z.2** Buyer-angle copy (7 personas LATAM: Inversor · Familia · First-buyer · Exec · Extranjero · Jubilado · Empty-nester) + Carrusel auto + Auto-content diario · 18h
+  - **Z.3** Multi-channel Publisher OAuth (FB · IG · YT · TikTok · WA Cloud · LinkedIn) + Scheduler drag-drop + auto-repost intelligence · 36h (subsumed por W5.10)
+  - **Z.4** Video engines (Fal Kling/Seedance + camera path + 10 cinematic presets RE) + Avatar UGC pre-curados ES-MX (HeyGen) + **Avatar custom asesor** (HeyGen Instant) + Voice clone asesor (ElevenLabs) + Virtual Staging 5 variantes · 42h
+  - **Z.5** Hook/Virality predictor LLM rubric + RE engagement model trained MX prensa · 6h
+  - **Z.6** ML Closed-Loop System (multi-armed bandit + Bayesian + pre-flight prediction + real-time optimization 24h + cohort learning anónimo + causal inference + DMX Index público referente prensa) · 30h
+  - **Z.7** Workflow Builder UI (drag-drop · 20+ triggers RE · 15+ actions · 10-15 templates pre-built · versioning + audit) · 20h
+  - **Z.8** Landing Pages Profesionales (10 templates premium curados + IA composer + componentes embebibles 3DGS/video/staging/ROI calc/contact · subdomain DMX wildcard `*.dmx.io` + custom domain Pro tier · drag-drop section editor) · 32h
+  - **Z.9** Wallet + Metering + Stripe Pay-as-you-go (modelo aggregator Fal · usuario carga créditos a wallet DMX · cost transparency · OXXO + SPEI MX · packages $200-$5000 MXN · tiers Free/PAYG/Pro/Enterprise) · 24h
+- **APIs/services:** Fal.ai · HeyGen Pro + Instant Avatar · Replicate · ElevenLabs Pro · Luma · Higgsfield · Cloudflare wildcard DNS · Stripe MX · Claude Haiku
+- **7 ventajas competitivas DMX:** vertical RE LATAM con BANXICO/SIGCDMX/Hedonic/Zone Score inline · stack integrado generación+distribución+analytics+ML · 4 branding variants · voice clone asesor + avatar custom · MCP IA optimization layer · multi-tenant nativo + 3 dashboards role-based + granularidad 16cat × 150subdims · 3DGS production-ready 2026
+- **Por qué:** convierte DMX en plataforma marketing/contenido completa (vs todos competidores hacen 1 cosa) · paridad con GoHighLevel + features RE-specific · pricing tier $297-497/mo justified por 3DGS + UGC + buyer-angle RE-tuned + ML feedback loop
+- **Founder ops paralelo H1:** Meta + Google/YouTube + TikTok + LinkedIn App Reviews · cuenta master 6 APIs (Replicate · HeyGen · Fal · ElevenLabs · Luma · Higgsfield) · Stripe MX activo · Cloudflare wildcard DNS
+
 ### DMX Insights Layer — Wiki Karpathy + Backend público (W5.20-21 Wave 5 H2)
 - **Origen:** founder propuesta 2026-05-10 + análisis Karpathy LLM Wiki pattern (video Andrej Karpathy 2026-05-10)
 - **Destino:** Wave 5 H2 W5.20-21 (post-launch público brokers + compradores)

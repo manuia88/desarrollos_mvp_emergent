@@ -405,6 +405,8 @@ GET /v1/portfolio/exposure                  análisis cartera
 
 **W5.10 Social/Ads Multi-tenant + Analytics Granular + IA Layer** (205h · autorizado founder 2026-05-10): plataforma estilo GoHighLevel+HubSpot+Hootsuite cross-vertical real estate MX. OAuth multi-platform (Meta · Google/YouTube · WhatsApp Cloud API · TikTok base) · posting engine · ads creator · scheduler · analytics granular (16 categorías × 150 sub-dims) · 3 dashboards role-based · MCP IA optimization · Studio Wave creative pipeline. **8 sub-chunks. Detalle ejecutivo:** `memory/INSIGHTS_GRANULARITY_SCHEMA.md` + `memory/BACKLOG_ENHANCEMENTS.md`. Founder ops paralelo H1: Meta Business Verification + App Review (`ads_management`/`pages_manage_posts`/`instagram_basic`/`whatsapp_business_management`) · Google YouTube Sensitive Scopes Review · TikTok Marketing API · LinkedIn Tier 2 Partner.
 
+**Phase Z — DMX Studio Marketing** (224h · autorizado founder 2026-05-10): research brutal 8 plataformas competidoras (VibePeak · Mirino · PropAds · Arcads · Grazia · Higgsfield · GoHighLevel · 3DGS) + 8 preguntas críticas + 3 upgrades arquitectónicos. **9 sub-chunks Z.1-Z.9** (Brand Kit + Listing Importer · Buyer-angle copy 7 personas · Multi-channel Publisher · Video engines + Avatar custom asesor + Voice clone + Virtual Staging 5 variantes · Hook predictor · ML Closed-Loop System cohort/causal/DMX Index público · Workflow Builder UI · Landing Pages Profesionales 10 templates premium subdomain DMX · Wallet Stripe Pay-as-you-go modelo aggregator). **Detalle ejecutivo:** `memory/STUDIO_MARKETING_RESEARCH.md`. APIs: Fal.ai · HeyGen + Instant Avatar · Replicate · ElevenLabs Pro · Luma · Higgsfield · Cloudflare wildcard DNS · Stripe MX (OXXO + SPEI). 7 ventajas competitivas: vertical RE LATAM · stack integrado · 4 branding variants · voice clone + avatar custom · MCP IA layer · multi-tenant 3 dashboards · 3DGS production-ready 2026.
+
 **W5.20-21 DMX Insights Layer** (41h · autorizado founder 2026-05-10): Wiki Karpathy pattern + Backend público + Multi-source scrapers globales (~25 fuentes Tier 1 🟢: JLL · Knight Frank · Savills · CBRE · Cushman · Colliers · PwC · Deloitte · BIS · OECD · IMF · World Bank · FRED · BANXICO ✅ · INEGI · SHF · CONAVI · BMV FIBRAs · CNBV · Numbeo · Global Property Guide · Zillow · Redfin · Inmobiliare · Obras Web · Expansión · El Financiero · Forbes MX · ULI · ArchDaily · Espacio Urbano · Real Estate Lifestyle). Wedge "referente noticias real estate MX" único en LATAM. Detalles: `memory/INSIGHTS_SOURCES_RESEARCH.md` (80+ fuentes investigadas).
 
 **W5.16 Marketing Distribution Channel** (~10h): Social cards multi-formato `/og` (link previews FB/LinkedIn/WhatsApp/Twitter/Telegram) + `/social/feed.png` 1080×1080 (IG/FB feed) + `/social/story.png` 1080×1920 (IG/TikTok/FB Stories/WA Status). Mapbox Static API + Pillow.
@@ -415,7 +417,35 @@ GET /v1/portfolio/exposure                  análisis cartera
 
 **W5.19 Probability UX Kalshi-inspired** (6h diferido de W4.17): odds + interval + tooltips narrative inversionistas premium.
 
-**Wave 5 H2 total**: ~342h confirmados (W5.10 205h + W5.20-21 41h + W5.16 10h + W5.17 42h + W5.18 38h + W5.19 6h) — sin contar items legítimos H2 diferidos abajo.
+**Wave 5 H2 total**: ~514h confirmados (W5.10 205h + Phase Z 224h + W5.20-21 41h + W5.18 38h + W5.19 6h) — W5.16 social cards consolidado en Phase Z · W5.17 video bundle subsumed en Phase Z · sin contar items legítimos H2 diferidos abajo.
+
+### Wave 6 H2+ — Sketch (~150-200h estimado · post-Wave 5 maduración)
+
+**W6.1 Voice AI Calls** (~30h): ElevenLabs Conversational API + Vapi/Twilio Voice integration. Asesor recibe llamadas inbound · DMX agente IA pre-qualifica + redirige · outbound dialer para nurture leads dormidos. Diferido H2 (founder confirmó 2026-05-10): tech voice no madura todavía para production-grade.
+
+**W6.2 TikTok Ads tier completo** (~25h): después que TikTok Marketing API tier completo aprobado · ads creator + targeting + insights cross-data Phase Z.
+
+**W6.3 LinkedIn Ads tier completo** (~25h): después que LinkedIn Tier 2 Partner aprobado · sponsored content + InMail + lead-gen forms.
+
+**W6.4 Cross-org agent templates marketplace** (~20h): asesores publican workflows custom (Z.7) como templates · otros asesores los compran/instalan · revenue share DMX.
+
+**W6.5 Wizard duplicación proyecto** (~15h): post-Phase 4 dev module · clonar proyecto base + ajustar specs.
+
+**W6.6 Compliance MX nativa CFDI + Mifiel NOM-151** (~15h): integración facturación electrónica + firmas digitales legales.
+
+**W6.7 Tax calculations IVA/ISR** (~10h): calcular impuestos automático preventa/usada/inversión.
+
+**W6.8 Asesor tier/ranking system** (~15h): ranking público asesores por DMX Score (conversion rate · DISC compat · NPS · velocity).
+
+**W6.9 Multi-currency MXN/USD/AED full** (~12h): expansión Dubai post-W5.18 · multi-currency real-time rates.
+
+**W6.10 Lead post-close legal flow** (~20h): deposit · escrow · firmas · entrega keys.
+
+**W6.11 Geofenced reading + AI fact-check + Article series courses** (~15h): expansiones DMX Insights Layer post-W5.20-21.
+
+**W6.12 Comments/community discussion** (~25h): foros propiedad/colonia · moderación spam · LFPDPPP + DMX Atlax community manager.
+
+**Wave 6 total estimado**: ~227h (sketch · prioridades a definir post-Wave 5).
 
 ### Defer H2 (legítimo)
 - Lead post-close legal flow (deposit, escrow)
