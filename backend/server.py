@@ -437,6 +437,11 @@ from routes_trends import router as trends_router
 from apify_trends_engine import ensure_trends_indexes
 app.include_router(trends_router)
 
+# W4.6 Y.3A — Agentic CRM · Smart Routing
+from routes_agentic_crm import router as agentic_crm_router
+from agentic_crm.smart_routing_engine import ensure_routing_indexes
+app.include_router(agentic_crm_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -1001,6 +1006,11 @@ async def startup():
         await ensure_trends_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.18.1 apify trends indexes failed: {e}")
+    # W4.6 Y.3A — Smart Routing indexes (lead_routings + routing_metrics)
+    try:
+        await ensure_routing_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.6 Y.3A routing indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

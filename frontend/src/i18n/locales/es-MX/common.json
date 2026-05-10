@@ -1129,5 +1129,62 @@
       "stale_apify_error": "caché vencida · Apify falló",
       "miss_no_cache": "sin caché y Apify falló"
     }
+  },
+  "agentic_crm": {
+    "smart_routing": {
+      "title": "Smart Routing",
+      "subtitle": "Asignación automática <60 seg basada en zone-expertise + segmento + capacidad + conversión.",
+      "no_routings": "Aún no hay routings. Ingresa un lead_id arriba para probar.",
+      "fit_score_label": "Fit Score",
+      "fit_breakdown_label": "Desglose del fit",
+      "create_button": "Rutear lead",
+      "create_button_busy": "Ruteando…",
+      "accept_button": "Aceptar",
+      "reject_button": "Rechazar",
+      "reassign_button": "Reasignar",
+      "reassign_confirm": "Confirmar",
+      "reassign_cancel": "Cancelar",
+      "reassign_input_placeholder": "new_asesor_id (user_xxx)",
+      "expand_button": "Detalles",
+      "collapse_button": "Cerrar",
+      "lead_input_placeholder": "lead_id (test routing manual)",
+      "filter_all": "todos",
+      "filter_pending": "pendientes",
+      "filter_accepted": "aceptados",
+      "filter_rejected": "rechazados",
+      "filter_reassigned": "reasignados",
+      "stats": {
+        "today": "Routings hoy",
+        "accept_rate": "Accept rate 30d",
+        "avg_fit": "Fit promedio",
+        "top_asesor": "Top asesor"
+      },
+      "dimensions": {
+        "zone": "Zona",
+        "segment": "Segmento",
+        "capacity": "Capacidad",
+        "conversion": "Conversión",
+        "schedule": "Horario"
+      },
+      "layer_used": {
+        "llm": "LLM",
+        "cache": "Caché",
+        "cached": "Caché",
+        "heuristic": "Heurística"
+      },
+      "status": {
+        "pending": "Pendiente",
+        "accepted": "Aceptado",
+        "rejected": "Rechazado",
+        "reassigned": "Reasignado",
+        "expired": "Expirado"
+      },
+      "errors": {
+        "disabled": "Smart Routing requiere tier T1 o superior. Actívalo en configuración Phase Y.",
+        "rate_limit": "Demasiadas ejecuciones. Intenta en 60 segundos.",
+        "cross_org": "Cross-org acceso denegado.",
+        "no_lead": "Lead no encontrado."
+      }
+    }
   }
 }

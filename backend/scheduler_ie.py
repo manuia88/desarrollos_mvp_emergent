@@ -694,6 +694,18 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_apify_trends_weekly_error", error=str(e))
 
+    # W4.6 Y.3A — Smart Routing · daily routing_metrics refresh 04:30 MX
+    try:
+        from agentic_crm.smart_routing_engine import run_routing_metrics_cron
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_routing_metrics_cron, "smart_routing_metrics"),
+            CronTrigger(hour=4, minute=30, timezone=TZ),
+            args=[db], id="smart_routing_metrics", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_smart_routing_metrics_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",

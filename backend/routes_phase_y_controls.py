@@ -28,6 +28,7 @@ DEFAULT_FEATURE_TIERS: Dict[str, str] = {
     "pricing_agent":         "off",
     "marketing_agent":       "off",
     "lead_agent":            "off",
+    "smart_routing_lead":    "off",
     "construction_agent":    "off",
     "compliance_agent":      "off",
 }

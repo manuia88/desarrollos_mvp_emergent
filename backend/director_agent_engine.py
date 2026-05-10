@@ -119,6 +119,11 @@ TOOLS Y PARAMS:
    devuelve: lista de recomendaciones del funnel de leads con issue_detected, target_type, severity, suggested_action_text
    Úsalo cuando user pregunta "¿qué pasa con mis leads?", "¿qué asesor está performeando peor?", "¿dónde pierdo leads?", funnel, conversión
 
+10. delegate_lead_routing
+    params: { "lead_id": str (requerido) }
+    devuelve: { routing_id, suggested_asesor_id, fit_score, fit_breakdown, rationale_text, routing_layer }
+    Úsalo cuando user pregunta "¿quién debería atender este lead?", "asigna lead X al mejor asesor", "rutea este lead", o cuando llega un lead nuevo y necesita ruteo manual.
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -185,8 +190,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 db, org_id,
                 period_days=int(params.get("period_days", 30)),
             )
+        elif tool_name == "delegate_lead_routing":
+            return await _tool_delegate_lead_routing(
+                db, org_id,
+                lead_id=str(params.get("lead_id", "")),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -423,6 +433,46 @@ async def _tool_delegate_lead_optimization(db, org_id: str, period_days: int = 3
             }
             for r in recs[:5]
         ],
+        "cost_usd": result.get("cost_usd"),
+    }
+
+
+# Tool 10 — Smart Routing (W4.6 Y.3A)
+async def _tool_delegate_lead_routing(db, org_id: str, lead_id: str) -> Dict[str, Any]:
+    """Tool 10: invoca SmartRoutingEngine para asignar lead al mejor asesor."""
+    if not lead_id:
+        return {"error": "lead_id requerido para delegate_lead_routing"}
+    try:
+        from agentic_crm.smart_routing_engine import (
+            SmartRoutingEngine, SmartRoutingDisabledError,
+            SmartRoutingRateLimitError, SmartRoutingNotFoundError,
+            SmartRoutingForbiddenError,
+        )
+        engine = SmartRoutingEngine(db, org_id)
+        result = await engine.route_lead(lead_id)
+    except SmartRoutingDisabledError as e:
+        return {"error": f"Smart Routing desactivado: {e}"}
+    except SmartRoutingRateLimitError as e:
+        return {"error": f"Rate limit smart routing: {e}"}
+    except SmartRoutingNotFoundError as e:
+        return {"error": str(e)}
+    except SmartRoutingForbiddenError as e:
+        return {"error": str(e)}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[director_tool] delegate_lead_routing failed: {e}")
+        return {"error": str(e)}
+
+    return {
+        "org_id": org_id,
+        "lead_id": lead_id,
+        "routing_id": result.get("routing_id"),
+        "suggested_asesor_id": result.get("suggested_asesor_id"),
+        "suggested_asesor_name": result.get("suggested_asesor_name"),
+        "fit_score": result.get("fit_score"),
+        "fit_breakdown": result.get("fit_breakdown") or {},
+        "rationale_text": result.get("rationale_text"),
+        "routing_layer": result.get("routing_layer"),
+        "latency_ms": result.get("latency_ms"),
         "cost_usd": result.get("cost_usd"),
     }
 
