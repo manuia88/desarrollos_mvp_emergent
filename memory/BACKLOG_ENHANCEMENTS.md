@@ -253,6 +253,14 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### Digest semanal rendimiento asesor (W4.17 enhancement emergent suggested)
+- **Origen:** W4.17 emergent suggested 2026-05-10
+- **Destino:** F0 sweep tech debt (~2h) o W5.10 capa 6 dashboards
+- **Qué:** cron lunes 9am MX que envía email Resend per asesor activo · contiene top 3 leads más activos semana (touchpoints · journey steps · meeting prox) + DISC score insights + sugerencias acción · reusa lead_journey_stats + notifications_engine digest infra
+- **Por qué:** keep-warm asesor sin abrir portal · DAU retention · transforma DMX en proactivo (no reactivo) · costo cero infra (Resend ya tier gratis + cron infra existente)
+- **Costo:** ~2h (template HTML Resend + cron lunes 9am + query top 3 leads weekly)
+- **Activar cuando:** F0 sweep próximo · valor inmediato pre-launch
+
 ### Lead Journey leaderboard cohort comparison (W4.13.A enhancement P2 0h emergent)
 - **Origen:** W4.13.A emergent suggested 2026-05-10
 - **Destino:** F0 sweep tech debt o W5.10 capa 6 dashboards

@@ -52,6 +52,9 @@ SCHEDULE_LABELS = {
     "risk_score_zone_daily":            "diario · 05:00 MX",
     "cenapred_atlas_quarterly_ingest":  "trimestral · día 1 (jan/abr/jul/oct) · 09:00 MX",
     "compliance_audit_retention":       "mensual · día 1 · 10:00 MX",
+    "notifications_digest_4h":          "cada 4h (08:00 · 12:00 · 16:00 · 20:00 MX)",
+    "wa_pending_replies_check":         "cada 30 min",
+    "meeting_reminders_check":          "cada 30 min",
 }
 
 # Approx interval seconds per schedule (used for stale detection: stale if last_run > 2× interval ago)
@@ -88,6 +91,9 @@ SCHEDULE_INTERVAL_SEC = {
     "risk_score_zone_daily":            86400 + 600,
     "cenapred_atlas_quarterly_ingest":  100 * 86400,
     "compliance_audit_retention":       32 * 86400,
+    "notifications_digest_4h":          4 * 3600,
+    "wa_pending_replies_check":         30 * 60,
+    "meeting_reminders_check":          30 * 60,
 }
 
 

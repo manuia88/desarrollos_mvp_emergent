@@ -781,17 +781,27 @@
     "price_index_discount_med": "Descuento med.",
     "heatmap_title": "Heatmap precio mediano / m² por zona",
     "types": {
-      "depto": "Departamento", "casa": "Casa", "loft": "Loft",
-      "town": "Town", "PH": "Penthouse"
+      "depto": "Departamento",
+      "casa": "Casa",
+      "loft": "Loft",
+      "town": "Town",
+      "PH": "Penthouse"
     },
     "sources": {
-      "dmx_native": "DMX", "dev_self_report": "Desarrollador",
-      "notary_partner": "Notaría", "bulk_ingest": "Importación"
+      "dmx_native": "DMX",
+      "dev_self_report": "Desarrollador",
+      "notary_partner": "Notaría",
+      "bulk_ingest": "Importación"
     },
     "cols": {
-      "closed_at": "Cierre", "zone": "Zona", "type": "Tipo",
-      "m2": "m²", "price": "Lista → Cierre", "dom": "DOM",
-      "source": "Fuente", "confidence": "Conf."
+      "closed_at": "Cierre",
+      "zone": "Zona",
+      "type": "Tipo",
+      "m2": "m²",
+      "price": "Lista → Cierre",
+      "dom": "DOM",
+      "source": "Fuente",
+      "confidence": "Conf."
     }
   },
   "phase5_foundation": {
@@ -1196,35 +1206,35 @@
       "mark_viewed_busy": "Marcando…",
       "download_pdf": "Descargar PDF",
       "section": {
-        "buyer_profile":   "Perfil del comprador",
-        "comparables":     "Top 3 comparables",
-        "objections":      "Objeciones probables",
-        "talking_points":  "Talking points",
-        "project_data":    "Datos del proyecto",
+        "buyer_profile": "Perfil del comprador",
+        "comparables": "Top 3 comparables",
+        "objections": "Objeciones probables",
+        "talking_points": "Talking points",
+        "project_data": "Datos del proyecto",
         "recommended_units": "Unidades recomendadas"
       },
       "layer_used": {
-        "llm":       "LLM",
-        "cached":    "Caché",
-        "cache":     "Caché",
+        "llm": "LLM",
+        "cached": "Caché",
+        "cache": "Caché",
         "heuristic": "Heurística"
       },
       "data_quality": {
-        "high":           "Alta",
-        "medium":         "Media",
+        "high": "Alta",
+        "medium": "Media",
         "basic_template": "Plantilla básica",
-        "simulated":      "Simulado"
+        "simulated": "Simulado"
       },
       "errors": {
-        "disabled":   "Visit Prep requiere tier T1 o superior.",
+        "disabled": "Visit Prep requiere tier T1 o superior.",
         "rate_limit": "Cap diario excedido. Intenta mañana.",
         "missing_data": "Faltan datos: lead_id, asesor_id, project_id, visit_scheduled_at",
-        "cross_org":  "Cross-org acceso denegado."
+        "cross_org": "Cross-org acceso denegado."
       },
       "footer": {
         "generated_at": "Generado",
-        "expires_at":   "Vence",
-        "tokens":       "tokens"
+        "expires_at": "Vence",
+        "tokens": "tokens"
       }
     },
     "reply_classifier": {
@@ -1453,8 +1463,8 @@
         "language": "Registro de Idioma"
       },
       "tone": {
-        "formal":  "Formal",
-        "casual":  "Casual",
+        "formal": "Formal",
+        "casual": "Casual",
         "tecnico": "Técnico",
         "cercano": "Cercano",
         "premium": "Premium"
@@ -1481,13 +1491,13 @@
       "title": "Pesos de Matching",
       "subtitle": "Criterios de asignación lead↔proyecto por organización",
       "dimension": {
-        "zona":              "Zona geográfica",
-        "precio":            "Precio / presupuesto",
-        "segment":           "Segmento de mercado",
-        "amenidades":        "Amenidades",
-        "timing":            "Timing / urgencia",
+        "zona": "Zona geográfica",
+        "precio": "Precio / presupuesto",
+        "segment": "Segmento de mercado",
+        "amenidades": "Amenidades",
+        "timing": "Timing / urgencia",
         "behavioral_intent": "Intención conductual",
-        "disc_match":        "Compatibilidad DISC"
+        "disc_match": "Compatibilidad DISC"
       },
       "sum_validation_error": "Los pesos deben sumar 100% ± 5 para guardar",
       "save_button": "Guardar pesos",
@@ -1502,12 +1512,12 @@
       "saved_msg": "Pesos guardados correctamente",
       "apply_tune_btn": "Aplicar pesos aprendidos",
       "errors": {
-        "tier_required":    "Match Weights requiere tier T1+",
-        "tier_write":       "Match Weights (manual) requiere tier T2+",
-        "sum_invalid":      "Los pesos deben sumar 1.0 ± 0.05",
-        "rate_limit":       "Cap de cambios excedido. Intenta más tarde.",
-        "load_failed":      "Error al cargar pesos",
-        "save_failed":      "Error al guardar pesos",
+        "tier_required": "Match Weights requiere tier T1+",
+        "tier_write": "Match Weights (manual) requiere tier T2+",
+        "sum_invalid": "Los pesos deben sumar 1.0 ± 0.05",
+        "rate_limit": "Cap de cambios excedido. Intenta más tarde.",
+        "load_failed": "Error al cargar pesos",
+        "save_failed": "Error al guardar pesos",
         "auto_tune_failed": "Error al ejecutar auto-tune"
       }
     },
@@ -1515,180 +1525,180 @@
       "title": "Argumentario",
       "subtitle": "Scripts personalizados DISC-adaptive por lead",
       "section": {
-        "opening":     "Apertura de contacto",
+        "opening": "Apertura de contacto",
         "value_pitch": "Propuesta de valor",
-        "objections":  "Respuestas a objeciones",
-        "closing":     "Técnica de cierre recomendada",
-        "discovery":   "Preguntas de descubrimiento"
+        "objections": "Respuestas a objeciones",
+        "closing": "Técnica de cierre recomendada",
+        "discovery": "Preguntas de descubrimiento"
       },
       "channel": {
-        "call":     "Llamada",
+        "call": "Llamada",
         "whatsapp": "WhatsApp",
-        "email":    "Email"
+        "email": "Email"
       },
       "objection": {
-        "precio_alto":               "Precio alto",
-        "timing":                    "Timing / urgencia",
-        "pareja_decide":             "Pareja decide",
-        "prefiero_otra_zona":        "Prefiere otra zona",
-        "necesito_pensarlo":         "Necesita pensarlo",
+        "precio_alto": "Precio alto",
+        "timing": "Timing / urgencia",
+        "pareja_decide": "Pareja decide",
+        "prefiero_otra_zona": "Prefiere otra zona",
+        "necesito_pensarlo": "Necesita pensarlo",
         "financiamiento_complicado": "Financiamiento complicado"
       },
       "actions": {
-        "refresh":   "Refrescar",
+        "refresh": "Refrescar",
         "mark_used": "Marcar como usado",
-        "used":      "Argumentario usado",
-        "copy":      "Copiar",
-        "copied":    "Copiado"
+        "used": "Argumentario usado",
+        "copy": "Copiar",
+        "copied": "Copiado"
       },
       "followup_label": "Seguimiento",
-      "loading":   "Generando argumentario…",
+      "loading": "Generando argumentario…",
       "errors": {
         "tier_required": "Argumentario requiere tier T1+",
-        "rate_limit":    "Sólo puedes refrescar el argumentario 1 vez cada 12h",
-        "load_failed":   "Error al cargar argumentario",
+        "rate_limit": "Sólo puedes refrescar el argumentario 1 vez cada 12h",
+        "load_failed": "Error al cargar argumentario",
         "refresh_failed": "Error al refrescar argumentario"
       }
     },
     "observability": {
-      "title":     "Observabilidad Phase Y",
-      "subtitle":  "Auditoría · accuracy ML · replay debugger · ROI por desarrollador",
+      "title": "Observabilidad Phase Y",
+      "subtitle": "Auditoría · accuracy ML · replay debugger · ROI por desarrollador",
       "tab": {
-        "kpis":   "KPIs Globales",
-        "audit":  "Audit Replay",
-        "ml":     "ML Accuracy",
+        "kpis": "KPIs Globales",
+        "audit": "Audit Replay",
+        "ml": "ML Accuracy",
         "replay": "Replay Debugger",
-        "roi":    "AI ROI Matrix"
+        "roi": "AI ROI Matrix"
       },
       "audit_replay": {
-        "title":           "Audit Replay",
-        "subtitle":        "Timeline cronológica de actividad agentic por target",
-        "target_type":     "Tipo de target",
-        "target_id":       "ID del target",
-        "search_btn":      "Buscar",
-        "no_events":       "Sin eventos en este target/periodo",
-        "total_events":    "eventos",
-        "total_cost":      "Costo total"
+        "title": "Audit Replay",
+        "subtitle": "Timeline cronológica de actividad agentic por target",
+        "target_type": "Tipo de target",
+        "target_id": "ID del target",
+        "search_btn": "Buscar",
+        "no_events": "Sin eventos en este target/periodo",
+        "total_events": "eventos",
+        "total_cost": "Costo total"
       },
       "ml_accuracy": {
-        "title":              "ML Accuracy",
-        "subtitle":           "Features ML con MAPE · hit rate · adoption",
-        "feature_pricing":    "Pricing recommendations",
-        "feature_routing":    "Smart Routing",
-        "feature_nurture":    "Nurture sequences",
-        "feature_disc":       "DISC inferencer",
+        "title": "ML Accuracy",
+        "subtitle": "Features ML con MAPE · hit rate · adoption",
+        "feature_pricing": "Pricing recommendations",
+        "feature_routing": "Smart Routing",
+        "feature_nurture": "Nurture sequences",
+        "feature_disc": "DISC inferencer",
         "feature_argumentario": "Argumentario adoption",
-        "feature_avm":        "AVM (estimación de valor)",
-        "sample_label":       "muestra"
+        "feature_avm": "AVM (estimación de valor)",
+        "sample_label": "muestra"
       },
       "replay_debugger": {
-        "title":           "Replay Debugger",
-        "subtitle":        "Re-ejecuta evento Phase Y en simulation_mode (no afecta data real)",
-        "list_btn":        "Listar eventos replayables",
-        "event_select":    "Selecciona un evento",
-        "executing":       "Re-ejecutando…",
-        "diff_label":      "Diferencias",
-        "steps_label":     "Pasos de ejecución",
-        "no_events":       "Sin eventos replayables"
+        "title": "Replay Debugger",
+        "subtitle": "Re-ejecuta evento Phase Y en simulation_mode (no afecta data real)",
+        "list_btn": "Listar eventos replayables",
+        "event_select": "Selecciona un evento",
+        "executing": "Re-ejecutando…",
+        "diff_label": "Diferencias",
+        "steps_label": "Pasos de ejecución",
+        "no_events": "Sin eventos replayables"
       },
       "ai_roi": {
-        "hero_lead":           "Tu Phase Y te entregó",
-        "hero_period":         "últimos N días",
-        "ratio_label":         "ROI",
-        "metric_pricing":      "Pricing lift",
-        "metric_marketing":    "Marketing lift",
-        "metric_lead":         "Lead conversion",
-        "metric_time":         "Tiempo asesor",
-        "breakdown_toggle":    "Desglose de actividad Phase Y",
-        "matrix_title":        "AI ROI Matrix",
-        "matrix_subtitle":     "Cross-org sorted por ratio descendente",
-        "tier_filter":         "Filtrar por tier",
-        "no_data":             "Sin datos · ejecutar cron diario",
-        "upgrade_cta":         "Activa más features Phase Y para multiplicar tu ROI"
+        "hero_lead": "Tu Phase Y te entregó",
+        "hero_period": "últimos N días",
+        "ratio_label": "ROI",
+        "metric_pricing": "Pricing lift",
+        "metric_marketing": "Marketing lift",
+        "metric_lead": "Lead conversion",
+        "metric_time": "Tiempo asesor",
+        "breakdown_toggle": "Desglose de actividad Phase Y",
+        "matrix_title": "AI ROI Matrix",
+        "matrix_subtitle": "Cross-org sorted por ratio descendente",
+        "tier_filter": "Filtrar por tier",
+        "no_data": "Sin datos · ejecutar cron diario",
+        "upgrade_cta": "Activa más features Phase Y para multiplicar tu ROI"
       },
       "errors": {
-        "tier_required":   "Observability requiere tier T1+",
-        "master_off":      "Phase Y master switch desactivado",
-        "load_failed":     "Error al cargar datos"
+        "tier_required": "Observability requiere tier T1+",
+        "master_off": "Phase Y master switch desactivado",
+        "load_failed": "Error al cargar datos"
       }
     }
   },
   "data_sources": {
-    "title":             "Data Sources gov MX",
-    "subtitle":          "6 fuentes oficiales para inteligencia espacial · cache local + crons resilientes",
+    "title": "Data Sources gov MX",
+    "subtitle": "6 fuentes oficiales para inteligencia espacial · cache local + crons resilientes",
     "kpi": {
-      "active_sources":  "Fuentes activas",
-      "total_rows":      "Filas en cache",
-      "last_24h_syncs":  "Syncs últimas 24h",
-      "queries_today":   "Queries hoy"
+      "active_sources": "Fuentes activas",
+      "total_rows": "Filas en cache",
+      "last_24h_syncs": "Syncs últimas 24h",
+      "queries_today": "Queries hoy"
     },
     "source": {
-      "banxico":         "Banxico SIE",
-      "sigcdmx":         "SIGCDMX Uso de Suelo",
-      "atlas_riesgos":   "Atlas Riesgos CDMX",
-      "catastro":        "Catastro CDMX",
-      "gtfs":            "GTFS CDMX",
-      "osm":             "OSM Geofabrik MX"
+      "banxico": "Banxico SIE",
+      "sigcdmx": "SIGCDMX Uso de Suelo",
+      "atlas_riesgos": "Atlas Riesgos CDMX",
+      "catastro": "Catastro CDMX",
+      "gtfs": "GTFS CDMX",
+      "osm": "OSM Geofabrik MX"
     },
     "label": {
-      "last_sync":       "Última sincronización",
-      "cache_size":      "Filas en cache",
-      "cron_schedule":   "Cron",
-      "duration":        "Duración",
-      "ok":              "OK",
-      "warning":         "Advertencia",
-      "failed":          "Falló"
+      "last_sync": "Última sincronización",
+      "cache_size": "Filas en cache",
+      "cron_schedule": "Cron",
+      "duration": "Duración",
+      "ok": "OK",
+      "warning": "Advertencia",
+      "failed": "Falló"
     },
     "actions": {
-      "lookup":          "Lookup manual",
-      "sync_now":        "Sincronizar ahora",
-      "view_stats":      "Ver estadísticas",
-      "search":          "Buscar"
+      "lookup": "Lookup manual",
+      "sync_now": "Sincronizar ahora",
+      "view_stats": "Ver estadísticas",
+      "search": "Buscar"
     },
     "lookup_modal": {
-      "title":           "Lookup manual",
-      "input_label":     "Parámetro de búsqueda",
-      "submit":          "Consultar",
-      "result":          "Resultado",
-      "no_data":         "Sin datos en cache · ejecutar sync"
+      "title": "Lookup manual",
+      "input_label": "Parámetro de búsqueda",
+      "submit": "Consultar",
+      "result": "Resultado",
+      "no_data": "Sin datos en cache · ejecutar sync"
     },
     "errors": {
-      "rate_limit":      "Rate limit · espera 1h entre syncs",
-      "load_failed":     "Error al cargar fuentes"
+      "rate_limit": "Rate limit · espera 1h entre syncs",
+      "load_failed": "Error al cargar fuentes"
     }
   },
   "whatsapp": {
-    "title":                   "WhatsApp Business",
-    "template_label":          "Plantilla",
-    "send_button":             "Enviar mensaje",
-    "provider_status":         "Proveedor activo",
+    "title": "WhatsApp Business",
+    "template_label": "Plantilla",
+    "send_button": "Enviar mensaje",
+    "provider_status": "Proveedor activo",
     "message_status": {
-      "queued":    "En cola",
-      "sent":      "Enviado",
+      "queued": "En cola",
+      "sent": "Enviado",
       "delivered": "Entregado",
-      "read":      "Leido",
-      "failed":    "Fallido",
-      "received":  "Recibido"
+      "read": "Leido",
+      "failed": "Fallido",
+      "received": "Recibido"
     }
   },
   "newsletter": {
-    "title":         "Newsletter Pulse",
+    "title": "Newsletter Pulse",
     "preview_button": "Vista previa",
-    "send_manual":   "Enviar ahora",
-    "opt_in":        "Suscribirse",
-    "opt_out":       "Cancelar suscripcion",
+    "send_manual": "Enviar ahora",
+    "opt_in": "Suscribirse",
+    "opt_out": "Cancelar suscripcion",
     "segment": {
-      "dev":          "Desarrolladores",
-      "asesor":       "Asesores",
-      "buyer":        "Compradores",
-      "inversionista":"Inversionistas"
+      "dev": "Desarrolladores",
+      "asesor": "Asesores",
+      "buyer": "Compradores",
+      "inversionista": "Inversionistas"
     }
   },
   "voice_atlax": {
-    "mic_button_label":       "Hablar con Atlax",
-    "recording_indicator":    "Grabando...",
-    "transcribe_error":       "Error al transcribir el audio. Verifica el microfono.",
-    "voice_output_toggle":    "Activar respuesta por voz"
+    "mic_button_label": "Hablar con Atlax",
+    "recording_indicator": "Grabando...",
+    "transcribe_error": "Error al transcribir el audio. Verifica el microfono.",
+    "voice_output_toggle": "Activar respuesta por voz"
   },
   "maps": {
     "page_title": "Mapa Cerebro Espacial",
@@ -1887,5 +1897,56 @@
     "empty_body": "Vuelve mañana o ajusta los filtros.",
     "toast_claimed": "Lead reclamado",
     "toast_rerouted": "{ok} ruteados · {failed} fallaron"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "mark_all_read": "Marcar todas leídas",
+    "filter_all": "Todas",
+    "filter_unread": "No leídas",
+    "filter_critical": "Críticas",
+    "empty_state": "Sin notificaciones nuevas",
+    "empty_state_sub": "te avisaremos cuando algo importante suceda",
+    "view_all": "Ver todas las notificaciones",
+    "types": {
+      "lead_new": "Nuevo lead asignado",
+      "lead_high_urgency": "Lead alta urgencia",
+      "meeting_24h": "Recordatorio cita 24h",
+      "meeting_1h": "Recordatorio cita 1h",
+      "cron_failed": "Cron del sistema fallido",
+      "saved_zone_alert": "Alerta zona guardada",
+      "message_pending": "Mensaje sin respuesta",
+      "listing_view_repeat": "Lead repite vista de listing",
+      "comparable_price_drop": "Caída precio competidor",
+      "drop_off_pico": "Pico de abandono",
+      "tenant_signup": "Nuevo tenant registrado",
+      "api_limit_warn": "Límite de API",
+      "lfpdppp_dsr": "Solicitud DSR LFPDPPP",
+      "audit_suspicious": "Actividad sospechosa auditada",
+      "nurture_cooldown": "Cooldown nurture",
+      "generic": "Notificación"
+    }
+  },
+  "notif_settings": {
+    "title": "Preferencias de notificaciones",
+    "subtitle": "Controla cómo y cuándo recibes alertas del sistema.",
+    "category": "Categoría",
+    "channel_inapp": "In-app",
+    "channel_email": "Email",
+    "channel_whatsapp": "WhatsApp",
+    "channel_push": "Push",
+    "push_wave5": "Wave 5",
+    "quiet_hours": "Horas silenciosas",
+    "quiet_hours_desc": "Las notificaciones críticas siempre se entregan, sin importar las horas silenciosas.",
+    "from": "Desde",
+    "until": "Hasta",
+    "timezone": "Zona horaria",
+    "digest_frequency": "Frecuencia del resumen",
+    "instant": "Instantáneo",
+    "hourly": "Cada hora",
+    "every_4h": "Cada 4 horas",
+    "daily": "Resumen diario",
+    "save": "Guardar preferencias",
+    "saving": "Guardando...",
+    "saved": "Preferencias guardadas"
   }
 }

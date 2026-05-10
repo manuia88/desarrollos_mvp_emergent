@@ -2391,3 +2391,33 @@ los crons + endpoints + UI ya están listos sin cambios de código (sólo cambia
 
 **Edge cases reportados:**
 - ElevenLabs TTS: API key bloqueada por IP de Kubernetes (Free Tier "unusual activity" 401). El código TTS es correcto. Requiere cuenta ElevenLabs de pago o whitelist de IP de servidor.
+
+## W4.17 — Smart Notifications Engine + NotificationCenter (2026-05-10)
+
+### Sub-Chunk A — Backend Engine
+- **NEW** `/app/backend/notifications_engine.py` (26KB): engine completo con `emit_notification`, `mark_read`, `mark_all_read`, `get_notifications`, `unread_count`, `get_preferences`, `update_preferences`, 10 rule helpers, `digest_pending_notifications` (cron 4h), `check_pending_whatsapp_replies` (cron 30min)
+- **NEW** `/app/backend/routes_notifications.py`: 6 endpoints bajo `/api/notifications/*`
+- **EDIT** `server.py`: router registrado ANTES de batch4_3 para prioridad de rutas, `ensure_notifications_indexes` en startup
+- **EDIT** `scheduler_ie.py`: 3 nuevos cron jobs (`notifications_digest_4h`, `wa_pending_replies_check`, `meeting_reminders_check`)
+- **EDIT** `cron_heartbeat.py`: labels + TTL de los 3 nuevos crons
+
+### Sub-Chunk B — Cross-cutting hooks
+- **EDIT** `lead_journey_engine.py`: hook `rule_lead_new` en `emit_step` cuando step_type in ["assigned","captured"]
+- **EDIT** `maps_cross_engine.py`: `cron_evaluate_saved_zones` → `rule_saved_zone_alert` (reemplaza insert crudo)
+- **EDIT** `whatsapp_engine.py`: `check_pending_whatsapp_replies_cron` wrapper
+- **EDIT** `oauth_calendar.py`: `schedule_meeting_reminder_notifications` + `process_due_meeting_reminders`
+
+### Sub-Chunk C — Frontend
+- **NEW** `/app/frontend/src/components/notifications/NotificationBellIcon.js`: bell + badge rojo + polling 30s + Page Visibility API
+- **NEW** `/app/frontend/src/components/notifications/NotificationCenter.js`: dropdown 380px, filter chips, mark-all, polling, empty state
+- **NEW** `/app/frontend/src/components/notifications/NotificationItem.js`: severity dot + title + body + timestamp relativo
+- **NEW** `/app/frontend/src/pages/portal/NotificationsSettings.js`: matrix N×4 canales, quiet hours, digest frequency, save
+- **EDIT** `Navbar.js`: `<NotificationBellIcon />` antes de avatar (solo si autenticado)
+- **EDIT** `App.js`: rutas `/portal/settings/notifications` y `/portal/notifications`
+- **EDIT** `i18n/locales/es-MX/common.json`: namespaces `notifications.*` y `notif_settings.*`
+
+### Testing
+- Backend curl: todos los 6 endpoints verificados ✓
+- emit_notification → unread_count ✓ → mark_read ✓ → mark_all_read ✓ → preferences GET/PUT ✓
+- yarn build limpio (0 errores) ✓
+- 3 cron jobs registrados en scheduler ✓

@@ -246,6 +246,16 @@ class WAEngine:
 
 # ─── Indexes ──────────────────────────────────────────────────────────────────
 
+async def check_pending_whatsapp_replies_cron(db) -> Dict[str, Any]:
+    """W4.17 — Cron cada 30min: delega a notifications_engine para msgs WA outbound sin reply >2h."""
+    try:
+        from notifications_engine import check_pending_whatsapp_replies
+        return await check_pending_whatsapp_replies(db)
+    except Exception as exc:
+        log.warning(f"[whatsapp] check_pending_replies_cron failed: {exc}")
+        return {"triggered": 0, "error": str(exc)}
+
+
 async def ensure_whatsapp_indexes(db) -> None:
     try:
         await db.whatsapp_messages.create_index(

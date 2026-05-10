@@ -279,6 +279,9 @@ app.include_router(dev_batch4_2_router)
 
 # Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression
 from routes_dev_batch4_3 import router as dev_batch4_3_router, ensure_batch4_3_indexes, register_batch4_3_jobs
+# W4.17 — Notifications must be registered BEFORE batch4_3 to take routing priority
+from routes_notifications import router as notifications_router_priority
+app.include_router(notifications_router_priority)
 app.include_router(dev_batch4_3_router)
 
 # Phase 4 Batch 4.4 — AI Engine + Analytics
@@ -607,6 +610,9 @@ app.include_router(private_beta_router)
 from routes_lead_journey import router as lead_journey_router
 from lead_journey_engine import ensure_lead_journey_indexes
 app.include_router(lead_journey_router)
+
+# W4.17 — Smart Notifications Engine (router registered early at line ~280 for routing priority)
+from notifications_engine import ensure_notifications_indexes
 
 
 @app.middleware("http")
@@ -1171,6 +1177,11 @@ async def startup():
         await ensure_lead_journey_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.13.A lead journey indexes failed: {e}")
+    # W4.17 — Notifications indexes
+    try:
+        await ensure_notifications_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.17 notifications indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
