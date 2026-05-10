@@ -1689,5 +1689,54 @@
     "recording_indicator":    "Grabando...",
     "transcribe_error":       "Error al transcribir el audio. Verifica el microfono.",
     "voice_output_toggle":    "Activar respuesta por voz"
+  },
+  "maps": {
+    "page_title": "Mapa Cerebro Espacial",
+    "page_subtitle": "Inteligencia geoespacial CDMX · proyectos preventa, brokers usada, catastro y zone score",
+    "ver_en_mapa": "Ver en mapa",
+    "tabs": {
+      "capas": "Capas",
+      "filtros": "Filtros"
+    },
+    "layers": {
+      "devs": "Proyectos preventa",
+      "devs_desc": "Desarrollos nuevos en venta",
+      "brokers": "Propiedades usadas",
+      "brokers_desc": "Listings de brokers (reventa)",
+      "catastro": "Catastro",
+      "catastro_desc": "Heatmap de precio por m²",
+      "zone_score": "Zone Score IE",
+      "zone_score_desc": "Score letra A-F por colonia",
+      "risk": "Riesgo zona",
+      "risk_desc": "SESNSP · CENAPRED · ENVIPE"
+    },
+    "filters": {
+      "title": "Filtros",
+      "price_min": "Precio mín. (MXN)",
+      "price_max": "Precio máx. (MXN)",
+      "type": "Tipo de propiedad",
+      "stage": "Etapa",
+      "rooms": "Recámaras",
+      "apply": "Aplicar filtros",
+      "clear": "Limpiar"
+    },
+    "sidebar": {
+      "open": "Abrir panel",
+      "close": "Cerrar panel",
+      "loading_layers": "Actualizando capas..."
+    },
+    "popup": {
+      "ask_atlax": "Preguntar a Atlax sobre esto",
+      "open_detail": "Ver ficha completa",
+      "close": "Cerrar"
+    },
+    "atlax_button": {
+      "label": "Atlax",
+      "tooltip": "Pregunta a Atlax sobre este mapa"
+    },
+    "errors": {
+      "token_missing": "Token Mapbox requerido",
+      "layer_failed": "No se pudo cargar la capa"
+    }
   }
 }
