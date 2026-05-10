@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { MapPin, Globe } from '../icons';
 
 const LNG_KEY = 'dmx_lng';
+const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowerCase() === 'true';
 
 export default function Navbar({ onLogin, user, onLogout }) {
   const { t, i18n } = useTranslation();
@@ -141,6 +142,15 @@ export default function Navbar({ onLogin, user, onLogout }) {
                 {t('nav.logout')}
               </button>
             </div>
+          ) : PRIVATE_BETA_MODE ? (
+            <a
+              href="/broker-portal"
+              data-testid="nav-broker-access"
+              className="btn btn-ghost btn-sm"
+              style={{ textDecoration: 'none' }}
+            >
+              Broker access
+            </a>
           ) : (
             <>
               <button className="btn btn-ghost btn-sm" onClick={onLogin} data-testid="nav-login-btn">
@@ -199,6 +209,10 @@ export default function Navbar({ onLogin, user, onLogout }) {
             <LngToggle fullWidth />
             {user ? (
               <button className="btn btn-glass" onClick={onLogout} style={{ width: '100%' }}>{t('nav.logout')}</button>
+            ) : PRIVATE_BETA_MODE ? (
+              <a href="/broker-portal" className="btn btn-ghost" style={{ width: '100%', textDecoration: 'none', justifyContent: 'center' }}>
+                Broker access
+              </a>
             ) : (
               <>
                 <button className="btn btn-ghost" onClick={onLogin} style={{ width: '100%' }}>{t('nav.login')}</button>

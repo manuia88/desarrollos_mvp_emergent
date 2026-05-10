@@ -10,6 +10,8 @@ import {
   identifyUser as phIdentifyUser,
   resetSession as phResetSession,
 } from './lib/posthog';
+// W4.18.3 — Private Beta · WaitlistForm
+import WaitlistForm from './components/private_beta/WaitlistForm';
 
 // Landing components (eager — first-paint critical)
 import CustomCursor from './components/landing/CustomCursor';
@@ -30,12 +32,18 @@ import RolePicker from './components/landing/RolePicker';
 import AtlaxBubble from './components/landing/AtlaxBubble';
 const DrpiHeroWidget = lazy(() => import('./components/public/DrpiHeroWidget'));
 
+const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowerCase() === 'true';
+
 // ─── Lazy-loaded page routes ───────────────────────────────────────────────────
 // Marketplace
 const Marketplace       = lazy(() => import('./pages/Marketplace'));
 const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
 const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
 const Mapa              = lazy(() => import('./pages/Mapa'));
+// W4.18.3 — Private Beta Gate
+const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
+const SuperadminInvites  = lazy(() => import('./pages/superadmin/SuperadminInvites'));
+
 const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
 // W4.18.2B Sub-D — public AVM + colonia landings
 const Valores           = lazy(() => import('./pages/public/Valores'));
@@ -452,6 +460,9 @@ function AppRouter() {
       {/* W4.18.2B Sub-D — public AVM + colonia landings */}
       <Route path="/valores" element={<Valores />} />
       <Route path="/colonia/:slug" element={<ColoniaLanding />} />
+      {/* W4.18.3 — Private Beta Gate */}
+      <Route path="/broker-portal" element={<BrokerPortal />} />
+      <Route path="/superadmin/invites" element={<SuperadminInvitesRoute />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />
@@ -675,6 +686,12 @@ function MapaCDMXRoute() {
   return <MapaCDMX user={user} />;
 }
 
+function SuperadminInvitesRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return <SuperadminInvites user={user} />;
+}
+
 function DevelopmentDetailRoute() {
   const { user, logout, openAuth } = useAuth();
   return <DevelopmentDetail user={user} onLogin={openAuth} onLogout={logout} />;
@@ -734,6 +751,9 @@ function FallbackRoute() {
 }
 
 // ─── Landing page ─────────────────────────────────────────────────────────────
+// W4.18.3 — Private Beta — WaitlistForm (moved to top to avoid import/first eslint)
+
+
 function LandingPage() {
   const { user, logout, openAuth, loading } = useAuth();
   const location = useLocation();
@@ -747,6 +767,11 @@ function LandingPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, location.search, user]);
+
+  // W4.18.3 — Si beta mode activo y user no autenticado → waitlist hero
+  if (PRIVATE_BETA_MODE && !user && !loading) {
+    return <WaitlistLanding />;
+  }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -765,6 +790,46 @@ function LandingPage() {
         <Testimonials />
         <Faq />
         <CtaFooter />
+      </main>
+    </div>
+  );
+}
+
+// W4.18.3 — Hero waitlist (public · no auth)
+function WaitlistLanding() {
+  return (
+    <div style={{ background: 'var(--bg, #06080F)', minHeight: '100vh', color: '#F0EBE0' }}>
+      <Navbar />
+      <main style={{ paddingTop: 100, padding: '100px 24px 80px' }}>
+        <section style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a5b4fc', marginBottom: 14 }}>
+            DESARROLLOSMX · LANZAMOS PRONTO
+          </div>
+          <h1 style={{
+            fontFamily: 'Outfit', fontWeight: 800,
+            fontSize: 'clamp(36px, 6vw, 64px)', letterSpacing: '-0.025em',
+            lineHeight: 1.05, margin: '0 0 18px', color: '#F0EBE0',
+          }}>
+            Inteligencia Inmobiliaria CDMX
+          </h1>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 16, color: 'rgba(240,235,224,0.7)', maxWidth: 560, margin: '0 auto 32px', lineHeight: 1.55 }}>
+            Únete a la waitlist y entérate primero cuando abramos el acceso público.
+            Datos de mercado, scoring de zonas, valuaciones automáticas y mucho más.
+          </p>
+        </section>
+        <section style={{ maxWidth: 480, margin: '0 auto' }}>
+          <WaitlistForm />
+          <div style={{ marginTop: 22, textAlign: 'center' }}>
+            <a
+              data-testid="broker-portal-link"
+              href="/broker-portal"
+              style={{
+                fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+                color: '#a5b4fc', textDecoration: 'none', letterSpacing: '0.02em',
+              }}
+            >¿Eres broker? Acceso temprano →</a>
+          </div>
+        </section>
       </main>
     </div>
   );

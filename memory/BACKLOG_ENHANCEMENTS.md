@@ -231,6 +231,30 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
+### Resend "welcome broker" email post-signup-broker (W4.18.3 follow-up)
+- **Origen:** W4.18.3 spec mencionó pero no implementado (out-of-scope sub-A) · founder needs warm onboarding 2026-05-10
+- **Destino:** F0 sweep tech debt (Claude Code · ~1h) · activar antes de invitar primer broker piloto
+- **Qué:** hook en `routes_private_beta.signup_broker` después de `consume_code` exitoso → llamada a `resend_engine.send_welcome_broker(email, name, invite_code)` reusando infra W4.10 ya shipped · template HTML con branding DMX + login link `/broker-portal` + onboarding tips top 3 features · LFPDPPP-compliant
+- **Por qué:** broker piloto recibe correo bienvenida = profesionalismo desde primer contacto · reduce abandono onboarding (40% típico sin warm sequence) · dato crítico: brokers VIP early-adopters · cero cost (Resend free tier 3K/mes ya activo)
+- **Costo:** ~1h (template HTML + hook + smoke test)
+- **Activar cuando:** ANTES de generar primer batch de códigos invitación reales (founder ops trigger)
+
+### Waitlist funnel analytics dashboard (PostHog cross W4.18.3)
+- **Origen:** W4.18.3 emergent suggested 2026-05-10 mientras `PRIVATE_BETA_MODE=true` activo
+- **Destino:** Wave 5 W5.20+ marketing analytics suite
+- **Qué:** endpoint `/api/superadmin/waitlist/funnel` retorna `{visitors_landing, waitlist_signups, signup_rate, by_utm_source_breakdown, by_utm_medium, by_utm_campaign}` cruzando eventos PostHog `$pageview` filtrados por path `/` con waitlist signups · UI panel en `/superadmin/invites` tab nuevo "Conversión waitlist" con gráfico de embudo
+- **Por qué:** durante 2-3 meses private beta el waitlist crece orgánicamente · founder necesita dashboard real de cuál UTM source convierte mejor (FB ads vs LinkedIn vs prensa orgánica vs SEO mapa) · informa presupuesto Q2 marketing post-launch · permite A/B test landing variants
+- **Costo:** ~2h (endpoint funnel agregado + UI panel reusa SuperadminInvites tabs · llamada PostHog API server-side con secret key)
+- **Activar cuando:** waitlist tenga ≥100 emails (cuándo signal sea estadísticamente útil)
+
+### Rate-limit `/api/waitlist/signup` (P2 abuse protection)
+- **Origen:** W4.18.3 edge case 6 emergent reportado 2026-05-10
+- **Destino:** F0 sweep tech debt (Claude Code · 30 min)
+- **Qué:** aplicar mismo pattern `routes_avm_public.py` rate-limit in-memory (defaultdict deque por IP · 30/min/IP) al endpoint `/api/waitlist/signup` · evita scrapers/bots inflando waitlist con emails fake
+- **Por qué:** endpoint público sin auth + idempotente upsert por email = bot puede meter 50K emails fake con scripts trivialmente · contamina conversion analytics + DMX se ve mal en métricas reales
+- **Costo:** ~30 min (copy-paste pattern existente)
+- **Activar cuando:** F0 sweep próximo · ANTES de exposición pública real
+
 ### DMX Insights Layer — Wiki Karpathy + Backend público (W5.20-21 Wave 5 H2)
 - **Origen:** founder propuesta 2026-05-10 + análisis Karpathy LLM Wiki pattern (video Andrej Karpathy 2026-05-10)
 - **Destino:** Wave 5 H2 W5.20-21 (post-launch público brokers + compradores)
