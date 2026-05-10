@@ -1549,6 +1549,68 @@
         "load_failed":   "Error al cargar argumentario",
         "refresh_failed": "Error al refrescar argumentario"
       }
+    },
+    "observability": {
+      "title":     "Observabilidad Phase Y",
+      "subtitle":  "Auditoría · accuracy ML · replay debugger · ROI por desarrollador",
+      "tab": {
+        "kpis":   "KPIs Globales",
+        "audit":  "Audit Replay",
+        "ml":     "ML Accuracy",
+        "replay": "Replay Debugger",
+        "roi":    "AI ROI Matrix"
+      },
+      "audit_replay": {
+        "title":           "Audit Replay",
+        "subtitle":        "Timeline cronológica de actividad agentic por target",
+        "target_type":     "Tipo de target",
+        "target_id":       "ID del target",
+        "search_btn":      "Buscar",
+        "no_events":       "Sin eventos en este target/periodo",
+        "total_events":    "eventos",
+        "total_cost":      "Costo total"
+      },
+      "ml_accuracy": {
+        "title":              "ML Accuracy",
+        "subtitle":           "Features ML con MAPE · hit rate · adoption",
+        "feature_pricing":    "Pricing recommendations",
+        "feature_routing":    "Smart Routing",
+        "feature_nurture":    "Nurture sequences",
+        "feature_disc":       "DISC inferencer",
+        "feature_argumentario": "Argumentario adoption",
+        "feature_avm":        "AVM (estimación de valor)",
+        "sample_label":       "muestra"
+      },
+      "replay_debugger": {
+        "title":           "Replay Debugger",
+        "subtitle":        "Re-ejecuta evento Phase Y en simulation_mode (no afecta data real)",
+        "list_btn":        "Listar eventos replayables",
+        "event_select":    "Selecciona un evento",
+        "executing":       "Re-ejecutando…",
+        "diff_label":      "Diferencias",
+        "steps_label":     "Pasos de ejecución",
+        "no_events":       "Sin eventos replayables"
+      },
+      "ai_roi": {
+        "hero_lead":           "Tu Phase Y te entregó",
+        "hero_period":         "últimos N días",
+        "ratio_label":         "ROI",
+        "metric_pricing":      "Pricing lift",
+        "metric_marketing":    "Marketing lift",
+        "metric_lead":         "Lead conversion",
+        "metric_time":         "Tiempo asesor",
+        "breakdown_toggle":    "Desglose de actividad Phase Y",
+        "matrix_title":        "AI ROI Matrix",
+        "matrix_subtitle":     "Cross-org sorted por ratio descendente",
+        "tier_filter":         "Filtrar por tier",
+        "no_data":             "Sin datos · ejecutar cron diario",
+        "upgrade_cta":         "Activa más features Phase Y para multiplicar tu ROI"
+      },
+      "errors": {
+        "tier_required":   "Observability requiere tier T1+",
+        "master_off":      "Phase Y master switch desactivado",
+        "load_failed":     "Error al cargar datos"
+      }
     }
   }
 }

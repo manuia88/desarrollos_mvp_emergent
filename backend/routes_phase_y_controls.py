@@ -38,6 +38,7 @@ DEFAULT_FEATURE_TIERS: Dict[str, str] = {
     "atlax_persona":         "off",
     "match_weights_adaptive": "off",
     "argumentario_adaptive":  "off",
+    "observability_dashboard": "off",
 }
 
 
