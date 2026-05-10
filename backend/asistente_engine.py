@@ -148,6 +148,30 @@ TOOLS Y PARAMS:
    params: {{ "query": str (keyword o frase, requerido), "geo": str (default "MX-CMX"), "timeframe": str (default "today 12-m") }}
    devuelve: Google Trends real para CDMX vía Apify (interés histórico, regiones top, queries relacionadas, dirección rising/falling/flat). Cache 7d.
 
+8. get_banxico_indicator
+   params: {{ "series_id": str (ej. "SF43718" USD/MXN, "SP68257" UDI, "SF43783" TIIE 28d, "CF303" hipotecaria, "SP1" INPC) }}
+   devuelve: último valor + historia 30d desde cache Banxico SIE (data oficial gov MX).
+
+9. get_uso_suelo
+   params: {{ "cuenta_catastral": str (requerido) }}
+   devuelve: {{ alcaldia, categoria, densidad, niveles_max }} desde SIGCDMX cache.
+
+10. get_riesgos_zona
+    params: {{ "ageb_id": str (requerido) }}
+    devuelve: {{ inundacion, sismico, laderas, overall_score 0-100 }} desde Atlas Riesgos CDMX.
+
+11. get_valor_catastral
+    params: {{ "cuenta_catastral": str (requerido) }}
+    devuelve: {{ valor_catastral, superficie_m2, alcaldia }} desde Catastro CDMX cache.
+
+12. get_transit_accessibility
+    params: {{ "lat": float, "lng": float, "radius_m": int (default 500) }}
+    devuelve: {{ nearest_stops[], lines_count, accessibility_score 0-100 }} desde GTFS CDMX.
+
+13. get_amenities_radius
+    params: {{ "lat": float, "lng": float, "radius_m": int (default 500), "categories": [str] (opcional) }}
+    devuelve: {{ pois[], counts_by_category, walkability_score 0-100 }} desde OSM Geofabrik MX.
+
 REGLAS:
 - Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
@@ -186,6 +210,30 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 query=params.get("query") or "",
                 geo=params.get("geo") or "MX-CMX",
                 timeframe=params.get("timeframe") or "today 12-m",
+            )
+        # W4.18 · 6 nuevas tools data sources gov MX
+        if tool_name == "get_banxico_indicator":
+            return await _tool_get_banxico_indicator(db, params.get("series_id", ""))
+        if tool_name == "get_uso_suelo":
+            return await _tool_get_uso_suelo(db, params.get("cuenta_catastral", ""))
+        if tool_name == "get_riesgos_zona":
+            return await _tool_get_riesgos_zona(db, params.get("ageb_id", ""))
+        if tool_name == "get_valor_catastral":
+            return await _tool_get_valor_catastral(db, params.get("cuenta_catastral", ""))
+        if tool_name == "get_transit_accessibility":
+            return await _tool_get_transit_accessibility(
+                db,
+                lat=float(params.get("lat") or 0),
+                lng=float(params.get("lng") or 0),
+                radius_m=int(params.get("radius_m") or 500),
+            )
+        if tool_name == "get_amenities_radius":
+            return await _tool_get_amenities_radius(
+                db,
+                lat=float(params.get("lat") or 0),
+                lng=float(params.get("lng") or 0),
+                radius_m=int(params.get("radius_m") or 500),
+                categories=params.get("categories"),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -447,6 +495,80 @@ async def _tool_get_trends_for_query(db, query: str, geo: str, timeframe: str) -
         "source": full.get("source"),
         "cache_status": full.get("cache_status"),
     }
+
+
+# ─── W4.18 · 6 tools data sources gov MX ─────────────────────────────────────
+async def _tool_get_banxico_indicator(db, series_id: str) -> Dict[str, Any]:
+    """Live: cache mongo Banxico SIE."""
+    if not series_id:
+        return {"error": "series_id requerido (ej. SF43718, SP68257, SF43783)"}
+    try:
+        from data_sources.banxico_engine import BanxicoEngine
+        return await BanxicoEngine(db).lookup(series_id)
+    except Exception as e:
+        log.warning(f"[asistente_tool] banxico failed: {e}")
+        return {"error": "banxico temporalmente no disponible"}
+
+
+async def _tool_get_uso_suelo(db, cuenta_catastral: str) -> Dict[str, Any]:
+    if not cuenta_catastral:
+        return {"error": "cuenta_catastral requerido"}
+    try:
+        from data_sources.sigcdmx_engine import SIGCDMXEngine
+        return await SIGCDMXEngine(db).lookup(cuenta_catastral)
+    except Exception as e:
+        log.warning(f"[asistente_tool] sigcdmx failed: {e}")
+        return {"error": "sigcdmx temporalmente no disponible"}
+
+
+async def _tool_get_riesgos_zona(db, ageb_id: str) -> Dict[str, Any]:
+    if not ageb_id:
+        return {"error": "ageb_id requerido"}
+    try:
+        from data_sources.atlas_riesgos_engine import AtlasRiesgosEngine
+        return await AtlasRiesgosEngine(db).lookup(ageb_id)
+    except Exception as e:
+        log.warning(f"[asistente_tool] atlas_riesgos failed: {e}")
+        return {"error": "atlas_riesgos temporalmente no disponible"}
+
+
+async def _tool_get_valor_catastral(db, cuenta_catastral: str) -> Dict[str, Any]:
+    if not cuenta_catastral:
+        return {"error": "cuenta_catastral requerido"}
+    try:
+        from data_sources.catastro_engine import CatastroEngine
+        return await CatastroEngine(db).lookup(cuenta_catastral)
+    except Exception as e:
+        log.warning(f"[asistente_tool] catastro failed: {e}")
+        return {"error": "catastro temporalmente no disponible"}
+
+
+async def _tool_get_transit_accessibility(
+    db, lat: float, lng: float, radius_m: int = 500,
+) -> Dict[str, Any]:
+    if not (lat and lng):
+        return {"error": "lat y lng requeridos"}
+    try:
+        from data_sources.gtfs_engine import GTFSEngine
+        return await GTFSEngine(db).get_transit_accessibility(lat, lng, radius_m)
+    except Exception as e:
+        log.warning(f"[asistente_tool] gtfs failed: {e}")
+        return {"error": "gtfs temporalmente no disponible"}
+
+
+async def _tool_get_amenities_radius(
+    db, lat: float, lng: float, radius_m: int = 500,
+    categories=None,
+) -> Dict[str, Any]:
+    if not (lat and lng):
+        return {"error": "lat y lng requeridos"}
+    try:
+        from data_sources.osm_engine import OSMEngine
+        cats = categories if isinstance(categories, list) else None
+        return await OSMEngine(db).get_amenities_radius(lat, lng, radius_m, cats)
+    except Exception as e:
+        log.warning(f"[asistente_tool] osm failed: {e}")
+        return {"error": "osm temporalmente no disponible"}
 
 
 # ─── Tool loop ────────────────────────────────────────────────────────────────

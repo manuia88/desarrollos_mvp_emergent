@@ -200,6 +200,7 @@ const DocumentsPage              = lazy(() => import('./pages/superadmin/Documen
 const SuperadminDrivePage        = lazy(() => import('./pages/superadmin/SuperadminDrivePage'));
 const SuperadminObservabilityPage= lazy(() => import('./pages/superadmin/SuperadminObservabilityPage'));
 const SuperadminPhaseYObservability = lazy(() => import('./pages/superadmin/SuperadminObservability'));
+const SuperadminDataSourcesPage = lazy(() => import('./pages/superadmin/SuperadminDataSources'));
 const AuditLogPage               = lazy(() => import('./pages/superadmin/AuditLogPage'));
 const PrimitivesDemo             = lazy(() => import('./pages/superadmin/PrimitivesDemo'));
 const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
@@ -531,6 +532,7 @@ function AppRouter() {
       <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
       <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
       <Route path="/superadmin/phase-y-observability" element={<AdvisorRoute Page={SuperadminPhaseYObservability} />} />
+      <Route path="/superadmin/data-sources" element={<AdvisorRoute Page={SuperadminDataSourcesPage} />} />
       <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={SuperadminAuditLog} />} />
       <Route path="/superadmin/audit-log-legacy" element={<AdvisorRoute Page={AuditLogPage} />} />
       <Route path="/superadmin/ai-cost" element={<AdvisorRoute Page={SuperadminAiCost} />} />

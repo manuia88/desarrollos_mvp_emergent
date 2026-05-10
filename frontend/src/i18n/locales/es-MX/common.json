@@ -1612,5 +1612,49 @@
         "load_failed":     "Error al cargar datos"
       }
     }
+  },
+  "data_sources": {
+    "title":             "Data Sources gov MX",
+    "subtitle":          "6 fuentes oficiales para inteligencia espacial · cache local + crons resilientes",
+    "kpi": {
+      "active_sources":  "Fuentes activas",
+      "total_rows":      "Filas en cache",
+      "last_24h_syncs":  "Syncs últimas 24h",
+      "queries_today":   "Queries hoy"
+    },
+    "source": {
+      "banxico":         "Banxico SIE",
+      "sigcdmx":         "SIGCDMX Uso de Suelo",
+      "atlas_riesgos":   "Atlas Riesgos CDMX",
+      "catastro":        "Catastro CDMX",
+      "gtfs":            "GTFS CDMX",
+      "osm":             "OSM Geofabrik MX"
+    },
+    "label": {
+      "last_sync":       "Última sincronización",
+      "cache_size":      "Filas en cache",
+      "cron_schedule":   "Cron",
+      "duration":        "Duración",
+      "ok":              "OK",
+      "warning":         "Advertencia",
+      "failed":          "Falló"
+    },
+    "actions": {
+      "lookup":          "Lookup manual",
+      "sync_now":        "Sincronizar ahora",
+      "view_stats":      "Ver estadísticas",
+      "search":          "Buscar"
+    },
+    "lookup_modal": {
+      "title":           "Lookup manual",
+      "input_label":     "Parámetro de búsqueda",
+      "submit":          "Consultar",
+      "result":          "Resultado",
+      "no_data":         "Sin datos en cache · ejecutar sync"
+    },
+    "errors": {
+      "rate_limit":      "Rate limit · espera 1h entre syncs",
+      "load_failed":     "Error al cargar fuentes"
+    }
   }
 }
