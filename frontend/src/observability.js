@@ -31,7 +31,8 @@ export function initObservability() {
   // PostHog
   const phKey = process.env.REACT_APP_POSTHOG_KEY || '';
   const phHost = process.env.REACT_APP_POSTHOG_HOST || 'https://us.i.posthog.com';
-  if (phKey && !_posthogInited) {
+  // W4.18.2A.0 — skip si lib/posthog.js ya inicializó (LFPDPPP-compliant init lleva precedencia)
+  if (phKey && !_posthogInited && !posthog.__loaded) {
     try {
       posthog.init(phKey, {
         api_host: phHost,
@@ -57,14 +58,9 @@ export function identifyUser(user) {
     } catch {}
   }
   if (_posthogInited) {
+    // W4.18.2A.0 — LFPDPPP: identify SOLO con hash + traits safe (sin email/name/phone)
     try {
-      posthog.identify(user.user_id, {
-        email: user.email,
-        role: user.role,
-        org_id: user.tenant_id,
-        tenant_id: user.tenant_id,
-        name: user.name,
-      });
+      // El hash + identify se manejan en lib/posthog.js identifyUser(); aquí solo notamos que sigue habilitado.
     } catch {}
   }
 }
