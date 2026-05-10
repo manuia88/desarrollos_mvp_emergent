@@ -1365,6 +1365,82 @@
         "load_failed": "Error al cargar perfil DISC",
         "refresh_failed": "No se pudo refrescar el perfil"
       }
+    },
+    "nurture_intelligent": {
+      "title": "Secuencias personalizadas con AI",
+      "eyebrow": "W4.6 Y.3E · Nurture Intelligent",
+      "no_sequences": "Sin secuencias para este filtro. Activa el tier T1 y espera al próximo cron 04:15 MX o lanza un dry-run para previsualizar.",
+      "loading": "Cargando secuencias…",
+      "sequence_type": {
+        "warm-fast": "Warm fast",
+        "warm-medium": "Warm medium",
+        "cold-warm": "Cold warm",
+        "stalled-recovery": "Stalled recovery",
+        "interested-confirmed": "Interested"
+      },
+      "touch_channel": {
+        "email": "Email",
+        "whatsapp": "WhatsApp",
+        "asesor_handoff": "Handoff asesor"
+      },
+      "status": {
+        "active": "Activa",
+        "paused": "Pausada",
+        "completed": "Completada",
+        "preview": "Preview",
+        "escalated": "Escalada"
+      },
+      "filter": {
+        "active": "Activas",
+        "paused": "Pausadas",
+        "completed": "Completadas",
+        "all": "Todas"
+      },
+      "stats": {
+        "active_label": "Activas",
+        "completed_label": "Completadas 30d",
+        "open_rate_label": "Open rate",
+        "reply_rate_label": "Reply rate",
+        "conversion_label": "Conversión"
+      },
+      "dry_run_button": "Preview",
+      "dry_run_modal_title": "Sequence preview (sin envío)",
+      "dry_run_loading": "Generando preview…",
+      "pause_button": "Pausar",
+      "resume_button": "Reactivar",
+      "refresh_button": "Refrescar",
+      "toggle_org": {
+        "activate": "Activar",
+        "deactivate": "Desactivar",
+        "modal_title": "Confirmar cambio de tier · Nurture Intelligent",
+        "modal_activate_msg": "Al activar tier T1 el próximo cron 04:15 MX generará secuencias personalizadas para esta org.",
+        "modal_deactivate_msg": "Al desactivar la org volverá al cron template-based legacy.",
+        "cancel": "Cancelar",
+        "applying": "Aplicando…"
+      },
+      "active_badge": "Nurture Intelligent activo",
+      "tier_label": "Tier",
+      "next_touch_label": "Próximo touch",
+      "last_touch_label": "último",
+      "step_label": "Step",
+      "cta_label": "CTA",
+      "layer_used": {
+        "llm": "LLM",
+        "cached": "Caché",
+        "cache": "Caché",
+        "heuristic": "Heurística",
+        "legacy_fallback": "Legacy"
+      },
+      "errors": {
+        "disabled": "Nurture Intelligent requiere tier T1 o superior.",
+        "rate_limit": "Cap excedido. Intenta en 60 segundos.",
+        "cross_org": "Cross-org acceso denegado.",
+        "load_failed": "Error al cargar secuencias",
+        "preview_failed": "Error al generar preview",
+        "pause_failed": "No se pudo pausar la secuencia",
+        "resume_failed": "No se pudo reactivar la secuencia",
+        "toggle_failed": "No se pudo aplicar el toggle"
+      }
     }
   }
 }

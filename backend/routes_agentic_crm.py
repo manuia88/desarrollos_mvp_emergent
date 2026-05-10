@@ -54,6 +54,13 @@ from agentic_crm.disc_inferencer_engine import (
     DISCInferencerNotFoundError,
     DISCInferencerRateLimitError,
 )
+from lead_nurture_engine import (
+    NurtureIntelligentEngine,
+    NurtureIntelligentDisabledError,
+    NurtureIntelligentForbiddenError,
+    NurtureIntelligentNotFoundError,
+    NurtureIntelligentRateLimitError,
+)
 
 log = logging.getLogger("dmx.routes_agentic_crm")
 
@@ -859,3 +866,222 @@ async def superadmin_disc_distribution(
         "by_layer_used": by_layer,
     }
 
+
+
+# ─── W4.6 Y.3E · Lead Nurture Intelligent ─────────────────────────────────────
+class NurtureDryRunIn(BaseModel):
+    simulation_override: bool = False
+
+
+class NurtureToggleIn(BaseModel):
+    org_id: str = Field(..., min_length=2, max_length=120)
+    tier: str = Field(..., pattern="^(off|T1|T2|T3)$")
+
+
+@router.get("/api/agentic-crm/nurture/sequences")
+async def list_nurture_sequences(request: Request,
+                                  status: Optional[str] = Query(None),
+                                  org_id: Optional[str] = Query(None),
+                                  limit: int = Query(50, ge=1, le=200)):
+    """Lista nurture_sequences de la org del usuario (o cross-org si superadmin)."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+    target_org = org_id if (role == "superadmin" and org_id) else getattr(user, "tenant_id", None)
+    if not target_org:
+        raise HTTPException(400, "tenant requerido")
+
+    q: Dict[str, Any] = {"org_id": target_org}
+    if status and status != "all":
+        q["status"] = status
+    cur = db.nurture_sequences.find(
+        q,
+        {"_id": 1, "lead_id": 1, "sequence_type": 1, "current_step": 1,
+         "total_steps": 1, "status": 1, "layer_used": 1, "data_quality": 1,
+         "generated_at": 1, "last_touch_at": 1, "next_touch_scheduled_at": 1},
+    ).sort("generated_at", -1).limit(limit)
+
+    items: List[Dict[str, Any]] = []
+    async for s in cur:
+        item = {**s, "sequence_id": s.pop("_id", None)}
+        for k in ("generated_at", "last_touch_at", "next_touch_scheduled_at"):
+            v = item.get(k)
+            if isinstance(v, datetime):
+                item[k] = v.isoformat()
+        items.append(item)
+    return {"ok": True, "count": len(items), "sequences": items}
+
+
+@router.post("/api/agentic-crm/nurture/sequences/{lead_id}/dry-run")
+async def nurture_sequence_dry_run(lead_id: str, request: Request,
+                                    payload: Optional[NurtureDryRunIn] = None):
+    """Genera sequence sin enviar (preview superadmin/asesor)."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "dev_org_id": 1, "id": 1})
+    if not lead:
+        raise HTTPException(404, f"Lead {lead_id} no encontrado")
+    org_id = lead.get("dev_org_id")
+    if role != "superadmin" and org_id and getattr(user, "tenant_id", None) != org_id:
+        raise HTTPException(403, "Lead pertenece a otra org")
+    target_org = _resolve_org(user, org_id)
+    sim_override = payload.simulation_override if payload else False
+    try:
+        engine = NurtureIntelligentEngine(db, target_org)
+        result = await engine.design_sequence(
+            lead_id, dry_run=True, simulation_override=sim_override,
+        )
+        return {"ok": True, "preview": True, **result}
+    except NurtureIntelligentDisabledError as e:
+        raise HTTPException(403, str(e))
+    except NurtureIntelligentRateLimitError as e:
+        raise HTTPException(429, str(e))
+    except NurtureIntelligentNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except NurtureIntelligentForbiddenError as e:
+        raise HTTPException(403, str(e))
+
+
+@router.post("/api/agentic-crm/nurture/sequences/{lead_id}/pause")
+async def nurture_pause(lead_id: str, request: Request):
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+    if role not in ROUTING_ROLES:
+        raise HTTPException(403, "Rol no autorizado")
+    seq = await db.nurture_sequences.find_one({"lead_id": lead_id}, {"_id": 0, "org_id": 1})
+    if not seq:
+        raise HTTPException(404, "Sequence no encontrada")
+    if role != "superadmin" and getattr(user, "tenant_id", None) != seq["org_id"]:
+        raise HTTPException(403, "Cross-org")
+    try:
+        engine = NurtureIntelligentEngine(db, seq["org_id"])
+        return {"ok": True, **(await engine.pause_sequence(lead_id))}
+    except NurtureIntelligentNotFoundError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/api/agentic-crm/nurture/sequences/{lead_id}/resume")
+async def nurture_resume(lead_id: str, request: Request):
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+    if role not in ROUTING_ROLES:
+        raise HTTPException(403, "Rol no autorizado")
+    seq = await db.nurture_sequences.find_one({"lead_id": lead_id}, {"_id": 0, "org_id": 1})
+    if not seq:
+        raise HTTPException(404, "Sequence no encontrada")
+    if role != "superadmin" and getattr(user, "tenant_id", None) != seq["org_id"]:
+        raise HTTPException(403, "Cross-org")
+    try:
+        engine = NurtureIntelligentEngine(db, seq["org_id"])
+        return {"ok": True, **(await engine.resume_sequence(lead_id))}
+    except NurtureIntelligentNotFoundError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/api/superadmin/agentic-crm/nurture/toggle")
+async def superadmin_nurture_toggle(payload: NurtureToggleIn, request: Request):
+    """Enable/disable intelligent path para una org · audit log."""
+    from permissions import require_superadmin
+    superuser = await require_superadmin(request)
+    db = request.app.state.db
+
+    settings = await db.phase_y_settings.find_one({"org_id": payload.org_id})
+    feature_tiers = dict((settings or {}).get("feature_tiers") or {})
+    prev_tier = feature_tiers.get("nurture_intelligent", "off")
+    feature_tiers["nurture_intelligent"] = payload.tier
+    now = datetime.now(timezone.utc)
+
+    await db.phase_y_settings.update_one(
+        {"org_id": payload.org_id},
+        {"$set": {"org_id": payload.org_id, "feature_tiers": feature_tiers,
+                  "updated_at": now.isoformat()}},
+        upsert=True,
+    )
+    try:
+        await db.activity_log.insert_one({
+            "id": f"act_{uuid.uuid4().hex[:12]}",
+            "type": "phase_y.toggle.nurture_intelligent",
+            "org_id": payload.org_id,
+            "actor_id": getattr(superuser, "user_id", None),
+            "prev_tier": prev_tier, "new_tier": payload.tier,
+            "created_at": now,
+        })
+    except Exception:
+        pass
+    return {"ok": True, "org_id": payload.org_id,
+            "feature": "nurture_intelligent",
+            "prev_tier": prev_tier, "new_tier": payload.tier}
+
+
+@router.get("/api/superadmin/agentic-crm/nurture/stats")
+async def superadmin_nurture_stats(request: Request,
+                                    org_id: str = Query(..., min_length=2),
+                                    days: int = Query(30, ge=1, le=365)):
+    """Metrics: sequences_generated, open_rate, reply_rate, conversion_pct, layer_breakdown."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = request.app.state.db
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    total = await db.nurture_sequences.count_documents(
+        {"org_id": org_id, "generated_at": {"$gte": since}},
+    )
+    active = await db.nurture_sequences.count_documents(
+        {"org_id": org_id, "status": "active"},
+    )
+    completed = await db.nurture_sequences.count_documents(
+        {"org_id": org_id, "status": "completed", "generated_at": {"$gte": since}},
+    )
+    paused = await db.nurture_sequences.count_documents(
+        {"org_id": org_id, "status": "paused"},
+    )
+
+    # Layer breakdown
+    layer_cur = db.nurture_sequences.aggregate([
+        {"$match": {"org_id": org_id, "generated_at": {"$gte": since}}},
+        {"$group": {"_id": "$layer_used", "count": {"$sum": 1}}},
+    ])
+    by_layer: Dict[str, int] = {}
+    async for r in layer_cur:
+        by_layer[r["_id"] or "unknown"] = r["count"]
+
+    # Open + reply rates from touches.opened_at / replied_at
+    sent_touches = 0
+    opened = 0
+    replied = 0
+    cur = db.nurture_sequences.find(
+        {"org_id": org_id, "generated_at": {"$gte": since}},
+        {"_id": 0, "touches": 1},
+    )
+    async for s in cur:
+        for t in s.get("touches") or []:
+            if t.get("sent_at"):
+                sent_touches += 1
+                if t.get("opened_at"):
+                    opened += 1
+                if t.get("replied_at"):
+                    replied += 1
+
+    open_rate = round(100 * opened / sent_touches, 1) if sent_touches else 0.0
+    reply_rate = round(100 * replied / sent_touches, 1) if sent_touches else 0.0
+
+    # Conversion vs legacy: converted leads (stage=closed_won) en orgs con tier vs sin tier
+    converted = await db.leads.count_documents({
+        "dev_org_id": org_id, "stage": "closed_won",
+        "updated_at": {"$gte": since.isoformat() if isinstance(since, datetime) else since},
+    })
+    conversion_pct = round(100 * converted / total, 2) if total else 0.0
+
+    return {
+        "ok": True, "org_id": org_id, "days": days,
+        "sequences_total": total, "active": active, "completed": completed,
+        "paused": paused,
+        "open_rate": open_rate, "reply_rate": reply_rate,
+        "conversion_pct": conversion_pct,
+        "by_layer_used": by_layer,
+        "sent_touches": sent_touches, "opened": opened, "replied": replied,
+    }

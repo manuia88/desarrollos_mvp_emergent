@@ -119,6 +119,9 @@ export default function SuperadminLandingLeads() {
         sub="Suscriptores capturados desde landing pages SEO sin inventario propio. Datos para priorizar onboarding tier 2."
       />
 
+      {/* W4.6 Y.3E — Nurture Intelligent active badge */}
+      <NurtureIntelligentGlobalBadge />
+
       {/* KPI strip */}
       <div data-testid="landing-leads-kpi-strip" style={{
         display: 'grid', gap: 12,
@@ -439,6 +442,51 @@ function FilterRow({ label, options, value, onChange, testid }) {
           }}
         >{o.label}</button>
       ))}
+    </div>
+  );
+}
+
+
+// W4.6 Y.3E — badge global indicando si alguna org tiene Nurture Intelligent activo
+function NurtureIntelligentGlobalBadge() {
+  const [activeOrgs, setActiveOrgs] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const API = process.env.REACT_APP_BACKEND_URL;
+        const r = await fetch(`${API}/api/superadmin/phase-y/settings-overview`, { credentials: 'include' });
+        if (!r.ok) return;
+        const data = await r.json();
+        if (cancelled) return;
+        const orgs = (data?.orgs || []).filter(
+          (o) => (o?.feature_tiers?.nurture_intelligent || 'off') !== 'off',
+        );
+        setActiveOrgs(orgs.length);
+      } catch {
+        // silent fail · badge oculto
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!activeOrgs) return null;
+
+  return (
+    <div
+      data-testid="nurture-intelligent-active-badge"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '5px 12px', borderRadius: 9999,
+        background: 'linear-gradient(90deg, rgba(99,102,241,0.18), rgba(236,72,153,0.14))',
+        border: '1px solid rgba(99,102,241,0.4)',
+        color: '#A5B4FC',
+        fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
+        marginBottom: 14,
+      }}
+    >
+      Nurture Intelligent activo · {activeOrgs} {activeOrgs === 1 ? 'org' : 'orgs'}
     </div>
   );
 }
