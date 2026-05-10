@@ -10,6 +10,7 @@ import { reorderTareas } from '../../api/batch17';
 import { useServerUndo } from '../../components/shared/UndoSnackbar';
 import VisitAutoPrepCard from '../../components/asesor/VisitAutoPrepCard';
 import VisitPrepDossier from '../../components/agentic_crm/VisitPrepDossier';
+import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -98,6 +99,9 @@ export default function AsesorTareas({ user, onLogout }) {
         sub="Organizadas por propiedades, clientes y generales. Las vencidas aparecen primero."
         actions={<button onClick={() => setShowNew(true)} data-testid="new-tarea-btn" className="btn btn-primary">+ Nueva tarea</button>}
       />
+
+      {/* W4.6 Y.3C — Reply Classifier Inbox · gated por Phase Y tier */}
+      <RepliesInbox asesorId={user?.user_id || user?.id || null} />
 
       {/* Phase 4 Batch 33 — Visit Auto-prep cards para citas próximas */}
       {upcomingAppts.length > 0 && (

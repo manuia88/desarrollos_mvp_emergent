@@ -29,6 +29,21 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 
 ---
 
+## 2026-05-10 — W4.6 Y.3C · Reply Classifier (Frontend + Webhook hardening)
+
+### Completed
+- `RepliesInbox.js` (frontend) montado en `AsesorTareas.js` con filtros status/urgency, mark-as-taken, key_phrases pills, recommended_action highlight, layer pill (LLM/Cached/Heurística).
+- `RESEND_WEBHOOK_SECRET` placeholder activo en `backend/.env` → firma Svix-Signature obligatoria. Wrong/missing sig → HTTP 401. Valid HMAC-SHA256 → HTTP 200.
+- `i18n/locales/es-MX/common.json` extendido con `agentic_crm.reply_classifier.*` (filter, urgency, category, action_type, layer_used, errors).
+- 8 acceptance tests via curl/python: webhook auth gates, list isolation multi-tenant, mark-action-taken, status transitions.
+- `yarn build` exit 0.
+
+### Pending
+- Reemplazar `RESEND_WEBHOOK_SECRET` con valor real de Resend dashboard cuando se promueva a producción.
+- Smoke screenshot de `/asesor/tareas` deferido (Issue #2: Playwright timeout en rutas profundas).
+
+
+
 ## 2026-05-08 — W3.1A · Phase 5 Foundation: DENUE + Construction Cost + Zone Score A-F
 
 ### Completed
