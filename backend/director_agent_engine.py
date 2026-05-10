@@ -139,6 +139,11 @@ TOOLS Y PARAMS:
     devuelve: { lead_id, scores {dominante, influyente, estable, concienzudo}, predominant_type "D"|"I"|"S"|"C", confidence_score, communication_preferences {tone, length_preference, urgency_response, preferred_channel}, recommended_approach_text, evidence, layer_used }
     Úsalo cuando user pregunta "qué tipo de comprador es X", "cómo debo hablarle a este lead", "perfil DISC de Y", "qué approach uso con Z".
 
+14. delegate_lead_nurture
+    params: { "lead_id": str (requerido), "dry_run": bool (opcional, default false) }
+    devuelve: { lead_id, sequence_type, total_steps, touches: [{step, channel, offset_hours, subject, body, cta, rationale}], layer_used, status }
+    Úsalo cuando user pregunta "diseña secuencia de nurture para este lead", "qué emails mando a Y", "secuencia personalizada para Z".
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -229,8 +234,14 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 lead_id=str(params.get("lead_id", "")),
                 force_refresh=bool(params.get("force_refresh", False)),
             )
+        elif tool_name == "delegate_lead_nurture":
+            return await _tool_delegate_lead_nurture(
+                db, org_id,
+                lead_id=str(params.get("lead_id", "")),
+                dry_run=bool(params.get("dry_run", False)),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply, delegate_disc_inference"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply, delegate_disc_inference, delegate_lead_nurture"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -621,6 +632,44 @@ async def _tool_delegate_disc_inference(db, org_id: str, lead_id: str,
         "layer_used": result.get("layer_used"),
         "data_quality": result.get("data_quality"),
         "from_cache": result.get("from_cache", False),
+    }
+
+
+async def _tool_delegate_lead_nurture(db, org_id: str, lead_id: str,
+                                       dry_run: bool = False) -> Dict[str, Any]:
+    """Tool 14 (Y.3E): invoca NurtureIntelligentEngine para diseñar secuencia personalizada."""
+    if not lead_id:
+        return {"error": "lead_id requerido para delegate_lead_nurture"}
+    try:
+        from lead_nurture_engine import (
+            NurtureIntelligentEngine, NurtureIntelligentDisabledError,
+            NurtureIntelligentRateLimitError, NurtureIntelligentNotFoundError,
+            NurtureIntelligentForbiddenError,
+        )
+        engine = NurtureIntelligentEngine(db, org_id)
+        result = await engine.design_sequence(lead_id, dry_run=dry_run)
+    except NurtureIntelligentDisabledError as e:
+        return {"error": f"Nurture Intelligent desactivado: {e}"}
+    except NurtureIntelligentRateLimitError as e:
+        return {"error": f"Rate limit nurture: {e}"}
+    except NurtureIntelligentNotFoundError as e:
+        return {"error": str(e)}
+    except NurtureIntelligentForbiddenError as e:
+        return {"error": str(e)}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[director_tool] delegate_lead_nurture failed: {e}")
+        return {"error": str(e)}
+
+    return {
+        "org_id": org_id,
+        "lead_id": lead_id,
+        "sequence_type": result.get("sequence_type"),
+        "total_steps": result.get("total_steps"),
+        "touches": result.get("touches") or [],
+        "layer_used": result.get("layer_used"),
+        "data_quality": result.get("data_quality"),
+        "status": result.get("status"),
+        "dry_run": dry_run,
     }
 
 

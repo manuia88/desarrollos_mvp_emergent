@@ -16,6 +16,7 @@ import PricingAgentPanel from '../../components/director/PricingAgentPanel';
 import MarketingAgentPanel from '../../components/director/MarketingAgentPanel';
 import LeadAgentPanel from '../../components/director/LeadAgentPanel';
 import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
+import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelligentPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -578,6 +579,7 @@ function SubAgentsTabs({ orgId, projectsSummary }) {
     ['marketing', 'Marketing'],
     ['lead',      'Lead'],
     ['routing',   'Smart Routing'],
+    ['nurture',   'Nurture Intelligent'],
   ];
 
   return (
@@ -619,6 +621,9 @@ function SubAgentsTabs({ orgId, projectsSummary }) {
         )}
         {activeAgent === 'routing' && (
           <SmartRoutingPanel orgId={orgId} />
+        )}
+        {activeAgent === 'nurture' && (
+          <NurtureIntelligentPanel orgId={orgId} />
         )}
       </div>
     </div>

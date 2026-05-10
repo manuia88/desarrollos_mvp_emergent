@@ -534,6 +534,18 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_lead_nurture_error", error=str(e))
 
+    # W4.6 Y.3E — Lead Nurture Intelligent (per-org) 04:15 MX
+    try:
+        from lead_nurture_engine import run_lead_nurture_intelligent_all_orgs
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_lead_nurture_intelligent_all_orgs, "lead_nurture_intelligent"),
+            CronTrigger(hour=4, minute=15, timezone=TZ),
+            args=[db], id="lead_nurture_intelligent", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_lead_nurture_intelligent_error", error=str(e))
+
     # W4.4B — Director Memory daily ingest 04:30 MX (post lead_nurture)
     try:
         from director_memory_engine import run_memory_daily_ingest
