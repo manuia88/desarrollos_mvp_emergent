@@ -53,7 +53,8 @@
 - **+32h ronda 6 Mapa Cerebro Espacial DMX (2026-05-10)**: análisis SIGCDMX gob.mx + propiedades.com/valores + propiedades.com/explorar/mapa. Founder catch 3 capas distintas (catastro contexto + brokers usada inventario + devs preventa). **W4.18.2 Mapa Cerebro Espacial 32h** (Mapbox 3 capas diferenciadas + 5 cross-features únicos: funnel inverso usada→preventa · demand vs supply gap heatmap · match catastro→preventa personal · save zones inversionista · battle card overlay tier T3 · Atlax contextual click · acciones agénticas one-click · filtros DISC/Match Weights compuestos · /valores AVM público Hedonic · SEO landings auto colonia). Capitaliza 100% Phase Y backend (139.5h) + W4.18 (22h) + Phase 13 brokers shipped previo. Wedge imposible replicar 12-18m por competidores. Mapbox $0/mes free tier 50K loads. Wave 4: 454h → 486h.
 - **+1h ronda 7 PostHog setup (2026-05-10)**: founder catch necesidad de session replay + heatmaps + feature flags ANTES de lanzar Mapa W4.18.2A para iterar UX desde launch día 1. **W4.18.2A.0 PostHog setup 1h** (snippet JS + ENV + cookie-less LFPDPPP-compliant config) standalone · complementa W4.3 behavioral (no reemplaza · alimenta sub-agents) · free tier $0/mes 1M events + 5K replays. Wave 4: 486h → 487h.
 - **+8h ronda 8 Private Beta Gate brokers-only (2026-05-10)**: founder catch necesidad de testing 2-3 meses con brokers ÚNICAMENTE antes de abrir a compradores. **W4.18.3 Private Beta Gate 8h** (invite codes generables superadmin + role-gate signup `broker` only + landing pública `/` waitlist compradores con form email + página `/broker-portal` oculta con login real · todas features funcionan internamente · waitlist crece warm para growth campaign post-testing). Reduce riesgo bugs en exposición pública + early adopters brokers VIP + waitlist conversion día 1 launch público típicamente 30-50%. Wave 4: 487h → 495h.
-- **Total H1 adiciones sobre baseline 606h**: +330h. Total H1 = **936h** estimado.
+- **+41h ronda 9 DMX Insights Layer Wave 5 H2 (2026-05-10)**: founder propuesta knowledge layer global cruzable con data MX + análisis Karpathy LLM Wiki pattern. **W5.20-21 H2 41h** arquitectura dual: (a) Wiki interno Karpathy `/insights-wiki/` con CLAUDE.md curación rules + raw/{fuente}/ + wiki/{temas,ciudades,insights}/ navegable Obsidian + (b) Multi-source scrapers ~25 fuentes Tier 1 globales (JLL · Knight Frank · Savills · CBRE · Cushman · Colliers · PwC · Deloitte · BIS · OECD · IMF · World Bank · FRED · BANXICO · INEGI · SHF · CONAVI · BMV FIBRAs · CNBV · Numbeo · Global Property Guide · Zillow · Redfin · Inmobiliare · Obras Web · Expansión · El Financiero · Forbes MX · ULI · ArchDaily · Espacio Urbano · Real Estate Lifestyle) + (c) Backend MongoDB `knowledge_articles` + `/insights` blog SEO + sitemap + (d) 5 upgrades Tier 1 (AI auth Haiku + PDF lead magnet + asesor citation widget + Atlax cited badge + newsletter wire-up) + (e) Atlax 17vo tool dual-mode wiki+DB. **NO toca H1** (Wave 5 H2 post-launch público). Detalles 80+ fuentes investigadas: `memory/INSIGHTS_SOURCES_RESEARCH.md`. Wedge "referente noticias real estate MX" único en LATAM · paridad Knight Frank/Savills/JLL reports. **Wave 5 H2 sketch: 296h → 337h**.
+- **Total H1 adiciones sobre baseline 606h**: +330h. Total H1 = **936h** estimado · **Wave 5 H2: 337h** (incluye W5.20-21 41h DMX Insights Layer).
 
 Detalles: `memory/DATA_SOURCES.md` + secciones "Wave 3 detailed plan" / "Wave 4 detailed plan" en `PRD.md`.
 
@@ -399,6 +400,18 @@ GET /v1/portfolio/exposure                  análisis cartera
 
 ## 6. H2 backlog + Rejected
 
+### Wave 5 H2 — Confirmado (post-launch público)
+
+**W5.20-21 DMX Insights Layer** (41h · autorizado founder 2026-05-10): Wiki Karpathy pattern + Backend público + Multi-source scrapers globales (~25 fuentes Tier 1 🟢: JLL · Knight Frank · Savills · CBRE · Cushman · Colliers · PwC · Deloitte · BIS · OECD · IMF · World Bank · FRED · BANXICO ✅ · INEGI · SHF · CONAVI · BMV FIBRAs · CNBV · Numbeo · Global Property Guide · Zillow · Redfin · Inmobiliare · Obras Web · Expansión · El Financiero · Forbes MX · ULI · ArchDaily · Espacio Urbano · Real Estate Lifestyle). Wedge "referente noticias real estate MX" único en LATAM. Detalles ejecutivos: `memory/INSIGHTS_SOURCES_RESEARCH.md` (80+ fuentes investigadas) + `memory/BACKLOG_ENHANCEMENTS.md` (sub-chunks A-G).
+
+**W5.16 Marketing Distribution Channel** (~10h): Social cards multi-formato `/og` (link previews FB/LinkedIn/WhatsApp/Twitter/Telegram/iMessage/Discord/Slack) + `/social/feed.png` 1080×1080 (IG/FB feed) + `/social/story.png` 1080×1920 (IG/TikTok/FB Stories/WA Status). Mapbox Static API + Pillow render compose · pipeline rendering compartido 3 layouts.
+
+**W5.17 Studio Wave 1.5 video bundle + Virtual Staging IA** (42h diferido de W4.9.5): brochure→video narrado multi-ratio + auto-script + TTS ElevenLabs ES/EN/AR + Replicate/Flux planos vacíos staging.
+
+**W5.18 Dubai full** (38h diferido de W4.12): i18n AR + multi-currency MXN/AED/USD + sourcing inicial 50+ projects founder.
+
+**W5.19 Probability UX Kalshi-inspired** (6h diferido de W4.17): odds + interval + tooltips narrative para inversionistas premium.
+
 ### Defer H2 (legítimo)
 - Lead post-close legal flow (deposit, escrow)
 - Multi-currency MXN/USD/AED full
@@ -407,6 +420,7 @@ GET /v1/portfolio/exposure                  análisis cartera
 - Compliance MX nativa (CFDI, Mifiel NOM-151)
 - Cross-org agent templates marketplace (Idea 16)
 - Wizard duplicación proyecto (post-Phase 4)
+- AVM público swap heurístico → hedonic_regression_engine real (P1 tech debt 2h F0 sweep)
 
 ### Rejected by founder
 - Confetti animations

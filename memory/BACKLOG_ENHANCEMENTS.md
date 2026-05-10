@@ -231,6 +231,29 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
+### DMX Insights Layer — Wiki Karpathy + Backend público (W5.20-21 Wave 5 H2)
+- **Origen:** founder propuesta 2026-05-10 + análisis Karpathy LLM Wiki pattern (video Andrej Karpathy 2026-05-10)
+- **Destino:** Wave 5 H2 W5.20-21 (post-launch público brokers + compradores)
+- **Qué (arquitectura dual)**:
+  - **Capa A — Wiki interno Karpathy pattern** (`/insights-wiki/` repo): `CLAUDE.md` rules curación + `index.md` + `raw/{fuente}/` por fuente + `wiki/{temas,ciudades,insights}/` curado · navegable via Obsidian local (founder/team) o cualquier IDE/agente CLI · portátil agent-agnostic
+  - **Capa A.2 — Multi-source scrapers** (~80 fuentes investigadas en `memory/INSIGHTS_SOURCES_RESEARCH.md` · Tier prioritario ~25 fuentes 🟢): JLL · Knight Frank · Savills · CBRE · Cushman · Colliers · PwC · Deloitte · BIS · OECD · IMF · World Bank · FRED · BANXICO ✅ · INEGI · SHF · CONAVI · BMV FIBRAs · CNBV · Numbeo · Global Property Guide · Zillow Research · Redfin · Inmobiliare · Obras Web · Expansión · El Financiero · Forbes MX · ULI · ArchDaily · Espacio Urbano · Real Estate Lifestyle
+  - **Capa A.3 — Pipeline curación Claude Code skill** (`bulk_ingest`/`lint`/`query` Karpathy pattern): cron weekly itera fuentes activas · sintetiza raw → wiki cross-referenced con cita fuente + archive.org snapshot
+  - **Capa B — Backend público DMX** (MongoDB `knowledge_articles` collection + sync wiki→DB al publicar + `/insights` blog SEO + sitemap dinámico) · indexable Google
+  - **Capa B.2 — 5 upgrades Tier 1** (AI-assisted authoring Haiku +3h · PDF lead magnet +2h · asesor citation widget WhatsApp +2h · Cited by Atlax badge +1h · Newsletter auto-include W4.10 wire-up +1h)
+  - **Capa B.3 — Atlax 17vo tool dual-mode** (search wiki interno paths + DB pública semantic · cita fuentes transparente · narrativa moat única en LATAM)
+- **Por qué:** wedge "referente noticias real estate MX" único en LATAM · paridad con Knight Frank/Savills/JLL reports · cruce MX↔global verificable · authority play SEO + waitlist conversion · Atlax cita fuentes con paths reales (auditable) · founder/team puede operar via Obsidian visual sin tocar código (zero barrier-of-entry) · multi-vertical: compra · venta · inversión · proptech · fintech · innovación · sustentabilidad · lifestyle
+- **Por qué NO Obsidian standalone:** Obsidian es PKM personal, no integrable como producto público. Sirve como reader del vault `/insights-wiki/` (markdown puro) pero el blog SEO + Atlax + lead magnets requieren capa B backend.
+- **Costo:** ~41h Wave 5-6 distribuido:
+  - Sub-A wiki estructura + CLAUDE.md curación: 3h
+  - Sub-B verificación 80 fuentes (founder + Claude Code session): 4h founder ops
+  - Sub-C scrapers tier prioritario 25 fuentes + cron: 12h
+  - Sub-D pipeline curación Claude Code skill: 2h
+  - Sub-E backend `knowledge_articles` + sync + `/insights` blog SEO + sitemap: 12h
+  - Sub-F 5 upgrades Tier 1 (AI auth + PDF + citation + badge + newsletter): 9h
+  - Sub-G Atlax 17vo tool dual-mode: 3h
+- **Reglas operativas:** NO scrapear competidores MX (per `feedback_no_scraping_competitors.md`) · NO publicar paywall raw (cita+link) · respeter robots.txt · throttle 1req/30s · archive.org snapshot · LFPDPPP no PII · source attribution obligatoria
+- **Activar cuando:** Wave 5 H2 post-launch público compradores (cuando termine private beta brokers W4.18.3 · ~3 meses post-launch H1)
+
 ### Social cards multi-formato `/og` + `/social/feed` + `/social/story` (FB/IG/LinkedIn/WA/TikTok/Twitter/Telegram)
 - **Origen:** W4.18.2B emergent suggested 2026-05-10 · founder catch alcance multi-plataforma 2026-05-10
 - **Destino:** Wave 5 H2 W5.16 marketing distribution

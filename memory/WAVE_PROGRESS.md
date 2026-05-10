@@ -1,6 +1,6 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-10 (W4.18.2B Mapa cross-features ✅ shipped SHA `4d70c1e` · W4.18.2A.0 PostHog ✅ + W4.18.2A Mapa core ✅ · W4.18.3 Private Beta Gate 8h aprobado · Wave 4 ~348.5h/495h · 146.5h H1 pending)
+**Última actualización**: 2026-05-10 (W4.18.2B Mapa cross-features ✅ shipped SHA `4d70c1e` · W4.18.3 Private Beta Gate emergent corriendo · W5.20-21 DMX Insights Layer 41h Wave 5 H2 aprobado · Wave 4 ~348.5h/495h · 146.5h H1 pending · Wave 5 H2 sketch 337h con DMX Insights Layer)
 **Total H1 restante**: ~146.5h (Wave 4 pending de los 495h totales · W4.18.2 32h ✅ shipped · 8h Private Beta Gate pending)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h = 715.5h shipped en H1
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1
