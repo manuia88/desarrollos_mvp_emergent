@@ -1,9 +1,10 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.5 Y.2C Lead shipped · Y.2D+E DEFERRED H2 · Wave 4 561h · Phase Y 70/125h · próximo W4.18.1 → W4.6 Y.3)
-**Total H1 restante**: ~379h (Wave 4 pending de los 561h totales)
+**Última actualización**: 2026-05-09 (Wave 4 RE-BALANCED 561h → 454h · Wave 5 H2 sketch creado 296h · plan consolidado post-research 4 platforms competitivas · próximo W4.18.1 → W4.6 Y.3)
+**Total H1 restante**: ~272h (Wave 4 pending de los 454h totales)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 182h = 549h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 561h (182h shipped, 379h pending) = 878h plan (Y.2D+E -12h diferidos a H2)
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (182h shipped, 272h pending) = 821h plan H1 (re-balanced: -107h items diferidos a Wave 5 con alimentación clara)
+**Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -153,28 +154,30 @@ Formato canónico per-batch (founder request):
 | W4.6 | Phase Y.3 Agentic CRM workflows + Smart Routing Lead | 36 | — | emergent | ⏳ | — | 5 chunks · Lead Nurture intelligent + Visit Prep + Reply Classifier (Resend webhooks) + DISC Inferencer + Smart Routing <60 seg |
 | W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
 | W4.8 | Phase Y.5 Observability + Replay Debugger + AI ROI per-dev dashboard | 15 | — | emergent | ⏳ | — | 4 chunks · Audit Replay + ML accuracy + Replay Debugger + AI ROI per-dev portal |
-| W4.9 | Phase 6 Studio Wave 1.5+2 + Studio video bundle (brochure→video narrado multi-ratio + auto-script + TTS ElevenLabs ES/EN/AR) | 50 | — | emergent | ⏳ | — | extensions B25/B26 + S1 video 14h |
-| W4.9.5 | Virtual staging IA (planos vacíos → mueblar via Replicate/Flux) | 8 | — | emergent | ⏳ | — | preventa CDMX 90% obra nueva |
-| W4.9.6 | 3D Gaussian Splatting tour virtual (Luma API + viewer mkkellogg/GaussianSplats3D embebido en /unidad/[id]) | 16 | — | emergent | ⏳ | — | gap real vs Inm24/Lamudi · ventana 6-9 meses |
-| W4.10 | Phase 8 ext WhatsApp + AutoNewsletter | 25 | — | emergent | ⏳ | — | WA Business + Pulse semanal |
+| W4.9 | Phase 6 Studio Wave 1.5 **CORE H1** (brochure mejorado, sin video bundle) | 16 | — | emergent | ⏳ | — | core H1 · video bundle 34h DIFERIDO Wave 5 W5.16 |
+| ~~W4.9.5~~ | ~~Virtual staging IA~~ → **DIFERIDO Wave 5 W5.17** | 8 | — | — | 📦 W5 | — | depende de 3DGS estabilizado · va con video bundle |
+| W4.9.6 | 3D Gaussian Splatting tour virtual (Luma API + viewer mkkellogg/GaussianSplats3D embebido en /unidad/[id]) | 16 | — | emergent | ⏳ | — | wedge competitivo · mantener H1 |
+| W4.10 | Phase 8 ext WhatsApp Business real + AutoNewsletter Pulse semanal segmentado + **Voice Atlax (Whisper+ElevenLabs)** + **digest sub-agents absorbido** | 37 | — | emergent | ⏳ | — | WA Business via whatsapp-web.js · Pulse 4 segments · voice comprador MX low-tech · digest Pricing+Marketing+Lead embedido en Pulse del dev |
 | W4.11a | Phase 10 Atlax home extension (3 tools macro + atlax_threads collection + AtlaxThreadsSidebar + 6 chips macro + AtlaxHomeHero) | 16 | 16 | emergent | ✅ | `1060018` | ATLAX bloque CIERRA al 100% end-to-end · listo para usuarios |
 | ~~W4.11b~~ | ~~A11 accessibility audit~~ → **MOVIDO a W4.15 Phase 20 polish (pre-launch)** | 10 | — | — | 📦 movido | — | A11 debe ser último: cualquier feature nueva post-audit lo rompe |
-| W4.12 | Phase 11 Dubai | 38 | — | emergent | ⏳ | — | i18n + flow Dubai-specific |
+| ~~W4.12~~ | ~~Phase 11 Dubai full~~ → **DIFERIDO Wave 5 W5.18** | 38 | — | — | 📦 W5 | — | H1 launch CDMX-only · Dubai = expansión H2 (i18n AR + multi-currency MXN/AED/USD + sourcing inicial 50+ projects founder) |
 | W4.13 | Phase 16 ext (Lead Journey + Amenities Validator) | 32 | — | emergent | ⏳ | — | A/B Meta Ads automatizadas |
-| W4.14 | Phase 19 ext (Buyer Coach + Mortgage + Investment Sim) | 29 | — | emergent | ⏳ | — | — |
-| W4.15 | Phase 20 Polish + Launch + **A11 accessibility audit absorbido (W4.11b · 10h)** | 33 | — | emergent + CC | ⏳ | — | UX polish + perf + a11y completo + final QA · A11 audit último para no romper con features nuevas |
-| W4.16 | W4 marketing (Free audit landing + State of CDMX Report) | 5 | — | emergent | ⏳ | — | -3h press kit movido a W4.2.5B |
-| W4.17 | Kalshi (Probability UX + Smart Notifications) | 14 | — | emergent | ⏳ | — | -4h widgets movidos a W4.2.5A |
+| W4.14 | Phase 19 ext **partial** (Buyer Coach + Investment Simulator) — Mortgage simulator REEMPLAZADO por **W5.7 SOC franquicia** (founder compra) | 14 | — | emergent | ⏳ | — | Mortgage rail = SOC partner (Wave 5) · DMX simulator trivial |
+| W4.15 | Phase 20 Polish + Launch + A11 audit + MongoDB Atlas migration + **Onboarding tour (G3)** + **Backup/restore disaster recovery (G4)** + **Multi-tenancy isolation pytest (G5)** | 43 | — | emergent + CC | ⏳ | — | ÚLTIMO pre-launch · UX + perf + a11y + DR + tenant isolation + onboarding (40% abandono típico sin tour) |
+| W4.16 | Marketing (Free audit landing + State of CDMX Report) + **MCP Distribution Channel** (registrar DMX MCP en mcp.so/awesome-mcp/Anthropic registry + tutorial blog "Conecta Claude Desktop a DMX") | 5 + 0h dev | — | emergent + content | ⏳ | — | MCP Distribution = 0h dev (founder/agencia escribe content) · CAC=0 viral angle |
+| W4.17 | Kalshi **partial** (Smart Notifications) — Probability UX DIFERIDO Wave 5 W5.19 | 8 | — | emergent | ⏳ | — | Smart Notif = engagement crítico H1 · Probability UX nice-to-have, depende W5.1+W5.3 |
 | W4.18 | Data Sources gov MX bundle (BANXICO SIE API + SIGCDMX uso suelo + Atlas Riesgos CDMX + Catastro CDMX + GTFS + OSM Geofabrik) | 22 | — | emergent | ⏳ | — | links verificados en memory/DATA_SOURCES.md · diferencial vs Inm24 |
 | W4.18.1 | Apify Google Trends integration (cron diario top 50 zonas + cron semanal related queries top 20 + cache TTL 7d + Atlax tool get_trends_for_query) | 3 | — | emergent | ⏳ | — | autorizado 2026-05-09 · ~$0/mes free tier 5k queries · cache 87% hit ratio |
-| F0 | Sweep tech debt | 22 | — | CC lead | ⏳ | — | rolling cleanup |
+| F0 | Sweep tech debt + **Notification Center bell icon (G2)** + Apify token rotation + tier `whatif_simulator`/`asistente_publico` seed | 30 | — | CC lead | ⏳ | — | rolling cleanup + notification center crítico UX |
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
 
-**Acumulado Wave 4**: 182h / 561h (32.4%) 🟡
-**Pendiente Wave 4**: ~379h
+**Acumulado Wave 4 RE-BALANCED**: 182h / **454h** (40.1%) 🟡
+**Pendiente Wave 4**: ~272h
+**Items diferidos a Wave 5 (107h)**: Studio video bundle 34h + Virtual staging 8h + Dubai full 38h + Mortgage simulator 15h + Probability UX 6h + Y.2D+E 12h (de previa decisión) — todos con alimentación clara en Wave 5
 **Phase Y H1 (Y.2D+E diferidos a H2)**: 125h totales H1 = W4.3 16h ✅ + W4.4A-E 36h ✅ + W4.5 Y.2A-C 18h ✅ = **70h shipped** · W4.6-W4.8 = 55h pending
-**Y.2D Construction + Y.2E Compliance**: 📦 DEFERRED H2 (sin data madura H1 · revisar cuando Phase 7.10 Avance-Obra + W4.18 SIGCDMX/Catastro estén shipped)
+**Atlax bloque**: ✅ **CERRADO 38/38h**
+**Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md`
 **Atlax bloque**: ✅ **CERRADO 38/38h** · Y.1E + Unification + fix-pass + rename + Home extension
 **Studio + 3DGS upgrades (autorizados 2026-05-09)**: 38h (W4.9 ext +14h Studio video + W4.9.5 8h virtual staging + W4.9.6 16h 3DGS tour)
 **Data Sources gov MX (autorizado 2026-05-09)**: 22h (W4.18 BANXICO + SIGCDMX + Atlas + Catastro + GTFS + OSM)

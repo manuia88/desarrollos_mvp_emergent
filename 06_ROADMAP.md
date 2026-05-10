@@ -35,11 +35,13 @@
 | **Wave 1 — Foundation + Authority Seeds** (SA1 + ZZ.1) | ✅ **100% COMPLETO** (W1.1+W1.2+W1.3+W1.4+W1.5+W1.6 · 2026-05-07) | ~50h |
 | **Wave 2 — Commercial + Intelligence Hub** (SA2-SA6+SA8 + Z.0-Z.2) | ✅ **100% COMPLETO** (W2.1-W2.10 · 2026-05-08) | ~120h |
 | **Wave 3 — Authority + Verticals + Risk Layer + IE Engine + Watchlist** (Teseo+AirDNA expansion + Kalshi data licensing F: ZZ.2-ZZ.4 + Z.3-Z.4 ext + Phase 5 + IE Engine Phase B + Risk Score V2 + Cross-sell + LFPDPPP badge + Watchlist subscribe) | ✅ **100% COMPLETO** (W3.0 → W3.9c · 2026-05-09) | ~197h |
-| **Wave 4 — Agentic + Brand + Intelligence + Behavioral ML + Phase Y + Atlax + Studio video + 3DGS + Data Sources + Polish** (W4.1 ✅ + W4.2 ✅ + W4.3 ✅ + W4.4A-E ✅ + Atlax bloque ✅ 38/38h + W4.5 Y.2A-C ✅ Pricing/Marketing/Lead · **Y.2D Construction + Y.2E Compliance DEFERRED H2 (-12h)** · W4.18.1 Apify Trends 3h en curso · Phase Y.3-Y.5 73h pending · W4.9 Studio video 50h + W4.9.5 Virtual staging 8h + W4.9.6 3DGS 16h · W4.18 Data Sources 22h · W4.11b A11 movido a W4.15 33h · resto pending) | 🟡 EN CURSO 182/561h (W4.1+W4.2A-2.5+W4.3+W4.4A-E.5.2+W4.11a+Y.2A-C shipped · ATLAX BLOQUE CERRADO) | ~561h |
+| **Wave 4 RE-BALANCED — Agentic + Brand + Intelligence + Phase Y + Atlax + Polish** (W4.1 ✅ + W4.2 ✅ + W4.3 ✅ + W4.4A-E ✅ + Atlax 38/38h ✅ + W4.5 Y.2A-C ✅ + W4.18.1 Apify Trends 3h en curso · Y.3-Y.5 68h + W4.9 core 16h + W4.9.6 3DGS 16h + W4.10 ext 37h + W4.13 32h + W4.14 partial 14h + W4.15 polish 43h + W4.16 5h + W4.17 partial 8h + W4.18 22h + F0+CC 58h pending) · **107h diferidos a Wave 5** (Studio video 34h + Virtual staging 8h + Dubai 38h + Mortgage sim 15h + Probability UX 6h + Y.2D+E 12h) | 🟡 EN CURSO 182/454h (40.1%) | ~454h |
 
-**Total H1 restante**: ~379h (Wave 1+2+3 cerradas · Wave 4 = 561h - 182h shipped = 379h pending · Y.2D+E -12h diferidos a H2)
+**Total H1 restante**: ~272h (Wave 1+2+3 cerradas · Wave 4 = 454h - 182h shipped = 272h pending · 107h diferidos a Wave 5 con alimentación clara)
 
-**Shipped to date**: ~878h (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 182h shipped + 379h pending = 878h plan H1)
+**Shipped to date**: ~821h H1 (Phase 4-refactor + Phase 1-3 + B2B + Wave 1 50h + Wave 2 120h + Wave 3 197h + Wave 4 182h shipped + 272h pending = 821h plan H1)
+
+**Wave 5 H2 sketch (~296h alimentadas + 79h alimentación tardía)**: Ver `memory/WAVE5_PLAN.md` · 22 batches con clasificación alimentación (✅/⚠️) + tier mapping + dependencias arquitectónicas + métricas éxito.
 
 **Origin de adiciones**:
 - **+77h Teseo expansion (2026-05-07 ronda 1)**: 17 ideas tropicalizadas (DENUE, Risk Score, Construction Cost, Hedonic DRPI, Methodology, Boletines, Investment Simulator, Lead Journey, AutoNewsletter, Free Audit).
