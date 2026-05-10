@@ -1441,6 +1441,41 @@
         "resume_failed": "No se pudo reactivar la secuencia",
         "toggle_failed": "No se pudo aplicar el toggle"
       }
+    },
+    "atlax_persona": {
+      "title": "Atlax Persona",
+      "subtitle": "Personalidad del asistente por organización",
+      "section": {
+        "identity": "Identidad",
+        "tone": "Tono y Estilo",
+        "brand_voice": "Voz de Marca",
+        "greetings": "Saludos y Firma",
+        "language": "Registro de Idioma"
+      },
+      "tone": {
+        "formal":  "Formal",
+        "casual":  "Casual",
+        "tecnico": "Técnico",
+        "cercano": "Cercano",
+        "premium": "Premium"
+      },
+      "formality_label": "Nivel de formalidad",
+      "warmth_label": "Nivel de calidez",
+      "tech_jargon_label": "Permitir jerga técnica inmobiliaria",
+      "keywords_placeholder": "Ej: plusvalía, exclusivo…",
+      "forbidden_placeholder": "Ej: competencia, precios negociables…",
+      "preview_button": "Preview",
+      "preview_modal_title": "Preview de Persona",
+      "save_button": "Guardar persona",
+      "tier_required_tooltip": "Requiere tier T2+",
+      "version_label": "Versión",
+      "saved_msg": "Persona guardada correctamente",
+      "errors": {
+        "tier_required": "Atlax Persona requiere tier T2+",
+        "load_failed": "Error al cargar la persona",
+        "save_failed": "Error al guardar la persona",
+        "preview_failed": "Error al ejecutar preview"
+      }
     }
   }
 }

@@ -2188,3 +2188,30 @@ los crons + endpoints + UI ya están listos sin cambios de código (sólo cambia
   legacy `VisitAutoPrepCard.js` en `asesor/`.
 - PDF generation usa `window.print()` con HTML inline (no se agregó nueva
   dependencia jspdf/html2canvas — branding_helpers no expone PDF directo).
+
+## W4.7 Y.4A — Atlax per-tenant Persona Adaptation (2026-05-10)
+**Abre Phase Y.4 Adaptive · SHA: 6ce175f**
+
+### Nuevos archivos
+- **NEW** `atlax_persona_engine.py` — `get_persona`, `update_persona`, `build_persona_prompt`, `get_persona_or_default` · colección `atlax_personas` con index UNIQUE(org_id)
+- **NEW** `routes_atlax_persona.py` — 3 endpoints: GET/{org_id} · PATCH/{org_id} · POST/{org_id}/preview
+- **NEW** `AtlaxPersonaPanel.js` — UI superadmin: secciones Identidad/Tono/Voz Marca/Greetings/Idioma · sliders formality+warmth · chip inputs keywords+forbidden · Preview modal con LLM live · audit log últimas 5
+
+### Archivos editados
+- **EDIT** `atlax_engine.py` — `org_id: Optional[str]` en `AtlaxQueryIn`; pasa `org_id` a `engine.chat()`
+- **EDIT** `asistente_engine.py` — `_system_prompt(persona_prefix=)` + persona injection en `chat()` vía `get_persona_or_default`
+- **EDIT** `routes_phase_y_controls.py` — `atlax_persona: off` en `DEFAULT_FEATURE_TIERS`
+- **EDIT** `server.py` — monta `atlax_persona_router` + `ensure_atlax_persona_indexes`
+- **EDIT** `SuperadminTenants.js` — tab "Atlax Persona" con `AtlaxPersonaPanel` en TenantDrawer
+- **EDIT** `i18n/es-MX/common.json` — `atlax_persona.*` keys completas
+
+### Criterios de aceptación verificados
+- ✅ GET sin entry → defaults Atlax estándar · 200
+- ✅ PATCH tier T2+ → upsert + version++ + audit_log
+- ✅ PATCH tier T<2 → 403 "Atlax Persona requiere tier T2+"
+- ✅ POST /preview → LLM call con persona temporal, system_prompt_used visible para debug
+- ✅ build_persona_prompt → inyecta bloque antes del system prompt de Atlax
+- ✅ version=0 (default) → build_persona_prompt retorna "" (sin inyección)
+- ✅ forbidden_topics → instrucción exacta "Esa información no está disponible actualmente" en system prompt
+- ✅ superadmin always access · developer_admin cross-org → 403
+- ✅ yarn build limpio

@@ -33,6 +33,7 @@ class AtlaxQueryIn(BaseModel):
     session_id: Optional[str] = None
     channel: str = Field(default="web", pattern=r"^(whatsapp|web|web_bubble)$")
     thread_id: Optional[str] = None  # W4.11a · null = creates new thread auto
+    org_id: Optional[str] = None      # W4.7 Y.4A · persona org context (default "dmx")
 
 
 def _now() -> datetime:
@@ -288,7 +289,7 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
 
     # ─── 6. Llama AsistenteEngine.chat (LLM + 3 tools públicas + persiste asistente_messages)
     try:
-        chat_res = await engine.chat(asistente_token, payload.query)
+        chat_res = await engine.chat(asistente_token, payload.query, org_id=payload.org_id or "dmx")
     except AsistenteSessionCapError as e:
         return _error_response(payload, legacy_session_id, asistente_token, str(e), "session_cap_exceeded")
     except AsistenteRateLimitError as e:
