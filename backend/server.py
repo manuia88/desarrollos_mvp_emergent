@@ -570,6 +570,17 @@ app.include_router(observability_router)
 from routes_data_sources import router as data_sources_router
 app.include_router(data_sources_router)
 
+# W4.10 — WhatsApp Business + Newsletter Pulse + Voice Atlax
+from routes_whatsapp import router as whatsapp_router
+from whatsapp_engine import ensure_whatsapp_indexes
+from routes_newsletter import router as newsletter_router
+from newsletter_pulse_engine import ensure_newsletter_indexes
+from routes_voice import router as voice_router
+from voice_atlax_engine import ensure_voice_indexes
+app.include_router(whatsapp_router)
+app.include_router(newsletter_router)
+app.include_router(voice_router)
+
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
 from routes_asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)
@@ -1069,6 +1080,19 @@ async def startup():
         await ensure_data_sources_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.18 data_sources indexes failed: {e}")
+    # W4.10 — WhatsApp + Newsletter + Voice indexes
+    try:
+        await ensure_whatsapp_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.10 whatsapp indexes failed: {e}")
+    try:
+        await ensure_newsletter_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.10 newsletter indexes failed: {e}")
+    try:
+        await ensure_voice_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.10 voice indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

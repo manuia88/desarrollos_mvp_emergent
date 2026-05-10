@@ -39,6 +39,9 @@ DEFAULT_FEATURE_TIERS: Dict[str, str] = {
     "match_weights_adaptive": "off",
     "argumentario_adaptive":  "off",
     "observability_dashboard": "off",
+    "whatsapp_business":       "off",
+    "newsletter_pulse":        "off",
+    "voice_atlax":             "off",
 }
 
 

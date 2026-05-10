@@ -6,11 +6,14 @@
 ---
 
 ## Stack técnico
-- **Backend**: FastAPI + Motor (Mongo) + emergentintegrations (Claude Sonnet 4.5)
+- **Backend**: FastAPI + Motor (Mongo) + emergentintegrations (Claude Sonnet 4.5, Haiku)
 - **Frontend**: React 18 + Tailwind + CSS vars + react-i18next + Mapbox GL JS
 - **DB**: MongoDB con caches weekly/24h
 - **Map**: Mapbox GL JS
-- **AI**: Claude Sonnet 4.5 (briefings, argumentarios, parser NLP)
+- **AI**: Claude Sonnet 4.5 + Claude Haiku 4.5 (briefings, argumentarios, parser NLP, newsletter)
+- **WhatsApp**: Twilio WhatsApp API (provider-agnostic: stub|twilio|business)
+- **STT**: OpenAI Whisper-1
+- **TTS**: ElevenLabs eleven_multilingual_v2
 
 ---
 

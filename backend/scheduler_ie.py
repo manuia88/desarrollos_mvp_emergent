@@ -725,11 +725,35 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_visit_prep_daily_error", error=str(e))
 
+    # W4.10 — Newsletter Pulse · cron domingo 18:00 MX (genera)
+    try:
+        from newsletter_pulse_engine import run_newsletter_generate
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_newsletter_generate, "newsletter_generate"),
+            CronTrigger(day_of_week="sun", hour=18, minute=0, timezone=TZ),
+            args=[db], id="newsletter_generate", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_newsletter_generate_error", error=str(e))
+
+    # W4.10 — Newsletter Pulse · cron lunes 07:00 MX (envía)
+    try:
+        from newsletter_pulse_engine import run_newsletter_send
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_newsletter_send, "newsletter_send"),
+            CronTrigger(day_of_week="mon", hour=7, minute=0, timezone=TZ),
+            args=[db], id="newsletter_send", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_newsletter_send_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",
           "unit_holds_release", "health_score_snapshots", "weekly_brief_generation",
-          "oauth_token_refresh"])
+          "oauth_token_refresh", "newsletter_generate", "newsletter_send"])
     return _scheduler
 
 

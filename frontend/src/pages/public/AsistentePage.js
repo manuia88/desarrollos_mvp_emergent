@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import AsistenteChat from '../../components/asistente/AsistenteChat';
+import AtlaxVoiceButton from '../../components/landing/AtlaxVoiceButton';
 import * as asistenteApi from '../../api/asistenteApi';
 import { useAuth } from '../../App';
 
@@ -207,6 +208,18 @@ export default function AsistentePage() {
           captureSuccess={captureSuccess}
           emptyChips={EMPTY_CHIPS}
         />
+        {/* Voice input row */}
+        {sessionToken && (
+          <div style={{
+            display: 'flex', justifyContent: 'center', padding: '8px 0 16px',
+          }}>
+            <AtlaxVoiceButton
+              sessionToken={sessionToken}
+              onTranscript={text => text && handleSend(text)}
+              disabled={isLoading}
+            />
+          </div>
+        )}
       </main>
 
       {error && (

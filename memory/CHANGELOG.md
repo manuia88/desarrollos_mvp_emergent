@@ -2284,3 +2284,71 @@ los crons + endpoints + UI ya están listos sin cambios de código (sólo cambia
 - ✅ Smart Routing heuristic usa org-specific weights · fallback graceful a DEFAULT_WEIGHTS
 - ✅ match_weights_adaptive en DEFAULT_FEATURE_TIERS · T2 seteado para dmx en tests
 - ✅ yarn build limpio
+
+## W4.10 — WhatsApp Business + Newsletter Pulse + Voice Atlax (2026-05-10)
+
+### Sub-Fix 1: WhatsApp Business provider-agnostic
+
+**Backend:**
+- NEW `whatsapp_engine.py` — WAEngine class · stub | twilio | business provider modes · Phase Y gate (tier whatsapp_business >= T1)
+- NEW `routes_whatsapp.py` — 7 endpoints:
+  - POST /api/whatsapp/messages (send · 403 si tier off + provider real)
+  - POST /api/webhooks/whatsapp-inbound (webhook público · signature verify)
+  - GET /api/whatsapp/conversations (thread por lead)
+  - GET/POST /api/superadmin/whatsapp/messages (list paginado)
+  - POST/GET /api/superadmin/whatsapp/templates (CRUD)
+  - GET /api/superadmin/whatsapp/stats (totals by_status)
+- DB collections: whatsapp_messages · whatsapp_templates
+- Twilio real: SM* provider_message_id confirmado en tests
+- EDIT `lead_nurture_engine.py` — canal "whatsapp" ahora usa WAEngine.send_message() en vez del skip "pending W4.10"
+- ENV: WHATSAPP_PROVIDER=twilio · TWILIO_ACCOUNT_SID · TWILIO_AUTH_TOKEN · TWILIO_WA_FROM
+
+**Frontend:**
+- NEW `pages/superadmin/SuperadminWhatsApp.js` — tabs mensajes/plantillas · stats cards · CRUD templates
+- NAV: entrada "WhatsApp Business" en sidebar superadmin
+
+### Sub-Fix 2: Newsletter Pulse semanal segmentado
+
+**Backend:**
+- NEW `newsletter_pulse_engine.py` — NewsletterPulseEngine · 4 segmentos paralelos · Claude Haiku (claude-haiku-4-5) · per-user personalization absorbida (digest sub-agents)
+- NEW `routes_newsletter.py` — 5 endpoints:
+  - POST /api/superadmin/newsletter/preview (dry-run · no persiste)
+  - GET /api/superadmin/newsletter/runs (historial 30d)
+  - POST /api/superadmin/newsletter/send-manual (envío override)
+  - GET /api/superadmin/newsletter/stats (opt-ins por segmento)
+  - POST+GET /api/users/{id}/newsletter-opt-in/out/{segment}
+- DB collection: newsletter_pulse_runs · newsletter_opt_ins
+- Phase Y: tier newsletter_pulse >= T1
+- EDIT `scheduler_ie.py` — cron domingo 18:00 MX (generate) + lunes 07:00 MX (send)
+
+**Frontend:**
+- NEW `pages/superadmin/SuperadminNewsletter.js` — 4 segment cards · preview Haiku · envío manual · historial
+- NAV: entrada "Newsletter Pulse" en sidebar superadmin
+
+### Sub-Fix 3: Voice Atlax (Whisper STT + ElevenLabs TTS)
+
+**Backend:**
+- NEW `voice_atlax_engine.py` — VoiceAtlaxEngine · Whisper-1 STT + ElevenLabs eleven_multilingual_v2 TTS · rate cap 50/día/session
+- NEW `routes_voice.py` — 3 endpoints:
+  - POST /api/voice/transcribe (multipart audio → transcript)
+  - POST /api/voice/synthesize (text → audio MP3)
+  - GET /api/voice/{audio_id}/download (stream MP3)
+  - GET /api/superadmin/voice/usage (stats)
+- DB collection: voice_interactions (TTL 30 días)
+- Phase Y: tier voice_atlax >= T1
+- ENV: ELEVENLABS_API_KEY · OPENAI_API_KEY (Whisper)
+
+**Frontend:**
+- NEW `components/landing/AtlaxVoiceButton.js` — mic button rounded-full · recording pulse animation · Web MediaRecorder API · voice output toggle (localStorage persisted)
+- EDIT `components/landing/AtlaxBubble.js` — VoiceButton inline en input area
+- EDIT `pages/public/AsistentePage.js` — VoiceButton row bajo chat
+
+### General W4.10
+- EDIT `routes_phase_y_controls.py` — 3 nuevos feature_keys: whatsapp_business · newsletter_pulse · voice_atlax (default "off")
+- EDIT `server.py` — mount 3 nuevos routers · ensure_indexes 4 nuevas colecciones
+- EDIT `i18n/es-MX/common.json` — whatsapp.* + newsletter.* + voice_atlax.* keys
+- Dependencias: elevenlabs==2.46.0 · twilio==9.10.9 · pydantic downgraded 2.9.2 (compat FastAPI 0.104.1)
+- yarn build: CLEAN · /api/health: 200
+
+**Edge cases reportados:**
+- ElevenLabs TTS: API key bloqueada por IP de Kubernetes (Free Tier "unusual activity" 401). El código TTS es correcto. Requiere cuenta ElevenLabs de pago o whitelist de IP de servidor.

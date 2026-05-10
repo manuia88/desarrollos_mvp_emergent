@@ -205,6 +205,9 @@ const AuditLogPage               = lazy(() => import('./pages/superadmin/AuditLo
 const PrimitivesDemo             = lazy(() => import('./pages/superadmin/PrimitivesDemo'));
 const SystemMapPage              = lazy(() => import('./pages/superadmin/SystemMap'));
 const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDiagnostics'));
+// W4.10 — WhatsApp + Newsletter
+const SuperadminWhatsApp         = lazy(() => import('./pages/superadmin/SuperadminWhatsApp'));
+const SuperadminNewsletter       = lazy(() => import('./pages/superadmin/SuperadminNewsletter'));
 
 // Phase 4 Batch 12
 const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoProyecto'));
@@ -585,6 +588,9 @@ function AppRouter() {
       <Route path="/widget/investor-yield" element={<InvestorYieldWidget />} />
       <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
       <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
+      {/* W4.10 — WhatsApp Business + Newsletter Pulse */}
+      <Route path="/superadmin/whatsapp" element={<AdvisorRoute Page={SuperadminWhatsApp} />} />
+      <Route path="/superadmin/newsletter" element={<AdvisorRoute Page={SuperadminNewsletter} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
       <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksTrackingPage} />} />
