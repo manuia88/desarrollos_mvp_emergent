@@ -5,7 +5,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import {
   Users, Building2, Briefcase, RefreshCw, Search, X,
   Eye, UserCheck, AlertTriangle, ChevronRight, Activity, FolderOpen,
-  DollarSign, Clock, Shield, BarChart2,
+  DollarSign, Clock, Shield, BarChart2, MessageSquare,
 } from 'lucide-react';
 import {
   listTenants, getTenant, impersonateTenant, patchTenantStatus,
@@ -17,6 +17,7 @@ import MarketingAgentPanel from '../../components/director/MarketingAgentPanel';
 import LeadAgentPanel from '../../components/director/LeadAgentPanel';
 import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
 import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelligentPanel';
+import AtlaxPersonaPanel from '../../components/superadmin/AtlaxPersonaPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -188,7 +189,7 @@ function TenantDrawer({ tenantId, onClose }) {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4, flexWrap: 'wrap' }}>
-              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['phase-y', 'Phase Y'], ['sub-agents', 'Sub-Agents']].map(([k, l]) => (
+              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['phase-y', 'Phase Y'], ['sub-agents', 'Sub-Agents'], ['atlax-persona', 'Atlax Persona']].map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} data-testid={`drawer-tab-${k}`}
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
@@ -199,6 +200,7 @@ function TenantDrawer({ tenantId, onClose }) {
                     display: 'flex', alignItems: 'center', gap: 4,
                   }}>
                   {k === 'sub-agents' && <BarChart2 size={11} />}
+                  {k === 'atlax-persona' && <MessageSquare size={11} />}
                   {l}
                 </button>
               ))}
@@ -306,6 +308,11 @@ function TenantDrawer({ tenantId, onClose }) {
                   orgId={data.tenant_id || tenantId}
                   projectsSummary={data.projects_summary || []}
                 />
+              </div>
+            )}
+            {tab === 'atlax-persona' && (
+              <div data-testid="drawer-tab-atlax-persona-content">
+                <AtlaxPersonaPanel orgId={data.tenant_id || tenantId} />
               </div>
             )}
           </>

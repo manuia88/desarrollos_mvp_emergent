@@ -443,6 +443,11 @@ from agentic_crm.disc_inferencer_engine import ensure_disc_indexes as ensure_dis
 from lead_nurture_engine import ensure_nurture_sequences_indexes
 app.include_router(agentic_crm_router)
 
+# W4.7 Y.4A — Atlax Persona per-tenant
+from routes_atlax_persona import router as atlax_persona_router
+from atlax_persona_engine import ensure_indexes as ensure_atlax_persona_indexes
+app.include_router(atlax_persona_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -1027,6 +1032,11 @@ async def startup():
         await ensure_nurture_sequences_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.6 Y.3E nurture_intelligent indexes failed: {e}")
+    # W4.7 Y.4A — Atlax Persona indexes
+    try:
+        await ensure_atlax_persona_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.7 Y.4A atlax_persona indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

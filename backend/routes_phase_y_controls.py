@@ -35,6 +35,7 @@ DEFAULT_FEATURE_TIERS: Dict[str, str] = {
     "nurture_intelligent":   "off",
     "construction_agent":    "off",
     "compliance_agent":      "off",
+    "atlax_persona":         "off",
 }
 
 
