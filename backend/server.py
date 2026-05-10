@@ -611,6 +611,14 @@ app.include_router(lead_journey_router)
 # W4.17 — Smart Notifications Engine (router registered early at line ~280 for routing priority)
 from notifications_engine import ensure_notifications_indexes
 
+# W4.14 — Buyer Coach + Investment Simulator
+from routes_buyer_coach import router as buyer_coach_router
+from buyer_coach_engine import ensure_buyer_coach_indexes
+app.include_router(buyer_coach_router)
+
+from routes_investment_simulator import router as investment_sim_router
+app.include_router(investment_sim_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):
@@ -1174,6 +1182,11 @@ async def startup():
         await ensure_notifications_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.17 notifications indexes failed: {e}")
+    # W4.14 — Buyer Coach indexes
+    try:
+        await ensure_buyer_coach_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.14 buyer_coach indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

@@ -2421,3 +2421,36 @@ los crons + endpoints + UI ya están listos sin cambios de código (sólo cambia
 - emit_notification → unread_count ✓ → mark_read ✓ → mark_all_read ✓ → preferences GET/PUT ✓
 - yarn build limpio (0 errores) ✓
 - 3 cron jobs registrados en scheduler ✓
+
+## W4.14 — Buyer Coach + Investment Simulator (2026-05-10)
+
+### Sub-Chunk A — Buyer Coach Engine
+- **NEW** `/app/backend/buyer_coach_engine.py`: 7 stages, 3-layer resilience (LLM→cache→heuristic), `start_conversation`, `respond`, `advance_stage`, `get_stage_checklist` (20 items stage 4), `get_zone_recommendations`, `capture_lead`, `ensure_buyer_coach_indexes`
+- **NEW** `/app/backend/routes_buyer_coach.py`: 6 endpoints, rate-limit 30/min/IP, LFPDPPP IP hash logging
+- **NEW** frontend: `BuyerCoachWidget.js` (floating FAB, no-portal guard), `BuyerCoachConversation.js` (chat UI + 7 stage sidebar), `StageChecklist.js` (localStorage progress + print)
+
+### Sub-Chunk B — Investment Simulator Engine
+- **NEW** `/app/backend/investment_simulator_engine.py`: 3 scenarios (conservador/base/optimista), ROI/TIR/break-even, cash flow mensual 36 meses, hedonic regression fallback, stress_test (recesión/alza_tasas/supply_shock), compare_alternatives
+- **NEW** `/app/backend/routes_investment_simulator.py`: 4 endpoints, rate-limit 30/min/IP
+- **NEW** frontend: `ScenarioCard.js`, `CashFlowChart.js` (recharts), `InvestmentSimulator.js`, `/simulador` public page
+
+### Sub-Chunk C — Cross-cutting
+- **EDIT** `asistente_engine.py`: 2 new tools (buyer_coach_consult + investment_simulate), system prompt 16→18 tools
+- **EDIT** `server.py`: 2 new routers + `ensure_buyer_coach_indexes` at startup
+- **EDIT** `Marketplace.js`: `<BuyerCoachWidget />` floating
+- **EDIT** `ColoniaLanding.js`: `<BuyerCoachWidget colonia={slug} />` floating
+- **EDIT** `DevelopmentDetail.js`: `<InvestmentSimulator>` embed debajo de tabs
+- **EDIT** `App.js`: ruta `/simulador` + `SimuladorRoute`
+- **EDIT** `i18n/es-MX/common.json`: namespaces `buyer_coach.*` y `investment_sim.*`
+
+### Testing
+- Buyer Coach: start→message→checklist(20 items)→zone-recs→advance ✓
+- Investment Simulator: polanco 3.5M/120m → base ROI=474% TIR=5.7% ✓
+- Atlax tools: buyer_coach_consult → stage 1 ✓ | investment_simulate → 474.92% ROI ✓
+- Rate limit 30/min/IP ✓ | yarn build limpio ✓
+
+### Edge cases conservadores
+- `tier_zona: F` cuando zone_score no disponible → usa COLONIA_DEFAULTS dict por slug (correcto)
+- ROI fórmula usa plusvalía + rentas netas (excluye hipoteca que construye equity)
+- recharts instalado via `yarn add recharts`
+- DevelopmentDetail.js era la página equivalente a "DesarrolloDetail.js" (no existía la pública)
