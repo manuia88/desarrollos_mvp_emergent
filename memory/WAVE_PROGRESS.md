@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-10 (W4.7 Y.4B Match Weights Adaptive shipped · Phase Y 118.5/125h (95%) · Wave 4 ~235.5h · próximo Y.4C Argumentario tone)
-**Total H1 restante**: ~218.5h (Wave 4 pending de los 454h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 235.5h = 602.5h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (235.5h shipped, 218.5h pending) = 821h plan H1
+**Última actualización**: 2026-05-10 (🎯 PHASE Y.4 CERRADA 100% · W4.7 Y.4C Argumentario shipped · Phase Y 124.5/125h (99.6%) · Wave 4 ~241.5h · próximo Y.5 Observability cierra Phase Y absoluto)
+**Total H1 restante**: ~212.5h (Wave 4 pending de los 454h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 241.5h = 608.5h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (241.5h shipped, 212.5h pending) = 821h plan H1
 **Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
 **Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
 
@@ -160,7 +160,7 @@ Formato canónico per-batch (founder request):
 | W4.6 Y.3E | Lead Nurture Intelligent (UPGRADE de W4.2D3.5 · 5 sequence types DISC + 5 tools + cron 04:15 MX + NurtureIntelligentPanel UI) | 8 | 8 | emergent | ✅ | `c3a2e9c` | NurtureIntelligentEngine 3-layer + Director 14vo tool + 5to sub-tab · **🎯 PHASE Y.3 CERRADA 100%** (40/36h con +1.5h fix-pass) |
 | W4.7 Y.4A | Atlax per-tenant Persona Adaptation (identidad + tono + brand voice + greetings + forbidden_topics) | 5 | 5 | emergent | ✅ | `6ce175f` | atlax_persona_engine + 3 endpoints + persona injection system prompt + AtlaxPersonaPanel UI + 7th tab TenantDrawer · feature_key atlax_persona |
 | W4.7 Y.4B | Match weights adaptive (lead↔proyecto matching personalizado per-org auto-tuned) | 6 | 6 | emergent | ✅ | `9c59c98` | match_weights_engine 651L correlación closed vs open · blend sample-size-aware · cooldown 6d · cron weekly · 4 endpoints · Director 15vo tool · Smart Routing integration · 8va tab UI |
-| W4.7 Y.4C | Argumentario tone behavioral-driven (asesor scripts adaptive DISC) | 6 | — | emergent | ⏳ | — | — |
+| W4.7 Y.4C | Argumentario tone behavioral-driven (asesor scripts adaptive DISC + 6 objections + closing DISC-mapped) | 6 | 6 | emergent | ✅ | `197a6dc` | argumentario_engine 807L 3-layer + 3 endpoints + Director 16vo tool + ArgumentarioPanel UI · 🎯 Phase Y.4 CERRADA 100% (17/17h) |
 | W4.8 | Phase Y.5 Observability + Replay Debugger + AI ROI per-dev dashboard | 15 | — | emergent | ⏳ | — | 4 chunks · Audit Replay + ML accuracy + Replay Debugger + AI ROI per-dev portal |
 | W4.9 | Phase 6 Studio Wave 1.5 **CORE H1** (brochure mejorado, sin video bundle) | 16 | — | emergent | ⏳ | — | core H1 · video bundle 34h DIFERIDO Wave 5 W5.16 |
 | ~~W4.9.5~~ | ~~Virtual staging IA~~ → **DIFERIDO Wave 5 W5.17** | 8 | — | — | 📦 W5 | — | depende de 3DGS estabilizado · va con video bundle |
