@@ -28,6 +28,13 @@ from agentic_crm.smart_routing_engine import (
     SmartRoutingNotFoundError,
     SmartRoutingRateLimitError,
 )
+from agentic_crm.visit_prep_engine import (
+    VisitPrepEngine,
+    VisitPrepDisabledError,
+    VisitPrepForbiddenError,
+    VisitPrepNotFoundError,
+    VisitPrepRateLimitError,
+)
 
 log = logging.getLogger("dmx.routes_agentic_crm")
 
@@ -282,3 +289,141 @@ async def superadmin_metrics(
         "refresh": refresh, "metrics": rows,
         "summary": {"by_status": by_status, "by_layer": by_layer},
     }
+
+
+# ─── W4.6 Y.3B · Visit Prep Automation ────────────────────────────────────────
+class VisitPrepGenerateIn(BaseModel):
+    lead_id: str = Field(..., min_length=2, max_length=120)
+    asesor_id: str = Field(..., min_length=2, max_length=120)
+    project_id: str = Field(..., min_length=2, max_length=120)
+    visit_scheduled_at: str = Field(..., min_length=10, max_length=40)
+    org_id: Optional[str] = None
+    simulation_override: bool = False
+
+
+# In-process visit-prep user rate limit · 30/min
+_user_vp_buckets: Dict[str, List[float]] = {}
+USER_VP_CAP = 30
+
+
+def _check_user_vp_rate(user_id: str) -> bool:
+    now = time.monotonic()
+    bucket = _user_vp_buckets.setdefault(user_id, [])
+    _user_vp_buckets[user_id] = [t for t in bucket if now - t < 60]
+    if len(_user_vp_buckets[user_id]) >= USER_VP_CAP:
+        return False
+    _user_vp_buckets[user_id].append(now)
+    return True
+
+
+def _clean_dossier_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
+    out = {k: v for k, v in doc.items() if k != "_id"}
+    out["dossier_id"] = doc.get("_id") or doc.get("dossier_id")
+    for k in ("visit_scheduled_at", "dossier_generated_at",
+              "sent_email_at", "viewed_at", "expires_at"):
+        v = out.get(k)
+        if isinstance(v, datetime):
+            out[k] = v.isoformat()
+    return out
+
+
+@router.post("/api/agentic-crm/visit-prep/generate", status_code=201)
+async def generate_visit_prep(payload: VisitPrepGenerateIn, request: Request):
+    user = await _get_user(request)
+    role = getattr(user, "role", "")
+    if role not in ROUTING_ROLES:
+        raise HTTPException(403, "Rol no autorizado")
+    if not _check_user_vp_rate(getattr(user, "user_id", "anon")):
+        raise HTTPException(429, "Rate limit (30 calls/min). Intenta más tarde.")
+
+    db = request.app.state.db
+    # Resolve org from lead
+    lead = await db.leads.find_one({"id": payload.lead_id}, {"_id": 0, "dev_org_id": 1})
+    if not lead:
+        raise HTTPException(404, f"Lead {payload.lead_id} no encontrado")
+    lead_org = lead.get("dev_org_id")
+    if role != "superadmin" and lead_org and getattr(user, "tenant_id", None) != lead_org:
+        raise HTTPException(403, "Lead pertenece a otra org")
+    org_id = _resolve_org(user, payload.org_id or lead_org)
+
+    # Asesor permission: asesor solo puede generar para sí mismo
+    if role in {"advisor", "asesor", "asesor_freelance"} and getattr(user, "user_id", None) != payload.asesor_id:
+        raise HTTPException(403, "Asesor solo puede generar sus propios dossiers")
+
+    try:
+        engine = VisitPrepEngine(db, org_id)
+        result = await engine.generate_dossier(
+            payload.lead_id, payload.asesor_id, payload.project_id,
+            payload.visit_scheduled_at,
+            simulation_override=payload.simulation_override,
+        )
+        return {"ok": True, **result}
+    except VisitPrepDisabledError as e:
+        raise HTTPException(403, str(e))
+    except VisitPrepRateLimitError as e:
+        raise HTTPException(429, str(e))
+    except VisitPrepNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except VisitPrepForbiddenError as e:
+        raise HTTPException(403, str(e))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.get("/api/agentic-crm/visit-prep/dossiers")
+async def list_dossiers(
+    request: Request,
+    asesor_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None, pattern=r"^(generated|sent|viewed|expired|all)$"),
+    org_id: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+):
+    user = await _require_authorized(request, org_id)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+    target_org = _resolve_org(user, org_id)
+
+    q: Dict[str, Any] = {}
+    if role != "superadmin" or org_id:
+        q["org_id"] = target_org
+    # asesor restringido a su propio asesor_id
+    if role in {"advisor", "asesor", "asesor_freelance"}:
+        q["asesor_id"] = getattr(user, "user_id", "")
+    elif asesor_id:
+        q["asesor_id"] = asesor_id
+    if status and status != "all":
+        q["status"] = status
+
+    cur = db.visit_prep_dossiers.find(q).sort("dossier_generated_at", -1).limit(limit)
+    rows = []
+    async for d in cur:
+        rows.append(_clean_dossier_doc(d))
+    return {"ok": True, "count": len(rows), "dossiers": rows}
+
+
+@router.post("/api/agentic-crm/visit-prep/dossiers/{dossier_id}/mark-viewed")
+async def mark_dossier_viewed(dossier_id: str, request: Request):
+    user = await _get_user(request)
+    role = getattr(user, "role", "")
+    if role not in ROUTING_ROLES:
+        raise HTTPException(403, "Rol no autorizado")
+    db = request.app.state.db
+    doc = await db.visit_prep_dossiers.find_one(
+        {"_id": dossier_id}, {"_id": 1, "org_id": 1, "asesor_id": 1},
+    )
+    if not doc:
+        raise HTTPException(404, "Dossier no encontrado")
+    if role != "superadmin" and getattr(user, "tenant_id", None) != doc["org_id"]:
+        raise HTTPException(403, "Cross-org acceso denegado")
+
+    asesor_filter = None
+    if role in {"advisor", "asesor", "asesor_freelance"}:
+        asesor_filter = getattr(user, "user_id", None)
+
+    try:
+        engine = VisitPrepEngine(db, doc["org_id"])
+        return {"ok": True, **await engine.mark_viewed(dossier_id, asesor_id=asesor_filter)}
+    except VisitPrepNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except VisitPrepForbiddenError as e:
+        raise HTTPException(403, str(e))
