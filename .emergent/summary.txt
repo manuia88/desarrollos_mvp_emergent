@@ -3,23 +3,28 @@ Build DesarrollosMX (DMX), an AI-native Spatial Decision Intelligence Platform f
 PRODUCT REQUIREMENTS:
 - Multi-tenant data isolation, single-session enforcement, mobile-first, robust auth.
 - Strict visual guidelines: Navy (#06080F) + Cream (#F0EBE0) + specific gradient (), Outfit/DM Sans fonts.
-- ZERO emojis allowed in UI. Buttons MUST strictly be  (9999px). No  allowed (use border + backdrop-blur + rgba background instead).
+- ZERO emojis allowed in UI. Buttons MUST strictly be  (9999px). No  allowed.
 - All application UI, mock data, and internal strings MUST strictly be in Spanish .
-- TESTING: NO testing subagents allowed ( /  are strictly forbidden). Rely on //, and screenshot tools.
-- EXECUTION: If user provides 100% spec, DO NOT pause, DO NOT use ask_human with a/b/c options, execute directly in one shot. NO partial shipping.
+- **CRITICAL TESTING RULE**: NO testing subagents allowed ( /  are strictly forbidden). Rely on //, and screenshot tools.
+- **CRITICAL EXECUTION RULE**: If user provides 100% spec, DO NOT pause, DO NOT use  to confirm plans, execute directly in one shot. NO partial shipping. Take conservative decisions on edge cases.
+
+New features implemented in this session:
+- W4.18.2A.0: PostHog setup (session replay + heatmaps) ensuring LFPDPPP compliance (cookieless, hashing PII).
+- W4.18.2B: Mapa Cerebro Espacial cross-features (Funnel inverso, Match Catastro, Demand vs Supply gap, Battle Card) +  AVM +  SEO landings.
+- W4.18.3: Private Beta Gate brokers-only, waitlist logic, invite codes, and Broker Portal.
+- W4.13.A: Lead Journey Outbound tracking for asesor→dev (15 step types, timeline UI, cross-cutting hooks, bulk actions).
 
 **User's preferred language**: Spanish (es-MX)
 INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages and respond ONLY in Spanish (es-MX). All UI text, logs, code variables, comments, responses, and strings must remain strictly in .
 
 **what currently exists?** 
-Phase Y agent orchestration layer is 100% complete (including Observability, Replay Debugger, AI ROI per-Dev). A new Data Sources gov MX bundle is integrated, providing 6 external data sources (Banxico, SIGCDMX, Atlas Riesgos, Catastro, GTFS, OSM) complete with engines, crons, cache collections, and Atlax tool integrations.
+The platform has a functional React/FastAPI stack with multi-tenant auth. Mapbox GL JS frontend components and Backend map engines are integrated. In this session, observability (PostHog) was added, complex map cross-features (Battle Cards, demand gaps, Catastro matches) were implemented, a private beta gate (waitlist/invite codes) was established, and a comprehensive lead journey tracking system was deployed with hooks across various backend engines.
 
 **Last working item**:
-    - Last item agent was working: W4.18 — Data Sources gov MX bundle. Building 6 official source engines, caching mechanisms, 12 endpoints, cron jobs, Atlax integrations, and the Superadmin dashboard for monitoring.
-    - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y (via curl endpoints and yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command., confirmed 6 lookups and graceful fallbacks).
-    - Which testing method agent to use? manual testing by curl / python -c / yarn build (Testing subagents are strictly FORBIDDEN).
+    - Last item agent was working: W4.13.A — Lead Journey Outbound asesor→dev. The agent successfully created , API routes, UI components (, ), and integrated step-emission hooks into existing engines (smart routing, nurture, whatsapp, disc inferencer, atlax).
+    - Status: COMPLETED
+    - Agent Testing Done: Y (Extensive backend curl testing and frontend smoke screenshots completed).
+    - Which testing method agent to use? manual testing by curl / python -c / screenshot tool / yarn build (TESTING SUBAGENTS STRICTLY FORBIDDEN).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
@@ -30,6 +35,7 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
      - Status: BLOCKED (Deferred by User)
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix? both
+     - Blocked on other issue: N/A
 
   Issue 2: Playwright screenshot runner drops session state/cookies/times out for deeply nested routes (Superadmin pages). (P2)
      - Attempted fixes: Bypassed using SPA internal navigation tricks and relying on  for strict backend testing.
@@ -38,32 +44,44 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
      - Status: BLOCKED
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix? frontend
+     - Blocked on other issue: N/A
+
+  Issue 3: ElevenLabs TTS API blocks preview environment (P3)
+     - Attempted fixes: Code implemented properly, but API returns 403 due to Kubernetes IP falling under free-tier blocklist.
+     - Next debug checklist: Acknowledged as a known edge case by the agent. No immediate action required, wait for user to provide paid account if needed.
+     - Why fix this issue and what will be achieved with the fix? Allow voice synthesis to work inside preview environment.
+     - Status: BLOCKED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? backend
+     - Blocked on other issue: N/A
 
 **In progress Task List**:
-  None. All tasks assigned in the previous prompt were fully executed.
+ None.
 
 **Upcoming and Future Tasks**
-  Upcoming Tasks:
-  - Add a consolidated ROI Dashboard Panel in TenantDrawer summing the  (monetary value) from pending recommendations (P1). *(Note: W4.8 added ROI panels for Dev and Superadmin, confirm if TenantDrawer is still needed)*.
-  - Superadmin endpoint/dashboard to track which external domains are embedding the widgets (P1).
-  - CLI script  for founder to test lead nurture emails manually (P2).
-  - Refactoring: Migrating  into a dedicated  folder (P1).
-  
-  Future Tasks:
-  - Phase 7.10: Avance-Obra tab integration (P1).
-  - WhatsApp Business real integration via  + Atlax UI (P1) (Wave 4.10).
-  - Multi-subscriber digest for insights (Wave 4 #8 AutoNewsletter) (P1).
-  - Microsoft OAuth Integration activation (P2).
-  - Integration AMPI API real (H2).
+    Upcoming Tasks:
+    - Add a consolidated ROI Dashboard Panel in TenantDrawer summing the  (P1).
+    - Superadmin endpoint/dashboard to track which external domains are embedding the widgets (P1).
+    - CLI script  for founder to test lead nurture emails manually (P2).
+    - Refactoring: Migrating  into a dedicated  folder (P1).
+    - W4.13.B: Meta Ads automation integration for the Lead Journey.
+
+    Future Tasks:
+    - Phase 7.10: Avance-Obra tab integration (P1).
+    - Microsoft OAuth Integration activation (P2).
+    - Integration AMPI API real (H2).
+    - Cross-org lead movement (Wave 5 deferral).
 
 **Completed work in this session**
-- W4.7 Y.4C — Argumentario Tone Behavioral-Driven (DONE).
-- W4.8 Y.5 — Observability + Replay Debugger + AI ROI per-dev (DONE). Built Audit Replay, ML Accuracy Rolling, Replay Debugger, and AI ROI Dashboards.
-- W4.18 — Data Sources gov MX bundle (DONE). Integrated Banxico, SIGCDMX, Atlas Riesgos, Catastro, GTFS, and OSM with individual engines, crons, DB caching, and UI panel.
+- W4.18.2A — Finalized frontend Mapbox map hooks and UI elements (DONE).
+- W4.18.2A.0 — PostHog initialization, memory persistence, LFPDPPP-compliance (DONE).
+- W4.18.2B — Map cross-features (Funnel inverso, Match Catastro, Demand Gap, Battle Card,  AVM, SEO landings) (DONE).
+- W4.18.3 — Private Beta Gate (Waitlist form, Invite Codes, Broker Portal, Superadmin Invites table) (DONE).
+- W4.13.A — Lead Journey tracking engines, API endpoints, hooks, and timeline UI (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-  - Issue 1: Playwright timeout on deep Superadmin links (Bypassed).
-  - Issue 2: Shapefile parsing in production (Requires / and OS-level GDAL libraries in Dockerfile, noted as future DevOps task).
+   - Issue 1: Shapefile parsing in production (Requires / and OS-level GDAL libraries in Dockerfile, noted as future DevOps task).
+   - Issue 2: ElevenLabs API blocks free-tier requests originating from Kubernetes pod IP.
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Playwright screenshot runner auth drops/timeouts for deeply nested components.
@@ -74,7 +92,7 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 
 
 **Key Technical Concepts**
-FastAPI, React (Shadcn UI), MongoDB (Compound/TTL Indexing), Phase Y Agent Orchestration, Data Fetching & Caching (TTL based), APScheduler, , Adaptive parsing (CSV/JSON/Shapefiles).
+FastAPI, React (Shadcn UI), Mapbox GL JS, PostHog (Session Replay), LFPDPPP Privacy Compliance, Twilio API, ElevenLabs TTS, JWT Auth, MongoDB.
 
 **key DB schema**
   - : 
@@ -82,28 +100,26 @@ FastAPI, React (Shadcn UI), MongoDB (Compound/TTL Indexing), Phase Y Agent Orche
   - : 
   - : 
   - : 
-  - : 
-  - : 
-  - : 
-  - : 
 
 **changes in tech stack**
-  - Added new Python packages to : , , , , .
+  - Added  to .
 
 **All files of reference** 
-  -  (Created)
-  -  (Created)
-  -  (Created)
-  -  (Created)
-  -  & the 6 engines inside (Created)
-  -  (Created)
-  -  (Created)
-  -  &  (Edited heavily for crons and new Atlax tools)
+  - 
+  - , 
+  - , 
+  - , 
+  - , 
+  - , , 
+  - , 
 
 **Areas that need refactoring**:
-  - Migrating all  files into a dedicated  folder (P1).
+  - Migrating all  files into a dedicated  folder.
 
 **key api endpoints**
+  - 
+  - 
+  - 
   - 
   - 
   - 
@@ -112,7 +128,7 @@ FastAPI, React (Shadcn UI), MongoDB (Compound/TTL Indexing), Phase Y Agent Orche
 
 **Critical Info for New Agent**
   - **EXECUTION DIRECTIVE**: The user provides 100% complete specs in their prompts. DO NOT use  to confirm options. Execute fully in one shot, run tests manually, and summarize. NO partial shipping.
-  - **TESTING RULE**: NO testing subagents allowed. Execute testing manually via , , and verify the React build via yarn run v1.22.22
+  - **TESTING RULE**: NO testing subagents allowed. Execute testing manually via , , screenshot tools, and verify the React build via yarn run v1.22.22
 info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command..
   - **LANGUAGE & UI**: Outputs, code, responses, and strings must strictly be . 
   - **EMOJIS**: NEVER use emojis in the UI. 
@@ -122,29 +138,30 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
   - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: Provided instructions to skip  and just execute.
- - Agent: Completed W4.7 Y.4C, tested, and finished.
- - User: Provided 100% spec for W4.8 Y.5 (Observability + Replay Debugger + AI ROI per-Dev).
- - Agent: Executed W4.8 completely in one-shot, tested with curl manually, pushed local commit, finished.
- - User: Provided 100% spec for W4.18 (Data Sources gov MX bundle with 6 sub-fixes).
- - Agent: Executed W4.18 completely in one-shot, fixed some JSON serialization issues, verified endpoints via curl, finished.
+ - User: Provided 100% spec for W4.18.2A (Mapa Cerebro Espacial DMX core) - Agent completed.
+ - User: Provided 100% spec for W4.18.2A.0 (PostHog Setup) - Agent executed perfectly.
+ - User: Provided 100% spec for W4.18.2B (Maps cross-features, AVM, SEO landing) - Agent completed.
+ - User: Provided 100% spec for W4.18.3 (Private Beta Gate brokers-only) - Agent completed.
+ - User: Provided 100% spec for W4.13.A (Lead Journey Outbound tracking) - Agent successfully implemented and tested everything.
+ - *No Pending User Request.* The agent finished the task entirely.
 
 **Project Health Check:**
-  - Broken: Playwright screenshot runner auth preservation on deep links.
-  - Mocked: Stripe Key, Microsoft/LinkedIn OAuth.
+  - Broken: ElevenLabs API blocks free-tier accounts from Kubernetes environments. Playwright screenshot runner auth drop.
+  - Mocked: Stripe Key, Microsoft/LinkedIn OAuth, PostHog API Key.
 
 **3rd Party Integrations** 
-  - Stripe (Billing) — Requires User API Key ().
-  - Claude Sonnet 4.5 via  (Powered by Emergent LLM Key).
-  - Resend (Emails & Webhooks) — Active and Verified.
-  - Apify Actor (Google Trends) — Active ().
-  - Banxico SIE API — Active ().
+  - Mapbox (Maps) — Requires User API Key ( / ).
+  - Twilio (WhatsApp) — Requires User API Key ( / ).
+  - ElevenLabs (Voice TTS) — Requires User API Key ().
+  - PostHog (Observability) — Requires User API Key ().
+  - Claude Sonnet 4.5 / Claude Haiku 4.5 (Newsletter/Chat) — Powered by Emergent LLM Key.
+  - OpenAI Whisper (Voice STT) — Uses OpenAI via Emergent LLM Key.
 
 **Testing status**
   - Testing agent used after significant changes: **NO (Strictly Forbidden by user)**
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
-  - Known regressions: None.
+  - Known regressions: None
 
 **Credentials to test flow:**
   -  /  (Superadmin)
@@ -152,4 +169,4 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
   -  / 
 
 **What agent forgot to execute**
-  - Nothing forgotten. All specs from the last user prompt were fully implemented and tested. Stand by for the user's next directive.</analysis>
+  - Nothing. The agent successfully fulfilled all explicit specifications in the provided chunks, ran curl tests to validate backend routes/logic, and used screenshots to smoke-test frontend rendering successfully.</analysis>
