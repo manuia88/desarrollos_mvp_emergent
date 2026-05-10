@@ -231,13 +231,16 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
-### OG dynamic images endpoint `/og/colonia/{slug}.png` (rich preview WhatsApp/LinkedIn)
-- **Origen:** W4.18.2B emergent suggested 2026-05-10
+### Social cards multi-formato `/og` + `/social/feed` + `/social/story` (FB/IG/LinkedIn/WA/TikTok/Twitter/Telegram)
+- **Origen:** W4.18.2B emergent suggested 2026-05-10 · founder catch alcance multi-plataforma 2026-05-10
 - **Destino:** Wave 5 H2 W5.16 marketing distribution
-- **Qué:** GET `/og/colonia/{slug}.png` renderiza imagen 1200×630 con Mapbox Static API snapshot + KPIs (zone_score · avg_price/m2 · top dev) + branding DMX. Páginas `/colonia/{slug}` ya tienen `og:image` apuntando a este endpoint pero falta backend
-- **Por qué:** broker comparte link colonia en WhatsApp/LinkedIn → preview rich con map + stats → CTR x3-5 vs preview plano · marketing orgánico viral · paridad con Forbes/El Financiero embeds
-- **Costo:** ~6h (endpoint FastAPI + Pillow render compose + Mapbox Static API call + cache filesystem 24h + tests `og:image` headers)
-- **Activar cuando:** Wave 5 marketing campaign · pre-cuando founder compartir colonias en redes
+- **Qué:** 3 endpoints backend que renderizan imágenes dinámicas con Mapbox Static API snapshot + KPIs colonia (zone_score · avg_price/m2 · top dev · demand index) + branding DMX:
+  - `GET /og/colonia/{slug}.png` → 1200×630 horizontal · auto-servido vía `<meta og:image>` para link previews en **FB · LinkedIn · WhatsApp · Twitter · Telegram · iMessage · Discord · Slack** (todas parsean OG protocol)
+  - `GET /social/colonia/{slug}/feed.png` → 1080×1080 cuadrado · download manual broker/marketing para postear nativo en **Instagram feed · Facebook feed · LinkedIn nativo**
+  - `GET /social/colonia/{slug}/story.png` → 1080×1920 vertical · download para **Instagram Stories · TikTok · Facebook Stories · WhatsApp Status**
+- **Por qué:** broker comparte link colonia → preview rich = CTR x3-5 vs plano (link platforms) · IG/TikTok no parsean OG pero brokers descargan PNG y postean nativo · marketing orgánico viral 6 plataformas con un solo backend pipeline · paridad con Zillow/Redfin shareability
+- **Costo:** ~10h (FastAPI 3 endpoints + Pillow render compose multi-layout + Mapbox Static API call + cache filesystem 24h + 3 templates layout · pipeline rendering compartido entre formatos)
+- **Activar cuando:** Wave 5 marketing campaign · post launch público · pre-Reels/TikTok/IG/FB content series brokers
 
 ### AVM público swap heurístico → hedonic_regression_engine real (P1 tech debt)
 - **Origen:** W4.18.2B audit Claude Code 2026-05-10 — emergent reportó "hedonic_engine.py no existe" pero `backend/hedonic_regression_engine.py` SÍ existe (9+ archivos lo importan)
