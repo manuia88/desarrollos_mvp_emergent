@@ -15,6 +15,7 @@ import { PhaseYControlsPanel } from '../../components/superadmin/PhaseYControlsP
 import PricingAgentPanel from '../../components/director/PricingAgentPanel';
 import MarketingAgentPanel from '../../components/director/MarketingAgentPanel';
 import LeadAgentPanel from '../../components/director/LeadAgentPanel';
+import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -576,6 +577,7 @@ function SubAgentsTabs({ orgId, projectsSummary }) {
     ['pricing',   'Pricing'],
     ['marketing', 'Marketing'],
     ['lead',      'Lead'],
+    ['routing',   'Smart Routing'],
   ];
 
   return (
@@ -614,6 +616,9 @@ function SubAgentsTabs({ orgId, projectsSummary }) {
         )}
         {activeAgent === 'lead' && (
           <LeadAgentPanel orgId={orgId} />
+        )}
+        {activeAgent === 'routing' && (
+          <SmartRoutingPanel orgId={orgId} />
         )}
       </div>
     </div>

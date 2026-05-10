@@ -2026,3 +2026,71 @@ STARTER ($49/mo) o se cambie a un actor pago non-Puppeteer-based
 (`data_xplorer/google-trends-fast-scraper`, `vasram/daily-trend-intelligence`),
 los crons + endpoints + UI ya están listos sin cambios de código (sólo cambiar
 `APIFY_GOOGLE_TRENDS_ACTOR` en .env).
+
+---
+
+## W4.6 Y.3A — Smart Routing Lead <60 seg (2026-05-10)
+
+### Backend (nuevo)
+- `/app/backend/agentic_crm/__init__.py` (package marker)
+- `/app/backend/agentic_crm/smart_routing_engine.py`: SmartRoutingEngine con 3-layer
+  resilience (LLM Claude + 3 tools → cached similar zone+segment → heurística ranking).
+  Caps 50 routings/min/org · daily caps por tier (T1=1000, T2=5000, T3=20000, T4=∞).
+  Phase Y guards (master + tier `smart_routing_lead` ≥ T1 + simulation_mode).
+  Hooks: `route_lead`, `accept_routing`, `reject_routing` (con re-route exclusión),
+  `reassign`, `update_routing_metrics`, `auto_route_fresh_leads`, `run_routing_metrics_cron`.
+- `/app/backend/routes_agentic_crm.py`: 6 endpoints REST
+  (POST routings, GET list, accept, reject, reassign, GET superadmin metrics).
+  Permission: developer/inmobiliaria own org · superadmin any · 403 cross-org.
+  Rate limit 30 calls/min/user.
+
+### Backend (editado)
+- `server.py`: mount `routes_agentic_crm.router` + `ensure_routing_indexes` startup hook
+- `director_agent_engine.py`: 10ma tool `delegate_lead_routing` (params: lead_id) registrada
+  en system prompt + dispatch + `_tool_delegate_lead_routing` impl
+- `lead_nurture_engine.py`: pre-paso `auto_route_fresh_leads(hours_window=2)` ANTES
+  del nurture cron — leads created_at <2h sin assigned_to → routing automático.
+  fit>60 → auto-accept, 30-60 → pending, <30 → flag activity_log
+- `scheduler_ie.py`: cron `smart_routing_metrics` 04:30 MX diario
+- `routes_phase_y_controls.py`: agregado `smart_routing_lead` a DEFAULT_FEATURE_TIERS
+
+### Frontend (nuevo)
+- `/app/frontend/src/components/director/SmartRoutingPanel.js`: panel completo con
+  4 stat tiles, manual lead input + create button, status filters, layer breakdown,
+  fit_chip color-coded, expandable fit_breakdown grid (zone/segment/capacity/conv/schedule),
+  per-row accept/reject/reassign (form inline), simulation badge
+
+### Frontend (editado)
+- `pages/superadmin/SuperadminTenants.js`: 4to sub-tab `routing` "Smart Routing" en
+  SubAgentsTabs (junto a Pricing/Marketing/Lead)
+- `i18n/locales/es-MX/common.json`: bloque `agentic_crm.smart_routing.*` con todas
+  las strings (title, status, layer_used, fit_score, accept/reject/reassign, errors)
+
+### DB
+- Nueva colección `lead_routings` con índices:
+  `(org_id, lead_id)` · `(suggested_asesor_id, status)` · `(routed_at -1)`
+  · `(org_id, lead_zone, lead_segment, status)` (cache layer) · `expires_at` TTL 30d
+- Nueva colección `routing_metrics` con índice `(org_id, asesor_id, period_start)`
+
+### Acceptance criteria validados (curl + python)
+- ✅ POST /routings con lead válido → routing creado en 17s · suggested_asesor_id correcto
+  · fit_score=100 · routing_layer="llm" · cost_usd $0.010
+- ✅ Layer 1 LLM (sonnet 4.5 + 3 tools) → fit_breakdown {zone:25, segment:20, capacity:20, conversion:25, schedule:10}
+- ✅ Cache layer válido (zone+segment match)
+- ✅ Heuristic layer válido (ranking ponderado capacidad×conversion×zona)
+- ✅ Reject + re-route con exclusión asesor anterior · LLM/heuristic respetan exclude_ids
+- ✅ Reassign superadmin override → status="reassigned" + activity_log
+- ✅ Phase Y master OFF → 403 "master switch desactivado"
+- ✅ Tier OFF → 403 "requiere T1 o superior"
+- ✅ Simulation mode → solo heuristic + data_quality="simulated" + lead.assigned_to NO afectado
+- ✅ Cron `update_routing_metrics` agrega routing_metrics correctamente (avg_response_time, conversion)
+- ✅ auto_route_fresh_leads: lead nuevo created_at<2h → routing → fit>60 → auto-accept → assigned_to set
+- ✅ TenantDrawer Sub-Agents tab: 4 sub-tabs visibles (pricing/marketing/lead/routing) funcionales
+- ✅ yarn build limpio (39.6s)
+- ✅ /api/health → 200
+
+### Concurrency caps
+- 50 routings/min/org (in-process bucket)
+- daily cap por tier (T1=1000, T2=5000, T3=20000, T4=ilimitado)
+- circuit breaker LLM 5 fallas → 60s recovery
+- 30 calls/min/user en endpoints

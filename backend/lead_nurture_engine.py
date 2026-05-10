@@ -268,8 +268,18 @@ async def send_nurture_email(email: str, zone_name: str, zone_url: str,
 
 
 async def run_lead_nurture_match(db) -> Dict[str, Any]:
-    """Cron entry point. Returns {matches, sent, skipped, ts}."""
+    """Cron entry point. Returns {matches, sent, skipped, ts, smart_routing}."""
     ts = _now().isoformat()
+
+    # W4.6 Y.3A — Pre-paso: smart-route fresh leads (created_at <2h sin assigned_to)
+    routing_summary: Dict[str, Any] = {"routed": 0, "auto_accepted": 0,
+                                       "pending": 0, "flagged": 0, "failed": 0}
+    try:
+        from agentic_crm.smart_routing_engine import auto_route_fresh_leads
+        routing_summary = await auto_route_fresh_leads(db, hours_window=2)
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[lead_nurture] smart-routing pre-step failed: {e}")
+
     matches = await find_matches(db)
     sent = 0
     skipped = 0
@@ -293,6 +303,7 @@ async def run_lead_nurture_match(db) -> Dict[str, Any]:
         else:
             skipped += 1
 
-    summary = {"matches": len(matches), "sent": sent, "skipped": skipped, "ts": ts}
+    summary = {"matches": len(matches), "sent": sent, "skipped": skipped,
+               "smart_routing": routing_summary, "ts": ts}
     log.info(f"[lead_nurture] run completed: {summary}")
     return summary
