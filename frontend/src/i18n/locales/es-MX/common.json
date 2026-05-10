@@ -1476,6 +1476,40 @@
         "save_failed": "Error al guardar la persona",
         "preview_failed": "Error al ejecutar preview"
       }
+    },
+    "match_weights": {
+      "title": "Pesos de Matching",
+      "subtitle": "Criterios de asignación lead↔proyecto por organización",
+      "dimension": {
+        "zona":              "Zona geográfica",
+        "precio":            "Precio / presupuesto",
+        "segment":           "Segmento de mercado",
+        "amenidades":        "Amenidades",
+        "timing":            "Timing / urgencia",
+        "behavioral_intent": "Intención conductual",
+        "disc_match":        "Compatibilidad DISC"
+      },
+      "sum_validation_error": "Los pesos deben sumar 100% ± 5 para guardar",
+      "save_button": "Guardar pesos",
+      "auto_tune_button": "Auto-tune ahora",
+      "confidence_label": "Confianza del tuning",
+      "history_title": "Historial de cambios",
+      "changed_by_system": "Auto-tune del sistema",
+      "changed_by_manual": "Actualización manual",
+      "defaults_active": "Defaults globales activos",
+      "tier_required_read": "Requiere tier T1+ para lectura",
+      "tier_required_write": "Requiere tier T2+ para edición manual",
+      "saved_msg": "Pesos guardados correctamente",
+      "apply_tune_btn": "Aplicar pesos aprendidos",
+      "errors": {
+        "tier_required":    "Match Weights requiere tier T1+",
+        "tier_write":       "Match Weights (manual) requiere tier T2+",
+        "sum_invalid":      "Los pesos deben sumar 1.0 ± 0.05",
+        "rate_limit":       "Cap de cambios excedido. Intenta más tarde.",
+        "load_failed":      "Error al cargar pesos",
+        "save_failed":      "Error al guardar pesos",
+        "auto_tune_failed": "Error al ejecutar auto-tune"
+      }
     }
   }
 }
