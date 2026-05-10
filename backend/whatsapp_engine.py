@@ -160,6 +160,20 @@ class WAEngine:
         except Exception as exc:
             log.warning(f"[whatsapp] persist failed: {exc}")
 
+        # W4.13.A — Lead Journey hook (1ra vez = first_touch_whatsapp)
+        if lead_id:
+            try:
+                count = await self.db.whatsapp_messages.count_documents({"lead_id": lead_id, "direction": "outbound"})
+                if count <= 1:  # 1ra ya insertada arriba
+                    from lead_journey_engine import emit_step
+                    await emit_step(
+                        self.db, lead_id=lead_id, tenant_id=getattr(self, "org_id", None),
+                        step_type="first_touch_whatsapp", actor_type="system",
+                        payload={"channel": "whatsapp", "to": to_number[-6:]},
+                    )
+            except Exception:
+                pass
+
         return {"msg_id": msg_doc["_id"], **result}
 
     async def receive_webhook(

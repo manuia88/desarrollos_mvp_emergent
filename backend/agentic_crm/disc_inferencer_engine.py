@@ -771,6 +771,21 @@ class DISCInferencer:
         except Exception:
             pass
 
+        # W4.13.A — Lead Journey hook
+        try:
+            from lead_journey_engine import emit_step
+            await emit_step(
+                self.db, lead_id=lead_id, tenant_id=self.org_id,
+                step_type="disc_inferred", actor_type="system",
+                payload={
+                    "disc_bucket": doc.get("primary_style") or doc.get("disc_bucket"),
+                    "confidence": doc.get("confidence"),
+                    "layer": doc.get("layer_used"),
+                },
+            )
+        except Exception:
+            pass
+
         return self._serialize(doc)
 
     async def refresh_profile(self, lead_id: str) -> Dict[str, Any]:

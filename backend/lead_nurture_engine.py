@@ -267,6 +267,21 @@ async def send_nurture_email(email: str, zone_name: str, zone_url: str,
     return await _send_resend_email(email, subject, html)
 
 
+async def _emit_nurtured(db, lead_id: Optional[str], tenant_id: Optional[str], zone_name: str, channel: str = "email"):
+    """W4.13.A — Lead Journey hook helper."""
+    if not lead_id:
+        return
+    try:
+        from lead_journey_engine import emit_step
+        await emit_step(
+            db, lead_id=lead_id, tenant_id=tenant_id,
+            step_type="nurtured", actor_type="cron",
+            payload={"zone_name": zone_name, "channel": channel},
+        )
+    except Exception:
+        pass
+
+
 async def run_lead_nurture_match(db) -> Dict[str, Any]:
     """Cron entry point. Returns {matches, sent, skipped, ts, smart_routing}."""
     ts = _now().isoformat()
@@ -299,6 +314,9 @@ async def run_lead_nurture_match(db) -> Dict[str, Any]:
                 )
             except Exception as e:
                 log.warning(f"[lead_nurture] update lead failed: {e}")
+            # W4.13.A — Lead Journey hook
+            await _emit_nurtured(db, m.get("lead_id"), m.get("tenant_id") or m.get("org_id"),
+                                 m.get("zone_name", ""), channel="email")
             sent += 1
         else:
             skipped += 1

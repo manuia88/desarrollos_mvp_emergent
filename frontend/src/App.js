@@ -43,6 +43,8 @@ const Mapa              = lazy(() => import('./pages/Mapa'));
 // W4.18.3 — Private Beta Gate
 const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
 const SuperadminInvites  = lazy(() => import('./pages/superadmin/SuperadminInvites'));
+// W4.13.A — Lead Journey Outbound
+const AsesorOutbound     = lazy(() => import('./pages/advisor/AsesorOutbound'));
 
 const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
 // W4.18.2B Sub-D — public AVM + colonia landings
@@ -463,6 +465,9 @@ function AppRouter() {
       {/* W4.18.3 — Private Beta Gate */}
       <Route path="/broker-portal" element={<BrokerPortal />} />
       <Route path="/superadmin/invites" element={<SuperadminInvitesRoute />} />
+      {/* W4.13.A — Lead Journey Outbound */}
+      <Route path="/asesor/outbound" element={<AsesorOutboundRoute />} />
+      <Route path="/portal/outbound" element={<AsesorOutboundRoute />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />
@@ -690,6 +695,12 @@ function SuperadminInvitesRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
   return <SuperadminInvites user={user} />;
+}
+
+function AsesorOutboundRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return <AsesorOutbound user={user} />;
 }
 
 function DevelopmentDetailRoute() {

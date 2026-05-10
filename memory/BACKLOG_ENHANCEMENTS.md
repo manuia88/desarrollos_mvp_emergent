@@ -231,6 +231,35 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
+### W5.10 — Social/Ads Multi-tenant + Analytics Granular + IA Layer (Wave 5 H2 · 205h)
+- **Origen:** founder propuesta 2026-05-10 (modelo GoHighLevel + IA + granularity brutal)
+- **Destino:** Wave 5 H2 (post-launch público compradores · ~julio)
+- **Detalle granularidad completo:** `memory/INSIGHTS_GRANULARITY_SCHEMA.md` (16 categorías × ~150 sub-dims · top 10 cross-dim queries definidas)
+- **Sub-chunks:**
+  - **Capa 1: OAuth multi-platform** (Meta + Google/YouTube + base TikTok/LinkedIn) · token vault encrypted per-user · embedded signup WhatsApp · 30h
+  - **Capa 2: Posting engine multi-platform** (FB · IG · WhatsApp Cloud API · YouTube Data API + Shorts · cross-post automático) · 25h
+  - **Capa 3: Ads creator + scheduler** (campaign · ad set · ad creative builder · queue calendar) · 25h
+  - **Capa 4: Analytics aggregation engine** (16 categorías · 150 sub-dims · cross-platform · cross-user · cross-tenant · MongoDB time-series + agregados materializados) · 35h
+  - **Capa 5: Granularity slicer multidim** (cubo OLAP-like · faceted UI · 16 dims · multi-select · time range · save filter views · pre-compute slices comunes 1h cron) · 30h
+  - **Capa 6: Dashboards 3 roles** (Asesor/Inmobiliaria · Dev · Superadmin · permission filter middleware · jerarquía interna inmobiliaria multi-asesor) · 25h
+  - **Capa 7: MCP IA optimization layer** (Meta MCP oficial https://mcp.facebook.com/ads · LLM ingiere snapshot queries → recomendaciones cuantificadas top 10 cross-dim queries) · 25h
+  - **Capa 8: Studio Wave creative pipeline integration** (W4.9 video → cross-post Reels/Shorts/FB · staging IA → ads imagery) · 10h
+- **Founder ops paralelo H1 (sin esto Wave 5 atrasa):**
+  - Meta Business Verification (3-7 días)
+  - Meta App Review permissions: `ads_management` · `pages_manage_posts` · `instagram_basic` · `whatsapp_business_management` · `whatsapp_business_messaging` (2-4 sem)
+  - Google OAuth + YouTube Sensitive Scopes Review (4-6 sem)
+  - TikTok Marketing API request (2-3 sem · diferir Wave 6 si no priority)
+  - LinkedIn Tier 2 Partner (6-8 sem · diferir Wave 6 si no priority)
+- **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
+- **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
+
+### Lead Journey leaderboard cohort comparison (W4.13.A enhancement P2 0h emergent)
+- **Origen:** W4.13.A emergent suggested 2026-05-10
+- **Destino:** F0 sweep tech debt o W5.10 capa 6 dashboards
+- **Qué:** endpoint `GET /api/lead-journey/leaderboard?period_days=30` retorna top 10 asesores por conversion_rate + avg_steps_to_close · permite tenant admin identificar mejor playbook
+- **Costo:** ~1h (consulta agregada sobre `lead_journey_steps` ya indexada)
+- **Activar:** F0 sweep próximo
+
 ### Cross-org lead movement audit (W4.13.A deferral)
 - **Origen:** W4.13.A scope analysis 2026-05-10 — leads que cambian de tenant son <5% pero auditoría compleja
 - **Destino:** Wave 5 W5.11 governance suite

@@ -649,6 +649,23 @@ class SmartRoutingEngine:
         except Exception:
             pass
 
+        # W4.13.A — Lead Journey hook
+        try:
+            from lead_journey_engine import emit_step
+            await emit_step(
+                self.db, lead_id=lead_id, tenant_id=self.org_id,
+                step_type="routed", actor_type="system",
+                payload={
+                    "routed_to": doc.get("suggested_asesor_id"),
+                    "fit_score": doc["fit_score"],
+                    "layer": layer_used,
+                    "simulation_mode": sim_mode,
+                },
+                audit_ref=routing_id,
+            )
+        except Exception:
+            pass
+
         return {
             "routing_id": routing_id,
             "lead_id": lead_id,
