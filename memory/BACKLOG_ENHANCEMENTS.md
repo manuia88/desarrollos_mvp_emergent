@@ -881,6 +881,25 @@ backend/routes/
 
 ---
 
+## 📥 W4.18.1 — Apify Trends enhancements diferidos (2026-05-09)
+
+### 🔴 DECISION FOUNDER · Apify plan FREE bloqueado por Google Trends
+- **Origen:** emergent W4.18.1 reporta `TIMED-OUT 240s` en plan FREE (sin proxies residenciales)
+- **Status:** arquitectura completa shipped + degradación graceful funciona · captura REAL no funciona en FREE
+- **Decisión pendiente founder:**
+  - **A. Upgrade Apify STARTER $49/mo** (recomendado) → cero cambio código
+  - **B. Switch env var a `data_xplorer/google-trends-fast-scraper`** → actor alternativo · pricing diferente
+  - **C. Mantener FREE** → feature shipped pero data simulada · ahorro $588/año vs perder valor downstream W5
+- **Impacto downstream:** W5.5 Live Pulse + W5.9 Climate Migration + W5.4 Buyer Score dependen de trends reales para alimentación
+
+### 🟡 Alertas Atlax keyword +30% WoW (cron 4 líneas)
+- **Origen:** emergent enhancement W4.18.1
+- **Razón absorber:** quick win 15-30 min · habilita inteligencia demanda en vivo para asesores · "Polanco subió +45% intent esta semana"
+- **Destino propuesto:** **F0 sweep tech debt H1** (cero horas adicionales)
+- **Costo estimado:** 0.5h F0
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
