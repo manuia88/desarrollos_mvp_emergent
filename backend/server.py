@@ -586,6 +586,15 @@ from routes_maps import router as maps_router
 from maps_engine import ensure_maps_indexes
 app.include_router(maps_router)
 
+# W4.18.2B — Maps Cross-features (funnel inverso · match catastro · saved zones · battle card)
+from routes_maps_cross import router as maps_cross_router
+from maps_cross_engine import ensure_maps_cross_indexes
+app.include_router(maps_cross_router)
+
+# W4.18.2B Sub-D — AVM público + Colonia stats
+from routes_avm_public import router as avm_public_router
+app.include_router(avm_public_router)
+
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
 from routes_asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)
@@ -1103,6 +1112,11 @@ async def startup():
         await ensure_maps_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.18.2A maps indexes failed: {e}")
+    # W4.18.2B — Maps cross-features indexes
+    try:
+        await ensure_maps_cross_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.18.2B maps cross indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

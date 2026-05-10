@@ -1738,5 +1738,64 @@
       "token_missing": "Token Mapbox requerido",
       "layer_failed": "No se pudo cargar la capa"
     }
+  },
+  "maps_cross": {
+    "funnel_inverso_title": "También considera preventa cercana",
+    "match_catastro_banner": "Encontramos preventas que mejoran tu vivienda · Ver match",
+    "match_catastro_title": "Preventa que mejora tu vivienda",
+    "match_catastro_no_data": "Aún no tenemos tu folio catastral. Configúralo en tu perfil.",
+    "demand_gap_label": "Demand Gap",
+    "save_zone_btn": "+ Guardar zona (viewport actual)",
+    "save_zone_modal_title": "Guardar zona y configurar alertas",
+    "save_zone_input_name": "Nombre de la zona",
+    "save_zone_triggers_title": "Disparadores de alerta",
+    "save_zone_trigger_price": "Precio cambia ≥ 5%",
+    "save_zone_trigger_new_dev": "Nuevo desarrollo se publica",
+    "save_zone_trigger_supply": "Supply sube ≥ 10%",
+    "save_zone_save": "Guardar zona",
+    "saved_zones_title": "Mis zonas",
+    "battle_card_trigger": "Ver Battle Card competitiva",
+    "battle_card_title": "Análisis competitivo",
+    "battle_card_locked_title": "Battle Card requiere Tier T3",
+    "battle_card_locked_cta": "Activar Tier T3",
+    "battle_card_no_competitors": "Sin competidores en bbox 2km mismo segmento."
+  },
+  "valores": {
+    "page_kicker": "VALUACIÓN AUTOMÁTICA · CDMX",
+    "page_title": "¿Cuánto vale tu propiedad en CDMX?",
+    "page_subtitle": "Estimación referencial gratuita basada en datos reales de mercado en 16 colonias. 5 campos · Resultado inmediato · Sin login.",
+    "form_colonia": "Colonia",
+    "form_colonia_placeholder": "— Elige colonia —",
+    "form_m2": "m² construidos",
+    "form_recamaras": "Recámaras",
+    "form_banos": "Baños",
+    "form_antiguedad": "Antigüedad (años)",
+    "submit": "Estimar valor",
+    "submit_loading": "Calculando…",
+    "result_kicker": "Estimación",
+    "result_range": "Rango",
+    "result_confidence": "Confianza",
+    "result_per_m2": "/m²",
+    "cta_landing": "Ver landing colonia",
+    "cta_mapa": "Ver mapa zona",
+    "comparables_title": "Comparables en la zona",
+    "rate_limit_error": "Demasiadas peticiones. Espera 1 minuto.",
+    "not_found_error": "Colonia no encontrada."
+  },
+  "colonia": {
+    "kicker": "COLONIA",
+    "stats": {
+      "price_m2": "Precio/m²",
+      "tier": "Tier",
+      "devs_active": "Devs activos",
+      "momentum": "Momentum"
+    },
+    "top_devs_title": "Top desarrollos preventa en {colonia}",
+    "mapa_title": "Mapa de la zona",
+    "valuar_title": "¿Tienes propiedad en {colonia}?",
+    "valuar_subtitle": "Estimación gratuita basada en datos reales de mercado. 5 campos · sin login.",
+    "valuar_cta": "Valuar mi propiedad",
+    "not_found_title": "Colonia no encontrada",
+    "not_found_back": "← Volver al marketplace"
   }
 }

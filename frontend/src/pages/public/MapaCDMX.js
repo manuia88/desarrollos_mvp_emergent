@@ -15,6 +15,13 @@ import MapFilters from '../../components/maps/MapFilters';
 import PropertyPopup from '../../components/maps/PropertyPopup';
 import AtlaxContextualButton from '../../components/maps/AtlaxContextualButton';
 
+// W4.18.2B — Cross-features
+import FunnelInversoCard from '../../components/maps/FunnelInversoCard';
+import MatchCatastroPreventa from '../../components/maps/MatchCatastroPreventa';
+import DemandGapToggle from '../../components/maps/DemandGapToggle';
+import SaveZoneModal from '../../components/maps/SaveZoneModal';
+import BattleCardOverlay from '../../components/maps/BattleCardOverlay';
+
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN || '';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -54,6 +61,58 @@ export default function MapaCDMX({ user }) {
   const [atlaxContext, setAtlaxContext]      = useState('');
   const [atlaxOpen, setAtlaxOpen]           = useState(false);
   const [activeTab, setActiveTab]           = useState('capas');
+
+  // ─── W4.18.2B Cross-features state ───────────────────────────────────────
+  const isAuth = !!user?.user_id;
+  const [matchOpen, setMatchOpen]           = useState(false);
+  const [matchAvailable, setMatchAvailable] = useState(false);
+  const [demandGapActive, setDemandGapActive] = useState(false);
+  const [savedZones, setSavedZones]         = useState([]);
+  const [saveZoneOpen, setSaveZoneOpen]     = useState(false);
+  const [pendingPolygon, setPendingPolygon] = useState(null);
+  const [battleCardDevId, setBattleCardDevId] = useState(null);
+
+  // Detecta si user tiene catastro_cuenta → habilita banner Match
+  useEffect(() => {
+    if (!isAuth) { setMatchAvailable(false); return; }
+    fetch(`${API}/api/maps-cross/match-catastro/me`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.user_property_meta && (d.recommendations || []).length > 0) setMatchAvailable(true);
+      })
+      .catch(() => {});
+  }, [isAuth]);
+
+  // Cargar zonas guardadas
+  const reloadSavedZones = useCallback(() => {
+    if (!isAuth) { setSavedZones([]); return; }
+    fetch(`${API}/api/maps-cross/saved-zones`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setSavedZones(d?.zones || []))
+      .catch(() => {});
+  }, [isAuth]);
+  useEffect(() => { reloadSavedZones(); }, [reloadSavedZones]);
+
+  const handleSaveZoneTrigger = useCallback(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    // Conservative: usar viewport actual como polygon rectangular
+    const b = m.getBounds();
+    const sw = b.getSouthWest(), ne = b.getNorthEast();
+    const polygon = {
+      type: 'Polygon',
+      coordinates: [[
+        [sw.lng, sw.lat], [ne.lng, sw.lat], [ne.lng, ne.lat], [sw.lng, ne.lat], [sw.lng, sw.lat],
+      ]],
+    };
+    setPendingPolygon(polygon);
+    setSaveZoneOpen(true);
+  }, []);
+
+  const handleDeleteZone = useCallback((zoneId) => {
+    fetch(`${API}/api/maps-cross/saved-zones/${zoneId}`, { method: 'DELETE', credentials: 'include' })
+      .then(() => reloadSavedZones());
+  }, [reloadSavedZones]);
 
   // ─── Map init ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -398,11 +457,62 @@ export default function MapaCDMX({ user }) {
 
             {/* Content */}
             {activeTab === 'capas' ? (
-              <LayerToggle
-                active={activeLayers}
-                counts={layerCounts}
-                onToggle={handleLayerToggle}
-              />
+              <>
+                <LayerToggle
+                  active={activeLayers}
+                  counts={layerCounts}
+                  onToggle={handleLayerToggle}
+                />
+                {/* W4.18.2B — Demand Gap pill (auth) + Save Zone btn */}
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <DemandGapToggle
+                    active={demandGapActive}
+                    onToggle={() => setDemandGapActive(p => !p)}
+                    disabled={!isAuth}
+                  />
+                  {isAuth && (
+                    <button
+                      data-testid="save-zone-btn"
+                      onClick={handleSaveZoneTrigger}
+                      style={{
+                        padding: '8px 14px', borderRadius: 9999,
+                        background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.3)',
+                        color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
+                        cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >+ Guardar zona (viewport actual)</button>
+                  )}
+                </div>
+                {/* Saved zones list */}
+                {isAuth && savedZones.length > 0 && (
+                  <div data-testid="saved-zones-list" style={{ marginTop: 14 }}>
+                    <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                      Mis zonas
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {savedZones.map(z => (
+                        <div key={z.zone_id} style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '8px 10px', borderRadius: 10,
+                          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                          <div style={{ flex: 1, fontSize: 11.5, color: '#F0EBE0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {z.name}
+                          </div>
+                          <button
+                            onClick={() => handleDeleteZone(z.zone_id)}
+                            title="Eliminar zona"
+                            style={{
+                              width: 22, height: 22, borderRadius: '50%', border: 'none',
+                              background: 'rgba(239,68,68,0.15)', color: '#fca5a5', cursor: 'pointer', fontSize: 12, lineHeight: 1,
+                            }}
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <MapFilters onApply={handleApplyFilters} />
             )}
@@ -525,6 +635,26 @@ export default function MapaCDMX({ user }) {
         mapState={mapState}
         activeLayers={activeLayers}
         onOpenAtlax={handleOpenAtlax}
+      />
+
+      {/* ── W4.18.2B Cross-features modals/overlays ── */}
+      <MatchCatastroPreventa
+        open={matchOpen}
+        onClose={() => setMatchOpen(false)}
+      />
+      <SaveZoneModal
+        open={saveZoneOpen}
+        polygon={pendingPolygon}
+        onClose={() => setSaveZoneOpen(false)}
+        onSaved={(z) => {
+          setSaveZoneOpen(false);
+          setSavedZones(prev => [z, ...prev]);
+        }}
+      />
+      <BattleCardOverlay
+        open={!!battleCardDevId}
+        devId={battleCardDevId}
+        onClose={() => setBattleCardDevId(null)}
       />
 
       <style>{`

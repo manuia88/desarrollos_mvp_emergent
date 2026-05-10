@@ -37,6 +37,9 @@ const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
 const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
 const Mapa              = lazy(() => import('./pages/Mapa'));
 const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
+// W4.18.2B Sub-D — public AVM + colonia landings
+const Valores           = lazy(() => import('./pages/public/Valores'));
+const ColoniaLanding    = lazy(() => import('./pages/public/ColoniaLanding'));
 const Barrios           = lazy(() => import('./pages/Barrios'));
 const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
 const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
@@ -446,6 +449,9 @@ function AppRouter() {
       <Route path="/mapa" element={<MapaCDMXRoute />} />
       <Route path="/mapa/:alcaldia" element={<MapaCDMXRoute />} />
       <Route path="/mapa/:alcaldia/:colonia" element={<MapaCDMXRoute />} />
+      {/* W4.18.2B Sub-D — public AVM + colonia landings */}
+      <Route path="/valores" element={<Valores />} />
+      <Route path="/colonia/:slug" element={<ColoniaLanding />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />

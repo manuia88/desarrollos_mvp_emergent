@@ -2,9 +2,13 @@
  * W4.18.2A — PropertyPopup
  * Modal floating con detalle de feature clickeado.
  * 3 tipos: dev_preventa · broker_usada · catastro_aggregate
+ *
+ * W4.18.2B Sub-A: muestra FunnelInversoCard cuando type=broker_usada.
+ * W4.18.2B Sub-C: muestra trigger Battle Card cuando user es tenant_owner del dev.
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FunnelInversoCard from './FunnelInversoCard';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -31,7 +35,7 @@ function ScoreBadge({ letter }) {
   );
 }
 
-export default function PropertyPopup({ feature, onClose, onAskAtlax }) {
+export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onShowBattleCard }) {
   const navigate = useNavigate();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -161,6 +165,19 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax }) {
                   Preguntale a Atlax sobre esta zona
                 </button>
               </div>
+              {/* W4.18.2B Sub-C — Battle Card trigger (solo tenant_owner del dev) */}
+              {user && (user.tenant_id === data.tenant_id || user.role === 'developer_admin' || user.role === 'superadmin') && (
+                <button
+                  data-testid="battle-card-trigger"
+                  onClick={() => onShowBattleCard?.(props.id)}
+                  style={BTN({
+                    marginTop: 8, width: '100%', padding: '10px',
+                    background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+                  })}
+                >
+                  Ver Battle Card competitiva
+                </button>
+              )}
             </div>
           )}
 
@@ -208,6 +225,8 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax }) {
                   Preguntale a Atlax sobre esta zona
                 </button>
               </div>
+              {/* W4.18.2B Sub-A — Funnel inverso usada → preventa */}
+              <FunnelInversoCard listingId={props.id} />
             </div>
           )}
 
