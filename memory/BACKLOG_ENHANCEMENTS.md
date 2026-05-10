@@ -253,6 +253,14 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### Brochure regenerate endpoint (W4.9 enhancement emergent suggested 2026-05-10)
+- **Origen:** W4.9 emergent suggested 2026-05-10 post-shipped
+- **Destino:** F0 sweep tech debt (~1h)
+- **Qué:** endpoint `POST /api/brochures/regenerate/{brochure_id}` permite cambiar branding variant sin perder `brochure_id` original · útil para A/B testing del PDF mandado a un lead · 1 botón en `BrochurePreviewModal` "Cambiar branding"
+- **Por qué:** asesor manda brochure_id_X a lead María con branding "asesor" · si funciona mal · regenera mismo brochure_id con branding "dev" sin perder URL compartido · tracking continuity
+- **Costo:** ~1h (30L endpoint + 1 botón modal)
+- **Activar:** F0 sweep próximo
+
 ### Score Inversión DMX 0-100 (W4.14 enhancement · founder validado 2026-05-10)
 - **Origen:** W4.14 emergent suggested · founder validado 2026-05-10
 - **Destino:** F0 sweep tech debt (~3h) o W5.10 capa 7 MCP IA optimization
