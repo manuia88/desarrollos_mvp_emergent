@@ -646,6 +646,18 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_lead_nurture_intelligent_error", error=str(e))
 
+    # W4.7 Y.4B — Match Weights auto-tune semanal lunes 03:30 MX
+    try:
+        from agentic_crm.match_weights_engine import run_match_weights_auto_tune_all_orgs
+        _scheduler.add_job(
+            wrap_apscheduler_job(run_match_weights_auto_tune_all_orgs, "match_weights_auto_tune"),
+            CronTrigger(day_of_week="mon", hour=3, minute=30, timezone=TZ),
+            args=[db], id="match_weights_auto_tune", replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as e:
+        _emit("scheduler_match_weights_error", error=str(e))
+
     # W4.4B — Director Memory daily ingest 04:30 MX (post lead_nurture)
     try:
         from director_memory_engine import run_memory_daily_ingest

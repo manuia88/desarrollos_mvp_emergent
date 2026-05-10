@@ -5,7 +5,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import {
   Users, Building2, Briefcase, RefreshCw, Search, X,
   Eye, UserCheck, AlertTriangle, ChevronRight, Activity, FolderOpen,
-  DollarSign, Clock, Shield, BarChart2, MessageSquare,
+  DollarSign, Clock, Shield, BarChart2, MessageSquare, Scale,
 } from 'lucide-react';
 import {
   listTenants, getTenant, impersonateTenant, patchTenantStatus,
@@ -19,6 +19,7 @@ import LeadAgentPanel from '../../components/director/LeadAgentPanel';
 import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
 import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelligentPanel';
 import AtlaxPersonaPanel from '../../components/superadmin/AtlaxPersonaPanel';
+import MatchWeightsPanel from '../../components/agentic_crm/MatchWeightsPanel';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -190,7 +191,7 @@ function TenantDrawer({ tenantId, onClose }) {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: 4, flexWrap: 'wrap' }}>
-              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['billing', 'Billing'], ['phase-y', 'Phase Y'], ['sub-agents', 'Sub-Agents'], ['atlax-persona', 'Atlax Persona']].map(([k, l]) => (
+              {[['resumen', 'Resumen'], ['equipo', `Equipo (${data.members_total})`], ['auditoria', 'Auditoría'], ['billing', 'Billing'], ['phase-y', 'Phase Y'], ['sub-agents', 'Sub-Agents'], ['atlax-persona', 'Atlax Persona'], ['match-weights', 'Match Weights']].map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} data-testid={`drawer-tab-${k}`}
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
@@ -202,6 +203,7 @@ function TenantDrawer({ tenantId, onClose }) {
                   }}>
                   {k === 'sub-agents' && <BarChart2 size={11} />}
                   {k === 'atlax-persona' && <MessageSquare size={11} />}
+                  {k === 'match-weights' && <Scale size={11} />}
                   {l}
                 </button>
               ))}
@@ -319,6 +321,11 @@ function TenantDrawer({ tenantId, onClose }) {
             {tab === 'atlax-persona' && (
               <div data-testid="drawer-tab-atlax-persona-content">
                 <AtlaxPersonaPanel orgId={data.tenant_id || tenantId} />
+              </div>
+            )}
+            {tab === 'match-weights' && (
+              <div data-testid="drawer-tab-match-weights-content">
+                <MatchWeightsPanel orgId={data.tenant_id || tenantId} />
               </div>
             )}
           </>

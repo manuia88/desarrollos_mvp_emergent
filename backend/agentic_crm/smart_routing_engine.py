@@ -409,7 +409,7 @@ async def _layer_cached(db, org_id: str, lead: Dict[str, Any]) -> Optional[Dict[
 # ─── Layer 3: heuristic ───────────────────────────────────────────────────────
 async def _layer_heuristic(db, org_id: str, lead: Dict[str, Any],
                            exclude_ids: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-    """Ranking simple: capacity_score × conversion_30d × zone_match_pct."""
+    """Ranking ponderado usando org-specific weights (Y.4B) o defaults globales."""
     excluded = set(exclude_ids or [])
     zone = _zone_of_lead(lead)
     segment = _segment_of_lead(lead)
@@ -417,6 +417,24 @@ async def _layer_heuristic(db, org_id: str, lead: Dict[str, Any],
     asesores = metrics.get("asesores") or []
     if not asesores:
         return None
+
+    # ── Load org weights (W4.7 Y.4B) ────────────────────────────────────────
+    try:
+        from agentic_crm.match_weights_engine import MatchWeightsEngine, DEFAULT_WEIGHTS
+        w_config = await MatchWeightsEngine(db, org_id).get_weights()
+        w = w_config.get("weights") or DEFAULT_WEIGHTS
+    except Exception:
+        from agentic_crm.match_weights_engine import DEFAULT_WEIGHTS
+        w = DEFAULT_WEIGHTS
+
+    w_zona     = float(w.get("zona", 0.30))
+    w_precio   = float(w.get("precio", 0.25))
+    w_segment  = float(w.get("segment", 0.20))
+    w_amenidad = float(w.get("amenidades", 0.15))
+    w_timing   = float(w.get("timing", 0.10))
+    total_w    = w_zona + w_precio + w_segment + w_amenidad + w_timing
+    if total_w <= 0:
+        total_w = 1.0
 
     best = None
     best_score = -1.0
@@ -430,24 +448,29 @@ async def _layer_heuristic(db, org_id: str, lead: Dict[str, Any],
             continue
         capacity_pct = max(0, 100 - round(active / MAX_ASESOR_CAPACITY * 100))
         conversion = a.get("conversion_pct", 0)
-        zone_match = 100 if (zone and zone in (a.get("preferred_zones") or [])) else 50
-        segment_match = 100 if segment in (a.get("preferred_segments") or []) else 50
-        # Combined score (normalized to 0-100)
+        zone_match  = 100 if (zone and zone in (a.get("preferred_zones") or [])) else 50
+        seg_match   = 100 if segment in (a.get("preferred_segments") or []) else 50
+        amenidades_score = 50  # neutral — no amenity data in routing context
+        timing_score     = 10  # neutral default schedule score
+
+        # Weighted score using org-specific weights (normalized)
         score = (
-            capacity_pct * 0.20 +
-            conversion * 0.35 +
-            zone_match * 0.30 +
-            segment_match * 0.15
-        )
+            zone_match    * w_zona   +
+            conversion    * w_precio +
+            seg_match     * w_segment +
+            amenidades_score * w_amenidad +
+            timing_score  * w_timing
+        ) / total_w
+
         if score > best_score:
             best_score = score
             best = a
             best_breakdown = {
-                "zone": int(zone_match * 0.25),
-                "segment": int(segment_match * 0.20),
-                "capacity": int(capacity_pct * 0.20),
-                "conversion": int(conversion * 0.25),
-                "schedule": 10,  # default neutral
+                "zone":       int(zone_match   * w_zona   / total_w),
+                "segment":    int(seg_match    * w_segment / total_w),
+                "capacity":   int(capacity_pct * 0.20),  # capacity is a hard gate, not weighted
+                "conversion": int(conversion   * w_precio / total_w),
+                "schedule":   int(timing_score * w_timing / total_w),
             }
 
     if not best:
@@ -457,9 +480,10 @@ async def _layer_heuristic(db, org_id: str, lead: Dict[str, Any],
         "fit_score": int(best_score),
         "fit_breakdown": best_breakdown,
         "rationale_text": (
-            f"Heurística: conv {best.get('conversion_pct', 0)}% · "
+            f"Heurística Y.4B: conv {best.get('conversion_pct', 0)}% · "
             f"carga {best.get('active_load', 0)}/{MAX_ASESOR_CAPACITY} · "
-            f"zona {'match' if best_breakdown.get('zone', 0) > 15 else 'sin pref'}."
+            f"zona {'match' if best_breakdown.get('zone', 0) > 5 else 'sin pref'} · "
+            f"pesos [zona={w_zona:.2f} precio={w_precio:.2f} seg={w_segment:.2f}]."
         )[:280],
         "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0,
     }

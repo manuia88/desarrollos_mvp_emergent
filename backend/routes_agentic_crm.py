@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from agentic_crm.smart_routing_engine import (
@@ -1085,3 +1086,112 @@ async def superadmin_nurture_stats(request: Request,
         "by_layer_used": by_layer,
         "sent_touches": sent_touches, "opened": opened, "replied": replied,
     }
+
+
+# ─── W4.7 Y.4B — Match Weights Adaptive ──────────────────────────────────────
+# In-process rate limit per user for match-weights · 10 calls/min
+_mw_user_min_buckets: Dict[str, List[float]] = {}
+MW_USER_MIN_CAP = 10
+
+
+def _check_mw_rate(user_id: str) -> bool:
+    now = time.monotonic()
+    bucket = _mw_user_min_buckets.setdefault(user_id, [])
+    _mw_user_min_buckets[user_id] = [t for t in bucket if now - t < 60]
+    if len(_mw_user_min_buckets[user_id]) >= MW_USER_MIN_CAP:
+        return False
+    _mw_user_min_buckets[user_id].append(now)
+    return True
+
+
+class WeightsPatchIn(BaseModel):
+    weights: Dict[str, float] = Field(..., description="Pesos por dimensión. Deben sumar 1.0 ± 0.05")
+    org_id: Optional[str] = None  # superadmin override
+
+
+@router.get("/api/agentic-crm/match-weights")
+async def get_match_weights(request: Request, org_id: Optional[str] = None):
+    """Retorna pesos de matching del org del user (T1+ para custom · sino DEFAULT_WEIGHTS)."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    uid = getattr(user, "user_id", "anon")
+    if not _check_mw_rate(uid):
+        raise HTTPException(429, "Rate limit match-weights (10 calls/min)")
+
+    resolved_org = _resolve_org(user, org_id)
+
+    from agentic_crm.match_weights_engine import MatchWeightsEngine
+    engine = MatchWeightsEngine(db, resolved_org)
+    result = await engine.get_weights()
+    return JSONResponse(result)
+
+
+@router.patch("/api/agentic-crm/match-weights")
+async def patch_match_weights(body: WeightsPatchIn, request: Request):
+    """Actualiza pesos manualmente. Tier T2+ · validación sum=1.0 ± 0.05 · cap 5/día."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    uid = getattr(user, "user_id", "anon")
+    if not _check_mw_rate(uid):
+        raise HTTPException(429, "Rate limit match-weights (10 calls/min)")
+
+    resolved_org = _resolve_org(user, body.org_id)
+
+    from agentic_crm.match_weights_engine import (
+        MatchWeightsEngine, MatchWeightsDisabledError,
+        MatchWeightsValidationError, MatchWeightsRateLimitError,
+    )
+    engine = MatchWeightsEngine(db, resolved_org)
+    try:
+        result = await engine.manual_set_weights(body.weights, uid)
+    except MatchWeightsDisabledError as e:
+        raise HTTPException(403, str(e))
+    except MatchWeightsValidationError as e:
+        raise HTTPException(400, str(e))
+    except MatchWeightsRateLimitError as e:
+        raise HTTPException(429, str(e))
+    return JSONResponse({**result, "ok": True})
+
+
+@router.post("/api/agentic-crm/match-weights/auto-tune")
+async def trigger_match_weights_auto_tune(request: Request, org_id: Optional[str] = None):
+    """Trigger manual de auto-tune. superadmin o developer_admin propio org."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    uid = getattr(user, "user_id", "anon")
+    role = getattr(user, "role", "")
+    if not _check_mw_rate(uid):
+        raise HTTPException(429, "Rate limit match-weights (10 calls/min)")
+
+    resolved_org = _resolve_org(user, org_id)
+
+    from agentic_crm.match_weights_engine import MatchWeightsEngine
+    engine = MatchWeightsEngine(db, resolved_org)
+    result = await engine.auto_tune()
+    return JSONResponse({**result, "ok": True})
+
+
+@router.get("/api/superadmin/agentic-crm/match-weights/distribution")
+async def get_match_weights_distribution(request: Request, org_id: Optional[str] = None):
+    """Superadmin: ver weights + historial de audit para un org dado (org_id query param)."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    role = getattr(user, "role", "")
+    if role != "superadmin":
+        raise HTTPException(403, "Solo superadmin puede ver distribución de weights")
+
+    if not org_id:
+        raise HTTPException(422, "org_id requerido como query param")
+
+    from agentic_crm.match_weights_engine import MatchWeightsEngine
+    engine = MatchWeightsEngine(db, org_id)
+    result = await engine.get_weights()
+
+    # Enrich with last 10 audit entries
+    audit_raw = result.get("audit_log") or []
+    # Return full result with audit
+    return JSONResponse({
+        **result,
+        "audit_log": audit_raw[-10:],
+        "org_queried": org_id,
+    })

@@ -36,6 +36,7 @@ DEFAULT_FEATURE_TIERS: Dict[str, str] = {
     "construction_agent":    "off",
     "compliance_agent":      "off",
     "atlax_persona":         "off",
+    "match_weights_adaptive": "off",
 }
 
 

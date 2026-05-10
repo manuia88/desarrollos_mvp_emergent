@@ -144,6 +144,11 @@ TOOLS Y PARAMS:
     devuelve: { lead_id, sequence_type, total_steps, touches: [{step, channel, offset_hours, subject, body, cta, rationale}], layer_used, status }
     Úsalo cuando user pregunta "diseña secuencia de nurture para este lead", "qué emails mando a Y", "secuencia personalizada para Z".
 
+15. delegate_match_weights_tune
+    params: { "action": str (requerido, uno de: "get"|"auto_tune"|"manual_set"), "weights": dict (solo con action="manual_set", ej: {"zona":0.35,"precio":0.25,"segment":0.20,"amenidades":0.10,"timing":0.10}) }
+    devuelve: { org_id, weights, confidence, training_sample_size, applied, reason, is_default }
+    Úsalo cuando user pregunta "muéstrame los pesos de matching", "afina los pesos del sistema", "actualiza el peso de zona a 40%", "qué tan confiables son mis pesos".
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -240,8 +245,14 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 lead_id=str(params.get("lead_id", "")),
                 dry_run=bool(params.get("dry_run", False)),
             )
+        elif tool_name == "delegate_match_weights_tune":
+            return await _tool_delegate_match_weights_tune(
+                db, org_id,
+                action=str(params.get("action", "get")),
+                weights=params.get("weights") or {},
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply, delegate_disc_inference, delegate_lead_nurture"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply, delegate_disc_inference, delegate_lead_nurture, delegate_match_weights_tune"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -671,6 +682,63 @@ async def _tool_delegate_lead_nurture(db, org_id: str, lead_id: str,
         "status": result.get("status"),
         "dry_run": dry_run,
     }
+
+
+# ─── Tool 15 — Match Weights Adaptive (W4.7 Y.4B) ───────────────────────────
+async def _tool_delegate_match_weights_tune(
+    db, org_id: str, action: str, weights: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Tool 15 (Y.4B): MatchWeightsEngine — get / auto_tune / manual_set."""
+    from agentic_crm.match_weights_engine import (
+        MatchWeightsEngine, MatchWeightsDisabledError,
+        MatchWeightsValidationError, MatchWeightsRateLimitError,
+    )
+    engine = MatchWeightsEngine(db, org_id)
+    try:
+        if action == "get":
+            result = await engine.get_weights()
+            return {
+                "org_id": org_id,
+                "weights": result.get("weights"),
+                "is_default": result.get("is_default"),
+                "tuning_confidence": result.get("tuning_confidence"),
+                "training_sample_size": result.get("training_sample_size"),
+                "last_tuned_at": result.get("last_tuned_at"),
+                "version": result.get("version"),
+                "tier": result.get("tier"),
+            }
+        elif action == "auto_tune":
+            result = await engine.auto_tune()
+            return {
+                "org_id": org_id,
+                "learned_weights": result.get("learned_weights"),
+                "confidence": result.get("confidence"),
+                "training_sample_size": result.get("training_sample_size"),
+                "reason": result.get("reason"),
+                "applied": result.get("applied"),
+            }
+        elif action == "manual_set":
+            if not weights:
+                return {"error": "weights dict requerido para action=manual_set"}
+            clean_weights = {k: float(v) for k, v in weights.items()}
+            result = await engine.manual_set_weights(clean_weights, user_id="director_ai")
+            return {
+                "org_id": org_id,
+                "weights": result.get("weights"),
+                "version": result.get("version"),
+                "ok": True,
+            }
+        else:
+            return {"error": f"action inválido: {action}. Válidos: get, auto_tune, manual_set"}
+    except MatchWeightsDisabledError as e:
+        return {"error": f"Match Weights desactivado: {e}"}
+    except MatchWeightsValidationError as e:
+        return {"error": f"Validación de pesos fallida: {e}"}
+    except MatchWeightsRateLimitError as e:
+        return {"error": f"Rate limit: {e}"}
+    except Exception as exc:
+        log.warning(f"[director_tool] delegate_match_weights_tune failed: {exc}")
+        return {"error": str(exc)}
 
 
 async def _tool_delegate_marketing_optimization(db, org_id: str, project_id: str) -> Dict[str, Any]:

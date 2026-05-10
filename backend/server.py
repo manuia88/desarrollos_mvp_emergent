@@ -1045,6 +1045,12 @@ async def startup():
         await ensure_atlax_persona_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.7 Y.4A atlax_persona indexes failed: {e}")
+    # W4.7 Y.4B — Match Weights indexes
+    try:
+        from agentic_crm.match_weights_engine import ensure_match_weights_indexes
+        await ensure_match_weights_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.7 Y.4B match_weights indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
