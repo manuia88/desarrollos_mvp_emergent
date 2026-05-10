@@ -301,16 +301,17 @@ async def cron_evaluate_saved_zones(db, dry_run: bool = False) -> Dict[str, Any]
                 triggered += 1
                 if not dry_run:
                     try:
-                        await db.notifications.insert_one({
-                            "user_id": z["user_id"],
-                            "type": "saved_zone_alert",
-                            "title": f"Nueva preventa en {z.get('name','tu zona')}",
-                            "body": f"{recent_devs} desarrollo(s) nuevo(s) en zona guardada",
-                            "created_at": _now().isoformat(),
-                            "read": False,
-                        })
+                        from notifications_engine import rule_saved_zone_alert
+                        await rule_saved_zone_alert(
+                            db,
+                            user_id=z["user_id"],
+                            zone_name=z.get("name", "tu zona"),
+                            zone_id=z.get("zone_id", ""),
+                            trigger_type="new_dev",
+                            tenant_id=z.get("tenant_id"),
+                        )
                     except Exception as exc:
-                        log.warning(f"[cron_evaluate_saved_zones] notif insert failed: {exc}")
+                        log.warning(f"[cron_evaluate_saved_zones] notif rule failed: {exc}")
         await db.saved_zones.update_one(
             {"zone_id": z["zone_id"]},
             {"$set": {"last_checked_at": _now().isoformat()}},

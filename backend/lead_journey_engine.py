@@ -88,6 +88,14 @@ async def emit_step(
             })
         except Exception:
             pass
+        # W4.17 — Notifications hook (best-effort)
+        if step_type in ("assigned", "captured") and actor_type == "system":
+            try:
+                from notifications_engine import rule_lead_new
+                if actor_id:
+                    await rule_lead_new(db, lead_id=lead_id, asesor_id=actor_id, tenant_id=tenant_id)
+            except Exception:
+                pass
     except Exception as exc:
         log.warning(f"[emit_step] insert failed: {exc}")
         return None

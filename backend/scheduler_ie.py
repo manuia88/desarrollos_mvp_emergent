@@ -749,11 +749,48 @@ def start_scheduler(db):
     except Exception as e:
         _emit("scheduler_newsletter_send_error", error=str(e))
 
+    # W4.17 — Notifications digest · cada 4h (08:00 · 12:00 · 16:00 · 20:00 MX)
+    try:
+        from notifications_engine import digest_pending_notifications
+        _scheduler.add_job(
+            wrap_apscheduler_job(digest_pending_notifications, "notifications_digest_4h"),
+            CronTrigger(hour="8,12,16,20", minute=0, timezone=TZ),
+            args=[db], id="notifications_digest_4h", replace_existing=True,
+            misfire_grace_time=1800,
+        )
+    except Exception as e:
+        _emit("scheduler_notifications_digest_error", error=str(e))
+
+    # W4.17 — WA pending replies check · cada 30min
+    try:
+        from whatsapp_engine import check_pending_whatsapp_replies_cron
+        _scheduler.add_job(
+            wrap_apscheduler_job(check_pending_whatsapp_replies_cron, "wa_pending_replies_check"),
+            CronTrigger(minute="*/30", timezone=TZ),
+            args=[db], id="wa_pending_replies_check", replace_existing=True,
+            misfire_grace_time=600,
+        )
+    except Exception as e:
+        _emit("scheduler_wa_pending_replies_error", error=str(e))
+
+    # W4.17 — Meeting reminders scheduled · cada 30min
+    try:
+        from oauth_calendar import process_due_meeting_reminders
+        _scheduler.add_job(
+            wrap_apscheduler_job(process_due_meeting_reminders, "meeting_reminders_check"),
+            CronTrigger(minute="*/30", timezone=TZ),
+            args=[db], id="meeting_reminders_check", replace_existing=True,
+            misfire_grace_time=600,
+        )
+    except Exception as e:
+        _emit("scheduler_meeting_reminders_error", error=str(e))
+
     _scheduler.start()
     _emit("scheduler_started", tz=TZ, jobs=["ie_daily_ingestion", "ie_hourly_status",
           "ie_daily_score_recompute", "drive_watcher", "drive_webhook_renew",
           "unit_holds_release", "health_score_snapshots", "weekly_brief_generation",
-          "oauth_token_refresh", "newsletter_generate", "newsletter_send"])
+          "oauth_token_refresh", "newsletter_generate", "newsletter_send",
+          "notifications_digest_4h", "wa_pending_replies_check", "meeting_reminders_check"])
     return _scheduler
 
 

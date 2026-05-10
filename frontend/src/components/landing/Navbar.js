@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Globe } from '../icons';
+import NotificationBellIcon from '../notifications/NotificationBellIcon';
 
 const LNG_KEY = 'dmx_lng';
 const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowerCase() === 'true';
@@ -135,6 +136,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
           <LngToggle />
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <NotificationBellIcon />
               <span style={{ fontSize: 13, color: 'var(--cream-2)', fontFamily: 'DM Sans' }}>
                 {user.name?.split(' ')[0]}
               </span>

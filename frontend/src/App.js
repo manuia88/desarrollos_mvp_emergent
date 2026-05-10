@@ -45,6 +45,8 @@ const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
 const SuperadminInvites  = lazy(() => import('./pages/superadmin/SuperadminInvites'));
 // W4.13.A — Lead Journey Outbound
 const AsesorOutbound     = lazy(() => import('./pages/advisor/AsesorOutbound'));
+// W4.17 — Notifications Settings
+const NotificationsSettings = lazy(() => import('./pages/portal/NotificationsSettings'));
 
 const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
 // W4.18.2B Sub-D — public AVM + colonia landings
@@ -468,6 +470,9 @@ function AppRouter() {
       {/* W4.13.A — Lead Journey Outbound */}
       <Route path="/asesor/outbound" element={<AsesorOutboundRoute />} />
       <Route path="/portal/outbound" element={<AsesorOutboundRoute />} />
+      {/* W4.17 — Notifications Settings */}
+      <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
+      <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />
@@ -699,6 +704,13 @@ function AsesorOutboundRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
   return <AsesorOutbound user={user} />;
+}
+
+function NotifSettingsRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return null;
+  return <NotificationsSettings user={user} />;
 }
 
 function DevelopmentDetailRoute() {

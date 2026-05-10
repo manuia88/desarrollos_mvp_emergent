@@ -419,6 +419,78 @@ def _build_ics(summary: str, start: datetime, end: datetime, description: str = 
     return "\r\n".join(lines)
 
 
+# ─── W4.17 — Meeting reminder hook ───────────────────────────────────────────
+
+async def schedule_meeting_reminder_notifications(
+    db,
+    meeting_id: str,
+    asesor_id: str,
+    meeting_start: datetime,
+    lead_name: str = "",
+    tenant_id: Optional[str] = None,
+) -> None:
+    """
+    Hook best-effort: persiste 2 recordatorios (24h y 1h antes) en db.scheduled_reminders
+    para que el cron de notificaciones los procese a su debido tiempo.
+    """
+    try:
+        remind_24h = meeting_start - timedelta(hours=24)
+        remind_1h = meeting_start - timedelta(hours=1)
+        now = datetime.now(timezone.utc)
+        for (remind_at, hours_before) in [(remind_24h, 24), (remind_1h, 1)]:
+            if remind_at < now:
+                continue
+            await db.scheduled_reminders.update_one(
+                {"meeting_id": meeting_id, "hours_before": hours_before},
+                {"$set": {
+                    "meeting_id": meeting_id,
+                    "asesor_id": asesor_id,
+                    "hours_before": hours_before,
+                    "lead_name": lead_name,
+                    "tenant_id": tenant_id,
+                    "remind_at": remind_at.isoformat(),
+                    "meeting_start": meeting_start.isoformat(),
+                    "sent": False,
+                    "created_at": now.isoformat(),
+                }},
+                upsert=True,
+            )
+    except Exception as exc:
+        log.warning(f"[oauth_calendar] schedule_meeting_reminder_notifications failed: {exc}")
+
+
+async def process_due_meeting_reminders(db) -> Dict[str, Any]:
+    """
+    Cron que procesa scheduled_reminders vencidos aún no enviados.
+    Llama rule_meeting_reminder por cada uno.
+    """
+    now = datetime.now(timezone.utc)
+    cursor = db.scheduled_reminders.find(
+        {"sent": False, "remind_at": {"$lte": now.isoformat()}},
+        {"_id": 0},
+    ).limit(100)
+    sent = 0
+    async for rem in cursor:
+        try:
+            from notifications_engine import rule_meeting_reminder
+            await rule_meeting_reminder(
+                db,
+                meeting_id=rem["meeting_id"],
+                asesor_id=rem["asesor_id"],
+                hours_before=rem.get("hours_before", 24),
+                tenant_id=rem.get("tenant_id"),
+                lead_name=rem.get("lead_name", ""),
+            )
+            await db.scheduled_reminders.update_one(
+                {"meeting_id": rem["meeting_id"], "hours_before": rem.get("hours_before")},
+                {"$set": {"sent": True, "sent_at": now.isoformat()}},
+            )
+            sent += 1
+        except Exception as exc:
+            log.warning(f"[process_due_meeting_reminders] failed for {rem.get('meeting_id')}: {exc}")
+    return {"sent": sent}
+
+
 # ─── DB Indexes ───────────────────────────────────────────────────────────────
 
 async def ensure_oauth_indexes(db):
@@ -432,3 +504,11 @@ async def ensure_oauth_indexes(db):
     )
     await db.availability_cache.create_index("expires_at", background=True)
     await db.appointment_policies.create_index("project_id", unique=True, background=True)
+    try:
+        await db.scheduled_reminders.create_index(
+            [("meeting_id", 1), ("hours_before", 1)], unique=True, background=True,
+        )
+        await db.scheduled_reminders.create_index("remind_at", background=True)
+        await db.scheduled_reminders.create_index("sent", background=True)
+    except Exception:
+        pass
