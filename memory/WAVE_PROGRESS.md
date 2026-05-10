@@ -1,10 +1,11 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (Wave 4 RE-BALANCED 561h → 454h · Wave 5 H2 sketch creado 296h · plan consolidado post-research 4 platforms competitivas · próximo W4.18.1 → W4.6 Y.3)
-**Total H1 restante**: ~272h (Wave 4 pending de los 454h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 182h = 549h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (182h shipped, 272h pending) = 821h plan H1 (re-balanced: -107h items diferidos a Wave 5 con alimentación clara)
+**Última actualización**: 2026-05-09 (W4.18.1 Apify Trends shipped STUB MODE · Wave 4 ~187h · próximo W4.6 Y.3A Smart Routing)
+**Total H1 restante**: ~267h (Wave 4 pending de los 454h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 187h = 554h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (187h shipped, 267h pending) = 821h plan H1
 **Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
+**Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -167,7 +168,7 @@ Formato canónico per-batch (founder request):
 | W4.16 | Marketing (Free audit landing + State of CDMX Report) + **MCP Distribution Channel** (registrar DMX MCP en mcp.so/awesome-mcp/Anthropic registry + tutorial blog "Conecta Claude Desktop a DMX") | 5 + 0h dev | — | emergent + content | ⏳ | — | MCP Distribution = 0h dev (founder/agencia escribe content) · CAC=0 viral angle |
 | W4.17 | Kalshi **partial** (Smart Notifications) — Probability UX DIFERIDO Wave 5 W5.19 | 8 | — | emergent | ⏳ | — | Smart Notif = engagement crítico H1 · Probability UX nice-to-have, depende W5.1+W5.3 |
 | W4.18 | Data Sources gov MX bundle (BANXICO SIE API + SIGCDMX uso suelo + Atlas Riesgos CDMX + Catastro CDMX + GTFS + OSM Geofabrik) | 22 | — | emergent | ⏳ | — | links verificados en memory/DATA_SOURCES.md · diferencial vs Inm24 |
-| W4.18.1 | Apify Google Trends integration (cron diario top 50 zonas + cron semanal related queries top 20 + cache TTL 7d + Atlax tool get_trends_for_query) | 3 | — | emergent | ⏳ | — | autorizado 2026-05-09 · ~$0/mes free tier 5k queries · cache 87% hit ratio |
+| W4.18.1 | Apify Google Trends integration (cache TTL 7d + 3-layer fallback + circuit breaker + dual-schema adapter + 6 endpoints superadmin + 2 crons + Atlax tool + SuperadminTrends UI 590L + 9 unit tests pass) | 3 | 5 | emergent | ✅ | `ed9c19e` | **STUB MODE** · Apify FREE bloqueado por Google (proxies datacenter) · arquitectura 100% funcional · upgrade STARTER $49/mo cuando active downstream W5 · founder decisión documentada |
 | F0 | Sweep tech debt + **Notification Center bell icon (G2)** + Apify token rotation + tier `whatif_simulator`/`asistente_publico` seed | 30 | — | CC lead | ⏳ | — | rolling cleanup + notification center crítico UX |
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
 | Buffer | Integration testing | -15 | — | — | ⏳ | — | optimistic |
@@ -190,6 +191,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-09 | **W4.18.1 Apify Google Trends Integration · STUB MODE** | 5h | `ed9c19e` (merge `83ad844`) | apify_trends_engine + 6 endpoints + 2 crons + tool LLM + UI 590L + 9 tests pass · STUB por Apify FREE bloqueado por Google · upgrade STARTER $49/mo cuando active W5 |
 | 2026-05-09 | **W4.5 Y.2C Lead Sub-Agent + 3 capas resilience** | 6h | `9039bf3` (merge `77cac3d`) | lead_agent 5 tools + 5 issues funnel · Director 9no tool · 3er sub-tab Lead · Phase Y 70/137h ✅ |
 | 2026-05-09 | **W4.5 Y.2B Marketing Sub-Agent + 3 capas resilience** | 6h | `39b3fb5` (merge `f67b6d2`) | marketing_agent reusa resilience.py + 4 tools + 5 issues + Director 8vo tool + sub-tabs · Phase Y 64/137h ✅ |
 | 2026-05-09 | **W4.5 Y.2A Pricing Sub-Agent + 3 capas resilience** | 6h | `c021ecc` (merge `1ace57d`) | sub_agents/ + resilience.py reusable + pricing_agent 3-layer + 6 endpoints + Director 7mo tool + PricingAgentPanel · Phase Y 58/137h ✅ |
