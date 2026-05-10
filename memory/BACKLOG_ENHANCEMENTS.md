@@ -942,6 +942,22 @@ backend/routes/
 
 ---
 
+## 📥 W4.10 — WhatsApp + Newsletter + Voice enhancements diferidos (2026-05-10)
+
+### 🟡 OPS · ElevenLabs upgrade desde Free Tier
+- **Origen:** emergent W4.10 reporta 401 "unusual activity" desde IP Kubernetes sandbox
+- **Razón:** Free tier ElevenLabs bloquea IPs cloud · upgrade $5-22/mo Starter resuelve · cero cambio código
+- **Solución producción:** founder upgrade plan elevenlabs.io · ENV var ya configurada
+- **Costo estimado:** $22/mo Creator tier o $99/mo Pro a escala · vs $0 free tier
+
+### 🟢 OPS · WhatsApp Twilio sandbox → producción real
+- **Origen:** emergent W4.10 nota webhook funcional con sandbox Twilio
+- **Razón:** sandbox Twilio FREE OK para H1 testing · producción requiere número real verificado WhatsApp Business
+- **Solución:** post-launch cuando founder firme cuenta WhatsApp Business o Twilio production · cambio ENV var · cero código
+- **Costo estimado:** $0.005/mensaje saliente Twilio · ~$25/mes a 1000 users 5 msgs/mo
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
