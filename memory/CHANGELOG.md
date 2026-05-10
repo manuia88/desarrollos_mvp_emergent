@@ -2215,3 +2215,30 @@ los crons + endpoints + UI ya están listos sin cambios de código (sólo cambia
 - ✅ forbidden_topics → instrucción exacta "Esa información no está disponible actualmente" en system prompt
 - ✅ superadmin always access · developer_admin cross-org → 403
 - ✅ yarn build limpio
+
+## W4.7 Y.4B — Match Weights Adaptive per-org (2026-05-10)
+**Phase Y.4 Adaptive · SHA: 9c59c98**
+
+### Nuevo archivo
+- **NEW** `agentic_crm/match_weights_engine.py` — `MatchWeightsEngine`: `get_weights`, `manual_set_weights`, `auto_tune`, `apply_tuning`; correlación dimensional (zone→zona, conversion→precio, segment→segment, capacity→amenidades, schedule→timing) vs closed_won; blend_ratio 0→0.5→1.0 según sample_size; confidence 0-100; cooldown 6d; `run_match_weights_auto_tune_all_orgs` (cron entry); `ensure_match_weights_indexes`
+
+### Archivos editados
+- **EDIT** `routes_agentic_crm.py` — 4 endpoints: GET /match-weights · PATCH /match-weights (T2+ + sum=1.0 ± 0.05) · POST /match-weights/auto-tune · GET /superadmin/.../distribution · in-process rate limit 10 calls/min/user · JSONResponse añadido
+- **EDIT** `director_agent_engine.py` — Tool 15 `delegate_match_weights_tune(action, weights?)` actions: get/auto_tune/manual_set
+- **EDIT** `scheduler_ie.py` — cron weekly lunes 03:30 MX `match_weights_auto_tune`
+- **EDIT** `routes_phase_y_controls.py` — `match_weights_adaptive: off` en DEFAULT_FEATURE_TIERS
+- **EDIT** `agentic_crm/smart_routing_engine.py` — `_layer_heuristic` usa org-specific weights Y.4B vía `MatchWeightsEngine.get_weights()` · fallback graceful a DEFAULT_WEIGHTS · rationale_text muestra pesos usados
+- **EDIT** `server.py` — `ensure_match_weights_indexes` en startup
+- **NEW** `MatchWeightsPanel.js` — sliders 7 dimensiones + número editable + barra de progreso coloreada · live sum indicator ±5% · auto-tune result con confidence badge + apply button · historial audit 10 últimas entradas · LayerBadge auto/manual
+- **EDIT** `SuperadminTenants.js` — 8va tab "Match Weights" con Scale icon
+- **EDIT** `i18n/es-MX/common.json` — `agentic_crm.match_weights.*` completas
+
+### Criterios de aceptación verificados
+- ✅ GET org sin doc → DEFAULT_WEIGHTS + is_default=true · 200
+- ✅ PATCH T2+ sum=1.0 → success + audit log
+- ✅ PATCH T<2 → 403 "requiere tier T2+"
+- ✅ PATCH sum != 1.0 ± 0.05 → 400 validation error
+- ✅ auto-tune sample=0 → confidence=0 + reason=insufficient_sample + applied=false
+- ✅ Smart Routing heuristic usa org-specific weights · fallback graceful a DEFAULT_WEIGHTS
+- ✅ match_weights_adaptive en DEFAULT_FEATURE_TIERS · T2 seteado para dmx en tests
+- ✅ yarn build limpio
