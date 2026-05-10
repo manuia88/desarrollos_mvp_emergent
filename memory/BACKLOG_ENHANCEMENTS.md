@@ -911,6 +911,37 @@ backend/routes/
 
 ---
 
+## 📥 W4.18 — Data Sources gov MX gaps post-deployment (2026-05-10)
+
+### 🟡 OPS · GDAL system deps en Dockerfile producción (geopandas/fiona/pyrosm/gtfs-kit)
+- **Origen:** emergent W4.18 reporta heavy libraries no instaladas en sandbox preview Kubernetes
+- **Razón:** GDAL es system dependency que romperíá entorno emergent · decisión conservadora correcta
+- **Solución producción:** agregar al Dockerfile backend cuando deploys (Render/AWS/Vercel):
+  ```
+  RUN apt-get update && apt-get install -y libgdal-dev gdal-bin python3-fiona && pip install geopandas pyrosm gtfs-kit
+  ```
+- **Costo estimado:** 1h founder (Dockerfile edit + redeploy)
+
+### 🟡 OPS · Acceso datos.cdmx.gob.mx (CKAN host) en sandbox
+- **Origen:** emergent W4.18 reporta timeouts curl/httpx desde sandbox preview
+- **Razón:** sandbox preview tiene IP whitelist o firewall · NO es bug · es ambiente
+- **Solución:** auto-resuelve cuando deploys a producción (Render/Vercel/AWS tienen IPs públicas estándar) · NO requiere acción inmediata
+- **Validación post-deploy:** correr `POST /api/superadmin/data-sources-gov-mx/sync_now/{source}` para Atlas/Catastro/GTFS · cache se popula
+
+### 🟢 GTFS afluencia diaria · feed específico CKAN identificar
+- **Origen:** emergent W4.18 reporta cron 06:30 placeholder
+- **Razón:** GTFS estático shipped · afluencia diaria por estación queda pendiente endpoint específico
+- **Solución:** post-deploy validar acceso · buscar dataset "afluencia metro/metrobús" en datos.cdmx.gob.mx · agregar URL al engine
+- **Costo estimado:** 2h F0 cuando datos.cdmx accesible
+
+### 🟢 OSM diff-parse semanal (upgrade de Overpass query a PBF download)
+- **Origen:** emergent W4.18 implementación lightweight con Overpass
+- **Razón:** Overpass funciona OK para CDMX subset · PBF requiere pyrosm/osmium (heavy libs)
+- **Solución:** post-deploy con pyrosm instalado · upgrade engine a PBF diff (más eficiente para escala)
+- **Costo estimado:** 3h F0 después de Dockerfile prod ready
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:

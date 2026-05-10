@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-10 (🎯🎯🎯 **PHASE Y CERRADA AL 100%** · W4.8 Y.5 Observability shipped · Phase Y 139.5/125h con buffers absorbed · Wave 4 ~256.5h · saltamos a features comprador-facing H1)
-**Total H1 restante**: ~197.5h (Wave 4 pending de los 454h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 256.5h = 623.5h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (256.5h shipped, 197.5h pending) = 821h plan H1
+**Última actualización**: 2026-05-10 (W4.18 Data Sources gov MX shipped · 6 fuentes oficiales · Wave 4 ~278.5h · 175.5h H1 pending · BANXICO+OSM live ✅ Atlas/Catastro/GTFS pending producción access)
+**Total H1 restante**: ~175.5h (Wave 4 pending de los 454h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 278.5h = 645.5h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (278.5h shipped, 175.5h pending) = 821h plan H1
 **Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
 **Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
 
@@ -174,7 +174,7 @@ Formato canónico per-batch (founder request):
 | W4.15 | Phase 20 Polish + Launch + A11 audit + MongoDB Atlas migration + **Onboarding tour (G3)** + **Backup/restore disaster recovery (G4)** + **Multi-tenancy isolation pytest (G5)** | 43 | — | emergent + CC | ⏳ | — | ÚLTIMO pre-launch · UX + perf + a11y + DR + tenant isolation + onboarding (40% abandono típico sin tour) |
 | W4.16 | Marketing (Free audit landing + State of CDMX Report) + **MCP Distribution Channel** (registrar DMX MCP en mcp.so/awesome-mcp/Anthropic registry + tutorial blog "Conecta Claude Desktop a DMX") | 5 + 0h dev | — | emergent + content | ⏳ | — | MCP Distribution = 0h dev (founder/agencia escribe content) · CAC=0 viral angle |
 | W4.17 | Kalshi **partial** (Smart Notifications) — Probability UX DIFERIDO Wave 5 W5.19 | 8 | — | emergent | ⏳ | — | Smart Notif = engagement crítico H1 · Probability UX nice-to-have, depende W5.1+W5.3 |
-| W4.18 | Data Sources gov MX bundle (BANXICO SIE API + SIGCDMX uso suelo + Atlas Riesgos CDMX + Catastro CDMX + GTFS + OSM Geofabrik) | 22 | — | emergent | ⏳ | — | links verificados en memory/DATA_SOURCES.md · diferencial vs Inm24 |
+| W4.18 | Data Sources gov MX bundle (6 fuentes oficiales: BANXICO + SIGCDMX + Atlas Riesgos + Catastro + GTFS + OSM Overpass) | 22 | 22 | emergent | ✅ | `9878f32` | 6 engines + 9 endpoints + 7 crons + 6 Atlax tools + SuperadminDataSources UI · BANXICO/OSM live ✅ · Atlas/Catastro/GTFS pending acceso producción a datos.cdmx.gob.mx |
 | W4.18.1 | Apify Google Trends integration (cache TTL 7d + 3-layer fallback + circuit breaker + dual-schema adapter + 6 endpoints superadmin + 2 crons + Atlax tool + SuperadminTrends UI 590L + 9 unit tests pass) | 3 | 5 | emergent | ✅ | `ed9c19e` | **STUB MODE** · Apify FREE bloqueado por Google (proxies datacenter) · arquitectura 100% funcional · upgrade STARTER $49/mo cuando active downstream W5 · founder decisión documentada |
 | F0 | Sweep tech debt + **Notification Center bell icon (G2)** + Apify token rotation + tier `whatif_simulator`/`asistente_publico` seed | 30 | — | CC lead | ⏳ | — | rolling cleanup + notification center crítico UX |
 | CC1-4 | Cross-cutting (i18n + perf + a11y + monitoring) | 28 | — | mixto | ⏳ | — | — |
