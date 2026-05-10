@@ -29,6 +29,35 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 
 ---
 
+## 2026-05-10 — W4.7 Y.4C · Argumentario Tone Behavioral-Driven (Phase Y.4 100%)
+
+### Completed
+- `argumentario_engine.py` (807 LOC) con 3-layer resilience: Claude Sonnet 4.5 (LLM) → cached_similar (<14d) → 36-combo heuristic templates.
+- DISC→closing technique mapping: D=assumptive, I=summary, S=empathy, C=evidence, MIX=balance.
+- 5 secciones generadas: opening_script (call/whatsapp/email), value_pitch, 6 objection_responses (precio_alto, timing, pareja_decide, prefiero_otra_zona, necesito_pensarlo, financiamiento_complicado), closing_technique con script, 5 discovery_questions, followup_cadence.
+- 3 endpoints REST (`GET /api/agentic-crm/argumentario/{lead_id}`, `POST .../refresh`, `POST .../mark-used`) en `routes_agentic_crm.py`.
+- Director Agent tool `delegate_argumentario_generate` registrado.
+- Phase Y guard `argumentario_adaptive` ≥ T1 · Sim mode → fuerza Layer 3.
+- Caps: 60/min/user · refresh 1/12h/lead · TTL 60d (Mongo TTL index).
+- Frontend: `ArgumentarioPanel.js` (526 LOC) con DISC badge dinámico, channel switcher, accordion objections, copy-to-clipboard, refresh + mark-used buttons.
+- Integrado en `AsesorTareas.js` debajo de DiscProfileCard cuando hay cita próxima con lead.
+- i18n keys es-MX: `agentic_crm.argumentario.*` (section, channel, objection, actions, errors).
+- 7 acceptance tests pasados: phase_y guard 403, sim mode L3 heuristic 200, mark-used 200, real LLM L1 200 ($0.021/1934 tokens), refresh rate-limit 429.
+- `yarn build` exit 0. ESLint clean.
+
+### Pending
+- Smoke screenshot `/asesor/tareas` deferido (Issue #2 Playwright session drops, ya documentado).
+- Tier `argumentario_adaptive` debe activarse manualmente por org en Superadmin (default off).
+
+### Phase Y.4 Status: 100% COMPLETE
+- Y.4A Atlax per-tenant adaptation ✓
+- Y.4B Match Weights Adaptive ✓
+- Y.4C Argumentario Tone Behavioral-Driven ✓
+
+---
+
+
+
 ## 2026-05-10 — W4.6 Y.3C · Reply Classifier (Frontend + Webhook hardening)
 
 ### Completed

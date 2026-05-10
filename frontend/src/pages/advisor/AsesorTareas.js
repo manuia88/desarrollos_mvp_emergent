@@ -12,6 +12,7 @@ import VisitAutoPrepCard from '../../components/asesor/VisitAutoPrepCard';
 import VisitPrepDossier from '../../components/agentic_crm/VisitPrepDossier';
 import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
 import DiscProfileCard from '../../components/agentic_crm/DiscProfileCard';
+import ArgumentarioPanel from '../../components/agentic_crm/ArgumentarioPanel';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -107,6 +108,20 @@ export default function AsesorTareas({ user, onLogout }) {
           leadId={upcomingAppts[0].lead_id}
           leadName={upcomingAppts[0].lead_name || upcomingAppts[0].contact_name || upcomingAppts[0].lead_id}
         />
+      ) : null}
+
+      {/* W4.7 Y.4C — Argumentario Tone Behavioral-Driven · scripts DISC-adaptive para el lead próximo */}
+      {upcomingAppts.length > 0 && upcomingAppts[0].lead_id ? (
+        <div data-testid="argumentario-section" style={{
+          marginBottom: 16, padding: 14,
+          background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16,
+        }}>
+          <ArgumentarioPanel
+            leadId={upcomingAppts[0].lead_id}
+            asesorId={user?.user_id || user?.id || upcomingAppts[0].asesor_id}
+            leadName={upcomingAppts[0].lead_name || upcomingAppts[0].contact_name || upcomingAppts[0].lead_id}
+          />
+        </div>
       ) : null}
 
       {/* W4.6 Y.3C — Reply Classifier Inbox · gated por Phase Y tier */}

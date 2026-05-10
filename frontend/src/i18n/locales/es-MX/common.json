@@ -1510,6 +1510,45 @@
         "save_failed":      "Error al guardar pesos",
         "auto_tune_failed": "Error al ejecutar auto-tune"
       }
+    },
+    "argumentario": {
+      "title": "Argumentario",
+      "subtitle": "Scripts personalizados DISC-adaptive por lead",
+      "section": {
+        "opening":     "Apertura de contacto",
+        "value_pitch": "Propuesta de valor",
+        "objections":  "Respuestas a objeciones",
+        "closing":     "Técnica de cierre recomendada",
+        "discovery":   "Preguntas de descubrimiento"
+      },
+      "channel": {
+        "call":     "Llamada",
+        "whatsapp": "WhatsApp",
+        "email":    "Email"
+      },
+      "objection": {
+        "precio_alto":               "Precio alto",
+        "timing":                    "Timing / urgencia",
+        "pareja_decide":             "Pareja decide",
+        "prefiero_otra_zona":        "Prefiere otra zona",
+        "necesito_pensarlo":         "Necesita pensarlo",
+        "financiamiento_complicado": "Financiamiento complicado"
+      },
+      "actions": {
+        "refresh":   "Refrescar",
+        "mark_used": "Marcar como usado",
+        "used":      "Argumentario usado",
+        "copy":      "Copiar",
+        "copied":    "Copiado"
+      },
+      "followup_label": "Seguimiento",
+      "loading":   "Generando argumentario…",
+      "errors": {
+        "tier_required": "Argumentario requiere tier T1+",
+        "rate_limit":    "Sólo puedes refrescar el argumentario 1 vez cada 12h",
+        "load_failed":   "Error al cargar argumentario",
+        "refresh_failed": "Error al refrescar argumentario"
+      }
     }
   }
 }

@@ -1051,6 +1051,12 @@ async def startup():
         await ensure_match_weights_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.7 Y.4B match_weights indexes failed: {e}")
+    # W4.7 Y.4C — Argumentario indexes
+    try:
+        from agentic_crm.argumentario_engine import ensure_argumentario_indexes
+        await ensure_argumentario_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.7 Y.4C argumentario indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

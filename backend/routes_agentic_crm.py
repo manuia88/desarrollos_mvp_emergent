@@ -1195,3 +1195,91 @@ async def get_match_weights_distribution(request: Request, org_id: Optional[str]
         "audit_log": audit_raw[-10:],
         "org_queried": org_id,
     })
+
+
+# ─── W4.7 Y.4C — Argumentario Tone Behavioral-Driven ─────────────────────────
+_arg_user_min_buckets: Dict[str, List[float]] = {}
+ARG_RATE_CAP = 60
+
+
+def _check_arg_rate(user_id: str) -> bool:
+    now = time.monotonic()
+    bucket = _arg_user_min_buckets.setdefault(user_id, [])
+    _arg_user_min_buckets[user_id] = [t for t in bucket if now - t < 60]
+    if len(_arg_user_min_buckets[user_id]) >= ARG_RATE_CAP:
+        return False
+    _arg_user_min_buckets[user_id].append(now)
+    return True
+
+
+@router.get("/api/agentic-crm/argumentario/{lead_id}")
+async def get_argumentario(lead_id: str, request: Request, asesor_id: Optional[str] = None):
+    """Retorna argumentario (auto-genera si no existe). Tier T1+.
+
+    Permission: asesor own leads · developer/inmobiliaria own org · superadmin any.
+    """
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    uid = getattr(user, "user_id", "anon")
+    role = getattr(user, "role", "")
+
+    if not _check_arg_rate(uid):
+        raise HTTPException(429, "Rate limit argumentario (60 calls/min)")
+
+    org_id = _resolve_org(user, None)
+    resolved_asesor = asesor_id or uid
+
+    from agentic_crm.argumentario_engine import (
+        ArgumentarioEngine, ArgumentarioDisabledError,
+    )
+    engine = ArgumentarioEngine(db, org_id)
+    try:
+        result = await engine.generate_argumentario(lead_id, resolved_asesor)
+    except ArgumentarioDisabledError as e:
+        raise HTTPException(403, str(e))
+    return JSONResponse(result)
+
+
+@router.post("/api/agentic-crm/argumentario/{lead_id}/refresh")
+async def refresh_argumentario(lead_id: str, request: Request, asesor_id: Optional[str] = None):
+    """Fuerza re-generación del argumentario. Rate-limited: 1/12h/lead."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    uid = getattr(user, "user_id", "anon")
+
+    if not _check_arg_rate(uid):
+        raise HTTPException(429, "Rate limit argumentario (60 calls/min)")
+
+    org_id = _resolve_org(user, None)
+    resolved_asesor = asesor_id or uid
+
+    from agentic_crm.argumentario_engine import (
+        ArgumentarioEngine, ArgumentarioDisabledError, ArgumentarioRateLimitError,
+    )
+    engine = ArgumentarioEngine(db, org_id)
+    try:
+        result = await engine.refresh_argumentario(lead_id, resolved_asesor)
+    except ArgumentarioDisabledError as e:
+        raise HTTPException(403, str(e))
+    except ArgumentarioRateLimitError as e:
+        raise HTTPException(429, str(e))
+    return JSONResponse({**result, "ok": True})
+
+
+@router.post("/api/agentic-crm/argumentario/{lead_id}/mark-used")
+async def mark_argumentario_used(lead_id: str, request: Request):
+    """Asesor confirma que usó el argumentario. status=used · log_activity."""
+    user = await _require_authorized(request)
+    db = request.app.state.db
+    uid = getattr(user, "user_id", "anon")
+    org_id = _resolve_org(user, None)
+
+    from agentic_crm.argumentario_engine import (
+        ArgumentarioEngine, ArgumentarioDisabledError,
+    )
+    engine = ArgumentarioEngine(db, org_id)
+    try:
+        result = await engine.mark_used(lead_id, uid)
+    except ArgumentarioDisabledError as e:
+        raise HTTPException(403, str(e))
+    return JSONResponse({**result, "ok": True})

@@ -149,6 +149,11 @@ TOOLS Y PARAMS:
     devuelve: { org_id, weights, confidence, training_sample_size, applied, reason, is_default }
     Úsalo cuando user pregunta "muéstrame los pesos de matching", "afina los pesos del sistema", "actualiza el peso de zona a 40%", "qué tan confiables son mis pesos".
 
+16. delegate_argumentario_generate
+    params: { "lead_id": str (requerido), "asesor_id": str (requerido) }
+    devuelve: { lead_id, disc_type, content.opening_script, content.value_pitch, content.objection_responses, content.closing_technique, content.discovery_questions, content.followup_cadence, layer_used }
+    Úsalo cuando user pregunta "cómo le hablo a este lead", "scripts para la visita con X", "qué técnica de cierre usar con Y", "preguntas de descubrimiento para Z".
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -251,8 +256,14 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 action=str(params.get("action", "get")),
                 weights=params.get("weights") or {},
             )
+        elif tool_name == "delegate_argumentario_generate":
+            return await _tool_delegate_argumentario_generate(
+                db, org_id,
+                lead_id=str(params.get("lead_id", "")),
+                asesor_id=str(params.get("asesor_id", "")),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply, delegate_disc_inference, delegate_lead_nurture, delegate_match_weights_tune"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply, delegate_disc_inference, delegate_lead_nurture, delegate_match_weights_tune, delegate_argumentario_generate"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -738,6 +749,44 @@ async def _tool_delegate_match_weights_tune(
         return {"error": f"Rate limit: {e}"}
     except Exception as exc:
         log.warning(f"[director_tool] delegate_match_weights_tune failed: {exc}")
+        return {"error": str(exc)}
+
+
+# ─── Tool 16 — Argumentario Tone Behavioral-Driven (W4.7 Y.4C) ───────────────
+async def _tool_delegate_argumentario_generate(
+    db, org_id: str, lead_id: str, asesor_id: str,
+) -> Dict[str, Any]:
+    """Tool 16 (Y.4C): ArgumentarioEngine — genera scripts DISC-adaptados."""
+    if not lead_id:
+        return {"error": "lead_id requerido"}
+    if not asesor_id:
+        asesor_id = "director_ai"
+    from agentic_crm.argumentario_engine import (
+        ArgumentarioEngine, ArgumentarioDisabledError, ArgumentarioRateLimitError,
+    )
+    engine = ArgumentarioEngine(db, org_id)
+    try:
+        result = await engine.generate_argumentario(lead_id, asesor_id)
+        content = result.get("content") or {}
+        return {
+            "ok": True,
+            "lead_id": lead_id,
+            "disc_type": result.get("disc_type"),
+            "layer_used": result.get("layer_used"),
+            "opening_script": content.get("opening_script"),
+            "value_pitch": content.get("value_pitch"),
+            "objection_responses": content.get("objection_responses"),
+            "closing_technique": content.get("closing_technique"),
+            "discovery_questions": content.get("discovery_questions"),
+            "followup_cadence": content.get("followup_cadence"),
+            "cost_usd": result.get("cost_usd"),
+        }
+    except ArgumentarioDisabledError as e:
+        return {"error": f"Argumentario desactivado: {e}"}
+    except ArgumentarioRateLimitError as e:
+        return {"error": f"Rate limit: {e}"}
+    except Exception as exc:
+        log.warning(f"[director_tool] delegate_argumentario_generate failed: {exc}")
         return {"error": str(exc)}
 
 
