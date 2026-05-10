@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-09 (W4.6 Y.3A Smart Routing Lead shipped · Wave 4 ~197h · Phase Y 80/125h · próximo Y.3B Visit Prep)
-**Total H1 restante**: ~257h (Wave 4 pending de los 454h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 197h = 564h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (197h shipped, 257h pending) = 821h plan H1
+**Última actualización**: 2026-05-10 (W4.6 Y.3B Visit Prep Automation shipped · Wave 4 ~203h · Phase Y 86/125h · próximo Y.3C Reply Classifier)
+**Total H1 restante**: ~251h (Wave 4 pending de los 454h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 203h = 570h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (203h shipped, 251h pending) = 821h plan H1
 **Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
 **Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
 
@@ -153,7 +153,7 @@ Formato canónico per-batch (founder request):
 | ~~W4.5 Y.2D~~ | ~~Construction Sub-Agent~~ → **DEFERRED a H2** | 6 | — | — | 📦 H2 | — | sin data madura: cronogramas obra + costos updates no estructurados en DMX hoy · revisar post-Phase 7.10 Avance-Obra |
 | ~~W4.5 Y.2E~~ | ~~Compliance Sub-Agent~~ → **DEFERRED a H2** | 6 | — | — | 📦 H2 | — | sin data madura: depende de W4.18 SIGCDMX/Catastro + contratos no en DMX · LFPDPPP ya cubierto por W3.7 |
 | W4.6 Y.3A | Smart Routing Lead <60 seg (3-layer LLM/cache/heuristic + auto-route fresh leads + cron metrics) | 10 | 10 | emergent | ✅ | `252d754` | smart_routing_engine 950L + 6 endpoints + Director 10mo tool + 4to sub-tab Smart Routing · fit_score 100 LLM 17.8s · Phase Y 80/125h |
-| W4.6 Y.3B | Visit Prep automation (asesor recibe dossier pre-visita) | 6 | — | emergent | ⏳ | — | siguiente |
+| W4.6 Y.3B | Visit Prep automation (dossier auto pre-visita 24h · email + dashboard) | 6 | 6 | emergent | ✅ | `ce1f208` | visit_prep_engine 900L 3-layer + 3 endpoints + Director 11vo tool + cron daily 06:00 MX + VisitPrepDossier UI · coexiste con legacy VisitAutoPrepCard (B33) · Phase Y 86/125h |
 | W4.6 Y.3C | Reply Classifier (Resend webhooks parse respuestas) | 6 | — | emergent | ⏳ | — | — |
 | W4.6 Y.3D | DISC Inferencer (personalidad comprador desde behavioral + chat) | 6 | — | emergent | ⏳ | — | — |
 | W4.6 Y.3E | Lead Nurture Intelligent (upgrade nurture engine W4.2D3.5) | 8 | — | emergent | ⏳ | — | — |
@@ -195,6 +195,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-10 | **W4.6 Y.3B Visit Prep Automation** | 6h | `ce1f208` (merge `94354cd`) | visit_prep_engine 3-layer + 3 endpoints + Director 11vo tool + cron daily 06:00 MX + VisitPrepDossier UI · Phase Y 86/125h ✅ |
 | 2026-05-09 | **W4.6 Y.3A Smart Routing Lead <60 seg** | 10h | `252d754` (merge `ca76ccb`) | smart_routing_engine 3-layer + 6 endpoints + Director 10mo tool + auto-route + 4to sub-tab · Phase Y 80/125h ✅ |
 | 2026-05-09 | **W4.18.1 Apify Google Trends Integration · STUB MODE** | 5h | `ed9c19e` (merge `83ad844`) | apify_trends_engine + 6 endpoints + 2 crons + tool LLM + UI 590L + 9 tests pass · STUB por Apify FREE bloqueado por Google · upgrade STARTER $49/mo cuando active W5 |
 | 2026-05-09 | **W4.5 Y.2C Lead Sub-Agent + 3 capas resilience** | 6h | `9039bf3` (merge `77cac3d`) | lead_agent 5 tools + 5 issues funnel · Director 9no tool · 3er sub-tab Lead · Phase Y 70/137h ✅ |

@@ -900,6 +900,17 @@ backend/routes/
 
 ---
 
+## 📥 W4.6 Y.3B — Visit Prep enhancements diferidos (2026-05-10)
+
+### Coexistencia VisitAutoPrepCard (Phase 4 Batch 33 legacy) + VisitPrepDossier (Y.3B nuevo)
+- **Origen:** emergent edge case W4.6 Y.3B (decisión consciente)
+- **Status actual:** ambos cards visibles simultáneamente en AsesorTareas → posible UX clutter
+- **Razón decisión:** legacy intacto · paths distintos · NO es shadow ni duplicate
+- **Destino propuesto:** F0 sweep tech debt — decidir si reemplazar legacy con Y.3B o mantener ambos con diferenciación clara
+- **Costo estimado:** 2h F0 (UI consolidation + posible deprecation B33)
+
+---
+
 ## ✅ INCORPORADOS (referencia histórica)
 
 Enhancements que SÍ se persistieron correctamente:
