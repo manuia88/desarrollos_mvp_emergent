@@ -619,6 +619,11 @@ app.include_router(buyer_coach_router)
 from routes_investment_simulator import router as investment_sim_router
 app.include_router(investment_sim_router)
 
+# W4.9 — Studio Brochure (PDF + 4 social variants + custom upload)
+from routes_brochure import router as brochure_router
+from brochure_engine import ensure_brochure_indexes as ensure_brochure_indexes_fn
+app.include_router(brochure_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):
@@ -1187,6 +1192,11 @@ async def startup():
         await ensure_buyer_coach_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.14 buyer_coach indexes failed: {e}")
+    # W4.9 — Brochure indexes
+    try:
+        await ensure_brochure_indexes_fn(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.9 brochure indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
