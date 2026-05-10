@@ -231,6 +231,22 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
+### OG dynamic images endpoint `/og/colonia/{slug}.png` (rich preview WhatsApp/LinkedIn)
+- **Origen:** W4.18.2B emergent suggested 2026-05-10
+- **Destino:** Wave 5 H2 W5.16 marketing distribution
+- **Qué:** GET `/og/colonia/{slug}.png` renderiza imagen 1200×630 con Mapbox Static API snapshot + KPIs (zone_score · avg_price/m2 · top dev) + branding DMX. Páginas `/colonia/{slug}` ya tienen `og:image` apuntando a este endpoint pero falta backend
+- **Por qué:** broker comparte link colonia en WhatsApp/LinkedIn → preview rich con map + stats → CTR x3-5 vs preview plano · marketing orgánico viral · paridad con Forbes/El Financiero embeds
+- **Costo:** ~6h (endpoint FastAPI + Pillow render compose + Mapbox Static API call + cache filesystem 24h + tests `og:image` headers)
+- **Activar cuando:** Wave 5 marketing campaign · pre-cuando founder compartir colonias en redes
+
+### AVM público swap heurístico → hedonic_regression_engine real (P1 tech debt)
+- **Origen:** W4.18.2B audit Claude Code 2026-05-10 — emergent reportó "hedonic_engine.py no existe" pero `backend/hedonic_regression_engine.py` SÍ existe (9+ archivos lo importan)
+- **Destino:** F0 sweep tech debt (Claude Code lead)
+- **Qué:** swap en `backend/avm_public_engine.py:avm_quick()` de modelo heurístico (rec_factor + ban_factor + age_factor) a llamada real `hedonic_regression_engine.predict(colonia, m2, recamaras, banos, antiguedad)` · mantener mismo response shape · mantener fallback heurístico si hedonic falla
+- **Por qué:** AVM público `/valores` debe usar regression real con coefficientes entrenados sobre `unit_price_history` para credibilidad founder (precio confiable cara a prensa) · evita reportes "DMX inventa precios"
+- **Costo:** ~2h (swap function call + tests numéricos comparison vs heurístico baseline)
+- **Activar cuando:** próximo F0 sweep (P1 alta prioridad antes de marketing campaign)
+
 ### PostHog dashboard "Funnels Mapa Cerebro" (post-launch ops)
 - **Origen:** W4.18.2A.0 emergent suggested 2026-05-10
 - **Destino:** Founder ops post-launch (cuando active API key real PostHog)
