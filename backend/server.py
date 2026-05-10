@@ -584,6 +584,11 @@ app.include_router(whatsapp_router)
 app.include_router(newsletter_router)
 app.include_router(voice_router)
 
+# W4.18.2A — Mapa Cerebro Espacial DMX
+from routes_maps import router as maps_router
+from maps_engine import ensure_maps_indexes
+app.include_router(maps_router)
+
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
 from routes_asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)
@@ -1101,6 +1106,11 @@ async def startup():
         await ensure_voice_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.10 voice indexes failed: {e}")
+    # W4.18.2A — Maps indexes
+    try:
+        await ensure_maps_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.18.2A maps indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

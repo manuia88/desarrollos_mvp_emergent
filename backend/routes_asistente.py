@@ -56,6 +56,7 @@ class StartSessionIn(BaseModel):
 
 class SendMessageIn(BaseModel):
     message: str
+    map_context: Optional[str] = None  # W4.18.2A — contexto mapa inyectado desde /mapa
 
 
 class CaptureLeadIn(BaseModel):
@@ -126,7 +127,7 @@ async def send_message(session_token: str, body: SendMessageIn, request: Request
     if not body.message or not body.message.strip():
         raise HTTPException(422, "Mensaje vacío")
     try:
-        result = await engine.chat(session_token, body.message)
+        result = await engine.chat(session_token, body.message, map_context=body.map_context or "")
     except AsistenteDisabledError as e:
         raise HTTPException(503, str(e))
     except AsistenteRateLimitError as e:

@@ -99,7 +99,7 @@ def _estimate_tokens(text: str) -> int:
     return max(1, len(text or "") // 4)
 
 
-def _system_prompt(sim_mode: bool, intent_history: List[str], persona_prefix: str = "") -> str:
+def _system_prompt(sim_mode: bool, intent_history: List[str], persona_prefix: str = "", map_context: str = "") -> str:
     sim_note = "\n\n⚠️ MODO SIMULACIÓN: respuestas marcadas [SIM]. Mismo flujo, sin LLM real." if sim_mode else ""
     intent_note = ""
     if intent_history:
@@ -107,11 +107,15 @@ def _system_prompt(sim_mode: bool, intent_history: List[str], persona_prefix: st
 
     prefix_block = (persona_prefix + "\n") if persona_prefix else ""
 
+    map_block = ""
+    if map_context:
+        map_block = f"\n\n[CONTEXTO MAPA] {map_context}"
+
     return f"""{prefix_block}Eres el Asistente Público de DesarrollosMX (DMX), una plataforma de inteligencia inmobiliaria para CDMX.
 
 Tu rol: ayudar a CUALQUIER persona (sin login) a encontrar departamento o casa en CDMX. Mercado objetivo: residencial nuevo y reventa en CDMX.
 
-TONO: Cercano, directo, profesional, en español es-MX. Respuestas CONCISAS (máx 3-4 oraciones por mensaje). Datos concretos cuando los tengas.{sim_note}{intent_note}
+TONO: Cercano, directo, profesional, en español es-MX. Respuestas CONCISAS (máx 3-4 oraciones por mensaje). Datos concretos cuando los tengas.{sim_note}{intent_note}{map_block}
 
 ══ TOOLS DISPONIBLES ══
 Cuando necesites datos, incluye EXACTAMENTE este formato (una línea separada):
@@ -647,7 +651,7 @@ class AsistenteEngine:
         log.info(f"[asistente] session start {token} ip={ip_hash} ref={referral_source}")
         return {"session_token": token, "welcome_message": WELCOME_MESSAGE}
 
-    async def chat(self, session_token: str, user_message: str, org_id: str = DMX_ORG_ID) -> Dict[str, Any]:
+    async def chat(self, session_token: str, user_message: str, org_id: str = DMX_ORG_ID, map_context: str = "") -> Dict[str, Any]:
         """Envía mensaje y recibe response del LLM."""
         if not user_message or not user_message.strip():
             raise ValueError("message vacío")
@@ -742,7 +746,7 @@ class AsistenteEngine:
         except Exception as _pe:
             log.warning(f"[asistente] persona injection failed: {_pe}")
 
-        sys_prompt = _system_prompt(sim_mode, intent_history, persona_prefix=persona_prefix)
+        sys_prompt = _system_prompt(sim_mode, intent_history, persona_prefix=persona_prefix, map_context=map_context)
         chat = LlmChat(
             api_key=api_key,
             session_id=session_token,

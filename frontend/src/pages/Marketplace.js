@@ -14,6 +14,7 @@ import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
+import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
 import ColoniaQuizModal from '../components/marketplace/ColoniaQuizModal';
 import { useNavigate } from 'react-router-dom';
@@ -223,6 +224,28 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               >
                 <Sparkle size={14} /> Mi colonia ideal
               </button>
+              {/* W4.18.2A — Ver en mapa (Mapa Cerebro Espacial DMX) */}
+              <Link
+                to="/mapa"
+                data-testid="ver-en-mapa-trigger"
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 9999,
+                  background: 'rgba(99,102,241,0.12)',
+                  border: '1px solid rgba(99,102,241,0.35)',
+                  color: 'rgba(99,102,241,0.95)',
+                  fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer', textDecoration: 'none',
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                  <circle cx="12" cy="9" r="2.5" />
+                </svg>
+                Ver en mapa
+              </Link>
               {/* Batch 26 — Comparador */}
               <button
                 data-testid="comparator-trigger"

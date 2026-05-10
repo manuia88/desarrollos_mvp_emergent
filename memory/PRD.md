@@ -32,6 +32,20 @@ Vida (Leaf) / Movilidad (Route) / Seguridad (Shield) / Comercio (Store)
 
 ---
 
+## 2026-05-10 — W4.18.2A · Mapa Cerebro Espacial DMX core (COMPLETE)
+
+### Completed
+- Backend: `maps_engine.py` + `routes_maps.py` (8 endpoints públicos + 2 superadmin) ya wireados previamente. Acceptance: 6 endpoints claves devuelven shapes correctos vía curl (devs=72 features, catastro=60, zone_score=15, atlax-context con string es-MX correcto).
+- Frontend: `pages/public/MapaCDMX.js` (538 LOC) + `components/maps/*` (5 archivos) montados en `App.js` con 3 rutas (`/mapa`, `/mapa/:alcaldia`, `/mapa/:alcaldia/:colonia`).
+- Marketplace toolbar: nuevo botón pill "Ver en mapa" (gradient indigo) `data-testid="ver-en-mapa-trigger"`.
+- i18n keys `maps.*` agregadas a `es-MX/common.json` (tabs, layers, filters, sidebar, popup, atlax_button, errors).
+- Sitemap: entrada `/mapa` priority 0.9 weekly.
+- `yarn build` exit 0 · screenshot smoke verifica `mapa-cdmx`, `mapa-sidebar`, `mapbox-container` data-testids + 5 layer pills.
+
+### Status: 100% COMPLETE
+
+---
+
 ## 2026-05-10 — W4.7 Y.4C · Argumentario Tone Behavioral-Driven (Phase Y.4 100%)
 
 ### Completed

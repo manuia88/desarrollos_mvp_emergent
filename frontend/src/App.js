@@ -30,6 +30,7 @@ const Marketplace       = lazy(() => import('./pages/Marketplace'));
 const PropertyDetail    = lazy(() => import('./pages/PropertyDetail'));
 const DevelopmentDetail = lazy(() => import('./pages/DevelopmentDetail'));
 const Mapa              = lazy(() => import('./pages/Mapa'));
+const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
 const Barrios           = lazy(() => import('./pages/Barrios'));
 const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
 const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
@@ -413,7 +414,9 @@ function AppRouter() {
       <Route path="/marketplace" element={<MarketplaceRoute />} />
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
-      <Route path="/mapa" element={<MapaRoute />} />
+      <Route path="/mapa" element={<MapaCDMXRoute />} />
+      <Route path="/mapa/:alcaldia" element={<MapaCDMXRoute />} />
+      <Route path="/mapa/:alcaldia/:colonia" element={<MapaCDMXRoute />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />
@@ -630,6 +633,11 @@ function PropertyDetailRoute() {
 function MapaRoute() {
   const { user, logout, openAuth } = useAuth();
   return <Mapa user={user} onLogin={openAuth} onLogout={logout} />;
+}
+
+function MapaCDMXRoute() {
+  const { user } = useAuth();
+  return <MapaCDMX user={user} />;
 }
 
 function DevelopmentDetailRoute() {

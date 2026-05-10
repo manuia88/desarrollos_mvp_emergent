@@ -231,6 +231,14 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
+### Widget embebible Mapa Cerebro Espacial iframe
+- **Origen:** W4.18.2A emergent suggested 2026-05-10
+- **Destino:** Wave 5 H2 W5.16 marketing distribution (junto con MCP distribution)
+- **Qué:** `<iframe src="/mapa?layer=zone_score&embed=1">` para prensa/bloggers integren Mapa directamente en artículos — multiplica backlinks SEO + autoridad dominio (paridad con `/widgets/score/{slug}` ya producción)
+- **Por qué:** CAC=0 viral angle · prensa inmobiliaria CDMX (Forbes, El Financiero, Expansión) embebe = backlinks high-authority · cada embed = pixel tracking source
+- **Costo:** ~4h (modo embed sin Navbar + theming via query params + tracking source via `/api/widgets/maps/track` reusando infra Embed Analytics)
+- **Activar cuando:** post-launch público + prensa outreach activa (Wave 5)
+
 ### Image embeddings real activation
 - **Origen:** B24 image search (B25 toggle)
 - **Destino:** Cuando portfolio tenga ≥50 proyectos con fotos buenas

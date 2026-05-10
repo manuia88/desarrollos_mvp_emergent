@@ -1,6 +1,45 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W4.18.2A — Mapa Cerebro Espacial DMX core (2026-05-10)
+
+Mapa público interactivo en `/mapa` (Mapbox GL JS · style `dark-v11`) que superpone 5 capas (proyectos preventa, propiedades usada/brokers, catastro heatmap, zone score A-F, riesgo zona) con Atlax context-injection para conversaciones AI con visión geoespacial.
+
+### Backend (ya wired previamente · acceptance criteria validados)
+- `GET /api/maps/layers/devs` → 200 · 72 features (FeatureCollection) ✓
+- `GET /api/maps/layers/brokers` → 200 · 0 features (sin listings real, schema correcto) ✓
+- `GET /api/maps/layers/catastro` → 200 · 60 features (heatmap por colonia) ✓
+- `GET /api/maps/layers/zone_score` → 200 · 15 features (A-F) ✓
+- `GET /api/maps/layers/risk` → 200 · 0 features (placeholder W3.4) ✓
+- `GET /api/maps/colonias` → 200 · 60 entradas (16 colonias × 4 desarrollos) ✓
+- `POST /api/maps/atlax-context` con `{lat, lng, zoom, active_layers}` → 200 con `context` string es-MX listo para inyectar al prompt Atlax ✓
+- `GET /api/maps/property/{type}/{id}` para PropertyPopup ✓
+
+### Frontend (cierre del wave)
+- **NEW** `/app/frontend/src/pages/public/MapaCDMX.js` (538 LOC) · 5 capas Mapbox (clusters indigo para devs, pink para brokers, heatmap precio/m² catastro, fill zone_score por letra A-F, fill rojo risk). Sidebar 300px con tabs `Capas`/`Filtros`, NavigationControl + ScaleControl, popup contextual con CTA "Preguntar a Atlax" que abre overlay con context inyectado.
+- **NEW** `components/maps/{MapboxBase, LayerToggle, MapFilters, PropertyPopup, AtlaxContextualButton}.js`.
+- **EDIT** `App.js` · agregada función `MapaCDMXRoute()` wrapper + 3 rutas públicas (`/mapa`, `/mapa/:alcaldia`, `/mapa/:alcaldia/:colonia`).
+- **EDIT** `pages/Marketplace.js` · botón pill "Ver en mapa" (gradient indigo) en toolbar, link directo a `/mapa` con icon de pin SVG. `data-testid="ver-en-mapa-trigger"`.
+- **EDIT** `i18n/locales/es-MX/common.json` · namespace nuevo `maps.*` con sub-keys `tabs`, `layers` (devs/brokers/catastro/zone_score/risk con desc), `filters`, `sidebar`, `popup`, `atlax_button`, `errors`.
+- **EDIT** `public/sitemap.xml` · entrada `https://desarrollosmx.com/mapa` priority 0.9 weekly.
+
+### Acceptance criteria validados
+- ✅ `yarn build` → exit 0 (40s, sin warnings nuevos)
+- ✅ JSON i18n + XML sitemap parsed correctamente
+- ✅ Backend curl los 6 endpoints clave devuelven shapes esperados
+- ✅ Atlax context curl: `"El usuario está viendo el mapa en la colonia Doctores ... Capas activas: devs, brokers. En esta zona ve 48 proyectos preventa y 0 propiedades usada. Zone Score de la zona: D (45.4). Adapta tu respuesta al contexto visual del mapa que el usuario está explorando."`
+- ✅ Playwright `/mapa` smoke: `mapa-cdmx=1, mapa-sidebar=1, mapbox-container=1`. Sidebar renderiza header "Mapa Cerebro Espacial" + tabs Capas/Filtros + 5 layer pills (Preventa indigo, Usada pink, Catastro amber, Zone Score, Riesgo). NavigationControl + ScaleControl + Atlax bubble visibles.
+
+### Edge cases
+- `brokers` retorna 0 features porque no hay listings de reventa cargados (esquema correcto). Cuando se ingrese a EasyBroker/Vivanuncios real, los puntos pink aparecen automáticamente.
+- `risk` retorna 0 features (placeholder hasta W3.4 ZZ.4 SESNSP feed).
+- `MAPBOX_TOKEN` requerido; fallback de error visible con copy es-MX.
+- Capa `zone_score` y `risk` se cargan al iniciar pero quedan invisibles (visibility=none); el usuario las activa via LayerToggle pills.
+
+### Documentación
+- `/api/health` 200 OK · `service: DesarrollosMX API v2`.
+
+
 ## W4.7 Y.4C — Argumentario Tone Behavioral-Driven (2026-05-10)
 
 Cierra Phase Y.4 al 100%. Genera argumentarios de venta personalizados por lead × asesor, adaptados al perfil DISC del comprador (D/I/S/C/MIX), Atlax Persona del org, historial de intención y replies previos. Output con 5 secciones: opening_script (call/whatsapp/email), value_pitch, 6 objection_responses, closing_technique DISC-mapped, 5 discovery_questions, followup_cadence.
