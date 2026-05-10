@@ -231,6 +231,54 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
+### Cross-org lead movement audit (W4.13.A deferral)
+- **Origen:** W4.13.A scope analysis 2026-05-10 — leads que cambian de tenant son <5% pero auditoría compleja
+- **Destino:** Wave 5 W5.11 governance suite
+- **Qué:** flujo formal cuando lead cambia de org (ej. broker A pierde, broker B captura) · audit log · notificación ambos tenants · ownership timeline en lead detail
+- **Por qué:** edge case real pero infrecuente · auditoría requiere governance UI + LFPDPPP cross-tenant data sharing rules · no bloquea H1 testing brokers únicos
+- **Costo:** ~6h (audit log cross-tenant + UI ownership timeline + notification rules)
+- **Activar cuando:** Wave 5 H2 cuando >10 brokers piloto compitan por mismo lead
+
+### A/B Meta Ads campañas automatizadas (W4.13.B condicional)
+- **Origen:** W4.13.B Project Performance Intelligence scope analysis 2026-05-10
+- **Destino:** Wave 5 W5.10 si founder no tiene FB Ads API token + Meta Business Manager access H1
+- **Qué:** dev sube proyecto pre-construction → DMX crea automáticamente 3 variant ad copies + targeting interests + budget split → corre 7 días → optimiza ganador → reporta ROI per ad spend · requiere Meta Business Manager + FB Ads API token + ad account ID
+- **Por qué:** wedge competitivo único (devs que no manejan Meta Ads se ahorran agencia $5K-15K/mes) · pero depende de stack Meta complejo (Business Manager + ad account + payment method + token rotation 60d)
+- **Costo:** ~12h (FB Ads API integration + ad creator + targeting builder + budget allocator + winner picker)
+- **Activar cuando:** founder confirme acceso Meta Business Manager + FB Ads API token (sino diferir Wave 5)
+
+### ROI Dashboard Panel TenantDrawer (W4.18.2A emergent suggested)
+- **Origen:** W4.18.2A emergent suggested 2026-05-10 (P1)
+- **Destino:** Wave 5 W5.11 governance suite
+- **Qué:** panel en superadmin TenantDrawer que muestra `{leads_capturados, conversion_rate, revenue_attributed, AI_hours_saved, asesor_efficiency}` per tenant · gráfico evolución 90d
+- **Por qué:** founder debe poder responder "¿qué tanto vale DMX para tenant X?" en 30 segundos · informa retention + pricing tier upgrades
+- **Costo:** ~4h (endpoint agregado + panel UI dentro TenantDrawer existente)
+- **Activar cuando:** Wave 5 con ≥10 tenants piloto activos
+
+### Refactor `routes_*.py` → `/app/backend/routes/` (W4.18.2A emergent suggested)
+- **Origen:** W4.18.2A emergent suggested 2026-05-10 (P1) · 30+ archivos `routes_*.py` en raíz `backend/`
+- **Destino:** F0 sweep tech debt
+- **Qué:** mover todos los `routes_*.py` (30+ archivos) a `/app/backend/routes/` · ajustar imports en `server.py` · mantener nombres archivos · mejora navegabilidad
+- **Por qué:** raíz `backend/` tiene 50+ archivos · degrada legibilidad · cualquier dev nuevo se pierde · cero impacto runtime
+- **Costo:** ~3h (move + sed imports + verify all routers register)
+- **Activar cuando:** F0 sweep próximo
+
+### Microsoft OAuth activation (Calendar W2 follow-up)
+- **Origen:** W2.x Calendar shipped Google OAuth · Microsoft pending · W4.18.2A emergent suggested 2026-05-10 (P2)
+- **Destino:** F0 sweep tech debt o Wave 5 W5.13 integrations expand
+- **Qué:** activar Microsoft Graph OAuth para users con Outlook/Office365 · sync Calendar bidireccional · setup wizard
+- **Por qué:** brokers/devs corporativos suelen usar Outlook · ahora obligados a Google · barrera adopción
+- **Costo:** ~4h (Microsoft app registration + OAuth flow + Graph API calendar.read/write)
+- **Activar cuando:** founder reporte ≥3 brokers piloto pidiéndolo (signal real demand)
+
+### CLI `python -m lead_nurture_engine --dry-run` (W4.18.2A emergent suggested)
+- **Origen:** W4.18.2A emergent suggested 2026-05-10 (P2)
+- **Destino:** F0 sweep tech debt
+- **Qué:** modo CLI dry-run para `lead_nurture_engine` Y.3E que itera leads activos sin enviar mensajes reales · output: tabla leads + qué mensaje recibirían + canal · útil debugging cron 04:15 MX
+- **Por qué:** cuando algo falla en cron nurture diario, founder/dev debug sin spam usuarios reales
+- **Costo:** ~2h (CLI argparse + dry_run flag en send functions + table output)
+- **Activar cuando:** F0 sweep próximo
+
 ### Resend "welcome broker" email post-signup-broker (W4.18.3 follow-up)
 - **Origen:** W4.18.3 spec mencionó pero no implementado (out-of-scope sub-A) · founder needs warm onboarding 2026-05-10
 - **Destino:** F0 sweep tech debt (Claude Code · ~1h) · activar antes de invitar primer broker piloto
