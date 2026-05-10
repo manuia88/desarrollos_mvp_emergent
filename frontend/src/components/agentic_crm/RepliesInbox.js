@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Mail, Cpu, Database, Zap, ChevronDown, ChevronRight, Check,
   AlertCircle, Inbox, Filter, Loader2, RefreshCw,
+  Phone, ArrowUpRight, Eye, ArrowRight, Trash2, X,
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -46,6 +47,15 @@ const ACTION_LABELS = {
   add_watchlist:        'Agregar a watchlist',
   advance_funnel_stage: 'Avanzar funnel',
   mark_spam:            'Marcar spam',
+};
+
+// Y.3C.5 — one-click action bridge
+const ONE_CLICK_META = {
+  notify_asesor:        { label: 'Llamar ahora',         Icon: Phone,        accent: '#10B981' },
+  escalate_manager:     { label: 'Escalar a manager',     Icon: ArrowUpRight, accent: '#EF4444' },
+  add_watchlist:        { label: 'Agregar a watchlist',   Icon: Eye,          accent: '#F59E0B' },
+  advance_funnel_stage: { label: "Mover a 'engaged'",     Icon: ArrowRight,   accent: '#6366F1' },
+  mark_spam:            { label: 'Archivar como spam',    Icon: Trash2,       accent: '#64748B' },
 };
 
 const FILTER_OPTS = [
@@ -116,7 +126,7 @@ function fmtDateTime(iso) {
   } catch { return iso; }
 }
 
-function ReplyRow({ reply, onMarkActionTaken, busy }) {
+function ReplyRow({ reply, onMarkActionTaken, onOneClick, busy }) {
   const [expanded, setExpanded] = useState(false);
   const cls = reply.classification || {};
   const urg = URGENCY_META[cls.urgency] || URGENCY_META.medium;
@@ -124,6 +134,10 @@ function ReplyRow({ reply, onMarkActionTaken, busy }) {
   const layer = LAYER_META[reply.layer_used] || LAYER_META.heuristic;
 
   const isPending = reply.status === 'pending';
+  const oneClick = cls.next_best_action_type ? ONE_CLICK_META[cls.next_best_action_type] : null;
+  const isHigh = cls.urgency === 'high';
+  // Variante: high → gradient prominente. medium/low → border-only.
+  const ctaVariant = isHigh ? 'primary' : 'ghost';
 
   return (
     <div
@@ -215,7 +229,18 @@ function ReplyRow({ reply, onMarkActionTaken, busy }) {
           ) : null}
 
           {isPending ? (
-            <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+            <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+              {oneClick ? (
+                <PillButton
+                  onClick={() => onOneClick(reply, cls.next_best_action_type)}
+                  disabled={busy}
+                  variant={ctaVariant}
+                  testid={`reply-oneclick-${cls.next_best_action_type}-${reply.reply_id}`}
+                  Icon={oneClick.Icon}
+                >
+                  {oneClick.label}
+                </PillButton>
+              ) : null}
               <PillButton
                 onClick={() => onMarkActionTaken(reply.reply_id)}
                 disabled={busy}
@@ -243,9 +268,11 @@ export default function RepliesInbox({ asesorId }) {
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
   const [busyId, setBusyId] = useState(null);
+  const [escalateState, setEscalateState] = useState(null); // { reply, reason, submitting }
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -272,13 +299,129 @@ export default function RepliesInbox({ asesorId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleMarkActionTaken = async (replyId) => {
+  const showToast = (text, kind = 'success') => {
+    setToast({ text, kind });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleMarkActionTaken = async (replyId, actionType = 'manual', actionData = {}) => {
     setBusyId(replyId);
     try {
-      await apiFetch(`/api/agentic-crm/replies/${replyId}/mark-action-taken`, { method: 'POST' });
+      await apiFetch(`/api/agentic-crm/replies/${replyId}/mark-action-taken`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_type: actionType, action_data: actionData }),
+      });
       await load();
+      showToast('Acción registrada');
     } catch (e) {
       setError(e.message || 'No se pudo marcar como atendida');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // Y.3C.5 — one-click action bridge
+  const handleOneClick = async (reply, actionType) => {
+    const replyId = reply.reply_id;
+    const leadId = reply.lead_id;
+    if (actionType === 'escalate_manager') {
+      setEscalateState({ reply, reason: '', submitting: false });
+      return;
+    }
+    setBusyId(replyId);
+    try {
+      if (actionType === 'notify_asesor') {
+        // Disparar flow action_call: si lead tiene phone abrir tel: link, si no log activity
+        const lead = leadId ? await apiFetch(`/api/asesor/leads/${leadId}`).catch(() => null) : null;
+        const phone = lead?.contact?.phone || lead?.phone;
+        if (phone) {
+          window.open(`tel:${phone}`, '_self');
+        }
+        await handleMarkActionTaken(replyId, 'call', { lead_id: leadId, phone: phone || null });
+        return;
+      }
+      if (actionType === 'add_watchlist') {
+        if (!leadId) {
+          showToast('Sin lead asociado', 'error');
+          return;
+        }
+        try {
+          await apiFetch(`/api/asesor/leads/${leadId}/watchlist`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'reply_classifier_one_click' }),
+          });
+        } catch (e) {
+          // Ya en watchlist → graceful
+          if (/already|existe|409/i.test(String(e.message || ''))) {
+            showToast('Ya en watchlist');
+          } else {
+            // Fallback: attempt direct lead patch
+            try {
+              await apiFetch(`/api/asesor/leads/${leadId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ watchlist: true }),
+              });
+            } catch (_) {
+              // ignore
+            }
+          }
+        }
+        await handleMarkActionTaken(replyId, 'add_watchlist', { lead_id: leadId });
+        showToast('Lead agregado a watchlist');
+        return;
+      }
+      if (actionType === 'advance_funnel_stage') {
+        if (!leadId) {
+          showToast('Sin lead asociado', 'error');
+          return;
+        }
+        try {
+          await apiFetch(`/api/asesor/leads/${leadId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stage: 'engaged' }),
+          });
+        } catch (_) {
+          // ignore
+        }
+        await handleMarkActionTaken(replyId, 'advance_stage', { lead_id: leadId });
+        showToast('Lead movido a engaged');
+        return;
+      }
+      if (actionType === 'mark_spam') {
+        await handleMarkActionTaken(replyId, 'archive_spam', { archived: true });
+        showToast('Reply archivada como spam');
+        return;
+      }
+      // Fallback genérico
+      await handleMarkActionTaken(replyId, actionType);
+    } catch (e) {
+      setError(e.message || 'No se pudo ejecutar la acción');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleEscalateSubmit = async () => {
+    if (!escalateState || !escalateState.reason || escalateState.reason.trim().length < 2) return;
+    const replyId = escalateState.reply.reply_id;
+    setEscalateState((s) => ({ ...s, submitting: true }));
+    setBusyId(replyId);
+    try {
+      await apiFetch(`/api/agentic-crm/replies/${replyId}/escalate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: escalateState.reason.trim() }),
+      });
+      setEscalateState(null);
+      showToast('Reply escalado al manager');
+      await load();
+    } catch (e) {
+      setError(e.message || 'No se pudo escalar');
+      setEscalateState((s) => (s ? { ...s, submitting: false } : null));
     } finally {
       setBusyId(null);
     }
@@ -436,9 +579,126 @@ export default function RepliesInbox({ asesorId }) {
           key={r.reply_id}
           reply={r}
           onMarkActionTaken={handleMarkActionTaken}
+          onOneClick={handleOneClick}
           busy={busyId === r.reply_id}
         />
       ))}
+
+      {/* Y.3C.5 — escalate modal */}
+      {escalateState ? (
+        <div
+          data-testid="escalate-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !escalateState.submitting) {
+              setEscalateState(null);
+            }
+          }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(6,8,15,0.72)',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            data-testid="escalate-modal"
+            style={{
+              maxWidth: 480, width: '100%',
+              background: 'rgba(13,16,23,0.96)',
+              border: '1px solid rgba(240,235,224,0.18)',
+              backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+              borderRadius: 16, padding: 20,
+            }}
+          >
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,
+            }}>
+              <div style={{
+                fontFamily: 'Outfit', fontSize: 16, fontWeight: 700, color: 'var(--cream)',
+              }}>
+                Escalar respuesta a manager
+              </div>
+              <button
+                data-testid="escalate-close-btn"
+                onClick={() => !escalateState.submitting && setEscalateState(null)}
+                style={{
+                  background: 'transparent', border: 'none', color: 'var(--cream-3)',
+                  cursor: 'pointer', padding: 4,
+                }}
+                aria-label="Cerrar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{
+              fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginBottom: 12,
+            }}>
+              De · {escalateState.reply.from_email || '—'}
+            </div>
+            <label style={{
+              fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase',
+              letterSpacing: '0.08em', fontWeight: 700,
+              fontFamily: 'DM Sans', display: 'block', marginBottom: 4,
+            }}>
+              Razón de escalación
+            </label>
+            <textarea
+              data-testid="escalate-reason-input"
+              value={escalateState.reason}
+              onChange={(e) => setEscalateState((s) => ({ ...s, reason: e.target.value }))}
+              disabled={escalateState.submitting}
+              rows={4}
+              placeholder="Describe brevemente por qué este reply requiere atención del manager…"
+              style={{
+                width: '100%', padding: '10px 12px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--border)', borderRadius: 12,
+                color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
+                resize: 'vertical', outline: 'none',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+              <PillButton
+                onClick={() => setEscalateState(null)}
+                disabled={escalateState.submitting}
+                variant="ghost"
+                testid="escalate-cancel-btn"
+              >
+                Cancelar
+              </PillButton>
+              <PillButton
+                onClick={handleEscalateSubmit}
+                disabled={escalateState.submitting || !escalateState.reason ||
+                          escalateState.reason.trim().length < 2}
+                variant="primary"
+                testid="escalate-submit-btn"
+                Icon={ArrowUpRight}
+              >
+                {escalateState.submitting ? 'Escalando…' : 'Escalar al manager'}
+              </PillButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Toast */}
+      {toast ? (
+        <div
+          data-testid="replies-toast"
+          style={{
+            position: 'fixed', bottom: 24, right: 24, zIndex: 10000,
+            padding: '10px 16px', borderRadius: 9999,
+            background: toast.kind === 'error' ? 'rgba(239,68,68,0.18)' : 'rgba(16,185,129,0.18)',
+            border: `1px solid ${toast.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(16,185,129,0.45)'}`,
+            color: toast.kind === 'error' ? '#FCA5A5' : '#86EFAC',
+            fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          }}
+        >
+          {toast.text}
+        </div>
+      ) : null}
     </div>
   );
 }

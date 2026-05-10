@@ -134,6 +134,11 @@ TOOLS Y PARAMS:
     devuelve: { reply_id, classification {category, confidence_score, urgency, key_phrases, recommended_action_text, next_best_action_type}, layer_used, latency_ms, dispatch }
     Úsalo cuando user pregunta "qué dice esta respuesta?", "clasifica reply X", "qué tan urgente es esto?".
 
+13. delegate_disc_inference
+    params: { "lead_id": str (requerido), "force_refresh": bool (opcional, default false) }
+    devuelve: { lead_id, scores {dominante, influyente, estable, concienzudo}, predominant_type "D"|"I"|"S"|"C", confidence_score, communication_preferences {tone, length_preference, urgency_response, preferred_channel}, recommended_approach_text, evidence, layer_used }
+    Úsalo cuando user pregunta "qué tipo de comprador es X", "cómo debo hablarle a este lead", "perfil DISC de Y", "qué approach uso con Z".
+
 REGLAS DE TOOLS:
 - Puedes incluir hasta 5 tool_calls en una respuesta
 - Solo incluye <tool_call> si realmente necesitas los datos para responder
@@ -218,8 +223,14 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any], org_id: str) ->
                 db, org_id,
                 reply_id=str(params.get("reply_id", "")),
             )
+        elif tool_name == "delegate_disc_inference":
+            return await _tool_delegate_disc_inference(
+                db, org_id,
+                lead_id=str(params.get("lead_id", "")),
+                force_refresh=bool(params.get("force_refresh", False)),
+            )
         else:
-            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply"}
+            return {"error": f"Tool '{tool_name}' no existe. Tools válidas: get_ie_score, get_unit_score, get_comparables, get_org_kpis, retrieve_memory, whatif_simulate, delegate_pricing_optimization, delegate_marketing_optimization, delegate_lead_optimization, delegate_lead_routing, delegate_visit_prep, delegate_classify_reply, delegate_disc_inference"}
     except Exception as exc:
         log.warning(f"[director_tool] {tool_name} error: {exc}")
         return {"error": str(exc)}
@@ -570,6 +581,46 @@ async def _tool_delegate_classify_reply(db, org_id: str, reply_id: str) -> Dict[
         "layer_used": result.get("layer_used"),
         "latency_ms": result.get("latency_ms"),
         "dispatch": result.get("dispatch") or {},
+    }
+
+
+async def _tool_delegate_disc_inference(db, org_id: str, lead_id: str,
+                                         force_refresh: bool = False) -> Dict[str, Any]:
+    """Tool 13 (Y.3D): invoca DISCInferencer para inferir perfil DISC de un lead."""
+    if not lead_id:
+        return {"error": "lead_id requerido para delegate_disc_inference"}
+    try:
+        from agentic_crm.disc_inferencer_engine import (
+            DISCInferencer, DISCInferencerDisabledError,
+            DISCInferencerRateLimitError, DISCInferencerNotFoundError,
+            DISCInferencerForbiddenError,
+        )
+        engine = DISCInferencer(db, org_id)
+        result = await engine.infer_profile(lead_id, force_refresh=force_refresh)
+    except DISCInferencerDisabledError as e:
+        return {"error": f"DISC Inferencer desactivado: {e}"}
+    except DISCInferencerRateLimitError as e:
+        return {"error": f"Rate limit DISC: {e}"}
+    except DISCInferencerNotFoundError as e:
+        return {"error": str(e)}
+    except DISCInferencerForbiddenError as e:
+        return {"error": str(e)}
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[director_tool] delegate_disc_inference failed: {e}")
+        return {"error": str(e)}
+
+    return {
+        "org_id": org_id,
+        "lead_id": lead_id,
+        "scores": result.get("scores") or {},
+        "predominant_type": result.get("predominant_type"),
+        "confidence_score": result.get("confidence_score"),
+        "communication_preferences": result.get("communication_preferences") or {},
+        "recommended_approach_text": result.get("recommended_approach_text"),
+        "evidence": result.get("evidence") or {},
+        "layer_used": result.get("layer_used"),
+        "data_quality": result.get("data_quality"),
+        "from_cache": result.get("from_cache", False),
     }
 
 

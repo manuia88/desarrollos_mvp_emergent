@@ -1278,6 +1278,92 @@
         "cross_org": "Cross-org acceso denegado.",
         "load_failed": "Error al cargar respuestas",
         "mark_failed": "No se pudo marcar como atendida"
+      },
+      "one_click": {
+        "call": "Llamar ahora",
+        "escalate": "Escalar a manager",
+        "add_watchlist": "Agregar a watchlist",
+        "advance_stage": "Mover a 'engaged'",
+        "archive_spam": "Archivar como spam",
+        "success_toast": "Acción registrada",
+        "already_watchlist": "Ya en watchlist",
+        "no_lead_associated": "Sin lead asociado",
+        "escalate_modal_title": "Escalar respuesta a manager",
+        "escalate_modal_reason": "Razón de escalación",
+        "escalate_modal_placeholder": "Describe brevemente por qué este reply requiere atención del manager…",
+        "escalate_submit": "Escalar al manager",
+        "escalate_submitting": "Escalando…",
+        "escalate_cancel": "Cancelar",
+        "escalated_ok": "Reply escalado al manager",
+        "advanced_engaged": "Lead movido a engaged",
+        "added_watchlist": "Lead agregado a watchlist",
+        "archived_spam": "Reply archivada como spam"
+      }
+    },
+    "disc": {
+      "title": "Perfil DISC",
+      "eyebrow": "CRM · Perfil DISC",
+      "predominant": {
+        "D": "Dominante",
+        "I": "Influyente",
+        "S": "Estable",
+        "C": "Concienzudo"
+      },
+      "scores_label": "Puntajes DISC",
+      "communication_label": "Cómo hablar con este comprador",
+      "approach_label": "Approach recomendado",
+      "evidence_label": "Evidencia",
+      "evidence_empty": "Sin evidencia concreta acumulada todavía.",
+      "evidence_section": {
+        "behavioral": "Behavioral",
+        "chat": "Chat",
+        "replies": "Email replies"
+      },
+      "preference": {
+        "tone_label": "Tono",
+        "length_label": "Longitud",
+        "urgency_label": "Urgencia",
+        "channel_label": "Canal",
+        "tone": {
+          "direct": "Directo",
+          "warm": "Cálido",
+          "patient": "Paciente",
+          "formal": "Formal"
+        },
+        "length": {
+          "concise": "Conciso",
+          "moderate": "Moderado",
+          "detailed": "Detallado"
+        },
+        "urgency": {
+          "immediate": "Inmediato",
+          "warm-up": "Calentamiento",
+          "methodical": "Metódico",
+          "data-driven": "Datos primero"
+        },
+        "channel": {
+          "call": "Llamada",
+          "whatsapp": "WhatsApp",
+          "email": "Email"
+        }
+      },
+      "refresh_button": "Refrescar perfil",
+      "refreshing": "Refrescando…",
+      "refresh_rate_limit": "Refresh disponible en 24h tras última inferencia",
+      "loading": "Inferiendo perfil DISC…",
+      "low_confidence_badge": "Confianza baja",
+      "layer_used": {
+        "llm": "LLM",
+        "cached": "Caché",
+        "cache": "Caché",
+        "heuristic": "Heurística"
+      },
+      "errors": {
+        "disabled": "DISC Inferencer requiere tier T1 o superior.",
+        "rate_limit": "Cap excedido. Intenta en 60 segundos.",
+        "cross_org": "Cross-org acceso denegado.",
+        "load_failed": "Error al cargar perfil DISC",
+        "refresh_failed": "No se pudo refrescar el perfil"
       }
     }
   }
