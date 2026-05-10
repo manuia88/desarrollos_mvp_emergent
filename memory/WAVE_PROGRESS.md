@@ -1,9 +1,9 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-10 (W4.6 Y.3D + Y.3C.5 shipped · Wave 4 ~216.5h · Phase Y 99.5/125h · próximo Y.3E Lead Nurture Intelligent · cierra Y.3)
-**Total H1 restante**: ~237.5h (Wave 4 pending de los 454h totales)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 216.5h = 583.5h shipped en H1
-**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (216.5h shipped, 237.5h pending) = 821h plan H1
+**Última actualización**: 2026-05-10 (🎯 PHASE Y.3 CERRADA 100% · W4.6 Y.3E Lead Nurture Intelligent shipped · Wave 4 ~224.5h · Phase Y 107.5/125h · próximo W4.7 Y.4 Adaptive features · cierra Phase Y al 100% en 17.5h más)
+**Total H1 restante**: ~229.5h (Wave 4 pending de los 454h totales)
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 224.5h = 591.5h shipped en H1
+**H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 454h (224.5h shipped, 229.5h pending) = 821h plan H1
 **Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
 **Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
 
@@ -157,7 +157,7 @@ Formato canónico per-batch (founder request):
 | W4.6 Y.3C | Reply Classifier (Resend webhooks Svix HMAC + 6 categorías + 5 next_best_actions + RepliesInbox UI) | 6 | 6 | emergent | ✅ | `b4e5494` | reply_classifier_engine 750L 3-layer + Resend webhook production-ready + Director 12vo tool · Phase Y 92/125h |
 | W4.6 Y.3D | DISC Inferencer (D/I/S/C scores + comm prefs + approach asesor) | 6 | 6 | emergent | ✅ | `b68a167` | disc_inferencer 811L 3-layer + 3 endpoints + Director 13vo tool + DiscProfileCard UI · Phase Y 99.5/125h |
 | W4.6 Y.3C.5 | One-click action bridge (CTAs RepliesInbox por next_best_action_type + escalate modal) | 1.5 | 1.5 | emergent | ✅ | `b68a167` | cierra loop Reply Classifier · 5 mappings action_type → flow · post-action auto-mark |
-| W4.6 Y.3E | Lead Nurture Intelligent (upgrade nurture engine W4.2D3.5) | 8 | — | emergent | ⏳ | — | — |
+| W4.6 Y.3E | Lead Nurture Intelligent (UPGRADE de W4.2D3.5 · 5 sequence types DISC + 5 tools + cron 04:15 MX + NurtureIntelligentPanel UI) | 8 | 8 | emergent | ✅ | `c3a2e9c` | NurtureIntelligentEngine 3-layer + Director 14vo tool + 5to sub-tab · **🎯 PHASE Y.3 CERRADA 100%** (40/36h con +1.5h fix-pass) |
 | W4.7 | Phase Y.4 Adaptive features per-user/org | 17 | — | emergent | ⏳ | — | 3 chunks · Caya per-tenant + Match weights adaptive + Argumentario tone behavioral-driven |
 | W4.8 | Phase Y.5 Observability + Replay Debugger + AI ROI per-dev dashboard | 15 | — | emergent | ⏳ | — | 4 chunks · Audit Replay + ML accuracy + Replay Debugger + AI ROI per-dev portal |
 | W4.9 | Phase 6 Studio Wave 1.5 **CORE H1** (brochure mejorado, sin video bundle) | 16 | — | emergent | ⏳ | — | core H1 · video bundle 34h DIFERIDO Wave 5 W5.16 |
@@ -196,6 +196,7 @@ Formato canónico per-batch (founder request):
 
 | Fecha | Batch | h real | SHA | Highlight |
 |---|---|---|---|---|
+| 2026-05-10 | **🎯 W4.6 Y.3E Lead Nurture Intelligent · PHASE Y.3 CERRADA 100%** | 8h | `c3a2e9c` (merge `3c60253`) | NurtureIntelligentEngine 3-layer + Director 14vo tool + 5 sequence types DISC + cron 04:15 + NurtureIntelligentPanel UI · Phase Y 107.5/125h ✅ |
 | 2026-05-10 | **W4.6 Y.3D + Y.3C.5 · DISC Inferencer + One-click action bridge** | 7.5h | `b68a167` (merge `1602e2c`) | disc_inferencer 811L 3-layer + Director 13vo tool + DiscProfileCard + RepliesInbox CTAs one-click · Phase Y 99.5/125h ✅ |
 | 2026-05-10 | **W4.6 Y.3C Reply Classifier · Resend webhook production-ready** | 6h | `b4e5494` (merge `7027fbf`) | reply_classifier 3-layer + Svix HMAC verify + 6 categorías + 5 next_best_actions + Director 12vo tool + RepliesInbox UI · Phase Y 92/125h ✅ |
 | 2026-05-10 | **W4.6 Y.3B Visit Prep Automation** | 6h | `ce1f208` (merge `94354cd`) | visit_prep_engine 3-layer + 3 endpoints + Director 11vo tool + cron daily 06:00 MX + VisitPrepDossier UI · Phase Y 86/125h ✅ |
