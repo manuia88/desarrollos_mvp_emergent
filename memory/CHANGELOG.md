@@ -1953,3 +1953,76 @@ Atlax pasa de ser un bubble flotante a ser **el corazón de la home pública** d
 
 ### Acceptance criteria: ✅ todos verificados
 ### Edge case: heuristic retornó 0 recs en el entorno de prueba porque los leads del DB tienen status distintos a active/new/contacted. Comportamiento correcto (no false positives).
+
+---
+
+## W4.18.1 — Apify Google Trends Integration (2026-05-09)
+
+### Backend (nuevo)
+- `/app/backend/apify_trends_engine.py`: ApifyTrendsEngine con cache MongoDB 7d TTL,
+  3-layer resilience (cache live → Apify Actor → cache stale → heurística vacía),
+  circuit breaker (3 fallas consecutivas → 15min cooldown), `wait_for_result=False`
+  modo background (chat ágil para Atlax LLM). Adapter dual-schema:
+  apify/google-trends-scraper (Puppeteer) + data_xplorer/google-trends-fast-scraper (pytrends).
+- `/app/backend/routes_trends.py`: 6 endpoints superadmin (lookup, cache/stats,
+  cache list, DELETE cache/{key} invalidate manual, refresh batch daily|weekly, keywords).
+- `/app/backend/tests/test_apify_trends.py`: 9 tests unitarios PASSED (helpers,
+  schemas, normalización dual-schema).
+
+### Backend (editado)
+- `/app/backend/server.py`: mount router + ensure_trends_indexes en startup.
+- `/app/backend/scheduler_ie.py`: 2 crons nuevos (apify_trends_daily 05:30 MX,
+  apify_trends_weekly Lun 06:00 MX).
+- `/app/backend/asistente_engine.py`: nueva tool pública `get_trends_for_query`
+  registrada en system prompt + dispatch + `_tool_get_trends_for_query` con
+  `wait_for_result=False` (snappy chat). Atlax LLM hereda automáticamente.
+- `/app/backend/.env`: `APIFY_TOKEN`, `APIFY_GOOGLE_TRENDS_ACTOR=apify/google-trends-scraper`.
+- `/app/backend/requirements.txt`: `apify-client>=1.6.0` agregado.
+
+### Frontend (nuevo)
+- `/app/frontend/src/pages/superadmin/SuperadminTrends.js`: página completa con
+  stats cards, lookup form (geo/timeframe/wait_for_result), gráfica SVG inline
+  (interest over time), top regiones, related queries (top + rising), batch
+  refresh manual (daily/weekly), tabla cache con invalidate per-row.
+
+### Frontend (editado)
+- `/app/frontend/src/App.js`: lazy import + ruta `/superadmin/trends`.
+- `/app/frontend/src/config/navByRole.js`: entry "Google Trends · CDMX" en SUPERADMIN_NAV.
+- `/app/frontend/src/i18n/locales/es-MX/common.json`: bloque `superadmin_trends.*`
+  con todas las strings es-MX.
+
+### DB
+- Nueva colección `trends_cache` con índices:
+  `cache_key` unique, `expires_at` TTL (auto-purge), `query+geo+timeframe`, `cached_at`.
+
+### Schema en `trends_cache`:
+  ```
+  { cache_key (sha1 unique), query, geo, timeframe, category, response (dict),
+    source ("apify"|"heuristic"), cached_at, expires_at (TTL), hit_count,
+    last_hit_at, created_at }
+  ```
+
+### Acceptance criteria
+- ✅ ensure_trends_indexes registrado y arranca sin error
+- ✅ Endpoints superadmin (auth required) responden 200/404/400 correctamente
+- ✅ Cache hit path (fast-path, <50ms, hit_count se incrementa)
+- ✅ Cache miss bg refresh (instant heurística, fire-and-forget Apify call)
+- ✅ DELETE invalidate (200 con cache_key válido / 404 si no existe)
+- ✅ Refresh batch endpoints (daily / weekly) ejecutan loop curated
+- ✅ 2 crons APScheduler registrados (daily 05:30 MX + weekly Lun 06:00 MX)
+- ✅ Atlax / Asistente público heredan tool `get_trends_for_query` automáticamente
+- ✅ Frontend renderiza con stats, gráfica, tabla, todas las testid presentes
+- ✅ 9 tests unitarios PASSED (`pytest tests/test_apify_trends.py`)
+
+### Limitación conocida (FREE plan Apify)
+El token Apify provisto está en plan FREE. El actor `apify/google-trends-scraper`
+usa Puppeteer y necesita proxies residenciales (no incluidos en FREE) para evitar
+CAPTCHAs de Google Trends. Resultado: actor.call() se queda esperando widgets
+embedidos y termina en TIMED-OUT (240s).
+
+→ La arquitectura completa funciona y degrada gracefully (heurística vacía + bg
+refresh + circuit breaker → no quema ACU). Cuando se haga upgrade a Apify
+STARTER ($49/mo) o se cambie a un actor pago non-Puppeteer-based
+(`data_xplorer/google-trends-fast-scraper`, `vasram/daily-trend-intelligence`),
+los crons + endpoints + UI ya están listos sin cambios de código (sólo cambiar
+`APIFY_GOOGLE_TRENDS_ACTOR` en .env).

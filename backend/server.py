@@ -432,6 +432,11 @@ from sub_agents.lead_agent import ensure_lead_indexes
 app.include_router(subagents_router)
 app.include_router(subagents_sa_router)
 
+# W4.18.1 — Apify Google Trends Integration
+from routes_trends import router as trends_router
+from apify_trends_engine import ensure_trends_indexes
+app.include_router(trends_router)
+
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
 from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
@@ -991,6 +996,11 @@ async def startup():
         await ensure_lead_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.5 lead sub-agent indexes failed: {e}")
+    # W4.18.1 — Apify Google Trends cache indexes
+    try:
+        await ensure_trends_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.18.1 apify trends indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
