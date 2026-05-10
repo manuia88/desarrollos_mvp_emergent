@@ -988,8 +988,33 @@ class NurtureIntelligentEngine:
             else:
                 reason = "no_email"
         elif ch == "whatsapp":
-            # W4.10 WhatsApp Business pendiente · skip+log
-            reason = "whatsapp_pending_W4.10"
+            # W4.10 WhatsApp Business · enviar vía WAEngine
+            try:
+                from whatsapp_engine import WAEngine
+                wa = WAEngine(self.db, org_id=s.get("org_id") or "dmx")
+                lead_doc = await self.db.leads.find_one(
+                    {"_id": s["lead_id"]}, {"_id": 0, "phone": 1, "whatsapp": 1, "telefono": 1}
+                )
+                to_number = (
+                    (lead_doc or {}).get("whatsapp")
+                    or (lead_doc or {}).get("phone")
+                    or (lead_doc or {}).get("telefono")
+                )
+                if to_number:
+                    body = touch.get("body") or touch.get("content") or touch.get("subject") or ""
+                    wa_result = await wa.send_message(
+                        to_number=str(to_number),
+                        body=body[:1600],
+                        lead_id=s["lead_id"],
+                    )
+                    if wa_result.get("ok"):
+                        sent_at = _now()
+                    else:
+                        reason = f"whatsapp_failed:{wa_result.get('error','?')}"
+                else:
+                    reason = "no_whatsapp_number"
+            except Exception as _wa_exc:
+                reason = f"whatsapp_error:{str(_wa_exc)[:80]}"
         elif ch == "asesor_handoff":
             await self._create_asesor_handoff_task(s["lead_id"], touch)
             sent_at = _now()

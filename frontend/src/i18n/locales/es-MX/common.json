@@ -1656,5 +1656,38 @@
       "rate_limit":      "Rate limit · espera 1h entre syncs",
       "load_failed":     "Error al cargar fuentes"
     }
+  },
+  "whatsapp": {
+    "title":                   "WhatsApp Business",
+    "template_label":          "Plantilla",
+    "send_button":             "Enviar mensaje",
+    "provider_status":         "Proveedor activo",
+    "message_status": {
+      "queued":    "En cola",
+      "sent":      "Enviado",
+      "delivered": "Entregado",
+      "read":      "Leido",
+      "failed":    "Fallido",
+      "received":  "Recibido"
+    }
+  },
+  "newsletter": {
+    "title":         "Newsletter Pulse",
+    "preview_button": "Vista previa",
+    "send_manual":   "Enviar ahora",
+    "opt_in":        "Suscribirse",
+    "opt_out":       "Cancelar suscripcion",
+    "segment": {
+      "dev":          "Desarrolladores",
+      "asesor":       "Asesores",
+      "buyer":        "Compradores",
+      "inversionista":"Inversionistas"
+    }
+  },
+  "voice_atlax": {
+    "mic_button_label":       "Hablar con Atlax",
+    "recording_indicator":    "Grabando...",
+    "transcribe_error":       "Error al transcribir el audio. Verifica el microfono.",
+    "voice_output_toggle":    "Activar respuesta por voz"
   }
 }

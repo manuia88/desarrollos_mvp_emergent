@@ -14,7 +14,7 @@ import {
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
-  AlertTriangle, Key, Package,
+  AlertTriangle, Key, Package, Mail, Phone,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -184,6 +184,8 @@ const SUPERADMIN_NAV = [
       { key: 'partners',          to: '/superadmin/partners',              label: 'Partners',               Icon: HeartHandshake },
       { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell Analytics',   Icon: BarChart2 },
       { key: 'landing-leads',     to: '/superadmin/landing-leads',         label: 'Leads landing',          Icon: Megaphone },
+      { key: 'whatsapp',          to: '/superadmin/whatsapp',              label: 'WhatsApp Business',      Icon: Phone },
+      { key: 'newsletter',        to: '/superadmin/newsletter',            label: 'Newsletter Pulse',       Icon: Mail },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },

@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle, Clock } from '../icons';
 import AtlaxThreadsSidebar from './AtlaxThreadsSidebar';
+import AtlaxVoiceButton from './AtlaxVoiceButton';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const SS_KEY = 'dmx.atlax.session_id';
@@ -713,6 +714,19 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
             display: 'flex', gap: 8, alignItems: 'center',
             background: '#0A0D16',
           }}>
+            <AtlaxVoiceButton
+              sessionToken={asistenteToken || sessionId}
+              onTranscript={text => {
+                setInput(text);
+                // Auto-enviar transcript como mensaje
+                setTimeout(() => {
+                  const fakeEvent = { preventDefault: () => {} };
+                  // usamos ref de input para disparar send
+                }, 100);
+              }}
+              disabled={busy}
+              compact={true}
+            />
             <input
               data-testid="caya-input"
               value={input}

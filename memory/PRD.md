@@ -6,11 +6,14 @@
 ---
 
 ## Stack técnico
-- **Backend**: FastAPI + Motor (Mongo) + emergentintegrations (Claude Sonnet 4.5)
+- **Backend**: FastAPI + Motor (Mongo) + emergentintegrations (Claude Sonnet 4.5, Haiku)
 - **Frontend**: React 18 + Tailwind + CSS vars + react-i18next + Mapbox GL JS
 - **DB**: MongoDB con caches weekly/24h
 - **Map**: Mapbox GL JS
-- **AI**: Claude Sonnet 4.5 (briefings, argumentarios, parser NLP)
+- **AI**: Claude Sonnet 4.5 + Claude Haiku 4.5 (briefings, argumentarios, parser NLP, newsletter)
+- **WhatsApp**: Twilio WhatsApp API (provider-agnostic: stub|twilio|business)
+- **STT**: OpenAI Whisper-1
+- **TTS**: ElevenLabs eleven_multilingual_v2
 
 ---
 
@@ -1915,7 +1918,7 @@ Para activar el feature real, agregar a `/app/backend/.env`:
 ```
 GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=GOCSPX-xxx
-GOOGLE_OAUTH_REDIRECT_URI=https://real-estate-ai-intel.preview.emergentagent.com/api/auth/google/drive-callback
+GOOGLE_OAUTH_REDIRECT_URI=https://latam-realestate.preview.emergentagent.com/api/auth/google/drive-callback
 ```
 Y en Google Cloud Console:
 1. Habilitar Google Drive API.
@@ -2871,7 +2874,7 @@ Sesión de QA E2E del usuario arrojó 8 bugs. Fixed todos en este iterate:
 ---
 
 ## URL preview
-https://real-estate-ai-intel.preview.emergentagent.com
+https://latam-realestate.preview.emergentagent.com
 
 - `/` Landing
 - `/marketplace` Grid desarrollos + AI search + filtros horizontales
