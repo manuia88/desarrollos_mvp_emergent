@@ -22,6 +22,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow: tests >5s · skip default"
     )
+    config.addinivalue_line(
+        "markers", "tenant_isolation: W4.15.3 G5 cross-tenant attack tests"
+    )
 
 
 # ─── Fixtures comunes Wave 1+ ───────────────────────────────────────────────
