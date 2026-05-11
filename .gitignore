@@ -1208,3 +1208,12 @@ credentials.json
 
 # W4.9 / W4.9.6 — Generated assets (brochures, 3DGS scans)
 backend/storage/
+-e 
+# Environment and credential files
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
