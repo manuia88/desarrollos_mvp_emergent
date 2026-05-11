@@ -16,6 +16,9 @@ import os
 import httpx
 import pytest
 
+pytestmark = pytest.mark.integration
+
+
 
 API = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 

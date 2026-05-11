@@ -28,6 +28,9 @@ BASE = _resolve_base()
 # Unique suffix per test run to avoid DB pollution between reruns
 import time as _t
 import uuid as _uuid
+
+pytestmark = pytest.mark.integration
+
 _RUN_SUFFIX = f"{int(_t.time())}{_uuid.uuid4().hex[:4]}"
 
 def _email(prefix: str) -> str:

@@ -13,6 +13,9 @@ import pytest
 import httpx
 from datetime import datetime, timezone
 
+pytestmark = pytest.mark.integration
+
+
 # ─── Config ───────────────────────────────────────────────────────────────────
 BASE_URL = os.environ.get("TEST_BASE_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001"))
 

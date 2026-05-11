@@ -3,6 +3,11 @@ import io
 import os
 import requests
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
+
 API = os.environ.get("TEST_API_URL", "http://localhost:8001")
 DEV_EMAIL = "developer@demo.com"
 DEV_PASS = "Dev2026!"

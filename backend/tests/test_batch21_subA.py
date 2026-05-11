@@ -10,6 +10,9 @@ import requests
 import os
 from datetime import datetime, timezone, timedelta
 
+pytestmark = pytest.mark.integration
+
+
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
 
 TOUR_COMPLETION_ENDPOINT = f"{BASE}/api/metrics/tour-completion"

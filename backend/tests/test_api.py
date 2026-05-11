@@ -3,6 +3,9 @@ import os
 import pytest
 import requests
 
+pytestmark = pytest.mark.integration
+
+
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 assert BASE_URL, "REACT_APP_BACKEND_URL is required"
 

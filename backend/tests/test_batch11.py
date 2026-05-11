@@ -2,6 +2,11 @@
 import os
 import requests
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
+
 API = os.environ.get("TEST_API_URL", "http://localhost:8001")
 DEV_ID = "altavista-polanco"
 UNIT_ID = "altavista-polanco-02A"

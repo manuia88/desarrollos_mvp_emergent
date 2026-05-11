@@ -14,6 +14,9 @@ from datetime import datetime, timezone, timedelta
 import httpx
 import pytest
 
+pytestmark = pytest.mark.integration
+
+
 BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:8001")
 
 

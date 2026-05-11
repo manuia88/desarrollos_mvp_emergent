@@ -250,7 +250,7 @@ from cross_sell_engine import ensure_indexes as ensure_cross_sell_indexes
 app.include_router(cross_sell_router)
 app.include_router(partners_router)
 # W3.9b — Watchlist subscribe (public)
-from routes_watchlist import router as watchlist_router, ensure_indexes as ensure_watchlist_indexes
+from routes.watchlist import router as watchlist_router, ensure_indexes as ensure_watchlist_indexes
 app.include_router(watchlist_router)
 
 # Phase 4 Batch 1 — Dev Portal Foundation

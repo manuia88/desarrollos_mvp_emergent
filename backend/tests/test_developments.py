@@ -10,6 +10,9 @@ import uuid
 import pytest
 import requests
 
+pytestmark = pytest.mark.integration
+
+
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://spatial-intel-6.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 

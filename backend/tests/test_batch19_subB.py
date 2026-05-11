@@ -11,6 +11,9 @@ import requests
 import os
 import io
 
+pytestmark = pytest.mark.integration
+
+
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
 
 DMX_DEFAULTS = {

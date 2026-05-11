@@ -1,6 +1,11 @@
 """Phase 4 Batch 0.5 — Diagnostic Engine regression tests."""
 import requests
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
+
 API = "http://localhost:8001"
 DEV_EMAIL = "developer@demo.com"
 DEV_PASS = "Dev2026!"

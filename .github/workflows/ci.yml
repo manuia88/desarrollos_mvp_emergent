@@ -46,6 +46,11 @@ jobs:
           done
           [ "$fail" = "0" ] && echo "All backend files compile OK" || echo "WARN: some files failed"
 
+      - name: Run unit tests (Wave 1+ · no infra needed)
+        run: |
+          cd backend
+          pytest -m unit -v 2>&1 | tail -50
+
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest

@@ -1,6 +1,11 @@
 """Phase 4 Batch 13 — Cross-portal sync + tracking attribution tests."""
 import requests
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
+
 API = "http://localhost:8001"
 
 

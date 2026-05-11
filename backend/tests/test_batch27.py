@@ -5,6 +5,11 @@ Run: pytest /app/backend/tests/test_batch27.py -q
 import os
 import httpx
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
+
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
 
 
