@@ -1,8 +1,8 @@
-"""W4.18.2B Sub-D — AVM público + Colonia stats.
+"""F0.1 Sub-B — AVM público + Colonia stats.
 
-Heuristic AVM (no hedonic_engine.py disponible en codebase actual).
-Modelo: precio_per_m2 base de COLONIAS × ajustes (recamaras, banos, antiguedad)
-Confidence: ±12% rango por defecto (8% si dato verificable, 18% si fallback).
+PRIMARY: hedonic_regression_engine (W3 ML model).
+FALLBACK: heuristic (precio_per_m2 base × adjusts) when model not fit / not available.
+Response shape kept identical for backward compat with UI Valores.js (W4.18.2B).
 """
 from __future__ import annotations
 
@@ -34,19 +34,143 @@ def avm_quick(
         return {"error": "colonia_not_found", "colonia_slug": colonia_slug}
 
     base_per_m2 = col.get("price_m2_num") or 50000
-    # Ajustes
+    # Ajustes heurísticos (fallback)
     rec_factor = 1.0 + (recamaras - 2) * 0.04  # base 2 rec
     ban_factor = 1.0 + (banos - 2) * 0.025     # base 2 baños
-    age_factor = max(0.55, 1.0 - (antiguedad_anos * 0.012))  # 1.2% deprec/año, floor 55%
+    age_factor = max(0.55, 1.0 - (antiguedad_anos * 0.012))
     adj_per_m2 = base_per_m2 * rec_factor * ban_factor * age_factor
-    estimate = adj_per_m2 * m2
+    heuristic_estimate = adj_per_m2 * m2
 
-    # Confidence: rangos ±12%
+    # Default to heuristic
+    estimate = heuristic_estimate
+    adj_pm2 = adj_per_m2
+    range_low = round(estimate * 0.88)
+    range_high = round(estimate * 1.12)
+    confidence = "media"
+    pricing_model = "heuristic"
+    r_squared: Optional[float] = None
+    model_id: Optional[str] = None
+
+    return _avm_response(
+        colonia_slug, col, m2, recamaras, banos, antiguedad_anos,
+        estimate, adj_pm2, range_low, range_high, confidence,
+        pricing_model, r_squared, model_id,
+    )
+
+
+async def avm_quick_async(
+    db,
+    colonia_slug: str,
+    m2: float,
+    recamaras: int,
+    banos: int,
+    antiguedad_anos: int,
+) -> Dict[str, Any]:
+    """Async path that prefers hedonic_regression_engine real model.
+    Falls back to heuristic if the model is not available."""
+    col = _colonia_record(colonia_slug)
+    if not col:
+        return {"error": "colonia_not_found", "colonia_slug": colonia_slug}
+
+    base_per_m2 = col.get("price_m2_num") or 50000
+    rec_factor = 1.0 + (recamaras - 2) * 0.04
+    ban_factor = 1.0 + (banos - 2) * 0.025
+    age_factor = max(0.55, 1.0 - (antiguedad_anos * 0.012))
+    adj_per_m2 = base_per_m2 * rec_factor * ban_factor * age_factor
+    heuristic_estimate = adj_per_m2 * m2
+
+    # Try hedonic regression real model
+    pricing_model = "heuristic"
+    r_squared: Optional[float] = None
+    model_id: Optional[str] = None
+    estimate = heuristic_estimate
+    adj_pm2 = adj_per_m2
     range_low = round(estimate * 0.88)
     range_high = round(estimate * 1.12)
     confidence = "media"
 
-    # Comparables mock: top devs misma colonia
+    try:
+        from hedonic_regression_engine import predict_price
+        latest_model = await db.hedonic_models.find_one(
+            {"available": True}, {"_id": 0, "id": 1},
+            sort=[("fit_at_dt", -1)],
+        )
+        if latest_model:
+            # Colonia score proxy (best-effort)
+            colonia_score = 60.0
+            try:
+                zs = await db.zone_scores.find_one(
+                    {"$or": [{"zone_id": colonia_slug}, {"slug": colonia_slug}]},
+                    {"_id": 0, "score_total": 1},
+                )
+                if zs and zs.get("score_total") is not None:
+                    colonia_score = float(zs["score_total"])
+            except Exception:
+                pass
+            features = {
+                "m2": float(m2),
+                "recamaras": int(recamaras),
+                "banos": int(banos),
+                "antiguedad_anos": int(antiguedad_anos),
+                "colonia_score": colonia_score,
+            }
+            pred = await predict_price(db, latest_model["id"], features)
+            if pred.get("available") and pred.get("predicted_total"):
+                pred_total = float(pred["predicted_total"])
+                pred_r2 = pred.get("r_squared")
+                # Sanity guard: skip if r² too low OR estimate diverges >3x from heuristic baseline
+                r2_ok = (pred_r2 is None) or (float(pred_r2) >= 0.20)
+                ratio_ok = (
+                    heuristic_estimate > 0
+                    and (pred_total / heuristic_estimate) >= 0.30
+                    and (pred_total / heuristic_estimate) <= 3.0
+                )
+                if not (r2_ok and ratio_ok):
+                    log.info(
+                        f"[avm] hedonic rejected (low quality) · colonia={colonia_slug} "
+                        f"r2={pred_r2} pred={pred_total:.0f} heur={heuristic_estimate:.0f} · fallback heuristic"
+                    )
+                else:
+                    estimate = pred_total
+                    adj_pm2 = float(pred.get("predicted_price_per_m2") or (estimate / m2 if m2 else 0))
+                    low_pm2 = float(pred.get("ci95_low_per_m2") or 0)
+                    high_pm2 = float(pred.get("ci95_high_per_m2") or 0)
+                    if low_pm2 and high_pm2 and m2:
+                        range_low = round(low_pm2 * m2)
+                        range_high = round(high_pm2 * m2)
+                    else:
+                        range_low = round(estimate * 0.88)
+                        range_high = round(estimate * 1.12)
+                    r_squared = pred_r2
+                    model_id = pred.get("model_id")
+                    if r_squared is not None and r_squared >= 0.65:
+                        confidence = "alta"
+                    elif r_squared is not None and r_squared >= 0.40:
+                        confidence = "media"
+                    else:
+                        confidence = "baja"
+                    pricing_model = "hedonic_regression"
+                    log.info(f"[avm] hedonic_predict used · colonia={colonia_slug} pm2={adj_pm2:.0f} r2={r_squared}")
+            else:
+                log.info(f"[avm] heuristic fallback · colonia={colonia_slug} reason=no_fit")
+        else:
+            log.info(f"[avm] heuristic fallback · colonia={colonia_slug} reason=no_model_available")
+    except Exception as exc:
+        log.warning(f"[avm] hedonic_predict error · fallback heuristic · {exc}")
+
+    return _avm_response(
+        colonia_slug, col, m2, recamaras, banos, antiguedad_anos,
+        estimate, adj_pm2, range_low, range_high, confidence,
+        pricing_model, r_squared, model_id,
+    )
+
+
+def _avm_response(
+    colonia_slug, col, m2, recamaras, banos, antiguedad_anos,
+    estimate, adj_per_m2, range_low, range_high, confidence,
+    pricing_model, r_squared, model_id,
+) -> Dict[str, Any]:
+    # Comparables: top devs misma colonia
     from data_developments import DEVELOPMENTS
     comparables = []
     for d in DEVELOPMENTS:
@@ -77,6 +201,9 @@ def avm_quick(
         "confidence": confidence,
         "comparables": comparables,
         "disclaimer": "Estimación referencial · no constituye avalúo profesional.",
+        "pricing_model": pricing_model,
+        "model_id": model_id,
+        "r_squared": r_squared,
         "generated_at": _now().isoformat(),
     }
 

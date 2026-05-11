@@ -643,6 +643,11 @@ from routes_mcp_distribution import router as mcp_distribution_router
 from mcp_distribution_engine import ensure_mcp_distribution_indexes as ensure_mcp_distribution_indexes_fn
 app.include_router(mcp_distribution_router)
 
+# F0.1 — Score Inversión DMX 0-100
+from routes_score_inversion import router as score_inversion_router
+from score_inversion_engine import ensure_score_inversion_indexes as ensure_score_inversion_indexes_fn
+app.include_router(score_inversion_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):

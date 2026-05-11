@@ -47,7 +47,9 @@ async def avm_quick_endpoint(
     antiguedad_anos: int = Query(..., ge=0, le=200),
 ):
     _rate_limit_check(_client_ip(request))
-    out = eng.avm_quick(colonia_slug, m2, recamaras, banos, antiguedad_anos)
+    out = await eng.avm_quick_async(
+        request.app.state.db, colonia_slug, m2, recamaras, banos, antiguedad_anos,
+    )
     if "error" in out:
         raise HTTPException(404, out["error"])
     return JSONResponse({"ok": True, **out})

@@ -253,6 +253,14 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### Cron diario top_colonias_by_score pre-compute (F0.1 enhancement emergent suggested 2026-05-10)
+- **Origen:** F0.1 emergent suggested 2026-05-10 post-shipped
+- **Destino:** F0.2 sweep próximo o F0.3 (~1h)
+- **Qué:** cron job diario 06:00 MX dispara `top_colonias_by_score(use_cache=False)` · pre-calcula y guarda en cache las top 10 colonias antes que primer usuario llegue · UI `/inteligencia` reduce espera "Calculando…" a 0ms
+- **Por qué:** primer hit del día tiene latencia 10-15s por compute lento secuencial · UX rota · cron pre-compute resuelve sin cambios UI
+- **Costo:** ~25L en `cron_scheduler.py` existente (~1h)
+- **Activar:** F0.2 próximo · alto ROI low effort
+
 ### Free Audit funnel stats admin endpoint (W4.16 enhancement emergent suggested 2026-05-10)
 - **Origen:** W4.16 emergent suggested 2026-05-10 post-shipped
 - **Destino:** F0 sweep tech debt (~1h)

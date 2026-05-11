@@ -7,7 +7,7 @@ import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { Sparkle, Database, BarChart, Route, Shield, Leaf, Store, ArrowRight } from '../components/icons';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
-import RiskWatchlist from '../components/watchlist/RiskWatchlist';
+import ScoreBadge from '../components/investment/ScoreBadge';
 import { useAuth } from '../App';
 
 const CATEGORIES = [
@@ -153,7 +153,6 @@ export default function Inteligencia() {
             Ver el motor en acción <ArrowRight size={12} />
           </a>
         </div>
-        <RiskWatchlist />
       </main>
       <CtaFooter />
 
@@ -163,7 +162,106 @@ export default function Inteligencia() {
         code={explainCode}
         onClose={() => setExplainCode(null)}
       />
+      <TopColoniasByScore />
       <AtlaxBubble />
     </div>
+  );
+}
+
+// F0.1 · Top 10 colonias DMX Score (bento section)
+function TopColoniasByScore() {
+  const API = process.env.REACT_APP_BACKEND_URL;
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    fetch(`${API}/api/investment-simulator/score/top-colonias?limit=10`)
+      .then((r) => r.json())
+      .then((d) => setItems(d?.items || []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [API]);
+
+  return (
+    <section
+      data-testid="top-colonias-score-section"
+      style={{
+        maxWidth: 1280, margin: '40px auto 60px',
+        padding: '0 24px',
+      }}
+    >
+      <div style={{ marginBottom: 18 }}>
+        <span style={{
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.12em',
+          color: 'var(--cream-3, #a0a4b0)',
+        }}>
+          DMX SCORE INVERSIÓN
+        </span>
+        <h2 style={{
+          fontFamily: 'Outfit', fontWeight: 800, fontSize: 28,
+          margin: '6px 0 8px', letterSpacing: '-0.01em', color: 'var(--cream)',
+        }}>
+          Top 10 colonias DMX Score
+        </h2>
+        <p style={{
+          fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-3, #a0a4b0)',
+          margin: 0, lineHeight: 1.55,
+        }}>
+          Ranking compuesto: TIR + Zone Score + Demand-Supply + resiliencia stress.
+        </p>
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 18, fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)' }}>
+          Calculando…
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid', gap: 10,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        }}>
+          {items.map((it, i) => (
+            <a
+              key={it.colonia_slug}
+              href={`/simulador?colonia=${encodeURIComponent(it.colonia_slug)}`}
+              data-testid={`top-colonia-card-${it.colonia_slug}`}
+              style={{
+                background: 'rgba(13,16,23,0.92)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 16, padding: 16,
+                backdropFilter: 'blur(24px)',
+                textDecoration: 'none',
+                display: 'flex', alignItems: 'center', gap: 12,
+                transition: 'transform 220ms ease, border-color 220ms ease',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
+            >
+              <div style={{
+                minWidth: 28, fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,
+                color: 'var(--cream-3, #a0a4b0)',
+              }}>
+                {String(i + 1).padStart(2, '0')}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {it.colonia_name}
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3, #a0a4b0)', marginTop: 2 }}>
+                  {it.recommendation}
+                </div>
+              </div>
+              <ScoreBadge
+                size="small"
+                score={it.score}
+                tier={it.tier}
+                label={it.label}
+                showTooltip={false}
+              />
+            </a>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
