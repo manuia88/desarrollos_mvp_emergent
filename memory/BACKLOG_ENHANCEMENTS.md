@@ -8,6 +8,23 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### permissions.py vs routes/dev_batch4_2.py · consolidar duplicados (origen: SHA `81800aa` · W4.15.3 tenant isolation tests · 2026-05-11)
+
+**Hallazgo**: Dos archivos definen `can_view_full_client_data` y `can_move_lead` con lógica diferente:
+- `backend/permissions.py` · lógica laxa (developer_director permite cross-tenant) · NADIE la importa (código zombie)
+- `backend/routes/dev_batch4_2.py` · lógica estricta (valida tenant) · usada por endpoints reales (dev_batch4_4.py:319)
+
+**Riesgo actual**: cero operacional (nadie usa la versión laxa).
+**Riesgo futuro**: medio · si alguien hace `from permissions import can_view_full_client_data` pensando que es la oficial, bug silencioso de seguridad cross-tenant.
+
+**Fix**:
+1. Decidir cuál es la canónica (sugerencia: estricta · `routes/dev_batch4_2.py` → mover a `permissions.py`)
+2. Eliminar duplicado
+3. Re-correr tenant_isolation suite · los 2 xfail deberían pasar
+4. Actualizar tests Wave 1 `test_permissions_unit.py` si afecta
+
+**Costo**: 2-3h · **Destino**: post-launch o pre-Wave 5
+
 ### Onboarding Tour backlog post-W4.15.2 (origen: SHA `1af822a` · 2026-05-11)
 
 1. **Backend endpoint `PATCH /api/preferences/me/tours-reset`** — el botón "Reiniciar tour" actual usa state override en frontend sin persistir. Falta endpoint que limpie `tours_completed: []` y `tours_dismissed: []` permanentemente
