@@ -186,6 +186,7 @@ const SUPERADMIN_NAV = [
       { key: 'landing-leads',     to: '/superadmin/landing-leads',         label: 'Leads landing',          Icon: Megaphone },
       { key: 'whatsapp',          to: '/superadmin/whatsapp',              label: 'WhatsApp Business',      Icon: Phone },
       { key: 'newsletter',        to: '/superadmin/newsletter',            label: 'Newsletter Pulse',       Icon: Mail },
+      { key: 'onboarding',        to: '/superadmin/onboarding-analytics',  label: 'Tours Onboarding',       Icon: Sparkles },
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },

@@ -2224,6 +2224,54 @@
     "export_csv": "Exportar CSV",
     "export_csv_title": "Descarga submissions para CRM (Excel-friendly UTF-8 BOM)"
   },
+  "tours": {
+    "nav": {
+      "back": "Atrás",
+      "close": "Cerrar",
+      "last": "Listo, ir al portal",
+      "next": "Siguiente",
+      "skip": "Saltar tour",
+      "open": "Abrir"
+    },
+    "settings": {
+      "restart_tour": "Reiniciar tour de bienvenida"
+    },
+    "dev_first_login": {
+      "step1": { "title": "Bienvenido a DesarrollosMX", "content": "Tu plataforma AI-native para gestionar proyectos residenciales en LATAM." },
+      "step2": { "title": "Navegación por niveles", "content": "El sidebar organiza todas las funciones en 3 niveles: Proyectos, Ventas y Configuración." },
+      "step3": { "title": "Mis Proyectos", "content": "Aquí encuentras todos tus desarrollos con health scores, leads activos y métricas clave." },
+      "step4": { "title": "Crea tu primer proyecto", "content": "Usa el wizard guiado de 7 pasos para subir tu desarrollo y publicarlo en el marketplace." },
+      "step5": { "title": "CRM de Ventas", "content": "Gestiona tu pipeline de leads con Kanban visual, filtros inteligentes y heat scoring IA." },
+      "step6": { "title": "Motor de Diagnóstico", "content": "El engine analiza tu proyecto en 35 dimensiones y genera acciones correctivas priorizadas." },
+      "step7": { "title": "Project Switcher · Cmd+/", "content": "Usa Cmd+/ para cambiar de proyecto al instante. Cmd+K para búsqueda universal." }
+    },
+    "asesor_first_login": {
+      "step1": { "title": "Bienvenido, Asesor", "content": "Tu portal CRM con IA para gestionar contactos, búsquedas y cerrar más operaciones." },
+      "step2": { "title": "CRM Kanban", "content": "Arrastra contactos entre columnas del pipeline. Validaciones inteligentes protegen el flujo." },
+      "step3": { "title": "Calendar OAuth", "content": "Conecta tu Google Calendar para gestionar disponibilidad y confirmar citas automáticamente." },
+      "step4": { "title": "Mis Leads", "content": "Cada contacto tiene timeline completo, resumen IA y argumentario Claude personalizado." },
+      "step5": { "title": "Links de Tracking", "content": "Genera links únicos con UTM para rastrear qué canales te traen más conversiones." }
+    },
+    "inmobiliaria_first_login": {
+      "step1": { "title": "Bienvenido a tu Portal", "content": "Dashboard centralizado para gestionar tu red de asesores y pipeline de ventas." },
+      "step2": { "title": "Portfolio Overview", "content": "Visualiza el performance consolidado de todos tus desarrollos en tiempo real." },
+      "step3": { "title": "Gestión de Asesores", "content": "Asigna desarrollos, revisa métricas por asesor y activa comisiones automáticas." },
+      "step4": { "title": "Lead Pipeline", "content": "CRM unificado con filtros por colonia, precio y stage de conversión." },
+      "step5": { "title": "Reportes y Exportación", "content": "Descarga reportes ejecutivos en PDF o CSV para tus reuniones de directorio." }
+    },
+    "comprador_first_login": {
+      "step1": { "title": "Bienvenido al Marketplace", "content": "Explora todos los desarrollos residenciales disponibles en LATAM con datos en tiempo real." },
+      "step2": { "title": "Búsqueda Inteligente", "content": "Filtra por colonia, precio, amenidades o usa búsqueda por foto e IA conversacional." },
+      "step3": { "title": "Tarjetas de Desarrollo", "content": "Cada card muestra score de inversión, plusvalía proyectada y contacto directo al asesor." },
+      "step4": { "title": "Solicitar Información", "content": "Conecta con el asesor del desarrollo que más te interese con un clic." }
+    },
+    "dev_post_first_project": {
+      "step1": { "title": "Proyecto publicado", "content": "Tu desarrollo ya está en el marketplace. Ahora configura tu estrategia de ventas." },
+      "step2": { "title": "Reportes de Inteligencia", "content": "Analiza comportamiento de compradores, fuentes de leads y tendencias de precios por colonia." },
+      "step3": { "title": "Activa el CRM", "content": "Conecta el pipeline de leads con tu equipo de ventas y activa nurturing automatizado." },
+      "step4": { "title": "Acceso Rápido Universal", "content": "Cmd+K te da acceso a cualquier sección, proyecto o contacto sin usar el mouse." }
+    }
+  },
   "a11y": {
     "skip_to_content": "Saltar al contenido principal",
     "dmx_logo": "Logo DesarrollosMX",
