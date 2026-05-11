@@ -6,21 +6,41 @@ Endpoints:
 - POST /api/superadmin/invites/{code}/revoke (superadmin)
 - GET  /api/auth/validate-code/{code}      (public)
 - POST /api/auth/signup-broker             (public, code-gated)
-- POST /api/waitlist/signup                (public, idempotent)
+- POST /api/waitlist/signup                (public, idempotent, rate-limited)
 - GET  /api/superadmin/waitlist            (superadmin)
 """
 from __future__ import annotations
 
+import logging
+import time
 import uuid
+from collections import defaultdict, deque
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request, Response, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import private_beta_engine as eng
 
+log = logging.getLogger("dmx.routes_private_beta")
 router = APIRouter()
+
+# F0.1 Sub-D · in-memory rate limit (pattern from routes_avm_public.py)
+_WAITLIST_RL: Dict[str, Deque[float]] = defaultdict(deque)
+WAITLIST_RL_WINDOW_S = 60
+WAITLIST_RL_MAX = 30
+
+
+def _waitlist_rate_limit(ip: str) -> None:
+    now = time.time()
+    q = _WAITLIST_RL[ip]
+    while q and (now - q[0]) > WAITLIST_RL_WINDOW_S:
+        q.popleft()
+    if len(q) >= WAITLIST_RL_MAX:
+        raise HTTPException(429, "Too many requests · retry in 1 min",
+                            headers={"Retry-After": "60"})
+    q.append(now)
 
 
 def _db(request: Request):
@@ -148,6 +168,25 @@ async def signup_broker(body: SignupBrokerIn, response: Response, request: Reque
         await db.users.delete_one({"user_id": user_id})
         raise HTTPException(409, "code_race_consumed")
 
+    # F0.1 Sub-C · Welcome broker email (best-effort, never blocks)
+    welcome_sent = False
+    try:
+        from resend_engine import send_welcome_broker
+        welcome_sent = send_welcome_broker(
+            email=body.email, name=body.name or body.email.split("@")[0], invite_code=code,
+        )
+    except Exception as exc:
+        log.warning(f"[signup_broker] welcome email exception · {exc}")
+    try:
+        await db.audit_log.insert_one({
+            "user_id": user_id,
+            "action": "welcome_broker_email_sent" if welcome_sent else "welcome_broker_email_failed",
+            "resource": f"user:{user_id}",
+            "ts": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
     access = create_access_token(user_id, body.email)
     refresh = create_refresh_token(user_id)
     response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=28800)
@@ -167,6 +206,8 @@ class WaitlistIn(BaseModel):
 
 @router.post("/api/waitlist/signup")
 async def waitlist_signup(body: WaitlistIn, request: Request):
+    ip = _client_ip(request)
+    _waitlist_rate_limit(ip)
     db = _db(request)
     out = await eng.add_to_waitlist(
         db, body.email,
@@ -175,7 +216,7 @@ async def waitlist_signup(body: WaitlistIn, request: Request):
             "utm_medium":   body.utm_medium or "",
             "utm_campaign": body.utm_campaign or "",
         },
-        ip=_client_ip(request),
+        ip=ip,
         locale=body.locale or "es-MX",
     )
     if not out.get("ok"):

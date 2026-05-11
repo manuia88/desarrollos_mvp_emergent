@@ -640,6 +640,11 @@ from routes_mcp_distribution import router as mcp_distribution_router
 from mcp_distribution_engine import ensure_mcp_distribution_indexes as ensure_mcp_distribution_indexes_fn
 app.include_router(mcp_distribution_router)
 
+# F0.1 — Score Inversión DMX
+from routes_score_inversion import router as score_inversion_router
+from score_inversion_engine import ensure_score_inversion_indexes as ensure_score_inversion_indexes_fn
+app.include_router(score_inversion_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):
@@ -1225,6 +1230,11 @@ async def startup():
         await ensure_mcp_distribution_indexes_fn(db)
     except Exception as e:
         logging.warning(f"[startup] W4.16 marketing indexes failed: {e}")
+    # F0.1 — Score Inversión indexes
+    try:
+        await ensure_score_inversion_indexes_fn(db)
+    except Exception as e:
+        logging.warning(f"[startup] F0.1 score_inversion indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

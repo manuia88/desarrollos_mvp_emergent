@@ -2186,5 +2186,38 @@
       "copied": "Copiado",
       "broker_portal": "Ir a broker portal"
     }
+  },
+  "score_inversion": {
+    "badge": {
+      "suffix": "DMX SCORE"
+    },
+    "sections": {
+      "top_colonias": "Top 10 colonias DMX Score",
+      "top_subtitle": "Ranking compuesto: TIR + Zone Score + Demand-Supply + resiliencia stress."
+    },
+    "factors": {
+      "tir": "TIR normalizada",
+      "zone": "Zone Score",
+      "demand": "Demand-Supply gap",
+      "stress": "Resiliencia stress"
+    },
+    "cta": {
+      "how_calculated": "Cómo se calcula",
+      "close": "Cerrar",
+      "see_simulator": "Ver simulador"
+    },
+    "tiers": {
+      "AAA": "AAA · Investment grade prima",
+      "AA": "AA · Investment grade alta",
+      "A": "A · Investment grade",
+      "BBB": "BBB · Investment grade media",
+      "BB": "BB · Especulativo",
+      "B": "B · Alto riesgo"
+    },
+    "methodology": {
+      "title": "Metodología · DMX Score",
+      "intro": "El DMX Score se calcula como una combinación ponderada de cuatro factores cuantitativos, todos normalizados a una escala 0-100:",
+      "footer": "Cada factor se traduce a puntos (valor × peso) y la suma forma el score 0-100."
+    }
   }
 }

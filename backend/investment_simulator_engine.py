@@ -316,6 +316,25 @@ async def simulate(
         "optimista": optimista,
     }
 
+    # F0.1 · Attach DMX Score (single computation, attached to all 3 scenarios)
+    try:
+        from score_inversion_engine import compute_score
+        sc = await compute_score(
+            db, colonia_slug=colonia_slug, precio=precio_entrada,
+            plazo_meses=plazo_meses, m2=m2,
+        )
+        for key in ("conservador", "base", "optimista"):
+            if isinstance(result.get(key), dict):
+                result[key]["dmx_score"] = sc["score"]
+                result[key]["dmx_tier"] = sc["tier"]
+                result[key]["dmx_label"] = sc["label"]
+                result[key]["dmx_factors"] = sc["factors"]
+        result["dmx_score"] = sc["score"]
+        result["dmx_tier"] = sc["tier"]
+        result["dmx_label"] = sc["label"]
+    except Exception:
+        pass
+
     _cache_set(cache_key, result)
     return result
 

@@ -1,5 +1,6 @@
 // W4.14 — ScenarioCard · tarjeta de escenario de inversión
 import React, { useState } from 'react';
+import ScoreBadge from './ScoreBadge';
 
 const SCENARIO_COLORS = {
   conservador: { accent: '#6B7280', bg: 'rgba(107,114,128,0.08)', label: 'Conservador' },
@@ -50,13 +51,22 @@ export default function ScenarioCard({ tier, scenario, expanded: exProp, onExpan
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8, flexWrap: 'wrap' }}>
         <span style={{
           fontFamily: 'Outfit', fontWeight: 700, fontSize: 13,
           color: colors.accent, textTransform: 'uppercase', letterSpacing: '0.08em',
         }}>
           {colors.label}
         </span>
+        {scenario?.dmx_score != null && (
+          <ScoreBadge
+            size="small"
+            score={scenario.dmx_score}
+            tier={scenario.dmx_tier}
+            label={scenario.dmx_label}
+            factors={scenario.dmx_factors}
+          />
+        )}
         <div style={{
           width: 8, height: 8, borderRadius: '50%', background: colors.accent,
         }} />
