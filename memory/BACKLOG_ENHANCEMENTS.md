@@ -253,6 +253,19 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### F0.3 refactor `routes_*.py` → `/backend/routes/` + CLI lead_nurture --dry-run (DIFERIDO F0.4 manual)
+- **Origen:** F0.3 emergent shipped 2026-05-10 SHA `1b5d8ae` pero cherry-pick masivo NO viable
+- **Destino:** F0.4 manual sesión dedicada Claude Code (~5h)
+- **Por qué diferido:** branch emergent (atrasado vs main) propagaba archivos destructivos: sitemap.xml `desarrollosmx.com` (violación domain canónico .io) · .gitignore inflado 700+ líneas · App.js sin rutas recientes · 218 archivos modificados con riesgo regresión
+- **Qué hacer manual F0.4:**
+  - `git mv` de 125 archivos `backend/routes_*.py` → `backend/routes/{name}.py` (preservar history)
+  - Crear `backend/routes/__init__.py` package marker
+  - sed automatizado en server.py + 60 archivos importadores: `from routes_X import` → `from routes.X import`
+  - CLI `python -m lead_nurture_engine --dry-run` con argparse (flags: --dry-run · --lead-id · --tenant-id · --period-days · --limit) + tabla ASCII output (~170 LOC append a lead_nurture_engine.py)
+  - Verificar server startup OK · 5 endpoints sample working post-refactor
+- **Costo:** ~5h Claude Code manual · evita destructivo emergent branch atrasado
+- **Activar:** próxima sesión sweep tech debt dedicada · antes W4.15 Polish
+
 ### Free Audit funnel CSV export to CRM (F0.2 enhancement emergent suggested 2026-05-10)
 - **Origen:** F0.2 emergent suggested 2026-05-10 post-shipped
 - **Destino:** F0.3 sweep tech debt o W5.10 marketing analytics (~30 min)
