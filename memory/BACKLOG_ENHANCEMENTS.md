@@ -8,6 +8,36 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Onboarding Tour backlog post-W4.15.2 (origen: SHA `1af822a` · 2026-05-11)
+
+1. **Backend endpoint `PATCH /api/preferences/me/tours-reset`** — el botón "Reiniciar tour" actual usa state override en frontend sin persistir. Falta endpoint que limpie `tours_completed: []` y `tours_dismissed: []` permanentemente
+   - **Costo**: 1h (un endpoint en dev_batch19.py + wire-up TourLauncher)
+   - **Destino**: F0 sweep o W4.15.3
+
+2. **`dev_post_first_project` tour trigger manual** — actualmente solo first_login. Conectar trigger al completion del wizard de proyecto (post-creación primer proyecto)
+   - **Costo**: 2h
+   - **Destino**: post-launch enhancement
+
+3. **Progress ring en avatar % onboarding completado** — gamificación sutil · reduce churn primeros 7 días (sugerencia emergent · validada como aterrizada)
+   - **Costo**: 3h
+   - **Destino**: post-launch UX iteration
+
+### A11y backlog post-W4.15.1 (origen: SHA `b3582da` · 2026-05-11)
+
+**Status W4.15.1**: 55+ violaciones críticas fixed · baseline lint:a11y 869 → 851. Quedan ~851 agrupadas en 2 patrones masivos:
+
+1. **~249 `div onClick` sin keyboard handler** — DesarrolladorCompetidores · LeadKanban · SuperadminApiKeys · tablas portal en general
+   - **Fix**: crear wrapper `<InteractiveRow>` central que aplique `role="button" tabIndex={0} onKeyDown` (Enter+Space) y migrar componentes incrementalmente
+   - **Costo**: 6-8h
+   - **Destino**: post-launch o pre-Wave 5 H2 si A11 critical para SEO/marketing
+
+2. **~100 `label-has-associated-control`** — módulos developer/superadmin (forms internos sin `htmlFor`/`id` correlacionados)
+   - **Fix**: pass por archivos
+   - **Costo**: 3-4h
+   - **Destino**: igual al item 1
+
+
+
 ### Phase Y upgrades · 5 features killer + 3 capas resilience (autorizado founder 2026-05-09)
 - **Origen:** análisis Master Dev 2026-05-09 + autorización founder
 - **Destino:** distribuido en W4.4-W4.8 (NO batch separado)
