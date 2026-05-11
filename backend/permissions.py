@@ -2,6 +2,29 @@
 Re-exports the canonical permission level and capability checks.
 All other route files should import from here instead of batch4_2.
 Phase 14 Batch 37 — Extended with in-house user roles + cross-org helpers.
+
+═════════════════════════════════════════════════════════════════════════════
+⚠️  DUAL-SOURCE WARNING · LEER ANTES DE USAR can_view_full_client_data / can_move_lead
+═════════════════════════════════════════════════════════════════════════════
+
+Este archivo tiene 5 funciones que ALSO existen en `routes/dev_batch4_2.py`:
+  can_view_kanban · can_move_lead · can_view_full_client_data
+  can_view_conversation · can_view_ai_summary
+
+Las dos versiones tienen lógica DISTINTA por divergencia histórica (Phase 4 vs
+Phase 13-18). Endpoints de leads/kanban reales usan `routes/dev_batch4_2.py`.
+
+REGLA OBLIGATORIA:
+- Para gates de acceso a LEADS (kanban, lead detail, lead move) →
+  import desde `routes.dev_batch4_2` (versión estricta con validación tenant_id)
+- Para checks de role-level GENÉRICOS (is_superadmin, can_edit_project, etc) →
+  import desde `permissions.py` (este archivo · versión moderna)
+
+Si dudas: revisa cómo lo hacen `routes/dev_batch4_4.py:319` y `routes/dev_batch4_2.py:319`.
+
+Deuda técnica documentada · consolidación post-launch (4-6h) ver
+`docs/PERMISSIONS_ARCHITECTURE.md` y `memory/BACKLOG_ENHANCEMENTS.md`.
+═════════════════════════════════════════════════════════════════════════════
 """
 from __future__ import annotations
 from typing import Dict
