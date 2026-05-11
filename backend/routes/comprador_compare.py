@@ -51,7 +51,7 @@ async def compare_premium(body: CompareBody, request: Request, user=Depends(_req
 
     # log_activity
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db,
             actor_id=user.user_id,
@@ -80,7 +80,7 @@ async def compare_premium_pdf(body: ComparePdfBody, request: Request, user=Depen
     pdf_bytes = await generate_comparison_pdf(matrix, buyer_tier="buyer")
 
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db,
             actor_id=user.user_id,

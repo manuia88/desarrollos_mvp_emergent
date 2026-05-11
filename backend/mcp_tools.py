@@ -41,7 +41,7 @@ async def _get_director_tier(db, tenant_id: str, key_doc: Optional[Dict]) -> str
         return key_doc["tier_director"]
     # Fallback: lee diagnostic_engine tier de Phase Y settings
     try:
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         settings = await get_phase_y_settings(db, tenant_id)
         if not settings.get("agentic_enabled", False):
             return "off"
@@ -54,7 +54,7 @@ async def _check_phase_y(db, tenant_id: str, min_tier: str, key_doc: Optional[Di
     """Check Phase Y master switch + tier gate. Returns effective tier. Raises McpToolError."""
     # Master switch check via phase_y_settings
     try:
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         settings = await get_phase_y_settings(db, tenant_id)
         if not settings.get("agentic_enabled", False):
             raise McpToolError("Phase Y disabled by superadmin")

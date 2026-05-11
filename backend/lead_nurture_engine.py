@@ -821,7 +821,7 @@ class NurtureIntelligentEngine:
         self.org_id = org_id
 
     async def _validate_phase_y(self, sim_override: bool = False) -> Tuple[str, bool]:
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         settings = await get_phase_y_settings(self.db, self.org_id)
         if not settings.get("agentic_enabled", False):
             raise NurtureIntelligentDisabledError("Phase Y master switch desactivado")
@@ -1227,3 +1227,185 @@ async def ensure_nurture_sequences_indexes(db) -> None:
         log.info("[nurture_intelligent] indexes OK")
     except Exception as exc:
         log.warning(f"[nurture_intelligent] ensure_indexes failed: {exc}")
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# F0.3·Sub-B — CLI: `python -m lead_nurture_engine --dry-run [flags]`
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _cli_format_table(rows: List[Dict[str, Any]]) -> str:
+    """ASCII table renderer (no external deps). Compact for terminal."""
+    if not rows:
+        return "(sin filas)"
+    cols = list(rows[0].keys())
+    widths = {c: max(len(c), max((len(str(r.get(c, ""))) for r in rows), default=0)) for c in cols}
+    line = "+" + "+".join("-" * (widths[c] + 2) for c in cols) + "+"
+    out = [line, "| " + " | ".join(c.ljust(widths[c]) for c in cols) + " |", line]
+    for r in rows:
+        out.append("| " + " | ".join(str(r.get(c, "")).ljust(widths[c]) for c in cols) + " |")
+    out.append(line)
+    return "\n".join(out)
+
+
+async def _cli_main_async(args) -> int:
+    import time as _time
+    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    logging.basicConfig(level=getattr(logging, log_level, logging.INFO),
+                        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+    mongo_url = os.environ.get("MONGO_URL")
+    db_name = os.environ.get("DB_NAME")
+    if not mongo_url or not db_name:
+        print("ERROR: MONGO_URL y DB_NAME deben estar definidos en el entorno (.env).")
+        return 2
+
+    from motor.motor_asyncio import AsyncIOMotorClient
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[db_name]
+
+    start = _time.time()
+    print(f"[lead_nurture·cli] dry_run={args.dry_run} period_days={args.period_days} "
+          f"limit={args.limit} lead_id={args.lead_id or '—'} tenant_id={args.tenant_id or '—'}")
+
+    # Filtro: replicar lógica de find_matches con flags adicionales
+    cutoff_iso = _iso_days_ago(NURTURE_THROTTLE_DAYS)
+    q: Dict[str, Any] = {
+        "$or": [
+            {"last_nurture_sent_at": {"$exists": False}},
+            {"last_nurture_sent_at": None},
+            {"last_nurture_sent_at": {"$lt": cutoff_iso}},
+        ],
+    }
+    if args.lead_id:
+        q = {"lead_id": args.lead_id}
+    if args.tenant_id:
+        q["$and"] = [{"$or": [{"tenant_id": args.tenant_id}, {"org_id": args.tenant_id}]}]
+    # Cap candidatos a procesar
+    leads_recent_iso = _iso_days_ago(int(args.period_days or 7))
+    if not args.lead_id:
+        # restringir a creados en últimos N días
+        q.setdefault("created_at", {"$gte": leads_recent_iso})
+
+    leads = await db.landing_leads.find(q, {"_id": 0}).limit(int(args.limit or 100)).to_list(
+        length=int(args.limit or 100),
+    )
+    print(f"[lead_nurture·cli] {len(leads)} lead(s) candidato(s) tras filtros")
+
+    processed = would_send = sent_ok = errors = 0
+    rows: List[Dict[str, Any]] = []
+    now_iso = _now().isoformat()
+
+    for lead in leads:
+        processed += 1
+        zi = lead.get("zone_interest") or ""
+        if not zi:
+            errors += 1
+            continue
+        kind = _zone_interest_kind(zi)
+        slug = _zone_interest_slug(zi)
+        if kind == "other" or not slug:
+            errors += 1
+            continue
+        since_iso = lead.get("created_at") or _iso_days_ago(30)
+        try:
+            devs = await _developments_for_zone_kind(kind, slug, since_iso)
+        except Exception as exc:
+            log.warning(f"[cli] dev lookup failed lead={lead.get('lead_id')}: {exc}")
+            errors += 1
+            continue
+        if not devs:
+            continue
+
+        zone_name = _zone_display_name(kind, slug)
+        zone_url = _zone_landing_url(kind, slug)
+
+        # DISC + sequence fields (best-effort, no LLM en dry-run)
+        disc = (lead.get("disc_inferred") or {}).get("type") or lead.get("disc_type") or "—"
+        seq = lead.get("nurture_sequence_type") or "warm-medium"
+        channel = lead.get("nurture_preferred_channel") or "email"
+        # message preview: subject + zone hint
+        preview = (f"Nuevo inventario en {zone_name} · {len(devs)} match(es)")[:120]
+
+        would_send += 1
+        rows.append({
+            "lead_id": (lead.get("lead_id") or "—")[:12],
+            "email": (lead.get("email") or "—")[:28],
+            "disc": disc[:6],
+            "sequence": seq[:18],
+            "channel": channel[:8],
+            "message_preview": preview,
+            "would_send_at": now_iso[:19],
+        })
+
+        if not args.dry_run:
+            try:
+                ok = await send_nurture_email(
+                    lead.get("email"), zone_name, zone_url, devs,
+                )
+                if ok:
+                    try:
+                        await db.landing_leads.update_one(
+                            {"lead_id": lead.get("lead_id")},
+                            {"$set": {
+                                "last_nurture_sent_at": _now().isoformat(),
+                                "last_nurture_match_count": len(devs),
+                            }},
+                        )
+                    except Exception:
+                        pass
+                    await _emit_nurtured(
+                        db, lead.get("lead_id"),
+                        lead.get("tenant_id") or lead.get("org_id"),
+                        zone_name, channel="email",
+                    )
+                    sent_ok += 1
+                else:
+                    errors += 1
+            except Exception as exc:
+                log.warning(f"[cli] send failed lead={lead.get('lead_id')}: {exc}")
+                errors += 1
+
+    duration_ms = int((_time.time() - start) * 1000)
+    if rows:
+        print(_cli_format_table(rows))
+    print()
+    print(f"[lead_nurture·cli] SUMMARY · processed={processed} would_send={would_send} "
+          f"sent_ok={sent_ok} errors={errors} duration_ms={duration_ms} "
+          f"mode={'DRY-RUN' if args.dry_run else 'LIVE'}")
+    return 0
+
+
+def _cli_main() -> int:
+    import argparse
+    import asyncio as _asyncio
+
+    parser = argparse.ArgumentParser(
+        prog="lead_nurture_engine",
+        description="W4.6 — Lead Nurture CLI · ejecuta el cron 04:15 MX manualmente.",
+    )
+    parser.add_argument("--dry-run", action="store_true",
+                        help="No envía emails reales · solo imprime tabla preview.")
+    parser.add_argument("--lead-id", default=None,
+                        help="Procesa solo este lead específico.")
+    parser.add_argument("--tenant-id", default=None,
+                        help="Filtra por tenant_id u org_id.")
+    parser.add_argument("--period-days", type=int, default=7,
+                        help="Ventana leads recientes (default 7).")
+    parser.add_argument("--limit", type=int, default=100,
+                        help="Máximo leads a procesar (default 100).")
+    args = parser.parse_args()
+
+    # Cargar .env si está disponible
+    try:
+        from dotenv import load_dotenv
+        load_dotenv("/app/backend/.env")
+    except Exception:
+        pass
+
+    return _asyncio.run(_cli_main_async(args))
+
+
+if __name__ == "__main__":
+    import sys as _sys
+    _sys.exit(_cli_main())

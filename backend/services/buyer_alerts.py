@@ -106,7 +106,7 @@ async def trigger_alert(db, alert: Dict[str, Any], payload: Dict[str, Any]) -> s
                 status = "failed"
 
         elif channel == "push":
-            from routes_dev_batch14 import create_notification
+            from routes.dev_batch14 import create_notification
             notif_titles = {
                 "new_match": "Nuevo match en tu búsqueda guardada",
                 "price_drop": "Baja de precio detectada",

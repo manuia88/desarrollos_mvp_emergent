@@ -140,7 +140,7 @@ async def approve(
             "update", "cross_org_partnership", partnership_id,
             before={"status": "pending"}, after={"status": "approved"},
         )
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, approver_user_id, "developer_admin", "cross_partnership_approved",
             partnership_id, "cross_org_partnership",
@@ -309,7 +309,7 @@ async def _notify_target_admins(
     db, target_org_type: str, target_org_id: str, requester_org_id: str, partnership_id: str
 ) -> None:
     """Notify admin of target org about new partnership request."""
-    from routes_dev_batch14 import create_notification
+    from routes.dev_batch14 import create_notification
     if target_org_type == "dev":
         admins = await db.users.find(
             {"role": "developer_admin", "tenant_id": target_org_id},
@@ -333,7 +333,7 @@ async def _notify_target_admins(
 
 async def _notify_requester(db, partnership: Dict[str, Any], action: str) -> None:
     """Notify requester about decision on their partnership."""
-    from routes_dev_batch14 import create_notification
+    from routes.dev_batch14 import create_notification
     admins = await db.users.find(
         {"tenant_id": partnership["requester_org_id"], "role": {"$in": ["developer_admin", "inmobiliaria_admin"]}},
         {"_id": 0, "user_id": 1},

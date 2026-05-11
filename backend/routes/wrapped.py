@@ -126,7 +126,7 @@ async def get_wrapped(year_month: str, request: Request, user=Depends(_require_b
 
     # Log activity
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, actor_id=user.user_id, actor_type="buyer",
             action="wrapped_viewed", entity_id=doc["wrapped_id"],

@@ -898,7 +898,7 @@ async def create_cita(payload: CitaBody, request: Request):
 
     # Phase 4 Batch 4.4 — queue heat recalc on lead create
     try:
-        from routes_dev_batch4_4 import queue_heat_recalc
+        from routes.dev_batch4_4 import queue_heat_recalc
         await queue_heat_recalc(db, lead["id"])
     except Exception:
         pass

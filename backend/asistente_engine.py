@@ -625,7 +625,7 @@ async def _check_phase_y(db) -> Dict[str, Any]:
     Returns settings dict with `_resolved_tier` + `_simulation_mode`.
     Raises AsistenteDisabledError.
     """
-    from routes_phase_y_controls import get_phase_y_settings
+    from routes.phase_y_controls import get_phase_y_settings
     settings = await get_phase_y_settings(db, DMX_ORG_ID)
     if not settings.get("agentic_enabled", False):
         raise AsistenteDisabledError("Asistente temporalmente fuera de servicio")

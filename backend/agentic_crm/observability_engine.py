@@ -55,7 +55,7 @@ def _iso(dt: Any) -> Optional[str]:
 async def _check_observability_access(db, org_id: str) -> Tuple[bool, str]:
     """Returns (allowed, tier_or_reason)."""
     try:
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         s = await get_phase_y_settings(db, org_id)
         if not s.get("agentic_enabled", False):
             return False, "master_switch_off"

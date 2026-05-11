@@ -52,7 +52,7 @@ def _emit(event: str, **fields):
 
 def _decrypt_creds(encrypted: Optional[str]) -> Dict[str, str]:
     """Local copy that avoids circular import with routes_ie_engine."""
-    from routes_ie_engine import decrypt_credentials
+    from routes.ie_engine import decrypt_credentials
     return decrypt_credentials(encrypted)
 
 
@@ -327,7 +327,7 @@ def start_scheduler(db):
         misfire_grace_time=3600,
     )
     # Phase 4 Batch 1 — Unit holds auto-release (every 30min)
-    from routes_dev_batch1 import auto_release_expired_holds
+    from routes.dev_batch1 import auto_release_expired_holds
     _scheduler.add_job(
         wrap_apscheduler_job(auto_release_expired_holds, "unit_holds_release"),
         CronTrigger(minute="*/30", timezone=TZ),
@@ -348,7 +348,7 @@ def start_scheduler(db):
 
     # Phase 4 Batch 14 — Weekly brief generation every Monday at 8am MX
     try:
-        from routes_dev_batch14 import generate_weekly_briefs_for_all
+        from routes.dev_batch14 import generate_weekly_briefs_for_all
         _scheduler.add_job(
             wrap_apscheduler_job(generate_weekly_briefs_for_all, "weekly_brief_generation"),
             CronTrigger(day_of_week="mon", hour=8, minute=0, timezone=TZ),
@@ -372,21 +372,21 @@ def start_scheduler(db):
 
     # W1.3 SA1.2 — health critical check every 5 min
     try:
-        from routes_superadmin_health import schedule_health_critical_check
+        from routes.superadmin_health import schedule_health_critical_check
         schedule_health_critical_check(_scheduler, db)
     except Exception as e:
         _emit("scheduler_health_critical_error", error=str(e))
 
     # W2.1 SA2 — Data Sources Hub healthcheck every 10 min
     try:
-        from routes_superadmin_data_hub import schedule_data_hub_healthcheck
+        from routes.superadmin_data_hub import schedule_data_hub_healthcheck
         schedule_data_hub_healthcheck(_scheduler, db)
     except Exception as e:
         _emit("scheduler_data_hub_error", error=str(e))
 
     # W2.3 SA4 — AI cost daily aggregation cron (1am MX)
     try:
-        from routes_superadmin_ai_cost import schedule_ai_cost_daily_aggregation
+        from routes.superadmin_ai_cost import schedule_ai_cost_daily_aggregation
         schedule_ai_cost_daily_aggregation(_scheduler, db)
     except Exception as e:
         _emit("scheduler_ai_cost_error", error=str(e))
@@ -400,7 +400,7 @@ def start_scheduler(db):
 
     # W2.5 SA6 — Metrics Cube daily aggregation cron (2:15am MX)
     try:
-        from routes_superadmin_metrics_cube import schedule_metrics_cube_daily_aggregation
+        from routes.superadmin_metrics_cube import schedule_metrics_cube_daily_aggregation
         schedule_metrics_cube_daily_aggregation(_scheduler, db)
     except Exception as e:
         _emit("scheduler_metrics_cube_error", error=str(e))

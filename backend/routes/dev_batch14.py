@@ -282,7 +282,7 @@ async def setup_progress(user_id: str, db) -> Dict[str, Any]:
     has_advisor = preassign_count > 0
 
     # 5. Published to marketplace (has a development in public listing)
-    from routes_public import _dev_overlay_cache
+    from routes.public import _dev_overlay_cache
     has_published = len(_dev_overlay_cache) > 0 or await db.projects.count_documents(
         {"status": "publicado"}
     ) > 0

@@ -188,7 +188,7 @@ async def execute_action(
 
     # Log activity
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, actor_id=asesor_id, actor_type="asesor",
             action=f"daily_feed_action_{action_type}",

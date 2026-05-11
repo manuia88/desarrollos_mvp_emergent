@@ -54,7 +54,7 @@ async def run_daily_snapshots(db) -> int:
                         {"_id": 0, "user_id": 1},
                     ).to_list(20)
                     try:
-                        from routes_dev_batch14 import create_notification
+                        from routes.dev_batch14 import create_notification
                         for adm in admins:
                             await create_notification(
                                 db, adm["user_id"], "asesor_performance_drop",

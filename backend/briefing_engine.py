@@ -345,7 +345,7 @@ class FeedbackRequest(BaseModel):
 
 @router.post("/briefing-ie")
 async def create_briefing(payload: BriefingRequest, request: Request):
-    from routes_advisor import require_advisor
+    from routes.advisor import require_advisor
     user = await require_advisor(request)
     db = request.app.state.db
     doc = await get_or_generate_briefing(
@@ -357,7 +357,7 @@ async def create_briefing(payload: BriefingRequest, request: Request):
 
 @router.get("/briefing-ie/{briefing_id}")
 async def get_briefing(briefing_id: str, request: Request):
-    from routes_advisor import require_advisor
+    from routes.advisor import require_advisor
     user = await require_advisor(request)
     db = request.app.state.db
     doc = await db.ie_advisor_briefings.find_one({"id": briefing_id}, {"_id": 0})
@@ -371,7 +371,7 @@ async def get_briefing(briefing_id: str, request: Request):
 
 @router.post("/briefing-ie/{briefing_id}/feedback")
 async def submit_feedback(briefing_id: str, payload: FeedbackRequest, request: Request):
-    from routes_advisor import require_advisor
+    from routes.advisor import require_advisor
     user = await require_advisor(request)
     db = request.app.state.db
     if payload.result not in ("closed_lead", "didnt_close", "partial", "marked_used"):
@@ -393,7 +393,7 @@ async def submit_feedback(briefing_id: str, payload: FeedbackRequest, request: R
 
 @router.get("/briefings")
 async def list_briefings(request: Request, limit: int = Query(50, ge=1, le=200), only_mine: bool = Query(True)):
-    from routes_advisor import require_advisor
+    from routes.advisor import require_advisor
     user = await require_advisor(request)
     db = request.app.state.db
     q: Dict[str, Any] = {}
@@ -406,7 +406,7 @@ async def list_briefings(request: Request, limit: int = Query(50, ge=1, le=200),
 @router.get("/briefings/summary")
 async def briefings_summary(request: Request):
     """Widget /asesor dashboard: count + closed % + 3 recent."""
-    from routes_advisor import require_advisor
+    from routes.advisor import require_advisor
     user = await require_advisor(request)
     db = request.app.state.db
     since = datetime.now(timezone.utc) - timedelta(days=7)

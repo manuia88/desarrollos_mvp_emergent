@@ -391,7 +391,7 @@ class PricingAgent:
         """Validates Phase Y settings. Returns (tier, simulation_mode).
         Raises 403-equivalent PricingAgentDisabledError if not allowed.
         """
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         settings = await get_phase_y_settings(self.db, self.org_id)
 
         if not settings.get("agentic_enabled", False):

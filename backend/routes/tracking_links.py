@@ -114,7 +114,7 @@ async def create_link(body: LinkCreate, request: Request):
 
     # Activity log
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, user.user_id, "asesor", "link_created",
             slug, "tracking_link",
@@ -175,7 +175,7 @@ async def delete_link(link_id: str, request: Request):
         {"link_id": link_id}, {"$set": {"active": False, "deleted_at": _now().isoformat()}},
     )
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(db, user.user_id, user.role, "link_deleted", link_id, "tracking_link")
     except Exception:
         pass

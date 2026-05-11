@@ -71,7 +71,7 @@ async def get_public_booking_info(slug: str, request: Request):
 
     # Apply overlay if exists (prices may be synced from docs)
     try:
-        from routes_public import _ensure_overlay_loaded, _apply_overlay
+        from routes.public import _ensure_overlay_loaded, _apply_overlay
         await _ensure_overlay_loaded(slug, db)
         proj_pub = _apply_overlay(proj)
     except Exception:
@@ -223,7 +223,7 @@ async def post_public_book(slug: str, body: PublicBookIn, request: Request):
             "last_touch_at": _now().isoformat(),
         })
         try:
-            from routes_dev_batch14 import log_activity
+            from routes.dev_batch14 import log_activity
             await log_activity(
                 db, lead_id, "lead", "lead_created", lead_id, "lead",
                 metadata={"name": body.lead_name, "project_id": slug,
@@ -288,7 +288,7 @@ async def post_public_book(slug: str, body: PublicBookIn, request: Request):
     # Phase 4 Batch 20 — attribute booking to tracking link if ref present
     if body.ref:
         try:
-            from routes_tracking_links import attribute_booking_to_link
+            from routes.tracking_links import attribute_booking_to_link
             await attribute_booking_to_link(
                 db, body.ref, result["appointment_id"], lead_id,
             )

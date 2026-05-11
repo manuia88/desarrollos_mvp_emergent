@@ -232,7 +232,7 @@ async def post_auto_assign(body: AutoAssignIn, request: Request):
 
     # Notify asesor
     try:
-        from routes_dev_batch14 import create_notification
+        from routes.dev_batch14 import create_notification
         await create_notification(
             db, result["asesor_id"], "appointment_assigned",
             "Nueva cita asignada",
@@ -385,7 +385,7 @@ async def public_book_appointment(body: PublicBookingIn, request: Request):
             "created_at": _now().isoformat(),
         })
         try:
-            from routes_dev_batch14 import log_activity
+            from routes.dev_batch14 import log_activity
             await log_activity(
                 db, lead_id, "lead", "lead_created", lead_id, "lead",
                 metadata={"name": body.lead_name, "project_id": body.project_id,

@@ -274,7 +274,7 @@ async def upsert_auto_approve_rule(payload: AutoApproveRuleIn, request: Request)
         min_deals_closed_12m=payload.min_deals_closed_12m,
     )
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, user.user_id, "developer_admin", "update",
             dev_org, "auto_approve_rule",

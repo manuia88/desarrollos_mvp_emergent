@@ -198,7 +198,7 @@ async def get_persona_or_default(db, org_id: str) -> Dict[str, Any]:
     Si tier < T2 o sin configuración → DEFAULT_PERSONA (version=0, sin inyección).
     """
     try:
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         settings = await get_phase_y_settings(db, org_id)
         tier_raw: str = (settings.get("feature_tiers") or {}).get("atlax_persona", "off")
         tier_num = 0

@@ -206,3 +206,38 @@ async def admin_recent(request: Request, limit: int = 50):
     except Exception:
         pass
     return JSONResponse({"ok": True, "items": out, "count": len(out)})
+
+
+# ─── F0.3·Sub-C · CSV export for CRM ─────────────────────────────────────────
+
+from fastapi.responses import Response  # noqa: E402
+
+
+@router.get("/api/free-audit/admin/export.csv")
+async def admin_export_csv(request: Request, period_days: int = 30):
+    user = await _require_superadmin(request)
+    if period_days < 1 or period_days > 365:
+        period_days = 30
+    db = _db(request)
+    body = await engine.export_to_csv(db, period_days=period_days)
+    # Audit log (best-effort)
+    try:
+        from datetime import datetime, timezone
+        await db.audit_log.insert_one({
+            "user_id": user.get("user_id"),
+            "action": "free_audit.export_csv",
+            "resource": f"period_days:{period_days}",
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "payload": {"bytes": len(body)},
+        })
+    except Exception:
+        pass
+    filename = f"free_audit_{period_days}d.csv"
+    return Response(
+        content=body,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )

@@ -139,7 +139,7 @@ def _check_dev_access(user, dev_id: str) -> None:
         return
     if role not in ("developer_admin", "developer_member"):
         raise HTTPException(403, "Sólo superadmin o developer")
-    from routes_documents import _allowed_dev_ids
+    from routes.documents import _allowed_dev_ids
     allowed = _allowed_dev_ids(user)
     if allowed == "*":
         return
