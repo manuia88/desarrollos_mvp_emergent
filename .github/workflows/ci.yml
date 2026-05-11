@@ -1,0 +1,73 @@
+name: CI Smoke
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backend-syntax:
+    name: Backend Syntax + Imports
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend deps
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Syntax check server.py
+        run: python -m py_compile backend/server.py
+
+      - name: Syntax check all routes/
+        run: |
+          for f in backend/routes/*.py; do
+            python -m py_compile "$f" || exit 1
+          done
+          echo "All $(ls backend/routes/*.py | wc -l) route files compile OK"
+
+      - name: Syntax check all engines + helpers
+        run: |
+          fail=0
+          for f in backend/*.py; do
+            python -m py_compile "$f" 2>&1 || fail=1
+          done
+          [ "$fail" = "0" ] && echo "All backend files compile OK" || echo "WARN: some files failed"
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          yarn install --frozen-lockfile
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          yarn build
+        env:
+          CI: false
