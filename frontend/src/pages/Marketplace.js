@@ -300,7 +300,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         {/* Sticky filter bar — solo en vista lista */}
         {viewMode === 'lista' && (
           <section
-            data-testid="filter-bar"
+            data-testid="marketplace-search"
             style={{
               position: 'sticky', top: 60, zIndex: 25,
               background: 'rgba(6,8,15,0.92)',
@@ -389,7 +389,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                 gap: 20,
               }}>
                 {developments.map((d, i) => (
-                  <DevelopmentCard key={d.id} dev={d} index={i} />
+                  <div key={d.id} data-testid="development-card">
+                    <DevelopmentCard dev={d} index={i} />
+                  </div>
                 ))}
               </div>
             )}

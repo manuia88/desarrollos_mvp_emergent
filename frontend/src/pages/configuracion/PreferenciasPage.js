@@ -10,7 +10,7 @@ import { getMyPreferences, patchMyPreferences } from '../../api/preferences18';
 import { invalidateDensityCache } from '../../hooks/useDensity';
 import { PortalLayout } from '../../components/shared/PortalLayout';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
-import { useTour } from '../../hooks/useTour';
+import { useTourContext } from '../../components/onboarding/TourLauncher';
 import { getFirstLoginTourId } from '../../config/tours';
 import { Check, Monitor } from 'lucide-react';
 
@@ -83,7 +83,7 @@ export default function PreferenciasPage({ user, onLogout }) {
   const { isActive: pmActive, config: pmConfig, toggle: pmToggle, setConfig: pmSetConfig } = usePresentationMode();
 
   // Tour restart
-  const { startTour } = useTour(user);
+  const { startTour } = useTourContext();
 
   useEffect(() => {
     getMyPreferences()

@@ -3,6 +3,7 @@ import { UndoProvider } from './components/shared/UndoSnackbar';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { PresentationModeProvider } from './hooks/usePresentationMode';
 import SkipToContent from './components/a11y/SkipToContent';
+import TourLauncher from './components/onboarding/TourLauncher';
 // W4.3 — Behavioral tracker (auto page_view on route change)
 import { usePageViewTracking } from './utils/behavioralTracker';
 // W4.18.2A.0 — PostHog LFPDPPP-compliant helpers
@@ -241,6 +242,7 @@ const UserDiagnosticsPage        = lazy(() => import('./pages/superadmin/UserDia
 // W4.10 — WhatsApp + Newsletter
 const SuperadminWhatsApp         = lazy(() => import('./pages/superadmin/SuperadminWhatsApp'));
 const SuperadminNewsletter       = lazy(() => import('./pages/superadmin/SuperadminNewsletter'));
+const SuperadminOnboardingAnalytics = lazy(() => import('./pages/superadmin/SuperadminOnboardingAnalytics'));
 
 // Phase 4 Batch 12
 const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoProyecto'));
@@ -677,6 +679,7 @@ function AppRouter() {
       <Route path="/superadmin/whatsapp" element={<AdvisorRoute Page={SuperadminWhatsApp} />} />
       <Route path="/superadmin/newsletter" element={<AdvisorRoute Page={SuperadminNewsletter} />} />
       <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
+      <Route path="/superadmin/onboarding-analytics" element={<AdvisorRoute Page={SuperadminOnboardingAnalytics} />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
       <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksTrackingPage} />} />
 
@@ -1001,8 +1004,10 @@ export default function App() {
       <UndoProvider>
         <PresentationModeProvider>
           <AuthProvider>
-            <CustomCursor />
-            <AppRouter />
+            <TourLauncher>
+              <CustomCursor />
+              <AppRouter />
+            </TourLauncher>
           </AuthProvider>
         </PresentationModeProvider>
       </UndoProvider>

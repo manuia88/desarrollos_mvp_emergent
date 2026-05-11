@@ -20,14 +20,15 @@ import AICopilotPanel from './AICopilotPanel';
 import { useDensity } from '../../hooks/useDensity';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import { useTour } from '../../hooks/useTour';
+import { useTourContext } from '../onboarding/TourLauncher';
+import { getFirstLoginTourId } from '../../config/tours';
 import { useBranding } from '../../hooks/useBranding';
 import { useCrossPortalEvents } from '../../hooks/useCrossPortalEvents';
 import KeyboardHelpDialog from './KeyboardHelpDialog';
-import { Joyride } from 'react-joyride';
+// Joyride now rendered globally via TourLauncher (App.js)
 import {
   ChevronDown, ChevronRight, Menu, X, Search, LogOut, User,
-  ChevronLeft, Settings,
+  ChevronLeft, Settings, RotateCcw,
 } from 'lucide-react';
 import ImpersonationBanner from '../superadmin/ImpersonationBanner';
 import CommandPaletteExtended from '../superadmin/CommandPaletteExtended';
@@ -146,7 +147,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
   const { branding } = useBranding(!!user);
 
   // Phase 4 Batch 19 Sub-A — Onboarding Tour
-  const { run: tourRun, steps: tourSteps, stepIndex: tourStep, handleJoyrideCallback, startTour } = useTour(user);
+  const { startTour } = useTourContext();
 
   // Phase 4 Batch 19 Sub-A — Keyboard shortcuts (centralized)
   useKeyboardShortcuts([
@@ -316,84 +317,11 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
         </div>
       )}
 
-      {/* Joyride Tour */}
-      {tourSteps.length > 0 && (
-        <Joyride
-          steps={tourSteps}
-          run={tourRun}
-          stepIndex={tourStep}
-          callback={handleJoyrideCallback}
-          continuous
-          showProgress
-          showSkipButton
-          disableScrolling={false}
-          locale={{
-            back: 'Anterior',
-            close: 'Cerrar',
-            last: 'Finalizar',
-            next: 'Siguiente',
-            skip: 'Saltar tour',
-          }}
-          styles={{
-            options: {
-              primaryColor: '#6366F1',
-              backgroundColor: 'rgba(13,16,23,0.97)',
-              textColor: '#F0EBE0',
-              arrowColor: 'rgba(13,16,23,0.97)',
-              overlayColor: 'rgba(0,0,0,0.55)',
-              zIndex: 8000,
-            },
-            tooltip: {
-              borderRadius: 16,
-              border: '1px solid rgba(255,255,255,0.16)',
-              backdropFilter: 'blur(24px)',
-              padding: '20px 24px',
-            },
-            tooltipTitle: {
-              fontFamily: 'Outfit',
-              fontWeight: 800,
-              fontSize: 16,
-              color: '#F0EBE0',
-            },
-            tooltipContent: {
-              fontFamily: 'DM Sans',
-              fontSize: 14,
-              color: 'rgba(240,235,224,0.7)',
-              paddingTop: 6,
-            },
-            buttonNext: {
-              borderRadius: 9999,
-              fontFamily: 'DM Sans',
-              fontWeight: 700,
-              background: '#6366F1',
-              color: '#fff',
-              border: 'none',
-              padding: '8px 18px',
-            },
-            buttonSkip: {
-              borderRadius: 9999,
-              fontFamily: 'DM Sans',
-              fontSize: 12,
-              color: 'rgba(240,235,224,0.45)',
-              background: 'none',
-            },
-            buttonBack: {
-              borderRadius: 9999,
-              fontFamily: 'DM Sans',
-              fontSize: 12,
-              color: 'rgba(240,235,224,0.55)',
-              background: 'none',
-            },
-          }}
-        />
-      )}
-
       {/* Keyboard Help Dialog */}
       {helpOpen && (
         <KeyboardHelpDialog
           onClose={() => setHelpOpen(false)}
           onRestartTour={user ? () => {
-            const { getFirstLoginTourId } = require('../../config/tours');
             const tid = getFirstLoginTourId(user.role);
             if (tid) startTour(tid);
           } : undefined}
@@ -500,6 +428,18 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
                   <Settings size={14} />
                   Preferencias
                 </Link>
+                <button
+                  onClick={() => {
+                    const tid = getFirstLoginTourId(user?.role);
+                    if (tid) startTour(tid);
+                    setUserMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
+                  data-testid="restart-tour-btn"
+                >
+                  <RotateCcw size={14} />
+                  Reiniciar tour
+                </button>
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
