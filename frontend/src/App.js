@@ -49,6 +49,8 @@ const AsesorOutbound     = lazy(() => import('./pages/advisor/AsesorOutbound'));
 const Simulador = lazy(() => import('./pages/public/Simulador'));
 // W4.17 — Notifications Settings
 const NotificationsSettings = lazy(() => import('./pages/portal/NotificationsSettings'));
+// W4.9.6 — 3DGS Tour public embed
+const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 
 const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
 // W4.18.2B Sub-D — public AVM + colonia landings
@@ -477,6 +479,7 @@ function AppRouter() {
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
       {/* W4.14 — Simulador público */}
       <Route path="/simulador" element={<SimuladorRoute />} />
+      <Route path="/embed/3dgs/:unit_id" element={<Embed3DGSPage />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />

@@ -1205,3 +1205,6 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# W4.9 / W4.9.6 — Generated assets (brochures, 3DGS scans)
+backend/storage/

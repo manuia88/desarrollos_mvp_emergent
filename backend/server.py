@@ -624,6 +624,11 @@ from routes_brochure import router as brochure_router
 from brochure_engine import ensure_brochure_indexes as ensure_brochure_indexes_fn
 app.include_router(brochure_router)
 
+# W4.9.6 — 3D Gaussian Splatting Tour
+from routes_tour_3dgs import router as tour_3dgs_router
+from tour_3dgs_engine import ensure_tour_3dgs_indexes as ensure_tour_3dgs_indexes_fn
+app.include_router(tour_3dgs_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):
@@ -1197,6 +1202,11 @@ async def startup():
         await ensure_brochure_indexes_fn(db)
     except Exception as e:
         logging.warning(f"[startup] W4.9 brochure indexes failed: {e}")
+    # W4.9.6 — Tour 3DGS indexes
+    try:
+        await ensure_tour_3dgs_indexes_fn(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.9.6 tour_3dgs indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes

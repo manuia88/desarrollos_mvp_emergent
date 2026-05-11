@@ -19,6 +19,11 @@ import InsightsTab from '../../components/developer/insights/InsightsTab';
 import BulkUploadModal from '../../components/developer/BulkUploadModal';
 import DiagnosticReportContent from '../../components/developer/DiagnosticReportContent';
 import BrochureGenerator from '../../components/brochure/BrochureGenerator';
+// W4.9.6 — Tours 3D
+import Tour3DStatusBadge from '../../components/tour3d/Tour3DStatusBadge';
+import Tour3DUploader from '../../components/tour3d/Tour3DUploader';
+import Tour3DOnboardingWizard from '../../components/tour3d/Tour3DOnboardingWizard';
+import Tour3DViewer from '../../components/tour3d/Tour3DViewer';
 import { EntityDrawer } from '../../components/shared/EntityDrawer';
 import { getProjectSummary } from '../../api/developer';
 import { getLatestDiagnostic } from '../../api/diagnostic';
@@ -431,7 +436,14 @@ export default function ProyectoDetail({ user, onLogout }) {
             <LegalTab devId={slug} user={user} />
           )}
           {activeTab === 'comercializacion' && (
-            <ComercializacionTab devId={slug} user={user} />
+            <>
+              <ComercializacionTab devId={slug} user={user} />
+              <Tours3DSection
+                projectSlug={slug}
+                devId={summary?.dev_org_id || summary?.developer_id || (user?.dev_org_id || user?.tenant_id)}
+                user={user}
+              />
+            </>
           )}
           {activeTab === 'insights' && (
             <InsightsTab projectId={slug} user={user} />
@@ -473,5 +485,240 @@ export default function ProyectoDetail({ user, onLogout }) {
         />
       </div>
     </DeveloperLayout>
+  );
+}
+
+
+// ─── W4.9.6 · Tours 3D Section ────────────────────────────────────────────────
+function Tours3DSection({ projectSlug, devId, user }) {
+  const API = process.env.REACT_APP_BACKEND_URL;
+  const [scans, setScans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
+  const [previewScan, setPreviewScan] = useState(null);
+  const [units, setUnits] = useState([]);
+
+  const role = user?.role;
+  const canManage = role === 'superadmin' || role === 'developer_admin' || role === 'dev_admin';
+
+  const reload = useCallback(() => {
+    setLoading(true);
+    fetch(`${API}/api/tour-3dgs/scans?project_slug=${encodeURIComponent(projectSlug)}&limit=100`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => setScans(d?.items || []))
+      .catch(() => setScans([]))
+      .finally(() => setLoading(false));
+  }, [API, projectSlug]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    // Fetch units for the uploader dropdown (best-effort)
+    fetch(`${API}/api/marketplace/development/${encodeURIComponent(projectSlug)}`)
+      .then((r) => r.json())
+      .then((d) => setUnits(Array.isArray(d?.units) ? d.units : []))
+      .catch(() => setUnits([]));
+  }, [API, projectSlug]);
+
+  const handleDelete = async (scanId) => {
+    if (!window.confirm('¿Eliminar este tour 3D? No se puede deshacer.')) return;
+    try {
+      const res = await fetch(`${API}/api/tour-3dgs/scans/${scanId}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok && res.status !== 204) throw new Error('delete_failed');
+      reload();
+    } catch (_) {
+      alert('No se pudo eliminar el tour.');
+    }
+  };
+
+  return (
+    <div data-testid="tours-3d-section" style={{
+      marginTop: 28,
+      background: 'rgba(13,16,23,0.92)',
+      border: '1px solid rgba(255,255,255,0.10)',
+      borderRadius: 16,
+      padding: 20,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 12, flexWrap: 'wrap', marginBottom: 14,
+      }}>
+        <div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)' }}>
+            Tours 3D · Gaussian Splatting
+          </div>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
+            Captura inmersiva por unidad. Compatible con iframe embedable.
+          </div>
+        </div>
+        {canManage && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setShowWizard(true)}
+              style={{
+                background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                color: '#fff', border: 'none', borderRadius: 9999,
+                padding: '8px 18px',
+                fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em',
+                cursor: 'pointer',
+              }}
+            >
+              CAPTURAR NUEVO TOUR
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowUploader(true)}
+              style={{
+                background: 'transparent', color: 'var(--cream)',
+                border: '1px solid rgba(240,235,224,0.25)', borderRadius: 9999,
+                padding: '8px 18px',
+                fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
+                cursor: 'pointer',
+              }}
+            >
+              SUBIR ARCHIVO
+            </button>
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 18, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
+          Cargando…
+        </div>
+      ) : scans.length === 0 ? (
+        <div style={{
+          padding: 24, textAlign: 'center',
+          border: '1px dashed rgba(240,235,224,0.18)', borderRadius: 12,
+          fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)',
+        }}>
+          Aún no hay tours 3D para este proyecto.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {scans.map((s) => (
+            <div
+              key={s.scan_id}
+              data-testid={`tour-row-${s.unit_id}`}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto auto',
+                gap: 12, alignItems: 'center',
+                background: 'rgba(15,18,28,0.7)',
+                border: '1px solid rgba(240,235,224,0.08)',
+                borderRadius: 12,
+                padding: '10px 14px',
+              }}
+            >
+              <div>
+                <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>
+                  Unidad {s.unit_id}
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
+                  {s.source_format} · {s.file_size_kb ? `${s.file_size_kb} KB` : '—'} · {String(s.captured_at || '').slice(0, 10)}
+                </div>
+              </div>
+              <Tour3DStatusBadge
+                status={s.status}
+                sizeKb={s.file_size_kb}
+                format={s.source_format}
+                capturedAt={s.captured_at}
+              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  data-testid={`tour-action-preview-${s.unit_id}`}
+                  onClick={() => setPreviewScan(s)}
+                  disabled={s.status !== 'ready'}
+                  style={{
+                    background: 'transparent', color: 'var(--cream)',
+                    border: '1px solid rgba(240,235,224,0.25)', borderRadius: 9999,
+                    padding: '5px 12px',
+                    fontFamily: 'Outfit', fontWeight: 700, fontSize: 10, letterSpacing: '0.06em',
+                    cursor: s.status === 'ready' ? 'pointer' : 'not-allowed',
+                    opacity: s.status === 'ready' ? 1 : 0.45,
+                  }}
+                >
+                  PREVIEW
+                </button>
+                {canManage && (
+                  <button
+                    type="button"
+                    data-testid={`tour-action-delete-${s.unit_id}`}
+                    onClick={() => handleDelete(s.scan_id)}
+                    style={{
+                      background: 'rgba(239,68,68,0.10)', color: '#fca5a5',
+                      border: '1px solid rgba(239,68,68,0.35)', borderRadius: 9999,
+                      padding: '5px 12px',
+                      fontFamily: 'Outfit', fontWeight: 700, fontSize: 10, letterSpacing: '0.06em',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    BORRAR
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showWizard && (
+        <Tour3DOnboardingWizard
+          unitId={units[0]?.id || ''}
+          projectSlug={projectSlug}
+          devId={devId}
+          onClose={() => setShowWizard(false)}
+          onCreated={() => { setShowWizard(false); reload(); }}
+        />
+      )}
+
+      {showUploader && (
+        <div
+          onClick={() => setShowUploader(false)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(8px)',
+            zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 580 }}>
+            <Tour3DUploader
+              units={units}
+              defaultUnitId={units[0]?.id || ''}
+              projectSlug={projectSlug}
+              devId={devId}
+              onUploaded={() => { setShowUploader(false); reload(); }}
+              onClose={() => setShowUploader(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {previewScan && (
+        <div
+          onClick={() => setPreviewScan(null)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(8px)',
+            zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 1100 }}>
+            <Tour3DViewer
+              scanId={previewScan.scan_id}
+              viewerConfig={previewScan.viewer_config}
+              theme="cream"
+              uiMode="full"
+              onClose={() => setPreviewScan(null)}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
