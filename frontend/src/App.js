@@ -51,6 +51,10 @@ const Simulador = lazy(() => import('./pages/public/Simulador'));
 const NotificationsSettings = lazy(() => import('./pages/portal/NotificationsSettings'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
+// W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
+const FreeAudit = lazy(() => import('./pages/public/FreeAudit'));
+const StateOfCDMX = lazy(() => import('./pages/public/StateOfCDMX'));
+const MCPTutorial = lazy(() => import('./pages/public/connect/MCPTutorial'));
 
 const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
 // W4.18.2B Sub-D — public AVM + colonia landings
@@ -481,6 +485,10 @@ function AppRouter() {
       <Route path="/simulador" element={<SimuladorRoute />} />
       {/* W4.9.6 — 3DGS Tour public embed */}
       <Route path="/embed/3dgs/:unit_id" element={<Embed3DGSPage />} />
+      {/* W4.16 — Marketing pages públicas */}
+      <Route path="/free-audit" element={<FreeAudit />} />
+      <Route path="/insights/state-of-cdmx-2026" element={<StateOfCDMX />} />
+      <Route path="/connect/mcp/tutorial" element={<MCPTutorial />} />
 
       {/* B9 differentiated routes */}
       <Route path="/propiedades" element={<Navigate to="/marketplace" replace />} />

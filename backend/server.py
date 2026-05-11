@@ -632,6 +632,17 @@ from routes_tour_3dgs import router as tour_3dgs_router
 from tour_3dgs_engine import ensure_tour_3dgs_indexes as ensure_tour_3dgs_indexes_fn
 app.include_router(tour_3dgs_router)
 
+# W4.16 — Marketing (Free Audit + State of CDMX + MCP Distribution)
+from routes_free_audit import router as free_audit_router
+from free_audit_engine import ensure_free_audit_indexes as ensure_free_audit_indexes_fn
+app.include_router(free_audit_router)
+from routes_state_of_cdmx import router as state_of_cdmx_router
+from state_of_cdmx_engine import ensure_state_of_cdmx_indexes as ensure_state_of_cdmx_indexes_fn
+app.include_router(state_of_cdmx_router)
+from routes_mcp_distribution import router as mcp_distribution_router
+from mcp_distribution_engine import ensure_mcp_distribution_indexes as ensure_mcp_distribution_indexes_fn
+app.include_router(mcp_distribution_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):

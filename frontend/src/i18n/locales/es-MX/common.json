@@ -2090,5 +2090,101 @@
       "delete_confirm": "¿Eliminar este tour 3D? No se puede deshacer.",
       "delete_failed": "No se pudo eliminar el tour."
     }
+  },
+  "free_audit": {
+    "hero": {
+      "eyebrow": "DMX · AUDIT GRATUITO",
+      "title_a": "Audita tu propiedad",
+      "title_b": "CDMX",
+      "title_c": "gratis",
+      "subtitle": "DMX te dice cuánto vale, dónde está parada en el mercado y qué hacer para optimizar venta."
+    },
+    "wizard": {
+      "step_label": "Paso {{n}} de {{total}}",
+      "back": "Atrás",
+      "next": "Continuar",
+      "submit": "Generar audit",
+      "submitting": "Generando…"
+    },
+    "fields": {
+      "project_name": "Nombre del proyecto / propiedad",
+      "colonia_slug": "Colonia (slug)",
+      "m2": "Superficie (m²)",
+      "recamaras": "Recámaras",
+      "banos": "Baños",
+      "antiguedad": "Antigüedad (años · 0=preventa)",
+      "precio": "Precio estimado (MXN)",
+      "descripcion": "Descripción (máx 500 caracteres)",
+      "floor_plan": "Plano (PDF, PNG, JPG · máx 10 MB)",
+      "email": "Email",
+      "phone": "WhatsApp (opcional)",
+      "consent": "Acepto el aviso de privacidad LFPDPPP y autorizo a DesarrollosMX a contactarme."
+    },
+    "result": {
+      "badge": "Listo",
+      "title": "Tu DMX Audit Report",
+      "download": "Descargar PDF",
+      "resend": "Reenviar por email",
+      "talk_to_advisor": "Hablar con asesor"
+    },
+    "errors": {
+      "required": "Requerido",
+      "email_invalid": "Email inválido",
+      "consent_required": "Debes aceptar el aviso",
+      "generic": "No se pudo generar el audit."
+    }
+  },
+  "state_of_cdmx": {
+    "hero": {
+      "eyebrow": "DMX · INTELIGENCIA INMOBILIARIA",
+      "title_a": "State of",
+      "title_b": "CDMX 2026",
+      "subtitle": "Datos brutos del mercado inmobiliario CDMX · análisis IA + predicciones."
+    },
+    "sections": {
+      "highlights": "Highlights del mercado",
+      "top_roi": "Top 10 colonias por ROI 12 meses",
+      "demand_supply": "Demand–Supply Gap por colonia",
+      "velocity": "Velocity por categoría de precio",
+      "predictions": "Predicciones 2026 · Q3 → Q4",
+      "dmx_index": "DMX Index · Top creatives preventa",
+      "download_cta": "¿Quieres este reporte como PDF?",
+      "broker_cta": "¿Eres asesor o desarrollador?"
+    },
+    "kpi": {
+      "top_colonia": "Top colonia ROI 12m",
+      "demand_leader": "Demanda más caliente",
+      "velocity_champion": "Velocity champion",
+      "forecast_q4": "Forecast Q4 2026"
+    },
+    "cta": {
+      "generate_audit": "Generar mi audit PDF",
+      "broker_portal": "Ir a broker portal"
+    }
+  },
+  "mcp_tutorial": {
+    "hero": {
+      "eyebrow": "DMX · MCP DISTRIBUTION",
+      "title_a": "Conecta",
+      "title_b": "Claude Desktop",
+      "title_c": "a DesarrollosMX",
+      "subtitle": "DMX MCP server expone 18 herramientas agentic · queries naturales sobre inteligencia inmobiliaria CDMX."
+    },
+    "sections": {
+      "what_is_mcp": "¿Qué es MCP?",
+      "setup": "Setup en 3 pasos",
+      "queries": "Ejemplos de queries",
+      "compatible": "Compatible con"
+    },
+    "steps": {
+      "s1_title": "Descarga Claude Desktop",
+      "s2_title": "Configura claude_desktop_config.json",
+      "s3_title": "Reinicia y prueba"
+    },
+    "cta": {
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "broker_portal": "Ir a broker portal"
+    }
   }
 }

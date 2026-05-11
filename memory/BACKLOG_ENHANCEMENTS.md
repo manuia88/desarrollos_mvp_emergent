@@ -253,6 +253,14 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### Free Audit funnel stats admin endpoint (W4.16 enhancement emergent suggested 2026-05-10)
+- **Origen:** W4.16 emergent suggested 2026-05-10 post-shipped
+- **Destino:** F0 sweep tech debt (~1h)
+- **Qué:** endpoint `GET /api/free-audit/stats/admin` (superadmin-only) muestra conversion funnel: visitors landing → form submits → audit PDFs generated → email opens (Resend webhook) → broker contact requests · cruza data `free_audit_submissions` collection + PostHog events · agrupa por UTM source/medium/campaign + período
+- **Por qué:** founder mide ROI canal Free Audit sin abandonar portal · informa cuál UTM source convierte mejor (FB ads vs Google Ads vs prensa) · presupuesto Q3 marketing data-driven
+- **Costo:** ~1h (40L · query agregado Mongo + PostHog API call si tokens disponibles)
+- **Activar:** F0 sweep próximo · cuando waitlist Free Audit ≥50 submissions
+
 ### 3DGS regenerate-thumbnail endpoint (W4.9.6 enhancement emergent suggested 2026-05-10)
 - **Origen:** W4.9.6 emergent suggested 2026-05-10 post-shipped
 - **Destino:** F0 sweep tech debt (~1h)
