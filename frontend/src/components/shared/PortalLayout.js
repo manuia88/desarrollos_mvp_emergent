@@ -259,14 +259,14 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
           onClick={() => setCollapsed(c => !c)}
           className="ml-auto text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] transition-colors hidden md:flex"
           data-testid="sidebar-collapse-btn"
-          title={collapsed ? 'Expandir' : 'Colapsar'}
+          aria-label={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
         >
           {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
 
       {/* Nav tiers */}
-      <nav className="flex-1 overflow-y-auto px-2 space-y-2 scrollbar-none">
+      <nav className="flex-1 overflow-y-auto px-2 space-y-2 scrollbar-none" aria-label="Navegación principal">
         {tiers.map(tier => (
           <NavTier key={tier.tier} tier={tier} collapsed={collapsed} badges={badges} />
         ))}
@@ -404,6 +404,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
       <aside
         className={`sidebar-portal hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${collapsed ? 'w-[56px]' : 'w-[220px]'}`}
         data-testid="portal-sidebar"
+        aria-label="Barra lateral de navegación"
       >
         {sidebarContent}
       </aside>
@@ -425,12 +426,15 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <ImpersonationBanner />
         {/* Topbar */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(240,235,224,0.08)] bg-[#0b0e18] shrink-0" data-testid="portal-topbar">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(240,235,224,0.08)] bg-[#0b0e18] shrink-0" data-testid="portal-topbar" role="banner">
           {/* Mobile hamburger */}
           <button
             className="md:hidden text-[rgba(240,235,224,0.6)] hover:text-[var(--cream)] transition-colors"
             onClick={() => setMobileOpen(o => !o)}
             data-testid="mobile-menu-btn"
+            aria-label={mobileOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-sidebar"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -474,6 +478,8 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
               onClick={() => setUserMenuOpen(o => !o)}
               className="w-8 h-8 rounded-full bg-[rgba(240,235,224,0.12)] flex items-center justify-center text-[var(--cream)] text-xs font-bold hover:bg-[rgba(240,235,224,0.2)] transition-colors"
               data-testid="user-menu-btn"
+              aria-label="Menú de usuario"
+              aria-expanded={userMenuOpen}
             >
               {user?.picture
                 ? <img src={user.picture} alt="" className="w-8 h-8 rounded-full object-cover" />
@@ -508,7 +514,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto" data-testid="portal-main">
+        <main className="flex-1 overflow-y-auto" data-testid="portal-main" id="main-content" tabIndex="-1">
           {children}
         </main>
       </div>

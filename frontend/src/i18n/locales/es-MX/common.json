@@ -2223,5 +2223,20 @@
   "free_audit_funnel": {
     "export_csv": "Exportar CSV",
     "export_csv_title": "Descarga submissions para CRM (Excel-friendly UTF-8 BOM)"
+  },
+  "a11y": {
+    "skip_to_content": "Saltar al contenido principal",
+    "dmx_logo": "Logo DesarrollosMX",
+    "notification_bell": "Notificaciones",
+    "mobile_menu_open": "Abrir menú de navegación",
+    "mobile_menu_close": "Cerrar menú de navegación",
+    "collapse_sidebar": "Colapsar barra lateral",
+    "expand_sidebar": "Expandir barra lateral",
+    "close": "Cerrar",
+    "loading": "Cargando contenido",
+    "user_menu": "Menú de usuario",
+    "search": "Buscar en la plataforma",
+    "main_nav": "Navegación principal",
+    "portal_header": "Encabezado del portal"
   }
 }

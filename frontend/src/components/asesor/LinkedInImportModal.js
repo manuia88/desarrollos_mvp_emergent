@@ -143,78 +143,78 @@ export default function LinkedInImportModal({ open, onClose, onImported }) {
           Validaremos automáticamente cuando la integración OAuth esté disponible (Phase 8).
         </div>
 
-        <label style={{ fontSize: 10, letterSpacing: '0.08em',
+        <label htmlFor="linkedin-url-input" style={{ fontSize: 10, letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: 'var(--cream-3)' }}>
           URL LinkedIn pública
         </label>
-        <input data-testid="linkedin-url-input" placeholder="https://www.linkedin.com/in/tu-usuario/"
+        <input id="linkedin-url-input" data-testid="linkedin-url-input" placeholder="https://www.linkedin.com/in/tu-usuario/"
                value={url} onChange={(e) => setUrl(e.target.value)}
                style={inputStyle} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
-            <label style={{ fontSize: 10, letterSpacing: '0.08em',
+            <label htmlFor="linkedin-full-name" style={{ fontSize: 10, letterSpacing: '0.08em',
                             textTransform: 'uppercase', color: 'var(--cream-3)' }}>
               Nombre completo
             </label>
-            <input data-testid="linkedin-full-name" placeholder="Ana Gutiérrez"
+            <input id="linkedin-full-name" data-testid="linkedin-full-name" placeholder="Ana Gutiérrez"
                    value={fullName} onChange={(e) => setFullName(e.target.value)}
                    style={inputStyle} />
           </div>
           <div>
-            <label style={{ fontSize: 10, letterSpacing: '0.08em',
+            <label htmlFor="linkedin-years" style={{ fontSize: 10, letterSpacing: '0.08em',
                             textTransform: 'uppercase', color: 'var(--cream-3)' }}>
               Años de experiencia
             </label>
-            <input data-testid="linkedin-years" type="number" min={0} max={60}
+            <input id="linkedin-years" data-testid="linkedin-years" type="number" min={0} max={60}
                    value={yearsExperience}
                    onChange={(e) => setYearsExperience(e.target.value)}
                    style={inputStyle} />
           </div>
         </div>
 
-        <label style={{ fontSize: 10, letterSpacing: '0.08em',
+        <label htmlFor="linkedin-headline" style={{ fontSize: 10, letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: 'var(--cream-3)' }}>
           Headline
         </label>
-        <input data-testid="linkedin-headline"
+        <input id="linkedin-headline" data-testid="linkedin-headline"
                placeholder="Asesor inmobiliario senior · DesarrollosMX"
                value={headline} onChange={(e) => setHeadline(e.target.value)}
                style={inputStyle} />
 
-        <label style={{ fontSize: 10, letterSpacing: '0.08em',
+        <label htmlFor="linkedin-company" style={{ fontSize: 10, letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: 'var(--cream-3)' }}>
           Empresa actual
         </label>
-        <input data-testid="linkedin-company"
+        <input id="linkedin-company" data-testid="linkedin-company"
                placeholder="DesarrollosMX"
                value={currentCompany} onChange={(e) => setCurrentCompany(e.target.value)}
                style={inputStyle} />
 
-        <label style={{ fontSize: 10, letterSpacing: '0.08em',
+        <label htmlFor="linkedin-photo" style={{ fontSize: 10, letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: 'var(--cream-3)' }}>
           Foto (URL opcional)
         </label>
-        <input data-testid="linkedin-photo"
+        <input id="linkedin-photo" data-testid="linkedin-photo"
                placeholder="https://media.licdn.com/..."
                value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)}
                style={inputStyle} />
 
-        <label style={{ fontSize: 10, letterSpacing: '0.08em',
+        <label htmlFor="linkedin-certs" style={{ fontSize: 10, letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: 'var(--cream-3)' }}>
           Certificaciones (una por línea)
         </label>
-        <textarea data-testid="linkedin-certs" rows={3}
+        <textarea id="linkedin-certs" data-testid="linkedin-certs" rows={3}
                   placeholder={'AMPI Certificada\nCurso Avanzado Plusvalía'}
                   value={certifications}
                   onChange={(e) => setCertifications(e.target.value)}
                   style={{ ...inputStyle, resize: 'vertical' }} />
 
-        <label style={{ fontSize: 10, letterSpacing: '0.08em',
+        <label htmlFor="linkedin-education" style={{ fontSize: 10, letterSpacing: '0.08em',
                         textTransform: 'uppercase', color: 'var(--cream-3)' }}>
           Educación (una por línea)
         </label>
-        <textarea data-testid="linkedin-education" rows={2}
+        <textarea id="linkedin-education" data-testid="linkedin-education" rows={2}
                   placeholder={'Lic. Administración - UNAM'}
                   value={education} onChange={(e) => setEducation(e.target.value)}
                   style={{ ...inputStyle, resize: 'vertical' }} />

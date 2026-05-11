@@ -48,6 +48,7 @@ export default function PartnerOfferModal({ offer, onClose, onSuccess }) {
   return (
     <div
       data-testid="partner-offer-modal-overlay"
+      role="presentation"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
@@ -59,6 +60,8 @@ export default function PartnerOfferModal({ offer, onClose, onSuccess }) {
     >
       <div
         data-testid="partner-offer-modal"
+        role="dialog"
+        aria-modal="true"
         style={{
           background: '#0E1220',
           border: '1px solid rgba(255,255,255,0.10)',
@@ -124,8 +127,9 @@ export default function PartnerOfferModal({ offer, onClose, onSuccess }) {
             <form onSubmit={handleSubmit} data-testid="partner-fill-form">
               {/* Common fields */}
               <div style={rowStyle}>
-                <label style={labelStyle}>Correo electrónico *</label>
+                <label htmlFor="offer-email-input" style={labelStyle}>Correo electrónico *</label>
                 <input
+                  id="offer-email-input"
                   data-testid="offer-email-input"
                   type="email" required
                   value={form.email}
@@ -135,8 +139,9 @@ export default function PartnerOfferModal({ offer, onClose, onSuccess }) {
                 />
               </div>
               <div style={rowStyle}>
-                <label style={labelStyle}>Teléfono *</label>
+                <label htmlFor="offer-phone-input" style={labelStyle}>Teléfono *</label>
                 <input
+                  id="offer-phone-input"
                   data-testid="offer-phone-input"
                   type="tel" required
                   value={form.phone}
@@ -150,8 +155,9 @@ export default function PartnerOfferModal({ offer, onClose, onSuccess }) {
               {(type === 'mortgage_broker' || type === 'mortgage') && (
                 <>
                   <div style={rowStyle}>
-                    <label style={labelStyle}>Ingreso mensual estimado (MXN)</label>
+                    <label htmlFor="offer-ingreso-input" style={labelStyle}>Ingreso mensual estimado (MXN)</label>
                     <input
+                      id="offer-ingreso-input"
                       data-testid="offer-ingreso-input"
                       type="number" min="0"
                       value={form.ingreso_mensual_mxn || ''}
