@@ -253,6 +253,14 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### 3DGS regenerate-thumbnail endpoint (W4.9.6 enhancement emergent suggested 2026-05-10)
+- **Origen:** W4.9.6 emergent suggested 2026-05-10 post-shipped
+- **Destino:** F0 sweep tech debt (~1h)
+- **Qué:** endpoint `POST /api/tour-3dgs/scans/{scan_id}/regenerate-thumbnail` toma primer frame del viewer server-side via Pillow + datos del splat · permite generar thumbnail cuando Luma no provee · útil para uploads custom .ply/.spz/.splat manual
+- **Por qué:** og:image dinámico (`/api/tour-3dgs/scans/{id}/thumbnail.png` ya existe W4.9.6) requiere thumbnail · si scan custom upload no incluye preview frame · DMX no genera og:image rich · pierde social sharing CTR
+- **Costo:** ~1h (Pillow render server-side · usa Three.js CLI o WebGL headless · alternativa: usar primer frame del .ply/.spz parsing manual)
+- **Activar:** F0 sweep próximo
+
 ### Brochure regenerate endpoint (W4.9 enhancement emergent suggested 2026-05-10)
 - **Origen:** W4.9 emergent suggested 2026-05-10 post-shipped
 - **Destino:** F0 sweep tech debt (~1h)

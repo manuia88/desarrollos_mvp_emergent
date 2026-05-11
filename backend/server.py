@@ -627,6 +627,11 @@ from routes_brochure import router as brochure_router
 from brochure_engine import ensure_brochure_indexes as ensure_brochure_indexes_fn
 app.include_router(brochure_router)
 
+# W4.9.6 — 3D Gaussian Splatting Tour
+from routes_tour_3dgs import router as tour_3dgs_router
+from tour_3dgs_engine import ensure_tour_3dgs_indexes as ensure_tour_3dgs_indexes_fn
+app.include_router(tour_3dgs_router)
+
 
 @app.middleware("http")
 async def private_beta_signup_gate(request, call_next):

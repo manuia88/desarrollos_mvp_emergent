@@ -31,6 +31,9 @@ import StructuredData from '../components/seo/StructuredData';
 import InvestmentSimulator from '../components/investment/InvestmentSimulator';
 // W4.9 — Brochure Generator
 import BrochureGenerator from '../components/brochure/BrochureGenerator';
+// W4.9.6 — 3DGS Tour
+import Tour3DViewer from '../components/tour3d/Tour3DViewer';
+import Tour3DOnboardingWizard from '../components/tour3d/Tour3DOnboardingWizard';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -112,6 +115,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     { k: 'amenidades', label: t('dev.tab_amen') },
     { k: 'localizacion', label: t('dev.tab_loc') },
     { k: 'tour', label: 'Tour 360°' },
+    { k: 'tour_3d', label: 'Tour 3D' },
     { k: 'hipoteca', label: 'Hipoteca' },
   ];
 
@@ -286,6 +290,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   tourUrl={dev.virtual_tour_url}
                 />
               )}
+              {tab === 'tour_3d' && (
+                <Tour3DTabPanel
+                  unitId={selectedUnit?.id || dev.id}
+                  projectSlug={dev.id}
+                  devId={dev.dev_org_id || dev.developer_id}
+                  isAdvisor={isAdvisor}
+                />
+              )}
               {tab === 'hipoteca' && (
                 <MortgageCalculator
                   variant="inline"
@@ -406,6 +418,158 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
       <WhatsAppAsesorCTA
         asesorPhone={dev.asesor_phone}
         propiedadNombre={dev.name}
+      />
+    </div>
+  );
+}
+
+// ─── Tour 3D Tab Panel ────────────────────────────────────────────────────────
+function Tour3DTabPanel({ unitId, projectSlug, devId, isAdvisor }) {
+  const [scan, setScan] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [wizardOpen, setWizardOpen] = React.useState(false);
+  const API_BASE = process.env.REACT_APP_BACKEND_URL;
+
+  const loadScan = React.useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (unitId) params.set('unit_id', unitId);
+    if (projectSlug) params.set('project_slug', projectSlug);
+    params.set('limit', '1');
+    fetch(`${API_BASE}/api/tour-3dgs/scans?${params.toString()}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setScan(d?.items?.[0] || null);
+      })
+      .catch(() => setScan(null))
+      .finally(() => setLoading(false));
+  }, [API_BASE, unitId, projectSlug]);
+
+  React.useEffect(() => { loadScan(); }, [loadScan]);
+
+  if (loading) {
+    return (
+      <div data-testid="unit-tab-tour-3d" style={{
+        padding: 40, textAlign: 'center', color: 'var(--cream-3)',
+        fontFamily: 'DM Sans', fontSize: 13,
+      }}>
+        Cargando tour 3D…
+      </div>
+    );
+  }
+
+  if (!scan) {
+    return (
+      <div data-testid="unit-tab-tour-3d" style={{
+        padding: 40, textAlign: 'center',
+        background: 'rgba(13,16,23,0.5)',
+        border: '1px solid rgba(240,235,224,0.08)',
+        borderRadius: 14,
+      }}>
+        <div data-testid="tour-empty-state" style={{
+          fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 6,
+        }}>
+          Tour 3D no disponible
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', marginBottom: 18 }}>
+          Próximamente compartiremos un tour 3D inmersivo de esta unidad.
+        </div>
+        {isAdvisor && (
+          <button
+            type="button"
+            data-testid="tour-capture-btn"
+            onClick={() => setWizardOpen(true)}
+            style={{
+              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              color: '#fff', border: 'none', borderRadius: 9999,
+              padding: '10px 22px',
+              fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, letterSpacing: '0.1em',
+              cursor: 'pointer',
+            }}
+          >
+            CAPTURAR TOUR 3D
+          </button>
+        )}
+        {wizardOpen && (
+          <Tour3DOnboardingWizard
+            unitId={unitId}
+            projectSlug={projectSlug}
+            devId={devId}
+            onClose={() => setWizardOpen(false)}
+            onCreated={() => { setWizardOpen(false); loadScan(); }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (scan.status === 'processing') {
+    return (
+      <div data-testid="unit-tab-tour-3d" style={{
+        padding: 40, textAlign: 'center',
+        background: 'rgba(99,102,241,0.06)',
+        border: '1px solid rgba(99,102,241,0.25)',
+        borderRadius: 14,
+        color: 'var(--cream)',
+      }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15 }}>
+          Procesando tour 3D
+        </div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', marginTop: 8 }}>
+          Te avisaremos cuando esté listo.
+        </div>
+      </div>
+    );
+  }
+
+  if (scan.status === 'failed') {
+    return (
+      <div data-testid="unit-tab-tour-3d" style={{
+        padding: 30, textAlign: 'center',
+        background: 'rgba(239,68,68,0.08)',
+        border: '1px solid rgba(239,68,68,0.3)',
+        borderRadius: 14,
+        color: 'var(--cream)',
+      }}>
+        <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15 }}>
+          El procesamiento falló
+        </div>
+        {isAdvisor && (
+          <button
+            type="button"
+            onClick={() => setWizardOpen(true)}
+            style={{
+              marginTop: 16,
+              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              color: '#fff', border: 'none', borderRadius: 9999,
+              padding: '9px 20px',
+              fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em',
+              cursor: 'pointer',
+            }}
+          >
+            REINTENTAR
+          </button>
+        )}
+        {wizardOpen && (
+          <Tour3DOnboardingWizard
+            unitId={unitId}
+            projectSlug={projectSlug}
+            devId={devId}
+            onClose={() => setWizardOpen(false)}
+            onCreated={() => { setWizardOpen(false); loadScan(); }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div data-testid="unit-tab-tour-3d">
+      <Tour3DViewer
+        scanId={scan.scan_id}
+        viewerConfig={scan.viewer_config}
+        theme="cream"
+        uiMode="full"
       />
     </div>
   );

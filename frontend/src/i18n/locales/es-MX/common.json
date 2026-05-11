@@ -2021,5 +2021,74 @@
     "base_aprec": "base",
     "error_invalid": "Error al calcular. Intenta con valores diferentes.",
     "methodology": "Los cálculos utilizan datos de modelos hedónicos de regresión, Zone Score DMX y tasas TIIE-28d + spread bancario. Resultados con fines informativos, no constituyen asesoría financiera."
+  },
+  "tour3d": {
+    "viewer": {
+      "loading": "Cargando tour 3D · 3-5 segundos…",
+      "error": "Tour temporalmente no disponible · contacta asesor",
+      "fullscreen": "Pantalla completa",
+      "exit_fullscreen": "Salir pantalla completa",
+      "reset_camera": "Resetear cámara",
+      "share": "Compartir",
+      "share_copied": "Enlace copiado al portapapeles"
+    },
+    "wizard": {
+      "title": "Capturar tour 3D",
+      "step_of": "Paso {{step}} de 3",
+      "step1_title": "Selecciona tu dispositivo",
+      "step1_subtitle": "Te damos las instrucciones específicas para tu equipo.",
+      "step2_back": "Volver",
+      "step2_next": "Ya capturé · continuar",
+      "step3_title": "Comparte el enlace Luma",
+      "step3_subtitle": "Pega aquí el enlace público que Luma generó al terminar el procesamiento.",
+      "step3_placeholder": "https://lumalabs.ai/capture/...",
+      "submit": "Crear tour 3D",
+      "submitting": "Enviando…",
+      "error_invalid_url": "No reconocí un ID Luma válido en el enlace.",
+      "error_generic": "No se pudo crear el scan.",
+      "close": "Cerrar"
+    },
+    "uploader": {
+      "title": "Subir tour 3D",
+      "subtitle": "Formatos: .ply, .spz, .splat · máx 200 MB",
+      "unit_label": "UNIDAD",
+      "unit_placeholder": "— Selecciona unidad —",
+      "drop_idle": "Arrastra tu archivo aquí o haz clic",
+      "submit": "Subir archivo",
+      "uploading": "Subiendo {{pct}}%…",
+      "error_format": "Formato no soportado. Usa .ply, .spz o .splat.",
+      "error_size": "Archivo demasiado grande (máx 200 MB).",
+      "error_no_file": "Selecciona un archivo primero.",
+      "error_no_unit": "Selecciona una unidad.",
+      "error_network": "Error de red durante la subida."
+    },
+    "status": {
+      "pending": "Pendiente",
+      "processing": "Procesando",
+      "ready": "Listo",
+      "failed": "Falló"
+    },
+    "tab": {
+      "title": "Tour 3D",
+      "empty_title": "Tour 3D no disponible",
+      "empty_subtitle": "Próximamente compartiremos un tour 3D inmersivo de esta unidad.",
+      "capture_cta": "Capturar tour 3D",
+      "processing_title": "Procesando tour 3D",
+      "processing_subtitle": "Te avisaremos cuando esté listo.",
+      "failed_title": "El procesamiento falló",
+      "retry": "Reintentar"
+    },
+    "section": {
+      "title": "Tours 3D · Gaussian Splatting",
+      "subtitle": "Captura inmersiva por unidad. Compatible con iframe embedable.",
+      "capture_new": "Capturar nuevo tour",
+      "upload_file": "Subir archivo",
+      "empty": "Aún no hay tours 3D para este proyecto.",
+      "row_unit": "Unidad",
+      "preview": "Preview",
+      "delete": "Borrar",
+      "delete_confirm": "¿Eliminar este tour 3D? No se puede deshacer.",
+      "delete_failed": "No se pudo eliminar el tour."
+    }
   }
 }
