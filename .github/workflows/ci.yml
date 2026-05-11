@@ -23,10 +23,11 @@ jobs:
           cache: 'pip'
           cache-dependency-path: backend/requirements.txt
 
-      - name: Install backend deps
+      - name: Install backend deps (skip emergent-private)
         run: |
           cd backend
-          pip install -r requirements.txt
+          grep -v "^emergentintegrations" requirements.txt > /tmp/req-ci.txt
+          pip install -r /tmp/req-ci.txt
 
       - name: Syntax check server.py
         run: python -m py_compile backend/server.py
