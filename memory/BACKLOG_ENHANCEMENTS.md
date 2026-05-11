@@ -253,6 +253,14 @@ backend/routes/
 - **Acceptance criteria mínimo:** plataforma debe responder sin código adicional las 10 queries cross-dim definidas en `INSIGHTS_GRANULARITY_SCHEMA.md`
 - **Wedge:** plataforma estilo HubSpot+GoHighLevel+Hootsuite+Sprout Social cross-vertical real estate MX único en LATAM
 
+### Free Audit funnel CSV export to CRM (F0.2 enhancement emergent suggested 2026-05-10)
+- **Origen:** F0.2 emergent suggested 2026-05-10 post-shipped
+- **Destino:** F0.3 sweep tech debt o W5.10 marketing analytics (~30 min)
+- **Qué:** botón "Exportar CSV" en `/superadmin/free-audit-funnel` page · CSV con campos {email · phone · project_name · colonia_slug · m2 · precio · utm_source · utm_medium · utm_campaign · submitted_at · pdf_generated · email_sent} · permite marketing llevar leads a HubSpot/CRM con 1 click
+- **Por qué:** sin export · marketing copia-pega manual · friction reduce uso analytics dashboard · CRM integration es path natural para lead nurturing externa
+- **Costo:** ~30 min (button + endpoint /api/free-audit/admin/export.csv ya patrón existente)
+- **Activar:** F0.3 próximo o cuando founder integre HubSpot/CRM externo
+
 ### Cron diario top_colonias_by_score pre-compute (F0.1 enhancement emergent suggested 2026-05-10)
 - **Origen:** F0.1 emergent suggested 2026-05-10 post-shipped
 - **Destino:** F0.2 sweep próximo o F0.3 (~1h)

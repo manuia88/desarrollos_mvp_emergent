@@ -189,6 +189,7 @@ const BulletinPage                   = lazy(() => import('./pages/public/Bulleti
 // W3.4A ZZ.4 — Fraud Detection + Risk Score
 const SuperadminFraudAlerts          = lazy(() => import('./pages/superadmin/SuperadminFraudAlerts'));
 const SuperadminRiskScore            = lazy(() => import('./pages/superadmin/SuperadminRiskScore'));
+const SuperadminFreeAuditFunnel      = lazy(() => import('./pages/superadmin/SuperadminFreeAuditFunnel'));
 const SuperadminRiskAlerts           = lazy(() => import('./pages/superadmin/SuperadminRiskAlerts'));
 // W3.5 — Public API + Stripe
 const SuperadminApiKeys              = lazy(() => import('./pages/superadmin/SuperadminApiKeys'));
@@ -629,6 +630,8 @@ function AppRouter() {
       <Route path="/superadmin/fraud-alerts" element={<AdvisorRoute Page={SuperadminFraudAlerts} />} />
       <Route path="/superadmin/risk-score" element={<AdvisorRoute Page={SuperadminRiskScore} />} />
       <Route path="/superadmin/risk-alerts" element={<AdvisorRoute Page={SuperadminRiskAlerts} />} />
+      {/* F0.2 · Sub-E — Free Audit funnel admin */}
+      <Route path="/superadmin/free-audit-funnel" element={<AdvisorRoute Page={SuperadminFreeAuditFunnel} />} />
       <Route path="/superadmin/api-keys" element={<AdvisorRoute Page={SuperadminApiKeys} />} />
       <Route path="/docs/api" element={<ApiDocsPage />} />
       <Route path="/methodology" element={<MethodologyPage />} />

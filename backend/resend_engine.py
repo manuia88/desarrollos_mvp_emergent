@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
 from typing import Optional
 
 log = logging.getLogger("dmx.resend_engine")
@@ -108,3 +109,106 @@ def send_welcome_broker(email: str, name: str, invite_code: str) -> bool:
     html = _welcome_broker_html(name=name, invite_code=invite_code)
     subject = "Bienvenido a DesarrollosMX · acceso confirmado"
     return _send(subject, html, email)
+
+
+# ─── F0.2·Sub-A — Digest semanal asesor ───────────────────────────────────────
+
+def _digest_semanal_html(asesor_name: str, week_data: dict) -> str:
+    safe_name = (asesor_name or "asesor").strip() or "asesor"
+    stats = (week_data or {}).get("stats") or {}
+    leads = (week_data or {}).get("top_leads") or []
+    portal = f"{APP_BASE}/asesor"
+    contactos = f"{APP_BASE}/asesor/contactos"
+
+    total = int(stats.get("total_leads") or 0)
+    closed_won = int(stats.get("closed_won") or 0)
+    conv = stats.get("conversion_rate")
+    conv_str = f"{float(conv):.1f}%" if conv not in (None, "") else "—"
+
+    leads_html_parts = []
+    if leads:
+        for lead in leads[:3]:
+            leads_html_parts.append(f"""\
+<tr>
+  <td style="padding:10px 12px;border-bottom:1px solid rgba(240,235,224,0.06)">
+    <div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:700;font-size:13px;color:#F0EBE0">{(lead.get('name') or '—')[:40]}</div>
+    <div style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#a0a4b0;margin-top:2px">
+      Último paso: {(lead.get('last_step') or '—').replace('_', ' ')} · {int(lead.get('steps_count') or 0)} acciones
+    </div>
+  </td>
+</tr>""")
+    else:
+        leads_html_parts.append("""\
+<tr><td style="padding:14px 12px;font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:12px;color:#a0a4b0">
+  Sin leads activos esta semana · prospecta desde el portal.
+</td></tr>""")
+    leads_table = "\n".join(leads_html_parts)
+
+    return f"""\
+<div style="font-family:Helvetica,Arial,sans-serif;background:#06080F;color:#F0EBE0;padding:0;margin:0">
+  <div style="background:linear-gradient(90deg,#6366F1,#EC4899);padding:30px 28px;text-align:center">
+    <div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:800;font-size:24px;color:#fff;margin:0">
+      DesarrollosMX
+    </div>
+    <div style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:0.12em;color:rgba(255,255,255,0.85);margin-top:4px;text-transform:uppercase">
+      Digest semanal · {datetime.now().strftime('%d %b %Y')}
+    </div>
+  </div>
+
+  <div style="padding:30px 28px;max-width:600px;margin:0 auto">
+    <h2 style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:700;font-size:20px;margin:0 0 10px;color:#F0EBE0">
+      Hola {safe_name}
+    </h2>
+    <p style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#a0a4b0;margin:0 0 18px">
+      Tu semana en DMX, en 30 segundos.
+    </p>
+
+    <table cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 22px">
+      <tr>
+        <td style="background:#161b25;border:1px solid rgba(99,102,241,0.30);border-radius:12px;padding:14px;text-align:center;width:33%">
+          <div style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:10px;letter-spacing:0.08em;color:#a5b4fc;text-transform:uppercase">Leads totales</div>
+          <div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:800;font-size:22px;color:#F0EBE0;margin-top:4px">{total}</div>
+        </td>
+        <td style="width:8px"></td>
+        <td style="background:#161b25;border:1px solid rgba(99,102,241,0.30);border-radius:12px;padding:14px;text-align:center;width:33%">
+          <div style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:10px;letter-spacing:0.08em;color:#a5b4fc;text-transform:uppercase">Cierres</div>
+          <div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:800;font-size:22px;color:#F0EBE0;margin-top:4px">{closed_won}</div>
+        </td>
+        <td style="width:8px"></td>
+        <td style="background:#161b25;border:1px solid rgba(99,102,241,0.30);border-radius:12px;padding:14px;text-align:center;width:33%">
+          <div style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:10px;letter-spacing:0.08em;color:#a5b4fc;text-transform:uppercase">Conversión</div>
+          <div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:800;font-size:22px;color:#F0EBE0;margin-top:4px">{conv_str}</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:700;font-size:14px;margin:0 0 10px;color:#F0EBE0">
+      Top leads activos
+    </h3>
+    <table cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#0E1220;border:1px solid rgba(240,235,224,0.08);border-radius:12px;overflow:hidden;margin:0 0 22px">
+      {leads_table}
+    </table>
+
+    <a href="{portal}" style="display:inline-block;background:linear-gradient(90deg,#6366F1,#EC4899);color:#fff;text-decoration:none;font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:800;font-size:11px;letter-spacing:0.1em;padding:12px 22px;border-radius:9999px">
+      ABRIR MI PANEL
+    </a>
+    <a href="{contactos}" style="display:inline-block;margin-left:10px;border:1px solid rgba(240,235,224,0.20);color:#F0EBE0;text-decoration:none;font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;padding:12px 22px;border-radius:9999px">
+      VER CONTACTOS
+    </a>
+
+    <hr style="border:none;border-top:1px solid rgba(240,235,224,0.08);margin:28px 0">
+    <div style="font-family:'DM Sans',Helvetica,Arial,sans-serif;font-size:11px;color:#6b7280;line-height:1.6">
+      LFPDPPP · DesarrollosMX trata tus datos conforme a la legislación mexicana.
+      Si no deseas recibir más correos, usa el enlace
+      <a href="{APP_BASE}/unsubscribe" style="color:#6b7280;text-decoration:underline">unsubscribe</a>.
+    </div>
+  </div>
+</div>
+"""
+
+
+def send_digest_semanal_asesor(asesor_email: str, asesor_name: str, week_data: dict) -> bool:
+    """F0.2·Sub-A — Best-effort weekly digest sender."""
+    html = _digest_semanal_html(asesor_name=asesor_name, week_data=week_data or {})
+    subject = "Tu semana en DesarrollosMX"
+    return _send(subject, html, asesor_email)

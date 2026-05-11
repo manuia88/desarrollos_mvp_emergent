@@ -34,11 +34,31 @@ export default function AsesorDashboard({ user, onLogout }) {
   };
 
   const [briefingsSummary, setBriefingsSummary] = useState(null);
+  const [leaderboard, setLeaderboard] = useState(null);
 
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
     briefApi.briefingsSummary().then(setBriefingsSummary).catch(() => setBriefingsSummary(null));
+    // F0.2·Sub-B — Leaderboard widget
+    (async () => {
+      try {
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        const res = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/lead-journey/leaderboard?period_days=30&limit=5`,
+          {
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            credentials: 'include',
+          },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setLeaderboard(data);
+        }
+      } catch {
+        setLeaderboard(null);
+      }
+    })();
   }, []);
 
   const runBriefing = async () => {
@@ -267,6 +287,58 @@ export default function AsesorDashboard({ user, onLogout }) {
                   ))}
                 </div>
               )}
+            </Card>
+          )}
+
+          {/* F0.2·Sub-B — Leaderboard 30d */}
+          {leaderboard && Array.isArray(leaderboard.items) && leaderboard.items.length > 0 && (
+            <Card data-testid="leaderboard-widget" style={{ marginTop: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <div className="eyebrow">LEADERBOARD · 30D</div>
+                  <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>
+                    {leaderboard.scope === 'tenant' ? 'Tu organización' : 'Cohorte DMX (anonimizado)'} · top {leaderboard.count} por cierres
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {leaderboard.items.map((row) => (
+                  <div
+                    key={row.rank}
+                    data-testid={`leaderboard-row-${row.rank}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 12px',
+                      background: row.is_self_tenant ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
+                      border: row.is_self_tenant ? '1px solid rgba(99,102,241,0.30)' : '1px solid transparent',
+                      borderRadius: 10,
+                    }}
+                  >
+                    <div style={{
+                      width: 26, height: 26, borderRadius: '50%',
+                      background: row.rank === 1
+                        ? 'linear-gradient(90deg, #6366F1, #EC4899)'
+                        : 'rgba(255,255,255,0.06)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
+                      color: row.rank === 1 ? '#fff' : 'var(--cream-2)',
+                    }}>
+                      {row.rank}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, color: 'var(--cream)' }}>
+                        {row.asesor_display}
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: '#a5b4fc' }}>
+                      {row.closed_won}
+                    </div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      cierres
+                    </div>
+                  </div>
+                ))}
+              </div>
             </Card>
           )}
         </>

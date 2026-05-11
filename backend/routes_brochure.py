@@ -190,6 +190,40 @@ async def download_social(request: Request, brochure_id: str, fmt: str):
     return FileResponse(str(path), media_type="image/png", filename=filename)
 
 
+# ─── POST /api/brochures/regenerate/{brochure_id} (F0.2·Sub-C) ──────────────
+
+class RegenerateRequest(BaseModel):
+    variant: Optional[str] = None
+    overrides: Optional[Dict[str, Any]] = None
+
+
+@router.post("/api/brochures/regenerate/{brochure_id}")
+async def regenerate(request: Request, brochure_id: str, body: Optional[RegenerateRequest] = None):
+    user = await _current_user(request)
+    _ensure_can_generate(user)
+    db = _db(request)
+    body = body or RegenerateRequest()
+    try:
+        doc = await engine.regenerate_brochure(
+            db, user, brochure_id,
+            new_variant_id=body.variant, overrides=body.overrides,
+        )
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc))
+    except ValueError as exc:
+        raise HTTPException(400 if "not_found" not in str(exc) else 404, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(500, str(exc))
+
+    try:
+        from server import audit
+        await audit(user["user_id"], "brochure.regenerate", f"brochure:{brochure_id}",
+                    {"variant": doc.get("branding_variant")})
+    except Exception:
+        pass
+    return JSONResponse({"ok": True, "brochure": doc})
+
+
 # ─── DELETE /api/brochures/{brochure_id} ─────────────────────────────────────
 
 @router.delete("/api/brochures/{brochure_id}")

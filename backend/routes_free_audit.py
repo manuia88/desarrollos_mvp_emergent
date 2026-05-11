@@ -159,3 +159,50 @@ async def resend_email_route(request: Request, audit_id: str):
     db = _db(request)
     sent = await engine.send_audit_email(db, audit_id)
     return JSONResponse({"ok": True, "sent": sent})
+
+
+# ─── F0.2·Sub-E · Admin funnel stats ─────────────────────────────────────────
+
+async def _require_superadmin(request: Request) -> dict:
+    try:
+        from server import get_current_user
+        u = await get_current_user(request)
+        if u:
+            u = u.model_dump() if hasattr(u, "model_dump") else dict(u)
+            if (u.get("role") or "").lower() == "superadmin":
+                return u
+    except Exception:
+        pass
+    raise HTTPException(403, "superadmin_required")
+
+
+@router.get("/api/free-audit/admin/funnel-stats")
+async def admin_funnel_stats(request: Request, period_days: int = 30):
+    await _require_superadmin(request)
+    if period_days < 1 or period_days > 365:
+        period_days = 30
+    db = _db(request)
+    stats = await engine.funnel_stats(db, period_days=period_days)
+    return JSONResponse({"ok": True, **stats})
+
+
+@router.get("/api/free-audit/admin/recent")
+async def admin_recent(request: Request, limit: int = 50):
+    await _require_superadmin(request)
+    db = _db(request)
+    if limit < 1 or limit > 200:
+        limit = 50
+    out = []
+    try:
+        cursor = db.free_audit_submissions.find(
+            {},
+            {"_id": 0, "audit_id": 1, "project_name": 1, "colonia_slug": 1,
+             "submitted_email": 1, "status": 1, "submitted_at": 1,
+             "generated_at": 1, "sent_email_at": 1, "utm_source": 1,
+             "precio_estimado": 1, "m2": 1},
+        ).sort("submitted_at", -1).limit(limit)
+        async for d in cursor:
+            out.append(d)
+    except Exception:
+        pass
+    return JSONResponse({"ok": True, "items": out, "count": len(out)})

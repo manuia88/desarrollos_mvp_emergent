@@ -116,6 +116,26 @@ async def outbound_available(request: Request, limit: int = Query(100, ge=1, le=
     return JSONResponse({"ok": True, "leads": leads, "count": len(leads)})
 
 
+# ─── F0.2·Sub-B · Leaderboard cohort ─────────────────────────────────────────
+@router.get("/api/lead-journey/leaderboard")
+async def journey_leaderboard(
+    request: Request,
+    period_days: int = Query(30, ge=1, le=365),
+    cohort: str = Query("asesor"),
+    limit: int = Query(5, ge=1, le=20),
+):
+    u = await _require_advisor_or_admin(request)
+    db = _db(request)
+    is_super = (u.get("role") or "").lower() == "superadmin"
+    tenant_id = (u.get("tenant_id") or "") if not is_super else ""
+    rows = await eng.leaderboard_cohort(db, tenant_id=tenant_id, period_days=period_days, limit=limit)
+    return JSONResponse({
+        "ok": True, "cohort": cohort, "period_days": period_days,
+        "scope": "global" if is_super else "tenant",
+        "items": rows, "count": len(rows),
+    })
+
+
 # ─── DEV/QA · manual emit (superadmin only) ───────────────────────────────────
 class EmitStepIn(BaseModel):
     lead_id: str

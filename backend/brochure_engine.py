@@ -409,6 +409,78 @@ async def ensure_brochure_indexes(db) -> None:
         log.warning(f"[engine] index create failed: {exc}")
 
 
+# ─── Regenerate brochure (F0.2·Sub-C) ────────────────────────────────────────
+
+async def regenerate_brochure(
+    db,
+    user: Dict[str, Any],
+    brochure_id: str,
+    new_variant_id: Optional[str] = None,
+    overrides: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Regenera PDF + variantes sociales reusando el mismo project_id.
+
+    Conserva brochure_id (overwrite filesystem); incrementa regenerate_count;
+    actualiza branding_variant, generated_at y expires_at. Audita.
+    """
+    existing = await get_brochure(db, brochure_id)
+    if not existing:
+        raise ValueError("brochure_not_found")
+    if existing.get("is_custom_upload"):
+        raise ValueError("cannot_regenerate_custom_upload")
+    tenant = user.get("tenant_id") or user.get("dev_org_id") or "dmx"
+    if existing.get("tenant_id") and existing["tenant_id"] != tenant and user.get("role") != "superadmin":
+        raise PermissionError("cross_tenant_forbidden")
+
+    project_id = existing.get("project_id")
+    if not project_id:
+        raise ValueError("project_id_missing")
+    from projects_unified import get_project_by_slug
+    project = await get_project_by_slug(db, project_id)
+    if not project:
+        raise ValueError("project_not_found")
+
+    variant_id = new_variant_id or existing.get("branding_variant") or DEFAULT_VARIANT
+    branding = await build_branding_payload(db, user, variant_id, overrides)
+    enriched = await hydrate_project(db, project)
+
+    try:
+        pdf_path = renderer.render_brochure_pdf(enriched, branding, brochure_id)
+    except Exception as exc:
+        log.exception(f"[engine·regenerate] PDF render failed: {exc}")
+        raise RuntimeError(f"pdf_render_failed: {exc}")
+    try:
+        social_paths = renderer.render_all_social(enriched, branding, brochure_id)
+    except Exception as exc:
+        log.warning(f"[engine·regenerate] social partial fail: {exc}")
+        social_paths = {}
+
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=EXPIRY_DAYS)
+    update = {
+        "branding_variant": branding["variant"],
+        "pdf_url": _pdf_public_url(brochure_id),
+        "pdf_path": pdf_path,
+        "social_variants": _social_public_urls(brochure_id, social_paths),
+        "social_paths": social_paths,
+        "generated_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "last_regenerated_at": now.isoformat(),
+        "pdf_size_bytes": Path(pdf_path).stat().st_size if Path(pdf_path).exists() else 0,
+    }
+    try:
+        await db.brochures.update_one(
+            {"brochure_id": brochure_id},
+            {"$set": update, "$inc": {"regenerate_count": 1}},
+        )
+    except Exception as exc:
+        log.warning(f"[engine·regenerate] mongo update failed: {exc}")
+
+    doc = await get_brochure(db, brochure_id) or {}
+    doc.pop("_id", None)
+    return doc
+
+
 # ─── File path resolver (for streaming) ──────────────────────────────────────
 
 def resolve_pdf_path(brochure_id: str) -> Optional[Path]:

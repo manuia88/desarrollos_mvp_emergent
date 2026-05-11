@@ -213,6 +213,24 @@ async def delete_scan_route(request: Request, scan_id: str):
     return JSONResponse({"ok": True}, status_code=204)
 
 
+# ─── Regenerate thumbnail (F0.2·Sub-D) ───────────────────────────────────────
+
+@router.post("/api/tour-3dgs/scans/{scan_id}/regenerate-thumbnail")
+async def regenerate_thumbnail_route(request: Request, scan_id: str):
+    user = await _current_user(request)
+    _rate_limit(user.get("user_id", "anon"))
+    db = _db(request)
+    try:
+        doc = await engine.regenerate_thumbnail(db, user, scan_id)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(500, str(exc))
+    return JSONResponse({"ok": True, "scan": doc})
+
+
 # ─── Settings ─────────────────────────────────────────────────────────────────
 
 @router.get("/api/tour-3dgs/settings/{dev_id}")

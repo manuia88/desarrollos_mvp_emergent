@@ -1412,6 +1412,14 @@ async def startup():
                 register_wrapped_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[batch30] wrapped scheduler register failed: {e}")
+
+        # F0.2 · Sub-F — Digest semanal asesor + Top colonias pre-compute
+        try:
+            from scheduler_f02 import register_f02_jobs
+            if sched:
+                register_f02_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[f02] scheduler register failed: {e}")
     except Exception as e:
         logging.warning(f"[batch20] setup failed: {e}")
 

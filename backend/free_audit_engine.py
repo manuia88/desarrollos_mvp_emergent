@@ -505,6 +505,84 @@ async def send_audit_email(db, audit_id: str) -> bool:
         return False
 
 
+async def funnel_stats(db, period_days: int = 30) -> Dict[str, Any]:
+    """F0.2·Sub-E — Aggregates for superadmin funnel dashboard.
+
+    Returns counts by status, email-send conversion, top colonias, avg PDF gen
+    time (when timestamps available).
+    """
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(days=int(period_days or 30))
+    cutoff_iso = cutoff.isoformat()
+
+    base_q = {"submitted_at": {"$gte": cutoff_iso}}
+
+    submitted = 0
+    by_status: Dict[str, int] = {}
+    emails_sent = 0
+    by_colonia: Dict[str, int] = {}
+    by_utm: Dict[str, int] = {}
+    gen_durations: List[float] = []
+
+    try:
+        cursor = db.free_audit_submissions.find(
+            base_q,
+            {"_id": 0, "status": 1, "colonia_slug": 1, "submitted_email": 1,
+             "submitted_at": 1, "generated_at": 1, "sent_email_at": 1,
+             "utm_source": 1},
+        )
+        async for d in cursor:
+            submitted += 1
+            st = (d.get("status") or "unknown").lower()
+            by_status[st] = by_status.get(st, 0) + 1
+            if d.get("sent_email_at"):
+                emails_sent += 1
+            col = (d.get("colonia_slug") or "—")
+            by_colonia[col] = by_colonia.get(col, 0) + 1
+            utm = (d.get("utm_source") or "direct")
+            by_utm[utm] = by_utm.get(utm, 0) + 1
+            sub_at = d.get("submitted_at")
+            gen_at = d.get("generated_at")
+            if sub_at and gen_at:
+                try:
+                    s = datetime.fromisoformat(str(sub_at).replace("Z", "+00:00"))
+                    g = datetime.fromisoformat(str(gen_at).replace("Z", "+00:00"))
+                    delta = (g - s).total_seconds()
+                    if 0 < delta < 3600:
+                        gen_durations.append(delta)
+                except Exception:
+                    pass
+    except Exception as exc:
+        log.warning(f"[funnel_stats] aggregate failed: {exc}")
+
+    ready = by_status.get("ready", 0)
+    pdf_conv = round(ready / submitted * 100, 1) if submitted else 0
+    email_conv = round(emails_sent / submitted * 100, 1) if submitted else 0
+    avg_gen_s = round(sum(gen_durations) / len(gen_durations), 1) if gen_durations else 0
+
+    top_colonias = sorted(
+        [{"slug": k, "count": v} for k, v in by_colonia.items()],
+        key=lambda r: r["count"], reverse=True,
+    )[:10]
+    top_utm = sorted(
+        [{"source": k, "count": v} for k, v in by_utm.items()],
+        key=lambda r: r["count"], reverse=True,
+    )[:10]
+
+    return {
+        "period_days": int(period_days or 30),
+        "submitted": submitted,
+        "by_status": by_status,
+        "pdf_ready": ready,
+        "emails_sent": emails_sent,
+        "pdf_conversion_pct": pdf_conv,
+        "email_conversion_pct": email_conv,
+        "avg_pdf_gen_seconds": avg_gen_s,
+        "top_colonias": top_colonias,
+        "top_utm_sources": top_utm,
+    }
+
+
 async def ensure_free_audit_indexes(db) -> None:
     try:
         await db.free_audit_submissions.create_index("audit_id", unique=True)
