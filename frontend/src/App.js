@@ -209,6 +209,8 @@ const AlcaldiaPage                   = lazy(() => import('./pages/public/Alcaldi
 const IntentLandingPage              = lazy(() => import('./pages/public/IntentLandingPage'));
 // W4.2D3.5 — Superadmin Landing Leads dashboard
 const SuperadminLandingLeads         = lazy(() => import('./pages/superadmin/SuperadminLandingLeads'));
+// F0.2·Sub-E — Free Audit funnel dashboard
+const SuperadminFreeAuditFunnel      = lazy(() => import('./pages/superadmin/SuperadminFreeAuditFunnel'));
 // W4.2.5 — Embeddable widgets + Press kit
 const ScoreWidgetPage                = lazy(() => import('./pages/public/widgets/ScoreWidgetPage'));
 const RiskWidgetPage                 = lazy(() => import('./pages/public/widgets/RiskWidgetPage'));
@@ -648,6 +650,8 @@ function AppRouter() {
       <Route path="/cdmx/:intent" element={<IntentLandingPage />} />
       {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
       <Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={SuperadminLandingLeads} />} />
+      {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
+      <Route path="/superadmin/free-audit-funnel" element={<AdvisorRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}
       <Route path="/widgets/score/:slug" element={<ScoreWidgetPage />} />
       <Route path="/widgets/risk/:slug" element={<RiskWidgetPage />} />

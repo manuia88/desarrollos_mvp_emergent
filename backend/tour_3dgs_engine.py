@@ -323,6 +323,108 @@ async def delete_scan(db, user: Dict[str, Any], scan_id: str) -> bool:
     return True
 
 
+# ─── Regenerate thumbnail (F0.2·Sub-D) ───────────────────────────────────────
+
+def _render_placeholder_thumbnail(scan_id: str, unit_id: str, target: Path) -> bool:
+    """Genera un PNG 800x600 con gradiente indigo→rose + texto cream cuando
+    Luma no tiene asset PNG. Best-effort; falla silenciosamente si Pillow no
+    está disponible."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont  # type: ignore
+        W, H = 800, 600
+        img = Image.new("RGB", (W, H), (6, 8, 15))
+        draw = ImageDraw.Draw(img)
+        # Horizontal gradient indigo (#6366F1) → rose (#EC4899)
+        for x in range(W):
+            t = x / max(W - 1, 1)
+            r = int(99 + t * (236 - 99))
+            g = int(102 + t * (72 - 102))
+            b = int(241 + t * (153 - 241))
+            draw.line([(x, 0), (x, 80)], fill=(r, g, b))
+        # Title block
+        try:
+            font_big = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38)
+            font_sm = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+        except Exception:
+            font_big = ImageFont.load_default()
+            font_sm = ImageFont.load_default()
+        draw.text((40, 140), "DMX · Tour 3D", fill=(240, 235, 224), font=font_big)
+        draw.text((40, 200), f"Unit: {unit_id[:30]}", fill=(160, 164, 176), font=font_sm)
+        draw.text((40, 230), f"Scan: {scan_id[:8]}", fill=(160, 164, 176), font=font_sm)
+        draw.text((40, H - 60), "Vista previa generada · pendiente render Luma", fill=(160, 164, 176), font=font_sm)
+        img.save(str(target), format="PNG", optimize=True)
+        return True
+    except Exception as exc:
+        log.warning(f"[3dgs·placeholder] Pillow render failed: {exc}")
+        return False
+
+
+async def regenerate_thumbnail(db, user: Dict[str, Any], scan_id: str) -> Dict[str, Any]:
+    """F0.2·Sub-D — Regenera thumbnail.png para un scan existente.
+
+    Estrategias (orden):
+      1. Luma scan ready → vuelve a descargar asset PNG.
+      2. Upload local (sin PNG) → genera placeholder con gradiente DMX (Pillow).
+    Devuelve scan doc actualizado; raise PermissionError/ValueError.
+    """
+    doc = await get_scan(db, scan_id)
+    if not doc:
+        raise ValueError("scan_not_found")
+    if not await _user_can_manage(db, user, doc["unit_id"], doc.get("dev_id")):
+        raise PermissionError("not_authorized")
+
+    sd = scan_dir(scan_id)
+    target = sd / "scene.png"
+    regenerated = False
+    source = None
+
+    luma_id = doc.get("luma_scan_id")
+    if luma_id:
+        try:
+            st = luma_client.get_scan_status(luma_id)
+            if st.get("status") == "ready":
+                downloads = luma_client.download_assets(luma_id, sd)
+                if downloads.get("png") and target.exists():
+                    regenerated = True
+                    source = "luma"
+        except Exception as exc:
+            log.warning(f"[3dgs·regen_thumb] luma fetch failed scan={scan_id}: {exc}")
+
+    if not regenerated:
+        ok = _render_placeholder_thumbnail(scan_id, doc.get("unit_id", ""), target)
+        if ok:
+            regenerated = True
+            source = "placeholder"
+
+    if not regenerated:
+        raise RuntimeError("thumbnail_regenerate_failed")
+
+    thumb_url = _asset_url(scan_id, "png")
+    update = {
+        "thumbnail_url": thumb_url,
+        "last_thumbnail_at": _now_iso(),
+    }
+    try:
+        await db.unit_3dgs_scans.update_one(
+            {"scan_id": scan_id},
+            {"$set": update, "$inc": {"thumbnail_regenerate_count": 1}},
+        )
+    except Exception as exc:
+        log.warning(f"[3dgs·regen_thumb] mongo update failed: {exc}")
+    try:
+        await db.audit_log.insert_one({
+            "user_id": user.get("user_id"),
+            "action": "tour_3dgs.thumbnail_regenerate",
+            "resource": f"scan:{scan_id}",
+            "ts": _now_iso(),
+            "payload": {"source": source},
+        })
+    except Exception:
+        pass
+    doc.update(update)
+    return doc
+
+
 # ─── Settings ────────────────────────────────────────────────────────────────
 
 async def get_settings(db, dev_id: str) -> Dict[str, Any]:

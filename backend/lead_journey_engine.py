@@ -272,6 +272,139 @@ async def list_outbound_leads(db, tenant_id: str, limit: int = 100) -> List[Dict
     return out
 
 
+async def top_3_leads_active(
+    db, asesor_id: str, period_days: int = 7,
+) -> List[Dict[str, Any]]:
+    """F0.2·Sub-A — Returns top-3 leads with most recent step activity for asesor.
+
+    Best-effort: never raises. Uses assigned_to = asesor_id + last step within window.
+    """
+    if not asesor_id:
+        return []
+    cutoff = _now() - timedelta(days=int(period_days or 7))
+    out: List[Dict[str, Any]] = []
+    try:
+        # Pull recent journey steps to identify active leads for this asesor
+        pipeline = [
+            {"$match": {
+                "occurred_at": {"$gte": cutoff},
+                "$or": [
+                    {"actor_id": asesor_id, "actor_type": {"$in": ["asesor", "broker"]}},
+                ],
+            }},
+            {"$sort": {"occurred_at": -1}},
+            {"$group": {
+                "_id": "$lead_id",
+                "last_step": {"$first": "$step_type"},
+                "last_at": {"$first": "$occurred_at"},
+                "steps_count": {"$sum": 1},
+            }},
+            {"$sort": {"last_at": -1}},
+            {"$limit": 10},
+        ]
+        async for row in db.lead_journey_steps.aggregate(pipeline):
+            lead_id = row.get("_id")
+            if not lead_id:
+                continue
+            lead = await db.leads.find_one(
+                {"id": lead_id},
+                {"_id": 0, "id": 1, "name": 1, "full_name": 1, "email": 1, "stage": 1, "assigned_to": 1},
+            ) or {}
+            # Filter: only leads assigned to this asesor (or owned by their steps)
+            if lead.get("assigned_to") and lead["assigned_to"] != asesor_id:
+                continue
+            name = lead.get("name") or lead.get("full_name") or (lead.get("email") or "lead").split("@")[0]
+            last_at = row.get("last_at")
+            if isinstance(last_at, datetime):
+                last_at = last_at.isoformat()
+            out.append({
+                "lead_id": lead_id,
+                "name": name[:80],
+                "last_step": row.get("last_step") or "—",
+                "last_at": last_at,
+                "steps_count": int(row.get("steps_count") or 0),
+            })
+            if len(out) >= 3:
+                break
+    except Exception as exc:
+        log.warning(f"[top_3_leads_active] failed asesor={asesor_id}: {exc}")
+    return out
+
+
+async def leaderboard_cohort(
+    db, tenant_id: Optional[str], period_days: int = 30, limit: int = 5,
+) -> List[Dict[str, Any]]:
+    """F0.2·Sub-B — Top N asesores by closed_won steps in period.
+
+    Cross-tenant: returns anonymized initials when caller is not superadmin (tenant_id="").
+    Same-tenant: returns full name.
+    """
+    cutoff = _now() - timedelta(days=int(period_days or 30))
+    match: Dict[str, Any] = {
+        "step_type": "closed_won",
+        "occurred_at": {"$gte": cutoff},
+    }
+    same_tenant = bool(tenant_id)
+    if same_tenant:
+        match["tenant_id"] = tenant_id
+
+    pipeline = [
+        {"$match": match},
+        {"$group": {
+            "_id": "$actor_id",
+            "closed_won": {"$sum": 1},
+            "tenant_id": {"$first": "$tenant_id"},
+        }},
+        {"$sort": {"closed_won": -1}},
+        {"$limit": int(limit) * 3},  # over-fetch to account for unknown users
+    ]
+    rows: List[Dict[str, Any]] = []
+    try:
+        async for r in db.lead_journey_steps.aggregate(pipeline):
+            actor_id = r.get("_id")
+            if not actor_id:
+                continue
+            rows.append({
+                "actor_id": actor_id,
+                "closed_won": int(r.get("closed_won") or 0),
+                "tenant_id": r.get("tenant_id"),
+            })
+    except Exception as exc:
+        log.warning(f"[leaderboard_cohort] aggregate failed: {exc}")
+
+    out: List[Dict[str, Any]] = []
+    rank = 1
+    for r in rows:
+        if rank > limit:
+            break
+        u = None
+        try:
+            u = await db.users.find_one(
+                {"user_id": r["actor_id"]},
+                {"_id": 0, "user_id": 1, "full_name": 1, "email": 1, "tenant_id": 1},
+            )
+        except Exception:
+            u = None
+        if not u:
+            continue
+        is_self_tenant = same_tenant and u.get("tenant_id") == tenant_id
+        full = (u.get("full_name") or (u.get("email") or "").split("@")[0] or "").strip() or "Asesor"
+        if is_self_tenant:
+            display = full
+        else:
+            parts = [p for p in full.split() if p]
+            initials = "".join((p[0].upper() for p in parts[:2])) or "A"
+            display = f"{initials}."
+        out.append({
+            "rank": rank,
+            "asesor_display": display,
+            "closed_won": r["closed_won"],
+            "is_self_tenant": is_self_tenant,
+        })
+        rank += 1
+    return out
+
+
 async def ensure_lead_journey_indexes(db) -> None:
     try:
         await db.lead_journey_steps.create_index([("lead_id", 1), ("occurred_at", -1)])
