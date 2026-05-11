@@ -84,15 +84,22 @@ export function Toast({ kind = 'info', text, onClose }) {
   };
   const p = tones[kind] || tones.info;
   return (
-    <div data-testid="toast" onClick={onClose} style={{
-      position: 'fixed', bottom: 24, right: 24, zIndex: 300,
-      padding: '12px 18px', borderRadius: 12,
-      background: p.bg, border: `1px solid ${p.bo}`, color: p.fg,
-      fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
-      backdropFilter: 'blur(12px)',
-      maxWidth: 340,
-      cursor: 'pointer',
-    }}>{text}</div>
+    <div
+      data-testid="toast"
+      role="alert"
+      aria-live="assertive"
+      tabIndex={0}
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}
+      style={{
+        position: 'fixed', bottom: 24, right: 24, zIndex: 300,
+        padding: '12px 18px', borderRadius: 12,
+        background: p.bg, border: `1px solid ${p.bo}`, color: p.fg,
+        fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
+        backdropFilter: 'blur(12px)',
+        maxWidth: 340,
+        cursor: 'pointer',
+      }}>{text}</div>
   );
 }
 
@@ -106,12 +113,21 @@ export function Drawer({ open, onClose, title, children, width = 520 }) {
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 150,
-      background: 'rgba(6,8,15,0.72)', backdropFilter: 'blur(10px)',
-      display: 'flex', justifyContent: 'flex-end',
-    }}>
-      <div data-testid="drawer" onClick={e => e.stopPropagation()} style={{
+    <div
+      role="presentation"
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 150,
+        background: 'rgba(6,8,15,0.72)', backdropFilter: 'blur(10px)',
+        display: 'flex', justifyContent: 'flex-end',
+      }}
+    >
+      <div
+        data-testid="drawer"
+        role="dialog"
+        aria-modal="true"
+        onClick={e => e.stopPropagation()}
+        style={{
         width, maxWidth: '100vw', height: '100vh',
         background: 'linear-gradient(180deg, #0E1220, #08090D)',
         borderLeft: '1px solid var(--border)',

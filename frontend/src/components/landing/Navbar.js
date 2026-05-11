@@ -78,6 +78,8 @@ export default function Navbar({ onLogin, user, onLogout }) {
     <>
       <nav
         data-testid="navbar"
+        role="navigation"
+        aria-label="Navegación principal"
         style={{
           position: 'fixed',
           top: 0, left: 0, right: 0,
@@ -93,14 +95,14 @@ export default function Navbar({ onLogin, user, onLogout }) {
           transition: 'background 0.3s, backdrop-filter 0.3s',
         }}
       >
-        <a href="/" data-testid="nav-logo" style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 48, textDecoration: 'none' }}>
+        <a href="/" data-testid="nav-logo" aria-label="DesarrollosMX — ir al inicio" style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 48, textDecoration: 'none' }}>
           <div style={{
             width: 28, height: 28,
             background: 'var(--grad)',
             borderRadius: 8,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <MapPin size={14} color="#fff" />
+            <MapPin size={14} color="#fff" aria-hidden="true" />
           </div>
           <span style={{
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 18,
@@ -159,7 +161,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
                 {t('nav.login')}
               </button>
               <a href="/mapa" className="btn btn-primary btn-sm" data-testid="nav-cta-btn" style={{ textDecoration: 'none' }}>
-                <MapPin size={12} />
+                <MapPin size={12} aria-hidden="true" />
                 {t('nav.explore')}
               </a>
             </>
@@ -170,6 +172,9 @@ export default function Navbar({ onLogin, user, onLogout }) {
           data-testid="nav-hamburger"
           onClick={() => setMobileOpen(!mobileOpen)}
           className="show-mobile"
+          aria-label={mobileOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav-sheet"
           style={{
             marginLeft: 'auto',
             background: 'none', border: 'none',
@@ -177,14 +182,15 @@ export default function Navbar({ onLogin, user, onLogout }) {
             padding: 8,
           }}
         >
-          <div style={{ width: 20, height: 2, background: 'var(--cream)', marginBottom: 5 }} />
-          <div style={{ width: 20, height: 2, background: 'var(--cream)', marginBottom: 5 }} />
-          <div style={{ width: 20, height: 2, background: 'var(--cream)' }} />
+          <div aria-hidden="true" style={{ width: 20, height: 2, background: 'var(--cream)', marginBottom: 5 }} />
+          <div aria-hidden="true" style={{ width: 20, height: 2, background: 'var(--cream)', marginBottom: 5 }} />
+          <div aria-hidden="true" style={{ width: 20, height: 2, background: 'var(--cream)' }} />
         </button>
       </nav>
 
       {mobileOpen && (
         <div
+          id="mobile-nav-sheet"
           data-testid="nav-mobile-sheet"
           style={{
             position: 'fixed', inset: 0, zIndex: 99,

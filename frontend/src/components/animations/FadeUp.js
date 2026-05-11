@@ -1,20 +1,24 @@
 // FadeUp — wraps children with blur+fade+translateY animation on viewport entry
 import React from 'react';
 import useInView from '../../hooks/useInView';
+import useReducedMotion from '../../hooks/useReducedMotion';
 
 export default function FadeUp({ children, delay = 0, className = '', style = {}, as: Tag = 'div' }) {
   const [ref, inView] = useInView({ once: true, amount: 0.3 });
+  const reducedMotion = useReducedMotion();
 
   return (
     <Tag
       ref={ref}
       className={className}
       style={{
-        transition: `all 0.65s cubic-bezier(0.22,1,0.36,1)`,
-        transitionDelay: `${delay}s`,
-        opacity: inView ? 1 : 0,
-        transform: inView ? 'translateY(0)' : 'translateY(20px)',
-        filter: inView ? 'blur(0)' : 'blur(6px)',
+        transition: reducedMotion
+          ? 'opacity 0.01ms, transform 0.01ms, filter 0.01ms'
+          : `opacity 0.65s cubic-bezier(0.22,1,0.36,1), transform 0.65s cubic-bezier(0.22,1,0.36,1), filter 0.65s cubic-bezier(0.22,1,0.36,1)`,
+        transitionDelay: reducedMotion ? '0ms' : `${delay}s`,
+        opacity: (reducedMotion || inView) ? 1 : 0,
+        transform: (reducedMotion || inView) ? 'translateY(0)' : 'translateY(20px)',
+        filter: (reducedMotion || inView) ? 'blur(0)' : 'blur(6px)',
         ...style,
       }}
     >

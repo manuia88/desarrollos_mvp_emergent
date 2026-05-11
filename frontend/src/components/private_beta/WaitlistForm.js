@@ -76,21 +76,24 @@ export default function WaitlistForm() {
         border: '1px solid rgba(255,255,255,0.1)',
       }}
     >
-      <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <label htmlFor="waitlist-email-input" style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
         Correo electrónico
-      </div>
+      </label>
       <input
+        id="waitlist-email-input"
         data-testid="waitlist-email"
         type="email"
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="tu@correo.com"
         required
+        aria-invalid={!!error}
+        aria-describedby={error ? 'waitlist-error' : undefined}
         style={{
           width: '100%', padding: '14px 18px', borderRadius: 9999,
           background: 'rgba(255,255,255,0.05)',
           border: '1px solid rgba(255,255,255,0.12)',
-          color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 14, outline: 'none',
+          color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 14,
           marginBottom: 14,
         }}
       />
@@ -106,7 +109,7 @@ export default function WaitlistForm() {
         }}
       >{submitting ? 'Uniéndote…' : 'Únete a la waitlist'}</button>
       {error && (
-        <div style={{ marginTop: 12, padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
+        <div id="waitlist-error" role="alert" style={{ marginTop: 12, padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
           {error}
         </div>
       )}

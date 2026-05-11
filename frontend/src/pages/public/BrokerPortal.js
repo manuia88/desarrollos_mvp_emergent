@@ -19,7 +19,7 @@ const TAB_BTN = (active) => ({
 const INPUT = {
   width: '100%', padding: '12px 16px', borderRadius: 9999,
   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-  color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 14, outline: 'none',
+  color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 14,
 };
 
 const LBL = {
@@ -140,7 +140,7 @@ export default function BrokerPortal() {
                 <input data-testid="broker-login-password" type="password" required value={loginPwd} onChange={e => setLoginPwd(e.target.value)} style={INPUT} />
               </label>
               {loginErr && (
-                <div style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
+                <div role="alert" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
                   {loginErr}
                 </div>
               )}
@@ -187,7 +187,7 @@ export default function BrokerPortal() {
                 <input data-testid="broker-signup-password" type="password" required minLength={8} value={signupPwd} onChange={e => setSignupPwd(e.target.value)} style={INPUT} />
               </label>
               {signupErr && (
-                <div style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
+                <div role="alert" style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12 }}>
                   {signupErr}
                 </div>
               )}

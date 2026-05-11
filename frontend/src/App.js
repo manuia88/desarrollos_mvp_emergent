@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { UndoProvider } from './components/shared/UndoSnackbar';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { PresentationModeProvider } from './hooks/usePresentationMode';
+import SkipToContent from './components/a11y/SkipToContent';
 // W4.3 — Behavioral tracker (auto page_view on route change)
 import { usePageViewTracking } from './utils/behavioralTracker';
 // W4.18.2A.0 — PostHog LFPDPPP-compliant helpers
@@ -436,6 +437,13 @@ function AuthCallback() {
 function AppRouter() {
   const location = useLocation();
 
+  // Scroll restoration — vuelve al top en cada cambio de ruta (excepto anchors)
+  useEffect(() => {
+    if (!location.hash) {
+      window.scrollTo(0, 0);
+    }
+  }, [location.pathname]);
+
   // W4.3 — Behavioral page view tracking (auto-fire on route change)
   usePageViewTracking();
 
@@ -823,7 +831,7 @@ function LandingPage() {
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar onLogin={() => openAuth('login')} user={user} onLogout={logout} />
-      <main>
+      <main id="main-content" tabIndex="-1">
         <Hero />
         <SearchBar />
         <LiveTicker />
@@ -992,6 +1000,7 @@ function AtlaxHomeHero() {
 export default function App() {
   return (
     <BrowserRouter>
+      <SkipToContent />
       <UndoProvider>
         <PresentationModeProvider>
           <AuthProvider>

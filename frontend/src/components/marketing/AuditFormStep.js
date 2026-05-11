@@ -10,7 +10,6 @@ const fieldStyle = {
   padding: '11px 14px',
   fontFamily: 'DM Sans',
   fontSize: 13,
-  outline: 'none',
 };
 const labelStyle = {
   display: 'block',
@@ -182,15 +181,25 @@ export default function AuditFormStep({ step, form, onChange, errors }) {
 }
 
 function Field({ label, required, error, children }) {
+  const fieldId = `field-${String(label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 32)}`;
+  const errId = `${fieldId}-err`;
+  const child = React.Children.map(children, c => {
+    if (!c || typeof c !== 'object') return c;
+    return React.cloneElement(c, {
+      id: c.props.id || fieldId,
+      'aria-describedby': error ? errId : c.props['aria-describedby'],
+      'aria-invalid': error ? 'true' : c.props['aria-invalid'],
+    });
+  });
   return (
     <div>
-      <label style={labelStyle}>
+      <label htmlFor={fieldId} style={labelStyle}>
         {label?.toUpperCase()}
         {required && <span style={{ color: '#EC4899', marginLeft: 4 }}>*</span>}
       </label>
-      {children}
+      {child}
       {error && (
-        <div style={{ marginTop: 4, fontFamily: 'DM Sans', fontSize: 11, color: '#fca5a5' }}>
+        <div id={errId} role="alert" style={{ marginTop: 4, fontFamily: 'DM Sans', fontSize: 11, color: '#fca5a5' }}>
           {error}
         </div>
       )}
