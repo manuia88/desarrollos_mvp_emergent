@@ -374,7 +374,7 @@ async def generate_visit_briefing(
     )
 
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, actor_id=asesor_id, actor_type="asesor",
             action="visit_briefing_generated", entity_id=doc["briefing_id"],
@@ -447,7 +447,7 @@ async def auto_generate_upcoming_briefings(db) -> Dict[str, int]:
             generated += 1
             # Notify B14 activity
             try:
-                from routes_dev_batch14 import log_activity
+                from routes.dev_batch14 import log_activity
                 await log_activity(
                     db, actor_id=appt.get("asesor_id", ""),
                     actor_type="system", action="visit_briefing_ready",

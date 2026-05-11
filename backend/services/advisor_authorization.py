@@ -240,7 +240,7 @@ async def approve(
 
     # log_activity
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, decided_by_user_id, "developer_admin", "whitelist_approved",
             auth_id, "dev_advisor_authorization",
@@ -251,7 +251,7 @@ async def approve(
 
     # Notificar al asesor
     try:
-        from routes_dev_batch14 import create_notification
+        from routes.dev_batch14 import create_notification
         await create_notification(
             db, doc["asesor_id"], "whitelist_approved",
             "Acceso aprobado",
@@ -316,7 +316,7 @@ async def reject(
         pass
 
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, decided_by_user_id, "developer_admin", "whitelist_rejected",
             auth_id, "dev_advisor_authorization",
@@ -327,7 +327,7 @@ async def reject(
 
     # Notificar al asesor
     try:
-        from routes_dev_batch14 import create_notification
+        from routes.dev_batch14 import create_notification
         await create_notification(
             db, doc["asesor_id"], "whitelist_rejected",
             "Solicitud de acceso rechazada",
@@ -380,7 +380,7 @@ async def revoke(
         pass
 
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, revoked_by_user_id, "developer_admin", "whitelist_revoked",
             auth_id, "dev_advisor_authorization",
@@ -391,7 +391,7 @@ async def revoke(
 
     # Notificar al asesor
     try:
-        from routes_dev_batch14 import create_notification
+        from routes.dev_batch14 import create_notification
         await create_notification(
             db, doc["asesor_id"], "whitelist_revoked",
             "Acceso revocado",
@@ -446,7 +446,7 @@ async def _notify_dev_admins(
     )
     asesor_name = (asesor or {}).get("name", "Un asesor")
 
-    from routes_dev_batch14 import create_notification
+    from routes.dev_batch14 import create_notification
     for admin in admins:
         await create_notification(
             db, admin["user_id"], "whitelist_request",

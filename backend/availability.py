@@ -303,7 +303,7 @@ async def assign_appointment(
             asesor_id = winner if winner in available_ids else available_ids[0]
             # Log smart_match assignment
             try:
-                from routes_dev_batch14 import log_activity
+                from routes.dev_batch14 import log_activity
                 await log_activity(
                     db, actor_id="system", actor_type="system",
                     action="smart_match_assigned",
@@ -403,7 +403,7 @@ async def assign_appointment(
 
     # Activity log
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, actor_user_id, "system", "appointment_made",
             appointment_id, "appointment",

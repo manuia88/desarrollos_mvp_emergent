@@ -28,7 +28,7 @@ pub_router = APIRouter(prefix="/api")
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 async def _require_superadmin(request: Request):
-    from routes_ie_engine import _require_superadmin as _req
+    from routes.ie_engine import _require_superadmin as _req
     return await _req(request)
 
 
@@ -75,7 +75,7 @@ async def recompute_scores(payload: RecomputeRequest, request: Request):
         raise HTTPException(400, f"Recipes desconocidos: {unknown}")
 
     results = await engine.compute_many(payload.zone_id, requested_codes, allow_paid=payload.allow_paid)
-    from routes_ie_engine import audit
+    from routes.ie_engine import audit
     await audit(user.user_id, "ie_scores_recompute", payload.zone_id, {
         "codes": requested_codes, "computed": len(results), "allow_paid": payload.allow_paid,
     })
@@ -417,7 +417,7 @@ async def seed_historic_from_upload(payload: SeedHistoricRequest, request: Reque
         "processed_at": now,
     }})
 
-    from routes_ie_engine import audit
+    from routes.ie_engine import audit
     await audit(user.user_id, "ie_seed_historic", payload.source_id, {
         "upload_id": payload.upload_id, "rows_parsed": rows_parsed, "obs_inserted": len(observations),
     })
@@ -556,7 +556,7 @@ async def recompute_all(payload: RecomputeAllRequest, request: Request):
     # Fire-and-forget
     asyncio.create_task(_recompute_batch_runner(db, task_id, plan, payload.allow_paid, payload.codes, payload.layer))
 
-    from routes_ie_engine import audit
+    from routes.ie_engine import audit
     await audit(user.user_id, "ie_scores_recompute_all", None, {"task_id": task_id, "total": len(plan)})
     return {"task_id": task_id, "total": len(plan), "status": "running"}
 

@@ -45,7 +45,7 @@ async def _require_access(request: Request, org_id: str):
 
 async def _check_tier_t2(db, org_id: str) -> str:
     """Verifica tier atlax_persona ≥ T2 para org. Lanza 403 si T<2."""
-    from routes_phase_y_controls import get_phase_y_settings
+    from routes.phase_y_controls import get_phase_y_settings
     settings = await get_phase_y_settings(db, org_id)
     tier_raw: str = (settings.get("feature_tiers") or {}).get("atlax_persona", "off")
     tier_num = 0
@@ -137,7 +137,7 @@ async def get_persona_endpoint(org_id: str, request: Request):
     await _require_access(request, org_id)
 
     from atlax_persona_engine import get_persona
-    from routes_phase_y_controls import get_phase_y_settings
+    from routes.phase_y_controls import get_phase_y_settings
     persona = await get_persona(db, org_id)
     settings = await get_phase_y_settings(db, org_id)
     tier_raw = (settings.get("feature_tiers") or {}).get("atlax_persona", "off")
@@ -162,7 +162,7 @@ async def patch_persona_endpoint(org_id: str, body: PatchPersonaIn, request: Req
     user = await _require_access(request, org_id)
 
     # Master switch check (superadmin siempre puede · dev_admin respeta switch)
-    from routes_phase_y_controls import get_phase_y_settings
+    from routes.phase_y_controls import get_phase_y_settings
     settings = await get_phase_y_settings(db, org_id)
     role = getattr(user, "role", "")
     if role != "superadmin" and not settings.get("agentic_enabled", False):

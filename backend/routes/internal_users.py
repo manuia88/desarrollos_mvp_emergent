@@ -176,7 +176,7 @@ async def set_dev_external_inventory(payload: ExternalInventoryIn, request: Requ
     from services.mini_market_engine import set_allow_external_inventory
     await set_allow_external_inventory(db, "dev", dev_org, payload.enabled)
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, user.user_id, "developer_admin", "update",
             dev_org, "dev_org_settings",

@@ -357,7 +357,7 @@ async def renew_expiring_webhooks(db) -> Dict[str, Any]:
 # ─── Watcher cron ─────────────────────────────────────────────────────────────
 async def _sync_one_connection(db, conn: Dict[str, Any], *, triggered_via: str = "cron") -> Dict[str, Any]:
     """Returns audit dict {dev_id, scanned, new, updated, errors, triggered_via}."""
-    from routes_documents import _ingest_document_bytes
+    from routes.documents import _ingest_document_bytes
     dev_id = conn["development_id"]
     audit = {"dev_id": dev_id, "scanned": 0, "new": 0, "updated": 0, "errors": [],
              "triggered_via": triggered_via, "started_at": _now().isoformat()}
@@ -491,7 +491,7 @@ def _check_dev_access(user, dev_id: str) -> None:
         return
     if role not in ("developer_admin", "developer_member"):
         raise HTTPException(403, "Sólo superadmin o developer")
-    from routes_documents import _allowed_dev_ids
+    from routes.documents import _allowed_dev_ids
     allowed = _allowed_dev_ids(user)
     if allowed == "*":
         return

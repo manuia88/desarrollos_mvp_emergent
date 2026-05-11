@@ -178,7 +178,7 @@ async def create_endorsement(
 
     # log_activity B14
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, actor_id=asesor_id, actor_type="asesor",
             action="endorsement_pending", entity_id=eid,
@@ -208,7 +208,7 @@ async def confirm_endorsement(db, token: str) -> Optional[Dict[str, Any]]:
     doc["verified"] = True
 
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, actor_id=doc["asesor_id"], actor_type="asesor",
             action="endorsement_received", entity_id=doc["endorsement_id"],

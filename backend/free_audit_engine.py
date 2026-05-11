@@ -590,3 +590,67 @@ async def ensure_free_audit_indexes(db) -> None:
         await db.free_audit_submissions.create_index([("generated_at", -1)])
     except Exception as exc:
         log.warning(f"[free_audit] index create failed: {exc}")
+
+
+# ─── F0.3·Sub-C — CSV export for CRM ─────────────────────────────────────────
+
+_CSV_HEADERS = [
+    "audit_id", "email", "phone", "project_name", "colonia_slug",
+    "m2", "recamaras", "banos", "antiguedad_anos", "precio_estimado",
+    "utm_source", "utm_medium", "utm_campaign",
+    "submitted_at", "pdf_generated", "email_sent", "locale", "ip_hash",
+]
+
+
+def _csv_escape(val: Any) -> str:
+    if val is None:
+        return ""
+    s = str(val)
+    if any(ch in s for ch in (',', '"', '\n', '\r')):
+        s = s.replace('"', '""')
+        return f'"{s}"'
+    return s
+
+
+async def export_to_csv(db, period_days: int = 30) -> bytes:
+    """Returns UTF-8-BOM CSV bytes ready to stream to client.
+
+    Excel-friendly: leading BOM ensures correct encoding detection.
+    """
+    from datetime import timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(days=int(period_days or 30))
+    cutoff_iso = cutoff.isoformat()
+
+    lines = [",".join(_CSV_HEADERS)]
+    try:
+        cursor = db.free_audit_submissions.find(
+            {"submitted_at": {"$gte": cutoff_iso}},
+            {"_id": 0},
+        ).sort("submitted_at", -1)
+        async for d in cursor:
+            row = [
+                d.get("audit_id", ""),
+                d.get("submitted_email", ""),
+                d.get("submitted_phone", ""),
+                d.get("project_name", ""),
+                d.get("colonia_slug", ""),
+                d.get("m2", ""),
+                d.get("recamaras", ""),
+                d.get("banos", ""),
+                d.get("antiguedad_anos", ""),
+                d.get("precio_estimado", ""),
+                d.get("utm_source", ""),
+                d.get("utm_medium", ""),
+                d.get("utm_campaign", ""),
+                d.get("submitted_at", ""),
+                "1" if d.get("generated_at") else "0",
+                "1" if d.get("sent_email_at") else "0",
+                d.get("locale", ""),
+                d.get("ip_hash", ""),
+            ]
+            lines.append(",".join(_csv_escape(v) for v in row))
+    except Exception as exc:
+        log.warning(f"[free_audit·csv] export failed: {exc}")
+
+    body = "\n".join(lines) + "\n"
+    return b"\xef\xbb\xbf" + body.encode("utf-8")

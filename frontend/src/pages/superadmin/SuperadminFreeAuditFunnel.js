@@ -123,7 +123,7 @@ export default function SuperadminFreeAuditFunnel({ user, onLogout }) {
       />
 
       <div data-testid="free-audit-funnel-page" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        {/* Period selector */}
+        {/* Period selector + Export CSV */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{
             fontFamily: 'DM Sans', fontSize: 11, letterSpacing: '0.08em',
@@ -151,6 +151,22 @@ export default function SuperadminFreeAuditFunnel({ user, onLogout }) {
               {opt.label.toUpperCase()}
             </button>
           ))}
+          <a
+            href={`${API}/api/free-audit/admin/export.csv?period_days=${period}`}
+            download={`free_audit_${period}d.csv`}
+            data-testid="free-audit-export-csv-btn"
+            title="Descarga submissions para CRM (Excel-friendly UTF-8 BOM)"
+            style={{
+              marginLeft: 'auto',
+              padding: '8px 18px', borderRadius: 9999,
+              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              color: '#fff', textDecoration: 'none',
+              fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em',
+              border: 'none',
+            }}
+          >
+            EXPORTAR CSV
+          </a>
         </div>
 
         {loading && (

@@ -217,7 +217,7 @@ async def submit_disc(
     )
 
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db, actor_id=asesor_id, actor_type="asesor",
             action="disc_completed", entity_id=asesor_id,

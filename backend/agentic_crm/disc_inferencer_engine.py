@@ -638,7 +638,7 @@ class DISCInferencer:
         self.org_id = org_id
 
     async def _validate_phase_y(self, sim_override: bool = False) -> Tuple[str, bool]:
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         settings = await get_phase_y_settings(self.db, self.org_id)
         if not settings.get("agentic_enabled", False):
             raise DISCInferencerDisabledError("Phase Y master switch desactivado")

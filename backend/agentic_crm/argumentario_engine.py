@@ -279,7 +279,7 @@ class ArgumentarioEngine:
     async def _validate_phase_y(self) -> Tuple[str, bool]:
         """Returns (tier, sim_mode). Raises 403-style exception if disabled."""
         try:
-            from routes_phase_y_controls import get_phase_y_settings
+            from routes.phase_y_controls import get_phase_y_settings
             s = await get_phase_y_settings(self.db, self.org_id)
             if not s.get("agentic_enabled", False):
                 raise ArgumentarioDisabledError("Phase Y master switch desactivado")

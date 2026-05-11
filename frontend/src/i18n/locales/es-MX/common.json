@@ -2219,5 +2219,9 @@
       "intro": "El DMX Score se calcula como una combinación ponderada de cuatro factores cuantitativos, todos normalizados a una escala 0-100:",
       "footer": "Cada factor se traduce a puntos (valor × peso) y la suma forma el score 0-100."
     }
+  },
+  "free_audit_funnel": {
+    "export_csv": "Exportar CSV",
+    "export_csv_title": "Descarga submissions para CRM (Excel-friendly UTF-8 BOM)"
   }
 }

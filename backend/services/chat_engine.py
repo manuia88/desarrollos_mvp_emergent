@@ -138,7 +138,7 @@ async def send_message(
 
     # log_activity
     try:
-        from routes_dev_batch14 import log_activity
+        from routes.dev_batch14 import log_activity
         await log_activity(
             db,
             actor_id=sender_id,
@@ -153,7 +153,7 @@ async def send_message(
 
     # Notify receptor
     try:
-        from routes_dev_batch14 import create_notification
+        from routes.dev_batch14 import create_notification
         if sender_role == "buyer":
             recipient_id = thread.get("asesor_id", "")
             notif_title = "Nuevo mensaje de comprador"

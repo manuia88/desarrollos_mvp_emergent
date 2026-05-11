@@ -41,17 +41,17 @@ db = client[DB_NAME]
 app.state.db = db
 
 # Wire advisor portal router
-from routes_advisor import router as advisor_router
+from routes.advisor import router as advisor_router
 app.include_router(advisor_router)
 
 # Wire developer portal router
-from routes_developer import router as developer_router
+from routes.developer import router as developer_router
 app.include_router(developer_router)
 
 # Wire IE Engine (Phase A) router
-from routes_ie_engine import router as ie_engine_router, seed_ie_engine
+from routes.ie_engine import router as ie_engine_router, seed_ie_engine
 from scheduler_ie import start_scheduler, stop_scheduler
-from routes_scores import sa_router as ie_scores_sa_router, pub_router as ie_scores_pub_router
+from routes.scores import sa_router as ie_scores_sa_router, pub_router as ie_scores_pub_router
 from narrative_engine import (
     pub_router as narrative_pub_router,
     sa_router as narrative_sa_router,
@@ -70,11 +70,11 @@ app.include_router(narrative_sa_router)
 app.include_router(briefing_router)
 
 # Wire Studio router (Phase 6 Wave 1)
-from routes_studio import router as studio_router
+from routes.studio import router as studio_router
 app.include_router(studio_router)
 
 # Wire Document Intelligence router (Phase 7.1 — Moat #2)
-from routes_documents import router as documents_router, dev_alias as documents_dev_alias_router, public_router as assets_public_router
+from routes.documents import router as documents_router, dev_alias as documents_dev_alias_router, public_router as assets_public_router
 from document_intelligence import ensure_di_indexes
 app.include_router(documents_router)
 app.include_router(documents_dev_alias_router)
@@ -96,7 +96,7 @@ app.include_router(rag_admin_router)
 # Phase D2 — Caya prep stub
 from atlax_engine import router as atlax_router
 app.include_router(atlax_router)
-from routes_caya_legacy import router as caya_legacy_router
+from routes.caya_legacy import router as caya_legacy_router
 app.include_router(caya_legacy_router)
 
 # Phase 7.11 — Drive Watch Service
@@ -118,40 +118,40 @@ from audit_log import router as audit_router, ensure_audit_log_indexes
 app.include_router(audit_router)
 
 # W1.2 SA1.1 — Superadmin Tenants Management
-from routes_superadmin_tenants import (
+from routes.superadmin_tenants import (
     router as superadmin_tenants_router,
     ensure_superadmin_tenant_indexes,
 )
 app.include_router(superadmin_tenants_router)
 
 # W1.3 SA1.2 — Superadmin System Health
-from routes_superadmin_health import router as superadmin_health_router
+from routes.superadmin_health import router as superadmin_health_router
 from cron_heartbeat import ensure_heartbeat_indexes
 app.include_router(superadmin_health_router)
 
 # W1.4 ZZ.1 — Bulk Drive Ingestion
-from routes_bulk_ingest import router as bulk_ingest_router
+from routes.bulk_ingest import router as bulk_ingest_router
 from bulk_ingest_engine import ensure_bulk_ingest_indexes
 app.include_router(bulk_ingest_router)
 
 # W2.1 SA2 — Data Sources Hub (unified connectors)
-from routes_superadmin_data_hub import router as data_hub_router
+from routes.superadmin_data_hub import router as data_hub_router
 from connector_registry import ensure_connector_indexes
 app.include_router(data_hub_router)
 
 # W2.2 SA3 — Superadmin Audit Log Viewer
-from routes_superadmin_audit import (
+from routes.superadmin_audit import (
     router as superadmin_audit_router,
     ensure_superadmin_audit_indexes,
 )
 app.include_router(superadmin_audit_router)
 
 # W2.3 SA4 — AI Cost Observatory
-from routes_superadmin_ai_cost import router as superadmin_ai_cost_router
+from routes.superadmin_ai_cost import router as superadmin_ai_cost_router
 app.include_router(superadmin_ai_cost_router)
 
 # W2.4 SA5 — Commercial Foundation (feature flags + plan templates + snapshots)
-from routes_superadmin_commercial import (
+from routes.superadmin_commercial import (
     router as superadmin_commercial_router,
     me_router as me_feature_flags_router,
 )
@@ -161,7 +161,7 @@ app.include_router(superadmin_commercial_router)
 app.include_router(me_feature_flags_router)
 
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
-from routes_superadmin_metrics_cube import router as superadmin_metrics_cube_router
+from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
 app.include_router(superadmin_metrics_cube_router)
 
@@ -169,12 +169,12 @@ app.include_router(superadmin_metrics_cube_router)
 from cube_olap_engine import ensure_consolidated_indexes as ensure_cube_consolidated_indexes
 
 # W2.6 SA8 — Founder Console (executive dashboard + Cmd+K + anomalies)
-from routes_superadmin_founder_console import router as superadmin_founder_console_router
+from routes.superadmin_founder_console import router as superadmin_founder_console_router
 from anomaly_detection_engine import ensure_indexes as ensure_founder_anomaly_indexes
 app.include_router(superadmin_founder_console_router)
 
 # W2.7 Phase Z.0 — Data Lake (time-series facts + ETL + model validation)
-from routes_superadmin_data_lake import router as superadmin_data_lake_router
+from routes.superadmin_data_lake import router as superadmin_data_lake_router
 from data_lake_etl import (
     ensure_facts_indexes as ensure_data_lake_indexes,
     seed_dim_zones as seed_data_lake_dim_zones,
@@ -182,12 +182,12 @@ from data_lake_etl import (
 app.include_router(superadmin_data_lake_router)
 
 # W2.9 Phase Z.2 — Superadmin Intelligence Hub (executive bird's-eye)
-from routes_superadmin_intelligence_hub import router as superadmin_intelligence_hub_router
+from routes.superadmin_intelligence_hub import router as superadmin_intelligence_hub_router
 from intelligence_insights_engine import ensure_indexes as ensure_intelligence_indexes
 app.include_router(superadmin_intelligence_hub_router)
 
 # W3.1A Phase 5 Foundation — DENUE + Construction Cost + Zone Score
-from routes_phase5_foundation import router as phase5_router, pub_router as phase5_pub_router
+from routes.phase5_foundation import router as phase5_router, pub_router as phase5_pub_router
 from denue_engine import ensure_indexes as ensure_denue_indexes
 from construction_cost_engine import ensure_indexes as ensure_cost_indexes
 from zone_score_engine import ensure_indexes as ensure_zone_score_indexes
@@ -195,14 +195,14 @@ app.include_router(phase5_router)
 app.include_router(phase5_pub_router)
 
 # W3.2 ZZ.2 Transaction Network
-from routes_transaction_network import router as txn_network_router
+from routes.transaction_network import router as txn_network_router
 from transaction_network_engine import ensure_indexes as ensure_txn_indexes
 app.include_router(txn_network_router)
 
 # W3.3 ZZ.3 — DRPI + Bulletins + Investment Explorer
-from routes_drpi import router as drpi_router
-from routes_bulletins import router as bulletins_router
-from routes_investment_explorer import router as investment_explorer_router
+from routes.drpi import router as drpi_router
+from routes.bulletins import router as bulletins_router
+from routes.investment_explorer import router as investment_explorer_router
 from drpi_engine import ensure_indexes as ensure_drpi_indexes
 from hedonic_regression_engine import ensure_indexes as ensure_hedonic_indexes
 from bulletins_engine import ensure_indexes as ensure_bulletins_indexes
@@ -211,8 +211,8 @@ app.include_router(bulletins_router)
 app.include_router(investment_explorer_router)
 
 # W3.4A ZZ.4 — Fraud Detection + Risk Score V1 (SESNSP)
-from routes_fraud_detection import router as fraud_router
-from routes_risk_score import router as risk_score_router
+from routes.fraud_detection import router as fraud_router
+from routes.risk_score import router as risk_score_router
 from fraud_detection_engine import ensure_indexes as ensure_fraud_indexes
 from crime_data_engine import ensure_indexes as ensure_crime_indexes
 from risk_score_engine import ensure_indexes as ensure_risk_indexes
@@ -220,32 +220,32 @@ app.include_router(fraud_router)
 app.include_router(risk_score_router)
 
 # W3.4B ZZ.4 — Risk V2 multi-source + Risk Alerts
-from routes_risk_alerts import router as risk_alerts_router
+from routes.risk_alerts import router as risk_alerts_router
 from natural_risk_engine import ensure_indexes as ensure_natural_indexes
 from perception_risk_engine import ensure_indexes as ensure_perception_indexes
 app.include_router(risk_alerts_router)
 
 # W3.5 — Public API v1 + Stripe Billing
-from routes_public_api_v1 import router as public_api_v1_router
+from routes.public_api_v1 import router as public_api_v1_router
 from public_api_auth import ensure_indexes as ensure_public_api_indexes
 from stripe_billing_engine import ensure_indexes as ensure_stripe_indexes
 app.include_router(public_api_v1_router)
 
 # W3.6 — Vertical Data Products + Data Licensing Bundles (Phase Z.4)
-from routes_vertical_products import router as vertical_products_router
-from routes_data_licensing import router as data_licensing_router
+from routes.vertical_products import router as vertical_products_router
+from routes.data_licensing import router as data_licensing_router
 from vertical_products_engine import ensure_indexes as ensure_vertical_products_indexes
 app.include_router(vertical_products_router)
 app.include_router(data_licensing_router)
 
 # W3.7 — Phase Z.5 Anonymization + Compliance (LFPDPPP)
-from routes_compliance import router as compliance_router
+from routes.compliance import router as compliance_router
 from compliance_engine import ensure_compliance_indexes
 app.include_router(compliance_router)
 
 # W3.8 — Cross-sell Intelligence
-from routes_cross_sell import router as cross_sell_router
-from routes_partners import router as partners_router
+from routes.cross_sell import router as cross_sell_router
+from routes.partners import router as partners_router
 from cross_sell_engine import ensure_indexes as ensure_cross_sell_indexes
 app.include_router(cross_sell_router)
 app.include_router(partners_router)
@@ -254,78 +254,78 @@ from routes_watchlist import router as watchlist_router, ensure_indexes as ensur
 app.include_router(watchlist_router)
 
 # Phase 4 Batch 1 — Dev Portal Foundation
-from routes_dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
+from routes.dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
 app.include_router(dev_batch1_router)
 
 # Phase 4 Batch 2 — Dashboards + IE + Construcción + Mapbox tab
-from routes_dev_batch2 import router as dev_batch2_router, ensure_dev_batch2_indexes
+from routes.dev_batch2 import router as dev_batch2_router, ensure_dev_batch2_indexes
 app.include_router(dev_batch2_router)
 
 # Phase 4 Batch 3 — Internal users login + GeoJSON export
-from routes_dev_batch3 import router as dev_batch3_router, ensure_dev_batch3_indexes
+from routes.dev_batch3 import router as dev_batch3_router, ensure_dev_batch3_indexes
 app.include_router(dev_batch3_router)
 
 # Phase 4 Batch 4 — Sales / CRM core (leads pipeline + project_brokers)
-from routes_dev_batch4 import router as dev_batch4_router, ensure_dev_batch4_indexes
+from routes.dev_batch4 import router as dev_batch4_router, ensure_dev_batch4_indexes
 app.include_router(dev_batch4_router)
 
 # Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
-from routes_dev_batch4_1 import router as dev_batch4_1_router, ensure_batch4_1_indexes, seed_dmx_inmobiliaria
+from routes.dev_batch4_1 import router as dev_batch4_1_router, ensure_batch4_1_indexes, seed_dmx_inmobiliaria
 app.include_router(dev_batch4_1_router)
 
 # Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
-from routes_dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
+from routes.dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
 app.include_router(dev_batch4_2_router)
 
 # Phase 4 Batch 4.3 — Reminders + Magic Link + Auto-Progression
-from routes_dev_batch4_3 import router as dev_batch4_3_router, ensure_batch4_3_indexes, register_batch4_3_jobs
+from routes.dev_batch4_3 import router as dev_batch4_3_router, ensure_batch4_3_indexes, register_batch4_3_jobs
 # W4.17 — Notifications must be registered BEFORE batch4_3 to take routing priority
-from routes_notifications import router as notifications_router_priority
+from routes.notifications import router as notifications_router_priority
 app.include_router(notifications_router_priority)
 app.include_router(dev_batch4_3_router)
 
 # Phase 4 Batch 4.4 — AI Engine + Analytics
-from routes_dev_batch4_4 import router as dev_batch4_4_router, ensure_batch4_4_indexes, register_batch4_4_jobs
+from routes.dev_batch4_4 import router as dev_batch4_4_router, ensure_batch4_4_indexes, register_batch4_4_jobs
 app.include_router(dev_batch4_4_router)
 
 # Phase 4 Batch 5 — Dynamic Pricing A/B + Branded PDF Reports
-from routes_dev_batch5 import router as dev_batch5_router, ensure_batch5_indexes, register_batch5_jobs
+from routes.dev_batch5 import router as dev_batch5_router, ensure_batch5_indexes, register_batch5_jobs
 app.include_router(dev_batch5_router)
 
 # Phase 4 Batch 6 — Demand Heatmap + Engagement Analytics
-from routes_dev_batch6 import router as dev_batch6_router, ensure_batch6_indexes
+from routes.dev_batch6 import router as dev_batch6_router, ensure_batch6_indexes
 app.include_router(dev_batch6_router)
 
 # Phase 4 Batch 7 — Site Selection AI Standalone
-from routes_dev_batch7 import router as dev_batch7_router, ensure_batch7_indexes
+from routes.dev_batch7 import router as dev_batch7_router, ensure_batch7_indexes
 app.include_router(dev_batch7_router)
 
 # Phase 4 Batch 7.2 — INEGI Real Demographics
-from routes_dev_batch7_2 import router as dev_batch7_2_router, ensure_batch7_2_indexes
+from routes.dev_batch7_2 import router as dev_batch7_2_router, ensure_batch7_2_indexes
 app.include_router(dev_batch7_2_router)
 
 # Phase 4 Batch 8 — Cash Flow Forecast IA
-from routes_dev_batch11 import router as dev_batch11_router, ensure_batch11_indexes
+from routes.dev_batch11 import router as dev_batch11_router, ensure_batch11_indexes
 app.include_router(dev_batch11_router)
 
-from routes_dev_batch10 import router as dev_batch10_router, ensure_batch10_indexes
+from routes.dev_batch10 import router as dev_batch10_router, ensure_batch10_indexes
 app.include_router(dev_batch10_router)
 
-from routes_dev_batch8 import (router as dev_batch8_router, ensure_batch8_indexes,
+from routes.dev_batch8 import (router as dev_batch8_router, ensure_batch8_indexes,
                               daily_active_projects_recalc)
 app.include_router(dev_batch8_router)
 
 # Phase 4 Batch 0 — Auth routes (extracted from server.py)
-from routes_auth import router as auth_router
+from routes.auth import router as auth_router
 app.include_router(auth_router)
 
 # Phase 4 Batch 0 — Public marketplace routes (extracted from server.py)
-from routes_public import (router as public_router, _dev_overlay_cache,
+from routes.public import (router as public_router, _dev_overlay_cache,
                             invalidate_dev_overlay_cache)
 app.include_router(public_router)
 
 # Phase 4 Batch 0 — User Preferences + Universal Search
-from routes_search_prefs import (router as search_prefs_router,
+from routes.search_prefs import (router as search_prefs_router,
                                   ensure_preferences_indexes)
 app.include_router(search_prefs_router)
 
@@ -334,21 +334,21 @@ from ai_budget import router as ai_budget_router, ensure_ai_budget_indexes
 app.include_router(ai_budget_router)
 
 # Phase 4 Batch 0 Sub-chunk C — Badge counters
-from routes_badges import router as badges_router
+from routes.badges import router as badges_router
 app.include_router(badges_router)
 
 # Phase 4 Batch 0.5 — Diagnostic Engine + Observability
-from routes_diagnostic import (router as diagnostic_router,
+from routes.diagnostic import (router as diagnostic_router,
                                 register_diagnostic_jobs)
 from diagnostic_engine import ensure_diagnostic_indexes
 app.include_router(diagnostic_router)
 
 # W4.1C — Recommendations banner backend
-from routes_recommendations import router as recommendations_router
+from routes.recommendations import router as recommendations_router
 app.include_router(recommendations_router)
 
 # W4.1D — Comparable alerts
-from routes_comparable_alerts import router as comparable_alerts_router
+from routes.comparable_alerts import router as comparable_alerts_router
 app.include_router(comparable_alerts_router)
 
 # W4.2A — MCP server (Model Context Protocol HTTP interface)
@@ -359,7 +359,7 @@ app.include_router(mcp_router, prefix="/api/mcp")
 # NOTE: in this Kubernetes environment, non-/api paths go to the React frontend.
 # Static files are served from frontend/public/ for the canonical paths.
 # This backend router provides /api/seo/* mirror for API clients.
-from routes_seo_files import router as seo_router
+from routes.seo_files import router as seo_router
 app.include_router(seo_router, prefix="/api/seo")
 
 # W4.2D1 — seed SEO filter combos on startup
@@ -373,11 +373,11 @@ except ImportError:
     _seed_zone_pages_import = None
 
 # W4.2D2 — Public zones router (programmatic SEO landing pages)
-from routes_public_zones import router as public_zones_router
+from routes.public_zones import router as public_zones_router
 app.include_router(public_zones_router)
 
 # W4.2D3 — Programmatic SEO Tier 1+2 (40 colonias + 16 alcaldías + 5 intents + lead capture)
-from routes_landings import (
+from routes.landings import (
     router as landings_router,
     sa_router as landings_sa_router,
     ensure_landing_indexes,
@@ -386,8 +386,8 @@ app.include_router(landings_router)
 app.include_router(landings_sa_router)
 
 # W4.2.5 — Embeddable widgets + Press kit live stats (CORS open)
-from routes_widgets import router as widgets_router
-from routes_press import router as press_router
+from routes.widgets import router as widgets_router
+from routes.press import router as press_router
 app.include_router(widgets_router)
 app.include_router(press_router)
 try:
@@ -396,39 +396,39 @@ except ImportError:
     _seed_landings_import = None
 
 # W4.3 — Phase Y.0 Foundation + Behavioral Tracking
-from routes_phase_y_controls import router as phase_y_router, ensure_indexes as ensure_phase_y_indexes
-from routes_behavioral import router as behavioral_router, sa_router as behavioral_sa_router
+from routes.phase_y_controls import router as phase_y_router, ensure_indexes as ensure_phase_y_indexes
+from routes.behavioral import router as behavioral_router, sa_router as behavioral_sa_router
 from behavioral_tracking_engine import ensure_indexes as ensure_behavioral_indexes
 app.include_router(phase_y_router)
 app.include_router(behavioral_router)
 app.include_router(behavioral_sa_router)
 
 # W4.4 — Phase Y.1A · Director Agent
-from routes_director import router as director_router, sa_router as director_sa_router
+from routes.director import router as director_router, sa_router as director_sa_router
 from director_agent_engine import ensure_indexes as ensure_director_indexes
 app.include_router(director_router)
 app.include_router(director_sa_router)
 
 # W4.4B — Phase Y.1B · Director Memory Layer
-from routes_director_memory import router as director_memory_router, sa_router as director_memory_sa_router
+from routes.director_memory import router as director_memory_router, sa_router as director_memory_sa_router
 from director_memory_engine import ensure_indexes as ensure_memory_indexes
 app.include_router(director_memory_router)
 app.include_router(director_memory_sa_router)
 
 # W4.4D — Phase Y.1D · What-if Simulator
-from routes_whatif import router as whatif_router, sa_router as whatif_sa_router
+from routes.whatif import router as whatif_router, sa_router as whatif_sa_router
 from whatif_engine import ensure_indexes as ensure_whatif_indexes
 app.include_router(whatif_router)
 app.include_router(whatif_sa_router)
 
 # W4.4E — Phase Y.1E · Asistente público comprador
-from routes_asistente import router as asistente_router, sa_router as asistente_sa_router
+from routes.asistente import router as asistente_router, sa_router as asistente_sa_router
 from asistente_engine import ensure_indexes as ensure_asistente_indexes
 app.include_router(asistente_router)
 app.include_router(asistente_sa_router)
 
 # W4.5 Y.2A — Pricing Sub-Agent
-from routes_subagents import router as subagents_router, sa_router as subagents_sa_router
+from routes.subagents import router as subagents_router, sa_router as subagents_sa_router
 from sub_agents.pricing_agent import ensure_pricing_indexes
 from sub_agents.marketing_agent import ensure_marketing_indexes
 from sub_agents.lead_agent import ensure_lead_indexes
@@ -436,12 +436,12 @@ app.include_router(subagents_router)
 app.include_router(subagents_sa_router)
 
 # W4.18.1 — Apify Google Trends Integration
-from routes_trends import router as trends_router
+from routes.trends import router as trends_router
 from apify_trends_engine import ensure_trends_indexes
 app.include_router(trends_router)
 
 # W4.6 Y.3A — Agentic CRM · Smart Routing
-from routes_agentic_crm import router as agentic_crm_router
+from routes.agentic_crm import router as agentic_crm_router
 from agentic_crm.smart_routing_engine import ensure_routing_indexes
 from agentic_crm.visit_prep_engine import ensure_visit_prep_indexes as ensure_visit_prep_dossier_indexes
 from agentic_crm.reply_classifier_engine import ensure_reply_indexes
@@ -450,75 +450,75 @@ from lead_nurture_engine import ensure_nurture_sequences_indexes
 app.include_router(agentic_crm_router)
 
 # W4.7 Y.4A — Atlax Persona per-tenant
-from routes_atlax_persona import router as atlax_persona_router
+from routes.atlax_persona import router as atlax_persona_router
 from atlax_persona_engine import ensure_indexes as ensure_atlax_persona_indexes
 app.include_router(atlax_persona_router)
 
 # Phase 4 Batch 12 — Wizard 7 pasos + IA upload + Drive
-from routes_wizard import (router as wizard_router, ensure_wizard_indexes)
+from routes.wizard import (router as wizard_router, ensure_wizard_indexes)
 app.include_router(wizard_router)
 
 # Phase 4 Batch 13 — Tracking attribution + Cross-portal sync
-from routes_b13 import (router as b13_router, ensure_b13_indexes)
+from routes.b13 import (router as b13_router, ensure_b13_indexes)
 app.include_router(b13_router)
 
 # Phase 4 Batch 14 — Health Score + Activity Feed + Notifications + Weekly Brief
-from routes_dev_batch14 import (router as dev_batch14_router, ensure_batch14_indexes)
+from routes.dev_batch14 import (router as dev_batch14_router, ensure_batch14_indexes)
 from health_score import ensure_health_score_indexes
 app.include_router(dev_batch14_router)
 
 # Phase 4 Batch 15 — Multi-broker Calendar (Google OAuth + Availability + Auto-assign)
-from routes_dev_batch15 import (router as dev_batch15_router, ensure_batch15_indexes)
+from routes.dev_batch15 import (router as dev_batch15_router, ensure_batch15_indexes)
 from oauth_calendar import ensure_oauth_indexes
 app.include_router(dev_batch15_router)
 
 # Phase 4 Batch 16 — AI Suggestions Inline + Public Booking Page
 from ai_suggestions import (router as ai_suggestions_router,
                              ensure_ai_suggestions_indexes)
-from routes_dev_batch16 import router as dev_batch16_public_router
+from routes.dev_batch16 import router as dev_batch16_public_router
 app.include_router(ai_suggestions_router)
 app.include_router(dev_batch16_public_router)
 
 # Phase 4 Batch 17 — Inline edit + Undo + Filter presets + Reorder
-from routes_dev_batch17 import (router as dev_batch17_router,
+from routes.dev_batch17 import (router as dev_batch17_router,
                                   ensure_batch17_indexes,
                                   purge_expired_undo_log)
 app.include_router(dev_batch17_router)
 
 # Phase 4 Batch 18 Sub-A — Density toggle + Project Switcher preferences
-from routes_dev_batch18 import (router as dev_batch18_router,
+from routes.dev_batch18 import (router as dev_batch18_router,
                                   ensure_batch18_indexes)
 app.include_router(dev_batch18_router)
 
 # Phase 4 Batch 19 — Tours + Branding + Cross-portal + Presentation Mode
-from routes_dev_batch19 import (router as dev_batch19_router,
+from routes.dev_batch19 import (router as dev_batch19_router,
                                  ensure_batch19_indexes)
 app.include_router(dev_batch19_router)
 
 # Phase 4 Batch 21 Sub-A — Tour Completion Analytics
-from routes_tour_analytics import (router as tour_analytics_router,
+from routes.tour_analytics import (router as tour_analytics_router,
                                     ensure_batch21_indexes)
 app.include_router(tour_analytics_router)
 
 # Phase 4 Batch 18 Sub-B — Floor plan routes
-from routes_floor_view import (router as floor_view_router,
+from routes.floor_view import (router as floor_view_router,
                                 ensure_floor_view_indexes)
 app.include_router(floor_view_router)
 
 # Phase 4 Batch 21 Sub-B/C — Team Productivity + Aggregated Metrics
-from routes_team_productivity import router as team_productivity_router
-from routes_team_aggregated import router as team_aggregated_router
+from routes.team_productivity import router as team_productivity_router
+from routes.team_aggregated import router as team_aggregated_router
 app.include_router(team_productivity_router)
 app.include_router(team_aggregated_router)
 
 # Phase 4 Batch 20 — Asesor metrics + Tracking links + Funnel/Sankey
-from routes_asesor_metrics import (router as asesor_metrics_router,
+from routes.asesor_metrics import (router as asesor_metrics_router,
                                      ensure_asesor_metrics_indexes)
-from routes_tracking_links import (router as tracking_links_router,
+from routes.tracking_links import (router as tracking_links_router,
                                      ensure_tracking_links_indexes)
-from routes_funnel import (router as funnel_router, ensure_funnel_indexes)
-from routes_insights import router as insights_router
-from routes_copilot import router as copilot_router, ensure_indexes as ensure_copilot_indexes
+from routes.funnel import (router as funnel_router, ensure_funnel_indexes)
+from routes.insights import router as insights_router
+from routes.copilot import router as copilot_router, ensure_indexes as ensure_copilot_indexes
 from scheduler_asesor_snapshots import schedule_daily_snapshots
 app.include_router(asesor_metrics_router)
 app.include_router(tracking_links_router)
@@ -527,87 +527,87 @@ app.include_router(insights_router)
 app.include_router(copilot_router)
 
 # Phase 4 Batch 24 — Marketplace Map Intelligence + Image Search
-from routes_marketplace_map import router as marketplace_map_router
-from routes_marketplace_search import router as marketplace_search_router
+from routes.marketplace_map import router as marketplace_map_router
+from routes.marketplace_search import router as marketplace_search_router
 app.include_router(marketplace_map_router)
 app.include_router(marketplace_search_router)
 
 # Phase 4 Batch 25 — External Search + Saved Searches
-from routes_external_search import router as external_search_router
+from routes.external_search import router as external_search_router
 app.include_router(external_search_router)
 
 # Phase 4 Batch 26 — Marketplace Lead-Capture Tools (Reporte + Quiz + Comparador)
-from routes_marketplace_lead_tools import router as marketplace_lead_tools_router
+from routes.marketplace_lead_tools import router as marketplace_lead_tools_router
 app.include_router(marketplace_lead_tools_router)
 
 # Phase 4 Batch 27 — Mortgage Calculator + Colonia History + Share-link OG
-from routes_marketplace_calculator import router as marketplace_calc_router
-from routes_share_meta import router as share_meta_router
+from routes.marketplace_calculator import router as marketplace_calc_router
+from routes.share_meta import router as share_meta_router
 app.include_router(marketplace_calc_router)
 app.include_router(share_meta_router)
 
 # Phase 4 Batch 28 — Portal Comprador (autenticado)
-from routes_comprador import router as comprador_router
+from routes.comprador import router as comprador_router
 app.include_router(comprador_router)
 
 # Phase 4 Batch 29 — Comprador Engagement (Alertas + Chat + Comparador Premium)
-from routes_buyer_alerts import router as buyer_alerts_router
-from routes_chat import router as chat_router
-from routes_comprador_compare import router as comprador_compare_router
+from routes.buyer_alerts import router as buyer_alerts_router
+from routes.chat import router as chat_router
+from routes.comprador_compare import router as comprador_compare_router
 app.include_router(buyer_alerts_router)
 app.include_router(chat_router)
 app.include_router(comprador_compare_router)
 
 # Phase 4 Batch 30 — Wrapped + Smart Match
-from routes_wrapped import router as wrapped_router
+from routes.wrapped import router as wrapped_router
 app.include_router(wrapped_router)
 
 # Phase 3 Batch 31 — Asesor Tools (Briefing Tráfico + Clima + Argumentario RAG)
-from routes_briefing_traffic import router as briefing_traffic_router
-from routes_argumentario import router as argumentario_router
+from routes.briefing_traffic import router as briefing_traffic_router
+from routes.argumentario import router as argumentario_router
 app.include_router(briefing_traffic_router)
 app.include_router(argumentario_router)
 
 # W4.8 Y.5 — Observability + Replay Debugger + AI ROI per-Dev
-from routes_observability import router as observability_router
+from routes.observability import router as observability_router
 app.include_router(observability_router)
 
 # W4.18 — Data Sources gov MX bundle (6 fuentes oficiales)
-from routes_data_sources import router as data_sources_router
+from routes.data_sources import router as data_sources_router
 app.include_router(data_sources_router)
 
 # W4.10 — WhatsApp Business + Newsletter Pulse + Voice Atlax
-from routes_whatsapp import router as whatsapp_router
+from routes.whatsapp import router as whatsapp_router
 from whatsapp_engine import ensure_whatsapp_indexes
-from routes_newsletter import router as newsletter_router
+from routes.newsletter import router as newsletter_router
 from newsletter_pulse_engine import ensure_newsletter_indexes
-from routes_voice import router as voice_router
+from routes.voice import router as voice_router
 from voice_atlax_engine import ensure_voice_indexes
 app.include_router(whatsapp_router)
 app.include_router(newsletter_router)
 app.include_router(voice_router)
 
 # W4.18.2A — Mapa Cerebro Espacial DMX
-from routes_maps import router as maps_router
+from routes.maps import router as maps_router
 from maps_engine import ensure_maps_indexes
 app.include_router(maps_router)
 
 # W4.18.2B — Maps Cross-features (funnel inverso · match catastro · saved zones · battle card)
-from routes_maps_cross import router as maps_cross_router
+from routes.maps_cross import router as maps_cross_router
 from maps_cross_engine import ensure_maps_cross_indexes
 app.include_router(maps_cross_router)
 
 # W4.18.2B Sub-D — AVM público + Colonia stats
-from routes_avm_public import router as avm_public_router
+from routes.avm_public import router as avm_public_router
 app.include_router(avm_public_router)
 
 # W4.18.3 — Private Beta Gate (invite codes + waitlist)
-from routes_private_beta import router as private_beta_router
+from routes.private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
 app.include_router(private_beta_router)
 
 # W4.13.A — Lead Journey Outbound asesor→dev
-from routes_lead_journey import router as lead_journey_router
+from routes.lead_journey import router as lead_journey_router
 from lead_journey_engine import ensure_lead_journey_indexes
 app.include_router(lead_journey_router)
 
@@ -615,36 +615,36 @@ app.include_router(lead_journey_router)
 from notifications_engine import ensure_notifications_indexes
 
 # W4.14 — Buyer Coach + Investment Simulator
-from routes_buyer_coach import router as buyer_coach_router
+from routes.buyer_coach import router as buyer_coach_router
 from buyer_coach_engine import ensure_buyer_coach_indexes
 app.include_router(buyer_coach_router)
 
-from routes_investment_simulator import router as investment_sim_router
+from routes.investment_simulator import router as investment_sim_router
 app.include_router(investment_sim_router)
 
 # W4.9 — Studio Brochure (PDF + 4 social variants + custom upload)
-from routes_brochure import router as brochure_router
+from routes.brochure import router as brochure_router
 from brochure_engine import ensure_brochure_indexes as ensure_brochure_indexes_fn
 app.include_router(brochure_router)
 
 # W4.9.6 — 3D Gaussian Splatting Tour
-from routes_tour_3dgs import router as tour_3dgs_router
+from routes.tour_3dgs import router as tour_3dgs_router
 from tour_3dgs_engine import ensure_tour_3dgs_indexes as ensure_tour_3dgs_indexes_fn
 app.include_router(tour_3dgs_router)
 
 # W4.16 — Marketing (Free Audit + State of CDMX + MCP Distribution)
-from routes_free_audit import router as free_audit_router
+from routes.free_audit import router as free_audit_router
 from free_audit_engine import ensure_free_audit_indexes as ensure_free_audit_indexes_fn
 app.include_router(free_audit_router)
-from routes_state_of_cdmx import router as state_of_cdmx_router
+from routes.state_of_cdmx import router as state_of_cdmx_router
 from state_of_cdmx_engine import ensure_state_of_cdmx_indexes as ensure_state_of_cdmx_indexes_fn
 app.include_router(state_of_cdmx_router)
-from routes_mcp_distribution import router as mcp_distribution_router
+from routes.mcp_distribution import router as mcp_distribution_router
 from mcp_distribution_engine import ensure_mcp_distribution_indexes as ensure_mcp_distribution_indexes_fn
 app.include_router(mcp_distribution_router)
 
 # F0.1 — Score Inversión DMX 0-100
-from routes_score_inversion import router as score_inversion_router
+from routes.score_inversion import router as score_inversion_router
 from score_inversion_engine import ensure_score_inversion_indexes as ensure_score_inversion_indexes_fn
 app.include_router(score_inversion_router)
 
@@ -675,31 +675,31 @@ async def private_beta_signup_gate(request, call_next):
     return await call_next(request)
 
 # Phase 4 Batch 32 — Asesor Identity (Endorsements + LinkedIn + DISC + Trust Score)
-from routes_asesor_identity import router as asesor_identity_router
+from routes.asesor_identity import router as asesor_identity_router
 app.include_router(asesor_identity_router)
 
 # Phase 4 Batch 33 — Asesor Daily Tools (Calendar bidi + Visit briefing + Client insights)
-from routes_asesor_daily_tools import router as asesor_daily_tools_router
+from routes.asesor_daily_tools import router as asesor_daily_tools_router
 app.include_router(asesor_daily_tools_router)
 
 # Phase 4 Batch 34 — Smart Match Lead-to-Asesor + Daily Feed
-from routes_lead_match import router as lead_match_router
+from routes.lead_match import router as lead_match_router
 app.include_router(lead_match_router)
 
 # Phase 18 Batch 35 — Inmobiliaria entity (Foundation + Portal + Relationships)
-from routes_inmobiliaria import router as inmobiliaria_router
+from routes.inmobiliaria import router as inmobiliaria_router
 app.include_router(inmobiliaria_router)
 
 # Phase 13 Batch 36 — Advisor Whitelist + Auto-Approve
-from routes_advisor_whitelist import router as whitelist_router
+from routes.advisor_whitelist import router as whitelist_router
 app.include_router(whitelist_router)
 
 # Phase 14 Batch 37 — Internal Users + Mini Market + Cross-Org Partnerships
-from routes_internal_users import router as internal_users_router
+from routes.internal_users import router as internal_users_router
 app.include_router(internal_users_router)
 
 # Phase 15 Batch 38 — Cross directories + lead enrichment
-from routes_directories import router as directories_router
+from routes.directories import router as directories_router
 app.include_router(directories_router)
 
 # ─── Password helpers ─────────────────────────────────────────────────────────

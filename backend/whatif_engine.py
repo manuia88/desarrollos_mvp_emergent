@@ -110,7 +110,7 @@ async def _check_phase_y(db, org_id: str) -> Dict[str, Any]:
 
     Returns settings dict. Raises PhaseYDisabledError si no aplica.
     """
-    from routes_phase_y_controls import get_phase_y_settings
+    from routes.phase_y_controls import get_phase_y_settings
     settings = await get_phase_y_settings(db, org_id)
     if not settings.get("agentic_enabled", False):
         raise PhaseYDisabledError("Phase Y disabled by superadmin")

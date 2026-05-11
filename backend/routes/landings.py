@@ -49,7 +49,7 @@ async def get_colonia_landing(slug: str, request: Request) -> Dict[str, Any]:
     if info.get("has_ie_data"):
         # Reuse W4.2D2 endpoint: forward call internally for full data.
         try:
-            from routes_public_zones import get_zone_public
+            from routes.public_zones import get_zone_public
             payload = await get_zone_public(slug, request)
             payload["has_ie_data"] = True
             payload["landing_tier"] = "tier1"

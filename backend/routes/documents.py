@@ -758,7 +758,7 @@ async def assets_reorder(dev_id: str, body: ReorderBody, request: Request):
 
     # Register undo (Batch 17)
     try:
-        from routes_dev_batch17 import register_undo
+        from routes.dev_batch17 import register_undo
         await register_undo(
             db, user_id=user.user_id, action="reorder",
             entity_type="asset", entity_id=dev_id,

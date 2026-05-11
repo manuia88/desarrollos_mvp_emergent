@@ -38,7 +38,7 @@ def _interaction_id() -> str:
 
 async def _check_voice_phase_y(db) -> bool:
     try:
-        from routes_phase_y_controls import get_phase_y_settings
+        from routes.phase_y_controls import get_phase_y_settings
         s = await get_phase_y_settings(db, "dmx")
         tier = (s.get("feature_tiers") or {}).get("voice_atlax", "off")
         return tier not in ("off", "T0")

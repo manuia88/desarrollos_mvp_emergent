@@ -319,7 +319,7 @@ async def competitors_enriched(request: Request, dev_id: Optional[str] = None, r
     user = await _auth(request)
     db = _db(request)
     # Reuse developer/competidores logic
-    from routes_developer import competitor_radar  # reuse function
+    from routes.developer import competitor_radar  # reuse function
     base = await competitor_radar(request, dev_id=dev_id, radius_km=radius_km)
 
     # Enrich with alert-config and attach to alerts

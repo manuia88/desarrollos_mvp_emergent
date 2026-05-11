@@ -87,7 +87,7 @@ class MatchWeightsEngine:
     # ── Phase Y guard ──────────────────────────────────────────────────────────
     async def _get_tier(self) -> str:
         try:
-            from routes_phase_y_controls import get_phase_y_settings
+            from routes.phase_y_controls import get_phase_y_settings
             settings = await get_phase_y_settings(self.db, self.org_id)
             if not settings.get("agentic_enabled", False):
                 return "disabled"
@@ -578,7 +578,7 @@ async def run_match_weights_auto_tune_all_orgs(db) -> Dict[str, Any]:
     Itera orgs con tier match_weights_adaptive ≥ T1 y ejecuta apply_tuning().
     Solo aplica si confidence > 50 y sin manual override reciente.
     """
-    from routes_phase_y_controls import get_phase_y_settings
+    from routes.phase_y_controls import get_phase_y_settings
 
     # Find orgs with Phase Y enabled (sample from agentic settings)
     try:

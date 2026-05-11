@@ -316,7 +316,7 @@ async def get_heat(lead_id: str, request: Request):
         raise HTTPException(404, "Lead no encontrado")
     # Permission gate (reuse helpers from batch4_2)
     try:
-        from routes_dev_batch4_2 import can_view_full_client_data
+        from routes.dev_batch4_2 import can_view_full_client_data
         if not can_view_full_client_data(user, lead):
             raise HTTPException(403, "Sin permisos para ver heat de este lead")
     except ImportError:
@@ -443,7 +443,7 @@ async def _build_ai_summary(db, lead: Dict) -> Dict:
 
 async def _check_ai_summary_permission(user, lead: Dict):
     try:
-        from routes_dev_batch4_2 import can_view_ai_summary
+        from routes.dev_batch4_2 import can_view_ai_summary
         if not can_view_ai_summary(user, lead):
             raise HTTPException(403, "Sin permisos para ver el resumen IA de este lead")
     except ImportError:

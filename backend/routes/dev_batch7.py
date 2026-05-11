@@ -362,7 +362,7 @@ async def _candidate_zones(db, inputs: StudyInputs) -> List[Dict]:
 
     # Phase 4 Batch 7.2 — pre-fetch INEGI demographics in parallel (cache-first).
     try:
-        from routes_dev_batch7_2 import get_demographics
+        from routes.dev_batch7_2 import get_demographics
         demo_results = await asyncio.gather(
             *[get_demographics(db, colonia=col["name"], state_code="09") for col in COLONIAS],
             return_exceptions=True,
