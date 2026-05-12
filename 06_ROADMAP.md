@@ -403,7 +403,17 @@ GET /v1/portfolio/exposure                  análisis cartera
 
 ### Wave 5 H2 — Confirmado (post-launch público compradores · ~julio)
 
-**W5.10 Social/Ads Multi-tenant + Analytics Granular + IA Layer** (205h · autorizado founder 2026-05-10): plataforma estilo GoHighLevel+HubSpot+Hootsuite cross-vertical real estate MX. OAuth multi-platform (Meta · Google/YouTube · WhatsApp Cloud API · TikTok base) · posting engine · ads creator · scheduler · analytics granular (16 categorías × 150 sub-dims) · 3 dashboards role-based · MCP IA optimization · Studio Wave creative pipeline. **8 sub-chunks. Detalle ejecutivo:** `memory/INSIGHTS_GRANULARITY_SCHEMA.md` + `memory/BACKLOG_ENHANCEMENTS.md`. Founder ops paralelo H1: Meta Business Verification + App Review (`ads_management`/`pages_manage_posts`/`instagram_basic`/`whatsapp_business_management`) · Google YouTube Sensitive Scopes Review · TikTok Marketing API · LinkedIn Tier 2 Partner.
+**W5.10 Social/Ads Multi-tenant + Analytics Granular + IA Layer** (233h · scope expandido 2026-05-12 · +28h vs original 205h por 5 Zernio architectural learnings · founder autorizó 2026-05-10 baseline · scope refinado 2026-05-12 tras análisis Zernio): plataforma estilo GoHighLevel+HubSpot+Hootsuite cross-vertical real estate MX. **Build directo · cero dependencia Zernio · cero costo recurrente terceros.** OAuth multi-platform (Meta · Google/YouTube · WhatsApp Cloud API + Coexistence · TikTok) · posting engine · ads creator · scheduler · analytics granular (16 categorías × 150 sub-dims) · 3 dashboards role-based · MCP IA optimization · Studio Wave creative pipeline. **8 sub-chunks. Detalle ejecutivo:** `memory/INSIGHTS_GRANULARITY_SCHEMA.md` + `memory/BACKLOG_ENHANCEMENTS.md`. Founder ops paralelo H1: Meta Business Verification + App Review (`ads_management`/`pages_manage_posts`/`instagram_basic`/`whatsapp_business_management`) · Google YouTube Sensitive Scopes Review · TikTok Marketing API · LinkedIn Tier 2 Partner.
+
+**+28h Zernio architectural learnings** (decisión founder 2026-05-12 · `memory/feedback_zernio_decision.md`):
+1. Webhooks normalizados (1 endpoint · payload unificado las 6 redes) — ahorra 50-100h mantenimiento futuro · cuando Meta cambia API solo arreglas normalizer · cero touch al resto · +8h
+2. Connect tokens cortos (15 min validez · estándar OAuth moderno) — seguridad superior · API keys nunca viajan por URLs · +4h
+3. Headless Embedded Signup (asesor nunca sale de DMX) — UX premium · todo el OAuth flow dentro de la plataforma · cero "te abrimos pestaña Meta" · +6h
+4. Rate limit abstraction central (servicio único maneja Meta · TikTok · YT limits) — features futuras solo dicen "envía" · backend resuelve · cero race conditions bugs · +6h
+5. Error normalization per platform (errores Meta · TikTok · YT en formato único) — frontend muestra mensajes consistentes · QA trivial · onboarding asesor sin sustos · +4h
+
+**Fase 1 MVP Conectividad** (80h dentro de 233h) — OAuth 6 redes + posting básico + inbox unificado + Atlax hook simple + las 5 architectural learnings desde día 1 (NO retrofit).
+**Fase 2 Wedge Competitivo** (153h restantes) — Analytics granular 16×150 + 3 dashboards role-based + MCP IA optimization profundo + Studio Wave pipeline.
 
 **Phase Z — DMX Studio Marketing** (224h · autorizado founder 2026-05-10): research brutal 8 plataformas competidoras (VibePeak · Mirino · PropAds · Arcads · Grazia · Higgsfield · GoHighLevel · 3DGS) + 8 preguntas críticas + 3 upgrades arquitectónicos. **9 sub-chunks Z.1-Z.9** (Brand Kit + Listing Importer · Buyer-angle copy 7 personas · Multi-channel Publisher · Video engines + Avatar custom asesor + Voice clone + Virtual Staging 5 variantes · Hook predictor · ML Closed-Loop System cohort/causal/DMX Index público · Workflow Builder UI · Landing Pages Profesionales 10 templates premium subdomain DMX · Wallet Stripe Pay-as-you-go modelo aggregator). **Detalle ejecutivo:** `memory/STUDIO_MARKETING_RESEARCH.md`. APIs: Fal.ai · HeyGen + Instant Avatar · Replicate · ElevenLabs Pro · Luma · Higgsfield · Cloudflare wildcard DNS · Stripe MX (OXXO + SPEI). 7 ventajas competitivas: vertical RE LATAM · stack integrado · 4 branding variants · voice clone + avatar custom · MCP IA layer · multi-tenant 3 dashboards · 3DGS production-ready 2026.
 
@@ -417,7 +427,7 @@ GET /v1/portfolio/exposure                  análisis cartera
 
 **W5.19 Probability UX Kalshi-inspired** (6h diferido de W4.17): odds + interval + tooltips narrative inversionistas premium.
 
-**Wave 5 H2 total**: ~514h confirmados (W5.10 205h + Phase Z 224h + W5.20-21 41h + W5.18 38h + W5.19 6h) — W5.16 social cards consolidado en Phase Z · W5.17 video bundle subsumed en Phase Z · sin contar items legítimos H2 diferidos abajo.
+**Wave 5 H2 total**: ~542h confirmados (W5.10 **233h** scope-updated 2026-05-12 + Phase Z 224h + W5.20-21 41h + W5.18 38h + W5.19 6h) — W5.16 social cards consolidado en Phase Z · W5.17 video bundle subsumed en Phase Z · sin contar items legítimos H2 diferidos abajo.
 
 ### Wave 6 H2+ — Sketch (~150-200h estimado · post-Wave 5 maduración)
 
