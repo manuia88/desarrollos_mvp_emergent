@@ -125,18 +125,19 @@ export default function TourLauncher({ children }) {
 
   return (
     <TourCtx.Provider value={{ startTour, stopTour }}>
-      {steps.length > 0 && (
+      {/* Montar Joyride SOLO cuando run=true — evita que el overlay quede bloqueando el portal */}
+      {run && steps.length > 0 && (
         <Joyride
           steps={steps}
-          run={run && !reducedMotion ? run : reducedMotion ? run : run}
+          run={run}
           stepIndex={stepIndex}
           callback={handleJoyrideCallback}
           continuous
           showProgress={steps.length > 4}
           showSkipButton
           scrollToFirstStep
-          disableOverlayClose
-          spotlightClicks={false}
+          disableOverlayClose={false}
+          spotlightClicks={true}
           disableAnimation={reducedMotion}
           locale={{
             back: t('tours.nav.back', 'Atrás'),
