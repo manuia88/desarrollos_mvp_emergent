@@ -15,18 +15,25 @@ import useReducedMotion from '../../hooks/useReducedMotion';
 export const TourCtx = createContext({ startTour: () => {}, stopTour: () => {} });
 export const useTourContext = () => useContext(TourCtx);
 
-// ─── Joyride styles ─────────────────────────────────────────────────────────
+// ─── Joyride options (Joyride v3 espera este shape SEPARADO de styles) ──────
+// Bug-fix 2026-05-13: react-joyride@^3.1.0 lee options desde props.options · NO
+// desde props.styles.options. Si se anida en styles, defaults toman precedencia
+// (backgroundColor #ffffff = cuadro blanco · overlay sin tematizar).
+function buildOptions(reducedMotion) {
+  return {
+    primaryColor: '#6366F1',
+    backgroundColor: 'rgba(13,16,23,0.97)',
+    textColor: '#F0EBE0',
+    arrowColor: 'rgba(13,16,23,0.97)',
+    overlayColor: reducedMotion ? 'rgba(0,0,0,0.35)' : 'rgba(6,8,15,0.72)',
+    spotlightShadow: '0 0 0 2px #6366F1',
+    zIndex: 9000,
+  };
+}
+
+// ─── Joyride styles (solo tooltips/buttons · no options) ─────────────────────
 function buildStyles(reducedMotion) {
   return {
-    options: {
-      primaryColor: '#6366F1',
-      backgroundColor: 'rgba(13,16,23,0.97)',
-      textColor: '#F0EBE0',
-      arrowColor: 'rgba(13,16,23,0.97)',
-      overlayColor: reducedMotion ? 'rgba(0,0,0,0.35)' : 'rgba(6,8,15,0.72)',
-      spotlightShadow: '0 0 0 2px #6366F1',
-      zIndex: 9000,
-    },
     tooltip: {
       borderRadius: 16,
       border: '1px solid rgba(99,102,241,0.28)',
@@ -122,20 +129,21 @@ export default function TourLauncher({ children }) {
   }, [rawSteps, tourId, t]);
 
   const jrStyles = useMemo(() => buildStyles(reducedMotion), [reducedMotion]);
+  const jrOptions = useMemo(() => buildOptions(reducedMotion), [reducedMotion]);
 
   return (
     <TourCtx.Provider value={{ startTour, stopTour }}>
       {steps.length > 0 && (
         <Joyride
           steps={steps}
-          run={run && !reducedMotion ? run : reducedMotion ? run : run}
+          run={run}
           stepIndex={stepIndex}
           callback={handleJoyrideCallback}
           continuous
           showProgress={steps.length > 4}
           showSkipButton
           scrollToFirstStep
-          disableOverlayClose
+          disableOverlayClose={false}
           spotlightClicks={false}
           disableAnimation={reducedMotion}
           locale={{
@@ -146,6 +154,7 @@ export default function TourLauncher({ children }) {
             skip: t('tours.nav.skip', 'Saltar tour'),
             open: t('tours.nav.open', 'Abrir'),
           }}
+          options={jrOptions}
           styles={jrStyles}
         />
       )}

@@ -50,13 +50,14 @@ export default function AdvisorLayout({ user, onLogout, children }) {
       </div>
 
       {/* Phase 3 Batch 31 — Argumentario AI FAB (coach inline) */}
+      {/* Bug-fix 2026-05-13: bottom 20 → 148 · evitaba colisión con ReportProblemButton (bottom:20) y AICopilotPanel (bottom:84) globales del PortalLayout */}
       <button
         data-testid="argumentario-fab"
         type="button"
         aria-label="Abrir Argumentario AI"
         onClick={() => setArgOpen(true)}
         style={{
-          position: 'fixed', right: 20, bottom: 20, zIndex: 60,
+          position: 'fixed', right: 20, bottom: 148, zIndex: 60,
           width: 56, height: 56, borderRadius: 9999,
           border: 'none',
           background: 'linear-gradient(90deg, #6366F1, #EC4899)',
