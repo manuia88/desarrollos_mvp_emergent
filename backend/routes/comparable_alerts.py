@@ -15,9 +15,14 @@ log = logging.getLogger("dmx.comparable_alerts")
 
 router = APIRouter(prefix="/api/comparable-alerts", tags=["comparable-alerts"])
 
-_TENANT_DEV_MAP: Dict[str, List[str]] = {
-    "constructora_ariel": ["quattro", "habitare-capital", "agora-urbana"],
-}
+# W4.1C++ tech-debt 2026-05-13: source-of-truth movido a backend/tenant_dev_map.py
+from tenant_dev_map import get_allowed_dev_ids_sync as _legacy_lookup
+
+
+def _tenant_allowed(tenant: str) -> Optional[List[str]]:
+    """Compat wrapper · este endpoint NO usa wildcard (solo lista o None)."""
+    rule = _legacy_lookup(tenant)
+    return rule if isinstance(rule, list) else None
 
 _SEVERITY_RANK = {"high": 0, "medium": 1, "low": 2}
 
@@ -41,7 +46,7 @@ def _check_owner_permission(user, dev_id: str, dev_developer_id: str) -> None:
     if user.role not in ("developer_admin",):
         raise HTTPException(403, "Solo superadmin o developer_admin pueden ver alertas comparables.")
     tenant = getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or ""
-    allowed = _TENANT_DEV_MAP.get(tenant)
+    allowed = _tenant_allowed(tenant)
     if allowed is not None:
         if dev_developer_id not in allowed:
             raise HTTPException(403, f"No tienes permiso para ver alertas de '{dev_id}'.")

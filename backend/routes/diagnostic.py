@@ -816,17 +816,17 @@ async def get_dev_diagnostic(dev_id: str, request: Request, force: bool = False)
 
     if user.role == "developer_admin":
         # Verify ownership: dev's developer_id must be in user's allowed org list
-        # Reuses the same TENANT_DEV_MAP pattern as routes_documents.py
-        _TENANT_DEV_MAP = {
-            "constructora_ariel": ["quattro", "habitare-capital", "agora-urbana"],
-        }
+        # W4.1C++ 2026-05-13: source-of-truth centralizado en tenant_dev_map.py
+        from tenant_dev_map import get_allowed_dev_ids_sync
         from data_developments import DEVELOPMENTS_BY_ID
         dev = DEVELOPMENTS_BY_ID.get(dev_id)
         if not dev:
             raise HTTPException(404, f"Desarrollo '{dev_id}' no encontrado.")
         dev_developer_id = dev.get("developer_id", "")
         user_org = getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or ""
-        allowed = _TENANT_DEV_MAP.get(user_org)
+        # Solo soporta list (no "*" en este endpoint) · "*" superadmin ya hooked arriba
+        _rule = get_allowed_dev_ids_sync(user_org)
+        allowed = _rule if isinstance(_rule, list) else None
         if allowed is not None:
             if dev_developer_id not in allowed:
                 raise HTTPException(

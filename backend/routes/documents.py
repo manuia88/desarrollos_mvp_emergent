@@ -58,12 +58,12 @@ log = logging.getLogger("dmx.di.routes")
 
 router = APIRouter(tags=["document_intelligence"])
 
-# Tenant → list of developer_ids (slug). MVP map: dev demo user has tenant_id="constructora_ariel" but no dev assigned.
-# For each tenant_id we explicitly list which developer_ids they own. superadmin tenant ("dmx") sees everything.
-TENANT_DEV_MAP = {
-    "dmx": "*",  # superadmin sees everything
-    "constructora_ariel": ["quattro", "habitare-capital", "agora-urbana"],  # demo developer
-}
+# Tenant → list of developer_ids (slug).
+# W4.1C++ tech-debt 2026-05-13: source-of-truth movido a `backend/tenant_dev_map.py`
+# (centralized · soporta DB lookup futuro · sync fallback para callers actuales).
+# Backward compat: importamos LEGACY_FALLBACK para mantener variable TENANT_DEV_MAP
+# que algunos imports externos pudieran estar usando.
+from tenant_dev_map import LEGACY_FALLBACK as TENANT_DEV_MAP, get_allowed_dev_ids_sync
 
 
 def _get_db(request: Request):
@@ -88,7 +88,9 @@ def _allowed_dev_ids(user) -> object:
     tenant = getattr(user, "tenant_id", None)
     if not tenant:
         return []
-    rule = TENANT_DEV_MAP.get(tenant)
+    # W4.1C++ 2026-05-13: usa helper centralizado · sync fallback (legacy hardcoded
+    # behavior preserved). Para activar DB lookup · ver tenant_dev_map.get_allowed_dev_ids
+    rule = get_allowed_dev_ids_sync(tenant)
     if rule == "*":
         return "*"
     if isinstance(rule, list):

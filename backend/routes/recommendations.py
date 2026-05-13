@@ -19,10 +19,17 @@ log = logging.getLogger("dmx.recommendations")
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
-# Mirrors routes_documents.TENANT_DEV_MAP and routes_diagnostic._TENANT_DEV_MAP
-_TENANT_DEV_MAP: Dict[str, List[str]] = {
-    "constructora_ariel": ["quattro", "habitare-capital", "agora-urbana"],
-}
+# W4.1C++ tech-debt 2026-05-13: source-of-truth movido a backend/tenant_dev_map.py
+# Helper sync devuelve Union[str, List[str], None] · acá filtramos a List[str] (sin "*")
+from tenant_dev_map import get_allowed_dev_ids_sync as _legacy_lookup
+
+
+def _tenant_dev_map_get(tenant: str) -> Optional[List[str]]:
+    """Compat wrapper · este endpoint NO soporta wildcard '*' (solo lista o None)."""
+    rule = _legacy_lookup(tenant)
+    if isinstance(rule, list):
+        return rule
+    return None  # "*" o None → conservative deny
 
 
 def _db(req: Request):
@@ -51,7 +58,7 @@ async def get_top_recommendation(request: Request) -> Dict[str, Any]:
     db = _db(request)
 
     tenant = getattr(user, "tenant_id", None) or getattr(user, "org_id", None) or ""
-    allowed_dev_ids: Optional[List[str]] = _TENANT_DEV_MAP.get(tenant)
+    allowed_dev_ids: Optional[List[str]] = _tenant_dev_map_get(tenant)
 
     from data_developments import DEVELOPMENTS_BY_ID, DEVELOPMENTS
     if allowed_dev_ids is not None:

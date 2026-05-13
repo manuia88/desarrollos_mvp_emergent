@@ -161,12 +161,13 @@ backend/routes/
 - **Por qué:** evitar que future emergent prompts asuman `/mcp` u otros paths sin prefix `/api/`.
 - **Costo:** 5 min documentación.
 
-### Tenant↔Developer mapping schema (reemplazar `TENANT_DEV_MAP` hardcoded)
+### ~~Tenant↔Developer mapping schema (reemplazar `TENANT_DEV_MAP` hardcoded)~~ ✅ PARCIAL · 2026-05-13
 - **Origen:** W4.1B emergent fix workaround 2026-05-09
-- **Destino:** Wave 4 cleanup batch ó CC2 cross-cutting
-- **Qué:** Hoy `routes_diagnostic.py` tiene `TENANT_DEV_MAP = {"constructora_ariel": ["quattro","habitare-capital","agora-urbana"]}` hardcoded. Reemplazar con collection `db.tenant_developer_links` schema `{tenant_id, developer_id, role, created_at}` + helper `get_developers_for_tenant(tenant_id)`.
-- **Por qué:** hardcoded mapping NO escala más allá de los 3 demo tenants. Bloquea onboarding de tenants reales sin re-deploy.
-- **Costo:** ~1.5h (schema + migration script seed actual + 2 endpoint refactor calls).
+- **Estado:** **Source-of-truth centralizado** en `backend/tenant_dev_map.py` (SHA pending) · 4 hardcoded copies eliminadas (routes/documents · routes/recommendations · routes/diagnostic · routes/comparable_alerts).
+- **DB lookup async** disponible vía `get_allowed_dev_ids(db, tenant_id)` · pero los 4 callers actuales usan `get_allowed_dev_ids_sync` (legacy fallback) para evitar blast radius de 20 callers.
+- **Faltante para 100%**: schema collection `developer_organizations.allowed_dev_ids` + migration seed legacy + cambiar 4 callers a versión async + 20 sub-callers update.
+- **Costo restante:** ~3h (refactor async 4 endpoints + tests integration multi-tenant cobertura completa).
+- **Activación DB-only**: cuando founder onboarding tenant nuevo · ejecutar seed `developer_organizations` con `{tenant_id, allowed_dev_ids, is_superadmin}` · helper async ya lee de ahí automáticamente.
 
 ### W4.1A index dup fix · diagnostic_reports.generated_at TTL conflict
 - **Origen:** W4.1A Sentry alert 2026-05-09 ("equivalent index already exist with different name and options")
