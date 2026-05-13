@@ -356,13 +356,19 @@ async def ensure_diagnostic_indexes(db):
     await db.diagnostic_ai_cache.create_index("expires_at", expireAfterSeconds=86400, background=True)
     # W4.1A — analyze_dev cache
     await db.diagnostic_reports.create_index("dev_id", background=True)
+    # W4.1C fix (2026-05-13): drop legacy index sin TTL antes de crear el TTL index.
+    # Sin drop, Mongo rechazaba crear el TTL porque ya existía un índice legacy
+    # "generated_at_1" creado por versión previa del código (sin TTL). Sentry
+    # alertaba "equivalent index already exist with different name and options".
+    # Try/except sobre drop_index porque puede no existir en DBs nuevas.
     try:
-        await db.diagnostic_reports.create_index(
-            "generated_at", expireAfterSeconds=86400, background=True,
-            name="diagnostic_reports_ttl_24h"
-        )
+        await db.diagnostic_reports.drop_index("generated_at_1")
     except Exception:
-        pass  # ignora conflicto si ya existe índice sin TTL sobre generated_at
+        pass  # ok si el índice legacy no existe (DB nueva)
+    await db.diagnostic_reports.create_index(
+        "generated_at", expireAfterSeconds=86400, background=True,
+        name="diagnostic_reports_ttl_24h"
+    )
 
 
 # ─── W4.1A · analyze_dev — 6-rule Intelligence Diagnostic ────────────────────
