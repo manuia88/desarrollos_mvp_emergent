@@ -278,8 +278,8 @@ backend/routes/
 - **Costo:** ~3h (modo embed sin Navbar + theming via query params + tracking source)
 - **Activar cuando:** después de validar adopción interna del comparador
 
-### W5.10 — Social/Ads Multi-tenant + Analytics Granular + IA Layer (Wave 5 H2 · 205h)
-- **Origen:** founder propuesta 2026-05-10 (modelo GoHighLevel + IA + granularity brutal)
+### W5.10 — Social/Ads Multi-tenant + Analytics Granular + IA Layer (Wave 5 H2 · **233h** scope-updated 2026-05-12)
+- **Origen:** founder propuesta 2026-05-10 (modelo GoHighLevel + IA + granularity brutal) · scope refinado 2026-05-12 (+28h Zernio architectural learnings · ver `feedback_zernio_decision.md`)
 - **Destino:** Wave 5 H2 (post-launch público compradores · ~julio)
 - **Detalle granularidad completo:** `memory/INSIGHTS_GRANULARITY_SCHEMA.md` (16 categorías × ~150 sub-dims · top 10 cross-dim queries definidas)
 - **Sub-chunks:**

@@ -1,7 +1,7 @@
 # DMX Insights Granularity Schema · 16 categorías × ~150 sub-dimensiones
 
 **Versión**: 1.0 · 2026-05-10
-**Destino**: módulo W5.10 Wave 5 H2 (Social/Ads Multi-tenant + Analytics + IA Layer · 205h)
+**Destino**: módulo W5.10 Wave 5 H2 (Social/Ads Multi-tenant + Analytics + IA Layer · **233h** scope-updated 2026-05-12 +28h Zernio learnings)
 **Objetivo**: cubo OLAP-like que permita query cross-dimension brutal · feed AI optimization layer
 
 ---
