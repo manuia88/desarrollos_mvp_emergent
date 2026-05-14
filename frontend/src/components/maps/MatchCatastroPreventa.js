@@ -60,7 +60,7 @@ export default function MatchCatastroPreventa({ open, onClose }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a5b4fc', marginBottom: 4 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--theme)', marginBottom: 4 }}>
               Match Catastro · Preventa
             </div>
             <h2 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 800, margin: 0, color: '#F0EBE0' }}>
@@ -79,8 +79,8 @@ export default function MatchCatastroPreventa({ open, onClose }) {
         {meta && (
           <div style={{
             padding: '10px 12px', borderRadius: 12,
-            background: 'rgba(99,102,241,0.08)',
-            border: '1px solid rgba(99,102,241,0.22)',
+            background: 'rgba(var(--theme-rgb),0.08)',
+            border: '1px solid rgba(var(--theme-rgb),0.22)',
             marginBottom: 16, fontSize: 12, color: 'rgba(240,235,224,0.7)',
           }}>
             Tu vivienda: {meta.m2_construccion}m² construcción · {meta.recamaras} rec · {meta.banos} baños
@@ -138,7 +138,7 @@ export default function MatchCatastroPreventa({ open, onClose }) {
                   onClick={() => { onClose(); navigate(`/desarrollo/${r.slug || r.dev_id}`); }}
                   style={{
                     marginTop: 10, padding: '7px 14px', borderRadius: 9999, border: 'none',
-                    background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+                    background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
                     fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                   }}
                 >

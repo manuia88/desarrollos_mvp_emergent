@@ -9,7 +9,7 @@
 import React, { useState, useCallback } from 'react';
 import { fetchTrafficBriefing } from '../../api/asesor';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 function CoordInput({ label, latVal, lngVal, onLat, onLng, testIdPrefix }) {
   return (
@@ -227,8 +227,8 @@ function BriefingResult({ data }) {
     <div data-testid="briefing-result" style={{
       display: 'flex', flexDirection: 'column', gap: 12,
       padding: 14, borderRadius: 14,
-      background: 'rgba(99,102,241,0.06)',
-      border: '1px solid rgba(99,102,241,0.18)',
+      background: 'rgba(var(--theme-rgb),0.06)',
+      border: '1px solid rgba(var(--theme-rgb),0.18)',
     }}>
       {stale && (
         <div data-testid="briefing-stale-banner" style={{

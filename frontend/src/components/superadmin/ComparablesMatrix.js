@@ -123,13 +123,13 @@ export default function ComparablesMatrix({ data, loading }) {
           {loading && (
             <div data-testid="intel-comparables-loading" style={{
               padding: 18, fontFamily: 'DM Sans', fontSize: 12.5,
-              color: 'rgba(240,235,224,0.45)',
+              color: 'rgba(240, 235, 224, 0.70)',
             }}>Cargando matriz…</div>
           )}
           {!loading && zones.length === 0 && (
             <div data-testid="intel-comparables-empty" style={{
               padding: 18, fontFamily: 'DM Sans', fontSize: 12.5,
-              color: 'rgba(240,235,224,0.45)',
+              color: 'rgba(240, 235, 224, 0.70)',
             }}>Selecciona una zona para ver comparables.</div>
           )}
           {!loading && zones.length > 0 && (
@@ -186,7 +186,7 @@ export default function ComparablesMatrix({ data, loading }) {
           )}
           {!loading && zones.length > 0 && (
             <div style={{ marginTop: 10, fontFamily: 'DM Sans', fontSize: 11,
-              color: 'rgba(240,235,224,0.45)' }}>
+              color: 'rgba(240, 235, 224, 0.70)' }}>
               Score 0 (rojo) = nulo · 100 (verde) = idéntico · click celda para comparar
             </div>
           )}

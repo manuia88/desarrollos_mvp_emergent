@@ -69,9 +69,9 @@ export default function VirtualTourPlaceholder({
     <div data-testid="virtual-tour-placeholder" style={{
       position: 'relative',
       paddingTop: '56.25%',
-      background: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(236,72,153,0.10))',
+      background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.18), rgba(var(--theme-rgb),0.10))',
       borderRadius: 14, overflow: 'hidden',
-      border: '1px solid rgba(99,102,241,0.22)',
+      border: '1px solid rgba(var(--theme-rgb),0.22)',
     }}>
       <div style={{
         position: 'absolute', inset: 0,
@@ -84,8 +84,8 @@ export default function VirtualTourPlaceholder({
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '4px 11px', borderRadius: 9999,
-          background: 'rgba(99,102,241,0.18)',
-          border: '1px solid rgba(99,102,241,0.35)',
+          background: 'rgba(var(--theme-rgb),0.18)',
+          border: '1px solid rgba(var(--theme-rgb),0.35)',
           fontFamily: 'DM Sans', fontSize: 9, fontWeight: 700,
           color: 'rgba(165,180,252,1)',
           textTransform: 'uppercase', letterSpacing: '0.08em',
@@ -147,8 +147,8 @@ export default function VirtualTourPlaceholder({
               style={{
                 padding: '10px 18px', borderRadius: 9999, border: 'none',
                 background: loading
-                  ? 'rgba(99,102,241,0.3)'
-                  : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  ? 'rgba(var(--theme-rgb),0.3)'
+                  : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 color: '#fff',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
                 cursor: loading ? 'not-allowed' : 'pointer',

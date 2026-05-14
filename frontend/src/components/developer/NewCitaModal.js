@@ -322,9 +322,9 @@ export default function NewCitaModal({ user, prefilledProject, projects = [], on
                       flex: 1, padding: '9px 0', borderRadius: 8, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
-                      background: form.modalidad === m.k ? 'rgba(236,72,153,0.14)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${form.modalidad === m.k ? 'rgba(236,72,153,0.5)' : 'var(--border)'}`,
-                      color: form.modalidad === m.k ? '#EC4899' : 'var(--cream-3)',
+                      background: form.modalidad === m.k ? 'rgba(var(--theme-rgb),0.14)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${form.modalidad === m.k ? 'rgba(var(--theme-rgb),0.5)' : 'var(--border)'}`,
+                      color: form.modalidad === m.k ? 'var(--theme-3)' : 'var(--cream-3)',
                     }}>
                     {m.icon} {m.label}
                   </button>
@@ -354,9 +354,9 @@ export default function NewCitaModal({ user, prefilledProject, projects = [], on
                     style={{
                       padding: '7px 12px', borderRadius: 9999, cursor: 'pointer',
                       fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500,
-                      background: form.payment_methods.includes(pm.k) ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${form.payment_methods.includes(pm.k) ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
-                      color: form.payment_methods.includes(pm.k) ? '#818CF8' : 'var(--cream-3)',
+                      background: form.payment_methods.includes(pm.k) ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${form.payment_methods.includes(pm.k) ? 'rgba(var(--theme-rgb),0.5)' : 'var(--border)'}`,
+                      color: form.payment_methods.includes(pm.k) ? 'var(--theme)' : 'var(--cream-3)',
                     }}>
                     {pm.label}
                   </button>
@@ -389,12 +389,12 @@ export default function NewCitaModal({ user, prefilledProject, projects = [], on
                 checked={form.lfpdppp}
                 onChange={e => set('lfpdppp', e.target.checked)}
                 data-testid="cita-lfpdppp"
-                style={{ marginTop: 2, accentColor: '#6366F1', width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+                style={{ marginTop: 2, accentColor: 'var(--theme)', width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
               />
               <label htmlFor="lfpdppp-cb" style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.55, cursor: 'pointer' }}>
                 El cliente acepta el tratamiento de sus datos personales de acuerdo al{' '}
                 <a href="/aviso-privacidad" target="_blank" rel="noopener noreferrer"
-                  style={{ color: '#818CF8', textDecoration: 'underline' }}>
+                  style={{ color: 'var(--theme)', textDecoration: 'underline' }}>
                   Aviso de Privacidad
                 </a>{' '}
                 de DesarrollosMX, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.

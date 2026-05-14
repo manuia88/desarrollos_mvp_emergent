@@ -28,8 +28,8 @@ export default function ZoneScoreBadge({
 
   if (!score_letter) return null;
 
-  const color  = LETTER_COLORS[score_letter] || '#6366F1';
-  const bgFill = LETTER_BG[score_letter] || 'rgba(99,102,241,0.12)';
+  const color  = LETTER_COLORS[score_letter] || 'var(--theme)';
+  const bgFill = LETTER_BG[score_letter] || 'rgba(var(--theme-rgb),0.12)';
   const dim    = size === 'sm' ? 30 : 38;
   const fontSize = size === 'sm' ? 12 : 15;
 

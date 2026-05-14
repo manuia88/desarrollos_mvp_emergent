@@ -5,13 +5,13 @@ import PartnerOfferModal from './PartnerOfferModal';
 import { clickOffer } from '../../api/crossSell';
 
 const TYPE_CONFIG = {
-  mortgage_broker:    { label: 'Hipoteca',      color: '#6366F1', tagline: 'Bróker multi-banco · respuesta 24-48h' },
-  mortgage:           { label: 'Hipoteca',      color: '#6366F1', tagline: 'Bróker multi-banco · respuesta 24-48h' },
-  insurance_broker:   { label: 'Seguros',       color: '#EC4899', tagline: 'Cotización multi-aseguradora sin compromiso' },
-  insurance:          { label: 'Seguros',       color: '#EC4899', tagline: 'Cotización multi-aseguradora sin compromiso' },
+  mortgage_broker:    { label: 'Hipoteca',      color: 'var(--theme)', tagline: 'Bróker multi-banco · respuesta 24-48h' },
+  mortgage:           { label: 'Hipoteca',      color: 'var(--theme)', tagline: 'Bróker multi-banco · respuesta 24-48h' },
+  insurance_broker:   { label: 'Seguros',       color: 'var(--theme-3)', tagline: 'Cotización multi-aseguradora sin compromiso' },
+  insurance:          { label: 'Seguros',       color: 'var(--theme-3)', tagline: 'Cotización multi-aseguradora sin compromiso' },
   notaria:            { label: 'Notaría',       color: '#10B981', tagline: 'Escrituración + verificación RPP' },
   avaluo:             { label: 'Avalúo',        color: '#F59E0B', tagline: 'Perito certificado SHF/INDAABIN' },
-  moving:             { label: 'Post-Cierre',   color: '#818CF8', tagline: 'Mudanza + cerrajería + interiorismo' },
+  moving:             { label: 'Post-Cierre',   color: 'var(--theme)', tagline: 'Mudanza + cerrajería + interiorismo' },
   construction:       { label: 'Construcción',  color: '#34D399', tagline: 'Proyectos de adecuación' },
 };
 

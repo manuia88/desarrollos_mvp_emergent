@@ -13,8 +13,8 @@ const SEV_COLORS = {
 const SEV_LABEL = { high: 'ALTO', medium: 'MEDIO', low: 'BAJO' };
 
 function scoreCircleStyle(score) {
-  if (score >= 80) return { background: 'linear-gradient(135deg, #6366F1, #EC4899)' };
-  if (score >= 60) return { background: '#6366F1' };
+  if (score >= 80) return { background: 'linear-gradient(135deg, var(--theme), var(--theme-3))' };
+  if (score >= 60) return { background: 'var(--theme)' };
   if (score >= 40) return { background: '#f59e0b' };
   return { background: '#fca5a5' };
 }
@@ -101,11 +101,11 @@ export default function DiagnosticPanel({ devId, devName }) {
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
               padding: '8px 18px', borderRadius: 9999,
               border: '1px solid rgba(255,255,255,0.15)',
-              background: reanalyzing ? 'rgba(99,102,241,0.10)' : 'rgba(255,255,255,0.05)',
+              background: reanalyzing ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(255,255,255,0.05)',
               color: 'var(--cream-2)', cursor: reanalyzing ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s',
             }}
-            onMouseEnter={e => { if (!reanalyzing) e.currentTarget.style.background = 'rgba(99,102,241,0.18)'; }}
+            onMouseEnter={e => { if (!reanalyzing) e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.18)'; }}
             onMouseLeave={e => { if (!reanalyzing) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
           >
             {reanalyzing ? 'Analizando…' : 'Re-analizar'}
@@ -237,10 +237,10 @@ export default function DiagnosticPanel({ devId, devName }) {
 
                 {/* Recommended action block */}
                 <div style={{
-                  background: 'rgba(99,102,241,0.08)', borderRadius: 12, padding: '10px 14px',
+                  background: 'rgba(var(--theme-rgb),0.08)', borderRadius: 12, padding: '10px 14px',
                   marginBottom: 10,
                 }}>
-                  <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, color: '#a5b4fc', letterSpacing: '0.07em', marginBottom: 5, textTransform: 'uppercase' }}>
+                  <div style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, color: 'var(--theme)', letterSpacing: '0.07em', marginBottom: 5, textTransform: 'uppercase' }}>
                     Accion recomendada
                   </div>
                   <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', margin: 0, lineHeight: 1.55 }}>
@@ -257,7 +257,7 @@ export default function DiagnosticPanel({ devId, devName }) {
                     Impacto estimado:{' '}
                     <strong style={{
                       fontFamily: 'Outfit', fontWeight: 700, fontSize: 13,
-                      background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                      background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                       WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                     }}>
                       +{f.estimated_impact_pct}%

@@ -22,7 +22,7 @@ export default function MortgageCalculator({ price }) {
   }, [price, down, years, rate]);
 
   const sliderStyle = {
-    width: '100%', accentColor: '#6366F1',
+    width: '100%', accentColor: 'var(--theme)',
   };
 
   return (
@@ -72,7 +72,7 @@ export default function MortgageCalculator({ price }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 20, padding: '16px 18px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)', borderRadius: 14 }}>
+      <div style={{ marginTop: 20, padding: '16px 18px', background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 14 }}>
         <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
           {t('detail.calc_monthly')}
         </div>

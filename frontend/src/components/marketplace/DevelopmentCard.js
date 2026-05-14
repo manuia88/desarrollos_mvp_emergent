@@ -14,7 +14,7 @@ const STAGE_COLORS = {
   preventa: { bg: 'linear-gradient(90deg, rgba(16,185,129,0.85), rgba(34,197,94,0.85))', glow: 'rgba(16,185,129,0.45)' },
   en_construccion: { bg: 'linear-gradient(90deg, rgba(245,158,11,0.85), rgba(249,115,22,0.85))', glow: 'rgba(245,158,11,0.45)' },
   entrega_inmediata: { bg: 'linear-gradient(90deg, rgba(59,130,246,0.85), rgba(14,165,233,0.85))', glow: 'rgba(59,130,246,0.45)' },
-  exclusiva: { bg: 'linear-gradient(90deg, rgba(139,92,246,0.85), rgba(236,72,153,0.85))', glow: 'rgba(139,92,246,0.45)' },
+  exclusiva: { bg: 'linear-gradient(90deg, rgba(139,92,246,0.85), rgba(var(--theme-rgb),0.85))', glow: 'rgba(139,92,246,0.45)' },
 };
 
 function Fallback({ hue = 231, seed = 0 }) {
@@ -40,7 +40,7 @@ function IERankPill({ rank }) {
   const [hover, setHover] = useState(false);
   const t = rank.badge_tier;
   const tone = t === 'top'
-    ? { bg: 'linear-gradient(92deg, #06080F 0%, #6366F1 50%, #EC4899 100%)', fg: '#fff', border: 'rgba(236,72,153,0.55)', label: `1º en ${rank.colonia}` }
+    ? { bg: 'linear-gradient(92deg, #06080F 0%, var(--theme) 50%, var(--theme-3) 100%)', fg: '#fff', border: 'rgba(var(--theme-rgb),0.55)', label: `1º en ${rank.colonia}` }
     : t === 'high'
     ? { bg: 'rgba(34,197,94,0.18)', fg: '#86efac', border: 'rgba(34,197,94,0.45)', label: `Top 30% en ${rank.colonia}` }
     : null;
@@ -58,7 +58,7 @@ function IERankPill({ rank }) {
         border: `1px solid ${tone.border}`,
         fontFamily: 'Outfit', fontWeight: 700, fontSize: 10.5,
         letterSpacing: '0.1em', textTransform: 'uppercase',
-        boxShadow: t === 'top' ? '0 4px 18px rgba(99,102,241,0.42)' : '0 2px 10px rgba(0,0,0,0.35)',
+        boxShadow: t === 'top' ? '0 4px 18px rgba(var(--theme-rgb),0.42)' : '0 2px 10px rgba(0,0,0,0.35)',
         transition: 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 380ms',
         transform: hover ? 'translateY(-2px)' : 'translateY(0)',
         pointerEvents: 'auto',

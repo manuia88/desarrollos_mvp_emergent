@@ -140,8 +140,8 @@ export default function AtlaxThreadsSidebar({
               onClick={() => { onSelect?.(t.thread_id); onClose?.(); }}
               style={{
                 textAlign: 'left', padding: '10px 12px', borderRadius: 12,
-                background: isActive ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${isActive ? 'rgba(99,102,241,0.40)' : 'var(--border)'}`,
+                background: isActive ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${isActive ? 'rgba(var(--theme-rgb),0.40)' : 'var(--border)'}`,
                 color: 'var(--cream)', fontFamily: 'DM Sans', cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', gap: 4,
                 transition: 'background 0.15s ease, border-color 0.15s ease',
@@ -150,7 +150,7 @@ export default function AtlaxThreadsSidebar({
               onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
             >
               <div style={{
-                fontSize: 12, fontWeight: 600, color: isActive ? '#c7d2fe' : 'var(--cream)',
+                fontSize: 12, fontWeight: 600, color: isActive ? 'var(--theme)' : 'var(--cream)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 lineHeight: 1.35,
               }}>

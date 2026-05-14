@@ -23,14 +23,14 @@ const DISC_COLORS = {
   D:   { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.35)',  text: '#F87171', label: 'Dominante' },
   I:   { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)', text: '#FBBF24', label: 'Influyente' },
   S:   { bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.35)', text: '#4ADE80', label: 'Estable' },
-  C:   { bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.35)', text: '#818CF8', label: 'Concienzudo' },
+  C:   { bg: 'rgba(var(--theme-rgb),0.12)', border: 'rgba(var(--theme-rgb),0.35)', text: 'var(--theme)', label: 'Concienzudo' },
   MIX: { bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.30)', text: '#9CA3AF', label: 'Mixto' },
 };
 
 const LAYER_COLORS = {
   llm:       { text: '#4ADE80', label: 'LLM' },
   cache:     { text: '#FBBF24', label: 'Caché' },
-  heuristic: { text: '#818CF8', label: 'Heurística' },
+  heuristic: { text: 'var(--theme)', label: 'Heurística' },
 };
 
 const OBJECTION_LABELS = {
@@ -119,7 +119,7 @@ function SectionHeader({ title, expanded, toggle, Icon }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {Icon && <Icon size={13} color="#6366F1" />}
+        {Icon && <Icon size={13} color="var(--theme)" />}
         <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>
           {title}
         </span>
@@ -169,9 +169,9 @@ function OpeningSection({ content, copied, copy, expanded, toggle }) {
                   onClick={() => setActiveChannel(ch)}
                   style={{
                     padding: '5px 12px', borderRadius: 9999, cursor: 'pointer',
-                    border: activeChannel === ch ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
-                    background: activeChannel === ch ? 'rgba(99,102,241,0.15)' : 'transparent',
-                    color: activeChannel === ch ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                    border: activeChannel === ch ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.10)',
+                    background: activeChannel === ch ? 'rgba(var(--theme-rgb),0.15)' : 'transparent',
+                    color: activeChannel === ch ? 'var(--theme)' : 'rgba(240,235,224,0.50)',
                     fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
                     display: 'flex', alignItems: 'center', gap: 5,
                   }}
@@ -234,7 +234,7 @@ function ObjectionsSection({ content, copied, copy, expanded, toggle }) {
               {openObj === key && (
                 <div style={{
                   padding: '10px 12px', borderRadius: '0 0 8px 8px',
-                  background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
+                  background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)',
                   borderTop: 'none', position: 'relative',
                 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', lineHeight: 1.65, paddingRight: 36 }}>
@@ -264,7 +264,7 @@ function ClosingSection({ content, copied, copy, expanded, toggle, discType }) {
         <div style={{ padding: '12px 14px' }}>
           <div style={{
             padding: '12px 14px', borderRadius: 10,
-            background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.22)',
+            background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)',
             marginBottom: 10,
           }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: discColor, marginBottom: 5 }}>
@@ -508,7 +508,7 @@ export default function ArgumentarioPanel({ leadId, asesorId, leadName }) {
           disabled={markUsedDone}
           style={{
             padding: '8px 16px', borderRadius: 9999, border: 'none', cursor: markUsedDone ? 'default' : 'pointer',
-            background: markUsedDone ? 'rgba(52,211,153,0.15)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: markUsedDone ? 'rgba(52,211,153,0.15)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             color: markUsedDone ? '#4ADE80' : '#fff',
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
             display: 'flex', alignItems: 'center', gap: 6,

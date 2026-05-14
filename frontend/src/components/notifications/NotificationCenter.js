@@ -135,7 +135,7 @@ export default function NotificationCenter({ onCountChange, open, onClose }) {
           onClick={handleMarkAll}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: 'DM Sans', fontSize: 11, color: '#6366F1',
+            fontFamily: 'DM Sans', fontSize: 11, color: 'var(--theme)',
             fontWeight: 600, padding: '3px 8px',
           }}
         >
@@ -153,9 +153,9 @@ export default function NotificationCenter({ onCountChange, open, onClose }) {
             style={{
               fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
               padding: '4px 10px', borderRadius: 9999, cursor: 'pointer',
-              border: `1px solid ${filter === f.key ? '#6366F1' : 'rgba(255,255,255,0.12)'}`,
-              background: filter === f.key ? 'rgba(99,102,241,0.18)' : 'transparent',
-              color: filter === f.key ? '#a5b4fc' : 'var(--cream-3)',
+              border: `1px solid ${filter === f.key ? 'var(--theme)' : 'rgba(255,255,255,0.12)'}`,
+              background: filter === f.key ? 'rgba(var(--theme-rgb),0.18)' : 'transparent',
+              color: filter === f.key ? 'var(--theme)' : 'var(--cream-3)',
               transition: 'all 0.15s',
             }}
           >
@@ -196,7 +196,7 @@ export default function NotificationCenter({ onCountChange, open, onClose }) {
           style={{
             width: '100%', padding: '7px 0',
             fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
-            color: '#6366F1', background: 'none', border: 'none',
+            color: 'var(--theme)', background: 'none', border: 'none',
             cursor: 'pointer', textAlign: 'center',
           }}
         >

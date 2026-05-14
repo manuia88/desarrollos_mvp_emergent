@@ -96,10 +96,10 @@ function PhotoScene({ scene, idx }) {
         <rect x={80} y={40} width={240} height={160} fill={`url(#bldg-${idx})`} />
         {[0,1,2,3,4].map(row => [0,1,2,3].map(col => (
           <rect key={`${row}${col}`} x={100 + col*55} y={55 + row*26} width={28} height={16}
-            fill={((row*4+col+idx) % 3) > 0 ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.04)'} rx={2} />
+            fill={((row*4+col+idx) % 3) > 0 ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.04)'} rx={2} />
         )))}
-        <rect x={80} y={170} width={240} height={30} fill="rgba(99,102,241,0.15)" />
-        <ellipse cx={200} cy={220} rx={150} ry={20} fill="rgba(99,102,241,0.12)" />
+        <rect x={80} y={170} width={240} height={30} fill="rgba(var(--theme-rgb),0.15)" />
+        <ellipse cx={200} cy={220} rx={150} ry={20} fill="rgba(var(--theme-rgb),0.12)" />
       </g>
     ),
     interior: (
@@ -112,9 +112,9 @@ function PhotoScene({ scene, idx }) {
         </defs>
         <rect x={0} y={0} width={400} height={220} fill={`url(#int-${idx})`} />
         <rect x={0} y={160} width={400} height={60} fill="rgba(240,235,224,0.04)" />
-        <rect x={140} y={20} width={120} height={130} fill="rgba(99,102,241,0.12)" rx={4} />
+        <rect x={140} y={20} width={120} height={130} fill="rgba(var(--theme-rgb),0.12)" rx={4} />
         <line x1={200} y1={20} x2={200} y2={150} stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
-        <path d="M 140 20 L 260 20 L 400 160 L 0 160 Z" fill="rgba(99,102,241,0.04)" />
+        <path d="M 140 20 L 260 20 L 400 160 L 0 160 Z" fill="rgba(var(--theme-rgb),0.04)" />
         <rect x={60} y={140} width={200} height={30} fill="rgba(255,255,255,0.06)" rx={4} />
         <rect x={55} y={128} width={30} height={42} fill="rgba(255,255,255,0.06)" rx={4} />
         <rect x={225} y={128} width={30} height={42} fill="rgba(255,255,255,0.06)" rx={4} />
@@ -136,8 +136,8 @@ function PhotoScene({ scene, idx }) {
         ].map(([x,y,w,h], i) => (
           <rect key={i} x={x} y={y} width={w} height={h} fill="rgba(255,255,255,0.06)" />
         ))}
-        <ellipse cx={200} cy={100} rx={180} ry={80} fill="rgba(99,102,241,0.08)" />
-        <ellipse cx={200} cy={100} rx={90} ry={40} fill="rgba(236,72,153,0.06)" />
+        <ellipse cx={200} cy={100} rx={180} ry={80} fill="rgba(var(--theme-rgb),0.08)" />
+        <ellipse cx={200} cy={100} rx={90} ry={40} fill="rgba(var(--theme-rgb),0.06)" />
         {[...Array(20)].map((_, i) => (
           <circle key={i} cx={Math.sin(i*37+idx)*200+200} cy={Math.sin(i*13+idx)*80+50} r={1} fill="rgba(255,255,255,0.4)" />
         ))}
@@ -198,7 +198,7 @@ function PropertyCard({ property, index, t, i18n }) {
         filter: inView ? 'blur(0)' : 'blur(6px)',
         transition: 'opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1), filter 0.7s, border-color 0.3s, box-shadow 0.3s',
         transitionDelay: `${index * 0.08}s`,
-        borderColor: hovered ? 'rgba(99,102,241,0.40)' : undefined,
+        borderColor: hovered ? 'rgba(var(--theme-rgb),0.40)' : undefined,
         boxShadow: hovered ? 'var(--sh-card)' : undefined,
       }}
     >

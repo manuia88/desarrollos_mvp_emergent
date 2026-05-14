@@ -23,10 +23,10 @@ export default function SnapshotCard({ snapshot, onEdit, onApply }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'rgba(236,72,153,0.10)',
-          border: '1px solid rgba(236,72,153,0.25)',
+          background: 'rgba(var(--theme-rgb),0.10)',
+          border: '1px solid rgba(var(--theme-rgb),0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#EC4899', flexShrink: 0,
+          color: 'var(--theme)', flexShrink: 0,
         }}>
           <Camera size={15} />
         </div>
@@ -54,7 +54,7 @@ export default function SnapshotCard({ snapshot, onEdit, onApply }) {
           <Edit3 size={10} /> Editar
         </button>
         <button data-testid={`snap-apply-${snapshot.id}`} onClick={() => onApply && onApply(snapshot)}
-          style={{ padding: '6px 14px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+          style={{ padding: '6px 14px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
           <ArrowRightCircle size={10} /> Aplicar
         </button>
       </div>

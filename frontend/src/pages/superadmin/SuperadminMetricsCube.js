@@ -75,7 +75,7 @@ function ComparablesPanel({ tierId }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
         }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <Sparkles size={11} color="#818CF8" />
+          <Sparkles size={11} color="var(--theme)" />
           Comparables a {radius}km
         </span>
         <ChevronDown size={13} style={{
@@ -91,18 +91,18 @@ function ComparablesPanel({ tierId }) {
                 data-testid={`cube-comp-radius-${km}`}
                 style={{
                   padding: '4px 10px', borderRadius: 9999,
-                  background: radius === km ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${radius === km ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.10)'}`,
-                  color: radius === km ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                  background: radius === km ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${radius === km ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.10)'}`,
+                  color: radius === km ? 'var(--theme)' : 'rgba(240,235,224,0.65)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11, cursor: 'pointer',
                 }}>{km}km</button>
             ))}
           </div>
           {loading && <div style={{ padding: 14, fontFamily: 'DM Sans', fontSize: 12,
-            color: 'rgba(240,235,224,0.45)' }}>Cargando…</div>}
+            color: 'rgba(240, 235, 224, 0.70)' }}>Cargando…</div>}
           {!loading && items.length === 0 && (
             <div style={{ padding: 14, fontFamily: 'DM Sans', fontSize: 12,
-              color: 'rgba(240,235,224,0.45)' }}>Sin comparables en este radio.</div>
+              color: 'rgba(240, 235, 224, 0.70)' }}>Sin comparables en este radio.</div>
           )}
           {!loading && items.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -118,12 +118,12 @@ function ComparablesPanel({ tierId }) {
                     <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
                       color: 'var(--cream)' }}>{c.name}</div>
                     <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5,
-                      color: 'rgba(240,235,224,0.45)' }}>
+                      color: 'rgba(240, 235, 224, 0.70)' }}>
                       {c.colonia} · {c.distance_km}km · {c.units_total} u · {c.units_available} disp.
                     </div>
                   </div>
                   <span style={{ padding: '3px 10px', borderRadius: 9999,
-                    background: 'rgba(99,102,241,0.10)', color: '#818CF8',
+                    background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)',
                     fontFamily: 'DM Mono, monospace', fontSize: 10.5 }}>
                     {fmtMxn(c.avg_price_per_m2)}/m²
                   </span>
@@ -152,7 +152,7 @@ function UnitDetailView({ unitId, onBack }) {
   }, [unitId]);
 
   if (loading) return <div data-testid="cube-unit-loading" style={{
-    padding: 30, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.45)',
+    padding: 30, fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.70)',
   }}>Cargando unidad…</div>;
   if (err) return <div data-testid="cube-unit-error" style={{
     padding: 14, fontFamily: 'DM Sans', fontSize: 12.5, color: '#F87171',
@@ -181,8 +181,8 @@ function UnitDetailView({ unitId, onBack }) {
     <div data-testid="cube-unit-detail" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{
         padding: 18, borderRadius: 14,
-        background: 'rgba(99,102,241,0.05)',
-        border: '1px solid rgba(99,102,241,0.20)',
+        background: 'rgba(var(--theme-rgb),0.05)',
+        border: '1px solid rgba(var(--theme-rgb),0.20)',
       }}>
         <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5,
           color: 'rgba(240,235,224,0.55)', marginBottom: 4 }}>
@@ -197,7 +197,7 @@ function UnitDetailView({ unitId, onBack }) {
           <span>{u.bedrooms} rec · {u.bathrooms} baños · {u.parking_spots} estac.</span>
           <span>{u.m2_privative || u.size_m2 || '—'} m² priv.</span>
           <span>Estado: <strong style={{ color: '#4ADE80' }}>{u.status}</strong></span>
-          <span style={{ fontFamily: 'DM Mono, monospace', color: '#818CF8' }}>
+          <span style={{ fontFamily: 'DM Mono, monospace', color: 'var(--theme)' }}>
             {u.price_display || fmtMxn(u.price || u.price_mxn)}
           </span>
         </div>
@@ -221,13 +221,13 @@ function UnitDetailView({ unitId, onBack }) {
                 fill="none" strokeLinecap="round" strokeLinejoin="round" />
               <defs>
                 <linearGradient id="cubeSparkGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#6366F1" />
-                  <stop offset="100%" stopColor="#EC4899" />
+                  <stop offset="0%" stopColor="var(--theme)" />
+                  <stop offset="100%" stopColor="var(--theme)" />
                 </linearGradient>
               </defs>
             </svg>
           ) : (
-            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)' }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)' }}>
               Sin histórico disponible.
             </div>
           )}
@@ -242,7 +242,7 @@ function UnitDetailView({ unitId, onBack }) {
             Score IE zona
           </div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30,
-            color: data.ie_score_zone != null ? '#818CF8' : 'rgba(240,235,224,0.30)',
+            color: data.ie_score_zone != null ? 'var(--theme)' : 'rgba(240,235,224,0.30)',
             letterSpacing: '-0.025em' }}>
             {data.ie_score_zone != null ? data.ie_score_zone.toFixed(1) : '—'}
           </div>
@@ -263,7 +263,7 @@ function UnitDetailView({ unitId, onBack }) {
           Leads asociados ({data.leads_count})
         </div>
         {data.leads.length === 0 ? (
-          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)' }}>
             Sin leads para esta unidad.
           </div>
         ) : (
@@ -275,7 +275,7 @@ function UnitDetailView({ unitId, onBack }) {
                 fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.65)',
               }}>
                 {l.name || l.email || '—'} · <span style={{ fontFamily: 'DM Mono, monospace',
-                  color: '#818CF8' }}>{l.status || 'nuevo'}</span>
+                  color: 'var(--theme)' }}>{l.status || 'nuevo'}</span>
               </div>
             ))}
           </div>
@@ -313,7 +313,7 @@ function CompareModal({ children_, selected, setSelected, data, loading,
       <div data-testid="compare-modal" style={{
         width: '100%', maxWidth: 760,
         background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(99,102,241,0.30)',
+        border: '1px solid rgba(var(--theme-rgb),0.30)',
         borderRadius: 14, padding: 22, maxHeight: '80vh', overflowY: 'auto',
       }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18,
@@ -340,10 +340,10 @@ function CompareModal({ children_, selected, setSelected, data, loading,
                     onClick={() => toggle(c.tier_id)}
                     style={{
                       padding: '7px 11px', borderRadius: 9999,
-                      background: active ? 'rgba(99,102,241,0.16)' : 'transparent',
-                      border: `1px solid ${active ? 'rgba(99,102,241,0.45)'
+                      background: active ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                      border: `1px solid ${active ? 'rgba(var(--theme-rgb),0.45)'
                         : 'rgba(255,255,255,0.07)'}`,
-                      color: active ? '#818CF8' : 'rgba(240,235,224,0.75)',
+                      color: active ? 'var(--theme)' : 'rgba(240,235,224,0.75)',
                       fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
                       cursor: 'pointer', textAlign: 'left',
                       display: 'flex', justifyContent: 'space-between',
@@ -352,7 +352,7 @@ function CompareModal({ children_, selected, setSelected, data, loading,
                     <span>{c.name}</span>
                     <span style={{
                       fontFamily: 'DM Mono, monospace', fontSize: 10,
-                      color: 'rgba(240,235,224,0.45)',
+                      color: 'rgba(240, 235, 224, 0.70)',
                     }}>{(c.kpis?.units_total || 0)} u</span>
                   </button>
                 );
@@ -374,7 +374,7 @@ function CompareModal({ children_, selected, setSelected, data, loading,
                   padding: '9px 20px', borderRadius: 9999,
                   background: selected.length < 2
                     ? 'rgba(255,255,255,0.06)'
-                    : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
                   border: 'none', color: '#fff',
                   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
                   cursor: selected.length < 2 ? 'not-allowed' : 'pointer',
@@ -392,12 +392,12 @@ function CompareModal({ children_, selected, setSelected, data, loading,
               {data.zones.map((z, i) => (
                 <div key={z.zone_id} style={{
                   padding: 12, borderRadius: 10,
-                  background: 'rgba(99,102,241,0.06)',
-                  border: '1px solid rgba(99,102,241,0.20)',
+                  background: 'rgba(var(--theme-rgb),0.06)',
+                  border: '1px solid rgba(var(--theme-rgb),0.20)',
                 }}>
                   <div style={{
                     fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-                    color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+                    color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase',
                     letterSpacing: '0.07em', marginBottom: 3,
                   }}>{z.tier}</div>
                   <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14,
@@ -435,13 +435,13 @@ function CompareModal({ children_, selected, setSelected, data, loading,
                     padding: '6px 10px', borderRadius: 8,
                     background: v == null ? 'rgba(255,255,255,0.03)'
                       : v > 50 ? 'rgba(74,222,128,0.10)'
-                      : 'rgba(99,102,241,0.06)',
+                      : 'rgba(var(--theme-rgb),0.06)',
                     border: '1px solid rgba(255,255,255,0.05)',
                     fontFamily: 'DM Mono, monospace', fontSize: 11,
                   }}>
                     <span style={{ color: 'rgba(240,235,224,0.55)' }}>{k}:</span>{' '}
-                    <strong style={{ color: v == null ? 'rgba(240,235,224,0.40)'
-                      : v > 50 ? '#4ADE80' : '#818CF8' }}>
+                    <strong style={{ color: v == null ? 'rgba(240, 235, 224, 0.68)'
+                      : v > 50 ? '#4ADE80' : 'var(--theme)' }}>
                       {v != null ? `${v}%` : '—'}
                     </strong>
                   </div>
@@ -560,8 +560,8 @@ function BackfillModal({ onClose, onToast }) {
         {job && (
           <div data-testid="backfill-status" style={{
             padding: 10, borderRadius: 8,
-            background: 'rgba(99,102,241,0.06)',
-            border: '1px solid rgba(99,102,241,0.20)',
+            background: 'rgba(var(--theme-rgb),0.06)',
+            border: '1px solid rgba(var(--theme-rgb),0.20)',
             marginBottom: 10, fontFamily: 'DM Mono, monospace', fontSize: 11.5,
             color: 'rgba(240,235,224,0.85)',
           }}>
@@ -587,7 +587,7 @@ function BackfillModal({ onClose, onToast }) {
             <button data-testid="backfill-confirm" onClick={onTrigger} disabled={busy}
               style={{
                 padding: '9px 20px', borderRadius: 9999,
-                background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
                 border: 'none', color: '#fff', fontFamily: 'DM Sans',
                 fontWeight: 700, fontSize: 12.5,
                 cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1,
@@ -732,9 +732,9 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
           <div data-testid="cube-toast" style={{
             position: 'fixed', top: 76, right: 20, zIndex: 2000,
             padding: '11px 18px', borderRadius: 10,
-            background: 'rgba(99,102,241,0.18)',
-            border: '1px solid rgba(99,102,241,0.35)',
-            color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+            background: 'rgba(var(--theme-rgb),0.18)',
+            border: '1px solid rgba(var(--theme-rgb),0.35)',
+            color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
             backdropFilter: 'blur(24px)',
           }}>{toast}</div>
         )}
@@ -744,14 +744,14 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
         }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <Layers size={20} color="#818CF8" />
+              <Layers size={20} color="var(--theme)" />
               <h1 style={{
                 fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)',
                 margin: 0, letterSpacing: '-0.025em',
               }}>Cubo de métricas</h1>
             </div>
             <p style={{
-              fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0,
+              fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)', margin: 0,
             }}>
               Vista nano→macro · alcaldía → colonia → desarrollo → unidad · drill-down geo + tabla.
             </p>
@@ -764,9 +764,9 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
                 onClick={() => setPeriod(p.key)}
                 style={{
                   padding: '7px 14px', borderRadius: 9999,
-                  background: period === p.key ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${period === p.key ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                  color: period === p.key ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                  background: period === p.key ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${period === p.key ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.07)'}`,
+                  color: period === p.key ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11.5, cursor: 'pointer',
                 }}>{p.label}</button>
             ))}
@@ -776,9 +776,9 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
             data-testid="cube-refresh-btn"
             style={{
               padding: '8px 14px', borderRadius: 9999,
-              background: 'rgba(99,102,241,0.10)',
-              border: '1px solid rgba(99,102,241,0.30)',
-              color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600,
+              background: 'rgba(var(--theme-rgb),0.10)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
+              color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600,
               fontSize: 11.5, cursor: refreshing ? 'wait' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 5,
               opacity: refreshing ? 0.6 : 1,
@@ -819,7 +819,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
         }}>
           <span style={{
             fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-            color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+            color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase',
             letterSpacing: '0.07em', marginRight: 4,
           }}>Agrupar:</span>
           {[['none', 'Sin agrupar', null],
@@ -830,16 +830,16 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
               onClick={() => setSliceBy(val)}
               style={{
                 padding: '4px 10px', borderRadius: 9999,
-                background: sliceBy === val ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${sliceBy === val ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                color: sliceBy === val ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                background: sliceBy === val ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${sliceBy === val ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.07)'}`,
+                color: sliceBy === val ? 'var(--theme)' : 'rgba(240,235,224,0.65)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5, cursor: 'pointer',
               }}>{label}</button>
           ))}
 
           <span style={{
             fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-            color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+            color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase',
             letterSpacing: '0.07em', marginLeft: 8, marginRight: 4,
           }}>Tipo:</span>
           {[['all', 'Todos', null], ['depto', 'Depto', 'depto'],
@@ -849,16 +849,16 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
               onClick={() => setPropertyType(val)}
               style={{
                 padding: '4px 10px', borderRadius: 9999,
-                background: propertyType === val ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${propertyType === val ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                color: propertyType === val ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                background: propertyType === val ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${propertyType === val ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.07)'}`,
+                color: propertyType === val ? 'var(--theme)' : 'rgba(240,235,224,0.65)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5, cursor: 'pointer',
               }}>{label}</button>
           ))}
 
           <span style={{
             fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-            color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+            color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase',
             letterSpacing: '0.07em', marginLeft: 8, marginRight: 4,
           }}>Rango:</span>
           {[['all', 'Todos', null], ['entry', 'Entry', 'entry'],
@@ -868,9 +868,9 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
               onClick={() => setPriceTier(val)}
               style={{
                 padding: '4px 10px', borderRadius: 9999,
-                background: priceTier === val ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${priceTier === val ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                color: priceTier === val ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                background: priceTier === val ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${priceTier === val ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.07)'}`,
+                color: priceTier === val ? 'var(--theme)' : 'rgba(240,235,224,0.65)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5, cursor: 'pointer',
               }}>{label}</button>
           ))}
@@ -885,7 +885,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
             {loading && (
               <div data-testid="cube-loading" style={{
                 padding: 30, fontFamily: 'DM Sans', fontSize: 13,
-                color: 'rgba(240,235,224,0.45)',
+                color: 'rgba(240, 235, 224, 0.70)',
               }}>Cargando agregados…</div>
             )}
 
@@ -914,10 +914,10 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
                         style={{
                           padding: '3px 9px', borderRadius: 9999,
                           background: heatmapMetric === m.key
-                            ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.03)',
+                            ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.03)',
                           border: `1px solid ${heatmapMetric === m.key
-                            ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                          color: heatmapMetric === m.key ? '#818CF8' : 'rgba(240,235,224,0.65)',
+                            ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(255,255,255,0.07)'}`,
+                          color: heatmapMetric === m.key ? 'var(--theme)' : 'rgba(240,235,224,0.65)',
                           fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5, cursor: 'pointer',
                         }}>{m.label}</button>
                     ))}
@@ -931,7 +931,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
                       background: 'rgba(255,255,255,0.02)',
                       border: '1px solid rgba(255,255,255,0.07)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.45)',
+                      fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.70)',
                     }}>
                       <AlertCircle size={14} style={{ marginRight: 6 }} />
                       Sin mapa para este nivel.
@@ -956,7 +956,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
                       }} />
                     <span style={{
                       padding: '4px 10px', borderRadius: 9999,
-                      background: 'rgba(99,102,241,0.10)', color: '#818CF8',
+                      background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)',
                       fontFamily: 'DM Mono, monospace', fontSize: 10.5,
                     }}>{filteredChildren.length} {node?.next_tier || ''}</span>
                   </div>

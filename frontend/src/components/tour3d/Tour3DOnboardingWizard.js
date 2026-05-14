@@ -126,7 +126,7 @@ export default function Tour3DOnboardingWizard({
           padding: '16px 20px',
           borderBottom: '1px solid rgba(240,235,224,0.08)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, rgba(99,102,241,0.06), rgba(236,72,153,0.04))',
+          background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.06), rgba(var(--theme-rgb),0.04))',
         }}>
           <div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>
@@ -185,7 +185,7 @@ export default function Tour3DOnboardingWizard({
                       cursor: 'pointer',
                       transition: 'border-color 220ms ease, transform 220ms ease',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#EC4899'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--theme-3)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(240,235,224,0.12)'; e.currentTarget.style.transform = 'none'; }}
                   >
                     <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, marginBottom: 6 }}>
@@ -193,7 +193,7 @@ export default function Tour3DOnboardingWizard({
                     </div>
                     <div style={{
                       display: 'inline-block',
-                      background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                      background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                       color: '#fff',
                       borderRadius: 9999,
                       padding: '3px 10px',
@@ -300,7 +300,7 @@ export default function Tour3DOnboardingWizard({
 }
 
 const primaryBtn = {
-  background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+  background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
   color: '#fff', border: 'none', borderRadius: 9999,
   padding: '11px 22px',
   fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,

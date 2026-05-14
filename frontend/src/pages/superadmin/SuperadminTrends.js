@@ -47,7 +47,7 @@ function Card({ children, ...rest }) {
 
 function PillButton({ children, onClick, variant = 'primary', disabled, testid, icon: Icon }) {
   const styles = {
-    primary: { background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', border: 'none' },
+    primary: { background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', color: '#fff', border: 'none' },
     ghost: { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.18)' },
     danger: { background: 'transparent', color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.30)' },
   };
@@ -98,13 +98,13 @@ function StatTile({ label, value, sub }) {
 function TrendArrow({ direction }) {
   if (direction === 'rising') return <TrendingUp size={16} style={{ color: '#4ADE80' }} />;
   if (direction === 'falling') return <TrendingDown size={16} style={{ color: '#F87171' }} />;
-  return <Minus size={16} style={{ color: 'rgba(240,235,224,0.50)' }} />;
+  return <Minus size={16} style={{ color: 'rgba(240, 235, 224, 0.72)' }} />;
 }
 
 function TrendChart({ points }) {
   if (!points || points.length === 0) {
     return (
-      <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240,235,224,0.45)', fontFamily: 'DM Sans', fontSize: 13 }}>
+      <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(240, 235, 224, 0.70)', fontFamily: 'DM Sans', fontSize: 13 }}>
         Sin datos en el período seleccionado.
       </div>
     );
@@ -122,21 +122,21 @@ function TrendChart({ points }) {
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: H }} data-testid="trends-chart">
       <defs>
         <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(236,72,153,0.32)" />
-          <stop offset="100%" stopColor="rgba(99,102,241,0.00)" />
+          <stop offset="0%" stopColor="rgba(var(--theme-rgb),0.32)" />
+          <stop offset="100%" stopColor="rgba(var(--theme-rgb),0.00)" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#trendGrad)" />
-      <path d={linePath} fill="none" stroke="#EC4899" strokeWidth="2" />
+      <path d={linePath} fill="none" stroke="var(--theme)" strokeWidth="2" />
       {points.map((p, i) => (
-        <circle key={i} cx={xs(i)} cy={ys(p.value)} r="2.4" fill="#6366F1">
+        <circle key={i} cx={xs(i)} cy={ys(p.value)} r="2.4" fill="var(--theme)">
           <title>{`${p.time}: ${p.value}`}</title>
         </circle>
       ))}
-      <text x={padL - 4} y={padT + 4} fill="rgba(240,235,224,0.50)" textAnchor="end" fontFamily="DM Mono, monospace" fontSize="9">{maxV}</text>
-      <text x={padL - 4} y={padT + innerH - 1} fill="rgba(240,235,224,0.45)" textAnchor="end" fontFamily="DM Mono, monospace" fontSize="9">0</text>
-      <text x={padL} y={H - 5} fill="rgba(240,235,224,0.45)" fontFamily="DM Mono, monospace" fontSize="9">{points[0]?.time}</text>
-      <text x={W - padR - 80} y={H - 5} fill="rgba(240,235,224,0.45)" fontFamily="DM Mono, monospace" fontSize="9">{points[points.length - 1]?.time}</text>
+      <text x={padL - 4} y={padT + 4} fill="rgba(240, 235, 224, 0.72)" textAnchor="end" fontFamily="DM Mono, monospace" fontSize="9">{maxV}</text>
+      <text x={padL - 4} y={padT + innerH - 1} fill="rgba(240, 235, 224, 0.70)" textAnchor="end" fontFamily="DM Mono, monospace" fontSize="9">0</text>
+      <text x={padL} y={H - 5} fill="rgba(240, 235, 224, 0.70)" fontFamily="DM Mono, monospace" fontSize="9">{points[0]?.time}</text>
+      <text x={W - padR - 80} y={H - 5} fill="rgba(240, 235, 224, 0.70)" fontFamily="DM Mono, monospace" fontSize="9">{points[points.length - 1]?.time}</text>
     </svg>
   );
 }
@@ -148,7 +148,7 @@ function ListBlock({ title, rows, testid }) {
         {title}
       </div>
       {(!rows || rows.length === 0) ? (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.45)' }}>—</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.70)' }}>—</div>
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {rows.map((r, i) => (
@@ -268,7 +268,7 @@ export default function SuperadminTrends({ user, onLogout }) {
   const cacheBadge = (status) => {
     const map = {
       hit: { c: '#4ADE80', t: 'cache hit' },
-      miss_refreshed: { c: '#6366F1', t: 'cache miss · refrescada' },
+      miss_refreshed: { c: 'var(--theme)', t: 'cache miss · refrescada' },
       miss_refreshing_background: { c: '#F59E0B', t: 'refrescando en background' },
       stale_refreshing: { c: '#F59E0B', t: 'caché expirada · refrescando bg' },
       stale_apify_error: { c: '#F87171', t: 'caché vencida · Apify falló' },
@@ -391,7 +391,7 @@ export default function SuperadminTrends({ user, onLogout }) {
               />
               Esperar resultado del actor (puede tardar 1-3 min · sólo CLI/local)
             </label>
-            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.72)' }}>
               Por defecto se devuelve caché stale o heurística mientras Apify refresca en background.
             </span>
           </div>
@@ -497,7 +497,7 @@ export default function SuperadminTrends({ user, onLogout }) {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {(keywords.daily_hot || []).map((k) => (
-                  <span key={k} style={{ padding: '4px 10px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)' }}>
+                  <span key={k} style={{ padding: '4px 10px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.25)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)' }}>
                     {k}
                   </span>
                 ))}
@@ -509,7 +509,7 @@ export default function SuperadminTrends({ user, onLogout }) {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {(keywords.weekly_zones || []).map((k) => (
-                  <span key={k} style={{ padding: '4px 10px', borderRadius: 9999, background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.25)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)' }}>
+                  <span key={k} style={{ padding: '4px 10px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.25)', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)' }}>
                     {k}
                   </span>
                 ))}
@@ -534,7 +534,7 @@ export default function SuperadminTrends({ user, onLogout }) {
             </PillButton>
           </div>
           {(!entries || entries.length === 0) ? (
-            <div style={{ padding: 18, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)' }}>
+            <div style={{ padding: 18, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)' }}>
               Aún no hay entradas en caché. Ejecuta una búsqueda o un refresh batch.
             </div>
           ) : (

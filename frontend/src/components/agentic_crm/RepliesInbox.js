@@ -20,7 +20,7 @@ async function apiFetch(path, opts = {}) {
 }
 
 const LAYER_META = {
-  llm:       { label: 'LLM',        color: '#6366F1', Icon: Cpu },
+  llm:       { label: 'LLM',        color: 'var(--theme)', Icon: Cpu },
   cached:    { label: 'Caché',      color: '#F59E0B', Icon: Database },
   cache:     { label: 'Caché',      color: '#F59E0B', Icon: Database },
   heuristic: { label: 'Heurística', color: '#94A3B8', Icon: Zap },
@@ -35,7 +35,7 @@ const URGENCY_META = {
 const CATEGORY_META = {
   interested:    { label: 'Interesado',  color: '#10B981' },
   objection:     { label: 'Objeción',    color: '#F59E0B' },
-  question:      { label: 'Pregunta',    color: '#6366F1' },
+  question:      { label: 'Pregunta',    color: 'var(--theme)' },
   soft_silence:  { label: 'Tibio',       color: '#94A3B8' },
   unsubscribe:   { label: 'Unsubscribe', color: '#EF4444' },
   spam:          { label: 'Spam',        color: '#64748B' },
@@ -54,7 +54,7 @@ const ONE_CLICK_META = {
   notify_asesor:        { label: 'Llamar ahora',         Icon: Phone,        accent: '#10B981' },
   escalate_manager:     { label: 'Escalar a manager',     Icon: ArrowUpRight, accent: '#EF4444' },
   add_watchlist:        { label: 'Agregar a watchlist',   Icon: Eye,          accent: '#F59E0B' },
-  advance_funnel_stage: { label: "Mover a 'engaged'",     Icon: ArrowRight,   accent: '#6366F1' },
+  advance_funnel_stage: { label: "Mover a 'engaged'",     Icon: ArrowRight,   accent: 'var(--theme)' },
   mark_spam:            { label: 'Archivar como spam',    Icon: Trash2,       accent: '#64748B' },
 };
 
@@ -92,7 +92,7 @@ function Pill({ label, color, Icon, testid }) {
 
 function PillButton({ children, onClick, variant = 'primary', disabled, testid, Icon }) {
   const styles = {
-    primary: { background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', border: 'none' },
+    primary: { background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', border: 'none' },
     ghost:   { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.18)' },
     success: { background: 'transparent', color: '#4ADE80', border: '1px solid rgba(74,222,128,0.3)' },
   };
@@ -192,8 +192,8 @@ function ReplyRow({ reply, onMarkActionTaken, onOneClick, busy }) {
           {cls.recommended_action_text ? (
             <div style={{
               padding: 10, marginBottom: 10,
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px solid rgba(99,102,241,0.24)',
+              background: 'rgba(var(--theme-rgb),0.08)',
+              border: '1px solid rgba(var(--theme-rgb),0.24)',
               borderRadius: 10,
             }}>
               <div style={{
@@ -501,9 +501,9 @@ export default function RepliesInbox({ asesorId }) {
               style={{
                 padding: '4px 10px', borderRadius: 9999, fontSize: 11,
                 fontFamily: 'DM Sans', fontWeight: 600,
-                background: statusFilter === opt.k ? 'rgba(99,102,241,0.18)' : 'transparent',
+                background: statusFilter === opt.k ? 'rgba(var(--theme-rgb),0.18)' : 'transparent',
                 color: statusFilter === opt.k ? '#A5B4FC' : 'var(--cream-3)',
-                border: `1px solid ${statusFilter === opt.k ? 'rgba(99,102,241,0.4)' : 'var(--border)'}`,
+                border: `1px solid ${statusFilter === opt.k ? 'rgba(var(--theme-rgb),0.4)' : 'var(--border)'}`,
                 cursor: 'pointer',
               }}
             >
@@ -521,9 +521,9 @@ export default function RepliesInbox({ asesorId }) {
               style={{
                 padding: '4px 10px', borderRadius: 9999, fontSize: 11,
                 fontFamily: 'DM Sans', fontWeight: 600,
-                background: urgencyFilter === opt.k ? 'rgba(236,72,153,0.18)' : 'transparent',
+                background: urgencyFilter === opt.k ? 'rgba(var(--theme-rgb),0.18)' : 'transparent',
                 color: urgencyFilter === opt.k ? '#F9A8D4' : 'var(--cream-3)',
-                border: `1px solid ${urgencyFilter === opt.k ? 'rgba(236,72,153,0.4)' : 'var(--border)'}`,
+                border: `1px solid ${urgencyFilter === opt.k ? 'rgba(var(--theme-rgb),0.4)' : 'var(--border)'}`,
                 cursor: 'pointer',
               }}
             >

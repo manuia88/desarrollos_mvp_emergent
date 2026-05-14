@@ -189,7 +189,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
           <div>
             <label style={labelStyle}>
               Apreciación anual estimada (%)
-              {baseline && <span style={{ color: '#6366F1', marginLeft: 6 }}>(base: {baseline.base_aprec_anual_pct}%)</span>}
+              {baseline && <span style={{ color: 'var(--theme)', marginLeft: 6 }}>(base: {baseline.base_aprec_anual_pct}%)</span>}
             </label>
             <input
               type="number"
@@ -219,7 +219,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
           style={{
             fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
             padding: '10px 24px', borderRadius: 9999,
-            background: loading ? 'rgba(99,102,241,0.5)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: loading ? 'rgba(var(--theme-rgb),0.5)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
             transition: 'opacity 0.2s',
           }}
@@ -275,8 +275,8 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
                 fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
                 padding: '7px 16px', borderRadius: 9999, cursor: 'pointer',
                 border: '1px solid rgba(255,255,255,0.12)',
-                background: showStress ? 'rgba(99,102,241,0.12)' : 'transparent',
-                color: showStress ? '#a5b4fc' : 'var(--cream-3)',
+                background: showStress ? 'rgba(var(--theme-rgb),0.12)' : 'transparent',
+                color: showStress ? 'var(--theme)' : 'var(--cream-3)',
                 transition: 'all 0.15s',
               }}
             >
@@ -333,7 +333,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
                     }}>
                       <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, color: 'var(--cream)', marginBottom: 4 }}>{c.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>{c.zone_id} · {fmt(c.price_from)}</div>
-                      <a href={c.simulador_url} style={{ fontSize: 11, color: '#6366F1', marginTop: 4, display: 'block' }}>Simular</a>
+                      <a href={c.simulador_url} style={{ fontSize: 11, color: 'var(--theme)', marginTop: 4, display: 'block' }}>Simular</a>
                     </div>
                   ))}
                 </div>
@@ -351,7 +351,7 @@ export default function InvestmentSimulator({ prefilled = {}, compact = false })
               style={{
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
                 padding: '10px 22px', borderRadius: 9999,
-                background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 color: '#fff', border: 'none', cursor: 'pointer',
               }}
             >

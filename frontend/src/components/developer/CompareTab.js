@@ -15,8 +15,8 @@ const SUB_LABEL = {
 };
 
 function StudyColumn({ study, winners, idx }) {
-  const colors = ['#6366F1', '#EC4899', '#22C55E'];
-  const tint = colors[idx] || '#6366F1';
+  const colors = ['var(--theme)', 'var(--theme-3)', '#22C55E'];
+  const tint = colors[idx] || 'var(--theme)';
   return (
     <Card data-testid={`compare-col-${study.id}`} style={{
       background: `linear-gradient(140deg, ${tint}14, transparent 60%)`,
@@ -172,7 +172,7 @@ export default function CompareTab() {
           </div>
 
           {/* Narrative */}
-          <Card style={{ background: 'linear-gradient(140deg, rgba(99,102,241,0.10), rgba(236,72,153,0.06) 60%, transparent)', marginBottom: 14 }}>
+          <Card style={{ background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.06) 60%, transparent)', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Sparkle size={13} color="#f9a8d4" />
               <div className="eyebrow" style={{ color: '#f9a8d4' }}>DIFERENCIA CLAVE · CLAUDE HAIKU</div>

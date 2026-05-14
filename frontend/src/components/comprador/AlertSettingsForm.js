@@ -133,13 +133,13 @@ export default function AlertSettingsForm({ initialValues = {}, onSubmit, onCanc
               style={{
                 padding: '8px 14px', borderRadius: 9999, cursor: 'pointer',
                 border: channel === c.value
-                  ? '1px solid rgba(99,102,241,0.55)'
+                  ? '1px solid rgba(var(--theme-rgb),0.55)'
                   : '1px solid rgba(240,235,224,0.15)',
                 background: channel === c.value
-                  ? 'rgba(99,102,241,0.15)'
+                  ? 'rgba(var(--theme-rgb),0.15)'
                   : 'rgba(255,255,255,0.04)',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
-                color: channel === c.value ? 'rgba(99,102,241,0.95)' : 'rgba(240,235,224,0.55)',
+                color: channel === c.value ? 'rgba(var(--theme-rgb),0.95)' : 'rgba(240,235,224,0.55)',
               }}
             >
               {c.label}
@@ -194,7 +194,7 @@ export default function AlertSettingsForm({ initialValues = {}, onSubmit, onCanc
           data-testid="alert-submit-btn"
           style={{
             flex: 1, padding: '11px 0', borderRadius: 9999, border: 'none',
-            background: loading ? 'rgba(99,102,241,0.3)' : 'linear-gradient(90deg,#6366F1,#EC4899)',
+            background: loading ? 'rgba(var(--theme-rgb),0.3)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             cursor: loading ? 'not-allowed' : 'pointer',
           }}

@@ -96,8 +96,8 @@ export default function DocumentsPage({ user, onLogout }) {
                 <button key={d.id} data-testid={`docs-dev-${d.id}`} onClick={() => setActiveDevId(d.id)} style={{
                   display: 'block', width: '100%', textAlign: 'left',
                   padding: '9px 10px', borderRadius: 10, marginBottom: 2,
-                  background: activeDevId === d.id ? 'rgba(99,102,241,0.14)' : 'transparent',
-                  border: '1px solid', borderColor: activeDevId === d.id ? 'rgba(99,102,241,0.3)' : 'transparent',
+                  background: activeDevId === d.id ? 'rgba(var(--theme-rgb),0.14)' : 'transparent',
+                  border: '1px solid', borderColor: activeDevId === d.id ? 'rgba(var(--theme-rgb),0.3)' : 'transparent',
                   color: activeDevId === d.id ? 'var(--cream)' : 'var(--cream-2)',
                   fontFamily: 'DM Sans', fontWeight: 500, fontSize: 12.5, cursor: 'pointer',
                 }}>
@@ -140,7 +140,7 @@ function Stat({ label, value, tone = 'neutral', testid }) {
   const tones = {
     neutral: { fg: 'var(--cream)', bg: '#0D1118' },
     ok:      { fg: '#86efac',      bg: 'rgba(34,197,94,0.06)' },
-    info:    { fg: '#a5b4fc',      bg: 'rgba(99,102,241,0.06)' },
+    info:    { fg: 'var(--theme)',      bg: 'rgba(var(--theme-rgb),0.06)' },
     warn:    { fg: '#fca5a5',      bg: 'rgba(239,68,68,0.06)' },
     crit:    { fg: '#fca5a5',      bg: 'rgba(239,68,68,0.14)' },
   };

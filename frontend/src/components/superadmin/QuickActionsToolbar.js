@@ -76,7 +76,7 @@ function CreateModal({ onClose, onDone }) {
       <div data-testid="qa-create-modal" style={{
         width: '100%', maxWidth: 440,
         background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(99,102,241,0.30)',
+        border: '1px solid rgba(var(--theme-rgb),0.30)',
         borderRadius: 14, padding: 22,
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
@@ -124,7 +124,7 @@ function CreateModal({ onClose, onDone }) {
           <button data-testid="qa-create-confirm" onClick={submit} disabled={busy}
             style={{
               padding: '9px 20px', borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
               border: 'none', color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
               cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1,
@@ -146,11 +146,13 @@ export default function QuickActionsToolbar({ items, onChanged }) {
   };
 
   return (
-    <div data-testid="quick-actions-toolbar" style={{
-      borderRadius: 14, background: 'rgba(255,255,255,0.02)',
-      border: '1px solid rgba(255,255,255,0.07)',
-      padding: 12, display: 'flex', flexDirection: 'column', gap: 6,
-    }}>
+    <div
+      data-testid="quick-actions-toolbar"
+      className="sa-quick-action-toolbar"
+      style={{
+        padding: 12, display: 'flex', flexDirection: 'column', gap: 6,
+      }}
+    >
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 4,
@@ -165,7 +167,7 @@ export default function QuickActionsToolbar({ items, onChanged }) {
             style={{
               padding: 4, borderRadius: 9999, background: 'transparent',
               border: '1px solid rgba(255,255,255,0.10)', cursor: 'pointer',
-              color: editing ? '#818CF8' : 'rgba(240,235,224,0.55)',
+              color: editing ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
             }}>
             <Settings size={11} />
           </button>
@@ -173,9 +175,9 @@ export default function QuickActionsToolbar({ items, onChanged }) {
             <button data-testid="qa-add" onClick={() => setShowCreate(true)}
               style={{
                 padding: 4, borderRadius: 9999,
-                background: 'rgba(99,102,241,0.10)',
-                border: '1px solid rgba(99,102,241,0.30)',
-                cursor: 'pointer', color: '#818CF8',
+                background: 'rgba(var(--theme-rgb),0.10)',
+                border: '1px solid rgba(var(--theme-rgb),0.30)',
+                cursor: 'pointer', color: 'var(--theme)',
               }}>
               <Plus size={11} />
             </button>
@@ -191,26 +193,16 @@ export default function QuickActionsToolbar({ items, onChanged }) {
             <button
               data-testid={`qa-item-${qa.id}`}
               onClick={() => executeAction(qa, navigate)}
+              className="sa-quick-action"
               style={{
-                flex: 1, padding: '9px 12px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                flex: 1, padding: '9px 14px',
                 color: 'var(--cream)', fontFamily: 'DM Sans',
                 fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 8,
                 textAlign: 'left',
-                transition: 'background 180ms, transform 180ms',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(99,102,241,0.07)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              <Icon size={11} style={{ color: '#818CF8', flexShrink: 0 }} />
+              <Icon size={11} style={{ color: 'var(--sa-accent, var(--theme))', flexShrink: 0 }} />
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap' }}>{qa.label}</span>
             </button>
@@ -231,7 +223,7 @@ export default function QuickActionsToolbar({ items, onChanged }) {
       {(!items || items.length === 0) && (
         <div style={{
           padding: 12, textAlign: 'center', fontFamily: 'DM Sans',
-          fontSize: 11.5, color: 'rgba(240,235,224,0.45)',
+          fontSize: 11.5, color: 'rgba(240, 235, 224, 0.70)',
         }}>Sin acciones configuradas.</div>
       )}
       {showCreate && (

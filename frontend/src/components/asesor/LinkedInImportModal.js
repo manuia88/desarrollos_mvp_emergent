@@ -7,7 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { importLinkedIn, fetchMyLinkedIn, revokeLinkedIn } from '../../api/asesor_identity';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 const inputStyle = {
   width: '100%', padding: '10px 14px', borderRadius: 12,
@@ -141,8 +141,8 @@ export default function LinkedInImportModal({ open, onClose, onImported }) {
 
         <div style={{
           padding: 10, borderRadius: 10,
-          background: 'rgba(99,102,241,0.06)',
-          border: '1px solid rgba(99,102,241,0.18)',
+          background: 'rgba(var(--theme-rgb),0.06)',
+          border: '1px solid rgba(var(--theme-rgb),0.18)',
           fontSize: 11, color: 'var(--cream-2)', lineHeight: 1.6,
         }}>
           Pega tu URL pública de LinkedIn y completa los campos.

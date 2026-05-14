@@ -40,7 +40,7 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
   const waText = `Hola, me interesa ${dev.name} en ${dev.colonia}. ${typeof window !== 'undefined' ? window.location.origin : 'https://desarrollosmx.io'}/desarrollo/${dev.id}`;
   const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 
-  const slider = { width: '100%', accentColor: '#6366F1' };
+  const slider = { width: '100%', accentColor: 'var(--theme)' };
 
   return (
     <aside
@@ -104,8 +104,8 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
       {/* Plusvalía calculator */}
       <div style={{
         padding: 16,
-        background: 'rgba(99,102,241,0.06)',
-        border: '1px solid rgba(99,102,241,0.18)',
+        background: 'rgba(var(--theme-rgb),0.06)',
+        border: '1px solid rgba(var(--theme-rgb),0.18)',
         borderRadius: 14,
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)', marginBottom: 10 }}>
@@ -139,8 +139,8 @@ export default function Sidebar({ dev, selectedUnit, onLogin, user }) {
       {/* Plan de pagos */}
       <div style={{
         padding: 16,
-        background: 'rgba(236,72,153,0.06)',
-        border: '1px solid rgba(236,72,153,0.18)',
+        background: 'rgba(var(--theme-rgb),0.06)',
+        border: '1px solid rgba(var(--theme-rgb),0.18)',
         borderRadius: 14,
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)', marginBottom: 10 }}>

@@ -102,7 +102,7 @@ export function SetupChecklist({ className = '' }) {
         <div style={{
           height: '100%', borderRadius: 2,
           width: `${pct}%`,
-          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           transition: 'width 0.5s ease',
         }} />
       </div>

@@ -250,7 +250,7 @@ export default function PartnerOfferModal({ offer, onClose, onSuccess }) {
                 disabled={loading}
                 style={{
                   width: '100%',
-                  background: loading ? 'rgba(99,102,241,0.4)' : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  background: loading ? 'rgba(var(--theme-rgb),0.4)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                   border: 'none',
                   color: '#fff', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14,
                   padding: '11px 0', borderRadius: 9999, cursor: 'pointer',

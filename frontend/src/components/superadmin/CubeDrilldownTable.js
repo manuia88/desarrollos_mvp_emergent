@@ -85,7 +85,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
     return (
       <div data-testid="cube-drilldown-empty" style={{
         padding: 30, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12,
-        color: 'rgba(240,235,224,0.40)',
+        color: 'rgba(240, 235, 224, 0.68)',
       }}>Sin nodos para este nivel.</div>
     );
   }
@@ -107,7 +107,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
                     style={{
                       padding: '8px 12px', textAlign: c.mono ? 'right' : 'left',
                       fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10.5,
-                      color: active ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                      color: active ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                       textTransform: 'uppercase', letterSpacing: '0.07em',
                       cursor: c.sortable ? 'pointer' : 'default',
                       borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -137,7 +137,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
                   transition: 'background 180ms, transform 180ms',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(99,102,241,0.06)';
+                  e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.06)';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={(e) => {
@@ -159,7 +159,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
                         <a
                           href={`/superadmin/transactions?zone_id=${encodeURIComponent(r.tier_id)}`}
                           onClick={e => e.stopPropagation()}
-                          style={{ color: '#a5b4fc', textDecoration: 'none', fontWeight: 600 }}
+                          style={{ color: 'var(--theme)', textDecoration: 'none', fontWeight: 600 }}
                           data-testid={`txn-link-${r.tier_id}`}
                         >
                           {display}
@@ -184,7 +184,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
                     onClick={(e) => { e.stopPropagation(); onDrill && onDrill(r); }}
                     style={{
                       padding: '4px 10px', borderRadius: 9999, border: 'none',
-                      background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                      background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
                       color: '#fff', fontFamily: 'DM Sans', fontWeight: 700,
                       fontSize: 10.5, cursor: 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -204,7 +204,7 @@ export default function CubeDrilldownTable({ items, onDrill, density = 'compact'
           background: 'rgba(255,255,255,0.02)',
         }}>
           <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11,
-            color: 'rgba(240,235,224,0.45)' }}>
+            color: 'rgba(240, 235, 224, 0.70)' }}>
             {page * PAGE_SIZE + 1}–{Math.min(total, (page + 1) * PAGE_SIZE)} de {total}
           </span>
           <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}

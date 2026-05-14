@@ -14,7 +14,7 @@ const FUNNEL_STAGES = [
   { id: 'closed',                  label: 'Cerradas' },
 ];
 
-const COLORS = ['#6366F1', '#818CF8', '#A78BFA', '#C084FC', '#E879F9', '#EC4899'];
+const COLORS = ['var(--theme)', 'var(--theme)', '#A78BFA', '#C084FC', '#E879F9', 'var(--theme)'];
 
 const kpiCard = (label, value, sub) => (
   <div key={label} style={{
@@ -212,7 +212,7 @@ export default function SuperadminCrossSellAnalytics() {
                 <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
                   #{i + 1} · <code style={{ fontSize: 11 }}>{p.property_id_hash}</code>
                 </span>
-                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, color: '#a5b4fc' }}>{p.leads} leads</span>
+                <span style={{ fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, color: 'var(--theme)' }}>{p.leads} leads</span>
               </div>
             ))}
           </div>

@@ -42,7 +42,7 @@ function StatCard({ label, value, sub, accent, testid }) {
       {sub && (
         <span style={{
           fontFamily: 'DM Mono, monospace', fontSize: 10.5,
-          color: 'rgba(240,235,224,0.45)',
+          color: 'rgba(240, 235, 224, 0.70)',
         }}>{sub}</span>
       )}
     </div>
@@ -72,7 +72,7 @@ function CoveragePanel({ items }) {
           cursor: 'pointer',
         }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <Database size={11} color="#818CF8" />
+          <Database size={11} color="var(--theme)" />
           Cobertura por tier (últimos 7 días)
         </span>
         <ChevronDown size={13} style={{
@@ -92,7 +92,7 @@ function CoveragePanel({ items }) {
             }}>
               <span style={{
                 padding: '3px 9px', borderRadius: 9999,
-                background: 'rgba(99,102,241,0.10)', color: '#818CF8',
+                background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)',
                 fontFamily: 'DM Mono, monospace', fontSize: 10,
                 textTransform: 'uppercase', minWidth: 80, textAlign: 'center',
               }}>{c.tier}</span>
@@ -148,7 +148,7 @@ function CoveragePanel({ items }) {
           <div data-testid="coverage-missing-modal" style={{
             width: '100%', maxWidth: 520,
             background: 'rgba(13,17,28,0.97)',
-            border: '1px solid rgba(99,102,241,0.30)',
+            border: '1px solid rgba(var(--theme-rgb),0.30)',
             borderRadius: 14, padding: 22,
           }}>
             <h3 style={{
@@ -225,7 +225,7 @@ function ConfirmTriggerModal({ onConfirm, onClose, busy }) {
           <button data-testid="trigger-confirm" onClick={onConfirm} disabled={busy}
             style={{
               padding: '9px 20px', borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
               border: 'none', color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
               cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1,
@@ -335,9 +335,9 @@ export default function SuperadminDataLake({ user, onLogout }) {
           <div data-testid="data-lake-toast" style={{
             position: 'fixed', top: 76, right: 20, zIndex: 2000,
             padding: '11px 18px', borderRadius: 10,
-            background: 'rgba(99,102,241,0.18)',
-            border: '1px solid rgba(99,102,241,0.35)',
-            color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+            background: 'rgba(var(--theme-rgb),0.18)',
+            border: '1px solid rgba(var(--theme-rgb),0.35)',
+            color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
             backdropFilter: 'blur(24px)',
           }}>{toast}</div>
         )}
@@ -349,7 +349,7 @@ export default function SuperadminDataLake({ user, onLogout }) {
         }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <Database size={20} color="#818CF8" />
+              <Database size={20} color="var(--theme)" />
               <h1 style={{
                 fontFamily: 'Outfit', fontWeight: 800, fontSize: 26,
                 color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em',
@@ -357,7 +357,7 @@ export default function SuperadminDataLake({ user, onLogout }) {
             </div>
             <p style={{
               fontFamily: 'DM Sans', fontSize: 13,
-              color: 'rgba(240,235,224,0.50)', margin: 0,
+              color: 'rgba(240, 235, 224, 0.72)', margin: 0,
             }}>
               Foundation Z.0 · time-series MongoDB · ETL diario 03:00 MX · validación R²/RMSE/MAPE.
             </p>
@@ -365,9 +365,9 @@ export default function SuperadminDataLake({ user, onLogout }) {
           <button data-testid="data-lake-validate-now" onClick={onValidateNow} disabled={busy}
             style={{
               padding: '8px 14px', borderRadius: 9999,
-              background: 'rgba(99,102,241,0.10)',
-              border: '1px solid rgba(99,102,241,0.30)',
-              color: '#818CF8', fontFamily: 'DM Sans',
+              background: 'rgba(var(--theme-rgb),0.10)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
+              color: 'var(--theme)', fontFamily: 'DM Sans',
               fontSize: 11.5, fontWeight: 600, cursor: busy ? 'wait' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 5,
               opacity: busy ? 0.6 : 1,
@@ -378,7 +378,7 @@ export default function SuperadminDataLake({ user, onLogout }) {
             disabled={busy}
             style={{
               padding: '8px 14px', borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
               border: 'none', color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
               cursor: busy ? 'wait' : 'pointer',
@@ -439,7 +439,7 @@ export default function SuperadminDataLake({ user, onLogout }) {
             {loading ? (
               <div data-testid="data-lake-loading-runs" style={{
                 padding: 20, fontFamily: 'DM Sans', fontSize: 12.5,
-                color: 'rgba(240,235,224,0.45)',
+                color: 'rgba(240, 235, 224, 0.70)',
               }}>Cargando runs…</div>
             ) : (
               <EtlRunsTable items={runs} density="compact" />
@@ -455,7 +455,7 @@ export default function SuperadminDataLake({ user, onLogout }) {
             {loading ? (
               <div data-testid="data-lake-loading-val" style={{
                 padding: 20, fontFamily: 'DM Sans', fontSize: 12.5,
-                color: 'rgba(240,235,224,0.45)',
+                color: 'rgba(240, 235, 224, 0.70)',
               }}>Cargando validaciones…</div>
             ) : (
               <ValidationMetricsTable items={validation.latest}

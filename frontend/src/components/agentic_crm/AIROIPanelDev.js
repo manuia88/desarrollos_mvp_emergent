@@ -47,7 +47,7 @@ function ROIRatioBadge({ ratio }) {
       padding: '5px 14px', borderRadius: 9999, fontSize: 13,
       fontFamily: 'Outfit', fontWeight: 800,
       background: positive
-        ? 'linear-gradient(90deg, rgba(52,211,153,0.18), rgba(99,102,241,0.18))'
+        ? 'linear-gradient(90deg, rgba(52,211,153,0.18), rgba(var(--theme-rgb),0.18))'
         : 'rgba(239,68,68,0.12)',
       border: `1px solid ${positive ? 'rgba(52,211,153,0.45)' : 'rgba(239,68,68,0.35)'}`,
       color: positive ? '#4ADE80' : '#F87171',
@@ -57,7 +57,7 @@ function ROIRatioBadge({ ratio }) {
   );
 }
 
-function MetricCard({ icon: Icon, label, value, sub, color = '#6366F1' }) {
+function MetricCard({ icon: Icon, label, value, sub, color = 'var(--theme)' }) {
   return (
     <div data-testid={`roi-metric-${label.toLowerCase().replace(/\s+/g, '-')}`} style={{
       padding: '14px 16px', borderRadius: 14,
@@ -173,8 +173,8 @@ export default function AIROIPanelDev({ user }) {
       {/* Hero card */}
       <div style={{
         padding: '20px 22px', borderRadius: 16,
-        background: 'rgba(99,102,241,0.06)',
-        border: '1px solid rgba(99,102,241,0.32)',
+        background: 'rgba(var(--theme-rgb),0.06)',
+        border: '1px solid rgba(var(--theme-rgb),0.32)',
         backdropFilter: 'blur(24px)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', gap: 14,
@@ -183,14 +183,14 @@ export default function AIROIPanelDev({ user }) {
           <div style={{
             fontFamily: 'DM Sans', fontSize: 11,
             letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'rgba(99,102,241,0.85)', marginBottom: 6, fontWeight: 700,
+            color: 'rgba(var(--theme-rgb),0.85)', marginBottom: 6, fontWeight: 700,
           }}>Tu ROI Phase Y · últimos {days} días</div>
           <div style={{
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 32,
             color: 'var(--cream)', letterSpacing: '-0.03em', lineHeight: 1.1,
           }}>
             Phase Y te entregó <span style={{
-              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
             }}>{heroValue} MXN</span>
@@ -233,13 +233,13 @@ export default function AIROIPanelDev({ user }) {
           icon={DollarSign} label="Pricing lift"
           value={`${formatMXN(totals.pricing_lift_mxn)} MXN`}
           sub={`${breakdown.pricing_recs_applied || 0} recomendaciones aplicadas`}
-          color="#6366F1"
+          color="var(--theme)"
         />
         <MetricCard
           icon={TrendingUp} label="Marketing lift"
           value={`${formatMXN(totals.marketing_lift_mxn)} MXN`}
           sub={`${breakdown.marketing_recs_applied || 0} recomendaciones aplicadas`}
-          color="#EC4899"
+          color="var(--theme-3)"
         />
         <MetricCard
           icon={Users} label="Lead conversion"
@@ -269,7 +269,7 @@ export default function AIROIPanelDev({ user }) {
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <BarChart2 size={13} color="#6366F1" />
+          <BarChart2 size={13} color="var(--theme)" />
           Desglose de actividad Phase Y
         </span>
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -322,11 +322,11 @@ export default function AIROIPanelDev({ user }) {
       {totals.roi_ratio != null && totals.roi_ratio >= 1 && totals.roi_ratio < 3 && (
         <div data-testid="airoi-cta-upgrade" style={{
           padding: '12px 16px', borderRadius: 12,
-          background: 'linear-gradient(90deg, rgba(99,102,241,0.10), rgba(236,72,153,0.10))',
-          border: '1px solid rgba(99,102,241,0.30)',
+          background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.10))',
+          border: '1px solid rgba(var(--theme-rgb),0.30)',
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
         }}>
-          <Zap size={14} color="#EC4899" />
+          <Zap size={14} color="var(--theme-3)" />
           <span style={{
             fontFamily: 'DM Sans', fontSize: 13,
             color: 'var(--cream)', flex: 1, minWidth: 200,

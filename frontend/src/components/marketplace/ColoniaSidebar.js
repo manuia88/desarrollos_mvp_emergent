@@ -59,13 +59,13 @@ function ScoreChip({ label, value }) {
   return (
     <div style={{
       padding: '8px 10px',
-      background: 'rgba(99,102,241,0.10)',
-      border: '1px solid rgba(99,102,241,0.22)',
+      background: 'rgba(var(--theme-rgb),0.10)',
+      border: '1px solid rgba(var(--theme-rgb),0.22)',
       borderRadius: 10,
     }}>
       <div style={{
         fontFamily: 'DM Sans', fontSize: 10,
-        color: 'rgba(99,102,241,0.85)',
+        color: 'rgba(var(--theme-rgb),0.85)',
         textTransform: 'uppercase', letterSpacing: '0.07em',
         fontWeight: 600, marginBottom: 2,
       }}>
@@ -172,10 +172,10 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                     <div style={{
                       display: 'inline-block',
                       marginTop: 6, padding: '3px 10px',
-                      border: '1px solid rgba(99,102,241,0.35)',
+                      border: '1px solid rgba(var(--theme-rgb),0.35)',
                       borderRadius: 9999, fontSize: 11,
                       fontFamily: 'DM Sans', fontWeight: 600,
-                      color: 'rgba(99,102,241,0.9)',
+                      color: 'rgba(var(--theme-rgb),0.9)',
                     }}>
                       {data.colonia?.tier}
                     </div>
@@ -231,7 +231,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                       style={{
                         flex: 1, padding: '7px 0', borderRadius: 9999,
                         border: 'none',
-                        background: active ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent',
+                        background: active ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent',
                         color: active ? '#fff' : 'rgba(240,235,224,0.55)',
                         fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
                         cursor: 'pointer',
@@ -301,8 +301,8 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                     <div style={sectionTitle}>Climate Twin</div>
                     <div style={{
                       padding: '14px 16px',
-                      background: 'rgba(99,102,241,0.08)',
-                      border: '1px solid rgba(99,102,241,0.18)',
+                      background: 'rgba(var(--theme-rgb),0.08)',
+                      border: '1px solid rgba(var(--theme-rgb),0.18)',
                       borderRadius: 14,
                     }}>
                       <div style={{
@@ -326,7 +326,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                         {data.climate_twin.similarity_pct > 0 && (
                           <div style={{
                             padding: '4px 10px',
-                            background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                            background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                             borderRadius: 9999,
                             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
                             color: '#fff',
@@ -381,7 +381,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                     padding: '13px 20px',
                     borderRadius: 9999,
                     border: 'none',
-                    background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                     color: '#fff',
                     fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
                     cursor: 'pointer',
@@ -401,9 +401,9 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                     width: '100%',
                     padding: '11px 18px',
                     borderRadius: 9999,
-                    background: 'rgba(99,102,241,0.10)',
-                    border: '1px solid rgba(99,102,241,0.32)',
-                    color: 'rgba(99,102,241,0.95)',
+                    background: 'rgba(var(--theme-rgb),0.10)',
+                    border: '1px solid rgba(var(--theme-rgb),0.32)',
+                    color: 'rgba(var(--theme-rgb),0.95)',
                     fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                     cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -434,8 +434,8 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
                     width: '100%',
                     padding: '11px 18px',
                     borderRadius: 9999,
-                    background: favSaved ? 'rgba(34,197,94,0.10)' : 'rgba(236,72,153,0.10)',
-                    border: `1px solid ${favSaved ? 'rgba(34,197,94,0.32)' : 'rgba(236,72,153,0.32)'}`,
+                    background: favSaved ? 'rgba(34,197,94,0.10)' : 'rgba(var(--theme-rgb),0.10)',
+                    border: `1px solid ${favSaved ? 'rgba(34,197,94,0.32)' : 'rgba(var(--theme-rgb),0.32)'}`,
                     color: favSaved ? '#86EFAC' : '#F472B6',
                     fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                     cursor: favSaved ? 'default' : 'pointer',

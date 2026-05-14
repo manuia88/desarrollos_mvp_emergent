@@ -29,10 +29,10 @@ const ICON_MAP = {
 };
 
 const COLOR_BY_ACTOR = {
-  system: 'rgba(99,102,241,0.85)',     // indigo
-  asesor: 'rgba(236,72,153,0.85)',     // rose
-  broker: 'rgba(236,72,153,0.85)',     // rose
-  buyer:  'rgba(236,72,153,0.85)',     // rose
+  system: 'rgba(var(--theme-rgb),0.85)',     // indigo
+  asesor: 'rgba(var(--theme-rgb),0.85)',     // rose
+  broker: 'rgba(var(--theme-rgb),0.85)',     // rose
+  buyer:  'rgba(var(--theme-rgb),0.85)',     // rose
   atlax:  'rgba(240,235,224,0.85)',    // cream (AI)
   cron:   'rgba(240,235,224,0.7)',     // cream (AI)
 };

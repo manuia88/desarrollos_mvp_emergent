@@ -26,7 +26,7 @@ function FloatingTrigger({ hidden, onClick }) {
       style={{
         position: 'fixed', right: 22, bottom: 84, zIndex: 901,
         width: 52, height: 52, borderRadius: 9999,
-        background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+        background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
         border: 'none', color: '#fff', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         backdropFilter: 'blur(12px)',
@@ -49,7 +49,7 @@ function MessageBubble({ msg }) {
         alignSelf: isUser ? 'flex-end' : 'flex-start',
         maxWidth: '88%',
         background: isUser ? 'rgba(240,235,224,0.10)' : 'rgba(13,16,23,0.92)',
-        border: '1px solid ' + (isUser ? 'rgba(240,235,224,0.14)' : 'rgba(99,102,241,0.30)'),
+        border: '1px solid ' + (isUser ? 'rgba(240,235,224,0.14)' : 'rgba(var(--theme-rgb),0.30)'),
         backdropFilter: 'blur(24px)',
         borderRadius: 14,
         padding: '10px 14px',
@@ -113,7 +113,7 @@ function ConversationsSidebar({
         onClick={onNew}
         style={{
           margin: 12, padding: '8px 12px', borderRadius: 9999,
-          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           border: 'none', color: '#fff',
           fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600,
           cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -133,8 +133,8 @@ function ConversationsSidebar({
             style={{
               padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
               marginBottom: 4,
-              background: current === c.id ? 'rgba(99,102,241,0.16)' : 'transparent',
-              border: '1px solid ' + (current === c.id ? 'rgba(99,102,241,0.32)' : 'transparent'),
+              background: current === c.id ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+              border: '1px solid ' + (current === c.id ? 'rgba(var(--theme-rgb),0.32)' : 'transparent'),
               display: 'flex', alignItems: 'flex-start', gap: 6,
             }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -173,11 +173,11 @@ function EmptyState({ onPick, prompts }) {
     }}>
       <div style={{
         width: 56, height: 56, borderRadius: 9999,
-        background: 'linear-gradient(90deg, rgba(99,102,241,0.20), rgba(236,72,153,0.20))',
-        border: '1px solid rgba(99,102,241,0.32)',
+        background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.20), rgba(var(--theme-rgb),0.20))',
+        border: '1px solid rgba(var(--theme-rgb),0.32)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <Sparkle size={26} color="#a5b4fc" />
+        <Sparkle size={26} color="var(--theme)" />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ fontFamily: 'Outfit', fontSize: 17, fontWeight: 700, color: 'var(--cream)' }}>
@@ -208,7 +208,7 @@ function EmptyState({ onPick, prompts }) {
               transition: 'transform 160ms ease, border-color 160ms ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.32)';
+              e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.32)';
               e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
@@ -216,7 +216,7 @@ function EmptyState({ onPick, prompts }) {
               e.currentTarget.style.transform = 'translateY(0)';
             }}>
             <span>{p.label}</span>
-            <ArrowRight size={11} color="#a5b4fc" />
+            <ArrowRight size={11} color="var(--theme)" />
           </button>
         ))}
       </div>
@@ -352,7 +352,7 @@ export default function AICopilotPanel({ user }) {
             )}
             <div style={{
               width: 28, height: 28, borderRadius: 9999,
-              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Sparkle size={14} color="#fff" />
@@ -419,8 +419,8 @@ export default function AICopilotPanel({ user }) {
               style={{
                 whiteSpace: 'nowrap',
                 padding: '5px 12px', borderRadius: 9999,
-                border: '1px solid rgba(99,102,241,0.30)',
-                background: 'rgba(99,102,241,0.10)',
+                border: '1px solid rgba(var(--theme-rgb),0.30)',
+                background: 'rgba(var(--theme-rgb),0.10)',
                 color: 'var(--cream)',
                 fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 500,
                 cursor: cp.loading ? 'not-allowed' : 'pointer',
@@ -461,7 +461,7 @@ export default function AICopilotPanel({ user }) {
               alignSelf: 'flex-start',
               padding: '8px 12px', borderRadius: 12,
               background: 'rgba(13,16,23,0.92)',
-              border: '1px solid rgba(99,102,241,0.30)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
               backdropFilter: 'blur(24px)',
               color: 'var(--cream-2)', fontSize: 12, fontFamily: 'DM Sans',
               display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -513,7 +513,7 @@ export default function AICopilotPanel({ user }) {
                 width: 32, height: 32, borderRadius: 9999,
                 background: (cp.loading || !draft.trim())
                   ? 'rgba(240,235,224,0.10)'
-                  : 'linear-gradient(90deg, #6366F1, #EC4899)',
+                  : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 border: 'none', color: '#fff',
                 cursor: (cp.loading || !draft.trim()) ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -542,7 +542,7 @@ export default function AICopilotPanel({ user }) {
       <style>{`
         @keyframes dmx-pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
         .dmx-dot { width:6px; height:6px; border-radius:9999px;
-                   background: linear-gradient(90deg,#6366F1,#EC4899);
+                   background: linear-gradient(90deg, var(--theme), var(--theme-3));
                    animation: dmx-pulse 850ms ease-in-out infinite; }
         .dmx-dot:nth-child(2){ animation-delay: 120ms; }
         .dmx-dot:nth-child(3){ animation-delay: 240ms; }
@@ -570,7 +570,7 @@ export default function AICopilotPanel({ user }) {
            border: 1px solid rgba(240,235,224,0.14);
            padding: 4px 8px; text-align: left;
         }
-        .dmx-md a { color: #a5b4fc; text-decoration: underline; }
+        .dmx-md a { color: var(--theme); text-decoration: underline; }
       `}</style>
     </>
   );

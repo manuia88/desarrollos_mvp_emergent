@@ -68,8 +68,8 @@ export function FilterPresetsBar({ route, currentFilters, onLoadPreset }) {
           style={{
             display: 'flex', alignItems: 'center', gap: 4,
             padding: '4px 10px 4px 8px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.30)',
+            background: 'rgba(var(--theme-rgb),0.12)',
+            border: '1px solid rgba(var(--theme-rgb),0.30)',
             fontSize: 11, color: 'var(--cream, #F0EBE0)',
           }}
         >

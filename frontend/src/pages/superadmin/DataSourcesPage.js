@@ -10,7 +10,7 @@ import { Database, Sparkle, Bookmark, Shield, Clock } from '../../components/ico
 const STATUS_TONES = {
   active:       { label: 'Activa',      bg: 'rgba(34,197,94,0.16)',  fg: '#86efac', border: 'rgba(34,197,94,0.32)' },
   stub:         { label: 'Stub',        bg: 'rgba(245,158,11,0.16)', fg: '#fcd34d', border: 'rgba(245,158,11,0.32)' },
-  manual_only:  { label: 'Solo manual', bg: 'rgba(99,102,241,0.16)', fg: '#a5b4fc', border: 'rgba(99,102,241,0.32)' },
+  manual_only:  { label: 'Solo manual', bg: 'rgba(var(--theme-rgb),0.16)', fg: 'var(--theme)', border: 'rgba(var(--theme-rgb),0.32)' },
   blocked:      { label: 'Bloqueada',   bg: 'rgba(239,68,68,0.16)',  fg: '#fca5a5', border: 'rgba(239,68,68,0.32)' },
   h2:           { label: 'Horizonte 2', bg: 'rgba(148,163,184,0.16)', fg: 'var(--cream-3)', border: 'rgba(148,163,184,0.28)' },
 };
@@ -51,8 +51,8 @@ const StatCard = ({ label, value, accent, Icon }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
       <div style={{
         width: 28, height: 28, borderRadius: 8,
-        background: 'rgba(99,102,241,0.10)',
-        border: '1px solid rgba(99,102,241,0.22)',
+        background: 'rgba(var(--theme-rgb),0.10)',
+        border: '1px solid rgba(var(--theme-rgb),0.22)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <Icon size={13} color="var(--indigo-3)" />
@@ -112,11 +112,11 @@ function InegiCacheRow() {
   return (
     <div data-testid="inegi-cache-row" style={{
       padding: 14, marginBottom: 22, borderRadius: 12,
-      background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.28)',
+      background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.28)',
       display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between',
     }}>
       <div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#a5b4fc', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4 }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--theme)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4 }}>
           INEGI · DEMOGRAPHICS CACHE (B7.2)
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
@@ -130,8 +130,8 @@ function InegiCacheRow() {
         </div>
       </div>
       <button data-testid="inegi-refresh-btn" onClick={refreshAll} disabled={busy} style={{
-        padding: '8px 14px', borderRadius: 9999, border: '1px solid rgba(99,102,241,0.42)',
-        background: 'transparent', color: '#a5b4fc',
+        padding: '8px 14px', borderRadius: 9999, border: '1px solid rgba(var(--theme-rgb),0.42)',
+        background: 'transparent', color: 'var(--theme)',
         fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
         cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
       }}>{busy ? 'Refrescando…' : 'Refresh canario'}</button>
@@ -247,7 +247,7 @@ export default function DataSourcesPage({ user, onLogout }) {
             }}>
               <StatCard label="ACTIVAS"        value={stats.active}      Icon={Sparkle}  accent="#86efac" />
               <StatCard label="STUB"           value={stats.stub}        Icon={Database} accent="#fcd34d" />
-              <StatCard label="MANUAL"         value={stats.manual_only} Icon={Bookmark} accent="#a5b4fc" />
+              <StatCard label="MANUAL"         value={stats.manual_only} Icon={Bookmark} accent="var(--theme)" />
               <StatCard label="HORIZONTE 2"    value={stats.h2}          Icon={Clock}    accent="var(--cream-3)" />
               <StatCard label="ERRORES 24H"    value={stats.errors_24h}  Icon={Shield}   accent={stats.errors_24h ? '#fca5a5' : 'var(--cream)'} />
             </div>

@@ -14,9 +14,9 @@ function StatusPill({ status }) {
   const map = {
     same: { c: '#4ADE80', bg: 'rgba(74,222,128,0.10)', l: 'Igual' },
     diff: { c: '#FACC15', bg: 'rgba(250,204,21,0.10)', l: 'Difiere' },
-    missing_target: { c: '#818CF8', bg: 'rgba(99,102,241,0.10)', l: 'Solo ingesta' },
+    missing_target: { c: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.10)', l: 'Solo ingesta' },
     missing_ingest: { c: '#F87171', bg: 'rgba(239,68,68,0.10)', l: 'Solo destino' },
-    new: { c: '#818CF8', bg: 'rgba(99,102,241,0.10)', l: 'Nueva' },
+    new: { c: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.10)', l: 'Nueva' },
     target_only: { c: '#F87171', bg: 'rgba(239,68,68,0.10)', l: 'Solo destino' },
   };
   const s = map[status] || map.diff;
@@ -40,12 +40,12 @@ function FieldRow({ field }) {
         background: isSame ? 'transparent' : 'rgba(250,204,21,0.04)',
         border: `1px solid ${isSame ? 'rgba(255,255,255,0.05)' : 'rgba(250,204,21,0.18)'}`,
       }}>
-      <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.50)', fontWeight: 600 }}>
+      <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.72)', fontWeight: 600 }}>
         {field.label}
       </span>
       <span style={{
         fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream)',
-        background: 'rgba(99,102,241,0.06)', padding: '3px 7px', borderRadius: 6,
+        background: 'rgba(var(--theme-rgb),0.06)', padding: '3px 7px', borderRadius: 6,
         wordBreak: 'break-word',
       }}>{fmtVal(field.ingest)}</span>
       <ArrowRight size={11} color="rgba(240,235,224,0.35)" style={{ justifySelf: 'center' }} />
@@ -69,8 +69,8 @@ function UnitRow({ unit }) {
         display: 'grid', gridTemplateColumns: '70px 1fr 14px 1fr 80px',
         gap: 8, alignItems: 'center', padding: '5px 8px',
         borderRadius: 7,
-        background: unit.status === 'same' ? 'transparent' : 'rgba(99,102,241,0.04)',
-        border: `1px solid ${unit.status === 'same' ? 'rgba(255,255,255,0.05)' : 'rgba(99,102,241,0.18)'}`,
+        background: unit.status === 'same' ? 'transparent' : 'rgba(var(--theme-rgb),0.04)',
+        border: `1px solid ${unit.status === 'same' ? 'rgba(255,255,255,0.05)' : 'rgba(var(--theme-rgb),0.18)'}`,
       }}>
       <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream)', fontWeight: 700 }}>
         {unit.unit_number || '—'}
@@ -142,12 +142,12 @@ export default function MergeDiffVisualizer({
 
   return (
     <div data-testid={`merge-diff-${itemId}`} style={{
-      padding: '14px 16px', borderRadius: 12, background: 'rgba(99,102,241,0.05)',
-      border: '1px solid rgba(99,102,241,0.25)',
+      padding: '14px 16px', borderRadius: 12, background: 'rgba(var(--theme-rgb),0.05)',
+      border: '1px solid rgba(var(--theme-rgb),0.25)',
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <GitMerge size={13} color="#818CF8" />
+        <GitMerge size={13} color="var(--theme)" />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>
           Comparar y fusionar
         </span>
@@ -163,7 +163,7 @@ export default function MergeDiffVisualizer({
 
       {/* Target selector */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
           Destino
         </span>
         {candidates.map(c => (
@@ -172,9 +172,9 @@ export default function MergeDiffVisualizer({
             style={{
               padding: '4px 10px', borderRadius: 9999, fontSize: 11,
               fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-              border: targetId === c.dev_id ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
-              background: targetId === c.dev_id ? 'rgba(99,102,241,0.18)' : 'transparent',
-              color: targetId === c.dev_id ? '#818CF8' : 'rgba(240,235,224,0.65)',
+              border: targetId === c.dev_id ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.10)',
+              background: targetId === c.dev_id ? 'rgba(var(--theme-rgb),0.18)' : 'transparent',
+              color: targetId === c.dev_id ? 'var(--theme)' : 'rgba(240,235,224,0.65)',
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}>
             {c.name || c.dev_id}
@@ -207,8 +207,8 @@ export default function MergeDiffVisualizer({
           <button data-testid="merge-force-load" onClick={() => setTargetId(forceId.trim())}
             disabled={!forceId.trim()}
             style={{
-              padding: '6px 12px', borderRadius: 9999, background: 'rgba(99,102,241,0.18)',
-              border: '1px solid rgba(99,102,241,0.40)', color: '#818CF8',
+              padding: '6px 12px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.18)',
+              border: '1px solid rgba(var(--theme-rgb),0.40)', color: 'var(--theme)',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
               cursor: forceId.trim() ? 'pointer' : 'not-allowed', opacity: forceId.trim() ? 1 : 0.5,
             }}>Cargar diff</button>
@@ -217,7 +217,7 @@ export default function MergeDiffVisualizer({
 
       {/* Body */}
       {loading && (
-        <div data-testid="merge-diff-loading" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 14, fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+        <div data-testid="merge-diff-loading" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 14, fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.72)' }}>
           <Loader size={12} className="animate-spin" /> Cargando comparativa…
         </div>
       )}
@@ -237,7 +237,7 @@ export default function MergeDiffVisualizer({
             <span style={{ padding: '2px 8px', borderRadius: 9999, background: 'rgba(250,204,21,0.10)', color: '#FACC15' }}>
               {diff.summary.fields_diff} difieren
             </span>
-            <span style={{ padding: '2px 8px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', color: '#818CF8' }}>
+            <span style={{ padding: '2px 8px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)' }}>
               {diff.summary.units_new} unidades nuevas
             </span>
             {diff.summary.units_diff > 0 && (
@@ -249,7 +249,7 @@ export default function MergeDiffVisualizer({
 
           {/* Field rows */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 280, overflowY: 'auto' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 14px 1fr 70px', gap: 8, padding: '0 8px', fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240,235,224,0.40)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 14px 1fr 70px', gap: 8, padding: '0 8px', fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240, 235, 224, 0.68)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
               <span>Campo</span>
               <span>Ingesta</span>
               <span></span>
@@ -262,7 +262,7 @@ export default function MergeDiffVisualizer({
           {/* Units */}
           {(diff.units || []).length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 240, overflowY: 'auto' }}>
-              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240,235,224,0.40)', textTransform: 'uppercase', letterSpacing: '0.07em', padding: '4px 8px 0' }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240, 235, 224, 0.68)', textTransform: 'uppercase', letterSpacing: '0.07em', padding: '4px 8px 0' }}>
                 Unidades ({diff.units.length})
               </div>
               {diff.units.map((u, i) => <UnitRow key={`${u.unit_number || 'tgt'}-${i}`} unit={u} />)}
@@ -278,13 +278,13 @@ export default function MergeDiffVisualizer({
                   <GitMerge size={11} /> Forzar fusión
                 </button>
                 <button data-testid="merge-force-approve-btn" onClick={() => doForce('approve_as_new')} disabled={busy || !targetId}
-                  style={{ padding: '7px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.40)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: busy ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  style={{ padding: '7px 14px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.40)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: busy ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Check size={11} /> Aprobar como nuevo
                 </button>
               </>
             ) : (
               <button data-testid="merge-confirm-btn" onClick={doMerge} disabled={busy || !targetId}
-                style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <GitMerge size={11} /> Fusionar en {diff.target_name || diff.target_dev_id}
               </button>
             )}

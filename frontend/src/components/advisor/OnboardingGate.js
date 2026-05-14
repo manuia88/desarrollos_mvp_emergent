@@ -69,7 +69,7 @@ export default function OnboardingGate({ profile, onDone }) {
         border: '1px solid var(--border)', borderRadius: 24,
         padding: 34,
       }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.26)', borderRadius: 9999, marginBottom: 16 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '4px 12px', background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.26)', borderRadius: 9999, marginBottom: 16 }}>
           <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 10.5, color: 'var(--indigo-3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             Paso {step} de 5 · Configuración inicial
           </span>

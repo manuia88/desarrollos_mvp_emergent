@@ -86,8 +86,8 @@ export default function LandingLeadCaptureForm({
       onSubmit={submit}
       style={{
         padding: '22px 24px', borderRadius: 18,
-        border: '1px solid rgba(99,102,241,0.25)',
-        background: 'rgba(99,102,241,0.06)',
+        border: '1px solid rgba(var(--theme-rgb),0.25)',
+        background: 'rgba(var(--theme-rgb),0.06)',
         backdropFilter: 'blur(14px)',
       }}
     >
@@ -96,7 +96,7 @@ export default function LandingLeadCaptureForm({
           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
           letterSpacing: '0.18em', textTransform: 'uppercase',
           marginBottom: 8,
-          backgroundImage: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          backgroundImage: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}
       >
@@ -158,8 +158,8 @@ export default function LandingLeadCaptureForm({
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
             padding: '11px 22px', borderRadius: 9999,
             background: status === 'loading'
-              ? 'rgba(99,102,241,0.40)'
-              : 'linear-gradient(90deg, #6366F1, #EC4899)',
+              ? 'rgba(var(--theme-rgb),0.40)'
+              : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             color: '#fff', border: 'none',
             cursor: status === 'loading' ? 'wait' : 'pointer',
             transition: 'opacity 0.18s ease',

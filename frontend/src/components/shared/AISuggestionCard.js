@@ -14,10 +14,10 @@ import {
 import { Sparkle, RefreshCw, X, Check, ArrowRight } from '../icons';
 
 const TYPE_COLORS = {
-  next_action: { bg: 'rgba(99,102,241,0.14)', border: 'rgba(99,102,241,0.35)', label: 'Siguiente acción' },
+  next_action: { bg: 'rgba(var(--theme-rgb),0.14)', border: 'rgba(var(--theme-rgb),0.35)', label: 'Siguiente acción' },
   risk:        { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.32)',  label: 'Riesgo' },
   opportunity: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)', label: 'Oportunidad' },
-  insight:     { bg: 'rgba(236,72,153,0.12)', border: 'rgba(236,72,153,0.30)', label: 'Insight' },
+  insight:     { bg: 'rgba(var(--theme-rgb),0.12)', border: 'rgba(var(--theme-rgb),0.30)', label: 'Insight' },
 };
 
 function parseCta(cta) {

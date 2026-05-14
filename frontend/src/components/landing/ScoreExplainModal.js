@@ -73,8 +73,8 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
             {/* Value + tier */}
             <div data-testid="explain-header" style={{
               padding: 16, marginBottom: 14,
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px solid rgba(99,102,241,0.22)',
+              background: 'rgba(var(--theme-rgb),0.06)',
+              border: '1px solid rgba(var(--theme-rgb),0.22)',
               borderRadius: 14,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
             }}>
@@ -100,8 +100,8 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
             {data.layer === 'predictive' && (
               <div data-testid="explain-predictive" style={{
                 padding: 14, marginBottom: 14,
-                background: 'linear-gradient(180deg, rgba(236,72,153,0.06), rgba(99,102,241,0.04))',
-                border: '1px solid rgba(236,72,153,0.24)',
+                background: 'linear-gradient(180deg, rgba(var(--theme-rgb),0.06), rgba(var(--theme-rgb),0.04))',
+                border: '1px solid rgba(var(--theme-rgb),0.24)',
                 borderRadius: 14,
               }}>
                 <div className="eyebrow" style={{ marginBottom: 8 }}>
@@ -175,8 +175,8 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
 
             <div style={{
               padding: 10, borderRadius: 10,
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px solid rgba(99,102,241,0.18)',
+              background: 'rgba(var(--theme-rgb),0.06)',
+              border: '1px solid rgba(var(--theme-rgb),0.18)',
               fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.5,
               display: 'flex', alignItems: 'center', gap: 6,
             }}>

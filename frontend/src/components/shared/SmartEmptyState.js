@@ -46,7 +46,7 @@ export function SmartEmptyState({
     >
       <div style={{
         width: 44, height: 44, borderRadius: 9999,
-        background: 'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(236,72,153,0.25))',
+        background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.25), rgba(var(--theme-rgb),0.25))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: 'var(--cream, #F0EBE0)', marginBottom: 4,
       }}>

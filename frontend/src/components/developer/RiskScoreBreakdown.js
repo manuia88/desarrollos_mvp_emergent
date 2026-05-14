@@ -16,8 +16,8 @@ function ComponentCard({ title, status, value, sub, children }) {
   return (
     <div data-testid={`risk-component-${title.toLowerCase().replace(/\s+/g, '-')}`}
       style={{
-        background: isActive ? 'rgba(99,102,241,0.10)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${isActive ? 'rgba(99,102,241,0.32)' : 'rgba(255,255,255,0.08)'}`,
+        background: isActive ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${isActive ? 'rgba(var(--theme-rgb),0.32)' : 'rgba(255,255,255,0.08)'}`,
         borderRadius: 14, padding: 16,
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>

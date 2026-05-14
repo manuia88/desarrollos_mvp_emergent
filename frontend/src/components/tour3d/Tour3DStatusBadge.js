@@ -4,7 +4,7 @@ import React from 'react';
 
 const COLORS = {
   pending:    { bg: 'rgba(160,164,176,0.16)', fg: '#a0a4b0', dot: '#a0a4b0', label: 'Pendiente' },
-  processing: { bg: 'rgba(99,102,241,0.16)',  fg: '#a5b4fc', dot: '#6366F1', label: 'Procesando' },
+  processing: { bg: 'rgba(var(--theme-rgb),0.16)',  fg: 'var(--theme)', dot: 'var(--theme)', label: 'Procesando' },
   ready:      { bg: 'rgba(34,197,94,0.14)',   fg: '#86efac', dot: '#22c55e', label: 'Listo' },
   failed:     { bg: 'rgba(239,68,68,0.14)',   fg: '#fca5a5', dot: '#ef4444', label: 'Falló' },
 };
@@ -43,9 +43,9 @@ export default function Tour3DStatusBadge({ status, sizeKb, format, capturedAt }
       {s.label}
       <style>{`
         @keyframes tour3dPulse {
-          0%   { box-shadow: 0 0 0 0 rgba(99,102,241,0.55); }
-          70%  { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
-          100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+          0%   { box-shadow: 0 0 0 0 rgba(var(--theme-rgb),0.55); }
+          70%  { box-shadow: 0 0 0 6px rgba(var(--theme-rgb),0); }
+          100% { box-shadow: 0 0 0 0 rgba(var(--theme-rgb),0); }
         }
       `}</style>
     </span>

@@ -13,7 +13,7 @@ const SUB_LABELS = {
   risk_factors: 'Riesgo',
 };
 
-export default function RadarChart({ data = {}, size = 220, color = '#EC4899' }) {
+export default function RadarChart({ data = {}, size = 220, color = 'var(--theme-3)' }) {
   const keys = Object.keys(SUB_LABELS).filter(k => data[k] !== undefined);
   const cx = size / 2;
   const cy = size / 2;

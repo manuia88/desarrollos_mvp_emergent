@@ -3,8 +3,8 @@ import React from 'react';
 
 const COLORS = {
   haiku: '#4ADE80',
-  sonnet: '#818CF8',
-  other: 'rgba(240,235,224,0.40)',
+  sonnet: 'var(--theme)',
+  other: 'rgba(240, 235, 224, 0.68)',
 };
 
 function fmtMxn(v) {
@@ -37,7 +37,7 @@ export default function ModelMixChart({ split, total, items = [] }) {
       background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
       display: 'flex', flexDirection: 'column', gap: 12,
     }}>
-      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+      <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
         Mezcla de modelos
       </div>
       <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -59,7 +59,7 @@ export default function ModelMixChart({ split, total, items = [] }) {
             })}
           </svg>
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Total</span>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Total</span>
             <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>{fmtMxn(total ?? tot)}</span>
           </div>
         </div>
@@ -77,7 +77,7 @@ export default function ModelMixChart({ split, total, items = [] }) {
                 <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.65)' }}>
                   {fmtMxn(sl.mxn)} · {pct}%
                 </span>
-                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.40)', minWidth: 50, textAlign: 'right' }}>
+                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240, 235, 224, 0.68)', minWidth: 50, textAlign: 'right' }}>
                   {calls} calls
                 </span>
               </div>
@@ -88,7 +88,7 @@ export default function ModelMixChart({ split, total, items = [] }) {
       {/* Detail table */}
       {items.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 70px 80px', gap: 8, padding: '0 8px', fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240,235,224,0.40)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 70px 80px', gap: 8, padding: '0 8px', fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240, 235, 224, 0.68)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             <span>Modelo</span><span style={{ textAlign: 'right' }}>Calls</span><span style={{ textAlign: 'right' }}>Total</span><span style={{ textAlign: 'right' }}>Avg/call</span>
           </div>
           {items.map(it => (

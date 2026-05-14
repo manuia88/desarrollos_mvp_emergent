@@ -13,7 +13,7 @@ import {
   generateVisitBriefing, getVisitBriefing, markBriefingViewed,
 } from '../../api/asesor_daily';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 function Section({ title, children, testId }) {
   return (
@@ -151,8 +151,8 @@ export default function VisitAutoPrepCard({
             <div style={{
               padding: 16, textAlign: 'center', fontSize: 12,
               color: 'var(--cream-3)',
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px solid rgba(99,102,241,0.18)',
+              background: 'rgba(var(--theme-rgb),0.06)',
+              border: '1px solid rgba(var(--theme-rgb),0.18)',
               borderRadius: 12,
             }}>Generando briefing con IA…</div>
           )}
@@ -206,8 +206,8 @@ export default function VisitAutoPrepCard({
               {content.closing_recommendation && (
                 <div data-testid="brief-section-closing" style={{
                   padding: 14, borderRadius: 12,
-                  background: 'linear-gradient(90deg, rgba(99,102,241,0.1), rgba(236,72,153,0.1))',
-                  border: '1px solid rgba(99,102,241,0.3)',
+                  background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.1), rgba(var(--theme-rgb),0.1))',
+                  border: '1px solid rgba(var(--theme-rgb),0.3)',
                 }}>
                   <div style={{
                     fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',

@@ -5,7 +5,7 @@ import { AlertTriangle, AlertCircle, Info, Check } from 'lucide-react';
 const SEV_CFG = {
   critical: { color: '#F87171', bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.32)', label: 'Crítica', Icon: AlertTriangle },
   warning:  { color: '#FACC15', bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.32)', label: 'Warning', Icon: AlertCircle },
-  info:     { color: '#818CF8', bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.32)', label: 'Info', Icon: Info },
+  info:     { color: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.32)', label: 'Info', Icon: Info },
 };
 
 function fmtRel(iso) {
@@ -53,7 +53,7 @@ export default function AlertItem({ alert, onResolve }) {
           <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>
             {alert.source}
           </span>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.40)' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.68)' }}>
             {fmtRel(alert.ts)}
           </span>
           {resolved && (

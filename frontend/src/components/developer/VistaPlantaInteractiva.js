@@ -565,8 +565,8 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
                 onClick={() => setSelectedFloor(f.floor_number)}
                 style={{
                   padding: '5px 12px',
-                  background: selectedFloor === f.floor_number ? 'rgba(99,102,241,0.2)' : 'transparent',
-                  color: selectedFloor === f.floor_number ? '#a5b4fc' : 'var(--cream-3)',
+                  background: selectedFloor === f.floor_number ? 'rgba(var(--theme-rgb),0.2)' : 'transparent',
+                  color: selectedFloor === f.floor_number ? 'var(--theme)' : 'var(--cream-3)',
                   border: 'none',
                   borderRight: '1px solid rgba(240,235,224,0.08)',
                   fontSize: 11.5, fontWeight: selectedFloor === f.floor_number ? 700 : 400,
@@ -603,9 +603,9 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
             style={{
               marginLeft: 'auto',
               display: 'flex', alignItems: 'center', gap: 5,
-              background: editMode ? 'rgba(99,102,241,0.2)' : 'rgba(240,235,224,0.06)',
-              border: `1px solid ${editMode ? 'rgba(99,102,241,0.4)' : 'rgba(240,235,224,0.14)'}`,
-              color: editMode ? '#a5b4fc' : 'var(--cream-3)',
+              background: editMode ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(240,235,224,0.06)',
+              border: `1px solid ${editMode ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(240,235,224,0.14)'}`,
+              color: editMode ? 'var(--theme)' : 'var(--cream-3)',
               borderRadius: 8, padding: '5px 12px', fontSize: 11.5, cursor: 'pointer',
               fontFamily: 'DM Sans,sans-serif',
             }}
@@ -672,10 +672,10 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
       {editMode && isAdmin && (
         <div style={{
           display: 'flex', gap: 8, padding: '8px 12px',
-          background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)',
+          background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.22)',
           borderRadius: 8, alignItems: 'center',
         }}>
-          <span style={{ fontSize: 11, color: '#a5b4fc', fontWeight: 600 }}>Modo edición</span>
+          <span style={{ fontSize: 11, color: 'var(--theme)', fontWeight: 600 }}>Modo edición</span>
           <span style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>Arrastra unidades para reposicionar</span>
 
           {/* Upload background */}

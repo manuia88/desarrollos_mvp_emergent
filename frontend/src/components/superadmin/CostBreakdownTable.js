@@ -33,7 +33,7 @@ function MiniMix({ mix }) {
   const total = (mix?.haiku || 0) + (mix?.sonnet || 0) + (mix?.other || 0) || 1;
   const segs = [
     { key: 'haiku', val: mix?.haiku || 0, color: '#4ADE80' },
-    { key: 'sonnet', val: mix?.sonnet || 0, color: '#818CF8' },
+    { key: 'sonnet', val: mix?.sonnet || 0, color: 'var(--theme)' },
     { key: 'other', val: mix?.other || 0, color: 'rgba(240,235,224,0.30)' },
   ];
   return (
@@ -76,7 +76,7 @@ export default function CostBreakdownTable({ title, kind = 'tenant', rows = [], 
         style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
           fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600,
-          color: active ? '#818CF8' : 'rgba(240,235,224,0.50)',
+          color: active ? 'var(--theme)' : 'rgba(240, 235, 224, 0.72)',
           textTransform: 'uppercase', letterSpacing: '0.07em',
           padding: 0, display: 'inline-flex', alignItems: 'center', gap: 3,
           textAlign: align, justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
@@ -92,7 +92,7 @@ export default function CostBreakdownTable({ title, kind = 'tenant', rows = [], 
       <div data-testid={testIdPrefix} style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 9 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', margin: 0 }}>{title}</h3>
-          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.50)' }}>
+          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.72)' }}>
             Total: {fmtMxn(totalMxn)}
           </span>
         </div>
@@ -100,11 +100,11 @@ export default function CostBreakdownTable({ title, kind = 'tenant', rows = [], 
           <SortHeader k="name" label="Tenant" />
           <SortHeader k="mxn" label="Gasto" align="right" />
           <SortHeader k="pct_total" label="%" align="right" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Tope</span>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'right' }}>Acción</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Tope</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em', textAlign: 'right' }}>Acción</span>
         </div>
         {sorted.length === 0 && (
-          <div style={{ padding: 20, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)' }}>
+          <div style={{ padding: 20, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)' }}>
             Sin datos en este período.
           </div>
         )}
@@ -119,19 +119,19 @@ export default function CostBreakdownTable({ title, kind = 'tenant', rows = [], 
               cursor: onRowClick ? 'pointer' : 'default',
               alignItems: 'center', transition: 'background 180ms, transform 180ms',
             }}
-            onMouseEnter={e => { if (onRowClick) { e.currentTarget.style.background = 'rgba(99,102,241,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+            onMouseEnter={e => { if (onRowClick) { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
             onMouseLeave={e => { if (onRowClick) { e.currentTarget.style.background = r.alert_flag ? 'rgba(250,204,21,0.06)' : 'rgba(255,255,255,0.02)'; e.currentTarget.style.transform = 'translateY(0)'; } }}
           >
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.40)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.tenant_id}</div>
+              <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240, 235, 224, 0.68)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.tenant_id}</div>
             </div>
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: 'var(--cream)', textAlign: 'right' }}>{fmtMxn(r.mxn)}</span>
             <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.55)', textAlign: 'right' }}>{r.pct_total}%</span>
             <CapBar pct={r.pct_used_of_cap} threshold={r.alert_threshold_pct} hardBlock={r.hard_block} />
             <button data-testid={`${testIdPrefix}-cap-${r.tenant_id}`}
               onClick={e => { e.stopPropagation(); onConfigCap && onConfigCap(r); }}
-              style={{ padding: '4px 10px', borderRadius: 9999, background: r.cap_mxn ? 'rgba(99,102,241,0.10)' : 'rgba(74,222,128,0.10)', border: `1px solid ${r.cap_mxn ? 'rgba(99,102,241,0.28)' : 'rgba(74,222,128,0.28)'}`, color: r.cap_mxn ? '#818CF8' : '#4ADE80', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10.5, cursor: 'pointer', justifySelf: 'end' }}>
+              style={{ padding: '4px 10px', borderRadius: 9999, background: r.cap_mxn ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(74,222,128,0.10)', border: `1px solid ${r.cap_mxn ? 'rgba(var(--theme-rgb),0.28)' : 'rgba(74,222,128,0.28)'}`, color: r.cap_mxn ? 'var(--theme)' : '#4ADE80', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10.5, cursor: 'pointer', justifySelf: 'end' }}>
               {r.cap_mxn ? 'Editar' : 'Tope'}
             </button>
           </div>
@@ -148,11 +148,11 @@ export default function CostBreakdownTable({ title, kind = 'tenant', rows = [], 
         <SortHeader k="feature_key" label="Feature" />
         <SortHeader k="mxn" label="Gasto" align="right" />
         <SortHeader k="pct" label="%" align="right" />
-        <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Mix</span>
-        <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Top tenant</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Mix</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 600, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Top tenant</span>
       </div>
       {sorted.length === 0 && (
-        <div style={{ padding: 20, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)' }}>
+        <div style={{ padding: 20, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)' }}>
           Sin datos en este período.
         </div>
       )}

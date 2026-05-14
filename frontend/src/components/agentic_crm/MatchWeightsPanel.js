@@ -21,8 +21,8 @@ async function apiFetch(path, opts = {}) {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const WEIGHT_DIMENSIONS = [
-  { key: 'zona',               label: 'Zona geográfica',      color: '#6366F1' },
-  { key: 'precio',             label: 'Precio / presupuesto', color: '#EC4899' },
+  { key: 'zona',               label: 'Zona geográfica',      color: 'var(--theme)' },
+  { key: 'precio',             label: 'Precio / presupuesto', color: 'var(--theme-3)' },
   { key: 'segment',            label: 'Segmento de mercado',  color: '#38BDF8' },
   { key: 'amenidades',         label: 'Amenidades',           color: '#34D399' },
   { key: 'timing',             label: 'Timing / urgencia',    color: '#FBBF24' },
@@ -165,15 +165,15 @@ function LayerBadge({ isSystem, changedBy }) {
     return (
       <span style={{
         padding: '2px 8px', borderRadius: 9999, fontSize: 10,
-        background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)',
-        color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700,
+        background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.35)',
+        color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700,
       }}>Auto-tune</span>
     );
   }
   return (
     <span style={{
       padding: '2px 8px', borderRadius: 9999, fontSize: 10,
-      background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.30)',
+      background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.30)',
       color: '#F472B6', fontFamily: 'DM Sans', fontWeight: 700,
     }}>Manual{changedBy ? ` · ${changedBy}` : ''}</span>
   );
@@ -362,9 +362,9 @@ export default function MatchWeightsPanel({ orgId }) {
           <span style={{
             padding: '3px 10px', borderRadius: 9999, fontSize: 10.5,
             fontFamily: 'DM Sans', fontWeight: 700,
-            background: canRead ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${canRead ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.12)'}`,
-            color: canRead ? '#818CF8' : 'rgba(240,235,224,0.40)',
+            background: canRead ? 'rgba(var(--theme-rgb),0.15)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${canRead ? 'rgba(var(--theme-rgb),0.40)' : 'rgba(255,255,255,0.12)'}`,
+            color: canRead ? 'var(--theme)' : 'rgba(240,235,224,0.40)',
           }}>
             {tier === 'off' ? 'Sin tier' : tier}
           </span>
@@ -433,7 +433,7 @@ export default function MatchWeightsPanel({ orgId }) {
 
       {/* Tune result preview */}
       {tuneResult && (
-        <div data-testid="match-weights-tune-result" style={{ padding: '14px', borderRadius: 12, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.25)', marginBottom: 12 }}>
+        <div data-testid="match-weights-tune-result" style={{ padding: '14px', borderRadius: 12, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.25)', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--cream)' }}>
               Resultado Auto-tune
@@ -477,7 +477,7 @@ export default function MatchWeightsPanel({ orgId }) {
                   onClick={applyTuneResult}
                   style={{
                     padding: '8px 16px', borderRadius: 9999, border: 'none', cursor: 'pointer',
-                    background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                    background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                     color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
                   }}
                 >
@@ -499,7 +499,7 @@ export default function MatchWeightsPanel({ orgId }) {
           style={{
             flex: 1, padding: '10px 0', borderRadius: 9999, border: 'none',
             cursor: (canEdit && sumOk && !saving) ? 'pointer' : 'not-allowed',
-            background: (canEdit && sumOk && !saving) ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'rgba(255,255,255,0.08)',
+            background: (canEdit && sumOk && !saving) ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'rgba(255,255,255,0.08)',
             color: (canEdit && sumOk) ? '#fff' : 'rgba(240,235,224,0.35)',
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -514,8 +514,8 @@ export default function MatchWeightsPanel({ orgId }) {
           disabled={tuning}
           style={{
             padding: '10px 16px', borderRadius: 9999, cursor: tuning ? 'not-allowed' : 'pointer',
-            background: 'transparent', border: '1px solid rgba(99,102,241,0.40)',
-            color: tuning ? 'rgba(240,235,224,0.35)' : '#818CF8',
+            background: 'transparent', border: '1px solid rgba(var(--theme-rgb),0.40)',
+            color: tuning ? 'rgba(240,235,224,0.35)' : 'var(--theme)',
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             display: 'flex', alignItems: 'center', gap: 7,
             transition: 'color 0.2s',

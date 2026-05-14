@@ -107,10 +107,10 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             padding: '4px 12px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.28)',
+            background: 'rgba(var(--theme-rgb),0.12)',
+            border: '1px solid rgba(var(--theme-rgb),0.28)',
             fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700,
-            color: 'rgba(99,102,241,0.9)',
+            color: 'rgba(var(--theme-rgb),0.9)',
             textTransform: 'uppercase', letterSpacing: '0.08em',
           }}>
             <Sparkle size={11} /> Tu colonia ideal
@@ -148,7 +148,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
               <div style={{
                 height: '100%',
                 width: `${progress}%`,
-                background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 transition: 'width 0.4s ease',
               }} />
             </div>
@@ -188,10 +188,10 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                       width: '100%', padding: '13px 16px',
                       borderRadius: 12, cursor: 'pointer', textAlign: 'left',
                       border: selected
-                        ? '1px solid rgba(99,102,241,0.55)'
+                        ? '1px solid rgba(var(--theme-rgb),0.55)'
                         : '1px solid rgba(240,235,224,0.12)',
                       background: selected
-                        ? 'rgba(99,102,241,0.14)'
+                        ? 'rgba(var(--theme-rgb),0.14)'
                         : 'rgba(255,255,255,0.03)',
                       color: selected ? 'var(--cream, #F0EBE0)' : 'rgba(240,235,224,0.78)',
                       fontFamily: 'DM Sans', fontWeight: selected ? 700 : 500, fontSize: 14,
@@ -203,7 +203,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                     {selected && (
                       <span style={{
                         width: 18, height: 18, borderRadius: 9999,
-                        background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                        background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                         color: '#fff', fontSize: 11, fontWeight: 800,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
@@ -240,8 +240,8 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                   flex: 1, padding: '11px 18px', borderRadius: 9999,
                   border: 'none',
                   background: canAdvance()
-                    ? 'linear-gradient(90deg,#6366F1,#EC4899)'
-                    : 'rgba(99,102,241,0.3)',
+                    ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
+                    : 'rgba(var(--theme-rgb),0.3)',
                   color: '#fff',
                   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                   cursor: canAdvance() ? 'pointer' : 'not-allowed',
@@ -295,7 +295,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                 data-testid="quiz-accept"
                 checked={accepted}
                 onChange={e => setAccepted(e.target.checked)}
-                style={{ marginTop: 2, accentColor: '#6366F1', cursor: 'pointer' }}
+                style={{ marginTop: 2, accentColor: 'var(--theme)', cursor: 'pointer' }}
               />
               <label htmlFor="quiz-accept" style={{
                 fontFamily: 'DM Sans', fontSize: 12,
@@ -339,8 +339,8 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                   flex: 1, padding: '12px 18px', borderRadius: 9999,
                   border: 'none',
                   background: (!email.trim() || !email.includes('@') || !accepted || loading)
-                    ? 'rgba(99,102,241,0.3)'
-                    : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    ? 'rgba(var(--theme-rgb),0.3)'
+                    : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                   color: '#fff',
                   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                   cursor: (!email.trim() || !email.includes('@') || !accepted || loading)
@@ -399,7 +399,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
                     </div>
                     <div style={{
                       padding: '4px 10px', borderRadius: 9999,
-                      background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                      background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                       color: '#fff', fontFamily: 'DM Sans',
                       fontSize: 12, fontWeight: 800,
                     }}>

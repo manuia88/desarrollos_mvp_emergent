@@ -5,8 +5,8 @@ import * as api from '../../api/developer';
 import { CheckCircle, Clock, MessageCircle, Image, Camera, Sparkle } from '../icons';
 
 const STAGE_COLORS = {
-  cimentacion:   { bg: 'rgba(99,102,241,0.14)', bd: 'rgba(99,102,241,0.35)', fg: '#a5b4fc' },
-  estructura:    { bg: 'rgba(236,72,153,0.14)', bd: 'rgba(236,72,153,0.35)', fg: '#f9a8d4' },
+  cimentacion:   { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: 'var(--theme)' },
+  estructura:    { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: '#f9a8d4' },
   instalaciones: { bg: 'rgba(251,191,36,0.14)', bd: 'rgba(251,191,36,0.35)', fg: '#fcd34d' },
   acabados:      { bg: 'rgba(34,197,94,0.14)',  bd: 'rgba(34,197,94,0.35)',  fg: '#86efac' },
   entrega:       { bg: 'rgba(139,92,246,0.14)', bd: 'rgba(139,92,246,0.35)', fg: '#c4b5fd' },
@@ -67,7 +67,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
   return (
     <div data-testid="avance-obra-tab">
       {/* Overall progress */}
-      <Card style={{ marginBottom: 14, background: 'linear-gradient(140deg, rgba(236,72,153,0.08), transparent)' }}>
+      <Card style={{ marginBottom: 14, background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.08), transparent)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div>
             <div className="eyebrow">AVANCE CONSOLIDADO</div>

@@ -75,7 +75,7 @@ export default function StageChecklist({ conversationId, stageNum }) {
       <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 9999, marginBottom: 10, overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 9999,
-          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           width: `${(doneCount / items.length) * 100}%`,
           transition: 'width 0.3s',
         }} />
@@ -94,7 +94,7 @@ export default function StageChecklist({ conversationId, stageNum }) {
             type="checkbox"
             checked={!!checked[item.id]}
             onChange={() => toggle(item.id)}
-            style={{ width: 13, height: 13, marginTop: 1, accentColor: '#6366F1', flexShrink: 0 }}
+            style={{ width: 13, height: 13, marginTop: 1, accentColor: 'var(--theme)', flexShrink: 0 }}
           />
           <span style={{
             fontFamily: 'DM Sans', fontSize: 12, color: checked[item.id] ? 'var(--cream-3)' : 'var(--cream)',

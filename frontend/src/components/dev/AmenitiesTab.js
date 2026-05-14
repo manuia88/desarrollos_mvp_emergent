@@ -36,12 +36,12 @@ export default function AmenitiesTab({ dev }) {
           alignItems: 'flex-start',
           transition: 'transform 0.2s, border-color 0.2s',
         }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.34)'; }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.34)'; }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
           <div style={{
             width: 40, height: 40, borderRadius: 12,
-            background: 'rgba(99,102,241,0.10)',
-            border: '1px solid rgba(99,102,241,0.24)',
+            background: 'rgba(var(--theme-rgb),0.10)',
+            border: '1px solid rgba(var(--theme-rgb),0.24)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'var(--indigo-3)',
           }}>

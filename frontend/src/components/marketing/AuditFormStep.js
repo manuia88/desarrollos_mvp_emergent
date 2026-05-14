@@ -170,7 +170,7 @@ export default function AuditFormStep({ step, form, onChange, errors }) {
           type="checkbox"
           checked={!!form.consent}
           onChange={(e) => set('consent', e.target.checked)}
-          style={{ marginTop: 4, accentColor: '#6366F1' }}
+          style={{ marginTop: 4, accentColor: 'var(--theme)' }}
         />
         <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.5 }}>
           Acepto el aviso de privacidad LFPDPPP y autorizo a DesarrollosMX a contactarme con mi audit por email y WhatsApp.
@@ -195,7 +195,7 @@ function Field({ label, required, error, children }) {
     <div>
       <label htmlFor={fieldId} style={labelStyle}>
         {label?.toUpperCase()}
-        {required && <span style={{ color: '#EC4899', marginLeft: 4 }}>*</span>}
+        {required && <span style={{ color: 'var(--theme-3)', marginLeft: 4 }}>*</span>}
       </label>
       {child}
       {error && (

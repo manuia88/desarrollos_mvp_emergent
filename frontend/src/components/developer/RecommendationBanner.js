@@ -64,8 +64,8 @@ export default function RecommendationBanner() {
     <div
       data-testid="recommendation-banner"
       style={{
-        background: 'rgba(99,102,241,0.08)',
-        borderBottom: '1px solid rgba(99,102,241,0.20)',
+        background: 'rgba(var(--theme-rgb),0.08)',
+        borderBottom: '1px solid rgba(var(--theme-rgb),0.20)',
         padding: '8px 20px',
         display: 'flex',
         alignItems: 'center',
@@ -101,7 +101,7 @@ export default function RecommendationBanner() {
         style={{
           fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
           padding: '5px 16px', borderRadius: 9999,
-          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           color: '#fff', textDecoration: 'none',
           whiteSpace: 'nowrap', flexShrink: 0,
           transition: 'opacity 0.15s',

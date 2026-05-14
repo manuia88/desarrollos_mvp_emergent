@@ -46,8 +46,8 @@ export function Badge({ children, tone = 'neutral' }) {
     ok:      { bg: 'rgba(34,197,94,0.15)',  bo: 'rgba(34,197,94,0.38)',  fg: '#86efac' },
     warn:    { bg: 'rgba(245,158,11,0.15)', bo: 'rgba(245,158,11,0.38)', fg: '#fcd34d' },
     bad:     { bg: 'rgba(239,68,68,0.15)',  bo: 'rgba(239,68,68,0.38)',  fg: '#fca5a5' },
-    brand:   { bg: 'rgba(99,102,241,0.12)', bo: 'rgba(99,102,241,0.32)', fg: '#a5b4fc' },
-    pink:    { bg: 'rgba(236,72,153,0.12)', bo: 'rgba(236,72,153,0.32)', fg: '#f9a8d4' },
+    brand:   { bg: 'rgba(var(--theme-rgb),0.12)', bo: 'rgba(var(--theme-rgb),0.32)', fg: 'var(--theme)' },
+    pink:    { bg: 'rgba(var(--theme-rgb),0.12)', bo: 'rgba(var(--theme-rgb),0.32)', fg: '#f9a8d4' },
   };
   const p = palette[tone] || palette.neutral;
   return (
@@ -78,7 +78,7 @@ export function Empty({ title, sub, cta }) {
 
 export function Toast({ kind = 'info', text, onClose }) {
   const tones = {
-    info: { bg: 'rgba(99,102,241,0.18)', bo: 'rgba(99,102,241,0.42)', fg: '#e0e7ff' },
+    info: { bg: 'rgba(var(--theme-rgb),0.18)', bo: 'rgba(var(--theme-rgb),0.42)', fg: '#e0e7ff' },
     success: { bg: 'rgba(34,197,94,0.18)', bo: 'rgba(34,197,94,0.42)', fg: '#bbf7d0' },
     error: { bg: 'rgba(239,68,68,0.18)', bo: 'rgba(239,68,68,0.42)', fg: '#fecaca' },
   };

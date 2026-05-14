@@ -6,10 +6,10 @@ import { Sparkle, FileText, Cloud, RefreshCw } from '../icons';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const SOURCE_BADGES = {
-  manual_edit:   { label: 'manual',         bg: 'rgba(99,102,241,0.18)', fg: '#c7d2fe', border: 'rgba(99,102,241,0.32)' },
+  manual_edit:   { label: 'manual',         bg: 'rgba(var(--theme-rgb),0.18)', fg: 'var(--theme)', border: 'rgba(var(--theme-rgb),0.32)' },
   auto_sync:     { label: 'auto-sync',      bg: 'rgba(34,197,94,0.16)',  fg: '#86efac', border: 'rgba(34,197,94,0.32)' },
   drive_sheets:  { label: 'sheets',         bg: 'rgba(59,130,246,0.16)', fg: '#93c5fd', border: 'rgba(59,130,246,0.32)' },
-  drive_webhook: { label: 'drive · webhook', bg: 'rgba(236,72,153,0.16)', fg: '#f9a8d4', border: 'rgba(236,72,153,0.32)' },
+  drive_webhook: { label: 'drive · webhook', bg: 'rgba(var(--theme-rgb),0.16)', fg: '#f9a8d4', border: 'rgba(var(--theme-rgb),0.32)' },
   drive_watcher: { label: 'drive · cron',    bg: 'rgba(168,85,247,0.16)', fg: '#e9d5ff', border: 'rgba(168,85,247,0.32)' },
   bulk_upload:   { label: 'bulk',           bg: 'rgba(245,158,11,0.16)', fg: '#fcd34d', border: 'rgba(245,158,11,0.32)' },
   system:        { label: 'system',         bg: 'rgba(255,255,255,0.06)', fg: 'var(--cream-3)', border: 'var(--border)' },
@@ -92,7 +92,7 @@ export default function UnitsHistoryTimeline({ devId, role = 'developer_admin', 
         borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden',
         background: 'rgba(255,255,255,0.02)',
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: compact ? '1.4fr 1fr 1.6fr 0.9fr' : '1.4fr 0.9fr 1.4fr 1.4fr 0.9fr 1fr', gap: 0, padding: '8px 14px', background: 'rgba(99,102,241,0.06)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: compact ? '1.4fr 1fr 1.6fr 0.9fr' : '1.4fr 0.9fr 1.4fr 1.4fr 0.9fr 1fr', gap: 0, padding: '8px 14px', background: 'rgba(var(--theme-rgb),0.06)', borderBottom: '1px solid var(--border)' }}>
           {(compact
               ? ['Unidad', 'Campo', 'Cambio', 'Origen']
               : ['Unidad', 'Campo', 'Antes', 'Después', 'Origen', 'Cuándo']
@@ -132,7 +132,7 @@ export default function UnitsHistoryTimeline({ devId, role = 'developer_admin', 
                 }}>{badge.label}</span>
                 {h.source_doc_id && (
                   <a href={`#doc-${h.source_doc_id}`} title={`Doc fuente: ${h.source_doc_id}`} style={{
-                    marginLeft: 6, fontFamily: 'DM Mono', fontSize: 9, color: '#a5b4fc',
+                    marginLeft: 6, fontFamily: 'DM Mono', fontSize: 9, color: 'var(--theme)',
                     textDecoration: 'none',
                   }}>
                     <FileText size={9} /> doc

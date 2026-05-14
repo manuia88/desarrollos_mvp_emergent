@@ -33,15 +33,15 @@ function SparkArea({ data, keyY = 'median_price_per_m2' }) {
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H }} data-testid="price-index-sparkline">
         <defs>
           <linearGradient id="pi_grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6366F1" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#6366F1" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="var(--theme)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--theme)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
         <path d={areaPath} fill="url(#pi_grad)" />
-        <path d={linePath} fill="none" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" />
+        <path d={linePath} fill="none" stroke="var(--theme)" strokeWidth="2" strokeLinecap="round" />
         {pts.map((p, i) => (
           <g key={i}>
-            <circle cx={p.x} cy={p.y} r={3} fill="#6366F1" opacity={0.8} />
+            <circle cx={p.x} cy={p.y} r={3} fill="var(--theme)" opacity={0.8} />
             {i % Math.max(1, Math.floor(pts.length / 6)) === 0 && (
               <text x={p.x} y={H - 1} textAnchor="middle" fontSize="7"
                 fill="rgba(240,235,224,0.35)" fontFamily="DM Mono, monospace">
@@ -92,9 +92,9 @@ export default function PriceIndexChart({ zone_id }) {
               onClick={() => setPeriod(p.value)}
               style={{
                 padding: '4px 10px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11,
-                background: period === p.value ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${period === p.value ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                color: period === p.value ? '#a5b4fc' : 'var(--cream-3)',
+                background: period === p.value ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${period === p.value ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.08)'}`,
+                color: period === p.value ? 'var(--theme)' : 'var(--cream-3)',
               }}>
               {p.label}
             </button>
@@ -120,7 +120,7 @@ export default function PriceIndexChart({ zone_id }) {
         <>
           {/* Current KPIs */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 120px', padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+            <div style={{ flex: '1 1 120px', padding: '10px 12px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.2)' }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 9, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', marginBottom: 3 }}>Mediana /m²</div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
                 {fmtK(current.median_price_per_m2)}

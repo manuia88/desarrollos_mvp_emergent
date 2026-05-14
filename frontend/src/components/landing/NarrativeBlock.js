@@ -48,8 +48,8 @@ export default function NarrativeBlock({ scope = 'colonia', entityId, compact = 
   return (
     <div data-testid={`narrative-${scope}-${entityId}`} style={{
       padding: '18px 22px',
-      background: 'linear-gradient(135deg, rgba(99,102,241,0.07), rgba(236,72,153,0.04))',
-      border: '1px solid rgba(236,72,153,0.22)',
+      background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.07), rgba(var(--theme-rgb),0.04))',
+      border: '1px solid rgba(var(--theme-rgb),0.22)',
       borderRadius: 16,
     }}>
       <div className="eyebrow" style={{ marginBottom: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>

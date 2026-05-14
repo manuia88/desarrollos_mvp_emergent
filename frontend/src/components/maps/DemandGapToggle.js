@@ -13,7 +13,7 @@ export default function DemandGapToggle({ active, onToggle, disabled }) {
       title={disabled ? 'Inicia sesión para ver Demand Gap' : 'Toggle Demand Gap heatmap'}
       style={{
         padding: '8px 14px', borderRadius: 9999, border: 'none',
-        background: active ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.05)',
+        background: active ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'rgba(255,255,255,0.05)',
         borderColor: active ? 'transparent' : 'rgba(255,255,255,0.12)',
         borderStyle: 'solid', borderWidth: 1,
         color: active ? '#fff' : (disabled ? 'rgba(240,235,224,0.3)' : 'rgba(240,235,224,0.7)'),

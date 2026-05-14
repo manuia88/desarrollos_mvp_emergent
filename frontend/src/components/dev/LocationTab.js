@@ -9,7 +9,7 @@ const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const POI_CATEGORIES = [
   { k: 'schools', label: 'Escuelas', color: '#22C55E' },
-  { k: 'hospitals', label: 'Hospitales', color: '#EC4899' },
+  { k: 'hospitals', label: 'Hospitales', color: 'var(--theme-3)' },
   { k: 'metro', label: 'Metro', color: '#F59E0B' },
   { k: 'parks', label: 'Parques', color: '#10B981' },
   { k: 'supermarkets', label: 'Super', color: '#A78BFA' },
@@ -59,9 +59,9 @@ export default function LocationTab({ dev, user, onGateOpen }) {
     markerEl.style.width = '26px';
     markerEl.style.height = '26px';
     markerEl.style.borderRadius = '9999px';
-    markerEl.style.background = 'linear-gradient(135deg, #6366F1, #EC4899)';
+    markerEl.style.background = 'linear-gradient(135deg, var(--theme), var(--theme-3))';
     markerEl.style.border = '3px solid #fff';
-    markerEl.style.boxShadow = '0 0 16px rgba(99,102,241,0.8)';
+    markerEl.style.boxShadow = '0 0 16px rgba(var(--theme-rgb),0.8)';
     new mapboxgl.Marker({ element: markerEl }).setLngLat(dev.center).addTo(map);
 
     return () => { map.remove(); mapRef.current = null; };
@@ -176,8 +176,8 @@ export default function LocationTab({ dev, user, onGateOpen }) {
           <button onClick={() => onGateOpen(t('dev.gate_context_landmarks'))} data-testid="gate-open-from-landmarks"
             style={{
               padding: 18, width: '100%',
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px dashed rgba(99,102,241,0.30)',
+              background: 'rgba(var(--theme-rgb),0.06)',
+              border: '1px dashed rgba(var(--theme-rgb),0.30)',
               borderRadius: 14,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               fontFamily: 'DM Sans', fontSize: 13, color: 'var(--indigo-3)',

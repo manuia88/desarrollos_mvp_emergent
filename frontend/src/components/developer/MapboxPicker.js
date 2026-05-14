@@ -32,7 +32,7 @@ export default function MapboxPicker({ lat, lng, zoom = 13, onSave, readOnly = f
 
     // Marker
     const el = document.createElement('div');
-    el.style.cssText = 'width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#EC4899,#6366F1);border:2px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,0.5);cursor:pointer;';
+    el.style.cssText = 'width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--theme-3),var(--theme));border:2px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,0.5);cursor:pointer;';
     const marker = new mapboxgl.Marker({ element: el, draggable: !readOnly })
       .setLngLat([coords.lng, coords.lat])
       .addTo(map);

@@ -81,7 +81,7 @@ export default function InlineEditableField({
             style={{
               flex: '1 1 200px', padding: '6px 10px', borderRadius: 8,
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(99,102,241,0.45)',
+              border: '1px solid rgba(var(--theme-rgb),0.45)',
               color: 'var(--cream)', fontFamily: fontFam, fontSize: 12, outline: 'none', resize: 'vertical',
             }}
           />
@@ -97,7 +97,7 @@ export default function InlineEditableField({
             style={{
               flex: '1 1 120px', padding: '5px 10px', borderRadius: 9999,
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(99,102,241,0.45)',
+              border: '1px solid rgba(var(--theme-rgb),0.45)',
               color: 'var(--cream)', fontFamily: fontFam, fontSize: 12, outline: 'none', minWidth: 80,
             }}
           />
@@ -132,7 +132,7 @@ export default function InlineEditableField({
         <button data-testid={`${testId}-edit-btn`} onClick={start} title="Editar"
           style={{
             padding: '2px 5px', borderRadius: 9999, background: 'transparent', border: 'none',
-            color: 'rgba(99,102,241,0.65)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
+            color: 'rgba(var(--theme-rgb),0.65)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
           }}><Edit3 size={10} /></button>
       )}
     </span>

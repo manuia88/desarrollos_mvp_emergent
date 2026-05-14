@@ -109,19 +109,19 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
               </span>
             )}
             {overrideCount > 0 && (
-              <span title={`${overrideCount} ediciones inline aplicadas`} style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(99,102,241,0.10)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.32)', fontFamily: 'DM Sans', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <span title={`${overrideCount} ediciones inline aplicadas`} style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)', border: '1px solid rgba(var(--theme-rgb),0.32)', fontFamily: 'DM Sans', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <Check size={9} /> Editado ({overrideCount})
               </span>
             )}
             {historyCount > 0 && (
-              <span title={`${historyCount} extracciones previas`} style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(236,72,153,0.10)', color: '#EC4899', border: '1px solid rgba(236,72,153,0.32)', fontFamily: 'DM Sans', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <span title={`${historyCount} extracciones previas`} style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)', border: '1px solid rgba(var(--theme-rgb),0.32)', fontFamily: 'DM Sans', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <History size={9} /> Recomputado ({historyCount})
               </span>
             )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-            <MapPin size={10} color="rgba(240,235,224,0.40)" />
+            <MapPin size={10} color="rgba(240, 235, 224, 0.68)" />
             <InlineEditableField
               testId={`field-address-${item.id}`}
               value={e.address_full}
@@ -156,23 +156,23 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
                 type="number" mono placeholder="—"
               />
             </span>
-            {(priceMin || priceMax) && <span style={{ color: 'rgba(240,235,224,0.40)' }}>· {priceMin || '—'} a {priceMax || '—'}</span>}
+            {(priceMin || priceMax) && <span style={{ color: 'rgba(240, 235, 224, 0.68)' }}>· {priceMin || '—'} a {priceMax || '—'}</span>}
             {(e.amenities || []).length > 0 && <span>{e.amenities.length} amenidades</span>}
-            <span style={{ color: 'rgba(240,235,224,0.40)' }}>· {item.source_files?.length || 0} archivos</span>
+            <span style={{ color: 'rgba(240, 235, 224, 0.68)' }}>· {item.source_files?.length || 0} archivos</span>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button data-testid={`review-recompute-${item.id}`} onClick={doRecompute} disabled={recomputing || busy} title="Re-extraer con Claude"
-            style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.32)', color: '#EC4899', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: recomputing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: recomputing ? 0.7 : 1 }}>
+            style={{ padding: '7px 12px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.32)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: recomputing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: recomputing ? 0.7 : 1 }}>
             <RefreshCw size={11} className={recomputing ? 'animate-spin' : ''} /> {recomputing ? 'Procesando…' : 'Re-extraer'}
           </button>
           <button data-testid={`review-approve-${item.id}`} onClick={doApprove} disabled={busy}
-            style={{ padding: '7px 13px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: busy ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: busy ? 0.7 : 1 }}>
+            style={{ padding: '7px 13px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: busy ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: busy ? 0.7 : 1 }}>
             <Check size={11} /> Aprobar
           </button>
           <button data-testid={`review-merge-${item.id}`} onClick={() => setShowDiff(s => !s)}
-            style={{ padding: '7px 12px', borderRadius: 9999, background: showDiff ? 'rgba(99,102,241,0.20)' : 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.32)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            style={{ padding: '7px 12px', borderRadius: 9999, background: showDiff ? 'rgba(var(--theme-rgb),0.20)' : 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.32)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
             <GitMerge size={11} /> {showDiff ? 'Cerrar diff' : 'Comparar / Fusionar'}
           </button>
           <button data-testid={`review-reject-${item.id}`} onClick={() => setShowReject(s => !s)}
@@ -184,8 +184,8 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
 
       {/* Dedup matches summary */}
       {matches.length > 0 && !showDiff && (
-        <div style={{ padding: '8px 11px', borderRadius: 9, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.20)' }}>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+        <div style={{ padding: '8px 11px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.20)' }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
             Posibles coincidencias (top {matches.length})
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -233,7 +233,7 @@ export default function ReviewQueueItem({ item: itemProp, onApprove, onReject, o
       {/* Toggle expand to show units */}
       {(e.units || []).length > 0 && (
         <button onClick={() => setExpanded(x => !x)} data-testid={`review-expand-${item.id}`}
-          style={{ alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(99,102,241,0.85)', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600 }}>
+          style={{ alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(var(--theme-rgb),0.85)', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600 }}>
           {expanded ? 'Ocultar' : `Ver ${e.units.length} prototipos`}
         </button>
       )}

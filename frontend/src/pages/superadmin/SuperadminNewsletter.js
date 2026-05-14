@@ -3,12 +3,13 @@
  * 4 segmentos · preview · envío manual · historial · stats opt-in/opt-out
  */
 import React, { useCallback, useEffect, useState } from "react";
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const SEGMENTS = [
-  { key: "dev", label: "Desarrolladores", color: "#6366F1" },
-  { key: "asesor", label: "Asesores", color: "#EC4899" },
+  { key: "dev", label: "Desarrolladores", color: "var(--theme)" },
+  { key: "asesor", label: "Asesores", color: "var(--theme)" },
   { key: "buyer", label: "Compradores", color: "#f59e0b" },
   { key: "inversionista", label: "Inversionistas", color: "#22c55e" },
 ];
@@ -24,7 +25,7 @@ async function apiFetch(path, opts = {}) {
 
 function StatusBadge({ status }) {
   const MAP = {
-    generated: { bg: "rgba(99,102,241,0.15)", border: "rgba(99,102,241,0.3)", color: "#a5b4fc" },
+    generated: { bg: "rgba(var(--theme-rgb),0.15)", border: "rgba(var(--theme-rgb),0.3)", color: "var(--theme)" },
     sending:   { bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)", color: "#fcd34d" },
     sent:      { bg: "rgba(34,197,94,0.12)",  border: "rgba(34,197,94,0.3)",  color: "#86efac" },
     failed:    { bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.3)",  color: "#fca5a5" },
@@ -99,7 +100,7 @@ export default function SuperadminNewsletter() {
     padding: "8px 18px",
     borderRadius: "9999px",
     border: "none",
-    background: activeTab === t ? "linear-gradient(90deg,#6366F1,#EC4899)" : "rgba(255,255,255,0.05)",
+    background: activeTab === t ? "linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))" : "rgba(255,255,255,0.05)",
     color: activeTab === t ? "#fff" : "rgba(240,235,224,0.6)",
     fontFamily: "DM Sans",
     fontSize: 13,
@@ -109,13 +110,13 @@ export default function SuperadminNewsletter() {
   });
 
   return (
-    <div data-testid="superadmin-newsletter" style={{ padding: "28px 32px", minHeight: "100vh", background: "#06080F", color: "#F0EBE0" }}>
+    <SuperadminLayout><div data-testid="superadmin-newsletter" style={{ padding: "28px 32px", color: "var(--cream)" }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <div style={{
             width: 36, height: 36, borderRadius: "9999px",
-            background: "linear-gradient(135deg,#6366F1,#EC4899)",
+            background: "linear-gradient(135deg,var(--theme),var(--theme))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -187,7 +188,7 @@ export default function SuperadminNewsletter() {
                     <div style={{ fontFamily: "Outfit", fontWeight: 800, fontSize: 26, color: "#F0EBE0" }}>
                       {s.sent_runs || 0}
                     </div>
-                    <div style={{ fontFamily: "DM Sans", fontSize: 10.5, color: "rgba(240,235,224,0.45)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <div style={{ fontFamily: "DM Sans", fontSize: 10.5, color: "rgba(240, 235, 224, 0.70)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Runs enviados
                     </div>
                   </div>
@@ -195,7 +196,7 @@ export default function SuperadminNewsletter() {
                     <div style={{ fontFamily: "Outfit", fontWeight: 800, fontSize: 26, color: "#F0EBE0" }}>
                       {s.opt_ins || 0}
                     </div>
-                    <div style={{ fontFamily: "DM Sans", fontSize: 10.5, color: "rgba(240,235,224,0.45)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <div style={{ fontFamily: "DM Sans", fontSize: 10.5, color: "rgba(240, 235, 224, 0.70)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Opt-ins activos
                     </div>
                   </div>
@@ -223,7 +224,7 @@ export default function SuperadminNewsletter() {
                     disabled={sending[seg.key]}
                     style={{
                       padding: "7px 14px", borderRadius: 9999,
-                      background: sending[seg.key] ? "rgba(99,102,241,0.3)" : "linear-gradient(90deg,#6366F1,#EC4899)",
+                      background: sending[seg.key] ? "rgba(var(--theme-rgb),0.3)" : "linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))",
                       border: "none", color: "#fff", fontFamily: "DM Sans", fontSize: 12, fontWeight: 700,
                       cursor: sending[seg.key] ? "not-allowed" : "pointer",
                       flex: 1,
@@ -283,7 +284,7 @@ export default function SuperadminNewsletter() {
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
-                  <span style={{ fontSize: 11.5, fontFamily: "DM Sans", color: "rgba(240,235,224,0.45)" }}>
+                  <span style={{ fontSize: 11.5, fontFamily: "DM Sans", color: "rgba(240, 235, 224, 0.70)" }}>
                     {r.generated_at ? new Date(r.generated_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) : "—"}
                   </span>
                   <span style={{ fontSize: 11, color: "rgba(240,235,224,0.35)", fontFamily: "DM Sans" }}>
@@ -295,6 +296,6 @@ export default function SuperadminNewsletter() {
           )}
         </div>
       )}
-    </div>
+    </div></SuperadminLayout>
   );
 }

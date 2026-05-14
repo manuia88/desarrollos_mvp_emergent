@@ -18,26 +18,11 @@ function Card({ Icon, label, value, sub, accent, route, testid }) {
     <button
       data-testid={testid}
       onClick={() => route && navigate(route)}
+      className={`sa-kpi-card${route ? ' sa-kpi-card--clickable' : ''}`}
       style={{
-        flex: '1 1 200px', minWidth: 180, padding: '14px 16px',
-        borderRadius: 14,
-        background: 'rgba(255,255,255,0.03)',
-        border: `1px solid ${accent || 'rgba(255,255,255,0.07)'}`,
-        backdropFilter: 'blur(12px)',
-        cursor: route ? 'pointer' : 'default',
+        flex: '1 1 200px', minWidth: 180,
         textAlign: 'left',
         display: 'flex', flexDirection: 'column', gap: 7,
-        transition: 'background 180ms, transform 180ms, border-color 180ms',
-      }}
-      onMouseEnter={(e) => {
-        if (route) {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.background = 'rgba(99,102,241,0.07)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -54,7 +39,7 @@ function Card({ Icon, label, value, sub, accent, route, testid }) {
       {sub && (
         <div style={{
           fontFamily: 'DM Mono, monospace', fontSize: 10.5,
-          color: 'rgba(240,235,224,0.45)',
+          color: 'rgba(240, 235, 224, 0.70)',
         }}>{sub}</div>
       )}
     </button>

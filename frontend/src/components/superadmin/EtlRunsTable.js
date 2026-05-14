@@ -48,14 +48,14 @@ function Row({ run, density }) {
           borderBottom: '1px solid rgba(255,255,255,0.04)',
           transition: 'background 180ms',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.05)'}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.05)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       >
         <td style={{ padding: rowPad, fontFamily: 'DM Mono, monospace',
           fontSize: dense ? 11 : 12, color: 'rgba(240,235,224,0.65)',
           whiteSpace: 'nowrap' }}>
           <div>{fmtDate(run.run_at)}</div>
-          <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.40)' }}>{fmtRel(run.run_at)}</div>
+          <div style={{ fontSize: 10, color: 'rgba(240, 235, 224, 0.68)' }}>{fmtRel(run.run_at)}</div>
         </td>
         <td style={{ padding: rowPad }}>
           <span style={{
@@ -81,12 +81,12 @@ function Row({ run, density }) {
         </td>
         <td style={{ padding: rowPad, textAlign: 'right',
           fontFamily: 'DM Mono, monospace', fontSize: dense ? 11 : 12,
-          color: (run.errors_total || 0) > 0 ? '#F87171' : 'rgba(240,235,224,0.40)' }}>
+          color: (run.errors_total || 0) > 0 ? '#F87171' : 'rgba(240, 235, 224, 0.68)' }}>
           {run.errors_total || 0}
         </td>
         <td style={{ padding: rowPad, textAlign: 'center', width: 32 }}>
           <ChevronDown size={11} style={{
-            color: 'rgba(240,235,224,0.50)',
+            color: 'rgba(240, 235, 224, 0.72)',
             transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
             transition: 'transform 180ms',
           }} />
@@ -130,7 +130,7 @@ export default function EtlRunsTable({ items, density = 'compact' }) {
         padding: 30, textAlign: 'center', borderRadius: 14,
         background: 'rgba(255,255,255,0.02)',
         border: '1px solid rgba(255,255,255,0.07)',
-        fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.45)',
+        fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240, 235, 224, 0.70)',
       }}>Sin runs ETL todavía. El cron corre diario a las 03:00 MX.</div>
     );
   }

@@ -53,9 +53,9 @@ function TrendSparkline({ trend = [] }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80, display: 'block' }}
          data-testid="resumen-trend">
-      <path d={path} fill="none" stroke="#EC4899" strokeWidth="1.6" />
+      <path d={path} fill="none" stroke="var(--theme-3)" strokeWidth="1.6" />
       {trend.map((t, i) => (
-        <circle key={i} cx={xs[i]} cy={yFor(t.value)} r={1.6} fill="#EC4899" />
+        <circle key={i} cx={xs[i]} cy={yFor(t.value)} r={1.6} fill="var(--theme-3)" />
       ))}
     </svg>
   );
@@ -147,13 +147,13 @@ export default function InsightsResumen({ projectId }) {
 
       {/* Narrative */}
       <div data-testid="resumen-narrative" style={{
-        background: 'rgba(99,102,241,0.06)',
-        border: '1px solid rgba(99,102,241,0.20)',
+        background: 'rgba(var(--theme-rgb),0.06)',
+        border: '1px solid rgba(var(--theme-rgb),0.20)',
         borderRadius: 14, padding: 16,
       }}>
         <div style={{
           fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
-          color: '#a5b4fc', marginBottom: 8,
+          color: 'var(--theme)', marginBottom: 8,
         }}>Resumen ejecutivo · IA</div>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: 'var(--cream-2)', fontFamily: 'DM Sans, sans-serif' }}>
           {data.summary_text || 'Sin resumen disponible.'}

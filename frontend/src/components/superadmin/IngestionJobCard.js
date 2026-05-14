@@ -16,7 +16,7 @@ function fmtRel(iso) {
 
 const STATUS_CFG = {
   pending:    { label: 'Pendiente',  color: 'rgba(240,235,224,0.55)', bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.12)' },
-  extracting: { label: 'Extrayendo', color: '#818CF8', bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.32)' },
+  extracting: { label: 'Extrayendo', color: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.32)' },
   reviewing:  { label: 'Revisión',   color: '#FACC15', bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.32)' },
   completed:  { label: 'Completo',   color: '#4ADE80', bg: 'rgba(74,222,128,0.10)', bd: 'rgba(74,222,128,0.32)' },
   failed:     { label: 'Falló',      color: '#F87171', bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.32)' },
@@ -47,12 +47,12 @@ export default function IngestionJobCard({ job, onOpen }) {
             {isLive && <span style={{ marginLeft: 4, animation: 'pulse 1.5s infinite' }}>·</span>}
           </span>
           {job.target_dev_org_id && (
-            <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(240,235,224,0.50)', fontFamily: 'DM Mono, monospace' }}>
+            <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(240, 235, 224, 0.72)', fontFamily: 'DM Mono, monospace' }}>
               {job.target_dev_org_id}
             </span>
           )}
         </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.45)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240, 235, 224, 0.70)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {job.drive_folder_url}
         </div>
         <div style={{ display: 'flex', gap: 12, fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.55)', flexWrap: 'wrap' }}>
@@ -60,7 +60,7 @@ export default function IngestionJobCard({ job, onOpen }) {
           <span>Total: {job.items_total}</span>
           <span style={{ color: '#4ADE80' }}>Aprobados: {job.items_auto_approved}</span>
           <span style={{ color: '#FACC15' }}>Pendientes: {job.items_pending_review}</span>
-          {job.items_rejected > 0 && <span style={{ color: 'rgba(240,235,224,0.45)' }}>Rechazados: {job.items_rejected}</span>}
+          {job.items_rejected > 0 && <span style={{ color: 'rgba(240, 235, 224, 0.70)' }}>Rechazados: {job.items_rejected}</span>}
           {job.items_failed > 0 && <span style={{ color: '#F87171' }}><AlertCircle size={10} style={{ verticalAlign: 'middle', marginRight: 3 }} />{job.items_failed}</span>}
         </div>
       </div>

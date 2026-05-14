@@ -43,11 +43,11 @@ export default function CapModal({ tenant, existingCap, onClose, onSaved }) {
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="cap-modal" style={{
         width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(99,102,241,0.30)', borderRadius: 14,
+        border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14,
         padding: 22, display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <DollarSign size={14} color="#818CF8" />
+          <DollarSign size={14} color="var(--theme)" />
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0, flex: 1 }}>
             {isEdit ? 'Editar tope' : 'Configurar tope'} · {tenant.name || tenant.tenant_id}
           </h3>
@@ -71,13 +71,13 @@ export default function CapModal({ tenant, existingCap, onClose, onSaved }) {
             <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
               Alerta a {threshold}% del tope
             </span>
-            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#818CF8' }}>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--theme)' }}>
               {Math.round(monthly * threshold / 100)} MXN
             </span>
           </div>
           <input data-testid="cap-threshold" type="range" min="50" max="95" value={threshold}
             onChange={e => setThreshold(e.target.value)}
-            style={{ accentColor: '#6366F1' }} />
+            style={{ accentColor: 'var(--theme)' }} />
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -121,7 +121,7 @@ export default function CapModal({ tenant, existingCap, onClose, onSaved }) {
             Cancelar
           </button>
           <button data-testid="cap-save" onClick={submit} disabled={busy}
-            style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+            style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
             {busy ? 'Guardando…' : 'Guardar tope'}
           </button>
         </div>

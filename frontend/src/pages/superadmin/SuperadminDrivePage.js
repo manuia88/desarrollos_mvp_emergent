@@ -99,7 +99,7 @@ export default function SuperadminDrivePage({ user, onLogout }) {
             borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden',
             background: 'rgba(255,255,255,0.02)',
           }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.4fr 1fr', gap: 0, padding: '10px 16px', background: 'rgba(99,102,241,0.06)', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1.4fr 1fr', gap: 0, padding: '10px 16px', background: 'rgba(var(--theme-rgb),0.06)', borderBottom: '1px solid var(--border)' }}>
               {['Desarrollo', 'Carpeta Drive', 'Estado', 'Sync', 'Último audit', 'Acciones'].map((h, i) => (
                 <div key={i} className="eyebrow" style={{ fontSize: 10 }}>{h}</div>
               ))}
@@ -118,7 +118,7 @@ export default function SuperadminDrivePage({ user, onLogout }) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {c.folder_id ? (
-                    <><Folder size={11} color="#a5b4fc" /> {c.folder_name || c.folder_id}</>
+                    <><Folder size={11} color="var(--theme)" /> {c.folder_name || c.folder_id}</>
                   ) : (
                     <span style={{ color: 'var(--cream-3)', fontStyle: 'italic' }}>sin carpeta</span>
                   )}
@@ -142,8 +142,8 @@ export default function SuperadminDrivePage({ user, onLogout }) {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,
                       padding: '5px 10px', borderRadius: 9999,
-                      background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.32)',
-                      color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600,
+                      background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+                      color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600,
                       cursor: c.folder_id ? 'pointer' : 'not-allowed', opacity: c.folder_id ? 1 : 0.5,
                     }}
                   >

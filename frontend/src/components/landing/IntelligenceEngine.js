@@ -95,8 +95,8 @@ export default function IntelligenceEngine() {
                   <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                     <div style={{
                       width: 40, height: 40, flexShrink: 0,
-                      background: 'rgba(99,102,241,0.10)',
-                      border: '1px solid rgba(99,102,241,0.24)',
+                      background: 'rgba(var(--theme-rgb),0.10)',
+                      border: '1px solid rgba(var(--theme-rgb),0.24)',
                       borderRadius: 12,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
@@ -158,8 +158,8 @@ export default function IntelligenceEngine() {
                 data-testid="ie-full-report-btn"
                 style={{
                   marginTop: 20, width: '100%',
-                  background: 'rgba(99,102,241,0.10)',
-                  border: '1px solid rgba(99,102,241,0.24)',
+                  background: 'rgba(var(--theme-rgb),0.10)',
+                  border: '1px solid rgba(var(--theme-rgb),0.24)',
                   borderRadius: 9999,
                   padding: '11px 16px',
                   fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
@@ -167,8 +167,8 @@ export default function IntelligenceEngine() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   transition: 'background 0.2s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.18)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.10)'}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.18)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'}
               >
                 {t('ie.full_report')} <ArrowRight size={13} color="var(--indigo-3)" />
               </button>

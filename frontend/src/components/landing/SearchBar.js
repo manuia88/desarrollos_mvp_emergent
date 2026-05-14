@@ -44,7 +44,7 @@ export default function SearchBar() {
               padding: '6px 16px',
               borderRadius: 9999,
               border: 'none',
-              background: activeTab === tab.key ? 'rgba(99,102,241,0.12)' : 'transparent',
+              background: activeTab === tab.key ? 'rgba(var(--theme-rgb),0.12)' : 'transparent',
               color: activeTab === tab.key ? 'var(--indigo-3)' : 'var(--cream-3)',
               fontFamily: 'DM Sans',
               fontWeight: activeTab === tab.key ? 600 : 400,
@@ -80,7 +80,7 @@ export default function SearchBar() {
               outline: 'none',
               transition: 'border-color 0.2s',
             }}
-            onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.4)'}
+            onFocus={e => e.target.style.borderColor = 'rgba(var(--theme-rgb),0.4)'}
             onBlur={e => e.target.style.borderColor = 'var(--border)'}
           />
         </div>

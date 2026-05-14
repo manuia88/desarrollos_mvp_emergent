@@ -10,7 +10,7 @@ const SOURCE_LABEL = {
   notary_partner: 'Notaría', bulk_ingest: 'Importación',
 };
 const SOURCE_COLOR = {
-  dmx_native: '#6366F1', dev_self_report: '#EC4899',
+  dmx_native: 'var(--theme)', dev_self_report: 'var(--theme)',
   notary_partner: '#22C55E', bulk_ingest: '#F59E0B',
 };
 
@@ -53,8 +53,8 @@ function SourcePill({ source }) {
   return (
     <span style={{
       padding: '2px 8px', borderRadius: 9999,
-      background: `${SOURCE_COLOR[source]}20` || 'rgba(99,102,241,0.12)',
-      color: SOURCE_COLOR[source] || '#a5b4fc',
+      background: `${SOURCE_COLOR[source]}20` || 'rgba(var(--theme-rgb),0.12)',
+      color: SOURCE_COLOR[source] || 'var(--theme)',
       fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600,
       border: `1px solid ${SOURCE_COLOR[source]}40`,
     }}>
@@ -67,9 +67,9 @@ function TypePill({ type }) {
   return (
     <span style={{
       padding: '2px 8px', borderRadius: 9999,
-      background: 'rgba(99,102,241,0.10)',
-      border: '1px solid rgba(99,102,241,0.22)',
-      color: '#c7d2fe',
+      background: 'rgba(var(--theme-rgb),0.10)',
+      border: '1px solid rgba(var(--theme-rgb),0.22)',
+      color: 'var(--theme)',
       fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600,
     }}>
       {type}
@@ -83,9 +83,9 @@ function ChipFilter({ label, active, onClick }) {
       onClick={onClick}
       style={{
         padding: '4px 12px', borderRadius: 9999, cursor: 'pointer',
-        background: active ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${active ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-        color: active ? '#a5b4fc' : 'var(--cream-3)',
+        background: active ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${active ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.08)'}`,
+        color: active ? 'var(--theme)' : 'var(--cream-3)',
         fontFamily: 'DM Sans', fontSize: 11, transition: 'all 180ms',
       }}
     >
@@ -155,7 +155,7 @@ export default function TransactionFeed({ zone_id }) {
           </div>
           <Link
             to={`/superadmin/transactions`}
-            style={{ fontFamily: 'DM Sans', fontSize: 11, color: '#a5b4fc', marginTop: 6, display: 'block' }}
+            style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--theme)', marginTop: 6, display: 'block' }}
           >
             Ver todas las zonas
           </Link>
@@ -195,7 +195,7 @@ export default function TransactionFeed({ zone_id }) {
                   <tr key={tx.anonymized_id || i}
                     data-testid={`txn-row-${i}`}
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 160ms' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.05)'; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.05)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >
                     <td style={{ padding: '7px 10px', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>

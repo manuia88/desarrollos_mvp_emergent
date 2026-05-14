@@ -14,14 +14,14 @@ const ACTIONS = ['create', 'update', 'delete', 'revert'];
 
 const ACTION_STYLE = {
   create:  { bg: 'rgba(34,197,94,0.12)',  color: '#22c55e', label: 'CREAR' },
-  update:  { bg: 'rgba(99,102,241,0.12)', color: '#6366F1', label: 'EDITAR' },
+  update:  { bg: 'rgba(var(--theme-rgb),0.12)', color: 'var(--theme)', label: 'EDITAR' },
   delete:  { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444', label: 'ELIMINAR' },
   revert:  { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', label: 'REVERTIR' },
 };
 
 const ROLE_STYLE = {
-  superadmin:      { color: '#EC4899' },
-  developer_admin: { color: '#6366F1' },
+  superadmin:      { color: 'var(--theme)' },
+  developer_admin: { color: 'var(--theme)' },
   advisor:         { color: '#22c55e' },
   asesor_admin:    { color: '#f59e0b' },
   buyer:           { color: '#94a3b8' },
@@ -127,7 +127,7 @@ function DiffDrawer({ entry, onClose }) {
             <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>Campos modificados</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {entry.diff_keys.map(k => (
-                <span key={k} style={{ background: 'rgba(99,102,241,0.13)', color: '#a5b4fc', borderRadius: 5, padding: '2px 9px', fontFamily: 'DM Mono, monospace', fontSize: 11 }}>
+                <span key={k} style={{ background: 'rgba(var(--theme-rgb),0.13)', color: 'var(--theme)', borderRadius: 5, padding: '2px 9px', fontFamily: 'DM Mono, monospace', fontSize: 11 }}>
                   {k}
                 </span>
               ))}
@@ -219,7 +219,7 @@ export default function AuditLogPage({ user, onLogout }) {
           </div>
           <button onClick={load} data-testid="audit-refresh-btn" disabled={loading} style={{
             display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px',
-            background: 'rgba(99,102,241,0.13)', border: '1px solid rgba(99,102,241,0.3)',
+            background: 'rgba(var(--theme-rgb),0.13)', border: '1px solid rgba(var(--theme-rgb),0.3)',
             borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)',
             opacity: loading ? 0.6 : 1,
           }}>
@@ -231,7 +231,7 @@ export default function AuditLogPage({ user, onLogout }) {
         {/* Stats strip */}
         {stats && (
           <div data-testid="audit-stats-strip" style={{ display: 'flex', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
-            <StatCard label="Eventos 24h" value={stats.total_24h} color="#6366F1" />
+            <StatCard label="Eventos 24h" value={stats.total_24h} color="var(--theme)" />
             {Object.entries(stats.by_action || {}).map(([a, c]) => (
               <StatCard key={a} label={ACTION_STYLE[a]?.label || a} value={c} color={ACTION_STYLE[a]?.color || '#94a3b8'} />
             ))}
@@ -315,7 +315,7 @@ export default function AuditLogPage({ user, onLogout }) {
                     cursor: 'pointer',
                     transition: 'background 0.12s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.06)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <td style={tdStyle}>{fmtTs(item.ts)}</td>
@@ -326,12 +326,12 @@ export default function AuditLogPage({ user, onLogout }) {
                   <td style={tdStyle}><RoleBadge role={item.actor?.role} /></td>
                   <td style={tdStyle}><ActionBadge action={item.action} /></td>
                   <td style={tdStyle}>
-                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: '#a5b4fc' }}>{item.entity_type}</span>
+                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: 'var(--theme)' }}>{item.entity_type}</span>
                     {item.entity_id && <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-4)', marginTop: 2 }}>{item.entity_id.slice(0, 18)}</div>}
                   </td>
                   <td style={tdStyle}>
                     {(item.diff_keys || []).slice(0, 3).map(k => (
-                      <span key={k} style={{ display: 'inline-block', marginRight: 4, background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', borderRadius: 4, padding: '1px 6px', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>{k}</span>
+                      <span key={k} style={{ display: 'inline-block', marginRight: 4, background: 'rgba(var(--theme-rgb),0.1)', color: 'var(--theme)', borderRadius: 4, padding: '1px 6px', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>{k}</span>
                     ))}
                     {(item.diff_keys || []).length > 3 && <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-4)' }}>+{item.diff_keys.length - 3}</span>}
                   </td>
@@ -386,9 +386,9 @@ const tdStyle = {
 };
 
 const pageBtnStyle = (disabled) => ({
-  background: disabled ? 'transparent' : 'rgba(99,102,241,0.1)',
-  border: '1px solid rgba(99,102,241,0.25)',
+  background: disabled ? 'transparent' : 'rgba(var(--theme-rgb),0.1)',
+  border: '1px solid rgba(var(--theme-rgb),0.25)',
   borderRadius: 8, padding: '6px 10px', cursor: disabled ? 'default' : 'pointer',
-  color: disabled ? 'var(--cream-4)' : '#a5b4fc', opacity: disabled ? 0.4 : 1,
+  color: disabled ? 'var(--cream-4)' : 'var(--theme)', opacity: disabled ? 0.4 : 1,
   display: 'inline-flex', alignItems: 'center',
 });

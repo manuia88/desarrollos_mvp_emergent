@@ -42,7 +42,7 @@ export default function FunnelInversoCard({ listingId }) {
     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
       <div style={{
         fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-        color: '#a5b4fc', marginBottom: 10,
+        color: 'var(--theme)', marginBottom: 10,
       }}>
         También considera preventa cercana
       </div>
@@ -53,8 +53,8 @@ export default function FunnelInversoCard({ listingId }) {
             data-testid="funnel-inverso-card"
             style={{
               padding: '10px 12px', borderRadius: 14,
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px solid rgba(99,102,241,0.22)',
+              background: 'rgba(var(--theme-rgb),0.08)',
+              border: '1px solid rgba(var(--theme-rgb),0.22)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
             }}
           >
@@ -71,7 +71,7 @@ export default function FunnelInversoCard({ listingId }) {
               onClick={() => navigate(`/desarrollo/${d.slug || d.dev_id}`)}
               style={{
                 padding: '7px 12px', borderRadius: 9999, border: 'none',
-                background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+                background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
                 fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
               }}
             >

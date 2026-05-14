@@ -169,13 +169,13 @@ export default function AtlaxVoiceButton({
           height: size,
           borderRadius: "9999px",
           border: recording
-            ? "2px solid #EC4899"
-            : "1.5px solid rgba(99,102,241,0.5)",
+            ? "2px solid var(--theme-3)"
+            : "1.5px solid rgba(var(--theme-rgb),0.5)",
           background: recording
-            ? "linear-gradient(135deg, #6366F1, #EC4899)"
+            ? "linear-gradient(135deg, var(--theme), var(--theme-3))"
             : processing
-              ? "rgba(99,102,241,0.15)"
-              : "rgba(99,102,241,0.08)",
+              ? "rgba(var(--theme-rgb),0.15)"
+              : "rgba(var(--theme-rgb),0.08)",
           cursor: disabled ? "not-allowed" : "pointer",
           display: "flex",
           alignItems: "center",
@@ -191,8 +191,8 @@ export default function AtlaxVoiceButton({
             style={{
               width: iconSize * 0.7,
               height: iconSize * 0.7,
-              border: "2px solid rgba(99,102,241,0.6)",
-              borderTopColor: "#6366F1",
+              border: "2px solid rgba(var(--theme-rgb),0.6)",
+              borderTopColor: "var(--theme)",
               borderRadius: "50%",
               animation: "voice-spin 0.7s linear infinite",
             }}
@@ -203,7 +203,7 @@ export default function AtlaxVoiceButton({
             height={iconSize}
             viewBox="0 0 24 24"
             fill="none"
-            stroke={recording ? "#fff" : "#6366F1"}
+            stroke={recording ? "#fff" : "var(--theme)"}
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -225,8 +225,8 @@ export default function AtlaxVoiceButton({
           width: compact ? 26 : 30,
           height: compact ? 26 : 30,
           borderRadius: "9999px",
-          border: `1.5px solid ${voiceOut ? "rgba(99,102,241,0.6)" : "rgba(255,255,255,0.15)"}`,
-          background: voiceOut ? "rgba(99,102,241,0.15)" : "transparent",
+          border: `1.5px solid ${voiceOut ? "rgba(var(--theme-rgb),0.6)" : "rgba(255,255,255,0.15)"}`,
+          background: voiceOut ? "rgba(var(--theme-rgb),0.15)" : "transparent",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
@@ -240,7 +240,7 @@ export default function AtlaxVoiceButton({
           height={compact ? 12 : 14}
           viewBox="0 0 24 24"
           fill="none"
-          stroke={voiceOut ? "#6366F1" : "rgba(240,235,224,0.4)"}
+          stroke={voiceOut ? "var(--theme)" : "rgba(240,235,224,0.4)"}
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -265,7 +265,7 @@ export default function AtlaxVoiceButton({
       {error && (
         <span
           data-testid="atlax-voice-error"
-          style={{ fontSize: 11, color: "#EC4899", maxWidth: 160, lineHeight: 1.3 }}
+          style={{ fontSize: 11, color: "var(--theme-3)", maxWidth: 160, lineHeight: 1.3 }}
         >
           {error}
         </span>
@@ -275,7 +275,7 @@ export default function AtlaxVoiceButton({
       {recording && !compact && (
         <span
           data-testid="atlax-voice-recording-indicator"
-          style={{ fontSize: 11, color: "#EC4899", letterSpacing: "0.02em" }}
+          style={{ fontSize: 11, color: "var(--theme-3)", letterSpacing: "0.02em" }}
         >
           Grabando…
         </span>
@@ -286,8 +286,8 @@ export default function AtlaxVoiceButton({
 
       <style>{`
         @keyframes voice-pulse {
-          0%,100% { box-shadow: 0 0 0 0 rgba(236,72,153,0.5); }
-          50%      { box-shadow: 0 0 0 8px rgba(236,72,153,0); }
+          0%,100% { box-shadow: 0 0 0 0 rgba(var(--theme-rgb),0.5); }
+          50%      { box-shadow: 0 0 0 8px rgba(var(--theme-rgb),0); }
         }
         @keyframes voice-spin {
           to { transform: rotate(360deg); }

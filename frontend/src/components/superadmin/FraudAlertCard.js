@@ -6,7 +6,7 @@ import { resolveAlert, dismissAlert } from '../../api/fraudDetection';
 const SEVERITY = {
   critical: { bg: 'rgba(239,68,68,0.10)',  bd: 'rgba(239,68,68,0.40)',  fg: '#fca5a5', label: 'Crítica' },
   amber:    { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.40)', fg: '#fcd34d', label: 'Amber' },
-  info:     { bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.40)', fg: '#a5b4fc', label: 'Info' },
+  info:     { bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.40)', fg: 'var(--theme)', label: 'Info' },
 };
 const SOURCE_LABEL = {
   price_anomaly: 'Anomalía precio (ML)',
@@ -139,7 +139,7 @@ export default function FraudAlertCard({ alert, onChanged }) {
 
 const btnPrimary = {
   padding: '7px 16px', borderRadius: 9999,
-  background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+  background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
   border: '1px solid rgba(255,255,255,0.18)',
   color: '#fff', cursor: 'pointer',
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,

@@ -36,11 +36,11 @@ export default function SnapshotApplyModal({ snapshot, tenants = [], onClose, on
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="snapshot-apply-modal" style={{
         width: '100%', maxWidth: 500, maxHeight: '85vh', overflowY: 'auto',
-        background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(99,102,241,0.30)',
+        background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)',
         borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ArrowRightCircle size={14} color="#818CF8" />
+          <ArrowRightCircle size={14} color="var(--theme)" />
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0, flex: 1 }}>
             Aplicar snapshot · {snapshot.name}
           </h3>
@@ -71,7 +71,7 @@ export default function SnapshotApplyModal({ snapshot, tenants = [], onClose, on
                 <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer' }}>
                   <input type="checkbox" data-testid={`snap-incl-${k}`}
                     checked={!!include[k]} onChange={e => setInclude(s => ({ ...s, [k]: e.target.checked }))}
-                    style={{ accentColor: '#6366F1' }} />
+                    style={{ accentColor: 'var(--theme)' }} />
                   <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)' }}>{label}</span>
                 </label>
               ))}
@@ -88,7 +88,7 @@ export default function SnapshotApplyModal({ snapshot, tenants = [], onClose, on
                 Cancelar
               </button>
               <button data-testid="snapshot-apply-confirm" onClick={submit} disabled={busy}
-                style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+                style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
                 {busy ? 'Aplicando…' : 'Aplicar snapshot'}
               </button>
             </div>
@@ -104,12 +104,12 @@ export default function SnapshotApplyModal({ snapshot, tenants = [], onClose, on
               </div>
             </div>
             {result.diff?.features && (
-              <div style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.20)', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.65)' }}>
+              <div style={{ padding: '9px 11px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.20)', fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.65)' }}>
                 Features: {(result.diff.features.applied || []).length} aplicados · {(result.diff.features.skipped || []).length} skipped
               </div>
             )}
             <button onClick={() => { onDone && onDone(result); onClose(); }}
-              style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+              style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
               Cerrar
             </button>
           </div>

@@ -114,8 +114,8 @@ export default function UploadDocumentModal({ open, devId, devName, scope = 'sup
           onDrop={onDrop}
           style={{
             padding: 26, marginBottom: 14, borderRadius: 14, cursor: 'pointer',
-            border: `1.5px dashed ${dragOver ? 'rgba(99,102,241,0.55)' : 'var(--border)'}`,
-            background: dragOver ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
+            border: `1.5px dashed ${dragOver ? 'rgba(var(--theme-rgb),0.55)' : 'var(--border)'}`,
+            background: dragOver ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(255,255,255,0.02)',
             textAlign: 'center', transition: 'all 0.15s',
           }}>
           <input ref={fileInputRef} type="file" accept={ACCEPTED} hidden

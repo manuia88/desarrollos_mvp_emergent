@@ -11,7 +11,7 @@ const BORDER = CSS_VAR('--border', 'rgba(240,235,224,0.08)');
 // ────────────────────────────────────────────────────────────────────────────
 // Sparkline: accepts an array of numbers + optional area fill
 // ────────────────────────────────────────────────────────────────────────────
-export function Sparkline({ values = [], width = 160, height = 44, color = '#EC4899', fill = true, strokeWidth = 1.6 }) {
+export function Sparkline({ values = [], width = 160, height = 44, color = 'var(--theme-3)', fill = true, strokeWidth = 1.6 }) {
   if (!values.length) return null;
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -122,7 +122,7 @@ export function BarList({ items = [], maxWidth = 300, format = (v) => v }) {
             <div style={{ height: 8, background: 'rgba(255,255,255,0.04)', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{
                 width: `${pct}%`, height: '100%',
-                background: it.color || '#EC4899',
+                background: it.color || 'var(--theme-3)',
                 borderRadius: 999, transition: 'width 0.4s cubic-bezier(.5,0,.2,1)',
               }} />
             </div>
@@ -151,7 +151,7 @@ export function HeatmapCalendar({ cells = [], cellSize = 11, gap = 2 }) {
   }
   if (week.length) { while (week.length < 7) week.push(null); weeks.push(week); }
 
-  const colors = ['rgba(255,255,255,0.04)', 'rgba(236,72,153,0.18)', 'rgba(236,72,153,0.38)', 'rgba(236,72,153,0.62)', 'rgba(236,72,153,0.95)'];
+  const colors = ['rgba(255,255,255,0.04)', 'rgba(var(--theme-rgb),0.18)', 'rgba(var(--theme-rgb),0.38)', 'rgba(var(--theme-rgb),0.62)', 'rgba(var(--theme-rgb),0.95)'];
   const width = weeks.length * (cellSize + gap);
   const height = 7 * (cellSize + gap);
   return (
@@ -185,7 +185,7 @@ export function FunnelChart({ steps = [], width = 420, height = 260 }) {
   const maxCount = steps[0].count || 1;
   const stepH = height / steps.length;
   const padX = 24;
-  const COLORS = ['#EC4899', '#F472B6', '#FBCFE8', '#6366F1', '#A78BFA'];
+  const COLORS = ['var(--theme-3)', '#F472B6', '#FBCFE8', 'var(--theme)', '#A78BFA'];
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 20, alignItems: 'stretch' }} className="funnel-grid">
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
@@ -250,7 +250,7 @@ export function CohortMatrix({ months = [], cohort = [] }) {
                 const intensity = v != null ? v / maxCount : 0;
                 const bg = v == null
                   ? 'transparent'
-                  : `rgba(236,72,153,${0.08 + intensity * 0.65})`;
+                  : `rgba(var(--theme-rgb),${0.08 + intensity * 0.65})`;
                 return (
                   <td key={m} style={{
                     padding: '4px 0', width: 34, height: 24, textAlign: 'center',

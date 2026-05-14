@@ -4,8 +4,8 @@ import { Briefcase, Edit3, ArrowRightCircle } from 'lucide-react';
 
 const TIER_CFG = {
   basic:      { color: '#4ADE80', bg: 'rgba(74,222,128,0.10)' },
-  pro:        { color: '#818CF8', bg: 'rgba(99,102,241,0.10)' },
-  enterprise: { color: '#EC4899', bg: 'rgba(236,72,153,0.10)' },
+  pro:        { color: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.10)' },
+  enterprise: { color: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.10)' },
   custom:     { color: '#FACC15', bg: 'rgba(250,204,21,0.10)' },
 };
 
@@ -48,12 +48,12 @@ export default function PlanTemplateCard({ template, onEdit, onApply }) {
       {(template.features || []).length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {template.features.slice(0, 6).map(f => (
-            <span key={f} style={{ padding: '2px 7px', borderRadius: 9999, fontSize: 10, fontFamily: 'DM Mono, monospace', background: 'rgba(99,102,241,0.08)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.20)' }}>
+            <span key={f} style={{ padding: '2px 7px', borderRadius: 9999, fontSize: 10, fontFamily: 'DM Mono, monospace', background: 'rgba(var(--theme-rgb),0.08)', color: 'var(--theme)', border: '1px solid rgba(var(--theme-rgb),0.20)' }}>
               {f}
             </span>
           ))}
           {template.features.length > 6 && (
-            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.45)', alignSelf: 'center' }}>+{template.features.length - 6}</span>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240, 235, 224, 0.70)', alignSelf: 'center' }}>+{template.features.length - 6}</span>
           )}
         </div>
       )}
@@ -63,7 +63,7 @@ export default function PlanTemplateCard({ template, onEdit, onApply }) {
           <Edit3 size={10} /> Editar
         </button>
         <button data-testid={`tpl-apply-${template.id}`} onClick={() => onApply && onApply(template)}
-          style={{ padding: '6px 14px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+          style={{ padding: '6px 14px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
           <ArrowRightCircle size={10} /> Aplicar
         </button>
       </div>

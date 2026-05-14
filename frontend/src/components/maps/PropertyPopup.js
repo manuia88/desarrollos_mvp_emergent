@@ -85,7 +85,7 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onSh
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-            color: type === 'dev_preventa' ? '#6366F1' : type === 'broker_usada' ? '#EC4899' : '#f59e0b',
+            color: type === 'dev_preventa' ? 'var(--theme)' : type === 'broker_usada' ? 'var(--theme-3)' : '#f59e0b',
             marginBottom: 4,
           }}>
             {type === 'dev_preventa' ? 'Proyecto Preventa' : type === 'broker_usada' ? 'Propiedad Usada' : 'Colonia'}
@@ -127,7 +127,7 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onSh
                 <div>
                   <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>IE Score</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#6366F1' }}>
+                    <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--theme)' }}>
                       {Math.round(props.ie_score || kpis.ie_score_promedio || 0)}
                     </div>
                     <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.4)' }}>/100</div>
@@ -146,14 +146,14 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onSh
                 <button
                   data-testid="popup-ver-detalle-btn"
                   onClick={() => navigate(`/desarrollo/${props.slug || props.id}`)}
-                  style={BTN({ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc', flex: 1 })}
+                  style={BTN({ background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', flex: 1 })}
                 >
                   Ver detalle
                 </button>
                 <button
                   data-testid="popup-what-if-btn"
                   onClick={() => navigate(`/desarrollador?what_if=${props.id}`)}
-                  style={BTN({ background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', flex: 1 })}
+                  style={BTN({ background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', flex: 1 })}
                 >
                   What-if
                 </button>
@@ -172,7 +172,7 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onSh
                   onClick={() => onShowBattleCard?.(props.id)}
                   style={BTN({
                     marginTop: 8, width: '100%', padding: '10px',
-                    background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+                    background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
                   })}
                 >
                   Ver Battle Card competitiva
@@ -206,14 +206,14 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onSh
                 <button
                   data-testid="popup-ver-detalle-btn"
                   onClick={() => navigate(`/listing/${props.id}`)}
-                  style={BTN({ background: 'rgba(236,72,153,0.15)', border: '1px solid rgba(236,72,153,0.4)', color: '#f9a8d4', flex: 1 })}
+                  style={BTN({ background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: '#f9a8d4', flex: 1 })}
                 >
                   Ver detalle
                 </button>
                 <button
                   data-testid="popup-smart-routing-btn"
                   onClick={() => navigate(`/asesor?smart_routing=${props.id}`)}
-                  style={BTN({ background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', flex: 1 })}
+                  style={BTN({ background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', flex: 1 })}
                 >
                   Smart Routing
                 </button>
@@ -258,7 +258,7 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onSh
               <button
                 data-testid="popup-atlax-zona-btn"
                 onClick={handleAskAtlax}
-                style={BTN({ background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', width: '100%', padding: '10px' })}
+                style={BTN({ background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', width: '100%', padding: '10px' })}
               >
                 Preguntale a Atlax sobre esta colonia
               </button>

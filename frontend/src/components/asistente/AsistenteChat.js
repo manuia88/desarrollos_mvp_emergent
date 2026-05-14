@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Send, Sparkle, ArrowRight } from '../icons';
 import { track } from '../../utils/behavioralTracker';
 
-const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRAD = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 // ─── Message bubble ─────────────────────────────────────────────────────────
 function Bubble({ role, content, simulated }) {
@@ -17,7 +17,7 @@ function Bubble({ role, content, simulated }) {
         background: isUser ? 'rgba(240,235,224,0.10)' : 'rgba(13,16,23,0.85)',
         border: isUser
           ? '1px solid rgba(240,235,224,0.18)'
-          : '1px solid rgba(99,102,241,0.25)',
+          : '1px solid rgba(var(--theme-rgb),0.25)',
         backdropFilter: 'blur(24px)',
         color: 'var(--cream)',
         fontFamily: 'DM Sans', fontSize: 13.5, lineHeight: 1.55,
@@ -42,11 +42,11 @@ function LeadCaptureCard({ onSubmit, isSubmitting }) {
   return (
     <div data-testid="asistente-lead-capture" style={{
       padding: 16, borderRadius: 14, marginBottom: 14,
-      background: 'linear-gradient(135deg, rgba(99,102,241,0.10), rgba(236,72,153,0.08))',
-      border: '1px solid rgba(99,102,241,0.30)', backdropFilter: 'blur(24px)',
+      background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.08))',
+      border: '1px solid rgba(var(--theme-rgb),0.30)', backdropFilter: 'blur(24px)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <Sparkle size={14} color="#a5b4fc" />
+        <Sparkle size={14} color="var(--theme)" />
         <h3 style={{ margin: 0, fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
           ¿Te conectamos con un asesor especializado?
         </h3>
@@ -83,7 +83,7 @@ function LeadCaptureCard({ onSubmit, isSubmitting }) {
         onClick={() => onSubmit(form)}
         style={{
           marginTop: 10, padding: '9px 18px', borderRadius: 9999,
-          background: !valid || isSubmitting ? 'rgba(99,102,241,0.30)' : GRAD,
+          background: !valid || isSubmitting ? 'rgba(var(--theme-rgb),0.30)' : GRAD,
           color: '#fff', border: 'none', cursor: !valid || isSubmitting ? 'not-allowed' : 'pointer',
           fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, opacity: !valid || isSubmitting ? 0.7 : 1,
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -114,12 +114,12 @@ function LoadingDots() {
       <div style={{
         padding: '12px 16px', borderRadius: 16,
         background: 'rgba(13,16,23,0.85)',
-        border: '1px solid rgba(99,102,241,0.25)', backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(var(--theme-rgb),0.25)', backdropFilter: 'blur(24px)',
       }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {[0, 1, 2].map(i => (
             <span key={i} style={{
-              width: 6, height: 6, borderRadius: '50%', background: '#a5b4fc',
+              width: 6, height: 6, borderRadius: '50%', background: 'var(--theme)',
               animation: `asisDot 0.9s ${i * 0.15}s infinite ease-in-out`,
             }} />
           ))}
@@ -210,13 +210,13 @@ export default function AsistenteChat({
                 onClick={() => { setInput(chip); setTimeout(() => taRef.current?.focus(), 50); }}
                 style={{
                   padding: '7px 14px', borderRadius: 9999, cursor: 'pointer',
-                  background: 'rgba(99,102,241,0.10)',
-                  border: '1px solid rgba(99,102,241,0.30)',
-                  color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
+                  background: 'rgba(var(--theme-rgb),0.10)',
+                  border: '1px solid rgba(var(--theme-rgb),0.30)',
+                  color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
                   transition: 'background 0.18s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.20)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.20)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; }}
               >{chip}</button>
             ))}
           </div>
@@ -251,7 +251,7 @@ export default function AsistenteChat({
           display: 'flex', alignItems: 'flex-end', gap: 8,
           padding: 8, borderRadius: 16,
           background: 'rgba(13,16,23,0.95)',
-          border: '1px solid rgba(99,102,241,0.30)',
+          border: '1px solid rgba(var(--theme-rgb),0.30)',
           backdropFilter: 'blur(24px)',
         }}>
           <textarea
@@ -274,7 +274,7 @@ export default function AsistenteChat({
             onClick={handleSend}
             style={{
               padding: '8px 14px', borderRadius: 9999, cursor: (!input.trim() || isLoading) ? 'not-allowed' : 'pointer',
-              background: (!input.trim() || isLoading) ? 'rgba(99,102,241,0.30)' : GRAD,
+              background: (!input.trim() || isLoading) ? 'rgba(var(--theme-rgb),0.30)' : GRAD,
               color: '#fff', border: 'none',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
               display: 'inline-flex', alignItems: 'center', gap: 4,

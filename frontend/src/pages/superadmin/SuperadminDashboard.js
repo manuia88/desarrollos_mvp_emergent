@@ -81,7 +81,7 @@ export default function SuperadminDashboard({ user, onLogout }) {
       {/* IE Engine widget */}
       <div style={{
         padding: 22,
-        background: 'linear-gradient(140deg, rgba(99,102,241,0.10), rgba(236,72,153,0.04))',
+        background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.04))',
         border: '1px solid var(--border)', borderRadius: 16,
         marginBottom: 22,
       }}>
@@ -110,7 +110,7 @@ export default function SuperadminDashboard({ user, onLogout }) {
             }}>
               <Stat label="Activas"       value={stats.active}      accent="#86efac"     Icon={Sparkle} />
               <Stat label="Stub"          value={stats.stub}        accent="#fcd34d"     Icon={Database} />
-              <Stat label="Manual"        value={stats.manual_only} accent="#a5b4fc"     Icon={Bookmark} />
+              <Stat label="Manual"        value={stats.manual_only} accent="var(--theme)"     Icon={Bookmark} />
               <Stat label="Horizonte 2"   value={stats.h2}          accent="var(--cream-3)" Icon={Clock} />
               <Stat label="Errores 24h"   value={stats.errors_24h}  accent={stats.errors_24h ? '#fca5a5' : 'var(--cream)'} Icon={Shield} />
             </div>
@@ -223,7 +223,7 @@ function RecentChangesAcrossDevs() {
   if (loading) return <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Cargando…</div>;
   if (items.length === 0) return <div data-testid="dash-no-changes" style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Sin cambios recientes registrados.</div>;
   const SOURCE_COLOR = {
-    manual_edit: '#c7d2fe', auto_sync: '#86efac', drive_webhook: '#f9a8d4',
+    manual_edit: 'var(--theme)', auto_sync: '#86efac', drive_webhook: '#f9a8d4',
     drive_watcher: '#e9d5ff', bulk_upload: '#fcd34d', drive_sheets: '#93c5fd', system: 'var(--cream-3)',
   };
   return (

@@ -95,7 +95,7 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
   const flags = data?.placeholder_flags || {};
   const letter = data?.score_letter || score_letter;
   const numeric = data?.score_numeric ?? score_numeric;
-  const color = LETTER_COLOR[letter] || '#6366F1';
+  const color = LETTER_COLOR[letter] || 'var(--theme)';
 
   return (
     <div

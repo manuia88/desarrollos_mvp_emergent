@@ -43,8 +43,8 @@ export default function RiskScoreSubscribeWidget({ zoneId, zoneLabel }) {
           style={{
             padding: '5px 14px',
             borderRadius: 9999,
-            background: open ? 'rgba(240,235,224,0.06)' : 'rgba(99,102,241,0.18)',
-            border: `1px solid ${open ? 'rgba(240,235,224,0.18)' : 'rgba(99,102,241,0.4)'}`,
+            background: open ? 'rgba(240,235,224,0.06)' : 'rgba(var(--theme-rgb),0.18)',
+            border: `1px solid ${open ? 'rgba(240,235,224,0.18)' : 'rgba(var(--theme-rgb),0.4)'}`,
             color: open ? 'var(--cream-3)' : 'rgba(165,180,252,0.95)',
             fontFamily: 'DM Sans, sans-serif',
             fontWeight: 600,

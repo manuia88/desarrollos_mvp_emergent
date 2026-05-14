@@ -40,7 +40,7 @@ export default function InsightsTab({ projectId, user }) {
                 borderRadius: 9999,
                 border: '1px solid ' + (isActive ? 'transparent' : 'rgba(240,235,224,0.14)'),
                 background: isActive
-                  ? 'linear-gradient(90deg, #6366F1, #EC4899)'
+                  ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
                   : 'transparent',
                 color: isActive ? '#fff' : 'var(--cream-2)',
                 fontFamily: 'DM Sans, sans-serif',

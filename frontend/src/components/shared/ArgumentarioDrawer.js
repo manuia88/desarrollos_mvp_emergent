@@ -10,7 +10,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { queryArgumentario, fetchArgumentarioRecent } from '../../api/asesor';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 const CATEGORIES = [
   { key: null, label: 'Todas' },
@@ -349,8 +349,8 @@ export default function ArgumentarioDrawer({ open, onClose }) {
             <div data-testid="argumentario-result" style={{
               padding: 16,
               borderRadius: 14,
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px solid rgba(99,102,241,0.18)',
+              background: 'rgba(var(--theme-rgb),0.06)',
+              border: '1px solid rgba(var(--theme-rgb),0.18)',
               display: 'flex', flexDirection: 'column', gap: 12,
             }}>
               <MarkdownBlock md={result.response_markdown} />

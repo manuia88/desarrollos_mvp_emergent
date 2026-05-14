@@ -41,11 +41,11 @@ export default function UpgradeTeaser({ feature, children, contactUrl = '/contac
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: 9999,
-          background: 'rgba(99,102,241,0.12)',
-          border: '1px solid rgba(99,102,241,0.32)',
+          background: 'rgba(var(--theme-rgb),0.12)',
+          border: '1px solid rgba(var(--theme-rgb),0.32)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Lock size={26} color="#818CF8" />
+          <Lock size={26} color="var(--theme)" />
         </div>
         <div>
           <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: '0 0 6px' }}>
@@ -56,7 +56,7 @@ export default function UpgradeTeaser({ feature, children, contactUrl = '/contac
           </p>
         </div>
         <a href={contactUrl} data-testid={`upgrade-cta-${feature}`}
-          style={{ padding: '11px 22px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          style={{ padding: '11px 22px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Sparkles size={12} /> Contactar ventas
         </a>
       </div>
@@ -75,16 +75,16 @@ export default function UpgradeTeaser({ feature, children, contactUrl = '/contac
         <div style={{
           maxWidth: 460, padding: '28px 32px', borderRadius: 16,
           background: 'rgba(13,17,28,0.92)', backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(99,102,241,0.32)',
+          border: '1px solid rgba(var(--theme-rgb),0.32)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center',
         }}>
           <div style={{
             width: 52, height: 52, borderRadius: 9999,
-            background: 'rgba(99,102,241,0.14)',
-            border: '1px solid rgba(99,102,241,0.32)',
+            background: 'rgba(var(--theme-rgb),0.14)',
+            border: '1px solid rgba(var(--theme-rgb),0.32)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Lock size={20} color="#818CF8" />
+            <Lock size={20} color="var(--theme)" />
           </div>
           <div>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
@@ -95,7 +95,7 @@ export default function UpgradeTeaser({ feature, children, contactUrl = '/contac
             </p>
           </div>
           <a href={contactUrl} data-testid={`upgrade-cta-${feature}`}
-            style={{ padding: '11px 24px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: '11px 24px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <Sparkles size={12} /> Contactar ventas para activar
           </a>
         </div>

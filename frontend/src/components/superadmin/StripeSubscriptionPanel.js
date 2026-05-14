@@ -4,7 +4,7 @@ import { CreditCard, ExternalLink } from 'lucide-react';
 import { fetchStripeStatus, stripeSubscribe, stripeCancel } from '../../api/superadminApiKeys';
 
 const STATUS_TONE = {
-  active: '#86efac', trialing: '#a5b4fc', past_due: '#fcd34d', canceled: '#fca5a5',
+  active: '#86efac', trialing: 'var(--theme)', past_due: '#fcd34d', canceled: '#fca5a5',
 };
 
 export default function StripeSubscriptionPanel({ tenantId, contactEmail = '' }) {
@@ -58,7 +58,7 @@ export default function StripeSubscriptionPanel({ tenantId, contactEmail = '' })
             onClick={onSubscribe} disabled={busy}
             style={{
               padding: '7px 16px', borderRadius: 9999,
-              background: busy ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,#6366F1,#EC4899)',
+              background: busy ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
               border: '1px solid rgba(255,255,255,0.16)',
               color: '#fff', cursor: busy ? 'not-allowed' : 'pointer',
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,

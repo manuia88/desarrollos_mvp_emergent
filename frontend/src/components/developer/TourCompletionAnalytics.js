@@ -15,7 +15,7 @@ const PERIODS = [
 ];
 
 const ROLE_META = {
-  developer_admin:   { label: 'Desarrollador',  Icon: Building2,   color: '#818cf8' },
+  developer_admin:   { label: 'Desarrollador',  Icon: Building2,   color: 'var(--theme)' },
   advisor:           { label: 'Asesor',          Icon: User,        color: '#34d399' },
   inmobiliaria_admin:{ label: 'Inmobiliaria',    Icon: Briefcase,   color: '#fbbf24' },
   buyer:             { label: 'Comprador',       Icon: Heart,       color: '#f472b6' },
@@ -44,7 +44,7 @@ function FunnelBar({ started, completed, color }) {
 }
 
 function RoleCard({ role, data }) {
-  const meta = ROLE_META[role] || { label: role, Icon: User, color: '#6366F1' };
+  const meta = ROLE_META[role] || { label: role, Icon: User, color: 'var(--theme)' };
   const { Icon, color, label } = meta;
   const tours = data?.by_tour || {};
   const rate = data?.completion_rate_pct ?? 0;
@@ -182,8 +182,8 @@ export default function TourCompletionAnalytics({ period: controlledPeriod } = {
             onClick={() => setPeriod(p.key)}
             style={{
               padding: '5px 14px', borderRadius: 9999,
-              background: period === p.key ? 'rgba(99,102,241,0.18)' : 'rgba(240,235,224,0.05)',
-              border: `1px solid ${period === p.key ? 'rgba(99,102,241,0.45)' : 'rgba(240,235,224,0.12)'}`,
+              background: period === p.key ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(240,235,224,0.05)',
+              border: `1px solid ${period === p.key ? 'rgba(var(--theme-rgb),0.45)' : 'rgba(240,235,224,0.12)'}`,
               color: period === p.key ? 'var(--cream)' : 'var(--cream-3)',
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer',
               transition: 'all 0.15s',
@@ -222,7 +222,7 @@ export default function TourCompletionAnalytics({ period: controlledPeriod } = {
           >
             <div data-testid="kpi-global-rate" className="rounded-xl" style={{
               padding: '14px 16px',
-              background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
+              background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.25)',
             }}>
               <div style={{ fontSize: 10.5, color: 'var(--cream-3)', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
                 Completion global

@@ -30,12 +30,12 @@ const STATUS_META = {
   active:    { label: 'Activa',     color: '#10B981' },
   paused:    { label: 'Pausada',    color: '#F59E0B' },
   completed: { label: 'Completada', color: '#94A3B8' },
-  preview:   { label: 'Preview',    color: '#6366F1' },
+  preview:   { label: 'Preview',    color: 'var(--theme)' },
   escalated: { label: 'Escalada',   color: '#EF4444' },
 };
 
 const LAYER_META = {
-  llm:       { label: 'LLM',        color: '#6366F1', Icon: Cpu },
+  llm:       { label: 'LLM',        color: 'var(--theme)', Icon: Cpu },
   cached:    { label: 'Caché',      color: '#F59E0B', Icon: Database },
   cache:     { label: 'Caché',      color: '#F59E0B', Icon: Database },
   heuristic: { label: 'Heurística', color: '#94A3B8', Icon: Zap },
@@ -66,7 +66,7 @@ function Pill({ label, color, Icon, testid }) {
 
 function PillButton({ children, onClick, variant = 'ghost', disabled, testid, Icon }) {
   const styles = {
-    primary: { background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', border: 'none' },
+    primary: { background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', border: 'none' },
     ghost:   { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.18)' },
     warn:    { background: 'transparent', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.32)' },
     success: { background: 'transparent', color: '#10B981', border: '1px solid rgba(16,185,129,0.32)' },
@@ -333,9 +333,9 @@ export default function NurtureIntelligentPanel({ orgId }) {
             style={{
               padding: '4px 10px', borderRadius: 9999, fontSize: 11,
               fontFamily: 'DM Sans', fontWeight: 600,
-              background: statusFilter === opt.k ? 'rgba(99,102,241,0.18)' : 'transparent',
+              background: statusFilter === opt.k ? 'rgba(var(--theme-rgb),0.18)' : 'transparent',
               color: statusFilter === opt.k ? '#A5B4FC' : 'var(--cream-3)',
-              border: `1px solid ${statusFilter === opt.k ? 'rgba(99,102,241,0.4)' : 'var(--border)'}`,
+              border: `1px solid ${statusFilter === opt.k ? 'rgba(var(--theme-rgb),0.4)' : 'var(--border)'}`,
               cursor: 'pointer',
             }}
           >
@@ -551,7 +551,7 @@ export default function NurtureIntelligentPanel({ orgId }) {
                     }}
                   >
                     <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-                      <Pill label={`Step ${t.step || i + 1}`} color="#6366F1" />
+                      <Pill label={`Step ${t.step || i + 1}`} color="var(--theme)" />
                       <Pill label={CHANNEL_LABEL[t.channel] || t.channel} color="#A5B4FC" />
                       <Pill label={`+${t.offset_hours || 0}h`} color="#94A3B8" />
                     </div>

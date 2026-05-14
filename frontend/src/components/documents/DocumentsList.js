@@ -13,11 +13,11 @@ import { useServerUndo } from '../shared/UndoSnackbar';
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const STATUS_TONE = {
-  pending:             { bg: 'rgba(99,102,241,0.12)', fg: '#c7d2fe', label: 'En cola',           Icon: Clock },
-  ocr_running:         { bg: 'rgba(99,102,241,0.18)', fg: '#a5b4fc', label: 'Procesando',        Icon: Clock },
+  pending:             { bg: 'rgba(var(--theme-rgb),0.12)', fg: 'var(--theme)', label: 'En cola',           Icon: Clock },
+  ocr_running:         { bg: 'rgba(var(--theme-rgb),0.18)', fg: 'var(--theme)', label: 'Procesando',        Icon: Clock },
   ocr_done:            { bg: 'rgba(34,197,94,0.12)',  fg: '#86efac', label: 'OCR listo',         Icon: Check },
   ocr_failed:          { bg: 'rgba(239,68,68,0.14)',  fg: '#fca5a5', label: 'OCR falló',         Icon: AlertTriangle },
-  extraction_pending:  { bg: 'rgba(236,72,153,0.14)', fg: '#fbcfe8', label: 'Extrayendo…',       Icon: Sparkle },
+  extraction_pending:  { bg: 'rgba(var(--theme-rgb),0.14)', fg: 'rgba(var(--theme-rgb), 0.18)', label: 'Extrayendo…',       Icon: Sparkle },
   extracted:           { bg: 'rgba(34,197,94,0.18)',  fg: '#86efac', label: 'Datos extraídos',   Icon: Sparkle },
   extraction_failed:   { bg: 'rgba(245,158,11,0.14)', fg: '#fcd34d', label: 'Extracción falló',  Icon: AlertTriangle },
 };
@@ -91,7 +91,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
               <StatusPill status={data.status} />
               {data.ocr_engine && (
-                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)', color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600 }}>
+                <span style={{ padding: '3px 10px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600 }}>
                   {data.ocr_engine}
                 </span>
               )}
@@ -140,7 +140,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
               ].map(t => (
                 <button key={t.k} data-testid={`doc-tab-${t.k}`} onClick={() => setTab(t.k)} style={{
                   padding: '9px 14px', background: 'transparent', border: 'none',
-                  borderBottom: `2px solid ${tab === t.k ? '#6366F1' : 'transparent'}`,
+                  borderBottom: `2px solid ${tab === t.k ? 'var(--theme)' : 'transparent'}`,
                   color: tab === t.k ? 'var(--cream)' : 'var(--cream-3)',
                   fontFamily: 'DM Sans', fontWeight: tab === t.k ? 600 : 500, fontSize: 12.5,
                   cursor: 'pointer', marginBottom: -1,
@@ -346,7 +346,7 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
                         opacity: dragId === d.id ? 0.5 : 1,
                       }}>
                     <td style={{ padding: '10px 14px', fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.filename}>
-                      <button onClick={() => setPreview(d)} data-testid="doc-name-link" style={{ background: 'transparent', border: 'none', color: 'var(--cream)', fontFamily: 'inherit', fontSize: 'inherit', cursor: 'pointer', padding: 0, textAlign: 'left', textDecoration: 'underline', textDecorationColor: 'rgba(99,102,241,0.4)', textUnderlineOffset: 3 }}>
+                      <button onClick={() => setPreview(d)} data-testid="doc-name-link" style={{ background: 'transparent', border: 'none', color: 'var(--cream)', fontFamily: 'inherit', fontSize: 'inherit', cursor: 'pointer', padding: 0, textAlign: 'left', textDecoration: 'underline', textDecorationColor: 'rgba(var(--theme-rgb),0.4)', textUnderlineOffset: 3 }}>
                         {d.filename}
                       </button>
                     </td>
@@ -369,8 +369,8 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
                         <Download size={11} /> Descargar
                       </a>
                       <button data-testid="doc-reprocess" onClick={() => handleReprocess(d.id)} title="Reprocesar OCR" style={{
-                        padding: '5px 9px', borderRadius: 9999, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)',
-                        color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10.5, cursor: 'pointer',
+                        padding: '5px 9px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.1)', border: '1px solid rgba(var(--theme-rgb),0.3)',
+                        color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 10.5, cursor: 'pointer',
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                       }}>
                         <RotateCcw size={11} />

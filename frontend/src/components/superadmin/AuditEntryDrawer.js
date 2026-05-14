@@ -20,7 +20,7 @@ function fmtRel(iso) {
 const SEVERITY_CFG = {
   critical: { color: '#F87171', bg: 'rgba(239,68,68,0.12)' },
   warning:  { color: '#FACC15', bg: 'rgba(250,204,21,0.12)' },
-  info:     { color: '#818CF8', bg: 'rgba(99,102,241,0.12)' },
+  info:     { color: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.12)' },
 };
 
 function SeverityPill({ severity }) {
@@ -40,18 +40,18 @@ function InlineEditRow({ ov, ai }) {
   return (
     <div data-testid={`override-row-${ov.ts}`} style={{
       padding: '8px 11px', borderRadius: 9,
-      background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.20)',
+      background: 'rgba(var(--theme-rgb),0.05)', border: '1px solid rgba(var(--theme-rgb),0.20)',
       display: 'flex', flexDirection: 'column', gap: 5,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.55)' }}>
-        <Edit3 size={10} color="#818CF8" />
+        <Edit3 size={10} color="var(--theme)" />
         <span>{fmtRel(ov.ts)}</span>
         <span>· {ov.user_id || '—'}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {Object.entries(patch).map(([k, v]) => (
           <div key={k} style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'var(--cream)' }}>
-            <span style={{ color: 'rgba(240,235,224,0.50)' }}>{k}:</span>{' '}
+            <span style={{ color: 'rgba(240, 235, 224, 0.72)' }}>{k}:</span>{' '}
             <span style={{ color: '#F87171', textDecoration: 'line-through' }}>
               {JSON.stringify(ai?.[k])}
             </span>
@@ -105,7 +105,7 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
         borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '24px 26px 80px',
         overflowY: 'auto',
       }}>
-        {loading && <div style={{ padding: 30, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>}
+        {loading && <div style={{ padding: 30, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>}
         {!loading && !data && (
           <div style={{ padding: 30, color: '#F87171', fontFamily: 'DM Sans', fontSize: 13 }}>No se pudo cargar la entrada.</div>
         )}
@@ -123,7 +123,7 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
                   </span>
                 </div>
                 {data.entity_id && (
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.50)', wordBreak: 'break-all' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)', wordBreak: 'break-all' }}>
                     {data.entity_id}
                   </div>
                 )}
@@ -140,9 +140,9 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
                     fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                    border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid transparent',
-                    background: tab === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                    color: tab === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                    border: tab === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid transparent',
+                    background: tab === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                    color: tab === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                   }}>{l}</button>
               ))}
             </div>
@@ -159,7 +159,7 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
                 </div>
                 {data.diff_keys && data.diff_keys.length > 0 && (
                   <div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
                       Campos modificados ({data.diff_keys.length})
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -183,7 +183,7 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
                   {history.length > 0 && ` La extracción AI se ha re-computado ${history.length} ${history.length === 1 ? 'vez' : 'veces'}.`}
                 </div>
                 {overrides.length === 0 ? (
-                  <div style={{ padding: 18, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div style={{ padding: 18, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                     Sin overrides aplicados a este item.
                   </div>
                 ) : (
@@ -191,12 +191,12 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
                 )}
                 {history.length > 0 && (
                   <div style={{ marginTop: 10 }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
                       <History size={11} /> Historial AI ({history.length})
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       {history.map((h, i) => (
-                        <div key={i} style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(236,72,153,0.05)', border: '1px solid rgba(236,72,153,0.20)' }}>
+                        <div key={i} style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.05)', border: '1px solid rgba(var(--theme-rgb),0.20)' }}>
                           <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.55)' }}>
                             {fmtRel(h.ts)} · {(h.ai_cost_mxn || 0).toFixed(2)} MXN
                           </div>
@@ -213,7 +213,7 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
 
             {tab === 'timeline' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {tlLoading && <div style={{ padding: 20, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 12 }}>Cargando timeline…</div>}
+                {tlLoading && <div style={{ padding: 20, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 12 }}>Cargando timeline…</div>}
                 {!tlLoading && tl && (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
@@ -223,22 +223,22 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
                       <button data-testid="timeline-filter-link" onClick={() => {
                         onClose();
                         navigate(`/superadmin/audit-log?entity_type=${encodeURIComponent(data.entity_type)}&entity_id=${encodeURIComponent(data.entity_id)}`);
-                      }} style={{ padding: '5px 12px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                      }} style={{ padding: '5px 12px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
                         Ver historial completo
                       </button>
                     </div>
                     {tl.items.map(it => (
                       <div key={it.id} style={{
                         padding: '7px 11px', borderRadius: 8,
-                        background: it.id === entryId ? 'rgba(99,102,241,0.10)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${it.id === entryId ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.07)'}`,
+                        background: it.id === entryId ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${it.id === entryId ? 'rgba(var(--theme-rgb),0.40)' : 'rgba(255,255,255,0.07)'}`,
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Mono, monospace', fontSize: 10.5 }}>
-                          <span style={{ padding: '1px 6px', borderRadius: 9999, fontSize: 9.5, fontWeight: 700, background: 'rgba(99,102,241,0.15)', color: '#818CF8' }}>
+                          <span style={{ padding: '1px 6px', borderRadius: 9999, fontSize: 9.5, fontWeight: 700, background: 'rgba(var(--theme-rgb),0.15)', color: 'var(--theme)' }}>
                             {it.action}
                           </span>
                           <span style={{ color: 'rgba(240,235,224,0.55)' }}>{fmtRel(it.ts)}</span>
-                          <span style={{ color: 'rgba(240,235,224,0.45)' }}>· {it.actor?.user_id || '—'}</span>
+                          <span style={{ color: 'rgba(240, 235, 224, 0.70)' }}>· {it.actor?.user_id || '—'}</span>
                         </div>
                       </div>
                     ))}
@@ -257,8 +257,8 @@ function DetailItem({ Icon, label, value, mono }) {
   return (
     <div style={{ padding: '9px 11px', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-        <Icon size={10} color="rgba(240,235,224,0.45)" />
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+        <Icon size={10} color="rgba(240, 235, 224, 0.70)" />
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
       </div>
       <div style={{ fontFamily: mono ? 'DM Mono, monospace' : 'DM Sans', fontSize: 11.5, color: 'var(--cream)', wordBreak: 'break-all' }}>{value}</div>
     </div>

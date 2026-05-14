@@ -26,13 +26,13 @@ function FiltersPreview({ filters }) {
   return (
     <div style={{
       padding: '10px 12px',
-      background: 'rgba(99,102,241,0.08)',
-      border: '1px solid rgba(99,102,241,0.18)',
+      background: 'rgba(var(--theme-rgb),0.08)',
+      border: '1px solid rgba(var(--theme-rgb),0.18)',
       borderRadius: 10, marginBottom: 20,
     }}>
       <div style={{
         fontFamily: 'DM Sans', fontSize: 10,
-        color: 'rgba(99,102,241,0.7)',
+        color: 'rgba(var(--theme-rgb),0.7)',
         textTransform: 'uppercase', letterSpacing: '0.07em',
         fontWeight: 600, marginBottom: 6,
       }}>
@@ -42,8 +42,8 @@ function FiltersPreview({ filters }) {
         {parts.map((p, i) => (
           <span key={i} style={{
             padding: '3px 9px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.22)',
+            background: 'rgba(var(--theme-rgb),0.12)',
+            border: '1px solid rgba(var(--theme-rgb),0.22)',
             fontFamily: 'DM Sans', fontSize: 11,
             color: 'rgba(240,235,224,0.75)',
           }}>
@@ -236,13 +236,13 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
                     style={{
                       flex: 1, padding: '9px 0', borderRadius: 9999, cursor: 'pointer',
                       border: frequency === k
-                        ? '1px solid rgba(99,102,241,0.5)'
+                        ? '1px solid rgba(var(--theme-rgb),0.5)'
                         : '1px solid rgba(240,235,224,0.15)',
                       background: frequency === k
-                        ? 'rgba(99,102,241,0.15)'
+                        ? 'rgba(var(--theme-rgb),0.15)'
                         : 'rgba(255,255,255,0.04)',
                       fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
-                      color: frequency === k ? 'rgba(99,102,241,0.9)' : 'rgba(240,235,224,0.5)',
+                      color: frequency === k ? 'rgba(var(--theme-rgb),0.9)' : 'rgba(240,235,224,0.5)',
                       transition: 'all 0.15s',
                     }}
                   >
@@ -260,7 +260,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
                 data-testid="save-search-accept"
                 checked={accepted}
                 onChange={e => setAccepted(e.target.checked)}
-                style={{ marginTop: 2, accentColor: '#6366F1', cursor: 'pointer' }}
+                style={{ marginTop: 2, accentColor: 'var(--theme)', cursor: 'pointer' }}
               />
               <label htmlFor="ss-accept" style={{
                 fontFamily: 'DM Sans', fontSize: 12,
@@ -289,8 +289,8 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
                 width: '100%', padding: '13px 20px',
                 borderRadius: 9999, border: 'none',
                 background: (!email.trim() || !email.includes('@') || !accepted || loading)
-                  ? 'rgba(99,102,241,0.3)'
-                  : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  ? 'rgba(var(--theme-rgb),0.3)'
+                  : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 color: '#fff',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
                 cursor: (!email.trim() || !email.includes('@') || !accepted || loading)

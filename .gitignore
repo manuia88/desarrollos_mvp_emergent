@@ -46,6 +46,10 @@ backend/storage/brochures/
 scripts/dev-data/
 scripts/logs/
 scripts/.venv/
+scripts/*.reference.css
+scripts/*.png
+scripts/*.jpg
+scripts/*.jpeg
 .env.local
 backend/.env.local
 frontend/.env.local

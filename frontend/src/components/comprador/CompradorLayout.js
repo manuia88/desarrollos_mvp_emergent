@@ -120,7 +120,7 @@ export default function CompradorLayout({ children }) {
         </div>
         <div style={{
           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
-          color: 'rgba(99,102,241,0.85)',
+          color: 'rgba(var(--theme-rgb),0.85)',
           textTransform: 'uppercase', letterSpacing: '0.08em',
           marginBottom: 22,
         }}>
@@ -137,8 +137,8 @@ export default function CompradorLayout({ children }) {
               style={({ isActive }) => ({
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 12px', borderRadius: 10,
-                background: isActive ? 'rgba(99,102,241,0.14)' : 'transparent',
-                border: isActive ? '1px solid rgba(99,102,241,0.30)' : '1px solid transparent',
+                background: isActive ? 'rgba(var(--theme-rgb),0.14)' : 'transparent',
+                border: isActive ? '1px solid rgba(var(--theme-rgb),0.30)' : '1px solid transparent',
                 color: isActive ? 'rgba(165,180,252,1)' : 'rgba(240,235,224,0.65)',
                 fontFamily: 'DM Sans', fontSize: 13, fontWeight: isActive ? 700 : 600,
                 textDecoration: 'none',
@@ -150,7 +150,7 @@ export default function CompradorLayout({ children }) {
               {badgeCount > 0 && (
                 <span data-testid={`nav-badge-${label.toLowerCase()}`} style={{
                   minWidth: 16, height: 16, borderRadius: 9999,
-                  background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'DM Sans', fontWeight: 800, fontSize: 9, color: '#fff',
                   padding: '0 4px',
@@ -161,7 +161,7 @@ export default function CompradorLayout({ children }) {
               {!badgeCount && badgeLabel && (
                 <span data-testid={`nav-badge-label-${label.toLowerCase()}`} style={{
                   padding: '1px 6px', borderRadius: 9999,
-                  background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                   fontFamily: 'DM Sans', fontWeight: 800, fontSize: 8, color: '#fff',
                   letterSpacing: '0.05em',
                 }}>
@@ -269,8 +269,8 @@ export default function CompradorLayout({ children }) {
                 style={({ isActive }) => ({
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '12px 14px', borderRadius: 10,
-                  background: isActive ? 'rgba(99,102,241,0.14)' : 'transparent',
-                  border: isActive ? '1px solid rgba(99,102,241,0.30)' : '1px solid transparent',
+                  background: isActive ? 'rgba(var(--theme-rgb),0.14)' : 'transparent',
+                  border: isActive ? '1px solid rgba(var(--theme-rgb),0.30)' : '1px solid transparent',
                   color: isActive ? 'rgba(165,180,252,1)' : 'rgba(240,235,224,0.7)',
                   fontFamily: 'DM Sans', fontSize: 14, fontWeight: isActive ? 700 : 600,
                   textDecoration: 'none',
@@ -281,7 +281,7 @@ export default function CompradorLayout({ children }) {
                 {badgeCount > 0 && (
                   <span style={{
                     minWidth: 16, height: 16, borderRadius: 9999,
-                    background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: 'DM Sans', fontWeight: 800, fontSize: 9, color: '#fff',
                     padding: '0 4px',
@@ -292,7 +292,7 @@ export default function CompradorLayout({ children }) {
                 {!badgeCount && badgeLabel && (
                   <span style={{
                     padding: '1px 6px', borderRadius: 9999,
-                    background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                     fontFamily: 'DM Sans', fontWeight: 800, fontSize: 8, color: '#fff',
                     letterSpacing: '0.05em',
                   }}>

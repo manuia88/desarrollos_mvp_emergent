@@ -5,7 +5,7 @@
  *            InlineEditField, UndoSnackbar, SmartWizard
  */
 import React, { useState } from 'react';
-import { PortalLayout } from '../../components/shared/PortalLayout';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { EntityDrawer } from '../../components/shared/EntityDrawer';
 import { HealthScore } from '../../components/shared/HealthScore';
 import { DragDropZone } from '../../components/shared/DragDropZone';
@@ -188,7 +188,7 @@ const DEMO_SECTIONS = [
     title: 'Documentos',
     defaultOpen: false,
     content: (
-      <p className="text-[rgba(240,235,224,0.45)] text-xs">Sin documentos adjuntos.</p>
+      <p className="text-[rgba(240, 235, 224, 0.70)] text-xs">Sin documentos adjuntos.</p>
     ),
   },
 ];
@@ -222,7 +222,7 @@ export default function PrimitivesDemo({ user, onLogout }) {
   };
 
   return (
-    <PortalLayout role={user?.role || 'superadmin'} user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout}>
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8" data-testid="primitives-demo">
 
         {/* Header */}
@@ -230,7 +230,7 @@ export default function PrimitivesDemo({ user, onLogout }) {
           <h1 className="text-[var(--cream)] font-bold text-3xl font-[Outfit]" data-testid="primitives-demo-h1">
             Primitivas UI — B0 Sub-chunk B
           </h1>
-          <p className="text-[rgba(240,235,224,0.45)] text-sm">
+          <p className="text-[rgba(240, 235, 224, 0.70)] text-sm">
             Demo interactivo de los 6 componentes compartidos.
           </p>
         </div>
@@ -437,6 +437,6 @@ export default function PrimitivesDemo({ user, onLogout }) {
         </Section>
 
       </div>
-    </PortalLayout>
+    </SuperadminLayout>
   );
 }

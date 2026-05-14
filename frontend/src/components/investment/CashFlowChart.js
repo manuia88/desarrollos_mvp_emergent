@@ -7,7 +7,7 @@ import {
 
 const COLORS = {
   conservador: '#6B7280',
-  base: '#6366F1',
+  base: 'var(--theme)',
   optimista: '#10B981',
 };
 

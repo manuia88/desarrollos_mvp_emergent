@@ -1,0 +1,438 @@
+/* superadmin-aurora.css
+ * Aurora reskin for /superadmin/* portal — CSS-only.
+ *
+ * Scope: all rules scoped under `.portal-superadmin` (wrapper applied only
+ * by SuperadminLayout). Other portals never mount this wrapper — no leaks.
+ *
+ * Source of truth: scripts/dmx_design_system.reference.css (1338 líneas).
+ * Pattern equivalences applied verbatim:
+ *   - Aurora 3-radial-gradient ambient tint        (líneas 146-156)
+ *   - Grid layer con mask radial                   (líneas 170-181)
+ *   - Resource card border-left via ::before glow  (líneas 471-483)
+ *   - KPI card border-left via ::before            (líneas 540-551)
+ *   - Hover marco completo: border-color var(--theme) + bg-card-2 + transform
+ *
+ * Color: superadmin = portal-asesor pattern (rose #ff2e7e). One color, fixed.
+ *
+ * Rollback: delete this file + revert SuperadminLayout.js / index.js.
+ */
+
+/* ── Theme + tokens (scoped) ─────────────────────────────────────────── */
+.portal-superadmin {
+  /* Theme — default rose (founder console). Overridden per-section below. */
+  --theme:       #ff2e7e;
+  --theme-rgb:   255, 46, 126;
+  --theme-2:     #ff5fa0;
+  --theme-3:     #d946ef;
+  --theme-text:  #1a0009;
+
+  /* Surfaces */
+  --bg-card:     rgba(255, 255, 255, 0.025);
+  --bg-card-2:   rgba(255, 255, 255, 0.05);
+  --sa-border:   rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --sa-text:     #ffffff;
+  --sa-text-dim: rgba(255, 255, 255, 0.72);
+  --sa-text-mute: rgba(255, 255, 255, 0.55);
+
+  /* Motion */
+  --t-fast: 200ms;
+  --ease:   cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Override --grad para que recompute desde el scope .portal-superadmin ·
+ * evita edge case de late-binding con :root vars (botones con :hover, modals
+ * con backdrop) que caían al valor de :root (indigo→rose) en lugar del
+ * override de sección. */
+.portal-superadmin {
+  --grad: linear-gradient(90deg, var(--theme), var(--theme-3));
+}
+
+/* Per-section --theme override · ALL icons/borders/buttons follow via var(--theme).
+ * Aurora background gradients remain rose-magenta-violet (portal identity);
+ * only the accent that cards/icons/buttons consume changes.
+ * Section keys must match sectionFromPath() in SuperadminLayout.js
+ * AND tier.section_key in navByRole.js SUPERADMIN_NAV. */
+.portal-superadmin[data-section="principal"] {
+  --theme: #ff2e7e; --theme-rgb: 255, 46, 126;
+  --theme-2: #ff5fa0; --theme-3: #d946ef; --theme-text: #1a0009;
+}
+.portal-superadmin[data-section="datos"] {
+  --theme: #00E5FF; --theme-rgb: 0, 229, 255;
+  --theme-2: #5cf0ff; --theme-3: #38e4be; --theme-text: #001a1f;
+}
+.portal-superadmin[data-section="inteligencia"] {
+  --theme: #7c2fff; --theme-rgb: 124, 47, 255;
+  --theme-2: #a463ff; --theme-3: #3b82f6; --theme-text: #0a0014;
+}
+.portal-superadmin[data-section="operacion"] {
+  --theme: #FFA040; --theme-rgb: 255, 160, 64;
+  --theme-2: #FFB266; --theme-3: #ff5fa0; --theme-text: #1a0a00;
+}
+.portal-superadmin[data-section="monetizacion"] {
+  --theme: #5BE235; --theme-rgb: 91, 226, 53;
+  --theme-2: #7DEE5C; --theme-3: #2EB48F; --theme-text: #001a0e;
+}
+.portal-superadmin[data-section="crecimiento"] {
+  --theme: #14B8A6; --theme-rgb: 20, 184, 166;
+  --theme-2: #5EEAD4; --theme-3: #0D9488; --theme-text: #001a17;
+}
+.portal-superadmin[data-section="devtools"] {
+  --theme: #7c2fff; --theme-rgb: 124, 47, 255;
+  --theme-2: #a463ff; --theme-3: #3b82f6; --theme-text: #0a0014;
+}
+
+/* Section labels (sidebar tier headers) · color por sección con dot glow.
+ * Canonical pattern dmx_design_system.reference.css líneas 794-814. */
+.portal-superadmin .nav-tier-label[data-section-key="principal"]    { color: #ff2e7e !important; }
+.portal-superadmin .nav-tier-label[data-section-key="datos"]        { color: #00E5FF !important; }
+.portal-superadmin .nav-tier-label[data-section-key="inteligencia"] { color: #7c2fff !important; }
+.portal-superadmin .nav-tier-label[data-section-key="operacion"]    { color: #FFA040 !important; }
+.portal-superadmin .nav-tier-label[data-section-key="monetizacion"] { color: #5BE235 !important; }
+.portal-superadmin .nav-tier-label[data-section-key="crecimiento"]  { color: #14B8A6 !important; }
+.portal-superadmin .nav-tier-label[data-section-key="devtools"]     { color: #7c2fff !important; }
+
+.portal-superadmin .nav-tier-label[data-section-key]::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+/* Otros portales (asesor/developer/inmobiliaria) · sin section_key · sin dot */
+.nav-tier-label:not([data-section-key])::before { display: none; }
+
+/* ── Aurora ambient + grid (canonical pattern 146-181) ───────────────── */
+/* Aurora pseudo on layout root: 3 radial-gradients, opacities 0.08-0.18,
+   transparent 60% diffuses. Subtle ambient tint, NOT spots. */
+.portal-superadmin [data-testid="portal-layout"] {
+  background: var(--bg, #07070f) !important;
+  position: relative;
+  isolation: isolate;
+}
+
+.portal-superadmin [data-testid="portal-layout"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Aurora hereda --theme-rgb · cambia con data-section automáticamente */
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(var(--theme-rgb), 0.12), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 90% 80%, rgba(var(--theme-rgb), 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(var(--theme-rgb), 0.045), transparent 60%);
+  transition: background 400ms ease;
+}
+
+/* Grid layer · líneas cada 32px con mask radial */
+.portal-superadmin [data-testid="portal-layout"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+          mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+/* Ensure layout children sit above ambient layers */
+.portal-superadmin [data-testid="portal-layout"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Sidebar (canonical 771-782) ─────────────────────────────────────── */
+.portal-superadmin .sidebar-portal {
+  background: rgba(7, 7, 15, 0.6) !important;
+  -webkit-backdrop-filter: blur(20px);
+          backdrop-filter: blur(20px);
+  border-right: 1px solid var(--sa-border) !important;
+}
+
+/* Active nav · subtle rose tint + inset accent + glow */
+.portal-superadmin nav a[aria-current="page"] {
+  background: rgba(var(--theme-rgb), 0.12) !important;
+  color: var(--sa-text) !important;
+  box-shadow:
+    inset 3px 0 0 var(--theme),
+    0 0 16px -6px rgba(var(--theme-rgb), 0.35) !important;
+  transition: background var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease);
+}
+
+.portal-superadmin nav a:hover:not([aria-current="page"]) {
+  background: rgba(var(--theme-rgb), 0.06) !important;
+  color: var(--sa-text) !important;
+}
+
+/* Sidebar brand wordmark */
+.portal-superadmin .sidebar-portal span[class*="font-bold"]:first-of-type {
+  background: linear-gradient(90deg, var(--sa-text), var(--theme));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+/* ── Topbar ──────────────────────────────────────────────────────────── */
+.portal-superadmin [data-testid="portal-topbar"] {
+  background: rgba(7, 7, 15, 0.7) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+          backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--sa-border) !important;
+}
+
+.portal-superadmin [data-testid="search-trigger-btn"]:hover {
+  border-color: var(--theme) !important;
+}
+
+/* ── Main content surface ────────────────────────────────────────────── */
+.portal-superadmin [data-testid="portal-main"] {
+  background: transparent !important;
+}
+
+.portal-superadmin [data-testid="sa-main"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Typography hints ────────────────────────────────────────────────── */
+.portal-superadmin .eyebrow {
+  color: var(--theme) !important;
+}
+
+.portal-superadmin .btn-primary {
+  background: linear-gradient(90deg, var(--theme-2) 0%, var(--theme-3) 100%) !important;
+  color: var(--theme-text) !important;
+  border: none !important;
+  box-shadow:
+    0 0 0 1px rgba(var(--theme-rgb), 0.3),
+    0 8px 24px rgba(var(--theme-rgb), 0.35),
+    0 0 60px rgba(var(--theme-rgb), 0.25);
+}
+
+.portal-superadmin .btn-primary:hover {
+  box-shadow:
+    0 0 0 1px rgba(var(--theme-rgb), 0.5),
+    0 8px 32px rgba(var(--theme-rgb), 0.55),
+    0 0 80px rgba(var(--theme-rgb), 0.5);
+}
+
+/* ── Cards — canonical RESOURCE/KPI pattern ──────────────────────────── */
+/* All cards in superadmin use SAME rose accent + same hover behavior:
+ *   default:  bg-card, 1px border, ::before strip rose with glow
+ *   hover:    border-color full rose, bg-card-2, transform translateY(-1px)
+ */
+
+/* KPI card (ExecutiveKpiGrid) */
+.portal-superadmin .sa-kpi-card {
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--sa-border);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--t-fast) var(--ease);
+  color: var(--sa-text);
+}
+.portal-superadmin .sa-kpi-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--theme);
+  box-shadow: 0 0 8px var(--theme);
+}
+.portal-superadmin .sa-kpi-card--clickable {
+  cursor: pointer;
+}
+.portal-superadmin .sa-kpi-card--clickable:hover {
+  border-color: var(--theme);
+  background: var(--bg-card-2);
+  transform: translateY(-1px);
+}
+
+/* Anomaly card (AnomalyFeed) — same canonical pattern, no severity variants */
+.portal-superadmin .sa-anomaly-card {
+  padding: 14px 16px 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--sa-border);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--t-fast) var(--ease);
+}
+.portal-superadmin .sa-anomaly-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--theme);
+  box-shadow: 0 0 8px var(--theme);
+}
+.portal-superadmin .sa-anomaly-card:hover {
+  border-color: var(--theme);
+  background: var(--bg-card-2);
+  transform: translateY(-1px);
+}
+
+/* Quick actions toolbar wrapper · gets the strip */
+.portal-superadmin .sa-quick-action-toolbar {
+  background: var(--bg-card);
+  border: 1px solid var(--sa-border);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--t-fast) var(--ease);
+}
+.portal-superadmin .sa-quick-action-toolbar::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--theme);
+  box-shadow: 0 0 8px var(--theme);
+}
+.portal-superadmin .sa-quick-action-toolbar:hover {
+  border-color: var(--theme);
+}
+
+/* Quick action item · pill (no strip · border-color hover) */
+.portal-superadmin .sa-quick-action {
+  background: var(--bg-card);
+  border: 1px solid var(--sa-border);
+  border-radius: 100px;
+  transition: all var(--t-fast) var(--ease);
+}
+.portal-superadmin .sa-quick-action:hover {
+  border-color: var(--theme);
+  background: var(--bg-card-2);
+  transform: translateY(-1px);
+}
+
+/* ── Scrollbar (scoped) ──────────────────────────────────────────────── */
+.portal-superadmin *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.portal-superadmin *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.portal-superadmin *::-webkit-scrollbar-thumb {
+  background: rgba(var(--theme-rgb), 0.22);
+  border-radius: 4px;
+}
+.portal-superadmin *::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--theme-rgb), 0.45);
+}
+
+/* ── Hover glow en botones theme-driven (canónico líneas 320-328) ──── */
+.portal-superadmin .btn,
+.portal-superadmin button[style*="var(--grad)"],
+.portal-superadmin button[style*="--theme"] {
+  transition: box-shadow 0.22s ease, transform 0.22s ease;
+}
+.portal-superadmin .btn:hover,
+.portal-superadmin button[style*="var(--grad)"]:hover,
+.portal-superadmin button[style*="--theme"]:hover {
+  box-shadow:
+    0 0 0 1px rgba(var(--theme-rgb), 0.5),
+    0 8px 32px rgba(var(--theme-rgb), 0.45),
+    0 0 64px rgba(var(--theme-rgb), 0.40);
+  transform: translateY(-1px);
+}
+
+/* ── Cursor custom · color según sección · scope body level ─────────── */
+/* Cursor lives outside .portal-superadmin (position:fixed at body root) ·
+ * so we duplicate --theme/--theme-rgb on body when superadmin is mounted. */
+body.superadmin-active[data-superadmin-section="principal"]    { --theme: #ff2e7e; --theme-rgb: 255, 46, 126; }
+body.superadmin-active[data-superadmin-section="datos"]        { --theme: #00E5FF; --theme-rgb: 0, 229, 255; }
+body.superadmin-active[data-superadmin-section="inteligencia"] { --theme: #7c2fff; --theme-rgb: 124, 47, 255; }
+body.superadmin-active[data-superadmin-section="operacion"]    { --theme: #FFA040; --theme-rgb: 255, 160, 64; }
+body.superadmin-active[data-superadmin-section="monetizacion"] { --theme: #5BE235; --theme-rgb: 91, 226, 53; }
+body.superadmin-active[data-superadmin-section="crecimiento"]  { --theme: #14B8A6; --theme-rgb: 20, 184, 166; }
+body.superadmin-active[data-superadmin-section="devtools"]     { --theme: #7c2fff; --theme-rgb: 124, 47, 255; }
+
+body.superadmin-active .cursor-dot {
+  background: var(--theme) !important;
+  box-shadow: 0 0 14px rgba(var(--theme-rgb), 0.8) !important;
+}
+body.superadmin-active .cursor-ring {
+  border-color: rgba(var(--theme-rgb), 0.45) !important;
+}
+body.superadmin-active .cursor-glow {
+  background: radial-gradient(circle, rgba(var(--theme-rgb), 0.20) 0%, transparent 70%) !important;
+}
+
+/* ───── Hover universal · cards y elementos con border o radius ─────
+ * Matchea inline border-radius (kebab-case que React emite) Y Tailwind
+ * rounded-* classes. Excluye inputs/textarea/select (formularios) y
+ * modals/dialogs. Decisión: Opción A (selector amplio) sobre clase única
+ * .dmx-card · auto-agarra cards generados por emergent en Phase 5+. */
+.portal-superadmin [style*="border"]:not([disabled]),
+.portal-superadmin [class*="rounded"]:not([disabled]) {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.portal-superadmin [style*="border-radius"]:not(input):not(textarea):not(select):not([role="dialog"]):not([role="row"]):hover,
+.portal-superadmin [class*="rounded-2xl"]:not(input):not(textarea):not(select):hover,
+.portal-superadmin [class*="rounded-xl"]:not(input):not(textarea):not(select):hover,
+.portal-superadmin [class*="rounded-lg"]:not(input):not(textarea):not(select):hover,
+.portal-superadmin [class*="rounded-3xl"]:not(input):not(textarea):not(select):hover {
+  border-color: rgba(var(--theme-rgb), 0.65) !important;
+  box-shadow:
+    0 0 0 1px rgba(var(--theme-rgb), 0.30),
+    0 0 24px rgba(var(--theme-rgb), 0.30),
+    0 0 48px rgba(var(--theme-rgb), 0.15) !important;
+  transform: translateY(-1px);
+}
+
+/* Excepciones · NO iluminar modal containers, overlay backdrops, avatars circulares */
+.portal-superadmin [role="dialog"]:hover,
+.portal-superadmin [role="dialog"] > div:first-child:hover,
+.portal-superadmin [class*="rounded-full"]:hover {
+  border-color: initial !important;
+  box-shadow: initial !important;
+  transform: none !important;
+}
+
+/* ── Bordes en reposo muy sutiles · cards y cajas genéricas ──────────
+ * Reduce opacidad del border en reposo (rgba 0.035) · hover sigue intenso
+ * porque las reglas :hover existentes tienen mayor specificity + !important.
+ * Cubre todas las variantes Tailwind rounded-* + cajas cuadradas con border
+ * inline. NO toca borders semánticos (red/amber/theme accent). */
+.portal-superadmin [style*="border-radius"]:not(input):not(textarea):not(select):not([role="dialog"]):not([role="row"]),
+.portal-superadmin [class*="rounded-2xl"]:not(input):not(textarea):not(select),
+.portal-superadmin [class*="rounded-xl"]:not(input):not(textarea):not(select),
+.portal-superadmin [class*="rounded-3xl"]:not(input):not(textarea):not(select),
+.portal-superadmin [class*="rounded-lg"]:not(input):not(textarea):not(select),
+.portal-superadmin [class*="rounded-md"]:not(input):not(textarea):not(select),
+.portal-superadmin [class*="rounded-sm"]:not(input):not(textarea):not(select) {
+  border-color: rgba(255, 255, 255, 0.035) !important;
+}
+
+/* Elementos con border inline pero sin border-radius (cajas cuadradas) */
+.portal-superadmin [style*="border:"]:not([style*="border-radius"]):not(input):not(textarea):not(select) {
+  border-color: rgba(255, 255, 255, 0.035) !important;
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .portal-superadmin .sa-kpi-card--clickable:hover,
+  .portal-superadmin .sa-anomaly-card:hover,
+  .portal-superadmin .sa-quick-action:hover,
+  .portal-superadmin .btn-primary:hover {
+    transform: none;
+  }
+}

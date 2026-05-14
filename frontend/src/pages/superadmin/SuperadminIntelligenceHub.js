@@ -58,7 +58,7 @@ function StatCard({ label, value, sub, accent, testid }) {
       {sub && (
         <span style={{
           fontFamily: 'DM Mono, monospace', fontSize: 10.5,
-          color: 'rgba(240,235,224,0.45)',
+          color: 'rgba(240, 235, 224, 0.70)',
         }}>{sub}</span>
       )}
     </div>
@@ -277,9 +277,9 @@ export default function SuperadminIntelligenceHub({ user, onLogout }) {
           <div data-testid="intel-toast" style={{
             position: 'fixed', top: 76, right: 20, zIndex: 2000,
             padding: '11px 18px', borderRadius: 10,
-            background: 'rgba(99,102,241,0.18)',
-            border: '1px solid rgba(99,102,241,0.35)',
-            color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+            background: 'rgba(var(--theme-rgb),0.18)',
+            border: '1px solid rgba(var(--theme-rgb),0.35)',
+            color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
             backdropFilter: 'blur(24px)',
           }}>{toast}</div>
         )}
@@ -292,7 +292,7 @@ export default function SuperadminIntelligenceHub({ user, onLogout }) {
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10,
               marginBottom: 4 }}>
-              <Eye size={20} color="#818CF8" />
+              <Eye size={20} color="var(--theme)" />
               <h1 style={{
                 fontFamily: 'Outfit', fontWeight: 800, fontSize: 26,
                 color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em',
@@ -300,7 +300,7 @@ export default function SuperadminIntelligenceHub({ user, onLogout }) {
             </div>
             <p style={{
               fontFamily: 'DM Sans', fontSize: 13,
-              color: 'rgba(240,235,224,0.50)', margin: 0,
+              color: 'rgba(240, 235, 224, 0.72)', margin: 0,
             }}>
               Vista bird&apos;s-eye del cubo Z · Mapbox multi-capa · brief Claude Sonnet ·
               comparables N×N · cron lunes 05:00 MX.
@@ -317,7 +317,7 @@ export default function SuperadminIntelligenceHub({ user, onLogout }) {
                 style={{
                   padding: '6px 13px', borderRadius: 9999,
                   background: period === p.value
-                    ? 'linear-gradient(90deg, #6366F1, #EC4899)'
+                    ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))'
                     : 'transparent',
                   border: 'none',
                   color: period === p.value ? '#fff' : 'rgba(240,235,224,0.6)',
@@ -330,13 +330,14 @@ export default function SuperadminIntelligenceHub({ user, onLogout }) {
           <button data-testid="intel-export-pdf" onClick={onExportPdf}
             disabled={busy || !selectedZone}
             style={{
-              padding: '8px 14px', borderRadius: 9999,
-              background: 'rgba(99,102,241,0.10)',
-              border: '1px solid rgba(99,102,241,0.30)',
-              color: '#818CF8', fontFamily: 'DM Sans',
+              padding: '8px 16px', borderRadius: 9999,
+              background: 'rgba(var(--theme-rgb), 0.10)',
+              border: '1px solid rgba(var(--theme-rgb), 0.40)',
+              color: 'var(--theme)', fontFamily: 'DM Sans',
               fontSize: 11.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
               opacity: busy || !selectedZone ? 0.55 : 1,
+              transition: 'all 0.18s ease',
             }}>
             <FileDown size={11} /> Exportar PDF
           </button>
@@ -344,13 +345,14 @@ export default function SuperadminIntelligenceHub({ user, onLogout }) {
           <button data-testid="intel-refresh-insights" onClick={onRegenerate}
             disabled={busy || !selectedZone}
             style={{
-              padding: '8px 14px', borderRadius: 9999,
-              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              padding: '8px 16px', borderRadius: 9999,
+              background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
               border: 'none', color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
               cursor: busy ? 'wait' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
               opacity: busy || !selectedZone ? 0.55 : 1,
+              transition: 'all 0.18s ease',
             }}>
             <Sparkles size={11} /> Refrescar insights
           </button>
@@ -431,10 +433,10 @@ export default function SuperadminIntelligenceHub({ user, onLogout }) {
             {selectedZone && (
               <div data-testid="intel-selected-zone" style={{
                 marginTop: 9, padding: '8px 12px', borderRadius: 8,
-                background: 'rgba(99,102,241,0.10)',
-                border: '1px solid rgba(99,102,241,0.30)',
+                background: 'rgba(var(--theme-rgb),0.10)',
+                border: '1px solid rgba(var(--theme-rgb),0.30)',
                 fontFamily: 'DM Sans', fontSize: 12,
-                color: '#818CF8', display: 'flex', justifyContent: 'space-between',
+                color: 'var(--theme)', display: 'flex', justifyContent: 'space-between',
               }}>
                 <span>Zona seleccionada: <b>{selectedZone.name}</b></span>
                 <span style={{ fontFamily: 'DM Mono, monospace', opacity: 0.7 }}>

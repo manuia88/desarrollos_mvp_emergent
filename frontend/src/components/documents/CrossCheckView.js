@@ -6,7 +6,7 @@ import { Sparkle, AlertTriangle, Check, Clock, RotateCcw, FileText } from '../ic
 const SEVERITY_TONE = {
   critical: { bg: 'rgba(239,68,68,0.14)',  fg: '#fca5a5', label: 'CRÍTICO',  Icon: AlertTriangle },
   warning:  { bg: 'rgba(245,158,11,0.14)', fg: '#fcd34d', label: 'WARNING',  Icon: AlertTriangle },
-  info:     { bg: 'rgba(99,102,241,0.10)', fg: '#c7d2fe', label: 'INFO',     Icon: Sparkle },
+  info:     { bg: 'rgba(var(--theme-rgb),0.10)', fg: 'var(--theme)', label: 'INFO',     Icon: Sparkle },
 };
 const RESULT_TONE = {
   pass:         { bg: 'rgba(34,197,94,0.14)',  fg: '#86efac', label: 'PASS',         Icon: Check },
@@ -71,7 +71,7 @@ export default function CrossCheckView({ devId, scope = 'superadmin', onOpenDoc 
   const summaryToneStyle = summaryTone === 'critical' ? { bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.32)' }
     : summaryTone === 'warning' ? { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.32)' }
     : summaryTone === 'pass' ? { bg: 'rgba(34,197,94,0.06)', border: 'rgba(34,197,94,0.28)' }
-    : { bg: 'rgba(99,102,241,0.06)', border: 'rgba(99,102,241,0.28)' };
+    : { bg: 'rgba(var(--theme-rgb),0.06)', border: 'rgba(var(--theme-rgb),0.28)' };
 
   return (
     <div data-testid="cross-check-view">
@@ -179,8 +179,8 @@ export default function CrossCheckView({ devId, scope = 'superadmin', onOpenDoc 
                 {r.referenced_document_ids.map(did => (
                   <button key={did} onClick={() => onOpenDoc?.(did)} data-testid="cc-ref-doc" style={{
                     padding: '3px 9px', borderRadius: 9999,
-                    background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)',
-                    color: '#c7d2fe', fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 600,
+                    background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)',
+                    color: 'var(--theme)', fontFamily: 'DM Mono, monospace', fontSize: 10, fontWeight: 600,
                     cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}><FileText size={9} /> {did}</button>
                 ))}

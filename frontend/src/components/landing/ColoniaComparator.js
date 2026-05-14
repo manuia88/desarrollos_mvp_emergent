@@ -253,8 +253,8 @@ export default function ColoniaComparator() {
               <div style={{
                 maxWidth: 320,
                 padding: '10px 14px',
-                background: 'rgba(99,102,241,0.10)',
-                border: '1px solid rgba(99,102,241,0.20)',
+                background: 'rgba(var(--theme-rgb),0.10)',
+                border: '1px solid rgba(var(--theme-rgb),0.20)',
                 borderRadius: 12,
                 textAlign: 'center',
               }}>

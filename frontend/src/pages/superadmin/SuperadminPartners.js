@@ -30,7 +30,7 @@ const pill = (active) => ({
   padding: '5px 14px', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer',
   border: active ? 'none' : '1px solid rgba(255,255,255,0.12)',
-  background: active ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.04)',
+  background: active ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))' : 'rgba(255,255,255,0.04)',
   color: 'var(--cream)',
 });
 
@@ -150,7 +150,7 @@ export default function SuperadminPartners() {
               onClick={() => setShowCreate(true)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
                 border: 'none', color: '#fff',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                 padding: '8px 18px', borderRadius: 9999, cursor: 'pointer',
@@ -210,7 +210,7 @@ export default function SuperadminPartners() {
                     {p.website && <a href={p.website} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ marginLeft: 6, color: 'var(--cream-3)' }}><ExternalLink size={11} /></a>}
                   </td>
                   <td style={{ padding: '10px 10px' }}>
-                    <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', borderRadius: 6, padding: '3px 8px', fontSize: 11 }}>
+                    <span style={{ background: 'rgba(var(--theme-rgb),0.12)', color: 'var(--theme)', borderRadius: 6, padding: '3px 8px', fontSize: 11 }}>
                       {PARTNER_TYPES.find(t => t.id === p.type)?.label || p.type}
                     </span>
                   </td>
@@ -269,7 +269,7 @@ export default function SuperadminPartners() {
 
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: '0 0 6px' }}>{detail.name}</h2>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', borderRadius: 6, padding: '3px 8px', fontSize: 11, fontFamily: 'DM Sans' }}>
+              <span style={{ background: 'rgba(var(--theme-rgb),0.12)', color: 'var(--theme)', borderRadius: 6, padding: '3px 8px', fontSize: 11, fontFamily: 'DM Sans' }}>
                 {detail.type}
               </span>
               <span style={{ background: `${(STATUS_CONFIG[detail.status]?.color||'#9CA3AF')}18`, color: STATUS_CONFIG[detail.status]?.color||'#9CA3AF', borderRadius: 9999, padding: '3px 10px', fontWeight: 700, fontSize: 11, fontFamily: 'DM Sans' }}>
@@ -321,13 +321,13 @@ export default function SuperadminPartners() {
 
             {/* Webhook section */}
             {detail.webhook_instructions && (
-              <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+              <div style={{ background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
                 <p style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', margin: '0 0 8px' }}>
                   Webhook H2 (integración futura)
                 </p>
                 <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
                   <p style={{ margin: '0 0 6px' }}>Endpoint:</p>
-                  <code style={{ background: 'rgba(0,0,0,0.3)', padding: '4px 8px', borderRadius: 4, color: '#a5b4fc', display: 'block', wordBreak: 'break-all', marginBottom: 10 }}>
+                  <code style={{ background: 'rgba(0,0,0,0.3)', padding: '4px 8px', borderRadius: 4, color: 'var(--theme)', display: 'block', wordBreak: 'break-all', marginBottom: 10 }}>
                     {detail.webhook_instructions.endpoint}
                     <CopyButton text={`${process.env.REACT_APP_BACKEND_URL}${detail.webhook_instructions.endpoint}`} />
                   </code>
@@ -419,7 +419,7 @@ export default function SuperadminPartners() {
                   Cancelar
                 </button>
                 <button type="submit" disabled={creating}
-                  style={{ flex: 2, background: creating ? 'rgba(99,102,241,0.4)' : 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, padding: '10px 0', borderRadius: 9999, cursor: 'pointer' }}>
+                  style={{ flex: 2, background: creating ? 'rgba(var(--theme-rgb),0.4)' : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, padding: '10px 0', borderRadius: 9999, cursor: 'pointer' }}>
                   {creating ? 'Guardando…' : 'Crear partner'}
                 </button>
               </div>

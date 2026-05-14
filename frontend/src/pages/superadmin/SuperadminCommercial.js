@@ -67,7 +67,7 @@ function TenantDrawer({ tenantId, catalog, onClose, onChanged }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 14 }}>
           <div>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', margin: '0 0 3px' }}>Configurar tenant</h2>
-            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.50)' }}>{tenantId}</div>
+            <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)' }}>{tenantId}</div>
           </div>
           <button onClick={onClose} style={{ padding: '6px 12px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>Cerrar</button>
         </div>
@@ -77,19 +77,19 @@ function TenantDrawer({ tenantId, catalog, onClose, onChanged }) {
               style={{
                 padding: '6px 12px', borderRadius: 9999, fontSize: 12,
                 fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid transparent',
-                background: tab === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                color: tab === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                border: tab === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid transparent',
+                background: tab === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                color: tab === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
               }}>{l}</button>
           ))}
         </div>
-        {loading && <div style={{ padding: 20, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 12 }}>Cargando…</div>}
+        {loading && <div style={{ padding: 20, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 12 }}>Cargando…</div>}
         {!loading && tab === 'features' && (
           <FeatureFlagsChecklist catalog={catalog} current={features} onSave={save} />
         )}
         {!loading && tab === 'trials' && (
           trials.length === 0 ? (
-            <div style={{ padding: 20, fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)', textAlign: 'center' }}>Sin trials activos.</div>
+            <div style={{ padding: 20, fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)', textAlign: 'center' }}>Sin trials activos.</div>
           ) : trials.map(t => (
             <div key={t.feature_key} style={{ padding: '10px 12px', borderRadius: 9, background: 'rgba(250,204,21,0.05)', border: '1px solid rgba(250,204,21,0.22)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)' }}>{t.feature_key}</span>
@@ -119,19 +119,19 @@ function CreateTemplateModal({ catalog, onClose, onDone }) {
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div data-testid="create-tpl-modal" style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div data-testid="create-tpl-modal" style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Crear plan template</h3>
         <input data-testid="tpl-name" value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" style={{ padding: '9px 14px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
         <select data-testid="tpl-tier" value={tier} onChange={e => setTier(e.target.value)} style={{ padding: '9px 14px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }}>
           <option value="basic">Basic</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option><option value="custom">Custom</option>
         </select>
         <input data-testid="tpl-price" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="Precio MXN/mes" style={{ padding: '9px 14px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 13, outline: 'none' }} />
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Features incluidos</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Features incluidos</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
           {catalog.map(f => (
             <button key={f.key} type="button" onClick={() => setFeats(s => s.includes(f.key) ? s.filter(x => x !== f.key) : [...s, f.key])}
               data-testid={`tpl-feat-${f.key}`}
-              style={{ padding: '4px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: feats.includes(f.key) ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.10)', background: feats.includes(f.key) ? 'rgba(99,102,241,0.14)' : 'transparent', color: feats.includes(f.key) ? '#818CF8' : 'rgba(240,235,224,0.55)' }}>
+              style={{ padding: '4px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: feats.includes(f.key) ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.10)', background: feats.includes(f.key) ? 'rgba(var(--theme-rgb),0.14)' : 'transparent', color: feats.includes(f.key) ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
               {f.key}
             </button>
           ))}
@@ -139,7 +139,7 @@ function CreateTemplateModal({ catalog, onClose, onDone }) {
         {err && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#F87171' }}>{err}</div>}
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-          <button data-testid="tpl-create-btn" onClick={submit} disabled={busy} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Creando…' : 'Crear'}</button>
+          <button data-testid="tpl-create-btn" onClick={submit} disabled={busy} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Creando…' : 'Crear'}</button>
         </div>
       </div>
     </div>
@@ -161,7 +161,7 @@ function CreateSnapshotModal({ tenants, onClose, onDone }) {
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div data-testid="create-snap-modal" style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div data-testid="create-snap-modal" style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Crear snapshot</h3>
         <input data-testid="snap-name" value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" style={{ padding: '9px 14px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
         <textarea data-testid="snap-desc" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descripción (opcional)" rows={2} style={{ padding: '9px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', resize: 'vertical' }} />
@@ -170,7 +170,7 @@ function CreateSnapshotModal({ tenants, onClose, onDone }) {
         {err && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#F87171' }}>{err}</div>}
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-          <button data-testid="snap-create-btn" onClick={submit} disabled={busy} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Creando…' : 'Crear'}</button>
+          <button data-testid="snap-create-btn" onClick={submit} disabled={busy} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Creando…' : 'Crear'}</button>
         </div>
       </div>
     </div>
@@ -192,7 +192,7 @@ function ApplyTemplateModal({ template, tenants, onClose, onDone }) {
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div data-testid="apply-tpl-modal" style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div data-testid="apply-tpl-modal" style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Aplicar {template.name} a tenant</h3>
         {!preview ? (
           <>
@@ -204,7 +204,7 @@ function ApplyTemplateModal({ template, tenants, onClose, onDone }) {
             {err && <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: '#F87171' }}>{err}</div>}
             <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
               <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button data-testid="apply-tpl-confirm" onClick={submit} disabled={busy} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Aplicando…' : 'Aplicar'}</button>
+              <button data-testid="apply-tpl-confirm" onClick={submit} disabled={busy} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>{busy ? 'Aplicando…' : 'Aplicar'}</button>
             </div>
           </>
         ) : (
@@ -215,7 +215,7 @@ function ApplyTemplateModal({ template, tenants, onClose, onDone }) {
                 +{(preview.applied || []).length} habilitadas · -{(preview.removed || []).length} desactivadas · {(preview.kept || []).length} sin cambio
               </div>
             </div>
-            <button onClick={() => { onDone(); onClose(); }} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Cerrar</button>
+            <button onClick={() => { onDone(); onClose(); }} style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Cerrar</button>
           </div>
         )}
       </div>
@@ -233,7 +233,7 @@ function TrialAlertsModal({ items, onClose }) {
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0, flex: 1 }}>Trials expirando ({items.length})</h3>
           <button onClick={onClose} style={{ padding: 5, borderRadius: 9999, background: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(240,235,224,0.55)' }}><X size={14} /></button>
         </div>
-        {items.length === 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)', padding: 18, textAlign: 'center' }}>Sin trials próximos a expirar.</div> :
+        {items.length === 0 ? <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.72)', padding: 18, textAlign: 'center' }}>Sin trials próximos a expirar.</div> :
           items.map(it => (
             <div key={it.id} style={{ padding: '8px 11px', borderRadius: 8, background: 'rgba(250,204,21,0.05)', border: '1px solid rgba(250,204,21,0.20)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)' }}>{it.tenant_id} · <strong>{it.feature_key}</strong></span>
@@ -290,7 +290,7 @@ export default function SuperadminCommercial({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-commercial">
         {toast && (
-          <div data-testid="commercial-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="commercial-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -298,10 +298,10 @@ export default function SuperadminCommercial({ user, onLogout }) {
         <div style={{ marginBottom: 22, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <Briefcase size={20} color="#818CF8" />
+              <Briefcase size={20} color="var(--theme)" />
               <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em' }}>Comercial</h1>
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)', margin: 0 }}>
               Feature flags · plan templates · snapshots tipo GHL para onboarding rápido.
             </p>
           </div>
@@ -317,9 +317,9 @@ export default function SuperadminCommercial({ user, onLogout }) {
               style={{
                 padding: '7px 14px', borderRadius: 9999, fontSize: 12.5,
                 fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid transparent',
-                background: tab === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                color: tab === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                border: tab === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid transparent',
+                background: tab === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                color: tab === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                 display: 'inline-flex', alignItems: 'center', gap: 5,
               }}><Icon size={11} /> {l}</button>
           ))}
@@ -328,7 +328,7 @@ export default function SuperadminCommercial({ user, onLogout }) {
         {tab === 'tenants' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {tenants.length === 0 ? (
-              <div style={{ padding: 30, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)' }}>Sin tenants disponibles.</div>
+              <div style={{ padding: 30, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)' }}>Sin tenants disponibles.</div>
             ) : tenants.map(t => (
               <div key={t.id} data-testid={`commercial-tenant-${t.id}`}
                 onClick={() => setDrawerTenant(t.id)}
@@ -339,18 +339,18 @@ export default function SuperadminCommercial({ user, onLogout }) {
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10,
                   transition: 'background 180ms, transform 180ms',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>{t.name}</div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.45)' }}>{t.id}</div>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)' }}>{t.id}</div>
                 </div>
-                <span style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Mono, monospace', background: 'rgba(99,102,241,0.10)', color: '#818CF8' }}>
+                <span style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Mono, monospace', background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)' }}>
                   {tenantFeatCounts[t.id] || 0}/{catalog.length}
                 </span>
                 <button data-testid={`commercial-tenant-config-${t.id}`} onClick={(e) => { e.stopPropagation(); setDrawerTenant(t.id); }}
-                  style={{ padding: '5px 12px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+                  style={{ padding: '5px 12px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
                   Configurar
                 </button>
               </div>
@@ -362,7 +362,7 @@ export default function SuperadminCommercial({ user, onLogout }) {
           <>
             <div style={{ marginBottom: 12 }}>
               <button data-testid="commercial-create-tpl" onClick={() => setShowCreateTpl(true)}
-                style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <Plus size={11} /> Crear template
               </button>
             </div>
@@ -380,7 +380,7 @@ export default function SuperadminCommercial({ user, onLogout }) {
           <>
             <div style={{ marginBottom: 12 }}>
               <button data-testid="commercial-create-snap" onClick={() => setShowCreateSnap(true)}
-                style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <Plus size={11} /> Crear snapshot
               </button>
             </div>

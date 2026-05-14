@@ -26,8 +26,8 @@ function ScoreBullet({ item, onClickScore, citations = [] }) {
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 4,
           padding: '2px 9px', marginRight: 8, verticalAlign: 'baseline',
-          background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.32)',
-          borderRadius: 9999, color: '#c7d2fe',
+          background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+          borderRadius: 9999, color: 'var(--theme)',
           fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600,
           cursor: score_code ? 'pointer' : 'default',
           letterSpacing: '0.03em',
@@ -249,8 +249,8 @@ export default function BriefingIEModal({ open, development, leadId = null, cont
             {/* Actions row */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18, marginBottom: 12 }}>
               <button data-testid="briefing-copy-full" onClick={copyFull} style={{
-                padding: '9px 16px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)',
-                border: '1px solid rgba(99,102,241,0.34)', color: '#c7d2fe',
+                padding: '9px 16px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.12)',
+                border: '1px solid rgba(var(--theme-rgb),0.34)', color: 'var(--theme)',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, cursor: 'pointer',
               }}>Copiar texto completo</button>
               <button data-testid="briefing-copy-wa" onClick={copyWA} style={{

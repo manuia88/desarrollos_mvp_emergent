@@ -19,7 +19,7 @@ function fmtMxn(v) {
 
 // ─── Sparkline (inline SVG, no deps) ───────────────────────────────────────────
 function Sparkline({ data, height = 110 }) {
-  if (!data || data.length === 0) return <div style={{ height, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Sin datos</div>;
+  if (!data || data.length === 0) return <div style={{ height, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Sin datos</div>;
   const W = 800; const H = height;
   const pad = { l: 8, r: 8, t: 16, b: 24 };
   const innerW = W - pad.l - pad.r; const innerH = H - pad.t - pad.b;
@@ -39,25 +39,25 @@ function Sparkline({ data, height = 110 }) {
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height }} data-testid="ai-cost-sparkline">
       <defs>
         <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(99,102,241,0.30)" />
-          <stop offset="100%" stopColor="rgba(99,102,241,0.00)" />
+          <stop offset="0%" stopColor="rgba(var(--theme-rgb),0.30)" />
+          <stop offset="100%" stopColor="rgba(var(--theme-rgb),0.00)" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#sparkGrad)" />
       <path d={haikuPath} fill="none" stroke="#4ADE80" strokeWidth="1.4" opacity="0.7" />
-      <path d={sonnetPath} fill="none" stroke="#818CF8" strokeWidth="1.4" opacity="0.7" />
-      <path d={totalPath} fill="none" stroke="#EC4899" strokeWidth="2" />
+      <path d={sonnetPath} fill="none" stroke="var(--theme)" strokeWidth="1.4" opacity="0.7" />
+      <path d={totalPath} fill="none" stroke="var(--theme)" strokeWidth="2" />
       {data.map((d, i) => d.mxn > 0 && (
-        <circle key={i} cx={xs(i)} cy={ys(d.mxn)} r="2.5" fill="#EC4899">
+        <circle key={i} cx={xs(i)} cy={ys(d.mxn)} r="2.5" fill="var(--theme)">
           <title>{`${d.date}: ${fmtMxn(d.mxn)} (${d.calls} calls)`}</title>
         </circle>
       ))}
       {/* Y-axis labels (max + min) */}
-      <text x={pad.l + 2} y={pad.t + 4} fill="rgba(240,235,224,0.45)" fontFamily="DM Mono, monospace" fontSize="9">{fmtMxn(max)}</text>
-      <text x={pad.l + 2} y={pad.t + innerH - 1} fill="rgba(240,235,224,0.40)" fontFamily="DM Mono, monospace" fontSize="9">$0</text>
+      <text x={pad.l + 2} y={pad.t + 4} fill="rgba(240, 235, 224, 0.70)" fontFamily="DM Mono, monospace" fontSize="9">{fmtMxn(max)}</text>
+      <text x={pad.l + 2} y={pad.t + innerH - 1} fill="rgba(240, 235, 224, 0.68)" fontFamily="DM Mono, monospace" fontSize="9">$0</text>
       {/* X-axis labels: first + last */}
-      <text x={pad.l} y={H - 6} fill="rgba(240,235,224,0.40)" fontFamily="DM Mono, monospace" fontSize="9">{data[0]?.date}</text>
-      <text x={W - pad.r - 60} y={H - 6} fill="rgba(240,235,224,0.40)" fontFamily="DM Mono, monospace" fontSize="9">{data[data.length - 1]?.date}</text>
+      <text x={pad.l} y={H - 6} fill="rgba(240, 235, 224, 0.68)" fontFamily="DM Mono, monospace" fontSize="9">{data[0]?.date}</text>
+      <text x={W - pad.r - 60} y={H - 6} fill="rgba(240, 235, 224, 0.68)" fontFamily="DM Mono, monospace" fontSize="9">{data[data.length - 1]?.date}</text>
     </svg>
   );
 }
@@ -67,10 +67,10 @@ function KpiCard({ Icon, label, value, accent, sub }) {
     <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
         <Icon size={11} color={accent} />
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
       </div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: accent || 'var(--cream)' }}>{value}</div>
-      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -79,9 +79,9 @@ function CapsListModal({ caps, onClose, onEdit }) {
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1450, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 560, maxHeight: '80vh', overflowY: 'auto', background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 14, padding: 22 }}>
+      <div style={{ width: '100%', maxWidth: 560, maxHeight: '80vh', overflowY: 'auto', background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <DollarSign size={14} color="#818CF8" />
+          <DollarSign size={14} color="var(--theme)" />
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0, flex: 1 }}>
             Topes configurados ({caps.length})
           </h3>
@@ -89,7 +89,7 @@ function CapsListModal({ caps, onClose, onEdit }) {
             <X size={14} />
           </button>
         </div>
-        {caps.length === 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)', padding: 20, textAlign: 'center' }}>No hay topes configurados todavía.</div>}
+        {caps.length === 0 && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.72)', padding: 20, textAlign: 'center' }}>No hay topes configurados todavía.</div>}
         {caps.map(c => (
           <div key={c.tenant_id} style={{ padding: '10px 13px', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -100,7 +100,7 @@ function CapsListModal({ caps, onClose, onEdit }) {
               </div>
             </div>
             <button onClick={() => onEdit(c)} data-testid={`caps-edit-${c.tenant_id}`}
-              style={{ padding: '5px 12px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
+              style={{ padding: '5px 12px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>
               Editar
             </button>
           </div>
@@ -177,7 +177,7 @@ export default function SuperadminAiCost({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-ai-cost">
         {toast && (
-          <div data-testid="ai-cost-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="ai-cost-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -185,19 +185,19 @@ export default function SuperadminAiCost({ user, onLogout }) {
         <div style={{ marginBottom: 22, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <DollarSign size={20} color="#818CF8" />
+              <DollarSign size={20} color="var(--theme)" />
               <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em' }}>
                 Costos IA
               </h1>
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)', margin: 0 }}>
               Gasto real per tenant + per feature · forecast EOM · topes configurables.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {PERIOD_CHIPS.map(([k, l]) => (
               <button key={k} data-testid={`period-${k}`} onClick={() => setPeriod(k)}
-                style={{ padding: '7px 14px', borderRadius: 9999, fontSize: 12, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: period === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)', background: period === k ? 'rgba(99,102,241,0.14)' : 'transparent', color: period === k ? '#818CF8' : 'rgba(240,235,224,0.55)' }}>
+                style={{ padding: '7px 14px', borderRadius: 9999, fontSize: 12, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: period === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.10)', background: period === k ? 'rgba(var(--theme-rgb),0.14)' : 'transparent', color: period === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
                 {l}
               </button>
             ))}
@@ -206,7 +206,7 @@ export default function SuperadminAiCost({ user, onLogout }) {
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} style={{ verticalAlign: 'middle' }} />
             </button>
             <button data-testid="ai-cost-caps-btn" onClick={() => setCapsListOpen(true)}
-              style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+              style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
               Configurar topes ({caps.length})
             </button>
           </div>
@@ -215,7 +215,7 @@ export default function SuperadminAiCost({ user, onLogout }) {
         {/* KPIs */}
         {overview && (
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-            <KpiCard Icon={DollarSign} label="Gasto período" value={fmtMxn(overview.total_mxn)} accent="#818CF8" sub={`${overview.total_calls} calls`} />
+            <KpiCard Icon={DollarSign} label="Gasto período" value={fmtMxn(overview.total_mxn)} accent="var(--theme)" sub={`${overview.total_calls} calls`} />
             <KpiCard Icon={Activity} label="Llamadas" value={overview.total_calls} accent="#4ADE80" />
             <KpiCard Icon={Zap} label="Forecast EOM" value={fmtMxn(forecast)} accent={forecast > 10000 ? '#F87171' : forecast > 5000 ? '#FACC15' : '#4ADE80'} sub={`run-rate × ${overview.forecast_end_of_month_mxn ? '' : ''}días restantes`} />
             <KpiCard Icon={TrendIcon} label="vs período previo" value={`${trend > 0 ? '+' : ''}${trend}%`} accent={trendColor} />
@@ -229,9 +229,9 @@ export default function SuperadminAiCost({ user, onLogout }) {
               Tendencia 30 días (top 10 tenants)
             </h3>
             <div style={{ display: 'flex', gap: 10, fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 2, background: '#EC4899', display: 'inline-block' }} /> Total</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 2, background: 'var(--theme)', display: 'inline-block' }} /> Total</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 2, background: '#4ADE80', display: 'inline-block' }} /> Haiku</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 2, background: '#818CF8', display: 'inline-block' }} /> Sonnet</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 14, height: 2, background: 'var(--theme)', display: 'inline-block' }} /> Sonnet</span>
             </div>
           </div>
           <Sparkline data={sparkData} height={120} />

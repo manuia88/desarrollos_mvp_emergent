@@ -182,7 +182,7 @@ function TestDrawer({ vertical, onClose }) {
               onClick={() => setTab(k)}
               style={{
                 padding: '8px 16px', background: 'none', border: 'none',
-                borderBottom: tab === k ? '2px solid #a5b4fc' : '2px solid transparent',
+                borderBottom: tab === k ? '2px solid var(--theme)' : '2px solid transparent',
                 color: tab === k ? 'var(--cream)' : 'var(--cream-3)',
                 cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
               }}>{label}</button>
@@ -208,7 +208,7 @@ function TestDrawer({ vertical, onClose }) {
                 onClick={onRun} disabled={loading || !apiKey}
                 style={{
                   marginTop: 12, padding: '9px 18px', borderRadius: 9999,
-                  backgroundImage: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  backgroundImage: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
                   border: '1px solid rgba(255,255,255,0.16)',
                   color: '#fff', cursor: loading || !apiKey ? 'not-allowed' : 'pointer',
                   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
@@ -224,7 +224,7 @@ function TestDrawer({ vertical, onClose }) {
                   <pre data-testid="vertical-drawer-output" style={{
                     background: 'rgba(0,0,0,0.45)', padding: 12, borderRadius: 10,
                     fontFamily: 'monospace', fontSize: 11.5,
-                    color: '#a5b4fc', overflowX: 'auto', maxHeight: 360,
+                    color: 'var(--theme)', overflowX: 'auto', maxHeight: 360,
                     margin: '8px 0 0',
                   }}>{JSON.stringify(output.data, null, 2)}</pre>
                 </Card>
@@ -251,9 +251,9 @@ function CodeBlock({ code, onCopy, copied }) {
           onClick={onCopy}
           style={{
             padding: '5px 12px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.10)',
-            border: '1px solid rgba(99,102,241,0.36)',
-            color: '#a5b4fc', cursor: 'pointer',
+            background: 'rgba(var(--theme-rgb),0.10)',
+            border: '1px solid rgba(var(--theme-rgb),0.36)',
+            color: 'var(--theme)', cursor: 'pointer',
             fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
             display: 'inline-flex', alignItems: 'center', gap: 5,
           }}>
@@ -263,7 +263,7 @@ function CodeBlock({ code, onCopy, copied }) {
       <pre style={{
         background: 'rgba(0,0,0,0.45)', padding: 12, borderRadius: 10,
         fontFamily: 'monospace', fontSize: 11.5,
-        color: '#a5b4fc', overflowX: 'auto',
+        color: 'var(--theme)', overflowX: 'auto',
         margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
       }}>{code}</pre>
     </Card>
@@ -290,8 +290,8 @@ const inputStyle = {
 function Kpi({ label, value, tone }) {
   const colors = {
     ok:    { bg: 'rgba(16,185,129,0.10)', bd: 'rgba(16,185,129,0.34)', fg: '#86efac' },
-    brand: { bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.34)', fg: '#a5b4fc' },
-    pink:  { bg: 'rgba(236,72,153,0.10)', bd: 'rgba(236,72,153,0.34)', fg: '#fbcfe8' },
+    brand: { bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.34)', fg: 'var(--theme)' },
+    pink:  { bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.34)', fg: 'rgba(var(--theme-rgb), 0.18)' },
     muted: { bg: 'rgba(255,255,255,0.04)',bd: 'rgba(255,255,255,0.10)', fg: 'var(--cream-3)' },
   }[tone] || {};
   return (

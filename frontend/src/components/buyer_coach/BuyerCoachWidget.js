@@ -33,14 +33,14 @@ export default function BuyerCoachWidget({ colonia = '' }) {
             onClick={() => setOpen(true)}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               color: '#fff',
               border: 'none',
               borderRadius: 9999,
               padding: '11px 18px',
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
               cursor: 'pointer',
-              boxShadow: '0 4px 24px rgba(99,102,241,0.35)',
+              boxShadow: '0 4px 24px rgba(var(--theme-rgb),0.35)',
               transition: 'transform 0.2s',
               whiteSpace: 'nowrap',
             }}

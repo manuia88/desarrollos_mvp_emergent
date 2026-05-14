@@ -146,7 +146,7 @@ export function SmartWizard({
       <div className="h-[3px] bg-[rgba(240,235,224,0.07)] mx-5 mt-3 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-400"
-          style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #6366F1, #EC4899)' }}
+          style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, var(--theme), var(--theme-3))' }}
         />
       </div>
 
@@ -250,7 +250,7 @@ export function SmartWizard({
           <button
             onClick={complete}
             className="flex items-center gap-1.5 px-5 py-2 rounded-full font-semibold text-sm hover:opacity-90 transition-opacity"
-            style={{ background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: 'white' }}
+            style={{ background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: 'white' }}
             data-testid="wizard-complete-btn"
           >
             <Check size={14} />

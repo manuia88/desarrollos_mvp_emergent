@@ -103,7 +103,7 @@ export default function WaitlistForm() {
         disabled={submitting}
         style={{
           width: '100%', padding: '14px 24px', borderRadius: 9999, border: 'none',
-          background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
           fontFamily: 'DM Sans', fontSize: 14, fontWeight: 700,
           cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.6 : 1,
         }}

@@ -20,7 +20,7 @@ const TIER_CAPS_IN = { T1: 50000, T2: 100000, T3: 200000, T4: null, off: 0 };
 function TokenBar({ used, cap, label }) {
   if (!cap) return null;
   const pct = Math.min((used / cap) * 100, 100);
-  const color = pct > 85 ? '#f87171' : pct > 60 ? '#fbbf24' : '#6366F1';
+  const color = pct > 85 ? '#f87171' : pct > 60 ? '#fbbf24' : 'var(--theme)';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 130 }}>
       <div style={{ flex: 1, height: 4, borderRadius: 9999, background: 'rgba(240,235,224,0.10)', overflow: 'hidden' }}>
@@ -75,8 +75,8 @@ function MemoryHitsBlock({ hits, tier }) {
             }}>
               <span style={{
                 padding: '1px 6px', borderRadius: 9999, fontSize: 9.5, fontWeight: 700,
-                background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
-                color: '#a5b4fc', whiteSpace: 'nowrap', flexShrink: 0,
+                background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.25)',
+                color: 'var(--theme)', whiteSpace: 'nowrap', flexShrink: 0,
               }}>
                 {SOURCE_TYPE_LABELS[h.source_type] || h.source_type}
               </span>
@@ -101,8 +101,8 @@ function ToolChip({ toolName }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '2px 8px', borderRadius: 9999, fontSize: 10.5, fontWeight: 600,
-      background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.32)',
-      color: '#a5b4fc', margin: '2px 2px 0',
+      background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+      color: 'var(--theme)', margin: '2px 2px 0',
     }}>
       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
       {labels[toolName] || toolName}
@@ -189,7 +189,7 @@ function EmptyState() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
       <div style={{
         width: 48, height: 48, borderRadius: '50%', marginBottom: 16,
-        background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+        background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -206,8 +206,8 @@ function EmptyState() {
         {suggestions.map((s, i) => (
           <div key={i} data-suggestion={s} style={{
             padding: '8px 12px', borderRadius: 9999, fontSize: 12, fontFamily: 'DM Sans',
-            background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
-            color: '#a5b4fc', cursor: 'pointer', textAlign: 'left',
+            background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)',
+            color: 'var(--theme)', cursor: 'pointer', textAlign: 'left',
             transition: 'border-color 0.15s',
           }}>
             {s}
@@ -360,7 +360,7 @@ export function DirectorChatPanel({ user }) {
           </div>
           <a href="mailto:hola@desarrollosmx.io" style={{
             display: 'inline-block', padding: '7px 18px', borderRadius: 9999,
-            background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+            background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
             textDecoration: 'none', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
           }}>
             Contactar soporte
@@ -392,7 +392,7 @@ export function DirectorChatPanel({ user }) {
       }}>
         <div style={{
           width: 28, height: 28, borderRadius: '50%',
-          background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
@@ -406,8 +406,8 @@ export function DirectorChatPanel({ user }) {
         {/* Tier badge */}
         <span data-testid="director-tier-badge" style={{
           padding: '2px 9px', borderRadius: 9999, fontSize: 10.5, fontWeight: 700,
-          background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.32)',
-          color: '#818CF8',
+          background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+          color: 'var(--theme)',
         }}>
           {tier}
         </span>
@@ -486,7 +486,7 @@ export function DirectorChatPanel({ user }) {
             padding: '9px 18px', borderRadius: 9999, border: 'none',
             background: loading || !input.trim() || !sessionId
               ? 'rgba(255,255,255,0.06)'
-              : 'linear-gradient(90deg,#6366F1,#EC4899)',
+              : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             color: loading || !input.trim() || !sessionId ? 'rgba(240,235,224,0.30)' : '#fff',
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             cursor: loading || !input.trim() || !sessionId ? 'not-allowed' : 'pointer',

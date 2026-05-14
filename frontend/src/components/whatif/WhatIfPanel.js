@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import * as whatifApi from '../../api/whatifApi';
 import { TrendUp, TrendDown, Activity, AlertCircle, Sparkle, Building } from '../icons';
 
-const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRAD = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 const SCENARIO_DEFS = [
   {
@@ -58,12 +58,12 @@ function ConfidenceBand({ low, high, point, label = 'Forecast' }) {
       />
       <defs>
         <linearGradient id="whatifGrad" x1="0" x2="1">
-          <stop offset="0%" stopColor="#6366F1" />
-          <stop offset="100%" stopColor="#EC4899" />
+          <stop offset="0%" stopColor="var(--theme)" />
+          <stop offset="100%" stopColor="var(--theme-3)" />
         </linearGradient>
       </defs>
       {/* point */}
-      <circle cx={pointX} cy="9" r="1.6" fill="#fff" stroke="#EC4899" strokeWidth="0.6" />
+      <circle cx={pointX} cy="9" r="1.6" fill="#fff" stroke="var(--theme-3)" strokeWidth="0.6" />
     </svg>
   );
 }
@@ -114,7 +114,7 @@ function PriceChangeForm({ projects, value, onChange }) {
           type="range" min="-20" max="20" step="0.5"
           value={value.proposed_delta_pct ?? 0}
           onChange={e => onChange({ ...value, proposed_delta_pct: parseFloat(e.target.value) })}
-          style={{ width: '100%', accentColor: '#6366F1' }}
+          style={{ width: '100%', accentColor: 'var(--theme)' }}
         />
       </Field>
       <Field label="Horizonte">
@@ -159,7 +159,7 @@ function PromoForm({ projects, value, onChange }) {
           type="range" min="1" max="20" step="1"
           value={value.duration_weeks ?? 4}
           onChange={e => onChange({ ...value, duration_weeks: parseInt(e.target.value, 10) })}
-          style={{ width: '100%', accentColor: '#EC4899' }}
+          style={{ width: '100%', accentColor: 'var(--theme-3)' }}
         />
       </Field>
     </>
@@ -181,7 +181,7 @@ function DelayForm({ projects, value, onChange }) {
           type="range" min="1" max="12" step="1"
           value={value.delay_months ?? 1}
           onChange={e => onChange({ ...value, delay_months: parseInt(e.target.value, 10) })}
-          style={{ width: '100%', accentColor: '#EC4899' }}
+          style={{ width: '100%', accentColor: 'var(--theme-3)' }}
         />
       </Field>
     </>
@@ -223,11 +223,11 @@ function ResultCard({ result }) {
     <div data-testid="whatif-result-card" style={{
       padding: 18, borderRadius: 14,
       background: 'rgba(13,16,23,0.85)',
-      border: '1px solid rgba(99,102,241,0.25)',
+      border: '1px solid rgba(var(--theme-rgb),0.25)',
       backdropFilter: 'blur(24px)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        <Sparkle size={12} color="#a5b4fc" />
+        <Sparkle size={12} color="var(--theme)" />
         <span style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>
           Forecast · {result.scenario_type}
         </span>
@@ -239,7 +239,7 @@ function ResultCard({ result }) {
         )}
         <span style={{
           padding: '2px 8px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-          background: 'rgba(99,102,241,0.18)', color: '#c7d2fe', border: '1px solid rgba(99,102,241,0.30)',
+          background: 'rgba(var(--theme-rgb),0.18)', color: 'var(--theme)', border: '1px solid rgba(var(--theme-rgb),0.30)',
         }}>{(o.data_quality || 'medium').toUpperCase()}</span>
       </div>
 
@@ -279,7 +279,7 @@ function ResultCard({ result }) {
             {o.comparables_used.map(c => (
               <span key={c} style={{
                 padding: '3px 10px', borderRadius: 9999, fontFamily: 'monospace', fontSize: 11,
-                background: 'rgba(99,102,241,0.10)', color: '#c7d2fe', border: '1px solid rgba(99,102,241,0.25)',
+                background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)', border: '1px solid rgba(var(--theme-rgb),0.25)',
               }}>{c}</span>
             ))}
           </div>
@@ -289,11 +289,11 @@ function ResultCard({ result }) {
       {o.recommendation_text && (
         <div data-testid="whatif-recommendation" style={{
           padding: '10px 12px', borderRadius: 10,
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(236,72,153,0.10))',
-          border: '1px solid rgba(99,102,241,0.30)',
+          background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.12), rgba(var(--theme-rgb),0.10))',
+          border: '1px solid rgba(var(--theme-rgb),0.30)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <Activity size={11} color="#a5b4fc" />
+            <Activity size={11} color="var(--theme)" />
             <span style={{ fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>
               Recomendación
             </span>
@@ -423,7 +423,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
         background: 'rgba(13,16,23,0.65)', border: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
       }}>
-        <Building size={16} color="#a5b4fc" />
+        <Building size={16} color="var(--theme)" />
         <span style={{ fontFamily: 'Outfit', fontSize: 15, fontWeight: 700, color: 'var(--cream)' }}>
           What-if Simulator
         </span>
@@ -446,8 +446,8 @@ export default function WhatIfPanel({ user, projects = [] }) {
               onClick={() => setScenarioType(s.key)}
               style={{
                 padding: '14px 16px', borderRadius: 14, cursor: 'pointer', textAlign: 'left',
-                background: active ? 'rgba(99,102,241,0.12)' : 'rgba(13,16,23,0.55)',
-                border: active ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.06)',
+                background: active ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(13,16,23,0.55)',
+                border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.06)',
                 color: 'var(--cream)', backdropFilter: 'blur(24px)',
                 transition: 'background 0.18s, border 0.18s',
               }}
@@ -476,7 +476,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
             style={{
               marginTop: 6, padding: '10px 22px', borderRadius: 9999,
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: loading ? 'wait' : 'pointer',
-              background: loading ? 'rgba(99,102,241,0.30)' : GRAD,
+              background: loading ? 'rgba(var(--theme-rgb),0.30)' : GRAD,
               color: '#fff', border: 'none', opacity: loading ? 0.7 : 1,
               transition: 'opacity 0.18s',
             }}
@@ -538,7 +538,7 @@ export default function WhatIfPanel({ user, projects = [] }) {
                     color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12,
                   }}
                 >
-                  <span style={{ fontFamily: 'monospace', color: '#a5b4fc' }}>{h.scenario_id}</span>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--theme)' }}>{h.scenario_id}</span>
                   {' · '}
                   <span style={{ fontWeight: 700 }}>{h.scenario_type}</span>
                   {' · '}

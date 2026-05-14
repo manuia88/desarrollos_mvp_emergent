@@ -27,7 +27,7 @@ const pill = (active) => ({
   padding: '5px 14px', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer',
   border: active ? 'none' : '1px solid rgba(255,255,255,0.12)',
-  background: active ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.04)',
+  background: active ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))' : 'rgba(255,255,255,0.04)',
   color: 'var(--cream)',
 });
 
@@ -128,9 +128,9 @@ export default function SuperadminCompliance() {
             disabled={loading}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              background: 'rgba(99,102,241,0.15)',
-              border: '1px solid rgba(99,102,241,0.35)',
-              color: '#a5b4fc', fontFamily: 'DM Sans', fontWeight: 700,
+              background: 'rgba(var(--theme-rgb),0.15)',
+              border: '1px solid rgba(var(--theme-rgb),0.35)',
+              color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700,
               fontSize: 13, padding: '8px 18px', borderRadius: 9999, cursor: 'pointer',
             }}
           >

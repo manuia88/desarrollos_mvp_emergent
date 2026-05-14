@@ -36,7 +36,7 @@ function KpiCard({ Icon, label, value, suffix, accent }) {
     <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
         <Icon size={11} color={accent} />
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
       </div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: accent || 'var(--cream)' }}>
         {value}{suffix && <span style={{ fontSize: 13, marginLeft: 3 }}>{suffix}</span>}
@@ -82,7 +82,7 @@ function ServiceCard({ svc }) {
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>
           {SERVICE_LABELS[svc.name] || svc.name}
         </div>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)' }}>
           {fmtRel(svc.last_check_at)}
         </div>
       </div>
@@ -163,7 +163,7 @@ export default function SuperadminHealth({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-health">
         {toast && (
-          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -171,12 +171,12 @@ export default function SuperadminHealth({ user, onLogout }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 22 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <Activity size={20} color="#818CF8" />
+              <Activity size={20} color="var(--theme)" />
               <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em' }}>
                 Salud del sistema
               </h1>
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)', margin: 0 }}>
               Probes, crons, ETL y alertas críticas en una sola vista. Auto-refresh 30s.
             </p>
           </div>
@@ -194,7 +194,7 @@ export default function SuperadminHealth({ user, onLogout }) {
 
         {/* KPI strip */}
         {loadingOv && !overview ? (
-          <div style={{ padding: 50, textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>
+          <div style={{ padding: 50, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>
         ) : overview && (
           <>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
@@ -220,7 +220,7 @@ export default function SuperadminHealth({ user, onLogout }) {
             Crons ({crons.length})
           </h2>
           {crons.length === 0 ? (
-            <div data-testid="crons-empty" style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+            <div data-testid="crons-empty" style={{ padding: 40, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>
               Sin datos de crons aún.
             </div>
           ) : (
@@ -239,22 +239,22 @@ export default function SuperadminHealth({ user, onLogout }) {
             <div onClick={() => navigate('/superadmin/system-map')} data-testid="probes-link"
               style={{
                 padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
-                background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.22)',
+                background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)',
                 display: 'flex', alignItems: 'center', gap: 12, transition: 'transform 180ms',
               }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              <Activity size={20} color="#818CF8" />
+              <Activity size={20} color="var(--theme)" />
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 2 }}>
                   Pass rate 7d: <span style={{ color: colorByPct(overview.probe_pass_rate_7d) }}>{overview.probe_pass_rate_7d}%</span>
                 </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.72)' }}>
                   Ver mapa completo de probes
                 </div>
               </div>
-              <ExternalLink size={13} color="rgba(240,235,224,0.50)" />
+              <ExternalLink size={13} color="rgba(240, 235, 224, 0.72)" />
             </div>
           </div>
         )}
@@ -271,16 +271,16 @@ export default function SuperadminHealth({ user, onLogout }) {
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 11.5,
                     fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                    border: alertStatus === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
-                    background: alertStatus === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                    color: alertStatus === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                    border: alertStatus === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.10)',
+                    background: alertStatus === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                    color: alertStatus === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                   }}>{l}</button>
               ))}
             </div>
           </div>
 
           {alerts.items.length === 0 ? (
-            <div data-testid="alerts-empty" style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.50)', fontFamily: 'DM Sans' }}>
+            <div data-testid="alerts-empty" style={{ padding: 40, textAlign: 'center', color: 'rgba(240, 235, 224, 0.72)', fontFamily: 'DM Sans' }}>
               <CheckCircle2 size={32} color="rgba(74,222,128,0.40)" style={{ marginBottom: 10 }} />
               <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>
                 Todos los sistemas operativos
@@ -295,7 +295,7 @@ export default function SuperadminHealth({ user, onLogout }) {
               {alerts.items.length < alerts.total && (
                 <div style={{ marginTop: 14, textAlign: 'center' }}>
                   <button data-testid="alerts-load-more" onClick={() => { const ns = alertSkip + 20; setAlertSkip(ns); loadAlerts(alertStatus, ns); }}
-                    style={{ padding: '8px 20px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    style={{ padding: '8px 20px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
                     Cargar más
                   </button>
                 </div>

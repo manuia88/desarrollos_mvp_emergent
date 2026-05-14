@@ -43,7 +43,7 @@ function fmtMxn(n) {
 
 const STATUS_CFG = {
   active:    { label: 'Activo',     color: '#4ADE80', bg: 'rgba(74,222,128,0.10)', bd: 'rgba(74,222,128,0.32)' },
-  trial:     { label: 'Trial',      color: '#818CF8', bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.32)' },
+  trial:     { label: 'Trial',      color: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.32)' },
   inactive:  { label: 'Inactivo',   color: 'rgba(240,235,224,0.55)', bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.12)' },
   suspended: { label: 'Suspendido', color: '#F87171', bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.32)' },
 };
@@ -64,9 +64,9 @@ function TypePill({ type }) {
     <span style={{
       padding: '2px 9px', borderRadius: 9999, fontSize: 10.5,
       fontFamily: 'DM Sans', fontWeight: 700,
-      background: isInm ? 'rgba(236,72,153,0.10)' : 'rgba(99,102,241,0.10)',
-      border: `1px solid ${isInm ? 'rgba(236,72,153,0.30)' : 'rgba(99,102,241,0.30)'}`,
-      color: isInm ? '#EC4899' : '#818CF8',
+      background: isInm ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(var(--theme-rgb),0.10)',
+      border: `1px solid ${isInm ? 'rgba(var(--theme-rgb),0.30)' : 'rgba(var(--theme-rgb),0.30)'}`,
+      color: isInm ? 'var(--theme)' : 'var(--theme)',
       display: 'inline-flex', alignItems: 'center', gap: 4,
     }}>
       <Ic size={9} />{isInm ? 'Inmobiliaria' : 'Dev'}
@@ -83,9 +83,9 @@ function ChipGroup({ value, onChange, options, testid }) {
           style={{
             padding: '6px 12px', borderRadius: 9999, fontSize: 11.5,
             fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-            border: value === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
-            background: value === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-            color: value === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+            border: value === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.10)',
+            background: value === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+            color: value === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
           }}>{l}</button>
       ))}
     </div>
@@ -113,7 +113,7 @@ function ImpersonateConfirmModal({ tenant, onClose, onConfirm, busy }) {
             Cancelar
           </button>
           <button data-testid="imp-confirm" onClick={onConfirm} disabled={busy}
-            style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+            style={{ padding: '9px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
             {busy ? 'Iniciando…' : 'Confirmar impersonación'}
           </button>
         </div>
@@ -136,7 +136,7 @@ function StatusChangeModal({ tenant, status, onClose, onConfirm, busy }) {
           Nuevo estado: <strong style={{ color: STATUS_CFG[status].color }}>{STATUS_CFG[status].label}</strong>
           {danger && <span style={{ display: 'block', marginTop: 6, color: '#F87171' }}>Esto bloqueará todos los logins de este tenant.</span>}
         </p>
-        <label style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>Motivo (opcional)</label>
+        <label style={{ fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>Motivo (opcional)</label>
         <textarea data-testid="status-reason" value={reason} onChange={e => setReason(e.target.value)}
           maxLength={500} placeholder="Razón del cambio…"
           style={{ width: '100%', minHeight: 60, padding: '10px 13px', borderRadius: 9, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: 18 }} />
@@ -144,7 +144,7 @@ function StatusChangeModal({ tenant, status, onClose, onConfirm, busy }) {
           <button onClick={onClose} data-testid="status-cancel"
             style={{ padding: '9px 16px', borderRadius: 9999, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(240,235,224,0.55)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
           <button data-testid="status-confirm" onClick={() => onConfirm(reason)} disabled={busy}
-            style={{ padding: '9px 20px', borderRadius: 9999, background: danger ? 'rgba(239,68,68,0.85)' : 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+            style={{ padding: '9px 20px', borderRadius: 9999, background: danger ? 'rgba(239,68,68,0.85)' : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
             {busy ? 'Aplicando…' : 'Confirmar'}
           </button>
         </div>
@@ -169,7 +169,7 @@ function TenantDrawer({ tenantId, onClose }) {
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1300, display: 'flex', justifyContent: 'flex-end' }}>
       <div data-testid="tenant-drawer" style={{ width: '100%', maxWidth: 540, background: 'rgba(13,17,28,0.97)', borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '24px 26px 80px', overflowY: 'auto' }}>
-        {loading && <div style={{ padding: 30, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>}
+        {loading && <div style={{ padding: 30, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>}
         {data && (
           <>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, gap: 10 }}>
@@ -196,9 +196,9 @@ function TenantDrawer({ tenantId, onClose }) {
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
                     fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                    border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid transparent',
-                    background: tab === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                    color: tab === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                    border: tab === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid transparent',
+                    background: tab === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                    color: tab === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                     display: 'flex', alignItems: 'center', gap: 4,
                   }}>
                   {k === 'sub-agents' && <BarChart2 size={11} />}
@@ -213,23 +213,23 @@ function TenantDrawer({ tenantId, onClose }) {
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
                   {[
-                    [Users, 'Miembros', data.members_total, '#818CF8'],
+                    [Users, 'Miembros', data.members_total, 'var(--theme)'],
                     [FolderOpen, 'Proyectos', data.projects_count, '#4ADE80'],
-                    [DollarSign, 'AI mes (MXN)', fmtMxn(data.ai_usage_month_mxn), '#EC4899'],
+                    [DollarSign, 'AI mes (MXN)', fmtMxn(data.ai_usage_month_mxn), 'var(--theme)'],
                     [Clock, 'Última act.', fmtRel(data.last_activity_at), 'var(--cream)'],
                   ].map(([Ic, l, v, c]) => (
                     <div key={l} style={{ padding: '12px 14px', borderRadius: 11, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
                         <Ic size={11} color={c} />
-                        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{l}</span>
+                        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{l}</span>
                       </div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: c }}>{v}</div>
                     </div>
                   ))}
                 </div>
                 {(data.ai_usage_breakdown && (data.ai_usage_breakdown.haiku || data.ai_usage_breakdown.sonnet)) ? (
-                  <div style={{ padding: '12px 14px', borderRadius: 11, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.22)' }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>AI breakdown (mes)</div>
+                  <div style={{ padding: '12px 14px', borderRadius: 11, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.22)' }}>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>AI breakdown (mes)</div>
                     <div style={{ display: 'flex', gap: 14, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)' }}>
                       <span>Haiku: <strong>{fmtMxn(data.ai_usage_breakdown.haiku)}</strong></span>
                       <span>Sonnet: <strong>{fmtMxn(data.ai_usage_breakdown.sonnet)}</strong></span>
@@ -239,12 +239,12 @@ function TenantDrawer({ tenantId, onClose }) {
                 ) : null}
                 {(data.projects_summary || []).length > 0 && (
                   <div style={{ marginTop: 14 }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Proyectos</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Proyectos</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {data.projects_summary.map(p => (
                         <div key={p.id} style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
                           <span style={{ flex: 1, fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{p.name}</span>
-                          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)' }}>{p.units_count} unidades</span>
+                          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)' }}>{p.units_count} unidades</span>
                           {p.status && <StatusBadge status={p.status === 'active' ? 'active' : 'inactive'} />}
                         </div>
                       ))}
@@ -257,24 +257,24 @@ function TenantDrawer({ tenantId, onClose }) {
             {tab === 'equipo' && (
               <div>
                 {(data.members || []).length === 0 ? (
-                  <div style={{ padding: 30, textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Sin miembros</div>
+                  <div style={{ padding: 30, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Sin miembros</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {data.members.map(m => (
                       <div key={m.id} style={{ padding: '10px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 160 }}>
                           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{m.name}</div>
-                          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.45)' }}>{m.email}</div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240, 235, 224, 0.70)' }}>{m.email}</div>
                         </div>
-                        <span style={{ padding: '1px 8px', borderRadius: 9999, fontSize: 10.5, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.22)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600 }}>
+                        <span style={{ padding: '1px 8px', borderRadius: 9999, fontSize: 10.5, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.22)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600 }}>
                           {m.role}
                         </span>
                         {m.account_blocked && <StatusBadge status="suspended" />}
-                        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.40)' }}>{fmtRel(m.last_login_at)}</span>
+                        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.68)' }}>{fmtRel(m.last_login_at)}</span>
                       </div>
                     ))}
                     {data.members_total > (data.members || []).length && (
-                      <div style={{ padding: '8px 12px', textAlign: 'center', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.45)' }}>
+                      <div style={{ padding: '8px 12px', textAlign: 'center', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240, 235, 224, 0.70)' }}>
                         Mostrando {(data.members || []).length} de {data.members_total}
                       </div>
                     )}
@@ -286,16 +286,16 @@ function TenantDrawer({ tenantId, onClose }) {
             {tab === 'auditoria' && (
               <div>
                 {(data.recent_audit || []).length === 0 ? (
-                  <div style={{ padding: 30, textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Sin actividad reciente</div>
+                  <div style={{ padding: 30, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Sin actividad reciente</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {data.recent_audit.map((a, i) => (
                       <div key={`${a.ts}-${i}`} style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Activity size={11} color="rgba(240,235,224,0.50)" />
+                        <Activity size={11} color="rgba(240, 235, 224, 0.72)" />
                         <span style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)' }}>
-                          {a.action} <span style={{ color: 'rgba(240,235,224,0.45)' }}>· {a.entity_type}</span>
+                          {a.action} <span style={{ color: 'rgba(240, 235, 224, 0.70)' }}>· {a.entity_type}</span>
                         </span>
-                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.40)' }}>{fmtRel(a.ts)}</span>
+                        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.68)' }}>{fmtRel(a.ts)}</span>
                       </div>
                     ))}
                   </div>
@@ -427,7 +427,7 @@ export default function SuperadminTenants({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-tenants">
         {toast && (
-          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -435,15 +435,15 @@ export default function SuperadminTenants({ user, onLogout }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 22 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <Shield size={20} color="#818CF8" />
+              <Shield size={20} color="var(--theme)" />
               <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em' }}>
                 Tenants
               </h1>
-              <span data-testid="tenants-count" style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 700, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: '#818CF8' }}>
+              <span data-testid="tenants-count" style={{ padding: '3px 10px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 700, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)' }}>
                 {data.total}
               </span>
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)', margin: 0 }}>
               Desarrolladoras + inmobiliarias activas en la plataforma.
             </p>
           </div>
@@ -458,13 +458,13 @@ export default function SuperadminTenants({ user, onLogout }) {
           <ChipGroup value={type} onChange={setType} options={TYPE_OPTIONS} testid="filter-type" />
           <ChipGroup value={status} onChange={setStatus} options={STATUS_OPTIONS} testid="filter-status" />
           <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 360 }}>
-            <Search size={13} color="rgba(240,235,224,0.40)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={13} color="rgba(240, 235, 224, 0.68)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
             <input data-testid="tenants-search" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar tenant…"
               style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' }} />
             {search && (
               <button onClick={() => setSearch('')} data-testid="tenants-search-clear"
-                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(240,235,224,0.40)' }}>
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(240, 235, 224, 0.68)' }}>
                 <X size={12} />
               </button>
             )}
@@ -473,9 +473,9 @@ export default function SuperadminTenants({ user, onLogout }) {
 
         {/* Table desktop / cards mobile */}
         {loading && skip === 0 ? (
-          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando tenants…</div>
+          <div style={{ textAlign: 'center', padding: 70, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando tenants…</div>
         ) : (data.items || []).length === 0 ? (
-          <div data-testid="tenants-empty" style={{ textAlign: 'center', padding: 70, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans' }}>
+          <div data-testid="tenants-empty" style={{ textAlign: 'center', padding: 70, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans' }}>
             <Shield size={38} color="rgba(240,235,224,0.18)" style={{ marginBottom: 12 }} />
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', marginBottom: 5 }}>Sin tenants</div>
             <div>Ajusta los filtros o intenta otra búsqueda.</div>
@@ -489,7 +489,7 @@ export default function SuperadminTenants({ user, onLogout }) {
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
                     {['Nombre', 'Tipo', 'Estado', 'Miembros', 'Proyectos', 'AI/mes', 'Última act.', 'Creado', ''].map(h => (
-                      <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 700, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -505,9 +505,9 @@ export default function SuperadminTenants({ user, onLogout }) {
                       <td style={{ padding: '11px 12px' }}><StatusBadge status={t.status} /></td>
                       <td style={{ padding: '11px 12px', fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--cream)' }}>{t.members_count}</td>
                       <td style={{ padding: '11px 12px', fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--cream)' }}>{t.projects_count}</td>
-                      <td style={{ padding: '11px 12px', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#EC4899' }}>{fmtMxn(t.ai_usage_month_mxn)}</td>
+                      <td style={{ padding: '11px 12px', fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--theme)' }}>{fmtMxn(t.ai_usage_month_mxn)}</td>
                       <td style={{ padding: '11px 12px', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)' }}>{fmtRel(t.last_activity_at)}</td>
-                      <td style={{ padding: '11px 12px', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.45)' }}>{fmtRel(t.created_at)}</td>
+                      <td style={{ padding: '11px 12px', fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240, 235, 224, 0.70)' }}>{fmtRel(t.created_at)}</td>
                       <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}>
                         <button data-testid={`tenant-impersonate-${t.tenant_id}`}
                           onClick={e => { e.stopPropagation(); setImpTarget(t); }}
@@ -546,7 +546,7 @@ export default function SuperadminTenants({ user, onLogout }) {
                   <div style={{ display: 'flex', gap: 14, fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.55)', flexWrap: 'wrap', marginBottom: 8 }}>
                     <span><Users size={9} style={{ verticalAlign: 'middle', marginRight: 3 }} />{t.members_count}</span>
                     <span>{t.projects_count} proyectos</span>
-                    <span style={{ color: '#EC4899' }}>{fmtMxn(t.ai_usage_month_mxn)}</span>
+                    <span style={{ color: 'var(--theme)' }}>{fmtMxn(t.ai_usage_month_mxn)}</span>
                     <span>{fmtRel(t.last_activity_at)}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -574,7 +574,7 @@ export default function SuperadminTenants({ user, onLogout }) {
             {data.items.length < data.total && (
               <div style={{ marginTop: 16, textAlign: 'center' }}>
                 <button data-testid="tenants-load-more" onClick={() => setSkip(s => s + 50)} disabled={loading}
-                  style={{ padding: '9px 22px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: loading ? 'wait' : 'pointer' }}>
+                  style={{ padding: '9px 22px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: loading ? 'wait' : 'pointer' }}>
                   {loading ? 'Cargando…' : 'Cargar más'}
                 </button>
               </div>
@@ -615,12 +615,12 @@ function SubAgentsTabs({ orgId, projectsSummary }) {
               padding: '5px 13px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 700,
               cursor: 'pointer',
               background: activeAgent === k
-                ? 'linear-gradient(90deg, rgba(99,102,241,0.22), rgba(236,72,153,0.18))'
+                ? 'linear-gradient(90deg, rgba(var(--theme-rgb),0.22), rgba(var(--theme-rgb),0.18))'
                 : 'transparent',
               border: activeAgent === k
-                ? '1px solid rgba(99,102,241,0.45)'
+                ? '1px solid rgba(var(--theme-rgb),0.45)'
                 : '1px solid rgba(255,255,255,0.08)',
-              color: activeAgent === k ? 'var(--cream)' : 'rgba(240,235,224,0.45)',
+              color: activeAgent === k ? 'var(--cream)' : 'rgba(240, 235, 224, 0.70)',
             }}
           >
             {l}

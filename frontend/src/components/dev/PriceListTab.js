@@ -72,7 +72,7 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
               }}>
               {t0.label}
               {t0.badge && (
-                <span style={{ padding: '1px 6px', background: '#fff', color: '#6366F1', borderRadius: 9999, fontSize: 9, fontWeight: 800, letterSpacing: '0.08em' }}>
+                <span style={{ padding: '1px 6px', background: '#fff', color: 'var(--theme)', borderRadius: 9999, fontSize: 9, fontWeight: 800, letterSpacing: '0.08em' }}>
                   {t0.badge}
                 </span>
               )}
@@ -144,8 +144,8 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
       {!isRegistered && (
         <div style={{
           marginBottom: 14, padding: '10px 14px',
-          background: 'rgba(99,102,241,0.10)',
-          border: '1px solid rgba(99,102,241,0.28)',
+          background: 'rgba(var(--theme-rgb),0.10)',
+          border: '1px solid rgba(var(--theme-rgb),0.28)',
           borderRadius: 12,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
         }}>
@@ -229,15 +229,15 @@ export default function PriceListTab({ dev, user, onGateOpen, selectedUnit, onSe
                   maxWidth: 380,
                   padding: 22,
                   background: 'rgba(14,18,32,0.92)',
-                  border: '1px solid rgba(99,102,241,0.36)',
+                  border: '1px solid rgba(var(--theme-rgb),0.36)',
                   borderRadius: 16,
                   backdropFilter: 'blur(10px)',
                 }}>
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '4px 10px',
-                  background: 'rgba(99,102,241,0.16)',
-                  border: '1px solid rgba(99,102,241,0.32)',
+                  background: 'rgba(var(--theme-rgb),0.16)',
+                  border: '1px solid rgba(var(--theme-rgb),0.32)',
                   borderRadius: 9999,
                   marginBottom: 10,
                 }}>
@@ -321,7 +321,7 @@ function PriceTable({ units, visibleCount, isRegistered, onRowClick, selectedUni
                 style={{
                   borderBottom: '1px solid var(--border)',
                   cursor: 'pointer',
-                  background: isSelected ? 'rgba(99,102,241,0.10)' : 'transparent',
+                  background: isSelected ? 'rgba(var(--theme-rgb),0.10)' : 'transparent',
                   filter: locked ? 'blur(4px)' : 'none',
                   transition: 'background 0.2s',
                   position: 'relative',

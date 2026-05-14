@@ -11,7 +11,7 @@ const TYPE_LABELS = {
 
 const STATUS_CONFIG = {
   pending:    { label: 'Pendiente',   color: '#F59E0B', Icon: Clock      },
-  verified:   { label: 'Verificado',  color: '#6366F1', Icon: Shield     },
+  verified:   { label: 'Verificado',  color: 'var(--theme)', Icon: Shield     },
   completed:  { label: 'Completado',  color: '#10B981', Icon: CheckCircle},
   rejected:   { label: 'Rechazado',   color: '#EF4444', Icon: XCircle   },
 };
@@ -58,7 +58,7 @@ export function DsrRequestCard({ item, onProcess, processing }) {
             {cfg.label}
           </span>
           <span style={{
-            background: 'rgba(99,102,241,0.15)', color: '#a5b4fc',
+            background: 'rgba(var(--theme-rgb),0.15)', color: 'var(--theme)',
             fontSize: 11, padding: '2px 8px', borderRadius: 9999,
             fontFamily: 'DM Sans',
           }}>

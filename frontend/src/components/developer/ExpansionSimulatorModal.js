@@ -15,13 +15,13 @@ const inputStyle = {
 
 const SCENARIO_TONE = {
   conservador: 'rgba(240,235,224,0.06)',
-  base: 'rgba(99,102,241,0.10)',
-  agresivo: 'rgba(236,72,153,0.10)',
+  base: 'rgba(var(--theme-rgb),0.10)',
+  agresivo: 'rgba(var(--theme-rgb),0.10)',
 };
 const SCENARIO_BORDER = {
   conservador: 'var(--border)',
-  base: 'rgba(99,102,241,0.34)',
-  agresivo: 'rgba(236,72,153,0.40)',
+  base: 'rgba(var(--theme-rgb),0.34)',
+  agresivo: 'rgba(var(--theme-rgb),0.40)',
 };
 
 function AbsorptionLine({ scenario }) {
@@ -39,7 +39,7 @@ function AbsorptionLine({ scenario }) {
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
       <line x1={0} y1={H - 3} x2={W} y2={H - 3} stroke="rgba(240,235,224,0.10)" strokeWidth="1" />
-      <path d={path} fill="none" stroke="#EC4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke="var(--theme-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       {series.length > 1 && (
         <text x={W - 4} y={12} textAnchor="end" fontFamily="DM Sans" fontSize="9" fill="rgba(240,235,224,0.58)">
           {series.at(-1).cumulative_pct.toFixed(0)}%
@@ -102,7 +102,7 @@ function ScenarioCard({ scn }) {
 
       {scn.narrative && (
         <p style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.45,
-                    margin: 0, fontStyle: 'italic', borderLeft: '2px solid rgba(236,72,153,0.4)',
+                    margin: 0, fontStyle: 'italic', borderLeft: '2px solid rgba(var(--theme-rgb),0.4)',
                     paddingLeft: 10 }}>
           {scn.narrative}
         </p>
@@ -183,13 +183,13 @@ export default function ExpansionSimulatorModal({ studyId, zoneColonia, defaultP
               <div className="eyebrow" style={{ marginBottom: 5 }}>ABSORCIÓN OBJETIVO · {absorptionPct}%</div>
               <input data-testid="exp-absorption" type="range" min={50} max={100} value={absorptionPct}
                      onChange={e => setAbsorptionPct(+e.target.value)}
-                     style={{ width: '100%', accentColor: '#EC4899' }} />
+                     style={{ width: '100%', accentColor: 'var(--theme-3)' }} />
             </div>
             <div>
               <div className="eyebrow" style={{ marginBottom: 5 }}>HORIZONTE · {months} meses</div>
               <input data-testid="exp-months" type="range" min={6} max={36} value={months}
                      onChange={e => setMonths(+e.target.value)}
-                     style={{ width: '100%', accentColor: '#EC4899' }} />
+                     style={{ width: '100%', accentColor: 'var(--theme-3)' }} />
             </div>
             <div>
               <div className="eyebrow" style={{ marginBottom: 5 }}>PRECIO BASE/m² (MXN)</div>

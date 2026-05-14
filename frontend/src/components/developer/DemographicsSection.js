@@ -8,7 +8,7 @@ import { Card, Badge } from '../advisor/primitives';
 import { Users, AlertTriangle } from '../icons';
 
 const NSE_LABEL = { AB: 'A/B', 'C+': 'C+', C: 'C', D: 'D', E: 'E' };
-const NSE_COLORS = { AB: '#EC4899', 'C+': '#A78BFA', C: '#6366F1', D: '#94A3B8', E: '#64748B' };
+const NSE_COLORS = { AB: 'var(--theme-3)', 'C+': '#A78BFA', C: 'var(--theme)', D: '#94A3B8', E: '#64748B' };
 
 const SCOPE_BADGE = {
   inegi_ageb: { tone: 'ok', label: 'INEGI AGEB · Censo 2020' },

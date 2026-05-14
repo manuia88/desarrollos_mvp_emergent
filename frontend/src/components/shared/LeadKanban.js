@@ -334,7 +334,7 @@ function EnrichedSection({ card }) {
   return (
     <div data-testid={`lead-enriched-${card.id}`} style={{
       marginTop: 6, marginBottom: 6, padding: '6px 8px', borderRadius: 8,
-      background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.18)',
+      background: 'rgba(var(--theme-rgb),0.05)', border: '1px solid rgba(var(--theme-rgb),0.18)',
       display: 'flex', flexDirection: 'column', gap: 5,
     }}>
       {/* Dev branding row */}
@@ -345,7 +345,7 @@ function EnrichedSection({ card }) {
           ) : (
             <div style={{
               width: 18, height: 18, borderRadius: 4,
-              background: 'linear-gradient(135deg,rgba(99,102,241,0.30),rgba(236,72,153,0.20))',
+              background: 'linear-gradient(135deg,rgba(var(--theme-rgb),0.30),rgba(var(--theme-rgb),0.20))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'Outfit', fontWeight: 800, fontSize: 9.5, color: '#fff',
             }}>{initial}</div>
@@ -356,7 +356,7 @@ function EnrichedSection({ card }) {
           {e.commission_estimated != null && (
             <span data-testid={`lead-comm-${card.id}`} style={{
               padding: '1px 7px', borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 9.5,
             }}>{e.commission_estimated}%</span>
           )}
@@ -398,7 +398,7 @@ function EnrichedSection({ card }) {
             onClick={ev => { ev.stopPropagation(); setContactOpen(o => !o); }}
             style={{
               width: '100%', padding: '5px 0', borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', border: 'none', color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, cursor: 'pointer',
             }}>Contactar dev</button>
           {contactOpen && (
@@ -419,13 +419,13 @@ function EnrichedSection({ card }) {
               )}
               {contact.phone && (
                 <a href={`tel:${contact.phone}`} data-testid={`contact-phone-${card.id}`}
-                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.10)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
                   Llamar
                 </a>
               )}
               {contact.email && (
                 <a href={`mailto:${contact.email}`} data-testid={`contact-email-${card.id}`}
-                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(236,72,153,0.10)', color: '#EC4899', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
+                  style={{ padding: '5px 8px', borderRadius: 6, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme-3)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, textDecoration: 'none' }}>
                   Email
                 </a>
               )}

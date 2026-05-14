@@ -18,9 +18,16 @@
   --green:     #22C55E;
   --amber:     #F59E0B;
   --red:       #EF4444;
+  /* Theme tokens · default = indigo (matches legacy hardcoded values).
+   * Overridden per-section inside .portal-superadmin scope. Other portals
+   * keep indigo via these defaults so visual parity is preserved. */
+  --theme:     #6366F1;
+  --theme-rgb: 99, 102, 241;
+  --theme-2:   #818CF8;
+  --theme-3:   #EC4899;
   --border:    rgba(255,255,255,0.08);
   --border-2:  rgba(255,255,255,0.14);
-  --grad:      linear-gradient(90deg, #6366F1, #EC4899);
+  --grad:      linear-gradient(90deg, var(--theme), var(--theme-3));
   --r-pill:    9999px;
   --r-card:    22px;
   --r-inner:   14px;

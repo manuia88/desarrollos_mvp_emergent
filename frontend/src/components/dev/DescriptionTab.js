@@ -108,7 +108,7 @@ export default function DescriptionTab({ dev }) {
                     background: active ? 'var(--grad)' : done ? 'var(--indigo-3)' : 'var(--bg-3)',
                     border: done || active ? 'none' : '2px solid var(--border-2)',
                     transition: 'all 0.4s',
-                    boxShadow: active ? '0 0 16px rgba(99,102,241,0.6)' : 'none',
+                    boxShadow: active ? '0 0 16px rgba(var(--theme-rgb),0.6)' : 'none',
                   }} />
                   <div style={{
                     fontFamily: 'DM Sans', fontSize: 11, fontWeight: active ? 600 : 500,
@@ -143,18 +143,18 @@ export default function DescriptionTab({ dev }) {
           <svg viewBox={`0 0 ${chartW} ${chartH}`} style={{ width: '100%', height: 140 }}>
             <defs>
               <linearGradient id="ph-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6366F1" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#6366F1" stopOpacity="0" />
+                <stop offset="0%" stopColor="var(--theme)" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="var(--theme)" stopOpacity="0" />
               </linearGradient>
               <linearGradient id="ph-line" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#6366F1" /><stop offset="100%" stopColor="#EC4899" />
+                <stop offset="0%" stopColor="var(--theme)" /><stop offset="100%" stopColor="var(--theme-3)" />
               </linearGradient>
             </defs>
             <path d={areaPath} fill="url(#ph-area)" />
             <path d={linePath} fill="none" stroke="url(#ph-line)" strokeWidth={2} />
             {pts.map((p, i) => (
               <g key={i}>
-                <circle cx={p.x} cy={p.y} r={4} fill="#EC4899" />
+                <circle cx={p.x} cy={p.y} r={4} fill="var(--theme-3)" />
                 <text x={p.x} y={p.y - 10} textAnchor="middle" style={{ fontFamily: 'DM Sans', fontSize: 10, fill: 'var(--cream-2)' }}>
                   ${Math.round(p.price / 1e6)}M
                 </text>
@@ -170,7 +170,7 @@ export default function DescriptionTab({ dev }) {
       {/* Developer card */}
       {developer && (
         <div style={{
-          background: 'linear-gradient(140deg, rgba(99,102,241,0.08), rgba(236,72,153,0.04))',
+          background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.08), rgba(var(--theme-rgb),0.04))',
           border: '1px solid var(--border)',
           borderRadius: 18,
           padding: 22,

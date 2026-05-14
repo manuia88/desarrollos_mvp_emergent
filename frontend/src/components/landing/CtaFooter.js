@@ -33,7 +33,7 @@ export default function CtaFooter() {
           position: 'absolute', top: '-30%', left: '50%',
           transform: 'translateX(-50%)',
           width: 600, height: 600,
-          background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 65%)',
+          background: 'radial-gradient(circle, rgba(var(--theme-rgb),0.15) 0%, transparent 65%)',
           pointerEvents: 'none',
         }} />
 

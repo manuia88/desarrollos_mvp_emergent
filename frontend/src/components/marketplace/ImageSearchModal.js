@@ -42,13 +42,13 @@ function ResultCard({ match }) {
         cursor: 'pointer',
         transition: 'border-color 0.2s',
       }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'}
+      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.45)'}
       onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(240,235,224,0.10)'}
     >
       {/* Thumbnail */}
       <div style={{
         width: '100%', paddingTop: '60%',
-        position: 'relative', background: 'rgba(99,102,241,0.12)',
+        position: 'relative', background: 'rgba(var(--theme-rgb),0.12)',
       }}>
         {match.thumbnail_url ? (
           <img
@@ -65,7 +65,7 @@ function ResultCard({ match }) {
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'rgba(99,102,241,0.4)', fontSize: 24,
+            color: 'rgba(var(--theme-rgb),0.4)', fontSize: 24,
           }}>
             &#9635;
           </div>
@@ -93,7 +93,7 @@ function ResultCard({ match }) {
         </div>
         <div style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 14,
-          background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
         }}>
@@ -225,12 +225,12 @@ export default function ImageSearchModal({ open, onClose }) {
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
             style={{
-              border: `2px dashed ${dragOver ? 'rgba(99,102,241,0.7)' : 'rgba(240,235,224,0.18)'}`,
+              border: `2px dashed ${dragOver ? 'rgba(var(--theme-rgb),0.7)' : 'rgba(240,235,224,0.18)'}`,
               borderRadius: 16,
               padding: preview ? 12 : '40px 24px',
               cursor: 'pointer',
               transition: 'border-color 0.2s, background 0.2s',
-              background: dragOver ? 'rgba(99,102,241,0.07)' : 'rgba(255,255,255,0.02)',
+              background: dragOver ? 'rgba(var(--theme-rgb),0.07)' : 'rgba(255,255,255,0.02)',
               marginBottom: 16,
               textAlign: preview ? 'left' : 'center',
               display: preview ? 'flex' : 'block',
@@ -268,12 +268,12 @@ export default function ImageSearchModal({ open, onClose }) {
               <>
                 <div style={{
                   width: 48, height: 48, borderRadius: 9999,
-                  background: 'rgba(99,102,241,0.12)',
-                  border: '1px solid rgba(99,102,241,0.25)',
+                  background: 'rgba(var(--theme-rgb),0.12)',
+                  border: '1px solid rgba(var(--theme-rgb),0.25)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 12px',
                 }}>
-                  <Search size={20} style={{ color: 'rgba(99,102,241,0.7)' }} />
+                  <Search size={20} style={{ color: 'rgba(var(--theme-rgb),0.7)' }} />
                 </div>
                 <div style={{
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 14,
@@ -323,8 +323,8 @@ export default function ImageSearchModal({ open, onClose }) {
               width: '100%', padding: '13px 20px',
               borderRadius: 9999, border: 'none',
               background: (!file || loading)
-                ? 'rgba(99,102,241,0.3)'
-                : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                ? 'rgba(var(--theme-rgb),0.3)'
+                : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
               cursor: (!file || loading) ? 'not-allowed' : 'pointer',

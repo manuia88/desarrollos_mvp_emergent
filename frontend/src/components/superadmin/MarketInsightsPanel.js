@@ -64,7 +64,7 @@ export default function MarketInsightsPanel({
         border: '1px solid rgba(255,255,255,0.08)',
         background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(12px)',
       }}>
-        <Sparkles size={22} color="#818CF8" style={{ marginBottom: 8 }} />
+        <Sparkles size={22} color="var(--theme)" style={{ marginBottom: 8 }} />
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16,
           color: 'var(--cream)', margin: '4px 0 6px' }}>
           Sin brief para esta zona
@@ -78,7 +78,7 @@ export default function MarketInsightsPanel({
           disabled={busy || !selectedZone}
           style={{
             padding: '10px 22px', borderRadius: 9999,
-            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
             border: 'none', color: '#fff',
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
             cursor: busy || !selectedZone ? 'not-allowed' : 'pointer',
@@ -121,9 +121,9 @@ export default function MarketInsightsPanel({
           disabled={busy} title="Regenerar (force=true)"
           style={{
             padding: '6px 11px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.10)',
-            border: '1px solid rgba(99,102,241,0.30)',
-            color: '#818CF8', fontFamily: 'DM Sans',
+            background: 'rgba(var(--theme-rgb),0.10)',
+            border: '1px solid rgba(var(--theme-rgb),0.30)',
+            color: 'var(--theme)', fontFamily: 'DM Sans',
             fontSize: 11, fontWeight: 600, cursor: busy ? 'wait' : 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 5,
             opacity: busy ? 0.6 : 1,
@@ -156,7 +156,7 @@ export default function MarketInsightsPanel({
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid rgba(255,255,255,0.10)',
             fontFamily: 'DM Mono, monospace', fontSize: 10,
-            color: 'rgba(240,235,224,0.45)',
+            color: 'rgba(240, 235, 224, 0.70)',
           }}>{brief.cache}</span>
         )}
       </div>
@@ -177,7 +177,7 @@ export default function MarketInsightsPanel({
       )}
 
       {/* Findings / risks / opportunities */}
-      <Section title="Hallazgos clave" Icon={Sparkles} color="#818CF8"
+      <Section title="Hallazgos clave" Icon={Sparkles} color="var(--theme)"
         items={brief.key_findings} testid="intel-findings" />
       <Section title="Riesgos principales" Icon={AlertTriangle} color="#F87171"
         items={brief.top_risks} testid="intel-risks" />

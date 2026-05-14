@@ -155,7 +155,7 @@ export default function CommandPaletteExtended({ onClose }) {
       <div className="cmd-palette" style={{
         width: '100%', maxWidth: 720,
         background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(99,102,241,0.30)',
+        border: '1px solid rgba(var(--theme-rgb),0.30)',
         borderRadius: 16, overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
         maxHeight: '76vh',
@@ -199,7 +199,7 @@ export default function CommandPaletteExtended({ onClose }) {
             <div style={{ padding: '8px 12px 4px' }}>
               <div style={{
                 fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-                color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+                color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase',
                 letterSpacing: '0.07em', marginBottom: 4, padding: '4px 8px',
               }}>Recientes</div>
               {visibleRecents.slice(0, 5).map((c) => {
@@ -215,14 +215,14 @@ export default function CommandPaletteExtended({ onClose }) {
                       fontSize: 12.5, textAlign: 'left',
                       display: 'flex', alignItems: 'center', gap: 9,
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.08)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <Icon size={11} style={{ color: 'rgba(240,235,224,0.55)' }} />
                     <span style={{ flex: 1 }}>{c.label}</span>
                     <span style={{
                       fontFamily: 'DM Mono, monospace', fontSize: 10,
-                      color: 'rgba(240,235,224,0.40)',
+                      color: 'rgba(240, 235, 224, 0.68)',
                     }}>{c.category}</span>
                   </button>
                 );
@@ -234,7 +234,7 @@ export default function CommandPaletteExtended({ onClose }) {
             <div key={cat} style={{ padding: '8px 12px 4px' }}>
               <div style={{
                 fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-                color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+                color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase',
                 letterSpacing: '0.07em', marginBottom: 4, padding: '4px 8px',
               }}>{cat}</div>
               {arr.map(it => {
@@ -248,8 +248,8 @@ export default function CommandPaletteExtended({ onClose }) {
                     onMouseEnter={() => setActiveIdx(flatI)}
                     style={{
                       width: '100%', padding: '8px 10px', borderRadius: 9,
-                      background: active ? 'rgba(99,102,241,0.14)' : 'transparent',
-                      border: active ? '1px solid rgba(99,102,241,0.40)'
+                      background: active ? 'rgba(var(--theme-rgb),0.14)' : 'transparent',
+                      border: active ? '1px solid rgba(var(--theme-rgb),0.40)'
                                      : '1px solid transparent',
                       cursor: 'pointer', color: active ? 'var(--cream)'
                                                        : 'rgba(240,235,224,0.75)',
@@ -259,10 +259,10 @@ export default function CommandPaletteExtended({ onClose }) {
                     }}
                   >
                     <Icon size={11} style={{
-                      color: active ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                      color: active ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                     }} />
                     <span style={{ flex: 1 }}>{it.label}</span>
-                    {active && <ArrowRight size={11} color="#818CF8" />}
+                    {active && <ArrowRight size={11} color="var(--theme)" />}
                   </button>
                 );
               })}
@@ -272,7 +272,7 @@ export default function CommandPaletteExtended({ onClose }) {
           {!loading && flatList.length === 0 && (
             <div data-testid="cmd-palette-empty" style={{
               padding: 30, textAlign: 'center', fontFamily: 'DM Sans',
-              fontSize: 12.5, color: 'rgba(240,235,224,0.45)',
+              fontSize: 12.5, color: 'rgba(240, 235, 224, 0.70)',
             }}>Sin coincidencias.</div>
           )}
         </div>
@@ -281,7 +281,7 @@ export default function CommandPaletteExtended({ onClose }) {
         <div style={{
           padding: '8px 16px', borderTop: '1px solid rgba(255,255,255,0.07)',
           fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-          color: 'rgba(240,235,224,0.40)',
+          color: 'rgba(240, 235, 224, 0.68)',
           display: 'flex', gap: 12, flexWrap: 'wrap',
         }}>
           <span>↑↓ navegar</span>

@@ -361,7 +361,7 @@ const inputStyle = {
 const btnPrimary = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '8px 16px', borderRadius: 9999,
-  backgroundImage: 'linear-gradient(90deg,#6366F1,#EC4899)',
+  backgroundImage: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
   border: '1px solid rgba(255,255,255,0.16)',
   color: '#fff', cursor: 'pointer',
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
@@ -378,8 +378,8 @@ function Kpi({ label, value, tone }) {
     bad:   { bg: 'rgba(239,68,68,0.10)',  bd: 'rgba(239,68,68,0.34)',  fg: '#fca5a5' },
     warn:  { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.34)', fg: '#fcd34d' },
     ok:    { bg: 'rgba(16,185,129,0.10)', bd: 'rgba(16,185,129,0.34)', fg: '#86efac' },
-    brand: { bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.34)', fg: '#a5b4fc' },
-    pink:  { bg: 'rgba(236,72,153,0.10)', bd: 'rgba(236,72,153,0.34)', fg: '#fbcfe8' },
+    brand: { bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.34)', fg: 'var(--theme)' },
+    pink:  { bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.34)', fg: 'rgba(var(--theme-rgb), 0.18)' },
     muted: { bg: 'rgba(255,255,255,0.04)',bd: 'rgba(255,255,255,0.10)', fg: 'var(--cream-3)' },
   }[tone] || {};
   return (

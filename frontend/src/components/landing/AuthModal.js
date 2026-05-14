@@ -149,8 +149,8 @@ export default function AuthModal({ open, onClose, onSuccess, mode: initialMode 
               {ROLES.map(r => (
                 <button key={r.k} onClick={() => setSelectedRole(r.k)} data-testid={`role-${r.k}`} style={{
                   textAlign: 'left', padding: '11px 14px', borderRadius: 14, cursor: 'pointer',
-                  background: selectedRole === r.k ? 'rgba(99,102,241,0.10)' : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${selectedRole === r.k ? 'rgba(99,102,241,0.36)' : 'var(--border)'}`,
+                  background: selectedRole === r.k ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${selectedRole === r.k ? 'rgba(var(--theme-rgb),0.36)' : 'var(--border)'}`,
                   color: 'var(--cream)', transition: 'all 0.15s',
                 }}>
                   <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14 }}>{r.label}</div>

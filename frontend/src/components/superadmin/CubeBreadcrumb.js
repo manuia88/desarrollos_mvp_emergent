@@ -30,7 +30,7 @@ export default function CubeBreadcrumb({ path, onNavigate }) {
                 fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
                 cursor: active ? 'default' : 'pointer',
                 background: active
-                  ? 'linear-gradient(90deg,#6366F1,#EC4899)'
+                  ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))'
                   : 'rgba(255,255,255,0.04)',
                 color: active ? '#fff' : 'rgba(240,235,224,0.65)',
                 border: active ? 'none' : '1px solid rgba(255,255,255,0.10)',

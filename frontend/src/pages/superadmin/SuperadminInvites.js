@@ -4,12 +4,13 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const STATUS_COLOR = {
   active:  { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.4)',  fg: '#4ade80' },
-  used:    { bg: 'rgba(99,102,241,0.10)', border: 'rgba(99,102,241,0.35)', fg: '#a5b4fc' },
+  used:    { bg: 'rgba(var(--theme-rgb),0.10)', border: 'rgba(var(--theme-rgb),0.35)', fg: 'var(--theme)' },
   revoked: { bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.35)',  fg: '#fca5a5' },
 };
 
@@ -98,9 +99,9 @@ export default function SuperadminInvites({ user }) {
   };
 
   return (
-    <div data-testid="superadmin-invites-page" style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0', padding: '32px 24px' }}>
+    <SuperadminLayout><div data-testid="superadmin-invites-page" style={{ color: 'var(--cream)', padding: '32px 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a5b4fc', marginBottom: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--theme)', marginBottom: 8 }}>
           SUPERADMIN
         </div>
         <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 32, margin: '0 0 22px', letterSpacing: '-0.02em' }}>
@@ -123,7 +124,7 @@ export default function SuperadminInvites({ user }) {
               onClick={() => setTab(t.k)}
               style={{
                 padding: '8px 18px', borderRadius: 9999, border: 'none',
-                background: tab === t.k ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'transparent',
+                background: tab === t.k ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))' : 'transparent',
                 color: tab === t.k ? '#fff' : 'rgba(240,235,224,0.6)',
                 fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
               }}
@@ -143,9 +144,9 @@ export default function SuperadminInvites({ user }) {
                     onClick={() => { setStatusFilter(s); setCodesPage(1); }}
                     style={{
                       padding: '6px 14px', borderRadius: 9999,
-                      background: statusFilter === s ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${statusFilter === s ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                      color: statusFilter === s ? '#a5b4fc' : 'rgba(240,235,224,0.6)',
+                      background: statusFilter === s ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${statusFilter === s ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(255,255,255,0.08)'}`,
+                      color: statusFilter === s ? 'var(--theme)' : 'rgba(240,235,224,0.6)',
                       fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                     }}
                   >{s || 'todos'}</button>
@@ -156,7 +157,7 @@ export default function SuperadminInvites({ user }) {
                 onClick={() => setGenOpen(true)}
                 style={{
                   padding: '9px 18px', borderRadius: 9999, border: 'none',
-                  background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+                  background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', color: '#fff',
                   fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
                 }}
               >+ Generar códigos</button>
@@ -271,7 +272,7 @@ export default function SuperadminInvites({ user }) {
                 disabled={waitlist.length === 0}
                 style={{
                   padding: '10px 18px', borderRadius: 9999, border: 'none',
-                  background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+                  background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', color: '#fff',
                   fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700,
                   cursor: waitlist.length === 0 ? 'not-allowed' : 'pointer',
                   opacity: waitlist.length === 0 ? 0.5 : 1,
@@ -323,7 +324,7 @@ export default function SuperadminInvites({ user }) {
           </div>
         )}
       </div>
-    </div>
+    </div></SuperadminLayout>
   );
 }
 
@@ -389,7 +390,7 @@ function GenerateCodesModal({ onClose, onSaved }) {
               style={{ padding: '9px 16px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
             >Cancelar</button>
             <button data-testid="gen-codes-submit" onClick={submit} disabled={submitting}
-              style={{ padding: '9px 18px', borderRadius: 9999, border: 'none', background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.6 : 1 }}
+              style={{ padding: '9px 18px', borderRadius: 9999, border: 'none', background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', color: '#fff', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.6 : 1 }}
             >{submitting ? 'Generando…' : 'Generar'}</button>
           </div>
         </div>

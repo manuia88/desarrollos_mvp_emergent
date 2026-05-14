@@ -14,8 +14,8 @@ const STATUS_TONE = {
 
 function ScoreBar({ value }) {
   const v = Math.max(0, Math.min(100, value || 0));
-  const color = v > 70 ? 'linear-gradient(90deg, #6366F1, #EC4899)'
-              : v > 40 ? 'linear-gradient(90deg, #6366F1, #8b5cf6)'
+  const color = v > 70 ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
+              : v > 40 ? 'linear-gradient(90deg, var(--theme), var(--theme))'
               : 'rgba(240,235,224,0.32)';
   return (
     <div style={{ position: 'relative', width: '100%', height: 6, background: 'rgba(240,235,224,0.08)', borderRadius: 9999 }}>
@@ -131,7 +131,7 @@ export default function EngagementTab({ devId }) {
 
       {/* AI Recommendations */}
       {(data.recommendations || []).length > 0 && (
-        <Card data-testid="engagement-recommendations" style={{ background: 'linear-gradient(140deg, rgba(99,102,241,0.08), rgba(236,72,153,0.04) 60%, transparent)' }}>
+        <Card data-testid="engagement-recommendations" style={{ background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.08), rgba(var(--theme-rgb),0.04) 60%, transparent)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <Sparkle size={14} color="#f9a8d4" />
             <div className="eyebrow" style={{ color: '#f9a8d4' }}>RECOMENDACIONES IA · CLAUDE HAIKU</div>
@@ -144,7 +144,7 @@ export default function EngagementTab({ devId }) {
                 border: '1px solid var(--border)', borderRadius: 10,
                 display: 'flex', alignItems: 'flex-start', gap: 10,
               }}>
-                <span style={{ flexShrink: 0, marginTop: 2 }}><TrendUp size={12} color="#a5b4fc" /></span>
+                <span style={{ flexShrink: 0, marginTop: 2 }}><TrendUp size={12} color="var(--theme)" /></span>
                 <span>{r}</span>
               </li>
             ))}

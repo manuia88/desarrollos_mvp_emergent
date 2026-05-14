@@ -41,16 +41,16 @@ function MapOverlay({ t }) {
     }}>
       <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.3 }} viewBox="0 0 320 260" preserveAspectRatio="none">
         {[0,1,2,3,4,5,6,7,8,9,10].map(i => (
-          <line key={`h${i}`} x1={0} y1={i*26} x2={320} y2={i*26} stroke="rgba(99,102,241,0.3)" strokeWidth={0.5} />
+          <line key={`h${i}`} x1={0} y1={i*26} x2={320} y2={i*26} stroke="rgba(var(--theme-rgb),0.3)" strokeWidth={0.5} />
         ))}
         {[0,1,2,3,4,5,6,7,8,9,10,11,12,13].map(i => (
-          <line key={`v${i}`} x1={i*24} y1={0} x2={i*24} y2={260} stroke="rgba(99,102,241,0.3)" strokeWidth={0.5} />
+          <line key={`v${i}`} x1={i*24} y1={0} x2={i*24} y2={260} stroke="rgba(var(--theme-rgb),0.3)" strokeWidth={0.5} />
         ))}
-        <ellipse cx={160} cy={130} rx={130} ry={85} fill="rgba(99,102,241,0.08)" />
-        <ellipse cx={160} cy={130} rx={85} ry={52} fill="rgba(236,72,153,0.06)" />
+        <ellipse cx={160} cy={130} rx={130} ry={85} fill="rgba(var(--theme-rgb),0.08)" />
+        <ellipse cx={160} cy={130} rx={85} ry={52} fill="rgba(var(--theme-rgb),0.06)" />
         <ellipse cx={160} cy={130} rx={42} ry={26} fill="rgba(34,197,94,0.08)" />
-        <circle cx={160} cy={130} r={4} fill="#6366F1" />
-        <circle cx={220} cy={95} r={3} fill="#EC4899" />
+        <circle cx={160} cy={130} r={4} fill="var(--theme)" />
+        <circle cx={220} cy={95} r={3} fill="var(--theme-3)" />
         <circle cx={105} cy={165} r={3} fill="#22C55E" />
       </svg>
       <div style={{ position: 'relative', zIndex: 1, padding: '16px 20px' }}>
@@ -74,8 +74,8 @@ function MapOverlay({ t }) {
             <div key={k} style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 10px',
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px solid rgba(99,102,241,0.18)',
+              background: 'rgba(var(--theme-rgb),0.08)',
+              border: '1px solid rgba(var(--theme-rgb),0.18)',
               borderRadius: 10,
             }}>
               <ScoreIcon k={k} color="var(--indigo-3)" />
@@ -93,8 +93,8 @@ function MapOverlay({ t }) {
         </div>
         <button style={{
           marginTop: 12, width: '100%',
-          background: 'rgba(99,102,241,0.12)',
-          border: '1px solid rgba(99,102,241,0.24)',
+          background: 'rgba(var(--theme-rgb),0.12)',
+          border: '1px solid rgba(var(--theme-rgb),0.24)',
           borderRadius: 9999,
           padding: '7px 12px',
           fontFamily: 'DM Sans', fontWeight: 500, fontSize: 12,
@@ -132,19 +132,19 @@ export default function Hero() {
           <div style={{
             position: 'absolute', top: '-30%', left: '-10%',
             width: '80%', height: '80%',
-            background: 'radial-gradient(ellipse, rgba(99,102,241,0.18) 0%, transparent 65%)',
+            background: 'radial-gradient(ellipse, rgba(var(--theme-rgb),0.18) 0%, transparent 65%)',
             pointerEvents: 'none',
           }} />
           <div style={{
             position: 'absolute', bottom: '-20%', right: '-5%',
             width: '60%', height: '60%',
-            background: 'radial-gradient(ellipse, rgba(236,72,153,0.10) 0%, transparent 65%)',
+            background: 'radial-gradient(ellipse, rgba(var(--theme-rgb),0.10) 0%, transparent 65%)',
             pointerEvents: 'none',
           }} />
           <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.08 }} xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="hero-grid" width="48" height="48" patternUnits="userSpaceOnUse">
-                <path d="M 48 0 L 0 0 0 48" fill="none" stroke="rgba(99,102,241,1)" strokeWidth="0.5" />
+                <path d="M 48 0 L 0 0 0 48" fill="none" stroke="rgba(var(--theme-rgb),1)" strokeWidth="0.5" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#hero-grid)" />
@@ -251,8 +251,8 @@ export default function Hero() {
                 <React.Fragment key={p.label}>
                   <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: p.green ? 'rgba(34,197,94,0.10)' : 'rgba(99,102,241,0.10)',
-                    border: `1px solid ${p.green ? 'rgba(34,197,94,0.24)' : 'rgba(99,102,241,0.24)'}`,
+                    background: p.green ? 'rgba(34,197,94,0.10)' : 'rgba(var(--theme-rgb),0.10)',
+                    border: `1px solid ${p.green ? 'rgba(34,197,94,0.24)' : 'rgba(var(--theme-rgb),0.24)'}`,
                     borderRadius: 9999,
                     padding: '3px 12px',
                   }}>

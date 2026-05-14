@@ -65,7 +65,7 @@ export default function ProgressTab({ dev, user, onGateOpen }) {
                     background: active ? 'var(--grad)' : done ? '#22C55E' : 'var(--bg-3)',
                     border: done || active ? 'none' : '2px solid var(--border-2)',
                     transition: 'all 0.4s',
-                    boxShadow: active ? '0 0 14px rgba(99,102,241,0.6)' : 'none',
+                    boxShadow: active ? '0 0 14px rgba(var(--theme-rgb),0.6)' : 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {done && !active && (
@@ -121,8 +121,8 @@ export default function ProgressTab({ dev, user, onGateOpen }) {
               data-testid="gate-open-from-log"
               style={{
                 padding: 18,
-                background: 'rgba(99,102,241,0.06)',
-                border: '1px dashed rgba(99,102,241,0.30)',
+                background: 'rgba(var(--theme-rgb),0.06)',
+                border: '1px dashed rgba(var(--theme-rgb),0.30)',
                 borderRadius: 14,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                 fontFamily: 'DM Sans', fontSize: 13, color: 'var(--indigo-3)',

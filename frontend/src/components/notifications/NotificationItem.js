@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 const SEVERITY_DOT = {
   critical: '#EF4444',
   high:     '#F97316',
-  normal:   '#6366F1',
+  normal:   'var(--theme)',
   low:      '#6B7280',
 };
 
@@ -38,13 +38,13 @@ export default function NotificationItem({ notif, onMarkRead }) {
         padding: '12px 14px',
         borderRadius: 8,
         cursor: notif.action_url ? 'pointer' : 'default',
-        background: notif.read ? 'transparent' : 'rgba(99,102,241,0.06)',
+        background: notif.read ? 'transparent' : 'rgba(var(--theme-rgb),0.06)',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         transition: 'background 0.15s',
         alignItems: 'flex-start',
       }}
-      onMouseEnter={e => { if (notif.action_url) e.currentTarget.style.background = 'rgba(99,102,241,0.1)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(99,102,241,0.06)'; }}
+      onMouseEnter={e => { if (notif.action_url) e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.1)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(var(--theme-rgb),0.06)'; }}
     >
       {/* Severity dot */}
       <div style={{

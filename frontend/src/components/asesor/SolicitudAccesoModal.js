@@ -82,11 +82,11 @@ export default function SolicitudAccesoModal({ dev_org_id, dev_name, onClose, on
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 36, height: 36, borderRadius: '50%',
-              background: 'rgba(99,102,241,0.15)',
-              border: '1px solid rgba(99,102,241,0.30)',
+              background: 'rgba(var(--theme-rgb),0.15)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Store size={16} color="#818CF8" />
+              <Store size={16} color="var(--theme)" />
             </div>
             <div>
               <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>
@@ -206,7 +206,7 @@ export default function SolicitudAccesoModal({ dev_org_id, dev_name, onClose, on
             disabled={saving}
             style={{
               padding: '10px 22px', borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               border: 'none', color: '#fff',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
               cursor: saving ? 'wait' : 'pointer',

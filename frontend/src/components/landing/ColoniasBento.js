@@ -29,12 +29,12 @@ function Sparkline({ trend }) {
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: h, display: 'block' }}>
       <defs>
         <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#6366F1" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#6366F1" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--theme)" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="var(--theme)" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="spark-line" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#6366F1" />
-          <stop offset="100%" stopColor="#EC4899" />
+          <stop offset="0%" stopColor="var(--theme)" />
+          <stop offset="100%" stopColor="var(--theme-3)" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#spark-fill)" />
@@ -99,8 +99,8 @@ function ColoniaCard({ colonia, index }) {
         <div style={{
           marginTop: 12,
           padding: '8px 12px',
-          background: 'rgba(99,102,241,0.06)',
-          border: '1px solid rgba(99,102,241,0.16)',
+          background: 'rgba(var(--theme-rgb),0.06)',
+          border: '1px solid rgba(var(--theme-rgb),0.16)',
           borderRadius: 10,
         }}>
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>

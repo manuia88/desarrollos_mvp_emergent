@@ -30,7 +30,7 @@ function KpiCard({ Icon, label, value, accent }) {
     <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
         <Icon size={11} color={accent} />
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
       </div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: accent || 'var(--cream)' }}>{value}</div>
     </div>
@@ -40,7 +40,7 @@ function KpiCard({ Icon, label, value, accent }) {
 const SEVERITY_CFG = {
   critical: { color: '#F87171', bg: 'rgba(239,68,68,0.12)' },
   warning:  { color: '#FACC15', bg: 'rgba(250,204,21,0.12)' },
-  info:     { color: '#818CF8', bg: 'rgba(99,102,241,0.12)' },
+  info:     { color: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.12)' },
 };
 
 function SeverityPill({ severity }) {
@@ -77,11 +77,11 @@ function ExportModal({ filters, currentTotal, onClose }) {
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="export-modal" style={{
         width: '100%', maxWidth: 460, background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(99,102,241,0.30)', borderRadius: 14,
+        border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14,
         padding: 20, display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Download size={14} color="#818CF8" />
+          <Download size={14} color="var(--theme)" />
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0, flex: 1 }}>
             Exportar registros
           </h3>
@@ -96,16 +96,16 @@ function ExportModal({ filters, currentTotal, onClose }) {
                 flex: 1, padding: '10px 0', borderRadius: 9999,
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                 cursor: 'pointer',
-                border: format === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
-                background: format === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                color: format === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                border: format === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.10)',
+                background: format === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                color: format === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
               }}>{l}</button>
           ))}
         </div>
         <div style={{
           padding: '11px 14px', borderRadius: 10,
-          background: blocked ? 'rgba(239,68,68,0.08)' : 'rgba(99,102,241,0.06)',
-          border: `1px solid ${blocked ? 'rgba(239,68,68,0.30)' : 'rgba(99,102,241,0.22)'}`,
+          background: blocked ? 'rgba(239,68,68,0.08)' : 'rgba(var(--theme-rgb),0.06)',
+          border: `1px solid ${blocked ? 'rgba(239,68,68,0.30)' : 'rgba(var(--theme-rgb),0.22)'}`,
         }}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: blocked ? '#F87171' : 'rgba(240,235,224,0.65)' }}>
             {blocked
@@ -119,7 +119,7 @@ function ExportModal({ filters, currentTotal, onClose }) {
             Cancelar
           </button>
           <button data-testid="export-confirm" onClick={download} disabled={blocked}
-            style={{ padding: '8px 18px', borderRadius: 9999, background: blocked ? 'rgba(239,68,68,0.20)' : 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: blocked ? '#F87171' : '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: blocked ? 'not-allowed' : 'pointer' }}>
+            style={{ padding: '8px 18px', borderRadius: 9999, background: blocked ? 'rgba(239,68,68,0.20)' : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: blocked ? '#F87171' : '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: blocked ? 'not-allowed' : 'pointer' }}>
             Descargar
           </button>
         </div>
@@ -231,7 +231,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-audit-log">
         {toast && (
-          <div data-testid="audit-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="audit-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -239,12 +239,12 @@ export default function SuperadminAuditLog({ user, onLogout }) {
         <div style={{ marginBottom: 22, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <Shield size={20} color="#818CF8" />
+              <Shield size={20} color="var(--theme)" />
               <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em' }}>
                 Auditoría
               </h1>
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)', margin: 0 }}>
               Timeline ejecutivo cross-org · drill-down before/after · export legal/compliance.
             </p>
           </div>
@@ -254,7 +254,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Refrescar
             </button>
             <button data-testid="audit-export-btn" onClick={() => setShowExport(true)}
-              style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              style={{ padding: '8px 16px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Download size={11} /> Exportar
             </button>
           </div>
@@ -263,7 +263,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
         {/* KPIs */}
         {stats && (
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}>
-            <KpiCard Icon={Activity} label="Total 24h" value={stats.total_24h} accent="#818CF8" />
+            <KpiCard Icon={Activity} label="Total 24h" value={stats.total_24h} accent="var(--theme)" />
             <KpiCard Icon={AlertOctagon} label="Critical" value={stats.critical_24h} accent={stats.critical_24h > 0 ? '#F87171' : 'rgba(240,235,224,0.55)'} />
             <KpiCard Icon={Edit3} label="Mutations" value={stats.mutations_24h} accent="#FACC15" />
             <KpiCard Icon={Eye} label="Reads" value={stats.reads_24h} accent="#4ADE80" />
@@ -272,17 +272,17 @@ export default function SuperadminAuditLog({ user, onLogout }) {
 
         {/* Filters row 1 — severity + action */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Severidad</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Severidad</span>
           {SEVERITY_CHIPS.map(([k, l]) => (
             <button key={k} data-testid={`sev-chip-${k}`} onClick={() => setFilter('severity', k)}
-              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filters.severity === k ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.08)', background: filters.severity === k ? 'rgba(99,102,241,0.10)' : 'transparent', color: filters.severity === k ? '#818CF8' : 'rgba(240,235,224,0.55)' }}>
+              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filters.severity === k ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.08)', background: filters.severity === k ? 'rgba(var(--theme-rgb),0.10)' : 'transparent', color: filters.severity === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
               {l}
             </button>
           ))}
-          <span style={{ marginLeft: 12, fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Acción</span>
+          <span style={{ marginLeft: 12, fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Acción</span>
           {ACTION_CHIPS.map(([k, l]) => (
             <button key={k} data-testid={`act-chip-${k}`} onClick={() => setFilter('action', k)}
-              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filters.action === k ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.08)', background: filters.action === k ? 'rgba(99,102,241,0.10)' : 'transparent', color: filters.action === k ? '#818CF8' : 'rgba(240,235,224,0.55)' }}>
+              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filters.action === k ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.08)', background: filters.action === k ? 'rgba(var(--theme-rgb),0.10)' : 'transparent', color: filters.action === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
               {l}
             </button>
           ))}
@@ -291,13 +291,13 @@ export default function SuperadminAuditLog({ user, onLogout }) {
         {/* Search + advanced toggle */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '1 1 280px' }}>
-            <Search size={12} color="rgba(240,235,224,0.40)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={12} color="rgba(240, 235, 224, 0.68)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
             <input data-testid="audit-search" value={filters.q} onChange={e => setFilter('q', e.target.value)}
               placeholder="Buscar en action / entity_type / entity_id…"
               style={{ width: '100%', padding: '8px 13px 8px 34px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
           </div>
           <button data-testid="audit-advanced-toggle" onClick={() => setShowAdvanced(s => !s)}
-            style={{ padding: '8px 14px', borderRadius: 9999, background: showAdvanced ? 'rgba(99,102,241,0.16)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.30)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            style={{ padding: '8px 14px', borderRadius: 9999, background: showAdvanced ? 'rgba(var(--theme-rgb),0.16)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
             <Filter size={11} /> Más filtros{activeFilterCount > 0 && ` (${activeFilterCount})`}
             <ChevronDown size={10} style={{ transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 180ms' }} />
           </button>
@@ -312,7 +312,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
         {showAdvanced && (
           <div data-testid="audit-advanced-panel" style={{
             padding: '14px 16px', borderRadius: 12, marginBottom: 14,
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(99,102,241,0.20)',
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(var(--theme-rgb),0.20)',
             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10,
           }}>
             <AutocompleteField label="Actor" value={filters.actor_user_id}
@@ -333,13 +333,13 @@ export default function SuperadminAuditLog({ user, onLogout }) {
         )}
 
         {/* Results count */}
-        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.50)', marginBottom: 10 }}>
+        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)', marginBottom: 10 }}>
           {total} {total === 1 ? 'registro' : 'registros'} · mostrando {items.length}
         </div>
 
         {/* List */}
         {loading && items.length === 0 ? (
-          <div style={{ padding: 60, textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans' }}>
+          <div style={{ padding: 60, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans' }}>
             Cargando registros…
           </div>
         ) : items.length === 0 ? (
@@ -348,7 +348,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', marginBottom: 4 }}>
               Sin registros que coincidan
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>Ajusta los filtros o limpia para ver más.</div>
+            <div style={{ fontSize: 12, color: 'rgba(240, 235, 224, 0.72)' }}>Ajusta los filtros o limpia para ver más.</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -370,18 +370,18 @@ export default function SuperadminAuditLog({ user, onLogout }) {
                     {fmtRel(it.ts)}
                   </span>
                   <SeverityPill severity={it.severity || 'info'} />
-                  <span style={{ padding: '1px 8px', borderRadius: 9999, fontSize: 10.5, fontFamily: 'DM Sans', fontWeight: 700, background: 'rgba(99,102,241,0.10)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.22)' }}>
+                  <span style={{ padding: '1px 8px', borderRadius: 9999, fontSize: 10.5, fontFamily: 'DM Sans', fontWeight: 700, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme)', border: '1px solid rgba(var(--theme-rgb),0.22)' }}>
                     {it.action}
                   </span>
                   <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream)' }}>
                     {it.entity_type}
                   </span>
                   {it.entity_id && (
-                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.50)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.72)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
                       {it.entity_id}
                     </span>
                   )}
-                  <div style={{ flex: 1, minWidth: 120, fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textAlign: 'right' }}>
+                  <div style={{ flex: 1, minWidth: 120, fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.72)', textAlign: 'right' }}>
                     {it.actor?.user_id || '—'} <span style={{ opacity: 0.6 }}>· {it.actor?.role || '—'}</span>
                   </div>
                 </div>
@@ -391,7 +391,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
                       <span key={k} style={{ padding: '1px 6px', borderRadius: 9999, fontSize: 9.5, fontFamily: 'DM Mono, monospace', background: 'rgba(250,204,21,0.08)', color: '#FACC15' }}>{k}</span>
                     ))}
                     {it.diff_keys.length > 6 && (
-                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240,235,224,0.45)' }}>+{it.diff_keys.length - 6} más</span>
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9.5, color: 'rgba(240, 235, 224, 0.70)' }}>+{it.diff_keys.length - 6} más</span>
                     )}
                   </div>
                 )}
@@ -404,7 +404,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
         {items.length < total && (
           <div style={{ marginTop: 16, textAlign: 'center' }}>
             <button data-testid="audit-load-more" onClick={loadMore} disabled={loading}
-              style={{ padding: '8px 22px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1 }}>
+              style={{ padding: '8px 22px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1 }}>
               {loading ? 'Cargando…' : `Cargar más (${total - items.length} restantes)`}
             </button>
           </div>
@@ -421,7 +421,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
 function FieldShell({ label, children }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+      <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
       {children}
     </label>
   );
@@ -462,12 +462,12 @@ function AutocompleteField({ label, value, options, onChange, testId }) {
           placeholder={`Buscar ${label.toLowerCase()}…`}
           style={{ width: '100%', padding: '7px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 11.5, outline: 'none' }} />
         {focus && filtered.length > 0 && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, padding: 4, borderRadius: 10, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(99,102,241,0.30)', maxHeight: 220, overflowY: 'auto', zIndex: 100 }}>
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, padding: 4, borderRadius: 10, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', maxHeight: 220, overflowY: 'auto', zIndex: 100 }}>
             {filtered.map(o => (
               <button key={o.value} onClick={() => { setDraft(o.value); onChange(o.value); }}
                 data-testid={`${testId}-opt-${o.value}`}
                 style={{ display: 'block', width: '100%', padding: '6px 10px', borderRadius: 7, background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 11 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.12)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >{o.label}</button>
             ))}

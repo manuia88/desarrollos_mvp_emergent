@@ -178,9 +178,9 @@ export default function UploadModal({ open, source, onClose, onUploaded }) {
               style={{
                 padding: '28px 20px',
                 marginBottom: 14,
-                border: `2px dashed ${dragOver ? 'rgba(99,102,241,0.6)' : 'var(--border)'}`,
+                border: `2px dashed ${dragOver ? 'rgba(var(--theme-rgb),0.6)' : 'var(--border)'}`,
                 borderRadius: 16,
-                background: dragOver ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.02)',
+                background: dragOver ? 'rgba(var(--theme-rgb),0.06)' : 'rgba(255,255,255,0.02)',
                 textAlign: 'center',
                 cursor: 'pointer',
                 transition: 'border-color 0.18s, background 0.18s',
@@ -234,8 +234,8 @@ export default function UploadModal({ open, source, onClose, onUploaded }) {
 
             <div style={{
               padding: 10, marginBottom: 14,
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px solid rgba(99,102,241,0.18)',
+              background: 'rgba(var(--theme-rgb),0.06)',
+              border: '1px solid rgba(var(--theme-rgb),0.18)',
               borderRadius: 12,
               fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.55,
               display: 'flex', alignItems: 'center', gap: 8,
@@ -284,8 +284,8 @@ function PreviewBlock({ preview }) {
   const Pill = ({ children, tone = 'neutral' }) => (
     <span style={{
       padding: '2px 9px', borderRadius: 9999,
-      background: tone === 'good' ? 'rgba(34,197,94,0.14)' : tone === 'warn' ? 'rgba(245,158,11,0.16)' : 'rgba(99,102,241,0.10)',
-      border: `1px solid ${tone === 'good' ? 'rgba(34,197,94,0.28)' : tone === 'warn' ? 'rgba(245,158,11,0.32)' : 'rgba(99,102,241,0.22)'}`,
+      background: tone === 'good' ? 'rgba(34,197,94,0.14)' : tone === 'warn' ? 'rgba(245,158,11,0.16)' : 'rgba(var(--theme-rgb),0.10)',
+      border: `1px solid ${tone === 'good' ? 'rgba(34,197,94,0.28)' : tone === 'warn' ? 'rgba(245,158,11,0.32)' : 'rgba(var(--theme-rgb),0.22)'}`,
       color: tone === 'good' ? '#86efac' : tone === 'warn' ? '#fcd34d' : 'var(--indigo-3)',
       fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600,
       letterSpacing: '0.04em', textTransform: 'uppercase',
@@ -332,7 +332,7 @@ function PreviewBlock({ preview }) {
                     textAlign: 'left', padding: '8px 10px',
                     fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10.5,
                     color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em',
-                    background: 'rgba(99,102,241,0.06)',
+                    background: 'rgba(var(--theme-rgb),0.06)',
                   }}>{h}</th>
                 ))}
               </tr>

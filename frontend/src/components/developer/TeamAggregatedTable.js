@@ -228,7 +228,7 @@ function Avatar({ name, url }) {
   return (
     <div aria-hidden style={{
       width: 28, height: 28, borderRadius: 9999,
-      background: 'linear-gradient(135deg, rgba(99,102,241,0.45), rgba(236,72,153,0.45))',
+      background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.45), rgba(var(--theme-rgb),0.45))',
       color: 'var(--cream)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 11, fontWeight: 700, fontFamily: 'DM Sans',
@@ -334,7 +334,7 @@ function AsesorDrawer({ asesor, period, onClose }) {
           }}>
             Pipeline value (90d, demo)
           </div>
-          <Sparkline data={ts} color="#a5b4fc" />
+          <Sparkline data={ts} color="var(--theme)" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           <KPI label="Pipeline" value={fmtMXN(asesor.pipeline_value_mxn)} />

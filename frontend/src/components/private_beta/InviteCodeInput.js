@@ -47,7 +47,7 @@ export default function InviteCodeInput({ value, onChange, onValidChange }) {
 
   const borderColor = {
     idle:    'rgba(255,255,255,0.12)',
-    loading: 'rgba(99,102,241,0.4)',
+    loading: 'rgba(var(--theme-rgb),0.4)',
     valid:   'rgba(34,197,94,0.6)',
     invalid: 'rgba(239,68,68,0.6)',
   }[status];
@@ -86,7 +86,7 @@ export default function InviteCodeInput({ value, onChange, onValidChange }) {
           position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
           fontSize: 14, fontWeight: 700,
         }}>
-          {status === 'loading' && <span style={{ color: '#a5b4fc' }}>·</span>}
+          {status === 'loading' && <span style={{ color: 'var(--theme)' }}>·</span>}
           {status === 'valid'   && <span style={{ color: '#22c55e' }}>✓</span>}
           {status === 'invalid' && <span style={{ color: '#ef4444' }}>✗</span>}
         </div>

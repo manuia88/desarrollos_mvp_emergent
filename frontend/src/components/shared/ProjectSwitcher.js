@@ -299,17 +299,17 @@ export function ProjectSwitcher({ user }) {
       onClick={() => setOpen(o => !o)}
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
-        background: open ? 'rgba(99,102,241,0.14)' : 'rgba(240,235,224,0.06)',
-        border: `1px solid ${open ? 'rgba(99,102,241,0.40)' : 'rgba(240,235,224,0.12)'}`,
+        background: open ? 'rgba(var(--theme-rgb),0.14)' : 'rgba(240,235,224,0.06)',
+        border: `1px solid ${open ? 'rgba(var(--theme-rgb),0.40)' : 'rgba(240,235,224,0.12)'}`,
         borderRadius: 8, padding: '6px 10px',
         cursor: 'pointer', transition: 'all 0.15s',
         maxWidth: 220,
       }}
       title="Cambiar proyecto (Cmd+/)"
     >
-      <Building size={13} color={open ? '#818CF8' : 'rgba(240,235,224,0.5)'} style={{ flexShrink: 0 }} />
+      <Building size={13} color={open ? 'var(--theme)' : 'rgba(240,235,224,0.5)'} style={{ flexShrink: 0 }} />
       <span style={{
-        fontSize: 12, fontWeight: 600, color: open ? '#a5b4fc' : 'var(--cream-2)',
+        fontSize: 12, fontWeight: 600, color: open ? 'var(--theme)' : 'var(--cream-2)',
         fontFamily: 'DM Sans, sans-serif',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         maxWidth: 160,

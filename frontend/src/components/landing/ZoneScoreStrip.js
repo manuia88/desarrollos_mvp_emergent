@@ -197,8 +197,8 @@ export default function ZoneScoreStrip({ zoneId, scope = 'colonia', limit = 8, o
           {data.scores.length > limit && (
             <div style={{
               padding: '10px 14px', borderRadius: 14,
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px dashed rgba(99,102,241,0.28)',
+              background: 'rgba(var(--theme-rgb),0.06)',
+              border: '1px dashed rgba(var(--theme-rgb),0.28)',
               display: 'flex', alignItems: 'center', gap: 6,
               fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)',
             }}>

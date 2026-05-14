@@ -13,7 +13,7 @@ const COL_LABELS = {
 };
 
 const STATUS_COLORS = {
-  disponible: '#22c55e', apartado: '#f59e0b', reservado: '#ec4899',
+  disponible: '#22c55e', apartado: '#f59e0b', reservado: 'var(--theme-3)',
   vendido: '#94a3b8', bloqueado: '#ef4444',
 };
 
@@ -119,13 +119,13 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
                 onClick={() => fileRef.current?.click()}
                 data-testid="bulk-dropzone"
                 style={{
-                  border: `2px dashed ${dragOver ? '#6366F1' : 'var(--border)'}`,
+                  border: `2px dashed ${dragOver ? 'var(--theme)' : 'var(--border)'}`,
                   borderRadius: 14, padding: '40px 24px', textAlign: 'center',
                   cursor: 'pointer', transition: 'border-color 0.18s, background 0.18s',
-                  background: dragOver ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.02)',
+                  background: dragOver ? 'rgba(var(--theme-rgb),0.06)' : 'rgba(255,255,255,0.02)',
                 }}
               >
-                <Upload size={28} color={dragOver ? '#6366F1' : 'var(--cream-3)'} style={{ margin: '0 auto 12px' }} />
+                <Upload size={28} color={dragOver ? 'var(--theme)' : 'var(--cream-3)'} style={{ margin: '0 auto 12px' }} />
                 <div style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)', marginBottom: 6 }}>
                   {step === 'parsing' ? 'Procesando archivo...' : 'Arrastra tu archivo aquí'}
                 </div>
@@ -149,7 +149,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
           {step === 'preview' && preview && (
             <>
               <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                <StatPill label="Total filas" value={preview.total_rows} color="#6366F1" />
+                <StatPill label="Total filas" value={preview.total_rows} color="var(--theme)" />
                 <StatPill label="Válidas" value={preview.valid_rows} color="#22c55e" />
                 {preview.error_rows > 0 && <StatPill label="Con errores" value={preview.error_rows} color="#ef4444" />}
                 <StatPill label="Columnas detectadas" value={preview.detected_columns?.length || 0} color="#f59e0b" />
@@ -162,9 +162,9 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
                   <button key={val} onClick={() => setOverrideMode(val)} data-testid={`override-mode-${val}`}
                     style={{
                       padding: '5px 12px', borderRadius: 7,
-                      background: overrideMode === val ? 'rgba(99,102,241,0.18)' : 'transparent',
-                      border: `1px solid ${overrideMode === val ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
-                      color: overrideMode === val ? '#a5b4fc' : 'var(--cream-3)',
+                      background: overrideMode === val ? 'rgba(var(--theme-rgb),0.18)' : 'transparent',
+                      border: `1px solid ${overrideMode === val ? 'rgba(var(--theme-rgb),0.5)' : 'var(--border)'}`,
+                      color: overrideMode === val ? 'var(--theme)' : 'var(--cream-3)',
                       fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer',
                     }}>
                     {lbl}
@@ -229,7 +229,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
                 {commitResult.rows_committed} unidades actualizadas exitosamente
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <StatPill label="Parseadas" value={commitResult.rows_parsed} color="#6366F1" />
+                <StatPill label="Parseadas" value={commitResult.rows_parsed} color="var(--theme)" />
                 <StatPill label="Committed" value={commitResult.rows_committed} color="#22c55e" />
                 {commitResult.errors?.length > 0 && <StatPill label="Errores" value={commitResult.errors.length} color="#ef4444" />}
               </div>

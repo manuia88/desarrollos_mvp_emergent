@@ -23,7 +23,7 @@ export default function RiskWatchlist() {
           alignItems: 'center',
           padding: '4px 12px',
           borderRadius: 9999,
-          background: 'rgba(99,102,241,0.15)',
+          background: 'rgba(var(--theme-rgb),0.15)',
           color: 'rgba(165,180,252,0.95)',
           fontFamily: 'DM Sans, sans-serif',
           fontWeight: 600,

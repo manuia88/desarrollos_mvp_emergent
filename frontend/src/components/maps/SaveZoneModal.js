@@ -67,7 +67,7 @@ export default function SaveZoneModal({ open, polygon, onClose, onSaved }) {
           padding: 24, fontFamily: 'DM Sans', color: '#F0EBE0',
         }}
       >
-        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a5b4fc', marginBottom: 6 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--theme)', marginBottom: 6 }}>
           Inversionista · Zona guardada
         </div>
         <h2 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 800, margin: '0 0 14px', color: '#F0EBE0' }}>
@@ -105,15 +105,15 @@ export default function SaveZoneModal({ open, polygon, onClose, onSaved }) {
             <label key={i} style={{
               display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
               padding: '8px 12px', borderRadius: 12,
-              background: row.v ? 'rgba(99,102,241,0.10)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${row.v ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              fontSize: 12, color: row.v ? '#a5b4fc' : 'rgba(240,235,224,0.7)',
+              background: row.v ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${row.v ? 'rgba(var(--theme-rgb),0.3)' : 'rgba(255,255,255,0.08)'}`,
+              fontSize: 12, color: row.v ? 'var(--theme)' : 'rgba(240,235,224,0.7)',
             }}>
               <input
                 type="checkbox"
                 checked={row.v}
                 onChange={e => row.set(e.target.checked)}
-                style={{ accentColor: '#6366F1', cursor: 'pointer' }}
+                style={{ accentColor: 'var(--theme)', cursor: 'pointer' }}
               />
               {row.label}
             </label>
@@ -143,7 +143,7 @@ export default function SaveZoneModal({ open, polygon, onClose, onSaved }) {
             disabled={saving}
             style={{
               padding: '9px 18px', borderRadius: 9999, border: 'none',
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
               fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700,
               cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1,
             }}

@@ -4,7 +4,7 @@ import ScoreBadge from './ScoreBadge';
 
 const SCENARIO_COLORS = {
   conservador: { accent: '#6B7280', bg: 'rgba(107,114,128,0.08)', label: 'Conservador' },
-  base:        { accent: '#6366F1', bg: 'rgba(99,102,241,0.1)',  label: 'Base' },
+  base:        { accent: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.1)',  label: 'Base' },
   optimista:   { accent: '#10B981', bg: 'rgba(16,185,129,0.1)',  label: 'Optimista' },
 };
 

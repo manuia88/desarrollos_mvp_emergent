@@ -50,7 +50,7 @@ export default function FeatureFlagsChecklist({ catalog = [], current = [], onSa
     <div data-testid="feature-flags-checklist" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {Object.entries(grouped).map(([cat, feats]) => (
         <div key={cat} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
             {CATEGORY_LABEL[cat] || cat}
           </div>
           {feats.map(f => {
@@ -65,18 +65,18 @@ export default function FeatureFlagsChecklist({ catalog = [], current = [], onSa
                 }}>
                 <input type="checkbox" data-testid={`feature-check-${f.key}`}
                   checked={!!fl.enabled} onChange={() => toggle(f.key)}
-                  style={{ accentColor: '#6366F1', width: 16, height: 16 }} />
+                  style={{ accentColor: 'var(--theme)', width: 16, height: 16 }} />
                 <div style={{ flex: 1, minWidth: 140 }}>
                   <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>
                     {f.name}
                   </div>
-                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.45)' }}>
+                  <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240, 235, 224, 0.70)' }}>
                     {f.key} · ${f.monthly_price_mxn || 0}/mes · {f.default_plan_tier}
                   </div>
                 </div>
                 {fl.enabled && (
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <Calendar size={11} color="rgba(240,235,224,0.45)" />
+                    <Calendar size={11} color="rgba(240, 235, 224, 0.70)" />
                     <input type="date" data-testid={`feature-exp-${f.key}`}
                       value={fl.expires_at || ''} onChange={e => setExpiry(f.key, e.target.value)}
                       style={{ padding: '4px 9px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 11, outline: 'none' }} />
@@ -88,7 +88,7 @@ export default function FeatureFlagsChecklist({ catalog = [], current = [], onSa
         </div>
       ))}
       <button data-testid="features-save" onClick={save} disabled={busy}
-        style={{ padding: '10px 20px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1, alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        style={{ padding: '10px 20px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1, alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
         <Save size={11} /> {busy ? 'Guardando…' : 'Guardar features'}
       </button>
     </div>

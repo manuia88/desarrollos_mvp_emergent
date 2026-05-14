@@ -55,7 +55,7 @@ function IngestModal({ onClose, onDone }) {
         </div>
 
         <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.6 }}>
-          CSV con columnas: <code style={{ color: '#a5b4fc' }}>zone_id, closing_price_mxn, closed_at</code> (obligatorias)
+          CSV con columnas: <code style={{ color: 'var(--theme)' }}>zone_id, closing_price_mxn, closed_at</code> (obligatorias)
           + <code style={{ color: 'rgba(240,235,224,0.5)' }}>m2, recamaras, listed_price_mxn, property_type, lat, lng</code> (opcionales)
         </div>
 
@@ -70,7 +70,7 @@ function IngestModal({ onClose, onDone }) {
           />
           <button
             onClick={() => inputRef.current?.click()}
-            style={{ padding: '10px 18px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.35)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
+            style={{ padding: '10px 18px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
           >
             <Upload size={13} />
             {file ? file.name : 'Seleccionar archivo .csv'}
@@ -115,7 +115,7 @@ function IngestModal({ onClose, onDone }) {
             data-testid="ingest-submit-btn"
             onClick={go}
             disabled={!file || loading}
-            style={{ padding: '8px 20px', borderRadius: 9999, background: loading ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.25)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+            style={{ padding: '8px 20px', borderRadius: 9999, background: loading ? 'rgba(var(--theme-rgb),0.15)' : 'rgba(var(--theme-rgb),0.25)', border: '1px solid rgba(var(--theme-rgb),0.5)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
           >
             {loading ? 'Importando…' : 'Importar'}
           </button>
@@ -183,7 +183,7 @@ export default function SuperadminTransactionNetwork({ user, onLogout }) {
           <button
             data-testid="open-ingest-modal-btn"
             onClick={() => setShowIngest(true)}
-            style={{ padding: '10px 20px', borderRadius: 9999, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ padding: '10px 20px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Upload size={12} />
             Manual ingest CSV
@@ -207,7 +207,7 @@ export default function SuperadminTransactionNetwork({ user, onLogout }) {
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>Zona:</span>
           <button
             onClick={() => setSelectedZone('')}
-            style={{ padding: '4px 12px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer', background: !selectedZone ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)', border: `1px solid ${!selectedZone ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`, color: !selectedZone ? '#a5b4fc' : 'var(--cream-3)' }}
+            style={{ padding: '4px 12px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer', background: !selectedZone ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.03)', border: `1px solid ${!selectedZone ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.08)'}`, color: !selectedZone ? 'var(--theme)' : 'var(--cream-3)' }}
           >
             Todas
           </button>
@@ -216,7 +216,7 @@ export default function SuperadminTransactionNetwork({ user, onLogout }) {
               key={z}
               data-testid={`zone-filter-${z}`}
               onClick={() => setSelectedZone(selectedZone === z ? '' : z)}
-              style={{ padding: '4px 12px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer', background: selectedZone === z ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)', border: `1px solid ${selectedZone === z ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`, color: selectedZone === z ? '#a5b4fc' : 'var(--cream-3)' }}
+              style={{ padding: '4px 12px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 11, cursor: 'pointer', background: selectedZone === z ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.03)', border: `1px solid ${selectedZone === z ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.08)'}`, color: selectedZone === z ? 'var(--theme)' : 'var(--cream-3)' }}
             >
               {z}
             </button>
@@ -329,7 +329,7 @@ function AnomalyChecker() {
                 data-testid="anomaly-check-btn"
                 onClick={check}
                 disabled={loading}
-                style={{ padding: '6px 18px', borderRadius: 9999, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}
+                style={{ padding: '6px 18px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.4)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}
               >
                 {loading ? 'Analizando…' : 'Verificar'}
               </button>
@@ -339,7 +339,7 @@ function AnomalyChecker() {
           {result && !result.error && (
             <div
               data-testid="anomaly-result"
-              style={{ padding: '12px 16px', borderRadius: 12, background: `${SEVERITY_COLOR[result.severity] || '#6366F1'}15`, border: `1px solid ${SEVERITY_COLOR[result.severity] || '#6366F1'}35` }}
+              style={{ padding: '12px 16px', borderRadius: 12, background: `${SEVERITY_COLOR[result.severity] || 'var(--theme)'}15`, border: `1px solid ${SEVERITY_COLOR[result.severity] || 'var(--theme)'}35` }}
             >
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: SEVERITY_COLOR[result.severity], textTransform: 'uppercase' }}>

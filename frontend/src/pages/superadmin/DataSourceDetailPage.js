@@ -21,13 +21,13 @@ const STATUS_TONES = {
   stub:        { fg: '#fcd34d', bg: 'rgba(245,158,11,0.16)',  border: 'rgba(245,158,11,0.32)',  label: 'Stub' },
   uploaded:    { fg: '#fcd34d', bg: 'rgba(245,158,11,0.16)',  border: 'rgba(245,158,11,0.32)',  label: 'Subido' },
   processing:  { fg: '#fcd34d', bg: 'rgba(245,158,11,0.16)',  border: 'rgba(245,158,11,0.32)',  label: 'Procesando' },
-  manual_only: { fg: '#a5b4fc', bg: 'rgba(99,102,241,0.16)',  border: 'rgba(99,102,241,0.32)',  label: 'Solo manual' },
+  manual_only: { fg: 'var(--theme)', bg: 'rgba(var(--theme-rgb),0.16)',  border: 'rgba(var(--theme-rgb),0.32)',  label: 'Solo manual' },
   blocked:     { fg: '#fca5a5', bg: 'rgba(239,68,68,0.16)',   border: 'rgba(239,68,68,0.32)',   label: 'Bloqueada' },
   error:       { fg: '#fca5a5', bg: 'rgba(239,68,68,0.16)',   border: 'rgba(239,68,68,0.32)',   label: 'Error' },
   failed:      { fg: '#fca5a5', bg: 'rgba(239,68,68,0.16)',   border: 'rgba(239,68,68,0.32)',   label: 'Falló' },
   h2:          { fg: 'var(--cream-3)', bg: 'rgba(148,163,184,0.16)', border: 'rgba(148,163,184,0.28)', label: 'Horizonte 2' },
   never:       { fg: 'var(--cream-3)', bg: 'rgba(148,163,184,0.10)', border: 'rgba(148,163,184,0.22)', label: 'Sin sync' },
-  running:     { fg: 'var(--cream-2)', bg: 'rgba(99,102,241,0.10)',  border: 'rgba(99,102,241,0.22)', label: 'Corriendo' },
+  running:     { fg: 'var(--cream-2)', bg: 'rgba(var(--theme-rgb),0.10)',  border: 'rgba(var(--theme-rgb),0.22)', label: 'Corriendo' },
 };
 const Pill = ({ tone = 'never' }) => {
   const t = STATUS_TONES[tone] || STATUS_TONES.never;
@@ -174,7 +174,7 @@ export default function DataSourceDetailPage({ user, onLogout }) {
             <button key={t.k} data-testid={`tab-${t.k}`} onClick={() => setTab(t.k)} style={{
               padding: '10px 16px',
               background: 'transparent',
-              border: 'none', borderBottom: `2px solid ${active ? '#6366F1' : 'transparent'}`,
+              border: 'none', borderBottom: `2px solid ${active ? 'var(--theme)' : 'transparent'}`,
               color: active ? 'var(--cream)' : 'var(--cream-3)',
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
               cursor: 'pointer', transition: 'color 0.15s, border-color 0.15s',
@@ -346,7 +346,7 @@ function UploadsTab({ uploads, onReprocess }) {
                 </button>
               </div>
               {u.screenshot_path && (
-                <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: '#a5b4fc', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--theme)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Bookmark size={9} /> screenshot audit
                 </span>
               )}

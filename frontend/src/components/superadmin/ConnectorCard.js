@@ -52,7 +52,7 @@ export default function ConnectorCard({ conn, onTest, onRetry, onReplay, onOpen 
       style={{
         padding: 16, borderRadius: 14,
         background: 'rgba(255,255,255,0.03)',
-        border: `1px solid ${hover ? 'rgba(99,102,241,0.30)' : 'rgba(255,255,255,0.08)'}`,
+        border: `1px solid ${hover ? 'rgba(var(--theme-rgb),0.30)' : 'rgba(255,255,255,0.08)'}`,
         display: 'flex', flexDirection: 'column', gap: 11,
         cursor: 'pointer',
         transform: hover ? 'translateY(-1px)' : 'translateY(0)',
@@ -63,10 +63,10 @@ export default function ConnectorCard({ conn, onTest, onRetry, onReplay, onOpen 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{
           width: 36, height: 36, borderRadius: 10,
-          background: 'rgba(99,102,241,0.10)',
-          border: '1px solid rgba(99,102,241,0.22)',
+          background: 'rgba(var(--theme-rgb),0.10)',
+          border: '1px solid rgba(var(--theme-rgb),0.22)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#818CF8', flexShrink: 0,
+          color: 'var(--theme)', flexShrink: 0,
         }}>
           <Icon size={16} />
         </div>
@@ -118,8 +118,8 @@ export default function ConnectorCard({ conn, onTest, onRetry, onReplay, onOpen 
         <button data-testid={`connector-test-${conn.id}`} onClick={doTest} disabled={busy === 'test' || conn.status === 'stub'}
           style={{
             padding: '5px 10px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)',
-            color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
+            background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)',
+            color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
             cursor: busy === 'test' || conn.status === 'stub' ? 'not-allowed' : 'pointer',
             opacity: busy === 'test' || conn.status === 'stub' ? 0.55 : 1,
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -142,8 +142,8 @@ export default function ConnectorCard({ conn, onTest, onRetry, onReplay, onOpen 
           disabled={!conn.supports_replay || conn.status === 'stub'}
           style={{
             padding: '5px 10px', borderRadius: 9999,
-            background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.30)',
-            color: '#EC4899', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
+            background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)',
+            color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
             cursor: (!conn.supports_replay || conn.status === 'stub') ? 'not-allowed' : 'pointer',
             opacity: (!conn.supports_replay || conn.status === 'stub') ? 0.45 : 1,
             display: 'inline-flex', alignItems: 'center', gap: 4,

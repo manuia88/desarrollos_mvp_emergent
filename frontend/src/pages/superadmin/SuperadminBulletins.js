@@ -67,8 +67,8 @@ export default function SuperadminBulletins() {
               onClick={() => setFilterType(t)}
               style={{
                 padding: '6px 14px', borderRadius: 9999,
-                background: filterType === t ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${filterType === t ? 'rgba(99,102,241,0.42)' : 'rgba(255,255,255,0.10)'}`,
+                background: filterType === t ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${filterType === t ? 'rgba(var(--theme-rgb),0.42)' : 'rgba(255,255,255,0.10)'}`,
                 color: 'var(--cream)', cursor: 'pointer',
                 fontFamily: 'DM Sans', fontSize: 12,
               }}
@@ -155,7 +155,7 @@ export default function SuperadminBulletins() {
 const btnPrimary = (busy) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '8px 16px', borderRadius: 9999,
-  background: busy ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,#6366F1,#EC4899)',
+  background: busy ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
   border: '1px solid rgba(255,255,255,0.16)',
   color: '#fff', cursor: busy ? 'not-allowed' : 'pointer',
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,

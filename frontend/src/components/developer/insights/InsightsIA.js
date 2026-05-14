@@ -13,7 +13,7 @@ import { Sparkle } from '../../icons';
 const PRIORITY_TONE = {
   high: { bg: 'rgba(239,68,68,0.10)', border: 'rgba(239,68,68,0.32)', label: 'Alta',  color: '#fca5a5' },
   med:  { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.32)', label: 'Media', color: '#fbbf24' },
-  low:  { bg: 'rgba(99,102,241,0.10)', border: 'rgba(99,102,241,0.32)', label: 'Baja',  color: '#a5b4fc' },
+  low:  { bg: 'rgba(var(--theme-rgb),0.10)', border: 'rgba(var(--theme-rgb),0.32)', label: 'Baja',  color: 'var(--theme)' },
 };
 
 function ConfidenceBar({ pct = 0, testid }) {
@@ -24,7 +24,7 @@ function ConfidenceBar({ pct = 0, testid }) {
     }}>
       <div style={{
         width: `${Math.max(0, Math.min(100, pct))}%`, height: '100%',
-        background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+        background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
       }} />
     </div>
   );
@@ -40,7 +40,7 @@ function PredictionCard({ p, idx }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{
           fontSize: 10, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase',
-          color: '#a5b4fc',
+          color: 'var(--theme)',
         }}>{p.type}</span>
         <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>{p.confidence_pct}% conf.</span>
       </div>
@@ -133,7 +133,7 @@ export default function InsightsIA({ projectId }) {
     <div data-testid="ia-tab" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontSize: 12, color: 'var(--cream-3)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <Sparkle size={12} color="#a5b4fc" /> Insights generados por Claude (cache 24h)
+          <Sparkle size={12} color="var(--theme)" /> Insights generados por Claude (cache 24h)
         </div>
         <button
           data-testid="ia-refresh"
@@ -201,8 +201,8 @@ export default function InsightsIA({ projectId }) {
           Narrativa 30d {narr?.cached ? '· cache' : narr?.fallback ? '· determinístico' : ''}
         </div>
         <div data-testid="narrative-block" style={{
-          background: 'rgba(236,72,153,0.06)',
-          border: '1px solid rgba(236,72,153,0.20)',
+          background: 'rgba(var(--theme-rgb),0.06)',
+          border: '1px solid rgba(var(--theme-rgb),0.20)',
           borderRadius: 14, padding: 16,
           fontFamily: 'DM Sans, sans-serif', fontSize: 13, lineHeight: 1.6,
           color: 'var(--cream-2)',

@@ -39,7 +39,7 @@ export default function RegistrationModal({ open, onClose, onLogin, context }) {
         style={{
           width: 520, maxWidth: '100%',
           background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
-          border: '1px solid rgba(99,102,241,0.28)',
+          border: '1px solid rgba(var(--theme-rgb),0.28)',
           borderRadius: 24,
           padding: 32,
           position: 'relative',
@@ -54,8 +54,8 @@ export default function RegistrationModal({ open, onClose, onLogin, context }) {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '4px 12px',
-          background: 'rgba(99,102,241,0.12)',
-          border: '1px solid rgba(99,102,241,0.26)',
+          background: 'rgba(var(--theme-rgb),0.12)',
+          border: '1px solid rgba(var(--theme-rgb),0.26)',
           borderRadius: 9999,
           marginBottom: 16,
         }}>

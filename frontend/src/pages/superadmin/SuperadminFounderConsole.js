@@ -23,7 +23,7 @@ function fmtRel(iso) {
 }
 
 // Mini sparkline reused from W2.3 pattern
-function Spark({ values, label, accent = '#818CF8' }) {
+function Spark({ values, label, accent = 'var(--theme)' }) {
   const phVals = (values || []).filter(v => v != null && !isNaN(v));
   let path = '';
   let last = '—';
@@ -57,7 +57,7 @@ function Spark({ values, label, accent = '#818CF8' }) {
         </svg>
       ) : (
         <div style={{ fontFamily: 'DM Sans', fontSize: 12,
-          color: 'rgba(240,235,224,0.40)', height: 50,
+          color: 'rgba(240, 235, 224, 0.68)', height: 50,
           display: 'flex', alignItems: 'center' }}>Sin datos.</div>
       )}
       <div style={{
@@ -170,9 +170,9 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
           <div data-testid="founder-toast" style={{
             position: 'fixed', top: 76, right: 20, zIndex: 2000,
             padding: '11px 18px', borderRadius: 10,
-            background: 'rgba(99,102,241,0.18)',
-            border: '1px solid rgba(99,102,241,0.35)',
-            color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
+            background: 'rgba(var(--theme-rgb),0.18)',
+            border: '1px solid rgba(var(--theme-rgb),0.35)',
+            color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
             backdropFilter: 'blur(24px)',
           }}>{toast}</div>
         )}
@@ -186,7 +186,7 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4,
             }}>
-              <LayoutDashboard size={20} color="#818CF8" />
+              <LayoutDashboard size={20} color="var(--theme)" />
               <h1 style={{
                 fontFamily: 'Outfit', fontWeight: 800, fontSize: 26,
                 color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em',
@@ -194,7 +194,7 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
             </div>
             <p style={{
               fontFamily: 'DM Sans', fontSize: 13,
-              color: 'rgba(240,235,224,0.50)', margin: 0,
+              color: 'rgba(240, 235, 224, 0.72)', margin: 0,
             }}>
               Founder Console · estado del negocio cross-functional · último acceso {fmtRel(lastLogin)}
             </p>
@@ -213,9 +213,9 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
             disabled={detecting}
             style={{
               padding: '8px 14px', borderRadius: 9999,
-              background: 'rgba(99,102,241,0.10)',
-              border: '1px solid rgba(99,102,241,0.30)',
-              color: '#818CF8', fontFamily: 'DM Sans',
+              background: 'rgba(var(--theme-rgb),0.10)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
+              color: 'var(--theme)', fontFamily: 'DM Sans',
               fontSize: 11.5, fontWeight: 600,
               cursor: detecting ? 'wait' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -244,7 +244,7 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
         ) : (
           <div data-testid="founder-loading" style={{
             padding: 30, fontFamily: 'DM Sans', fontSize: 13,
-            color: 'rgba(240,235,224,0.45)', marginBottom: 18,
+            color: 'rgba(240, 235, 224, 0.70)', marginBottom: 18,
           }}>Cargando KPIs ejecutivos…</div>
         )}
 
@@ -274,7 +274,7 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
 
         {/* Bottom row: 3 sparklines */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Spark values={mrrSeries} label="MRR (90d trend)" accent="#818CF8" />
+          <Spark values={mrrSeries} label="MRR (90d trend)" accent="var(--theme)" />
           <Spark values={aiSeries} label="Costo IA (30d)" accent="#FACC15" />
           <Spark values={convSeries} label="Conversión (30d)" accent="#4ADE80" />
         </div>

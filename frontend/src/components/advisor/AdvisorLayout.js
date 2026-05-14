@@ -60,10 +60,10 @@ export default function AdvisorLayout({ user, onLogout, children }) {
           position: 'fixed', right: 20, bottom: 148, zIndex: 60,
           width: 56, height: 56, borderRadius: 9999,
           border: 'none',
-          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           color: '#fff', fontSize: 20, fontWeight: 700,
           cursor: 'pointer',
-          boxShadow: '0 8px 24px rgba(99,102,241,0.4)',
+          boxShadow: '0 8px 24px rgba(var(--theme-rgb),0.4)',
           letterSpacing: '0.02em',
           fontFamily: 'Outfit, sans-serif',
         }}

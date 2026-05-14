@@ -26,9 +26,9 @@ export default function MiniMap({ center, label }) {
     el.style.width = '18px';
     el.style.height = '18px';
     el.style.borderRadius = '9999px';
-    el.style.background = 'linear-gradient(135deg, #6366F1, #EC4899)';
+    el.style.background = 'linear-gradient(135deg, var(--theme), var(--theme-3))';
     el.style.border = '2px solid #fff';
-    el.style.boxShadow = '0 0 12px rgba(99,102,241,0.8)';
+    el.style.boxShadow = '0 0 12px rgba(var(--theme-rgb),0.8)';
     new mapboxgl.Marker({ element: el }).setLngLat(center).addTo(map);
 
     return () => { map.remove(); mapRef.current = null; };

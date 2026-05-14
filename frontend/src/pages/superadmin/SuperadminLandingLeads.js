@@ -41,9 +41,9 @@ function fmtDateShort(iso) {
 
 function pageTypeBadge(type) {
   const colors = {
-    colonia: { bg: 'rgba(99,102,241,0.14)', bd: 'rgba(99,102,241,0.40)', fg: '#a5b4fc' },
+    colonia: { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.40)', fg: 'var(--theme)' },
     alcaldia: { bg: 'rgba(34,197,94,0.14)', bd: 'rgba(34,197,94,0.40)', fg: '#86efac' },
-    intent: { bg: 'rgba(236,72,153,0.14)', bd: 'rgba(236,72,153,0.40)', fg: '#f9a8d4' },
+    intent: { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.40)', fg: '#f9a8d4' },
   };
   const c = colors[type] || { bg: 'rgba(255,255,255,0.05)', bd: 'rgba(255,255,255,0.18)', fg: 'var(--cream-2)' };
   return (
@@ -151,7 +151,7 @@ export default function SuperadminLandingLeads() {
             onClick={() => downloadLandingLeadsCsv(filters)}
             style={{
               padding: '8px 18px', borderRadius: 9999,
-              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
               border: 'none', color: '#fff', cursor: 'pointer',
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             }}
@@ -260,7 +260,7 @@ function ByZoneTable({ rows, onClickRow }) {
               <Td>{pageTypeBadge(r.page_type)}</Td>
               <Td align="right">
                 <span style={{
-                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#a5b4fc',
+                  fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--theme)',
                 }}>{r.lead_count}</span>
               </Td>
               <Td>{fmtDateShort(r.last_lead_at)}</Td>
@@ -271,9 +271,9 @@ function ByZoneTable({ rows, onClickRow }) {
                   onClick={() => onClickRow(r.zone_interest)}
                   style={{
                     padding: '5px 14px', borderRadius: 9999,
-                    background: 'rgba(99,102,241,0.14)',
-                    border: '1px solid rgba(99,102,241,0.40)',
-                    color: '#a5b4fc', cursor: 'pointer',
+                    background: 'rgba(var(--theme-rgb),0.14)',
+                    border: '1px solid rgba(var(--theme-rgb),0.40)',
+                    color: 'var(--theme)', cursor: 'pointer',
                     fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
                   }}
                 >
@@ -384,9 +384,9 @@ function TabBtn({ label, active, onClick, testid }) {
       onClick={onClick}
       style={{
         padding: '7px 18px', borderRadius: 9999,
-        background: active ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${active ? 'rgba(99,102,241,0.42)' : 'rgba(255,255,255,0.10)'}`,
-        color: active ? '#a5b4fc' : 'var(--cream)',
+        background: active ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${active ? 'rgba(var(--theme-rgb),0.42)' : 'rgba(255,255,255,0.10)'}`,
+        color: active ? 'var(--theme)' : 'var(--cream)',
         cursor: 'pointer',
         fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700,
       }}
@@ -401,7 +401,7 @@ function Kpi({ label, value, tone, testid }) {
     bad: { bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.34)', fg: '#fca5a5' },
     warn: { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.34)', fg: '#fcd34d' },
     ok: { bg: 'rgba(16,185,129,0.10)', bd: 'rgba(16,185,129,0.34)', fg: '#86efac' },
-    brand: { bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.34)', fg: '#a5b4fc' },
+    brand: { bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.34)', fg: 'var(--theme)' },
   }[tone] || {};
   return (
     <div data-testid={testid} style={{
@@ -435,8 +435,8 @@ function FilterRow({ label, options, value, onChange, testid }) {
           onClick={() => onChange(o.id)}
           style={{
             padding: '5px 12px', borderRadius: 9999,
-            background: value === o.id ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${value === o.id ? 'rgba(99,102,241,0.42)' : 'rgba(255,255,255,0.10)'}`,
+            background: value === o.id ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${value === o.id ? 'rgba(var(--theme-rgb),0.42)' : 'rgba(255,255,255,0.10)'}`,
             color: 'var(--cream)', cursor: 'pointer',
             fontFamily: 'DM Sans', fontSize: 11.5,
           }}
@@ -479,8 +479,8 @@ function NurtureIntelligentGlobalBadge() {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '5px 12px', borderRadius: 9999,
-        background: 'linear-gradient(90deg, rgba(99,102,241,0.18), rgba(236,72,153,0.14))',
-        border: '1px solid rgba(99,102,241,0.4)',
+        background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.18), rgba(var(--theme-rgb),0.14))',
+        border: '1px solid rgba(var(--theme-rgb),0.4)',
         color: '#A5B4FC',
         fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
         marginBottom: 14,

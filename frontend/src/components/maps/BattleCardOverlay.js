@@ -68,7 +68,7 @@ export default function BattleCardOverlay({ open, devId, onClose }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
           <div>
-            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a5b4fc', marginBottom: 4 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--theme)', marginBottom: 4 }}>
               Battle Card · Tier T3
             </div>
             <h2 style={{ fontFamily: 'Outfit', fontSize: 24, fontWeight: 800, margin: 0 }}>
@@ -91,8 +91,8 @@ export default function BattleCardOverlay({ open, devId, onClose }) {
         {tierLocked && (
           <div data-testid="battle-card-tier-locked" style={{
             padding: 32, textAlign: 'center',
-            background: 'rgba(99,102,241,0.06)',
-            border: '1px solid rgba(99,102,241,0.2)',
+            background: 'rgba(var(--theme-rgb),0.06)',
+            border: '1px solid rgba(var(--theme-rgb),0.2)',
             borderRadius: 14,
           }}>
             <div style={{ fontFamily: 'Outfit', fontSize: 18, fontWeight: 800, marginBottom: 8 }}>
@@ -105,7 +105,7 @@ export default function BattleCardOverlay({ open, devId, onClose }) {
               href="/superadmin/tenants"
               style={{
                 display: 'inline-block', padding: '10px 18px', borderRadius: 9999,
-                background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+                background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff',
                 fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, textDecoration: 'none',
               }}
             >Activar Tier T3</a>
@@ -126,7 +126,7 @@ export default function BattleCardOverlay({ open, devId, onClose }) {
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ background: 'rgba(99,102,241,0.10)', fontWeight: 700 }}>
+                <tr style={{ background: 'rgba(var(--theme-rgb),0.10)', fontWeight: 700 }}>
                   <td style={{ padding: '10px 8px' }}>{data.my_kpis.name} (yo)</td>
                   <td style={{ textAlign: 'right', padding: '10px 8px' }}>{fmtMXN(data.my_kpis.price_per_m2)}</td>
                   <td style={{ textAlign: 'right', padding: '10px 8px' }}>{data.my_kpis.absorption_rate_pct}%</td>

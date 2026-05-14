@@ -18,7 +18,7 @@ const STATUS_CFG = {
   ok:      { color: '#4ADE80', bg: 'rgba(74,222,128,0.10)', bd: 'rgba(74,222,128,0.32)', label: 'OK', Icon: CheckCircle2 },
   fail:    { color: '#F87171', bg: 'rgba(239,68,68,0.10)', bd: 'rgba(239,68,68,0.32)', label: 'Fail', Icon: AlertTriangle },
   stale:   { color: '#FACC15', bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.32)', label: 'Stale', Icon: AlertTriangle },
-  pending: { color: 'rgba(240,235,224,0.50)', bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.12)', label: 'Pendiente', Icon: Loader },
+  pending: { color: 'rgba(240, 235, 224, 0.72)', bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.12)', label: 'Pendiente', Icon: Loader },
 };
 
 export default function CronCard({ cron }) {
@@ -44,7 +44,7 @@ export default function CronCard({ cron }) {
           <Ic size={10} /> {cfg.label}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.50)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240, 235, 224, 0.72)' }}>
         <Clock size={10} /> {cron.schedule_expr || '—'}
       </div>
       <div style={{ display: 'flex', gap: 14, fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.55)', flexWrap: 'wrap' }}>

@@ -219,8 +219,8 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
               data-testid="keyboard-help-restart-tour"
               onClick={() => { onClose(); onRestartTour(); }}
               style={{
-                background: 'rgba(99,102,241,0.12)',
-                border: '1px solid rgba(99,102,241,0.35)',
+                background: 'rgba(var(--theme-rgb),0.12)',
+                border: '1px solid rgba(var(--theme-rgb),0.35)',
                 borderRadius: 9999, padding: '5px 14px',
                 color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12,
                 cursor: 'pointer', transition: 'all 0.15s',

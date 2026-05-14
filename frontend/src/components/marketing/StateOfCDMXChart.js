@@ -9,8 +9,8 @@ const PALETTE = {
   good: '#22c55e',
   neutral: '#F59E0B',
   bad: '#EF4444',
-  indigo: '#6366F1',
-  rose: '#EC4899',
+  indigo: 'var(--theme)',
+  rose: 'var(--theme-3)',
 };
 
 export function HorizontalBars({ data, dataKey, labelKey = 'name', height = 380, valueFormatter }) {

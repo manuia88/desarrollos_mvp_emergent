@@ -70,7 +70,7 @@ export default function ChatComposer({ onSend, disabled = false, loading = false
         style={{
           width: 38, height: 38, borderRadius: 9999, border: 'none', flexShrink: 0,
           background: text.trim() && !loading
-            ? 'linear-gradient(90deg,#6366F1,#EC4899)'
+            ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
             : 'rgba(240,235,224,0.08)',
           color: text.trim() && !loading ? '#fff' : 'rgba(240,235,224,0.3)',
           cursor: text.trim() && !loading && !disabled ? 'pointer' : 'not-allowed',

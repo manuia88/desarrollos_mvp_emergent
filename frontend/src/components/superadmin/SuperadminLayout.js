@@ -1,16 +1,41 @@
 // SuperadminLayout — backward-compat wrapper around PortalLayout.
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { PortalLayout } from '../shared/PortalLayout';
 import { useAuth } from '../../App';
 
 const ROLES_OK = new Set(['superadmin']);
 
+// Section keys must match tier.section_key in navByRole.js SUPERADMIN_NAV
+// AND .portal-superadmin[data-section="..."] rules in superadmin-aurora.css.
+function sectionFromPath(p) {
+  if (p === '/superadmin' || p.startsWith('/superadmin/tenants')) return 'principal';
+  if (/^\/superadmin\/(bulk-ingest|data-sources|drive|documents|data-lake|metrics-cube)/.test(p)) return 'datos';
+  if (/^\/superadmin\/(scores|drpi|risk-score|investment-explorer|intelligence-hub|trends|phase5-foundation|transactions)/.test(p)) return 'inteligencia';
+  if (/^\/superadmin\/(health|observability|phase-y-observability|audit-log|fraud-alerts|risk-alerts|compliance)/.test(p)) return 'operacion';
+  if (/^\/superadmin\/(ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics)/.test(p)) return 'monetizacion';
+  if (/^\/superadmin\/(whatsapp|newsletter|bulletins|landing-leads|partners|onboarding-analytics)/.test(p)) return 'crecimiento';
+  if (/^\/superadmin\/primitives-demo/.test(p)) return 'devtools';
+  return 'principal';
+}
+
 export default function SuperadminLayout({ user: propUser, onLogout: propOnLogout, children }) {
   const loc = useLocation();
   const ctx = useAuth();
   const user = propUser || ctx.user;
   const onLogout = propOnLogout || ctx.logout;
+  const section = sectionFromPath(loc.pathname);
+
+  // Sync body class + data-attribute so cursor custom (position:fixed at body
+  // root) can pick up the section --theme. Cleaned up on unmount.
+  useEffect(() => {
+    document.body.classList.add('superadmin-active');
+    document.body.setAttribute('data-superadmin-section', section);
+    return () => {
+      document.body.classList.remove('superadmin-active');
+      document.body.removeAttribute('data-superadmin-section');
+    };
+  }, [section]);
 
   if (!user) return <Navigate to={`/?login=1&next=${encodeURIComponent(loc.pathname)}`} replace />;
   if (!ROLES_OK.has(user.role)) {
@@ -31,10 +56,12 @@ export default function SuperadminLayout({ user: propUser, onLogout: propOnLogou
   }
 
   return (
-    <PortalLayout role="superadmin" user={user} onLogout={onLogout}>
-      <div data-testid="sa-main" style={{ padding: '22px 28px 80px', maxWidth: 1500 }}>
-        {children}
-      </div>
-    </PortalLayout>
+    <div className="portal-superadmin" data-section={section}>
+      <PortalLayout role="superadmin" user={user} onLogout={onLogout}>
+        <div data-testid="sa-main" style={{ padding: '22px 28px 80px', maxWidth: 1500 }}>
+          {children}
+        </div>
+      </PortalLayout>
+    </div>
   );
 }

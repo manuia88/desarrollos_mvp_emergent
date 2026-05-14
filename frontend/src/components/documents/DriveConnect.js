@@ -161,8 +161,8 @@ export default function DriveConnect({ devId, role = 'developer_admin' }) {
             <span data-testid="drive-status-pending" style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '6px 12px', borderRadius: 9999,
-              background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.32)',
-              fontFamily: 'DM Sans', fontSize: 11, color: '#c7d2fe',
+              background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+              fontFamily: 'DM Sans', fontSize: 11, color: 'var(--theme)',
             }}>
               <CheckCircle size={11} /> Autenticado · selecciona carpeta
             </span>
@@ -235,10 +235,10 @@ export default function DriveConnect({ devId, role = 'developer_admin' }) {
                     fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)',
                     cursor: 'pointer', textAlign: 'left',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <Folder size={13} color="#a5b4fc" />
+                  <Folder size={13} color="var(--theme)" />
                   <span style={{ flex: 1 }}>{f.name}</span>
                   <span style={{ fontFamily: 'DM Mono', fontSize: 9, color: 'var(--cream-3)' }}>{f.modifiedTime?.slice(0, 10)}</span>
                 </button>

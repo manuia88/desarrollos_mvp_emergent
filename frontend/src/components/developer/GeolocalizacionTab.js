@@ -130,8 +130,8 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
                 title={!hasLocation ? 'Configura y guarda la ubicación antes de exportar' : 'Descargar .geojson'}
                 style={{
                   padding: '10px 16px', borderRadius: 9999,
-                  background: (!hasLocation || exporting) ? 'rgba(148,163,184,0.2)' : 'rgba(236,72,153,0.14)',
-                  border: `1px solid ${(!hasLocation || exporting) ? 'var(--border)' : 'rgba(236,72,153,0.32)'}`,
+                  background: (!hasLocation || exporting) ? 'rgba(148,163,184,0.2)' : 'rgba(var(--theme-rgb),0.14)',
+                  border: `1px solid ${(!hasLocation || exporting) ? 'var(--border)' : 'rgba(var(--theme-rgb),0.32)'}`,
                   color: (!hasLocation || exporting) ? 'var(--cream-3)' : '#f9a8d4',
                   fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
                   cursor: (!hasLocation || exporting) ? 'not-allowed' : 'pointer',

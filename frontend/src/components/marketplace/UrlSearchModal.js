@@ -32,8 +32,8 @@ function ExternalPropertyCard({ property }) {
   return (
     <div style={{
       padding: '14px 16px',
-      background: 'rgba(99,102,241,0.08)',
-      border: '1px solid rgba(99,102,241,0.22)',
+      background: 'rgba(var(--theme-rgb),0.08)',
+      border: '1px solid rgba(var(--theme-rgb),0.22)',
       borderRadius: 14, marginBottom: 16,
       display: 'flex', gap: 14, alignItems: 'flex-start',
     }}>
@@ -76,7 +76,7 @@ function ExternalPropertyCard({ property }) {
         </div>
         <div style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 16,
-          background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
         }}>
@@ -86,7 +86,7 @@ function ExternalPropertyCard({ property }) {
           <div style={{
             marginTop: 4,
             fontFamily: 'DM Sans', fontSize: 10,
-            color: 'rgba(99,102,241,0.6)',
+            color: 'rgba(var(--theme-rgb),0.6)',
           }}>
             Fuente: {property.source}
           </div>
@@ -119,12 +119,12 @@ function MatchCard({ match }) {
       border: '1px solid rgba(240,235,224,0.10)',
       transition: 'border-color 0.2s', cursor: 'pointer',
     }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'}
+      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.45)'}
       onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(240,235,224,0.10)'}
     >
       <div style={{
         width: '100%', paddingTop: '56%', position: 'relative',
-        background: 'rgba(99,102,241,0.10)',
+        background: 'rgba(var(--theme-rgb),0.10)',
       }}>
         {match.thumbnail_url && (
           <img
@@ -151,7 +151,7 @@ function MatchCard({ match }) {
         </div>
         <div style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 13,
-          background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
         }}>
           {price}
@@ -261,7 +261,7 @@ export default function UrlSearchModal({ open, onClose }) {
               borderRadius: 12, padding: '4px 4px 4px 14px',
               transition: 'border-color 0.2s',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, color: 'rgba(99,102,241,0.5)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, color: 'rgba(var(--theme-rgb),0.5)' }}>
                 <ExternalLink size={14} />
               </div>
               <input
@@ -286,8 +286,8 @@ export default function UrlSearchModal({ open, onClose }) {
                 style={{
                   padding: '9px 18px', borderRadius: 9999, border: 'none',
                   background: (!url.trim() || loading)
-                    ? 'rgba(99,102,241,0.3)'
-                    : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    ? 'rgba(var(--theme-rgb),0.3)'
+                    : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                   color: '#fff',
                   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
                   cursor: (!url.trim() || loading) ? 'not-allowed' : 'pointer',

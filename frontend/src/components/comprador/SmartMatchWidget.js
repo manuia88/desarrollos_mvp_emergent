@@ -32,8 +32,8 @@ function MatchRing({ pct, size = 52 }) {
       />
       <defs>
         <linearGradient id="matchGrad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#6366F1" />
-          <stop offset="100%" stopColor="#EC4899" />
+          <stop offset="0%" stopColor="var(--theme)" />
+          <stop offset="100%" stopColor="var(--theme-3)" />
         </linearGradient>
       </defs>
     </svg>
@@ -101,7 +101,7 @@ function MatchItem({ item, onNavigate }) {
             }}>
               <span style={{
                 width: 5, height: 5, borderRadius: 9999, flexShrink: 0,
-                background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+                background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 display: 'inline-block',
               }} />
               {r}
@@ -141,10 +141,10 @@ export default function SmartMatchWidget() {
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '3px 10px', borderRadius: 9999, marginBottom: 12, alignSelf: 'flex-start',
-        background: 'rgba(99,102,241,0.12)',
-        border: '1px solid rgba(99,102,241,0.28)',
+        background: 'rgba(var(--theme-rgb),0.12)',
+        border: '1px solid rgba(var(--theme-rgb),0.28)',
         fontFamily: 'DM Sans', fontSize: 9, fontWeight: 800,
-        color: 'rgba(99,102,241,0.9)', textTransform: 'uppercase', letterSpacing: '0.08em',
+        color: 'rgba(var(--theme-rgb),0.9)', textTransform: 'uppercase', letterSpacing: '0.08em',
       }}>
         <Star size={10} />Match score
       </div>
@@ -164,11 +164,11 @@ export default function SmartMatchWidget() {
         <div style={{ textAlign: 'center', paddingBottom: 8 }}>
           <div style={{
             width: 44, height: 44, borderRadius: 9999, margin: '0 auto 12px',
-            background: 'rgba(99,102,241,0.10)',
-            border: '1px solid rgba(99,102,241,0.22)',
+            background: 'rgba(var(--theme-rgb),0.10)',
+            border: '1px solid rgba(var(--theme-rgb),0.22)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Star size={20} color="rgba(99,102,241,0.6)" />
+            <Star size={20} color="rgba(var(--theme-rgb),0.6)" />
           </div>
           <div style={{
             fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
@@ -187,7 +187,7 @@ export default function SmartMatchWidget() {
             onClick={() => navigate('/marketplace')}
             style={{
               padding: '9px 18px', borderRadius: 9999, border: 'none',
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
               cursor: 'pointer',
             }}
@@ -201,8 +201,8 @@ export default function SmartMatchWidget() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
             padding: '12px 14px', borderRadius: 10,
-            background: 'rgba(99,102,241,0.08)',
-            border: '1px solid rgba(99,102,241,0.18)',
+            background: 'rgba(var(--theme-rgb),0.08)',
+            border: '1px solid rgba(var(--theme-rgb),0.18)',
           }}>
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <MatchRing pct={data.avg_match} size={56} />

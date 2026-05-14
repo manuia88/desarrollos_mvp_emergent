@@ -18,9 +18,9 @@ export default function VerticalProductCard({ vertical, stats, onTest }) {
           {Icon && (
             <div style={{
               width: 36, height: 36, borderRadius: 10,
-              background: 'rgba(99,102,241,0.15)',
-              border: '1px solid rgba(99,102,241,0.36)',
-              color: '#a5b4fc',
+              background: 'rgba(var(--theme-rgb),0.15)',
+              border: '1px solid rgba(var(--theme-rgb),0.36)',
+              color: 'var(--theme)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Icon size={18} />
@@ -61,9 +61,9 @@ export default function VerticalProductCard({ vertical, stats, onTest }) {
         onClick={() => onTest?.(vertical)}
         style={{
           padding: '8px 14px', borderRadius: 9999,
-          background: 'rgba(99,102,241,0.10)',
-          border: '1px solid rgba(99,102,241,0.36)',
-          color: '#a5b4fc', cursor: 'pointer',
+          background: 'rgba(var(--theme-rgb),0.10)',
+          border: '1px solid rgba(var(--theme-rgb),0.36)',
+          color: 'var(--theme)', cursor: 'pointer',
           fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5,
           marginTop: 4,
         }}>Probar endpoint · ver snippet</button>

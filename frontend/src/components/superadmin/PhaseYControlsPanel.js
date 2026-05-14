@@ -31,7 +31,7 @@ const TIER_COLORS = {
   T1:  '#60A5FA',
   T2:  '#4ADE80',
   T3:  '#FBBF24',
-  T4:  '#EC4899',
+  T4:  'var(--theme)',
 };
 
 async function fetchSettings(orgId) {
@@ -78,7 +78,7 @@ function Toggle({ checked, onChange, disabled, label, testId }) {
         onClick={() => !disabled && onChange(!checked)}
         style={{
           width: 40, height: 22, borderRadius: 9999,
-          background: checked ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.10)',
+          background: checked ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))' : 'rgba(255,255,255,0.10)',
           border: '1px solid rgba(255,255,255,0.12)',
           position: 'relative', transition: 'background 0.2s', cursor: disabled ? 'not-allowed' : 'pointer',
           flexShrink: 0,
@@ -160,7 +160,7 @@ export function PhaseYControlsPanel({ orgId }) {
   }
 
   if (loading) return (
-    <div style={{ padding: 20, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>
+    <div style={{ padding: 20, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>
   );
   if (!draft) return (
     <div style={{ padding: 20, color: '#F87171', fontFamily: 'DM Sans', fontSize: 13 }}>Error al cargar configuración</div>
@@ -189,7 +189,7 @@ export function PhaseYControlsPanel({ orgId }) {
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>
             Phase Y Settings
           </div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 2 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)', marginTop: 2 }}>
             {orgId}
           </div>
         </div>
@@ -197,7 +197,7 @@ export function PhaseYControlsPanel({ orgId }) {
           padding: '3px 11px', borderRadius: 9999, fontSize: 11, fontWeight: 700,
           background: isActive ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.07)',
           border: `1px solid ${isActive ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.12)'}`,
-          color: isActive ? '#4ADE80' : 'rgba(240,235,224,0.45)',
+          color: isActive ? '#4ADE80' : 'rgba(240, 235, 224, 0.70)',
         }}>
           {isActive ? 'Activo' : 'Off'}
         </span>
@@ -206,14 +206,14 @@ export function PhaseYControlsPanel({ orgId }) {
       {/* Master Switch */}
       <div style={{
         padding: '14px 16px', borderRadius: 11,
-        background: isActive ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${isActive ? 'rgba(99,102,241,0.28)' : 'rgba(255,255,255,0.08)'}`,
+        background: isActive ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${isActive ? 'rgba(var(--theme-rgb),0.28)' : 'rgba(255,255,255,0.08)'}`,
         marginBottom: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--cream)', marginBottom: 2 }}>Master Switch</div>
-            <div style={{ fontSize: 11.5, color: 'rgba(240,235,224,0.50)' }}>
+            <div style={{ fontSize: 11.5, color: 'rgba(240, 235, 224, 0.72)' }}>
               Cuando está Off, ningún feature agentic ejecuta aunque el tier individual sea T4.
             </div>
           </div>
@@ -234,7 +234,7 @@ export function PhaseYControlsPanel({ orgId }) {
       }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--cream)', marginBottom: 1 }}>Modo Simulación</div>
-          <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>Dry run: AI loguea decisiones pero no toma acción real</div>
+          <div style={{ fontSize: 11, color: 'rgba(240, 235, 224, 0.70)' }}>Dry run: AI loguea decisiones pero no toma acción real</div>
         </div>
         <Toggle
           testId="phase-y-sim-toggle"
@@ -246,7 +246,7 @@ export function PhaseYControlsPanel({ orgId }) {
 
       {/* Feature Tiers Table */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
           Feature Tiers
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -297,7 +297,7 @@ export function PhaseYControlsPanel({ orgId }) {
           style={{
             flex: 1, padding: '9px 0', borderRadius: 9999, fontSize: 13, fontWeight: 700,
             fontFamily: 'DM Sans', cursor: saving || !dirty ? 'not-allowed' : 'pointer',
-            background: dirty ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.06)',
+            background: dirty ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))' : 'rgba(255,255,255,0.06)',
             border: 'none', color: dirty ? '#fff' : 'rgba(240,235,224,0.35)',
             opacity: saving ? 0.7 : 1, transition: 'opacity 0.2s',
           }}

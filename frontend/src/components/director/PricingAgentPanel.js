@@ -56,7 +56,7 @@ async function rejectRec(recId) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function LayerBadge({ layer }) {
-  const map = { llm: ['#6366F1', 'LLM'], cache: ['#F59E0B', 'Caché'], heuristic: ['#10B981', 'Heurística'], none: ['#6B7280', 'Sin datos'] };
+  const map = { llm: ['var(--theme)', 'LLM'], cache: ['#F59E0B', 'Caché'], heuristic: ['#10B981', 'Heurística'], none: ['#6B7280', 'Sin datos'] };
   const [color, label] = map[layer] || ['#6B7280', layer || '—'];
   return (
     <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, fontFamily: 'DM Sans', fontWeight: 700, background: `${color}22`, border: `1px solid ${color}44`, color }}>
@@ -227,7 +227,7 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-        <BarChart2 size={14} color="#6366F1" />
+        <BarChart2 size={14} color="var(--theme)" />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>Sub-agente de Pricing</span>
         <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', marginLeft: 'auto' }}>org: {orgId}</span>
       </div>
@@ -258,7 +258,7 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
           disabled={analyzing || !selectedProject}
           style={{
             padding: '7px 16px', borderRadius: 9999, fontSize: 12, fontFamily: 'DM Sans', fontWeight: 700,
-            background: analyzing ? 'rgba(99,102,241,0.30)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: analyzing ? 'rgba(var(--theme-rgb),0.30)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             border: 'none', color: '#fff', cursor: analyzing ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
           }}
@@ -277,7 +277,7 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
 
       {/* Last run summary */}
       {lastRun && (
-        <div data-testid="pricing-last-run" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.20)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div data-testid="pricing-last-run" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.20)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Clock size={11} color="rgba(240,235,224,0.40)" />
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>
             {lastRun.recommendations_count} recomendaciones generadas
@@ -304,9 +304,9 @@ export default function PricingAgentPanel({ orgId, projectsSummary }) {
             style={{
               padding: '4px 11px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600,
               cursor: 'pointer',
-              background: statusFilter === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-              border: statusFilter === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.08)',
-              color: statusFilter === k ? '#818CF8' : 'rgba(240,235,224,0.50)',
+              background: statusFilter === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+              border: statusFilter === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.08)',
+              color: statusFilter === k ? 'var(--theme)' : 'rgba(240,235,224,0.50)',
             }}
           >
             {l}
@@ -380,7 +380,7 @@ function RecCard({ rec, busy, onApply, onReject }) {
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.40)' }}>sugerido</span>
-            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: '#6366F1', fontWeight: 700 }}>
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: 'var(--theme)', fontWeight: 700 }}>
               {fmtMxn(rec.suggested_price_per_m2)}/m²
             </span>
           </div>
@@ -401,7 +401,7 @@ function RecCard({ rec, busy, onApply, onReject }) {
             Fundamento
           </div>
           {expanded && (
-            <div data-testid={`pricing-rec-rationale-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.70)', lineHeight: 1.55 }}>
+            <div data-testid={`pricing-rec-rationale-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.70)', lineHeight: 1.55 }}>
               {rec.rationale_text}
             </div>
           )}

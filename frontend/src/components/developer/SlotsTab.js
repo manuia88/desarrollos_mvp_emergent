@@ -183,7 +183,7 @@ export default function SlotsTab({ devId, user }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 9 }}>
-            <CalendarCheck size={18} color="#818CF8" />
+            <CalendarCheck size={18} color="var(--theme)" />
             Slots disponibles para citas
           </h2>
           <p style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', margin: '4px 0 0' }}>
@@ -241,7 +241,7 @@ export default function SlotsTab({ devId, user }) {
             }}>
               {/* Day label */}
               <div style={{ fontFamily: 'DM Sans', fontWeight: s.active ? 600 : 400, fontSize: 13, color: s.active ? 'var(--cream)' : 'var(--cream-3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                {isWeekend && <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#818CF8', flexShrink: 0 }} />}
+                {isWeekend && <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--theme)', flexShrink: 0 }} />}
                 {d.label}
               </div>
 
@@ -254,7 +254,7 @@ export default function SlotsTab({ devId, user }) {
                     checked={s.active}
                     disabled={!isAdmin}
                     onChange={e => isAdmin && updateDay(d.k, 'active', e.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: '#6366F1', cursor: isAdmin ? 'pointer' : 'not-allowed' }}
+                    style={{ width: 16, height: 16, accentColor: 'var(--theme)', cursor: isAdmin ? 'pointer' : 'not-allowed' }}
                   />
                 </label>
               </div>
@@ -330,7 +330,7 @@ export default function SlotsTab({ devId, user }) {
       {/* Preview próximas fechas */}
       <div style={{ borderRadius: 12, border: '1px solid var(--border)', padding: '16px 18px', background: 'rgba(255,255,255,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-          <Clock size={13} color="#818CF8" />
+          <Clock size={13} color="var(--theme)" />
           <span style={{ fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5, color: 'var(--cream-2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
             Próximas 4 fechas con disponibilidad
           </span>
@@ -355,8 +355,8 @@ export default function SlotsTab({ devId, user }) {
                   {p.hours.map(h => (
                     <span key={h} style={{
                       padding: '2px 8px', borderRadius: 6,
-                      background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)',
-                      fontFamily: 'DM Sans', fontSize: 11.5, color: '#818CF8', fontWeight: 500,
+                      background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.25)',
+                      fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--theme)', fontWeight: 500,
                     }}>{h}</span>
                   ))}
                 </div>

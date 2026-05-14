@@ -66,7 +66,7 @@ function ScoreHistoryDrawer({ zoneId, code, onClose }) {
         {!data && !err && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Cargando…</div>}
 
         {data?.current && (
-          <div style={{ padding: 16, marginBottom: 18, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.08)', borderRadius: 14 }}>
+          <div style={{ padding: 16, marginBottom: 18, border: '1px solid rgba(var(--theme-rgb),0.35)', background: 'rgba(var(--theme-rgb),0.08)', borderRadius: 14 }}>
             <div className="eyebrow" style={{ margin: 0 }}>Valor actual</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 4 }}>
               <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)', letterSpacing: '-0.02em' }}>
@@ -112,8 +112,8 @@ function BatchProgressBar({ task }) {
   return (
     <div data-testid="batch-progress" style={{
       padding: 14, marginBottom: 18,
-      background: running ? 'rgba(99,102,241,0.08)' : 'rgba(34,197,94,0.06)',
-      border: `1px solid ${running ? 'rgba(99,102,241,0.32)' : 'rgba(34,197,94,0.28)'}`,
+      background: running ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(34,197,94,0.06)',
+      border: `1px solid ${running ? 'rgba(var(--theme-rgb),0.32)' : 'rgba(34,197,94,0.28)'}`,
       borderRadius: 14,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -303,8 +303,8 @@ export default function ScoresPage({ user, onLogout }) {
                       <td style={{ padding: '10px 14px', fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)' }}>{fmtDate(s.computed_at)}</td>
                       <td style={{ padding: '10px 14px', display: 'flex', gap: 6 }}>
                         <button data-testid="btn-explain" onClick={() => setExplain({ zoneId: s.zone_id, code: s.code })} style={{
-                          padding: '5px 10px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.32)',
-                          color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, cursor: 'pointer',
+                          padding: '5px 10px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.12)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+                          color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, cursor: 'pointer',
                         }}>Ver explain</button>
                         <button data-testid="btn-history" onClick={() => setHistory({ zoneId: s.zone_id, code: s.code })} style={{
                           padding: '5px 10px', borderRadius: 9999, background: 'transparent', border: '1px solid var(--border)',

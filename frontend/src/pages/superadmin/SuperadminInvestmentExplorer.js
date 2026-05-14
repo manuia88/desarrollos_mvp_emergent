@@ -188,8 +188,8 @@ function FilterRow({ label, options, value, onChange, testid }) {
           onClick={() => onChange(o.id)}
           style={{
             padding: '5px 12px', borderRadius: 9999,
-            background: value === o.id ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${value === o.id ? 'rgba(99,102,241,0.42)' : 'rgba(255,255,255,0.10)'}`,
+            background: value === o.id ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${value === o.id ? 'rgba(var(--theme-rgb),0.42)' : 'rgba(255,255,255,0.10)'}`,
             color: 'var(--cream)', cursor: 'pointer',
             fontFamily: 'DM Sans', fontSize: 11.5,
           }}

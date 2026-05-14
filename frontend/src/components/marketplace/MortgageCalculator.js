@@ -41,7 +41,7 @@ function ResultCard({ entry, idx = 0 }) {
         padding: '16px 18px',
         borderRadius: 14,
         background: 'rgba(13,16,23,0.92)',
-        border: `1px solid ${viable ? 'rgba(99,102,241,0.32)' : 'rgba(239,68,68,0.28)'}`,
+        border: `1px solid ${viable ? 'rgba(var(--theme-rgb),0.32)' : 'rgba(239,68,68,0.28)'}`,
         backdropFilter: 'blur(24px)',
       }}
     >
@@ -202,10 +202,10 @@ export default function MortgageCalculator({
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '3px 10px', borderRadius: 9999,
-            background: 'rgba(99,102,241,0.12)',
-            border: '1px solid rgba(99,102,241,0.28)',
+            background: 'rgba(var(--theme-rgb),0.12)',
+            border: '1px solid rgba(var(--theme-rgb),0.28)',
             fontFamily: 'DM Sans', fontSize: 9, fontWeight: 700,
-            color: 'rgba(99,102,241,0.95)',
+            color: 'rgba(var(--theme-rgb),0.95)',
             textTransform: 'uppercase', letterSpacing: '0.08em',
             marginBottom: 8,
           }}>
@@ -240,7 +240,7 @@ export default function MortgageCalculator({
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
               color: 'rgba(240,235,224,0.7)', marginBottom: 5,
             }}>
-              {f.label}{f.required && <span style={{ color: '#EC4899' }}> *</span>}
+              {f.label}{f.required && <span style={{ color: 'var(--theme-3)' }}> *</span>}
             </div>
             <input
               data-testid={`mortgage-input-${f.k}`}
@@ -273,7 +273,7 @@ export default function MortgageCalculator({
         disabled={loading}
         style={{
           width: '100%', padding: '13px 22px', borderRadius: 9999, border: 'none',
-          background: loading ? 'rgba(99,102,241,0.3)' : 'linear-gradient(90deg,#6366F1,#EC4899)',
+          background: loading ? 'rgba(var(--theme-rgb),0.3)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
           cursor: loading ? 'not-allowed' : 'pointer',
           marginBottom: 18,
@@ -308,8 +308,8 @@ export default function MortgageCalculator({
                   <div key={b.banco} data-testid={`mortgage-banca-${b.banco.toLowerCase()}`}
                     style={{
                       padding: '8px 10px', borderRadius: 9,
-                      background: b.viable ? 'rgba(99,102,241,0.10)' : 'rgba(239,68,68,0.06)',
-                      border: `1px solid ${b.viable ? 'rgba(99,102,241,0.25)' : 'rgba(239,68,68,0.20)'}`,
+                      background: b.viable ? 'rgba(var(--theme-rgb),0.10)' : 'rgba(239,68,68,0.06)',
+                      border: `1px solid ${b.viable ? 'rgba(var(--theme-rgb),0.25)' : 'rgba(239,68,68,0.20)'}`,
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     }}>
                     <div>
@@ -375,7 +375,7 @@ export default function MortgageCalculator({
               }}>
                 <input type="checkbox" data-testid="mortgage-save-accept"
                   checked={saveAccepted} onChange={e => setSaveAccepted(e.target.checked)}
-                  style={{ marginTop: 2, accentColor: '#6366F1' }} />
+                  style={{ marginTop: 2, accentColor: 'var(--theme)' }} />
                 <span>Acepto recibir el resumen y comunicación de DesarrollosMX.</span>
               </label>
               <button
@@ -385,7 +385,7 @@ export default function MortgageCalculator({
                 style={{
                   padding: '10px 18px', borderRadius: 9999, border: 'none',
                   background: (saveLoading || !saveEmail.includes('@') || !saveAccepted)
-                    ? 'rgba(99,102,241,0.3)' : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                    ? 'rgba(var(--theme-rgb),0.3)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                   color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
                   cursor: (saveLoading || !saveEmail.includes('@') || !saveAccepted) ? 'not-allowed' : 'pointer',
                 }}

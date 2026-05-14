@@ -118,7 +118,7 @@ function Kpi({ label, value, tone }) {
   const colors = {
     bad:   { bg: 'rgba(239,68,68,0.10)',  bd: 'rgba(239,68,68,0.34)',  fg: '#fca5a5' },
     warn:  { bg: 'rgba(245,158,11,0.10)', bd: 'rgba(245,158,11,0.34)', fg: '#fcd34d' },
-    brand: { bg: 'rgba(99,102,241,0.10)', bd: 'rgba(99,102,241,0.34)', fg: '#a5b4fc' },
+    brand: { bg: 'rgba(var(--theme-rgb),0.10)', bd: 'rgba(var(--theme-rgb),0.34)', fg: 'var(--theme)' },
     muted: { bg: 'rgba(255,255,255,0.04)',bd: 'rgba(255,255,255,0.10)', fg: 'var(--cream-3)' },
   }[tone] || {};
   return (
@@ -141,8 +141,8 @@ function FilterRow({ label, options, value, onChange, testid }) {
           onClick={() => onChange(o.id)}
           style={{
             padding: '5px 12px', borderRadius: 9999,
-            background: value === o.id ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${value === o.id ? 'rgba(99,102,241,0.42)' : 'rgba(255,255,255,0.10)'}`,
+            background: value === o.id ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${value === o.id ? 'rgba(var(--theme-rgb),0.42)' : 'rgba(255,255,255,0.10)'}`,
             color: 'var(--cream)', cursor: 'pointer',
             fontFamily: 'DM Sans', fontSize: 11.5,
           }}>{o.label}</button>
@@ -154,7 +154,7 @@ function FilterRow({ label, options, value, onChange, testid }) {
 const btnPrimary = (busy) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '8px 16px', borderRadius: 9999,
-  background: busy ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg,#6366F1,#EC4899)',
+  background: busy ? 'rgba(255,255,255,0.06)' : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
   border: '1px solid rgba(255,255,255,0.16)',
   color: '#fff', cursor: busy ? 'not-allowed' : 'pointer',
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,

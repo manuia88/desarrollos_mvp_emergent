@@ -32,14 +32,14 @@ function ActorBar({ asesor = 0, cliente = 0 }) {
         border: '1px solid rgba(240,235,224,0.10)',
       }}>
         <div data-testid="actor-bar-asesor" style={{
-          width: `${aPct}%`, background: '#6366F1', display: 'flex', alignItems: 'center',
+          width: `${aPct}%`, background: 'var(--theme)', display: 'flex', alignItems: 'center',
           justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700,
           fontFamily: 'DM Sans, sans-serif',
         }}>
           {aPct >= 12 && `Asesor ${Math.round(aPct)}%`}
         </div>
         <div data-testid="actor-bar-cliente" style={{
-          width: `${cPct}%`, background: '#EC4899', display: 'flex', alignItems: 'center',
+          width: `${cPct}%`, background: 'var(--theme-3)', display: 'flex', alignItems: 'center',
           justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700,
           fontFamily: 'DM Sans, sans-serif',
         }}>
@@ -100,7 +100,7 @@ function HourHistogram({ data = [] }) {
       {bars.map(b => (
         <div key={b.hour} title={`${b.hour}h: ${b.count}`} style={{
           flex: 1, height: `${(b.count / max) * 100}%`, minHeight: 2,
-          background: 'linear-gradient(180deg, #6366F1, #EC4899)',
+          background: 'linear-gradient(180deg, var(--theme), var(--theme-3))',
           borderRadius: 2,
         }} />
       ))}
@@ -137,7 +137,7 @@ export default function InsightsEngagement({ projectId }) {
               padding: '6px 14px', borderRadius: 9999,
               border: '1px solid rgba(240,235,224,0.14)',
               background: period === p.key
-                ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
+                ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent',
               color: period === p.key ? '#fff' : 'var(--cream-2)',
               fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 600,
               cursor: 'pointer',
@@ -153,7 +153,7 @@ export default function InsightsEngagement({ projectId }) {
 
           <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
             <TopUnitsList
-              testid="top-units-asesor" color="#a5b4fc"
+              testid="top-units-asesor" color="var(--theme)"
               title="Top unidades · Asesor"
               items={data.top_units_asesor || []} />
             <TopUnitsList
@@ -182,19 +182,19 @@ export default function InsightsEngagement({ projectId }) {
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           }}>
             <div data-testid="conv-asesor" style={{
-              background: 'rgba(99,102,241,0.10)',
-              border: '1px solid rgba(99,102,241,0.30)',
+              background: 'rgba(var(--theme-rgb),0.10)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
               borderRadius: 12, padding: 14,
             }}>
-              <span style={{ fontSize: 10, color: '#a5b4fc', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Conv. Asesor</span>
+              <span style={{ fontSize: 10, color: 'var(--theme)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Conv. Asesor</span>
               <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--cream)', fontFamily: 'Outfit' }}>
                 {(data.conversion_rate_per_actor?.asesor ?? 0).toFixed(1)}%
               </div>
               <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>visitas → cita</span>
             </div>
             <div data-testid="conv-cliente" style={{
-              background: 'rgba(236,72,153,0.10)',
-              border: '1px solid rgba(236,72,153,0.30)',
+              background: 'rgba(var(--theme-rgb),0.10)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
               borderRadius: 12, padding: 14,
             }}>
               <span style={{ fontSize: 10, color: '#f9a8d4', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase' }}>Conv. Cliente</span>

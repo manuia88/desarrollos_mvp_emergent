@@ -97,7 +97,7 @@ export default function CustomBrochureUploader({ projectId, onUploaded }) {
           <div style={{
             width: `${progress}%`,
             height: '100%',
-            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             transition: 'width 0.2s ease',
           }} />
         </div>

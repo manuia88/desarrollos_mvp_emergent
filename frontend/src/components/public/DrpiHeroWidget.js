@@ -74,7 +74,7 @@ export default function DrpiHeroWidget() {
       }}>
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'radial-gradient(circle at 0% 0%, rgba(99,102,241,0.10), transparent 60%), radial-gradient(circle at 100% 100%, rgba(236,72,153,0.08), transparent 60%)',
+          background: 'radial-gradient(circle at 0% 0%, rgba(var(--theme-rgb),0.10), transparent 60%), radial-gradient(circle at 100% 100%, rgba(var(--theme-rgb),0.08), transparent 60%)',
         }} />
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
@@ -82,7 +82,7 @@ export default function DrpiHeroWidget() {
             <div style={{
               fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
               textTransform: 'uppercase',
-              backgroundImage: 'linear-gradient(90deg,#6366F1,#EC4899)',
+              backgroundImage: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
               DMX Residential Price Index · DRPI
@@ -114,8 +114,8 @@ export default function DrpiHeroWidget() {
         ) : (
           <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             <div data-testid="drpi-national-card" style={{
-              background: 'rgba(99,102,241,0.10)',
-              border: '1px solid rgba(99,102,241,0.32)',
+              background: 'rgba(var(--theme-rgb),0.10)',
+              border: '1px solid rgba(var(--theme-rgb),0.32)',
               borderRadius: 14, padding: 14,
             }}>
               <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -125,7 +125,7 @@ export default function DrpiHeroWidget() {
                 {national?.available ? national.national_index?.toFixed(2) : '—'}
               </div>
               <div style={{
-                fontFamily: 'DM Sans', fontSize: 12, color: '#a5b4fc',
+                fontFamily: 'DM Sans', fontSize: 12, color: 'var(--theme)',
                 display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4,
               }}>
                 <TrendingUp size={12} /> {fmtPct(national?.national_delta_pct)}

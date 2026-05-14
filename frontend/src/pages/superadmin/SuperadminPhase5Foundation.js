@@ -82,7 +82,7 @@ function TabDenue() {
         <button
           data-testid="denue-load-btn"
           onClick={loadDensity}
-          style={{ padding: '7px 18px', borderRadius: 9999, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}
+          style={{ padding: '7px 18px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}
         >
           Cargar
         </button>
@@ -159,7 +159,7 @@ function TabDenue() {
           <button
             data-testid="denue-lookup-btn"
             onClick={doLookup}
-            style={{ padding: '7px 18px', borderRadius: 9999, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}
+            style={{ padding: '7px 18px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}
           >
             <Search size={12} />
           </button>
@@ -212,21 +212,21 @@ function TabCostos() {
         {['vertical', 'horizontal'].map(t => (
           <button key={t} onClick={() => setBtype(t)} data-testid={`sa-cost-type-${t}`}
             style={{ padding: '6px 14px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11,
-              background: btype === t ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${btype === t ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-              color: btype === t ? '#a5b4fc' : 'var(--cream-3)',
+              background: btype === t ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${btype === t ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.08)'}`,
+              color: btype === t ? 'var(--theme)' : 'var(--cream-3)',
             }}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
         ))}
         {['entry', 'mid', 'luxury'].map(t => (
           <button key={t} onClick={() => setTier(t)} data-testid={`sa-cost-tier-${t}`}
             style={{ padding: '6px 14px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11,
-              background: tier === t ? 'rgba(236,72,153,0.15)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${tier === t ? 'rgba(236,72,153,0.4)' : 'rgba(255,255,255,0.08)'}`,
+              background: tier === t ? 'rgba(var(--theme-rgb),0.15)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${tier === t ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(255,255,255,0.08)'}`,
               color: tier === t ? '#f9a8d4' : 'var(--cream-3)',
             }}>{t}</button>
         ))}
         <button onClick={load} data-testid="cost-load-btn"
-          style={{ padding: '7px 16px', borderRadius: 9999, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)', color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
+          style={{ padding: '7px 16px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 12, cursor: 'pointer' }}>
           Calcular
         </button>
       </Card>
@@ -317,9 +317,9 @@ function TabZoneScores() {
         {TIERS_F.map(t => (
           <button key={t || 'all'} onClick={() => setTier(t)} data-testid={`score-tier-${t || 'all'}`}
             style={{ padding: '5px 12px', borderRadius: 9999, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 11,
-              background: tierFilter === t ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${tierFilter === t ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-              color: tierFilter === t ? '#a5b4fc' : 'var(--cream-3)',
+              background: tierFilter === t ? 'rgba(var(--theme-rgb),0.2)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${tierFilter === t ? 'rgba(var(--theme-rgb),0.5)' : 'rgba(255,255,255,0.08)'}`,
+              color: tierFilter === t ? 'var(--theme)' : 'var(--cream-3)',
             }}>{t || 'Todos'}</button>
         ))}
         <button onClick={loadList} data-testid="score-refresh-btn"
@@ -348,8 +348,8 @@ function TabZoneScores() {
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
-                    background: selected === z.zone_id ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${selected === z.zone_id ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                    background: selected === z.zone_id ? 'rgba(var(--theme-rgb),0.1)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${selected === z.zone_id ? 'rgba(var(--theme-rgb),0.35)' : 'rgba(255,255,255,0.06)'}`,
                     textAlign: 'left',
                   }}
                 >
@@ -421,7 +421,7 @@ function TabZoneScores() {
                       <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{Math.round(v)}</span>
                     </div>
                     <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 9999, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, v))}%`, background: '#6366F1', borderRadius: 9999, transition: 'width 500ms ease' }} />
+                      <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, v))}%`, background: 'var(--theme)', borderRadius: 9999, transition: 'width 500ms ease' }} />
                     </div>
                   </div>
                 ))}
@@ -461,9 +461,9 @@ export default function SuperadminPhase5Foundation({ user, onLogout }) {
               style={{
                 padding: '9px 18px', cursor: 'pointer',
                 background: 'none', border: 'none',
-                borderBottom: tab === key ? '2px solid #6366F1' : '2px solid transparent',
+                borderBottom: tab === key ? '2px solid var(--theme)' : '2px solid transparent',
                 fontFamily: 'DM Sans', fontWeight: 600, fontSize: 13,
-                color: tab === key ? '#a5b4fc' : 'var(--cream-3)',
+                color: tab === key ? 'var(--theme)' : 'var(--cream-3)',
                 display: 'flex', alignItems: 'center', gap: 6,
                 transition: 'color 180ms',
               }}

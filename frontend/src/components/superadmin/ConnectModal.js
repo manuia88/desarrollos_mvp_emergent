@@ -144,8 +144,8 @@ export default function ConnectModal({ open, source, onClose, onSaved }) {
         {source.description && (
           <div style={{
             padding: 12, marginBottom: 16,
-            background: 'rgba(99,102,241,0.06)',
-            border: '1px solid rgba(99,102,241,0.18)',
+            background: 'rgba(var(--theme-rgb),0.06)',
+            border: '1px solid rgba(var(--theme-rgb),0.18)',
             borderRadius: 12,
             fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5,
           }}>

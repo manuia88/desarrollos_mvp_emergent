@@ -3,6 +3,7 @@
  * Configurar provider · CRUD templates · ver mensajes · stats
  */
 import React, { useCallback, useEffect, useState } from "react";
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -16,7 +17,7 @@ async function apiFetch(path, opts = {}) {
 }
 
 const STATUS_COLORS = {
-  queued:    "#6366F1",
+  queued:    "var(--theme)",
   sent:      "#22c55e",
   delivered: "#4ade80",
   read:      "#86efac",
@@ -90,7 +91,7 @@ export default function SuperadminWhatsApp() {
     padding: "8px 18px",
     borderRadius: "9999px",
     border: "none",
-    background: activeTab === t ? "linear-gradient(90deg,#6366F1,#EC4899)" : "rgba(255,255,255,0.05)",
+    background: activeTab === t ? "linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))" : "rgba(255,255,255,0.05)",
     color: activeTab === t ? "#fff" : "rgba(240,235,224,0.6)",
     fontFamily: "DM Sans",
     fontSize: 13,
@@ -100,13 +101,13 @@ export default function SuperadminWhatsApp() {
   });
 
   return (
-    <div data-testid="superadmin-whatsapp" style={{ padding: "28px 32px", minHeight: "100vh", background: "#06080F", color: "#F0EBE0" }}>
+    <SuperadminLayout><div data-testid="superadmin-whatsapp" style={{ padding: "28px 32px", color: "var(--cream)" }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <div style={{
             width: 36, height: 36, borderRadius: "9999px",
-            background: "linear-gradient(135deg,#6366F1,#EC4899)",
+            background: "linear-gradient(135deg,var(--theme),var(--theme))",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="#fff"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -116,8 +117,8 @@ export default function SuperadminWhatsApp() {
           </h1>
           <span style={{
             marginLeft: 8, padding: "3px 10px", borderRadius: 9999,
-            background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.35)",
-            fontSize: 11, fontFamily: "DM Sans", color: "#6366F1", fontWeight: 700, letterSpacing: "0.04em",
+            background: "rgba(var(--theme-rgb),0.15)", border: "1px solid rgba(var(--theme-rgb),0.35)",
+            fontSize: 11, fontFamily: "DM Sans", color: "var(--theme)", fontWeight: 700, letterSpacing: "0.04em",
           }}>
             {PROVIDER.toUpperCase()}
           </span>
@@ -221,7 +222,7 @@ export default function SuperadminWhatsApp() {
           {/* Form nueva plantilla */}
           <form onSubmit={saveTemplate} style={{
             padding: "20px 22px", borderRadius: 14,
-            background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.25)",
+            background: "rgba(var(--theme-rgb),0.07)", border: "1px solid rgba(var(--theme-rgb),0.25)",
           }}>
             <h3 style={{ fontFamily: "Outfit", fontWeight: 700, fontSize: 15, margin: "0 0 14px", color: "#F0EBE0" }}>
               Nueva Plantilla
@@ -276,7 +277,7 @@ export default function SuperadminWhatsApp() {
                 disabled={tplSaving}
                 style={{
                   padding: "9px 22px", borderRadius: "9999px",
-                  background: "linear-gradient(90deg,#6366F1,#EC4899)",
+                  background: "linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))",
                   border: "none", color: "#fff",
                   fontFamily: "DM Sans", fontSize: 13, fontWeight: 700,
                   cursor: tplSaving ? "not-allowed" : "pointer",
@@ -310,8 +311,8 @@ export default function SuperadminWhatsApp() {
                     </span>
                     <span style={{
                       padding: "2px 8px", borderRadius: 9999,
-                      background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.3)",
-                      fontSize: 10.5, fontFamily: "DM Sans", color: "#6366F1",
+                      background: "rgba(var(--theme-rgb),0.12)", border: "1px solid rgba(var(--theme-rgb),0.3)",
+                      fontSize: 10.5, fontFamily: "DM Sans", color: "var(--theme)",
                     }}>
                       {t.category}
                     </span>
@@ -325,6 +326,6 @@ export default function SuperadminWhatsApp() {
           )}
         </div>
       )}
-    </div>
+    </div></SuperadminLayout>
   );
 }

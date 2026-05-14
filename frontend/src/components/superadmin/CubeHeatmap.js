@@ -7,9 +7,9 @@ const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 // Linear color scale: low=indigo, high=pink (matches gradient)
 function valueToColor(v, min, max) {
-  if (v == null || max <= min) return '#6366F1';
+  if (v == null || max <= min) return 'var(--theme)';
   const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
-  // Interpolate #6366F1 -> #EC4899
+  // Interpolate var(--theme) -> var(--theme)
   const r1 = 0x63, g1 = 0x66, b1 = 0xF1;
   const r2 = 0xEC, g2 = 0x48, b2 = 0x99;
   const r = Math.round(r1 + (r2 - r1) * t);

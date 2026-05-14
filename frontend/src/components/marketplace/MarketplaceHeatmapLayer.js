@@ -64,9 +64,9 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
             'heatmap-color': [
               'interpolate', ['linear'], ['heatmap-density'],
               0,   'rgba(6,8,15,0)',
-              0.15,'rgba(99,102,241,0.35)',
+              0.15,'rgba(var(--theme-rgb),0.35)',
               0.4, 'rgba(139,92,246,0.55)',
-              0.7, 'rgba(236,72,153,0.75)',
+              0.7, 'rgba(var(--theme-rgb),0.75)',
               1,   'rgba(244,63,94,0.9)',
             ],
             'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 20, 8, 50, 12, 80],
@@ -180,7 +180,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
                 borderRadius: 9999,
                 border: 'none',
                 background: active
-                  ? 'linear-gradient(90deg,#6366F1,#EC4899)'
+                  ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
                   : 'transparent',
                 color: active ? '#fff' : 'rgba(240,235,224,0.65)',
                 fontFamily: 'DM Sans',
@@ -237,7 +237,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
           <>
             <div style={{
               width: '100%', height: 8, borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#8B5CF6,#EC4899,#F43F5E)',
+              background: 'linear-gradient(90deg,var(--theme),#8B5CF6,var(--theme-3),#F43F5E)',
               marginBottom: 6,
             }} />
             <div style={{

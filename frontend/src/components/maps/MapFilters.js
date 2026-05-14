@@ -96,7 +96,7 @@ export default function MapFilters({ onApply }) {
               onClick={() => setType(opt.val)}
               style={{
                 padding: '7px 0', borderRadius: '9999px', border: 'none',
-                background: type === opt.val ? 'linear-gradient(90deg,#6366F1,#EC4899)' : 'rgba(255,255,255,0.05)',
+                background: type === opt.val ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'rgba(255,255,255,0.05)',
                 color: type === opt.val ? '#fff' : 'rgba(240,235,224,0.5)',
                 fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: type === opt.val ? 700 : 500,
                 cursor: 'pointer', transition: 'all 0.2s',
@@ -115,7 +115,7 @@ export default function MapFilters({ onApply }) {
           onClick={handleApply}
           style={{
             flex: 1, padding: '9px', borderRadius: '9999px',
-            background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             border: 'none', color: '#fff',
             fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
           }}

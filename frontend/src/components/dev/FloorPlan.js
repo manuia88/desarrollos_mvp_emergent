@@ -106,7 +106,7 @@ export default function FloorPlan({ units, selectedUnitId, onUnitClick, onUnitHo
                   stroke={selected ? '#fff' : c.stroke}
                   strokeWidth={selected ? 2.5 : 1.2}
                   rx={6}
-                  style={{ transition: 'all 0.2s', filter: selected ? 'drop-shadow(0 0 8px rgba(99,102,241,0.8))' : 'none' }} />
+                  style={{ transition: 'all 0.2s', filter: selected ? 'drop-shadow(0 0 8px rgba(var(--theme-rgb),0.8))' : 'none' }} />
                 <text x={b.x + b.w / 2} y={b.y + 24} textAnchor="middle"
                   style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, fill: c.label }}>
                   {b.unit_number}
@@ -132,8 +132,8 @@ export default function FloorPlan({ units, selectedUnitId, onUnitClick, onUnitHo
           <div style={{
             position: 'absolute', bottom: 14, right: 14,
             padding: '8px 12px',
-            background: 'rgba(99,102,241,0.15)',
-            border: '1px solid rgba(99,102,241,0.30)',
+            background: 'rgba(var(--theme-rgb),0.15)',
+            border: '1px solid rgba(var(--theme-rgb),0.30)',
             borderRadius: 9999,
             fontFamily: 'DM Sans', fontSize: 11, color: 'var(--indigo-3)',
           }}>

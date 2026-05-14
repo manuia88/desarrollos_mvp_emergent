@@ -111,13 +111,13 @@ export default function ColoniaHistoryTab({ coloniaId, coloniaNombre }) {
       {data.summary_text && (
         <div data-testid="colonia-history-summary" style={{
           padding: '14px 16px', borderRadius: 12,
-          background: 'rgba(99,102,241,0.06)',
-          border: '1px solid rgba(99,102,241,0.20)',
+          background: 'rgba(var(--theme-rgb),0.06)',
+          border: '1px solid rgba(var(--theme-rgb),0.20)',
           marginBottom: 16,
         }}>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 9, fontWeight: 700,
-            color: 'rgba(99,102,241,0.85)',
+            color: 'rgba(var(--theme-rgb),0.85)',
             textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
           }}>
             Análisis IA
@@ -204,7 +204,7 @@ function ProjectionCard({ p }) {
     <div style={{
       padding: '12px 14px', borderRadius: 12,
       background: 'rgba(13,16,23,0.92)',
-      border: '1px solid rgba(99,102,241,0.18)',
+      border: '1px solid rgba(var(--theme-rgb),0.18)',
       backdropFilter: 'blur(24px)',
     }}>
       <div style={{
@@ -247,7 +247,7 @@ function ProjectionCard({ p }) {
             onClick={() => setExpanded(v => !v)}
             style={{
               fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
-              color: 'rgba(99,102,241,0.85)',
+              color: 'rgba(var(--theme-rgb),0.85)',
               background: 'transparent', border: 'none',
               padding: 0, cursor: 'pointer',
             }}
@@ -258,7 +258,7 @@ function ProjectionCard({ p }) {
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {Array.isArray(p.drivers) && p.drivers.length > 0 && (
                 <div>
-                  <div style={tinyTag('rgba(99,102,241,0.18)', 'rgba(99,102,241,0.95)')}>Drivers</div>
+                  <div style={tinyTag('rgba(var(--theme-rgb),0.18)', 'rgba(var(--theme-rgb),0.95)')}>Drivers</div>
                   <ul style={tinyList}>
                     {p.drivers.slice(0, 4).map((x, i) => <li key={i}>{x}</li>)}
                   </ul>

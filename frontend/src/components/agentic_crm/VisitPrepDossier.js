@@ -19,7 +19,7 @@ async function apiFetch(path, opts = {}) {
 }
 
 const LAYER_META = {
-  llm:       { label: 'LLM',       color: '#6366F1', Icon: Cpu },
+  llm:       { label: 'LLM',       color: 'var(--theme)', Icon: Cpu },
   cached:    { label: 'Cached',    color: '#F59E0B', Icon: Database },
   cache:     { label: 'Cached',    color: '#F59E0B', Icon: Database },
   heuristic: { label: 'Heurística', color: '#94A3B8', Icon: Zap },
@@ -36,7 +36,7 @@ const SECTIONS = [
 
 function PillButton({ children, onClick, variant = 'primary', disabled, testid, Icon }) {
   const styles = {
-    primary: { background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', border: 'none' },
+    primary: { background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', border: 'none' },
     ghost:   { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.18)' },
     success: { background: 'transparent', color: '#4ADE80', border: '1px solid rgba(74,222,128,0.3)' },
   };
@@ -259,7 +259,7 @@ export default function VisitPrepDossier({
     );
     win.document.write(`<!doctype html><html><head><title>Dossier · ${projectName || projectId}</title>
       <style>body{font-family:Inter,Arial;background:#fff;color:#06080F;padding:32px;max-width:780px;margin:0 auto}
-      h1{font-size:22px;margin:0 0 8px}h3{font-size:13px;margin:18px 0 6px;color:#6366F1;text-transform:uppercase;letter-spacing:0.10em}
+      h1{font-size:22px;margin:0 0 8px}h3{font-size:13px;margin:18px 0 6px;color:var(--theme);text-transform:uppercase;letter-spacing:0.10em}
       ul,ol{padding-left:20px;font-size:13px;line-height:1.6}
       .meta{font-size:11px;color:#6b7280;margin-bottom:20px}
       .obj{padding:8px 12px;background:#f9fafb;border-radius:8px;margin:6px 0}

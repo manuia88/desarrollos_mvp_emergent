@@ -21,12 +21,12 @@ export const useTourContext = () => useContext(TourCtx);
 // (backgroundColor #ffffff = cuadro blanco · overlay sin tematizar).
 function buildOptions(reducedMotion) {
   return {
-    primaryColor: '#6366F1',
+    primaryColor: 'var(--theme)',
     backgroundColor: 'rgba(13,16,23,0.97)',
     textColor: '#F0EBE0',
     arrowColor: 'rgba(13,16,23,0.97)',
     overlayColor: reducedMotion ? 'rgba(0,0,0,0.35)' : 'rgba(6,8,15,0.72)',
-    spotlightShadow: '0 0 0 2px #6366F1',
+    spotlightShadow: '0 0 0 2px var(--theme)',
     zIndex: 9000,
   };
 }
@@ -36,7 +36,7 @@ function buildStyles(reducedMotion) {
   return {
     tooltip: {
       borderRadius: 16,
-      border: '1px solid rgba(99,102,241,0.28)',
+      border: '1px solid rgba(var(--theme-rgb),0.28)',
       backdropFilter: 'blur(24px)',
       padding: '20px 24px',
       maxWidth: 'min(400px, 90vw)',
@@ -60,7 +60,7 @@ function buildStyles(reducedMotion) {
       fontFamily: 'DM Sans',
       fontWeight: 700,
       fontSize: 13,
-      background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+      background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
       color: '#fff',
       border: 'none',
       padding: '8px 20px',
@@ -71,7 +71,7 @@ function buildStyles(reducedMotion) {
       fontSize: 12,
       color: 'rgba(240,235,224,0.55)',
       background: 'none',
-      border: '1px solid rgba(99,102,241,0.35)',
+      border: '1px solid rgba(var(--theme-rgb),0.35)',
       padding: '6px 14px',
     },
     buttonSkip: {

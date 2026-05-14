@@ -26,7 +26,7 @@ const TYPE_META = {
 };
 
 const LAYER_META = {
-  llm:       { label: 'LLM',        color: '#6366F1', Icon: Cpu },
+  llm:       { label: 'LLM',        color: 'var(--theme)', Icon: Cpu },
   cached:    { label: 'Caché',      color: '#F59E0B', Icon: Database },
   cache:     { label: 'Caché',      color: '#F59E0B', Icon: Database },
   heuristic: { label: 'Heurística', color: '#94A3B8', Icon: Zap },
@@ -93,7 +93,7 @@ function ScoreBar({ dimension, label, value, color, isPredominant }) {
           width: `${Math.max(0, Math.min(100, value))}%`,
           height: '100%',
           background: isPredominant
-            ? 'linear-gradient(90deg, #6366F1, #EC4899)'
+            ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
             : color,
           opacity: isPredominant ? 1 : 0.55,
           transition: 'width 600ms ease',
@@ -105,7 +105,7 @@ function ScoreBar({ dimension, label, value, color, isPredominant }) {
 
 function PillButton({ children, onClick, variant = 'primary', disabled, testid, Icon }) {
   const styles = {
-    primary: { background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', border: 'none' },
+    primary: { background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', border: 'none' },
     ghost:   { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.18)' },
   };
   return (
@@ -332,8 +332,8 @@ export default function DiscProfileCard({ leadId, leadName }) {
               data-testid="disc-approach"
               style={{
                 padding: 12, marginBottom: 12,
-                background: 'rgba(99,102,241,0.08)',
-                border: '1px solid rgba(99,102,241,0.24)',
+                background: 'rgba(var(--theme-rgb),0.08)',
+                border: '1px solid rgba(var(--theme-rgb),0.24)',
                 borderRadius: 12,
               }}
             >

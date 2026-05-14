@@ -31,9 +31,9 @@ function Pills({ items, accent = false }) {
       {items.map((it, i) => (
         <span key={i} style={{
           padding: '3px 10px', borderRadius: 9999,
-          background: accent ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.04)',
-          border: `1px solid ${accent ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
-          color: accent ? '#c7d2fe' : 'var(--cream-2)',
+          background: accent ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${accent ? 'rgba(var(--theme-rgb),0.3)' : 'var(--border)'}`,
+          color: accent ? 'var(--theme)' : 'var(--cream-2)',
           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500,
         }}>{String(it)}</span>
       ))}
@@ -161,8 +161,8 @@ export default function ExtractionView({ docId, docType, scope = 'superadmin', o
       {!isExtracted && (
         <div style={{
           padding: 14, marginBottom: 14, borderRadius: 12,
-          background: isFailed ? 'rgba(239,68,68,0.08)' : (isPending ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)'),
-          border: `1px solid ${isFailed ? 'rgba(239,68,68,0.32)' : (isPending ? 'rgba(99,102,241,0.32)' : 'var(--border)')}`,
+          background: isFailed ? 'rgba(239,68,68,0.08)' : (isPending ? 'rgba(var(--theme-rgb),0.08)' : 'rgba(255,255,255,0.02)'),
+          border: `1px solid ${isFailed ? 'rgba(239,68,68,0.32)' : (isPending ? 'rgba(var(--theme-rgb),0.32)' : 'var(--border)')}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             {isFailed ? <AlertTriangle size={13} color="#fca5a5" /> : <Sparkle size={13} color="var(--indigo-3)" />}

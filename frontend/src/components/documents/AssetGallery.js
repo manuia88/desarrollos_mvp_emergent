@@ -14,7 +14,7 @@ const ASSET_TYPE_LABELS = {
 };
 
 const CAT_TONE = {
-  sala: '#a5b4fc', cocina: '#fcd34d', recamara: '#86efac', bano: '#67e8f9',
+  sala: 'var(--theme)', cocina: '#fcd34d', recamara: '#86efac', bano: '#67e8f9',
   fachada: '#fda4af', exterior: '#bef264', amenidad: '#f9a8d4', plano: '#cbd5e1',
 };
 
@@ -168,7 +168,7 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
 
   return (
     <div data-testid="asset-gallery">
-      <div onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.background = 'rgba(99,102,241,0.06)'; }}
+      <div onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.06)'; }}
            onDragLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
            onDrop={(e) => { e.currentTarget.style.background = 'transparent'; onDrop(e); }}
            style={{
@@ -237,7 +237,7 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
               <span style={{
                 position: 'absolute', top: 8, right: 8,
                 padding: '3px 9px', borderRadius: 9999,
-                background: 'linear-gradient(92deg, rgba(99,102,241,0.92), rgba(168,85,247,0.92))',
+                background: 'linear-gradient(92deg, rgba(var(--theme-rgb),0.92), rgba(168,85,247,0.92))',
                 color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 9.5,
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
@@ -255,8 +255,8 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button onClick={() => handleRecategorize(a.id)} title="Re-categorizar IA" style={{
                     padding: '4px 8px', borderRadius: 9999,
-                    background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)',
-                    color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10, cursor: 'pointer',
+                    background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)',
+                    color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 10, cursor: 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 3,
                   }}><Sparkle size={9} /></button>
                   {allowGenerate360 && !a.tour_url && (

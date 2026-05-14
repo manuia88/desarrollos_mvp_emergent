@@ -112,8 +112,8 @@ export default function RolePicker({ user, onDone }) {
                   padding: '13px 16px',
                   borderRadius: 14,
                   cursor: 'pointer',
-                  background: active ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${active ? 'rgba(99,102,241,0.48)' : 'var(--border)'}`,
+                  background: active ? 'rgba(var(--theme-rgb),0.12)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${active ? 'rgba(var(--theme-rgb),0.48)' : 'var(--border)'}`,
                   color: 'var(--cream)',
                   transition: 'background 0.15s, border-color 0.15s',
                 }}

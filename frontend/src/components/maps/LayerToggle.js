@@ -5,8 +5,8 @@
 import React from 'react';
 
 const LAYERS = [
-  { key: 'devs',       label: 'Preventa',    color: '#6366F1', desc: 'proyectos' },
-  { key: 'brokers',    label: 'Usada',       color: '#EC4899', desc: 'listings' },
+  { key: 'devs',       label: 'Preventa',    color: 'var(--theme)', desc: 'proyectos' },
+  { key: 'brokers',    label: 'Usada',       color: 'var(--theme-3)', desc: 'listings' },
   { key: 'catastro',   label: 'Catastro',    color: '#f59e0b', desc: 'zonas' },
   { key: 'zone_score', label: 'Zone Score',  color: '#22c55e', desc: 'zonas' },
   { key: 'risk',       label: 'Riesgo',      color: '#ef4444', desc: 'areas' },

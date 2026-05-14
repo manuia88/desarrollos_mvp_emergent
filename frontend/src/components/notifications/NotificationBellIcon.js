@@ -39,9 +39,9 @@ export default function NotificationBellIcon() {
         aria-label="Notificaciones"
         style={{
           position: 'relative',
-          background: open ? 'rgba(99,102,241,0.12)' : 'transparent',
+          background: open ? 'rgba(var(--theme-rgb),0.12)' : 'transparent',
           border: '1px solid',
-          borderColor: open ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.1)',
+          borderColor: open ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(255,255,255,0.1)',
           borderRadius: 9999,
           width: 34, height: 34,
           display: 'flex', alignItems: 'center', justifyContent: 'center',

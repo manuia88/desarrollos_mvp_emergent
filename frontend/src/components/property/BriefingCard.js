@@ -35,8 +35,8 @@ export default function BriefingCard({ property }) {
     <div
       data-testid="briefing-card"
       style={{
-        background: 'linear-gradient(140deg, rgba(99,102,241,0.10) 0%, rgba(236,72,153,0.05) 100%)',
-        border: '1px solid rgba(99,102,241,0.30)',
+        background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.10) 0%, rgba(var(--theme-rgb),0.05) 100%)',
+        border: '1px solid rgba(var(--theme-rgb),0.30)',
         borderRadius: 20, padding: 22,
         position: 'relative', overflow: 'hidden',
       }}

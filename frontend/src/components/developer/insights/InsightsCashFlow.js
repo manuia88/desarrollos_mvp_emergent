@@ -35,7 +35,7 @@ function MiniChart({ series = [] }) {
             stroke="rgba(240,235,224,0.18)" strokeWidth="1" strokeDasharray="3,3" />
       <path d={path('inflow_total')} fill="none" stroke="#22C55E" strokeWidth="1.4" />
       <path d={path('outflow_total')} fill="none" stroke="#EF4444" strokeWidth="1.4" />
-      <path d={path('cumulative_balance')} fill="none" stroke="#EC4899" strokeWidth="2" />
+      <path d={path('cumulative_balance')} fill="none" stroke="var(--theme-3)" strokeWidth="2" />
     </svg>
   );
 }
@@ -114,7 +114,7 @@ export default function InsightsCashFlow({ projectId }) {
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '8px 16px', borderRadius: 9999,
-          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
           color: '#fff', textDecoration: 'none',
           fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600,
         }}>

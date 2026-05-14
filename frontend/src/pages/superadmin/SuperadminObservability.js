@@ -8,7 +8,7 @@
  *   5. AI ROI Matrix — cross-org sorted por ratio
  *
  * Strict design system:
- *   - rounded-full · gradient #6366F1→#EC4899 · cero emojis · fonts Outfit + DM Sans
+ *   - rounded-full · gradient var(--theme)→var(--theme) · cero emojis · fonts Outfit + DM Sans
  *   - sin shadow-2xl → border + backdrop-blur(24px) + rgba bg
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -58,7 +58,7 @@ function TabButton({ tab, active, onClick }) {
       style={{
         padding: '8px 16px', borderRadius: 9999,
         background: active
-          ? 'linear-gradient(90deg, #6366F1, #EC4899)'
+          ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))'
           : 'rgba(255,255,255,0.04)',
         border: active ? 'none' : '1px solid rgba(255,255,255,0.10)',
         color: active ? '#fff' : 'rgba(240,235,224,0.65)',
@@ -77,7 +77,7 @@ function PageEyebrow({ label }) {
     <div className="eyebrow" style={{
       fontFamily: 'DM Sans', fontSize: 10,
       letterSpacing: '0.18em', textTransform: 'uppercase',
-      color: 'rgba(240,235,224,0.45)', fontWeight: 700, marginBottom: 6,
+      color: 'rgba(240, 235, 224, 0.70)', fontWeight: 700, marginBottom: 6,
     }}>{label}</div>
   );
 }
@@ -172,7 +172,7 @@ function KpiCard({ label, value }) {
       <div style={{
         fontFamily: 'DM Sans', fontSize: 10,
         letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: 'rgba(240,235,224,0.45)', marginBottom: 6, fontWeight: 700,
+        color: 'rgba(240, 235, 224, 0.70)', marginBottom: 6, fontWeight: 700,
       }}>{label}</div>
       <div style={{
         fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,
@@ -193,7 +193,7 @@ function RoiMatrixRow({ row, rank }) {
     }}>
       <span style={{
         fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
-        color: 'rgba(240,235,224,0.40)', minWidth: 28,
+        color: 'rgba(240, 235, 224, 0.68)', minWidth: 28,
       }}>#{rank}</span>
       <span style={{ fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, color: 'var(--cream)', flex: 1 }}>
         {row.org_id}
@@ -288,7 +288,7 @@ function AuditTab() {
           disabled={!targetId || loading}
           style={{
             padding: '10px 18px', borderRadius: 9999,
-            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
             color: '#fff', border: 'none', cursor: !targetId || loading ? 'not-allowed' : 'pointer',
             fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700,
             display: 'flex', alignItems: 'center', gap: 6,
@@ -341,15 +341,15 @@ const inputStyle = {
 };
 
 const TYPE_COLORS = {
-  smart_routing:    { bg: 'rgba(99,102,241,0.10)',  border: 'rgba(99,102,241,0.30)',  color: '#818CF8' },
+  smart_routing:    { bg: 'rgba(var(--theme-rgb),0.10)',  border: 'rgba(var(--theme-rgb),0.30)',  color: 'var(--theme)' },
   visit_prep:       { bg: 'rgba(52,211,153,0.10)',  border: 'rgba(52,211,153,0.30)',  color: '#4ADE80' },
   reply_classifier: { bg: 'rgba(251,191,36,0.10)',  border: 'rgba(251,191,36,0.30)',  color: '#FBBF24' },
-  disc:             { bg: 'rgba(236,72,153,0.10)',  border: 'rgba(236,72,153,0.30)',  color: '#F472B6' },
+  disc:             { bg: 'rgba(var(--theme-rgb),0.10)',  border: 'rgba(var(--theme-rgb),0.30)',  color: '#F472B6' },
   argumentario:     { bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.30)', color: '#A78BFA' },
   nurture_sequence: { bg: 'rgba(56,189,248,0.10)',  border: 'rgba(56,189,248,0.30)',  color: '#38BDF8' },
   director_call:    { bg: 'rgba(244,114,182,0.10)', border: 'rgba(244,114,182,0.30)', color: '#F472B6' },
   atlax_message:    { bg: 'rgba(147,197,253,0.10)', border: 'rgba(147,197,253,0.30)', color: '#93C5FD' },
-  sub_agent_run:    { bg: 'rgba(99,102,241,0.10)',  border: 'rgba(99,102,241,0.30)',  color: '#818CF8' },
+  sub_agent_run:    { bg: 'rgba(var(--theme-rgb),0.10)',  border: 'rgba(var(--theme-rgb),0.30)',  color: 'var(--theme)' },
   whatif:           { bg: 'rgba(239,68,68,0.10)',   border: 'rgba(239,68,68,0.30)',   color: '#F87171' },
 };
 
@@ -378,7 +378,7 @@ function TimelineRow({ event }) {
       )}
       <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.65)', flex: 1, minWidth: 200 }}>
         {event.input_summary || event.agent_name}
-        {event.output_summary && <> → <span style={{ color: 'rgba(240,235,224,0.45)' }}>{event.output_summary}</span></>}
+        {event.output_summary && <> → <span style={{ color: 'rgba(240, 235, 224, 0.70)' }}>{event.output_summary}</span></>}
       </span>
       {event.layer_used && (
         <span style={{
@@ -389,11 +389,11 @@ function TimelineRow({ event }) {
         }}>{event.layer_used}</span>
       )}
       {event.cost_usd > 0 && (
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.40)' }}>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.68)' }}>
           {fmtUSD(event.cost_usd)}
         </span>
       )}
-      <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.40)', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.68)', fontVariantNumeric: 'tabular-nums' }}>
         {(event.created_at || '').slice(0, 19).replace('T', ' ')}
       </span>
     </div>
@@ -442,7 +442,7 @@ function MLAccuracyTab() {
           data-testid="ml-load-btn"
           style={{
             padding: '10px 18px', borderRadius: 9999,
-            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
             color: '#fff', border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
             fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700,
             display: 'flex', alignItems: 'center', gap: 6,
@@ -483,9 +483,9 @@ function MLFeatureCard({ feature, data }) {
         }}>{feature}</span>
         <span style={{
           padding: '2px 8px', borderRadius: 9999, fontSize: 10,
-          background: 'rgba(99,102,241,0.10)',
-          border: '1px solid rgba(99,102,241,0.30)',
-          color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700,
+          background: 'rgba(var(--theme-rgb),0.10)',
+          border: '1px solid rgba(var(--theme-rgb),0.30)',
+          color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700,
         }}>n={data.sample_size || 0}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -578,7 +578,7 @@ function ReplayTab() {
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 480, overflowY: 'auto' }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', marginBottom: 4 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)', marginBottom: 4 }}>
               {list.total} eventos replayables
             </div>
             {(list.events || []).map((e) => (
@@ -589,9 +589,9 @@ function ReplayTab() {
                 style={{
                   padding: '10px 14px', borderRadius: 11,
                   background: selected?.event_id === e.event_id
-                    ? 'rgba(99,102,241,0.10)'
+                    ? 'rgba(var(--theme-rgb),0.10)'
                     : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${selected?.event_id === e.event_id ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.07)'}`,
+                  border: `1px solid ${selected?.event_id === e.event_id ? 'rgba(var(--theme-rgb),0.40)' : 'rgba(255,255,255,0.07)'}`,
                   color: 'var(--cream)', cursor: 'pointer', textAlign: 'left',
                   display: 'flex', flexDirection: 'column', gap: 4,
                 }}
@@ -616,7 +616,7 @@ function ReplayTab() {
                     }}>{e.layer_used}</span>
                   )}
                 </div>
-                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+                <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)' }}>
                   {e.target_id} · {(e.created_at || '').slice(0, 19).replace('T', ' ')}
                 </div>
               </button>
@@ -636,7 +636,7 @@ function ReplayTab() {
             minHeight: 240, maxHeight: 480, overflowY: 'auto',
           }}>
             {!selected && !replaying && (
-              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.45)', padding: 12 }}>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240, 235, 224, 0.70)', padding: 12 }}>
                 Selecciona un evento para re-ejecutarlo en simulation_mode.
               </div>
             )}
@@ -655,7 +655,7 @@ function ReplayTab() {
 
 const primaryBtn = {
   padding: '10px 18px', borderRadius: 9999,
-  background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+  background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
   color: '#fff', border: 'none', cursor: 'pointer',
   fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700,
   display: 'flex', alignItems: 'center', gap: 6,
@@ -692,7 +692,7 @@ function ReplayResult({ res }) {
             background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
             fontSize: 11.5, color: 'rgba(240,235,224,0.65)',
           }}>
-            <strong style={{ color: '#818CF8' }}>{s.step}.</strong> {s.phase} — <span style={{ color: 'rgba(240,235,224,0.45)' }}>{JSON.stringify(s.data || {}).slice(0, 200)}</span>
+            <strong style={{ color: 'var(--theme)' }}>{s.step}.</strong> {s.phase} — <span style={{ color: 'rgba(240, 235, 224, 0.70)' }}>{JSON.stringify(s.data || {}).slice(0, 200)}</span>
           </div>
         ))}
       </div>
@@ -786,7 +786,7 @@ export default function SuperadminObservability({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-observability" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
-          <div className="eyebrow" style={{ fontFamily: 'DM Sans', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(240,235,224,0.45)', fontWeight: 700, marginBottom: 6 }}>
+          <div className="eyebrow" style={{ fontFamily: 'DM Sans', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(240, 235, 224, 0.70)', fontWeight: 700, marginBottom: 6 }}>
             Phase Y · Observability
           </div>
           <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)', letterSpacing: '-0.028em', margin: '4px 0 6px' }}>

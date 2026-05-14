@@ -71,7 +71,7 @@ function NavItem({ item, collapsed, badge }) {
       className={({ isActive: ia }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 relative group
         ${ia
-          ? 'bg-[rgba(99,102,241,0.18)] text-[var(--cream)] font-semibold shadow-[inset_3px_0_0_#6366F1]'
+          ? 'bg-[rgba(var(--theme-rgb),0.18)] text-[var(--cream)] font-semibold shadow-[inset_3px_0_0_var(--theme)]'
           : 'font-medium text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)]'}`
       }
     >
@@ -103,7 +103,8 @@ function NavTier({ tier, collapsed, badges }) {
       {!collapsed && (
         <button
           onClick={() => setOpen(o => !o)}
-          className="w-full flex items-center gap-2 px-3 py-1 text-[10px] font-semibold tracking-widest uppercase text-[rgba(240,235,224,0.35)] hover:text-[rgba(240,235,224,0.55)] transition-colors"
+          data-section-key={tier.section_key || undefined}
+          className="nav-tier-label w-full flex items-center gap-2 px-3 py-1 text-[10px] font-semibold tracking-widest uppercase text-[rgba(240,235,224,0.35)] hover:text-[rgba(240,235,224,0.55)] transition-colors"
         >
           {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
           {tier.label}
@@ -136,6 +137,18 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const userMenuRef = useRef(null);
+  const navRef = useRef(null);
+
+  // Persist sidebar scroll position across route changes (sessionStorage)
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const saved = sessionStorage.getItem('portal-sidebar-scroll');
+    if (saved) nav.scrollTop = parseInt(saved, 10);
+    const onScroll = () => sessionStorage.setItem('portal-sidebar-scroll', String(nav.scrollTop));
+    nav.addEventListener('scroll', onScroll, { passive: true });
+    return () => nav.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Phase 4 Batch 18 Sub-A — apply density class to <body>
   useDensity();
@@ -267,7 +280,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
       </div>
 
       {/* Nav tiers */}
-      <nav className="flex-1 overflow-y-auto px-2 space-y-2 scrollbar-none" aria-label="Navegación principal">
+      <nav ref={navRef} className="flex-1 overflow-y-auto px-2 space-y-2 scrollbar-none" aria-label="Navegación principal">
         {tiers.map(tier => (
           <NavTier key={tier.tier} tier={tier} collapsed={collapsed} badges={badges} />
         ))}

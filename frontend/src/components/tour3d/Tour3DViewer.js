@@ -190,7 +190,7 @@ export default function Tour3DViewer({
         >
           <div style={{
             width: 42, height: 42, borderRadius: 9999,
-            background: 'conic-gradient(from 0deg, #6366F1, #EC4899, #6366F1)',
+            background: 'conic-gradient(from 0deg, var(--theme), var(--theme-3), var(--theme))',
             animation: 'tour3dSpin 1.05s linear infinite',
             position: 'relative',
           }}>

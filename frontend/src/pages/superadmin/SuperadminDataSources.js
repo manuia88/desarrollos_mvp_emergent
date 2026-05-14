@@ -2,7 +2,7 @@
  * W4.18 — SuperadminDataSources
  * Panel debug 6 fuentes gov MX · stats + lookup manual + sync now.
  *
- * Strict design: rounded-full · gradient #6366F1→#EC4899 · sin emojis ·
+ * Strict design: rounded-full · gradient var(--theme)→var(--theme) · sin emojis ·
  * sin shadow-2xl · backdrop-blur(24px) · Outfit + DM Sans.
  */
 import React, { useCallback, useEffect, useState } from 'react';
@@ -24,7 +24,7 @@ async function apiFetch(path, opts = {}) {
 const SOURCES = [
   {
     key: 'banxico', label: 'Banxico SIE', Icon: Database,
-    color: '#6366F1', cron: 'Diario 06:00',
+    color: 'var(--theme)', cron: 'Diario 06:00',
     lookupParam: 'series_id',
     lookupLabel: 'Series ID (ej. SF43718)',
     lookupPath: '/api/superadmin/data-sources-gov-mx/banxico/lookup?series_id=',
@@ -32,7 +32,7 @@ const SOURCES = [
   },
   {
     key: 'sigcdmx', label: 'SIGCDMX Uso de Suelo', Icon: Map,
-    color: '#EC4899', cron: 'Mensual día 1 04:00',
+    color: 'var(--theme)', cron: 'Mensual día 1 04:00',
     lookupParam: 'cuenta_catastral',
     lookupLabel: 'Cuenta catastral',
     lookupPath: '/api/superadmin/data-sources-gov-mx/sigcdmx/lookup?cuenta_catastral=',
@@ -123,7 +123,7 @@ function SourceCard({ source, stats, onLookup, onSync, syncing }) {
           }}>{source.label}</div>
           <div style={{
             fontFamily: 'DM Sans', fontSize: 10.5,
-            color: 'rgba(240,235,224,0.45)', marginTop: 2,
+            color: 'rgba(240, 235, 224, 0.70)', marginTop: 2,
           }}>Cron · {source.cron}</div>
         </div>
         <StatusPill ok={ok} label={ok ? 'OK' : 'Warn'} />
@@ -163,7 +163,7 @@ function SourceCard({ source, stats, onLookup, onSync, syncing }) {
           disabled={syncing}
           style={{
             flex: 1, padding: '8px 14px', borderRadius: 9999,
-            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
             border: 'none', color: '#fff',
             cursor: syncing ? 'not-allowed' : 'pointer',
             fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
@@ -257,7 +257,7 @@ function LookupModal({ source, onClose }) {
           data-testid="ds-lookup-submit"
           style={{
             marginTop: 10, padding: '10px 20px', borderRadius: 9999,
-            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
             color: '#fff', border: 'none',
             cursor: loading ? 'not-allowed' : 'pointer',
             fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 700,
@@ -348,7 +348,7 @@ export default function SuperadminDataSources({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-data-sources" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div>
-          <div className="eyebrow" style={{ fontFamily: 'DM Sans', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(240,235,224,0.45)', fontWeight: 700, marginBottom: 6 }}>
+          <div className="eyebrow" style={{ fontFamily: 'DM Sans', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(240, 235, 224, 0.70)', fontWeight: 700, marginBottom: 6 }}>
             Data Sources gov MX
           </div>
           <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 30, color: 'var(--cream)', letterSpacing: '-0.028em', margin: '4px 0 6px' }}>
@@ -373,7 +373,7 @@ export default function SuperadminDataSources({ user, onLogout }) {
         )}
 
         {loading ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'rgba(240,235,224,0.45)', fontFamily: 'DM Sans' }}>
+          <div style={{ padding: 32, textAlign: 'center', color: 'rgba(240, 235, 224, 0.70)', fontFamily: 'DM Sans' }}>
             <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando estadísticas…
           </div>
         ) : (
@@ -395,7 +395,7 @@ export default function SuperadminDataSources({ user, onLogout }) {
             position: 'fixed', bottom: 24, right: 24, zIndex: 90,
             padding: '12px 18px', borderRadius: 14,
             background: 'rgba(15,18,30,0.95)',
-            border: '1px solid rgba(99,102,241,0.40)',
+            border: '1px solid rgba(var(--theme-rgb),0.40)',
             backdropFilter: 'blur(24px)',
             color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
             maxWidth: 380,
@@ -423,14 +423,14 @@ function KpiCard({ label, value, sub }) {
       <div style={{
         fontFamily: 'DM Sans', fontSize: 10,
         letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: 'rgba(240,235,224,0.45)', marginBottom: 6, fontWeight: 700,
+        color: 'rgba(240, 235, 224, 0.70)', marginBottom: 6, fontWeight: 700,
       }}>{label}</div>
       <div style={{
         fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,
         color: 'var(--cream)', letterSpacing: '-0.02em',
       }}>{value}</div>
       {sub && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.40)', marginTop: 4 }}>{sub}</div>
+        <div style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.68)', marginTop: 4 }}>{sub}</div>
       )}
     </div>
   );

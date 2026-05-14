@@ -127,7 +127,7 @@ export default function ChatThread({ thread, userRole = 'buyer', userId, onClose
         {/* Avatar */}
         <div style={{
           width: 38, height: 38, borderRadius: 9999,
-          background: 'linear-gradient(135deg,#6366F1,#EC4899)',
+          background: 'linear-gradient(135deg, var(--theme), var(--theme-3))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: '#fff',
           flexShrink: 0,
@@ -145,7 +145,7 @@ export default function ChatThread({ thread, userRole = 'buyer', userId, onClose
           {projectName && (
             <div style={{
               fontFamily: 'DM Sans', fontSize: 11,
-              color: 'rgba(99,102,241,0.85)', marginTop: 1,
+              color: 'rgba(var(--theme-rgb),0.85)', marginTop: 1,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
               {projectName}
@@ -217,7 +217,7 @@ export default function ChatThread({ thread, userRole = 'buyer', userId, onClose
                           : 'rgba(13,16,23,0.6)',
                         border: isMine
                           ? '1px solid rgba(240,235,224,0.15)'
-                          : '1px solid rgba(99,102,241,0.22)',
+                          : '1px solid rgba(var(--theme-rgb),0.22)',
                         backdropFilter: 'blur(12px)',
                       }}
                     >

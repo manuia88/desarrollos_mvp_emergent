@@ -93,7 +93,7 @@ export default function InsightsComparables({ projectId }) {
                 style={{
                   padding: '4px 12px', borderRadius: 9999,
                   border: '1px solid rgba(240,235,224,0.14)',
-                  background: topN === n ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
+                  background: topN === n ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent',
                   color: topN === n ? '#fff' : 'var(--cream-2)',
                   fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 600,
                   cursor: 'pointer',
@@ -123,7 +123,7 @@ export default function InsightsComparables({ projectId }) {
               style={{
                 padding: '4px 12px', borderRadius: 9999,
                 border: 'none',
-                background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 color: '#fff',
                 fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 600,
                 cursor: exporting ? 'wait' : 'pointer',
@@ -147,15 +147,15 @@ export default function InsightsComparables({ projectId }) {
       {/* Current row */}
       {cur.id && (
         <div data-testid="comp-current" style={{
-          background: 'rgba(99,102,241,0.10)',
-          border: '1px solid rgba(99,102,241,0.32)',
+          background: 'rgba(var(--theme-rgb),0.10)',
+          border: '1px solid rgba(var(--theme-rgb),0.32)',
           borderRadius: 12, padding: 12,
           display: 'grid', gap: 8,
           gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
           alignItems: 'center',
         }}>
           <div>
-            <div style={{ fontSize: 10, color: '#a5b4fc', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6 }}>Tu proyecto</div>
+            <div style={{ fontSize: 10, color: 'var(--theme)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6 }}>Tu proyecto</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, color: 'var(--cream)' }}>{cur.name}</div>
           </div>
           <div style={{ fontSize: 12, color: 'var(--cream-2)' }}>
@@ -218,7 +218,7 @@ export default function InsightsComparables({ projectId }) {
                   <td style={{ padding: '10px 12px', color: 'var(--cream-2)' }}>
                     <span style={{
                       padding: '2px 8px', borderRadius: 9999,
-                      background: 'rgba(99,102,241,0.14)', color: '#a5b4fc',
+                      background: 'rgba(var(--theme-rgb),0.14)', color: 'var(--theme)',
                       fontSize: 10, fontWeight: 700,
                     }}>{c.similarity_score}</span>
                   </td>

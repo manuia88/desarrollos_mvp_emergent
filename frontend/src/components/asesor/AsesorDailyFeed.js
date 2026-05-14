@@ -11,7 +11,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { fetchDailyFeed, executeFeedAction } from '../../api/asesor_match';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 const ACTION_LABELS = {
   call: 'Llamar ahora',
@@ -176,8 +176,8 @@ export default function AsesorDailyFeed({ user }) {
   return (
     <div data-testid="asesor-daily-feed" style={{
       padding: 20, borderRadius: 16,
-      background: 'rgba(99,102,241,0.04)',
-      border: '1px solid rgba(99,102,241,0.18)',
+      background: 'rgba(var(--theme-rgb),0.04)',
+      border: '1px solid rgba(var(--theme-rgb),0.18)',
       backdropFilter: 'blur(24px)',
       display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 18,
     }}>

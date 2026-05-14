@@ -78,9 +78,9 @@ export default function LeadJourneyTimeline({ leadId }) {
             onClick={() => setFilter(f.k)}
             style={{
               padding: '6px 14px', borderRadius: 9999,
-              background: filter === f.k ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${filter === f.k ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)'}`,
-              color: filter === f.k ? '#a5b4fc' : 'rgba(240,235,224,0.6)',
+              background: filter === f.k ? 'rgba(var(--theme-rgb),0.18)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${filter === f.k ? 'rgba(var(--theme-rgb),0.4)' : 'rgba(255,255,255,0.08)'}`,
+              color: filter === f.k ? 'var(--theme)' : 'rgba(240,235,224,0.6)',
               fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
             }}
           >{f.label}</button>
@@ -109,7 +109,7 @@ export default function LeadJourneyTimeline({ leadId }) {
           {/* Vertical line */}
           <div style={{
             position: 'absolute', left: 17, top: 6, bottom: 6, width: 1,
-            background: 'linear-gradient(180deg,rgba(99,102,241,0.3),rgba(236,72,153,0.15))',
+            background: 'linear-gradient(180deg,rgba(var(--theme-rgb),0.3),rgba(var(--theme-rgb),0.15))',
           }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {filteredSteps.map((s, i) => {
@@ -142,8 +142,8 @@ export default function LeadJourneyTimeline({ leadId }) {
                     <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
                       <span style={{
                         padding: '2px 8px', borderRadius: 9999,
-                        background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)',
-                        color: '#a5b4fc', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                        background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.25)',
+                        color: 'var(--theme)', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                       }}>{s.actor_type}</span>
                       {s.actor_id && (
                         <span style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.5)', fontFamily: 'DM Sans' }}>

@@ -82,10 +82,10 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '4px 10px', borderRadius: 9999,
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.25)',
+              background: 'rgba(var(--theme-rgb),0.12)',
+              border: '1px solid rgba(var(--theme-rgb),0.25)',
               fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700,
-              color: 'rgba(99,102,241,0.9)',
+              color: 'rgba(var(--theme-rgb),0.9)',
               textTransform: 'uppercase', letterSpacing: '0.08em',
               marginBottom: 8,
             }}>
@@ -188,7 +188,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
                 data-testid="colonia-report-accept"
                 checked={accepted}
                 onChange={e => setAccepted(e.target.checked)}
-                style={{ marginTop: 2, accentColor: '#6366F1', cursor: 'pointer' }}
+                style={{ marginTop: 2, accentColor: 'var(--theme)', cursor: 'pointer' }}
               />
               <label htmlFor="cr-accept" style={{
                 fontFamily: 'DM Sans', fontSize: 12,
@@ -217,8 +217,8 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
                 width: '100%', padding: '13px 20px',
                 borderRadius: 9999, border: 'none',
                 background: (!email.trim() || !email.includes('@') || !accepted || loading)
-                  ? 'rgba(99,102,241,0.3)'
-                  : 'linear-gradient(90deg,#6366F1,#EC4899)',
+                  ? 'rgba(var(--theme-rgb),0.3)'
+                  : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                 color: '#fff',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 14,
                 cursor: (!email.trim() || !email.includes('@') || !accepted || loading)

@@ -21,8 +21,8 @@ function Popover({ label, testId, children, badge, onClear }) {
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '9px 14px',
-          background: badge > 0 ? 'rgba(99,102,241,0.14)' : 'var(--bg-3)',
-          border: `1px solid ${badge > 0 ? 'rgba(99,102,241,0.4)' : 'var(--border)'}`,
+          background: badge > 0 ? 'rgba(var(--theme-rgb),0.14)' : 'var(--bg-3)',
+          border: `1px solid ${badge > 0 ? 'rgba(var(--theme-rgb),0.4)' : 'var(--border)'}`,
           borderRadius: 9999,
           fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
           color: badge > 0 ? 'var(--indigo-3)' : 'var(--cream-2)',
@@ -100,8 +100,8 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
       <form onSubmit={onAISubmit} data-testid="ai-search-form" style={{ position: 'relative' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          background: 'linear-gradient(140deg, rgba(99,102,241,0.12) 0%, rgba(236,72,153,0.06) 100%)',
-          border: '1px solid rgba(99,102,241,0.30)',
+          background: 'linear-gradient(140deg, rgba(var(--theme-rgb),0.12) 0%, rgba(var(--theme-rgb),0.06) 100%)',
+          border: '1px solid rgba(var(--theme-rgb),0.30)',
           borderRadius: 14,
           padding: '6px 6px 6px 18px',
         }}>

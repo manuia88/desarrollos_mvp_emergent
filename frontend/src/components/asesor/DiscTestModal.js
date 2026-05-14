@@ -8,7 +8,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { DISC_QUESTIONS, PRIMARY_LABELS, PRIMARY_COLORS } from '../../config/discQuestions';
 import { submitDisc } from '../../api/asesor_identity';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 function ProgressBar({ step, total }) {
   const pct = (step / total) * 100;
@@ -29,7 +29,7 @@ function ProgressBar({ step, total }) {
 
 function ResultCard({ result, narrative, onClose, onRetake }) {
   const primary = result?.primary || 'D';
-  const primaryColor = PRIMARY_COLORS[primary] || '#6366F1';
+  const primaryColor = PRIMARY_COLORS[primary] || 'var(--theme)';
 
   return (
     <div data-testid="disc-result-card" style={{
@@ -83,8 +83,8 @@ function ResultCard({ result, narrative, onClose, onRetake }) {
       {/* Narrative */}
       <div data-testid="disc-narrative" style={{
         padding: 14, borderRadius: 12,
-        background: 'rgba(99,102,241,0.06)',
-        border: '1px solid rgba(99,102,241,0.18)',
+        background: 'rgba(var(--theme-rgb),0.06)',
+        border: '1px solid rgba(var(--theme-rgb),0.18)',
         fontSize: 13.5, color: 'var(--cream)', lineHeight: 1.7,
       }}>
         {narrative || 'Tu narrativa personalizada se calcula con IA.'}
@@ -238,7 +238,7 @@ export default function DiscTestModal({ open, onClose, onSubmitted }) {
                               ? '1px solid transparent'
                               : '1px solid rgba(240,235,224,0.18)',
                             background: selected
-                              ? 'linear-gradient(90deg, rgba(99,102,241,0.18), rgba(236,72,153,0.18))'
+                              ? 'linear-gradient(90deg, rgba(var(--theme-rgb),0.18), rgba(var(--theme-rgb),0.18))'
                               : 'rgba(240,235,224,0.04)',
                             color: 'var(--cream)',
                             fontSize: 14, cursor: 'pointer',

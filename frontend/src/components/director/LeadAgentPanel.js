@@ -57,16 +57,16 @@ async function rejectLeadRec(recId) {
 const ISSUE_META = {
   stale_lead:               { label: 'Lead sin contacto',      color: '#F87171' },
   low_conversion_asesor:    { label: 'Conv. asesor baja',      color: '#F59E0B' },
-  drop_at_stage:            { label: 'Drop-off en etapa',      color: '#EC4899' },
-  underperforming_segment:  { label: 'Segmento bajo',          color: '#6366F1' },
+  drop_at_stage:            { label: 'Drop-off en etapa',      color: 'var(--theme-3)' },
+  underperforming_segment:  { label: 'Segmento bajo',          color: 'var(--theme)' },
   missing_followup:         { label: 'Sin seguimiento',        color: '#94A3B8' },
 };
 
 const TARGET_META = {
   lead:         { label: 'Lead',      color: '#4ADE80' },
-  asesor:       { label: 'Asesor',    color: '#6366F1' },
+  asesor:       { label: 'Asesor',    color: 'var(--theme)' },
   funnel_stage: { label: 'Etapa',     color: '#F59E0B' },
-  segment:      { label: 'Segmento',  color: '#EC4899' },
+  segment:      { label: 'Segmento',  color: 'var(--theme-3)' },
 };
 
 const SEVERITY_COLORS = { high: '#F87171', medium: '#F59E0B', low: '#4ADE80' };
@@ -81,7 +81,7 @@ function Badge({ label, color }) {
 }
 
 function LayerBadge({ layer }) {
-  const map = { llm: ['#6366F1', 'LLM'], cache: ['#F59E0B', 'Caché'], heuristic: ['#10B981', 'Heurística'], none: ['#6B7280', 'Sin datos'] };
+  const map = { llm: ['var(--theme)', 'LLM'], cache: ['#F59E0B', 'Caché'], heuristic: ['#10B981', 'Heurística'], none: ['#6B7280', 'Sin datos'] };
   const [color, label] = map[layer] || ['#6B7280', layer || '—'];
   return <Badge label={label} color={color} />;
 }
@@ -231,7 +231,7 @@ export default function LeadAgentPanel({ orgId }) {
           disabled={analyzing}
           style={{
             flex: 1, padding: '7px 16px', borderRadius: 9999, fontSize: 12, fontFamily: 'DM Sans', fontWeight: 700,
-            background: analyzing ? 'rgba(74,222,128,0.25)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: analyzing ? 'rgba(74,222,128,0.25)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             border: 'none', color: '#fff', cursor: analyzing ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}
@@ -283,9 +283,9 @@ export default function LeadAgentPanel({ orgId }) {
           <button key={k} data-testid={`lead-type-filter-${k}`} onClick={() => setTypeFilter(k)}
             style={{
               padding: '3px 9px', borderRadius: 9999, fontSize: 10.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-              background: typeFilter === k ? 'rgba(99,102,241,0.14)' : 'transparent',
-              border: typeFilter === k ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(255,255,255,0.06)',
-              color: typeFilter === k ? '#818CF8' : 'rgba(240,235,224,0.40)',
+              background: typeFilter === k ? 'rgba(var(--theme-rgb),0.14)' : 'transparent',
+              border: typeFilter === k ? '1px solid rgba(var(--theme-rgb),0.40)' : '1px solid rgba(255,255,255,0.06)',
+              color: typeFilter === k ? 'var(--theme)' : 'rgba(240,235,224,0.40)',
             }}
           >{l}</button>
         ))}

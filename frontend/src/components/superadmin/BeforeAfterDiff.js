@@ -80,7 +80,7 @@ export default function BeforeAfterDiff({ before, after, testId = 'before-after-
     return (
       <div data-testid={`${testId}-empty`} style={{
         padding: 18, textAlign: 'center',
-        fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)',
+        fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)',
         borderRadius: 9, background: 'rgba(255,255,255,0.03)',
         border: '1px solid rgba(255,255,255,0.07)',
       }}>
@@ -92,7 +92,7 @@ export default function BeforeAfterDiff({ before, after, testId = 'before-after-
   return (
     <div data-testid={testId} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 14px 1fr', gap: 8, padding: '0 9px',
-        fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240,235,224,0.40)',
+        fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240, 235, 224, 0.68)',
         textTransform: 'uppercase', letterSpacing: '0.07em' }}>
         <span>Campo</span>
         <span>Antes</span>

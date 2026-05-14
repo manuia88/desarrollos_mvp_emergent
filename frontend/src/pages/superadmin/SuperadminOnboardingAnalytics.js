@@ -3,12 +3,12 @@
  * Expone TourCompletionAnalytics para el superadmin.
  */
 import React from 'react';
-import { PortalLayout } from '../../components/shared/PortalLayout';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import TourCompletionAnalytics from '../../components/developer/TourCompletionAnalytics';
 
 export default function SuperadminOnboardingAnalyticsPage({ user, onLogout }) {
   return (
-    <PortalLayout role="superadmin" user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout}>
       <div
         data-testid="superadmin-onboarding-analytics"
         style={{
@@ -33,6 +33,6 @@ export default function SuperadminOnboardingAnalyticsPage({ user, onLogout }) {
           <TourCompletionAnalytics />
         </div>
       </div>
-    </PortalLayout>
+    </SuperadminLayout>
   );
 }

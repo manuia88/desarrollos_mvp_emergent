@@ -128,7 +128,7 @@ function LeadCaptureMiniForm({ asistenteToken, onSuccess, onClose }) {
     <form data-testid="caya-lead-form" onSubmit={handleSubmit} style={{
       padding: 12, borderRadius: 12, marginTop: 8,
       background: 'rgba(13,16,23,0.85)',
-      border: '1px solid rgba(99,102,241,0.32)',
+      border: '1px solid rgba(var(--theme-rgb),0.32)',
       backdropFilter: 'blur(24px)',
       display: 'flex', flexDirection: 'column', gap: 7,
     }}>
@@ -212,8 +212,8 @@ function MemoryHitsBlock({ hits }) {  const [open, setOpen] = useState(false);
     <div data-testid="caya-memory-hits" style={{ marginTop: 6 }}>
       <button onClick={() => setOpen(o => !o)} style={{
         padding: '3px 8px', borderRadius: 9999,
-        background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)',
-        color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600,
+        background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.25)',
+        color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600,
         cursor: 'pointer',
       }}>
         {open ? '▼' : '▶'} Memorias usadas ({hits.length})
@@ -226,7 +226,7 @@ function MemoryHitsBlock({ hits }) {  const [open, setOpen] = useState(false);
               background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.06)',
               fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)',
             }}>
-              <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{h.source_type}</span>
+              <span style={{ color: 'var(--theme)', fontWeight: 700 }}>{h.source_type}</span>
               {' · '}
               <span>{(h.summary || h.content_summary || '').slice(0, 80)}</span>
             </div>
@@ -252,8 +252,8 @@ function CitationPill({ cite, onNav }) {  const handle = () => {
   return (
     <button onClick={handle} data-testid={`caya-cite-${cite.chunk_id || 'na'}`} style={{
       padding: '3px 9px', borderRadius: 9999,
-      background: 'rgba(99,102,241,0.14)', border: '1px solid rgba(99,102,241,0.32)',
-      color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600,
+      background: 'rgba(var(--theme-rgb),0.14)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+      color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600,
       cursor: cite?.chunk_id ? 'pointer' : 'default', margin: '2px 4px 2px 0',
     }}>
       {cite.label || cite.chunk_id} <span style={{ opacity: 0.6, fontFamily: 'DM Mono' }}>· {cite.source_type}</span>
@@ -444,7 +444,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
             position: 'fixed', bottom: 24, right: 24, zIndex: 9998,
             width: 60, height: 60, borderRadius: 9999,
             background: 'var(--grad)', border: 'none', cursor: 'pointer',
-            boxShadow: '0 12px 32px rgba(99,102,241,0.34)',
+            boxShadow: '0 12px 32px rgba(var(--theme-rgb),0.34)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -486,13 +486,13 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
           <div style={{
             padding: '14px 16px', borderBottom: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-            background: 'linear-gradient(92deg, rgba(99,102,241,0.10), rgba(168,85,247,0.10))',
+            background: 'linear-gradient(92deg, rgba(var(--theme-rgb),0.10), rgba(168,85,247,0.10))',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: 9999, background: 'var(--grad)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+                boxShadow: '0 4px 14px rgba(var(--theme-rgb),0.4)',
               }}>
                 <Sparkle size={15} />
               </div>
@@ -562,16 +562,16 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
                         disabled={busy}
                         style={{
                           padding: '9px 10px', borderRadius: 9999, fontSize: 10.5,
-                          background: 'rgba(99,102,241,0.10)',
-                          border: '1px solid rgba(99,102,241,0.28)',
+                          background: 'rgba(var(--theme-rgb),0.10)',
+                          border: '1px solid rgba(var(--theme-rgb),0.28)',
                           color: 'var(--cream-2)', fontFamily: 'DM Sans', cursor: busy ? 'not-allowed' : 'pointer',
                           textAlign: 'left', lineHeight: 1.3, fontWeight: 600,
                           display: 'flex', alignItems: 'center', gap: 6,
                           transition: 'background 0.15s ease, border-color 0.15s ease',
                           opacity: busy ? 0.5 : 1,
                         }}
-                        onMouseEnter={(e) => { if (!busy) e.currentTarget.style.background = 'rgba(99,102,241,0.18)'; }}
-                        onMouseLeave={(e) => { if (!busy) e.currentTarget.style.background = 'rgba(99,102,241,0.10)'; }}
+                        onMouseEnter={(e) => { if (!busy) e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.18)'; }}
+                        onMouseLeave={(e) => { if (!busy) e.currentTarget.style.background = 'rgba(var(--theme-rgb),0.10)'; }}
                       >
                         <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>{chip.emoji}</span>
                         <span>{chip.label}</span>
@@ -605,9 +605,9 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
                 <div style={{
                   padding: '10px 13px', borderRadius: 14,
                   background: m.role === 'user'
-                    ? 'rgba(99,102,241,0.20)'
+                    ? 'rgba(var(--theme-rgb),0.20)'
                     : (m.error ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.04)'),
-                  border: `1px solid ${m.role === 'user' ? 'rgba(99,102,241,0.32)' : (m.error ? 'rgba(239,68,68,0.32)' : 'var(--border)')}`,
+                  border: `1px solid ${m.role === 'user' ? 'rgba(var(--theme-rgb),0.32)' : (m.error ? 'rgba(239,68,68,0.32)' : 'var(--border)')}`,
                   color: m.error ? '#fca5a5' : 'var(--cream)',
                   fontFamily: 'DM Sans', fontSize: 13, lineHeight: 1.55,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',

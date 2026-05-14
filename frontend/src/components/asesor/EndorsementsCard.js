@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { postEndorsement, deleteMyEndorsement } from '../../api/asesor_identity';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 function Stars({ rating, size = 14 }) {
   return (

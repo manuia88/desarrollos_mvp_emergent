@@ -12,8 +12,8 @@ const SEVERITY_COLOR = {
               text: '#F87171', Icon: AlertCircle },
   warning: { bg: 'rgba(250,204,21,0.08)', border: 'rgba(250,204,21,0.30)',
              text: '#FACC15', Icon: AlertTriangle },
-  info: { bg: 'rgba(99,102,241,0.06)', border: 'rgba(99,102,241,0.22)',
-          text: '#818CF8', Icon: Info },
+  info: { bg: 'rgba(var(--theme-rgb),0.06)', border: 'rgba(var(--theme-rgb),0.22)',
+          text: 'var(--theme)', Icon: Info },
 };
 
 const SOURCE_LABEL = {
@@ -56,7 +56,7 @@ function ActionModal({ title, placeholder, onConfirm, onClose, busy }) {
       <div data-testid="anomaly-action-modal" style={{
         width: '100%', maxWidth: 480,
         background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(99,102,241,0.30)',
+        border: '1px solid rgba(var(--theme-rgb),0.30)',
         borderRadius: 14, padding: 22,
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
@@ -86,7 +86,7 @@ function ActionModal({ title, placeholder, onConfirm, onClose, busy }) {
             onClick={() => onConfirm(text)} disabled={busy}
             style={{
               padding: '9px 20px', borderRadius: 9999,
-              background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
               border: 'none', color: '#fff', fontFamily: 'DM Sans',
               fontWeight: 700, fontSize: 12.5,
               cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1,
@@ -122,12 +122,13 @@ function AnomalyRow({ item, onChanged }) {
   const reasoning = item.claude_reasoning || {};
 
   return (
-    <div data-testid={`anomaly-row-${item.id}`} style={{
-      padding: '12px 14px', borderRadius: 12,
-      background: sev.bg, border: `1px solid ${sev.border}`,
-      display: 'flex', flexDirection: 'column', gap: 8,
-      transition: 'transform 180ms',
-    }}>
+    <div
+      data-testid={`anomaly-row-${item.id}`}
+      className="sa-anomaly-card"
+      style={{
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <SevIcon size={14} color={sev.text} style={{ flexShrink: 0, marginTop: 2 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -149,7 +150,7 @@ function AnomalyRow({ item, onChanged }) {
             }}>{SOURCE_LABEL[item.source] || item.source}</span>
             <span style={{
               fontFamily: 'DM Mono, monospace', fontSize: 10,
-              color: 'rgba(240,235,224,0.45)',
+              color: 'rgba(240, 235, 224, 0.70)',
             }}>{fmtRel(item.detected_at)}</span>
           </div>
           <div style={{
@@ -182,7 +183,7 @@ function AnomalyRow({ item, onChanged }) {
             <div style={{ marginBottom: 8 }}>
               <div style={{
                 fontFamily: 'DM Mono, monospace', fontSize: 9.5,
-                color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase',
+                color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase',
                 letterSpacing: '0.07em', marginBottom: 3,
               }}>Reasoning Claude Haiku ({((reasoning.confidence || 0) * 100).toFixed(0)}%)</div>
               <div style={{
@@ -192,9 +193,9 @@ function AnomalyRow({ item, onChanged }) {
               {reasoning.recommendation && (
                 <div style={{
                   marginTop: 5, padding: '6px 9px', borderRadius: 8,
-                  background: 'rgba(99,102,241,0.07)',
-                  border: '1px solid rgba(99,102,241,0.20)',
-                  fontFamily: 'DM Sans', fontSize: 11.5, color: '#818CF8',
+                  background: 'rgba(var(--theme-rgb),0.07)',
+                  border: '1px solid rgba(var(--theme-rgb),0.20)',
+                  fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--theme)',
                 }}>→ {reasoning.recommendation}</div>
               )}
             </div>
@@ -242,7 +243,7 @@ function AnomalyRow({ item, onChanged }) {
           onClick={() => setModal('resolve')}
           style={{
             padding: '5px 12px', borderRadius: 9999,
-            background: 'linear-gradient(90deg,#6366F1,#EC4899)',
+            background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
             border: 'none', color: '#fff',
             fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700,
             cursor: 'pointer',
@@ -279,7 +280,7 @@ export default function AnomalyFeed({ items, onChanged, loading }) {
     return (
       <div data-testid="anomaly-feed-loading" style={{
         padding: 30, textAlign: 'center', fontFamily: 'DM Sans',
-        fontSize: 13, color: 'rgba(240,235,224,0.45)',
+        fontSize: 13, color: 'rgba(240, 235, 224, 0.70)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
         <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
@@ -301,7 +302,7 @@ export default function AnomalyFeed({ items, onChanged, loading }) {
         }}>Sin anomalías abiertas</div>
         <div style={{
           fontFamily: 'DM Sans', fontSize: 11.5,
-          color: 'rgba(240,235,224,0.50)',
+          color: 'rgba(240, 235, 224, 0.72)',
         }}>El cron corre diario a las 06:00 MX.</div>
       </div>
     );

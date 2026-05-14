@@ -56,9 +56,9 @@ async function rejectMktRec(recId) {
 // ─── Issue metadata ───────────────────────────────────────────────────────────
 const ISSUE_META = {
   low_views:       { label: 'Visitas bajas',    color: '#F59E0B' },
-  low_ctr:         { label: 'CTR bajo',         color: '#EC4899' },
+  low_ctr:         { label: 'CTR bajo',         color: 'var(--theme-3)' },
   low_conversion:  { label: 'Conv. baja',       color: '#F87171' },
-  missing_assets:  { label: 'Assets faltantes', color: '#6366F1' },
+  missing_assets:  { label: 'Assets faltantes', color: 'var(--theme)' },
   stale_copy:      { label: 'Copy desactualizado', color: '#94A3B8' },
 };
 
@@ -70,7 +70,7 @@ const SEVERITY_META = {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function LayerBadge({ layer }) {
-  const map = { llm: ['#6366F1', 'LLM'], cache: ['#F59E0B', 'Caché'], heuristic: ['#10B981', 'Heurística'], none: ['#6B7280', 'Sin datos'] };
+  const map = { llm: ['var(--theme)', 'LLM'], cache: ['#F59E0B', 'Caché'], heuristic: ['#10B981', 'Heurística'], none: ['#6B7280', 'Sin datos'] };
   const [color, label] = map[layer] || ['#6B7280', layer || '—'];
   return (
     <span style={{ padding: '1px 7px', borderRadius: 9999, fontSize: 10, fontFamily: 'DM Sans', fontWeight: 700, background: `${color}22`, border: `1px solid ${color}44`, color }}>
@@ -219,7 +219,7 @@ export default function MarketingAgentPanel({ orgId, projectsSummary }) {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
-        <Megaphone size={14} color="#EC4899" />
+        <Megaphone size={14} color="var(--theme-3)" />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>Sub-agente de Marketing</span>
         <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', marginLeft: 'auto' }}>org: {orgId}</span>
       </div>
@@ -248,7 +248,7 @@ export default function MarketingAgentPanel({ orgId, projectsSummary }) {
           disabled={analyzing || !selectedProject}
           style={{
             padding: '7px 16px', borderRadius: 9999, fontSize: 12, fontFamily: 'DM Sans', fontWeight: 700,
-            background: analyzing ? 'rgba(236,72,153,0.30)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: analyzing ? 'rgba(var(--theme-rgb),0.30)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
             border: 'none', color: '#fff', cursor: analyzing ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
           }}
@@ -267,7 +267,7 @@ export default function MarketingAgentPanel({ orgId, projectsSummary }) {
 
       {/* Last run summary */}
       {lastRun && (
-        <div data-testid="marketing-last-run" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(236,72,153,0.06)', border: '1px solid rgba(236,72,153,0.20)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div data-testid="marketing-last-run" style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.20)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Clock size={11} color="rgba(240,235,224,0.40)" />
           <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>
             {lastRun.recommendations_count} issues detectados
@@ -294,8 +294,8 @@ export default function MarketingAgentPanel({ orgId, projectsSummary }) {
             style={{
               padding: '4px 11px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600,
               cursor: 'pointer',
-              background: statusFilter === k ? 'rgba(236,72,153,0.16)' : 'transparent',
-              border: statusFilter === k ? '1px solid rgba(236,72,153,0.55)' : '1px solid rgba(255,255,255,0.08)',
+              background: statusFilter === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+              border: statusFilter === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid rgba(255,255,255,0.08)',
               color: statusFilter === k ? '#F472B6' : 'rgba(240,235,224,0.50)',
             }}
           >
@@ -391,7 +391,7 @@ function MktRecCard({ rec, busy, onApply, onReject }) {
             Acción sugerida
           </div>
           {expanded && (
-            <div data-testid={`marketing-rec-action-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(236,72,153,0.05)', border: '1px solid rgba(236,72,153,0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.70)', lineHeight: 1.55 }}>
+            <div data-testid={`marketing-rec-action-${rec.id}`} style={{ marginTop: 4, padding: '6px 9px', borderRadius: 7, background: 'rgba(var(--theme-rgb),0.05)', border: '1px solid rgba(var(--theme-rgb),0.15)', fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.70)', lineHeight: 1.55 }}>
               {rec.suggested_action_text}
             </div>
           )}

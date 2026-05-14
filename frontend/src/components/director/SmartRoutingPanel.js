@@ -57,7 +57,7 @@ async function reassignRouting(routingId, newAsesorId, reason) {
 
 // ─── Layer / status metadata ─────────────────────────────────────────────────
 const LAYER_META = {
-  llm:       { label: 'LLM',       color: '#6366F1', Icon: Cpu },
+  llm:       { label: 'LLM',       color: 'var(--theme)', Icon: Cpu },
   cache:     { label: 'Cached',    color: '#F59E0B', Icon: Database },
   cached:    { label: 'Cached',    color: '#F59E0B', Icon: Database },
   heuristic: { label: 'Heurística', color: '#94A3B8', Icon: Zap },
@@ -67,7 +67,7 @@ const STATUS_META = {
   pending:    { label: 'Pendiente',   color: '#F59E0B' },
   accepted:   { label: 'Aceptado',    color: '#4ADE80' },
   rejected:   { label: 'Rechazado',   color: '#F87171' },
-  reassigned: { label: 'Reasignado',  color: '#6366F1' },
+  reassigned: { label: 'Reasignado',  color: 'var(--theme)' },
   expired:    { label: 'Expirado',    color: '#94A3B8' },
 };
 
@@ -126,11 +126,11 @@ function StatTile({ label, value, sub, testid }) {
 
 function PillButton({ children, onClick, variant = 'primary', disabled, testid, Icon }) {
   const styles = {
-    primary: { background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', border: 'none' },
+    primary: { background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', border: 'none' },
     ghost:   { background: 'transparent', color: 'var(--cream)', border: '1px solid rgba(240,235,224,0.18)' },
     success: { background: 'transparent', color: '#4ADE80', border: '1px solid rgba(74,222,128,0.3)' },
     danger:  { background: 'transparent', color: '#FCA5A5', border: '1px solid rgba(252,165,165,0.3)' },
-    indigo:  { background: 'transparent', color: '#A5B4FC', border: '1px solid rgba(99,102,241,0.30)' },
+    indigo:  { background: 'transparent', color: '#A5B4FC', border: '1px solid rgba(var(--theme-rgb),0.30)' },
   };
   return (
     <button
@@ -335,10 +335,10 @@ export default function SmartRoutingPanel({ orgId }) {
                 padding: '4px 11px', borderRadius: 9999, fontSize: 10.5, fontFamily: 'DM Sans', fontWeight: 700,
                 cursor: 'pointer',
                 background: statusFilter === s
-                  ? 'linear-gradient(90deg, rgba(99,102,241,0.22), rgba(236,72,153,0.18))'
+                  ? 'linear-gradient(90deg, rgba(var(--theme-rgb),0.22), rgba(var(--theme-rgb),0.18))'
                   : 'transparent',
                 border: statusFilter === s
-                  ? '1px solid rgba(99,102,241,0.45)'
+                  ? '1px solid rgba(var(--theme-rgb),0.45)'
                   : '1px solid rgba(255,255,255,0.08)',
                 color: statusFilter === s ? 'var(--cream)' : 'rgba(240,235,224,0.55)',
               }}

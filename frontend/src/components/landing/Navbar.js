@@ -64,7 +64,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
         cursor: 'pointer',
         transition: 'color 0.2s, border-color 0.2s, background 0.2s',
       }}
-      onMouseEnter={e => { e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.45)'; }}
+      onMouseEnter={e => { e.currentTarget.style.color = 'var(--cream)'; e.currentTarget.style.borderColor = 'rgba(var(--theme-rgb),0.45)'; }}
       onMouseLeave={e => { e.currentTarget.style.color = 'var(--cream-2)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
     >
       <Globe size={12} />

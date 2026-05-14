@@ -59,7 +59,7 @@ const DEFAULT_FORM = {
 function SectionTitle({ Icon, title }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-      <Icon size={13} color="#6366F1" />
+      <Icon size={13} color="var(--theme)" />
       <span style={{
         fontFamily: 'DM Sans', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
         textTransform: 'uppercase', color: 'rgba(240,235,224,0.55)',
@@ -115,7 +115,7 @@ function Dropdown({ value, onChange, options, testid }) {
           </option>
         ))}
       </select>
-      <ChevronDown size={13} color="rgba(240,235,224,0.40)" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+      <ChevronDown size={13} color="rgba(240, 235, 224, 0.68)" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
     </div>
   );
 }
@@ -127,7 +127,7 @@ function RangeSlider({ value, onChange, min = 1, max = 5, label, testid }) {
         <FieldLabel>{label}</FieldLabel>
         <span style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 14,
-          color: '#6366F1', minWidth: 20, textAlign: 'right',
+          color: 'var(--theme)', minWidth: 20, textAlign: 'right',
         }}>{value}</span>
       </div>
       <input
@@ -135,7 +135,7 @@ function RangeSlider({ value, onChange, min = 1, max = 5, label, testid }) {
         type="range"
         min={min} max={max} value={value}
         onChange={e => onChange(parseInt(e.target.value, 10))}
-        style={{ width: '100%', accentColor: '#6366F1', cursor: 'pointer', height: 4 }}
+        style={{ width: '100%', accentColor: 'var(--theme)', cursor: 'pointer', height: 4 }}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
         <span style={{ fontFamily: 'DM Sans', fontSize: 9.5, color: 'rgba(240,235,224,0.35)' }}>{min}</span>
@@ -154,7 +154,7 @@ function Toggle({ value, onChange, label, testid }) {
         onClick={() => onChange(!value)}
         style={{
           width: 38, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
-          background: value ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'rgba(255,255,255,0.12)',
+          background: value ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))' : 'rgba(255,255,255,0.12)',
           position: 'relative', transition: 'background 0.25s',
         }}
       >
@@ -188,13 +188,13 @@ function ChipInput({ chips, onChange, placeholder, testid }) {
           <span key={idx} style={{
             padding: '3px 9px', borderRadius: 9999, fontSize: 11.5,
             fontFamily: 'DM Sans', fontWeight: 600,
-            background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)',
-            color: '#818CF8', display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'rgba(var(--theme-rgb),0.15)', border: '1px solid rgba(var(--theme-rgb),0.35)',
+            color: 'var(--theme)', display: 'inline-flex', alignItems: 'center', gap: 5,
           }}>
             {chip}
             <button
               onClick={() => removeChip(idx)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#818CF8', lineHeight: 1 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--theme)', lineHeight: 1 }}
             >
               <X size={10} />
             </button>
@@ -218,8 +218,8 @@ function ChipInput({ chips, onChange, placeholder, testid }) {
         <button
           onClick={addChip}
           style={{
-            padding: '7px 12px', borderRadius: 9999, border: '1px solid rgba(99,102,241,0.40)',
-            background: 'rgba(99,102,241,0.12)', color: '#818CF8',
+            padding: '7px 12px', borderRadius: 9999, border: '1px solid rgba(var(--theme-rgb),0.40)',
+            background: 'rgba(var(--theme-rgb),0.12)', color: 'var(--theme)',
             fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}
         >
@@ -332,7 +332,7 @@ function PreviewModal({ orgId, form, onClose }) {
     >
       <div
         data-testid="persona-preview-modal"
-        style={{ width: '100%', maxWidth: 560, background: 'rgba(13,17,28,0.98)', border: '1px solid rgba(99,102,241,0.30)', borderRadius: 18, padding: '24px 26px' }}
+        style={{ width: '100%', maxWidth: 560, background: 'rgba(13,17,28,0.98)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 18, padding: '24px 26px' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', margin: 0 }}>
@@ -365,7 +365,7 @@ function PreviewModal({ orgId, form, onClose }) {
           disabled={loading || !sampleQuery.trim()}
           style={{
             width: '100%', padding: '10px 0', borderRadius: 9999, border: 'none', cursor: 'pointer',
-            background: loading || !sampleQuery.trim() ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
+            background: loading || !sampleQuery.trim() ? 'rgba(255,255,255,0.08)' : 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
             color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
             marginBottom: 14, transition: 'background 0.25s',
@@ -382,12 +382,12 @@ function PreviewModal({ orgId, form, onClose }) {
           <div>
             <div style={{ marginBottom: 10 }}>
               <FieldLabel>Respuesta de Atlax ({result.persona_name})</FieldLabel>
-              <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', lineHeight: 1.6 }}>
+              <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.22)', fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', lineHeight: 1.6 }}>
                 {result.response_text}
               </div>
             </div>
             <details style={{ marginTop: 8 }}>
-              <summary style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', cursor: 'pointer', userSelect: 'none' }}>
+              <summary style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)', cursor: 'pointer', userSelect: 'none' }}>
                 Ver system prompt usado (debug)
               </summary>
               <pre style={{ margin: '8px 0 0', padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.55)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 200, overflowY: 'auto' }}>
@@ -395,10 +395,10 @@ function PreviewModal({ orgId, form, onClose }) {
               </pre>
             </details>
             <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-              <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)' }}>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.68)' }}>
                 Modelo: {result.model}
               </span>
-              <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)' }}>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.68)' }}>
                 Costo: ${result.cost_usd?.toFixed(6)} USD
               </span>
             </div>
@@ -496,7 +496,7 @@ export default function AtlaxPersonaPanel({ orgId }) {
 
   if (loading) {
     return (
-      <div style={{ padding: 30, textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+      <div style={{ padding: 30, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>
         Cargando persona…
       </div>
     );
@@ -510,7 +510,7 @@ export default function AtlaxPersonaPanel({ orgId }) {
           <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, color: 'var(--cream)' }}>
             Atlax Persona
           </div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.45)', marginTop: 2 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240, 235, 224, 0.70)', marginTop: 2 }}>
             Personalidad del asistente por organización
           </div>
         </div>
@@ -526,9 +526,9 @@ export default function AtlaxPersonaPanel({ orgId }) {
           <span style={{
             padding: '3px 10px', borderRadius: 9999, fontSize: 10.5,
             fontFamily: 'DM Sans', fontWeight: 700,
-            background: canEdit ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${canEdit ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.12)'}`,
-            color: canEdit ? '#818CF8' : 'rgba(240,235,224,0.40)',
+            background: canEdit ? 'rgba(var(--theme-rgb),0.15)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${canEdit ? 'rgba(var(--theme-rgb),0.40)' : 'rgba(255,255,255,0.12)'}`,
+            color: canEdit ? 'var(--theme)' : 'rgba(240, 235, 224, 0.68)',
           }}>
             {tier === 'off' ? 'Sin tier' : tier}
           </span>
@@ -691,7 +691,7 @@ export default function AtlaxPersonaPanel({ orgId }) {
           title={!canEdit ? 'Requiere tier T2+' : undefined}
           style={{
             flex: 1, padding: '10px 0', borderRadius: 9999, border: 'none', cursor: canEdit ? 'pointer' : 'not-allowed',
-            background: canEdit && !saving ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'rgba(255,255,255,0.08)',
+            background: canEdit && !saving ? 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))' : 'rgba(255,255,255,0.08)',
             color: canEdit ? '#fff' : 'rgba(240,235,224,0.35)',
             fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
@@ -705,8 +705,8 @@ export default function AtlaxPersonaPanel({ orgId }) {
           onClick={() => setShowPreview(true)}
           style={{
             padding: '10px 18px', borderRadius: 9999, cursor: 'pointer',
-            background: 'transparent', border: '1px solid rgba(99,102,241,0.40)',
-            color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
+            background: 'transparent', border: '1px solid rgba(var(--theme-rgb),0.40)',
+            color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,
             display: 'flex', alignItems: 'center', gap: 7,
           }}
         >
@@ -717,14 +717,14 @@ export default function AtlaxPersonaPanel({ orgId }) {
       {/* Footer meta */}
       <div style={{ padding: '10px 14px', borderRadius: 9, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.68)' }}>
             Versión: <strong style={{ color: 'rgba(240,235,224,0.65)' }}>v{version}</strong>
           </span>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)' }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.68)' }}>
             Actualizado: <strong style={{ color: 'rgba(240,235,224,0.65)' }}>{fmtDate(updatedAt)}</strong>
           </span>
           {updatedBy && (
-            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.40)' }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.68)' }}>
               Por: <strong style={{ color: 'rgba(240,235,224,0.65)' }}>{updatedBy}</strong>
             </span>
           )}
@@ -734,15 +734,15 @@ export default function AtlaxPersonaPanel({ orgId }) {
       {/* Audit log */}
       {recentAudit.length > 0 && (
         <div>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
             Ultimos cambios
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {recentAudit.map((a, i) => (
               <div key={i} style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Shield size={10} color="rgba(99,102,241,0.60)" />
+                <Shield size={10} color="rgba(var(--theme-rgb),0.60)" />
                 <span style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream)' }}>
-                  {a.action || 'update'} · <span style={{ color: 'rgba(240,235,224,0.50)' }}>{(a.diff_keys || []).join(', ') || 'sin campos'}</span>
+                  {a.action || 'update'} · <span style={{ color: 'rgba(240, 235, 224, 0.72)' }}>{(a.diff_keys || []).join(', ') || 'sin campos'}</span>
                 </span>
                 <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.35)' }}>{fmtDate(a.ts)}</span>
               </div>

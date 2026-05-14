@@ -13,7 +13,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchClientInsights } from '../../api/asesor_daily';
 
-const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 const SENTIMENT_COLORS = {
   positivo: '#22C55E',
@@ -90,8 +90,8 @@ function Timeline({ events }) {
               style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
             <span style={{
               fontSize: 9, padding: '2px 6px', borderRadius: 9999,
-              background: 'rgba(99,102,241,0.12)',
-              border: '1px solid rgba(99,102,241,0.25)',
+              background: 'rgba(var(--theme-rgb),0.12)',
+              border: '1px solid rgba(var(--theme-rgb),0.25)',
               color: 'var(--cream)', textTransform: 'uppercase',
               letterSpacing: '0.04em', flexShrink: 0,
             }}>{ev.type}</span>
@@ -112,8 +112,8 @@ function NextActionCard({ action, leadName, onAction }) {
   return (
     <div data-testid="insight-next-action" style={{
       padding: 14, borderRadius: 12,
-      background: 'linear-gradient(90deg, rgba(99,102,241,0.12), rgba(236,72,153,0.12))',
-      border: '1px solid rgba(99,102,241,0.3)',
+      background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.12), rgba(var(--theme-rgb),0.12))',
+      border: '1px solid rgba(var(--theme-rgb),0.3)',
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <div style={{

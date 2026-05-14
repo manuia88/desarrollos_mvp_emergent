@@ -131,13 +131,13 @@ export default function BuyerCoachConversation({ colonia = '' }) {
               data-testid={`buyer-coach-stage-${n}`}
               style={{
                 padding: '7px 8px', borderRadius: 7, cursor: 'default',
-                background: isActive ? 'rgba(99,102,241,0.15)' : 'transparent',
-                borderLeft: `2px solid ${isActive ? '#6366F1' : isDone ? '#10B981' : 'rgba(255,255,255,0.06)'}`,
+                background: isActive ? 'rgba(var(--theme-rgb),0.15)' : 'transparent',
+                borderLeft: `2px solid ${isActive ? 'var(--theme)' : isDone ? '#10B981' : 'rgba(255,255,255,0.06)'}`,
               }}
             >
               <div style={{
                 fontFamily: 'DM Sans', fontSize: 10, fontWeight: 700,
-                color: isActive ? '#a5b4fc' : isDone ? '#34D399' : 'var(--cream-3)',
+                color: isActive ? 'var(--theme)' : isDone ? '#34D399' : 'var(--cream-3)',
                 lineHeight: 1.3,
               }}>
                 {num}. {label}
@@ -153,9 +153,9 @@ export default function BuyerCoachConversation({ colonia = '' }) {
             style={{
               marginTop: 10, fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600,
               padding: '6px 8px', borderRadius: 7, cursor: 'pointer',
-              background: 'rgba(99,102,241,0.1)',
-              border: '1px solid rgba(99,102,241,0.3)',
-              color: '#a5b4fc', textAlign: 'left', lineHeight: 1.4,
+              background: 'rgba(var(--theme-rgb),0.1)',
+              border: '1px solid rgba(var(--theme-rgb),0.3)',
+              color: 'var(--theme)', textAlign: 'left', lineHeight: 1.4,
             }}
           >
             Ver mapa con estas zonas
@@ -175,7 +175,7 @@ export default function BuyerCoachConversation({ colonia = '' }) {
               <div style={{
                 maxWidth: '78%',
                 background: m.role === 'user'
-                  ? 'linear-gradient(90deg, #6366F1, #EC4899)'
+                  ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
                   : 'rgba(255,255,255,0.06)',
                 borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                 padding: '9px 12px',
@@ -197,7 +197,7 @@ export default function BuyerCoachConversation({ colonia = '' }) {
                 {[0, 1, 2].map(d => (
                   <div key={d} style={{
                     width: 5, height: 5, borderRadius: '50%',
-                    background: '#6366F1', opacity: 0.6,
+                    background: 'var(--theme)', opacity: 0.6,
                     animation: `bounce 1.2s ${d * 0.2}s infinite ease-in-out`,
                   }} />
                 ))}
@@ -213,8 +213,8 @@ export default function BuyerCoachConversation({ colonia = '' }) {
                 style={{
                   fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600,
                   padding: '5px 12px', borderRadius: 9999, cursor: 'pointer',
-                  border: '1px solid rgba(99,102,241,0.4)',
-                  background: 'rgba(99,102,241,0.08)', color: '#a5b4fc',
+                  border: '1px solid rgba(var(--theme-rgb),0.4)',
+                  background: 'rgba(var(--theme-rgb),0.08)', color: 'var(--theme)',
                 }}
               >
                 {showChecklist ? 'Ocultar checklist' : 'Ver checklist de esta etapa'}
@@ -231,7 +231,7 @@ export default function BuyerCoachConversation({ colonia = '' }) {
                 style={{
                   fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
                   padding: '8px 18px', borderRadius: 9999, cursor: 'pointer',
-                  background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+                  background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
                   color: '#fff', border: 'none',
                 }}
               >
@@ -273,7 +273,7 @@ export default function BuyerCoachConversation({ colonia = '' }) {
             disabled={loading || !input.trim()}
             style={{
               width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               opacity: (!input.trim() || loading) ? 0.4 : 1,
@@ -320,7 +320,7 @@ export default function BuyerCoachConversation({ colonia = '' }) {
                 type="checkbox"
                 checked={leadForm.consent}
                 onChange={e => setLeadForm(f => ({ ...f, consent: e.target.checked }))}
-                style={{ marginTop: 2, accentColor: '#6366F1' }}
+                style={{ marginTop: 2, accentColor: 'var(--theme)' }}
               />
               <span style={{ fontSize: 10, color: 'var(--cream-3)', fontFamily: 'DM Sans', lineHeight: 1.5 }}>
                 Acepto que mis datos sean usados para contacto comercial. LFPDPPP.
@@ -333,7 +333,7 @@ export default function BuyerCoachConversation({ colonia = '' }) {
               <button
                 onClick={handleCaptureLead}
                 disabled={!leadForm.email || !leadForm.consent}
-                style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: '8px 0', borderRadius: 9999, cursor: 'pointer', background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', border: 'none', opacity: (!leadForm.email || !leadForm.consent) ? 0.5 : 1 }}
+                style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, padding: '8px 0', borderRadius: 9999, cursor: 'pointer', background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', border: 'none', opacity: (!leadForm.email || !leadForm.consent) ? 0.5 : 1 }}
               >
                 Enviar
               </button>

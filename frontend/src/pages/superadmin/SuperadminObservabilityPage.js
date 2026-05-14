@@ -102,7 +102,7 @@ export default function SuperadminObservabilityPage({ user, onLogout }) {
               </div>
               {data.sentry?.enabled && data.sentry.dashboard_url && (
                 <a href={data.sentry.dashboard_url} target="_blank" rel="noreferrer" data-testid="obs-sentry-link" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#c7d2fe',
+                  display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--theme)',
                   textDecoration: 'none', fontFamily: 'DM Sans', fontWeight: 600,
                 }}>
                   Abrir Sentry <ArrowRight size={10} />
@@ -123,7 +123,7 @@ export default function SuperadminObservabilityPage({ user, onLogout }) {
               </div>
               {data.posthog?.enabled && data.posthog.dashboard_url && (
                 <a href={data.posthog.dashboard_url} target="_blank" rel="noreferrer" data-testid="obs-posthog-link" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#c7d2fe',
+                  display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--theme)',
                   textDecoration: 'none', fontFamily: 'DM Sans', fontWeight: 600,
                 }}>
                   Abrir PostHog <ArrowRight size={10} />
@@ -152,7 +152,7 @@ export default function SuperadminObservabilityPage({ user, onLogout }) {
                       display: 'flex', justifyContent: 'space-between', fontFamily: 'DM Mono', fontSize: 10,
                       color: 'var(--cream-2)',
                     }}>
-                      <span>{k}</span><span style={{ color: '#a5b4fc' }}>{v}</span>
+                      <span>{k}</span><span style={{ color: 'var(--theme)' }}>{v}</span>
                     </div>
                   ))}
                 </div>
@@ -163,13 +163,13 @@ export default function SuperadminObservabilityPage({ user, onLogout }) {
 
         <div style={{
           marginTop: 28, padding: 18, borderRadius: 14,
-          background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
+          background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)',
         }}>
           <div className="eyebrow" style={{ marginBottom: 4 }}>Entorno</div>
           <div style={{ fontFamily: 'DM Mono', fontSize: 12, color: 'var(--cream)' }}>
-            env: <strong style={{ color: '#c7d2fe' }}>{data?.env || '—'}</strong>
-            {' · '}Sentry sample: <strong style={{ color: '#c7d2fe' }}>0.1</strong>
-            {' · '}PostHog autocapture: <strong style={{ color: '#c7d2fe' }}>ON</strong>
+            env: <strong style={{ color: 'var(--theme)' }}>{data?.env || '—'}</strong>
+            {' · '}Sentry sample: <strong style={{ color: 'var(--theme)' }}>0.1</strong>
+            {' · '}PostHog autocapture: <strong style={{ color: 'var(--theme)' }}>ON</strong>
           </div>
         </div>
       </div>

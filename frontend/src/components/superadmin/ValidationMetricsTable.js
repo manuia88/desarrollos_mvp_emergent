@@ -58,7 +58,7 @@ function HeaderCell({ label, hint }) {
           position: 'absolute', top: '100%', right: 0, marginTop: 4,
           padding: '8px 11px', borderRadius: 8,
           background: 'rgba(13,17,28,0.97)',
-          border: '1px solid rgba(99,102,241,0.40)',
+          border: '1px solid rgba(var(--theme-rgb),0.40)',
           color: 'rgba(240,235,224,0.85)',
           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500,
           textTransform: 'none', letterSpacing: 'normal',
@@ -77,7 +77,7 @@ export default function ValidationMetricsTable({ items, avgR2 }) {
         padding: 30, textAlign: 'center', borderRadius: 14,
         background: 'rgba(255,255,255,0.02)',
         border: '1px solid rgba(255,255,255,0.07)',
-        fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.45)',
+        fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240, 235, 224, 0.70)',
       }}>Sin validaciones todavía.</div>
     );
   }
@@ -89,8 +89,8 @@ export default function ValidationMetricsTable({ items, avgR2 }) {
       {avgR2 != null && (
         <div style={{
           marginBottom: 10, padding: '10px 14px', borderRadius: 12,
-          background: 'rgba(99,102,241,0.06)',
-          border: '1px solid rgba(99,102,241,0.20)',
+          background: 'rgba(var(--theme-rgb),0.06)',
+          border: '1px solid rgba(var(--theme-rgb),0.20)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{
@@ -152,7 +152,7 @@ export default function ValidationMetricsTable({ items, avgR2 }) {
                     <div>{MODEL_LABEL[m.model_name] || m.model_name}</div>
                     <div style={{
                       fontFamily: 'DM Mono, monospace', fontSize: 10,
-                      color: 'rgba(240,235,224,0.40)', fontWeight: 400,
+                      color: 'rgba(240, 235, 224, 0.68)', fontWeight: 400,
                     }}>{m.model_name}</div>
                   </td>
                   <td style={{

@@ -36,7 +36,7 @@ export default function DataLicensingBundleCard({ bundle, onCreate }) {
         </div>
         <div data-testid={`bundle-card-price-${bundle.key}`} style={{
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,
-          backgroundImage: 'linear-gradient(90deg,#6366F1,#EC4899)',
+          backgroundImage: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>
           {isCustom ? 'Personalizado'
@@ -50,7 +50,7 @@ export default function DataLicensingBundleCard({ bundle, onCreate }) {
         onClick={() => onCreate?.(bundle)}
         style={{
           padding: '9px 16px', borderRadius: 9999,
-          backgroundImage: 'linear-gradient(90deg,#6366F1,#EC4899)',
+          backgroundImage: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))',
           border: '1px solid rgba(255,255,255,0.16)',
           color: '#fff', cursor: 'pointer',
           fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13,

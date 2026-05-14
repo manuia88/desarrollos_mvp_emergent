@@ -26,7 +26,7 @@ function KpiCard({ Icon, label, value, accent }) {
     <div style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
         <Icon size={11} color={accent} />
-        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
+        <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</span>
       </div>
       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: accent || 'var(--cream)' }}>{value}</div>
     </div>
@@ -61,11 +61,11 @@ function ReplayModal({ connector, onClose, onConfirm }) {
       style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="replay-modal" style={{
         width: '100%', maxWidth: 460, background: 'rgba(13,17,28,0.97)',
-        border: '1px solid rgba(99,102,241,0.30)', borderRadius: 14,
+        border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14,
         padding: 20, display: 'flex', flexDirection: 'column', gap: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Repeat size={14} color="#EC4899" />
+          <Repeat size={14} color="var(--theme)" />
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0, flex: 1 }}>
             Reproducir fallos · {connector.name}
           </h3>
@@ -101,7 +101,7 @@ function ReplayModal({ connector, onClose, onConfirm }) {
             Cancelar
           </button>
           <button data-testid="replay-confirm" onClick={submit} disabled={busy}
-            style={{ padding: '8px 18px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
+            style={{ padding: '8px 18px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
             {busy ? 'Ejecutando…' : 'Reproducir'}
           </button>
         </div>
@@ -144,7 +144,7 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
         borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '24px 26px 80px',
         overflowY: 'auto',
       }}>
-        {loading && <div style={{ padding: 30, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>}
+        {loading && <div style={{ padding: 30, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>}
         {conn && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 14 }}>
@@ -152,7 +152,7 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
                 <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', margin: '0 0 3px' }}>
                   {conn.name}
                 </h2>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'rgba(240, 235, 224, 0.70)' }}>
                   {conn.id} · {conn.category}
                 </div>
               </div>
@@ -166,9 +166,9 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
                   style={{
                     padding: '6px 12px', borderRadius: 9999, fontSize: 12,
                     fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                    border: tab === k ? '1px solid rgba(99,102,241,0.55)' : '1px solid transparent',
-                    background: tab === k ? 'rgba(99,102,241,0.16)' : 'transparent',
-                    color: tab === k ? '#818CF8' : 'rgba(240,235,224,0.55)',
+                    border: tab === k ? '1px solid rgba(var(--theme-rgb),0.55)' : '1px solid transparent',
+                    background: tab === k ? 'rgba(var(--theme-rgb),0.16)' : 'transparent',
+                    color: tab === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)',
                   }}>{l}</button>
               ))}
             </div>
@@ -180,23 +180,23 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
                     ['Estado', conn.status, conn.status === 'ok' ? '#4ADE80' : conn.status === 'failed' ? '#F87171' : conn.status === 'degraded' ? '#FACC15' : 'rgba(240,235,224,0.55)'],
                     ['OK 24h', conn.success_count_24h || 0, '#4ADE80'],
                     ['Fails 24h', conn.fail_count_24h || 0, conn.fail_count_24h ? '#F87171' : 'rgba(240,235,224,0.55)'],
-                    ['Latencia avg', `${Math.round(conn.latency_avg_ms_24h || 0)}ms`, '#818CF8'],
+                    ['Latencia avg', `${Math.round(conn.latency_avg_ms_24h || 0)}ms`, 'var(--theme)'],
                   ].map(([l, v, c]) => (
                     <div key={l} style={{ padding: '11px 13px', borderRadius: 11, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{l}</div>
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{l}</div>
                       <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: c }}>{v}</div>
                     </div>
                   ))}
                 </div>
                 {conn.last_error && (
                   <div style={{ padding: '9px 12px', borderRadius: 9, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.22)' }}>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Último error</div>
+                    <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240, 235, 224, 0.72)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Último error</div>
                     <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11.5, color: '#F87171', wordBreak: 'break-word' }}>{conn.last_error}</div>
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <button data-testid="drawer-test" onClick={async () => { await onAction('test', conn.id); reload(); }}
-                    style={{ padding: '7px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.30)', color: '#818CF8', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    style={{ padding: '7px 14px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <Play size={11} /> Probar
                   </button>
                   {conn.supports_retry && (
@@ -207,7 +207,7 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
                   )}
                   {conn.supports_replay && (
                     <button data-testid="drawer-replay" onClick={() => onAction('replay', conn)}
-                      style={{ padding: '7px 14px', borderRadius: 9999, background: 'rgba(236,72,153,0.10)', border: '1px solid rgba(236,72,153,0.30)', color: '#EC4899', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      style={{ padding: '7px 14px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.30)', color: 'var(--theme)', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Repeat size={11} /> Replay
                     </button>
                   )}
@@ -220,16 +220,16 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[['all', 'Todos'], ['ok', 'OK'], ['fail', 'Falló']].map(([k, l]) => (
                     <button key={k} onClick={() => setInvFilter(k)} data-testid={`inv-filter-${k}`}
-                      style={{ padding: '4px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: invFilter === k ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.10)', background: invFilter === k ? 'rgba(99,102,241,0.10)' : 'transparent', color: invFilter === k ? '#818CF8' : 'rgba(240,235,224,0.55)' }}>
+                      style={{ padding: '4px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: invFilter === k ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.10)', background: invFilter === k ? 'rgba(var(--theme-rgb),0.10)' : 'transparent', color: invFilter === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
                       {l}
                     </button>
                   ))}
-                  <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240,235,224,0.45)' }}>
+                  <span style={{ marginLeft: 'auto', fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)' }}>
                     {invs.total} totales
                   </span>
                 </div>
                 {(invs.items || []).length === 0 ? (
-                  <div style={{ padding: 24, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)' }}>
+                  <div style={{ padding: 24, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)' }}>
                     Sin invocaciones
                   </div>
                 ) : invs.items.map((inv) => (
@@ -243,8 +243,8 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
                         {inv.status.toUpperCase()}
                       </span>
                       <span style={{ color: 'rgba(240,235,224,0.55)' }}>{fmtRel(inv.ts)}</span>
-                      <span style={{ color: 'rgba(240,235,224,0.45)' }}>· {inv.op}</span>
-                      <span style={{ color: '#818CF8' }}>· {inv.duration_ms}ms</span>
+                      <span style={{ color: 'rgba(240, 235, 224, 0.70)' }}>· {inv.op}</span>
+                      <span style={{ color: 'var(--theme)' }}>· {inv.duration_ms}ms</span>
                     </div>
                     {inv.error && (
                       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10.5, color: '#F87171', wordBreak: 'break-word' }}>{inv.error}</div>
@@ -257,17 +257,17 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
             {tab === 'audit' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {(data?.audit_log || []).length === 0 ? (
-                  <div style={{ padding: 24, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.40)' }}>
+                  <div style={{ padding: 24, textAlign: 'center', fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240, 235, 224, 0.68)' }}>
                     Sin entradas de auditoría
                   </div>
                 ) : data.audit_log.map((a) => (
                   <div key={a.id} style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'DM Mono, monospace', fontSize: 10.5, marginBottom: 3 }}>
-                      <span style={{ padding: '1px 6px', borderRadius: 9999, fontSize: 9.5, fontWeight: 700, background: 'rgba(99,102,241,0.15)', color: '#818CF8' }}>
+                      <span style={{ padding: '1px 6px', borderRadius: 9999, fontSize: 9.5, fontWeight: 700, background: 'rgba(var(--theme-rgb),0.15)', color: 'var(--theme)' }}>
                         {a.action}
                       </span>
                       <span style={{ color: 'rgba(240,235,224,0.55)' }}>{fmtRel(a.ts)}</span>
-                      <span style={{ color: 'rgba(240,235,224,0.45)' }}>· {a.actor?.user_id || '—'}</span>
+                      <span style={{ color: 'rgba(240, 235, 224, 0.70)' }}>· {a.actor?.user_id || '—'}</span>
                     </div>
                     {a.after && (
                       <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'rgba(240,235,224,0.55)', wordBreak: 'break-word' }}>
@@ -367,7 +367,7 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
         <style>{`@keyframes connectorPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); } }`}</style>
 
         {toast && (
-          <div data-testid="hub-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="hub-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -375,17 +375,17 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
         <div style={{ marginBottom: 22, display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <Plug size={20} color="#818CF8" />
+              <Plug size={20} color="var(--theme)" />
               <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', margin: 0, letterSpacing: '-0.025em' }}>
                 Conectores
               </h1>
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240, 235, 224, 0.72)', margin: 0 }}>
               Status real, retry manual y replay de rangos fallidos para todos los servicios externos.
             </p>
           </div>
           <button data-testid="refresh-all-btn" onClick={refreshAll} disabled={refreshingAll}
-            style={{ padding: '9px 18px', borderRadius: 9999, background: 'linear-gradient(90deg,#6366F1,#EC4899)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: refreshingAll ? 'wait' : 'pointer', opacity: refreshingAll ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: '9px 18px', borderRadius: 9999, background: 'linear-gradient(90deg, var(--theme), rgba(var(--theme-rgb), 0.7))', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5, cursor: refreshingAll ? 'wait' : 'pointer', opacity: refreshingAll ? 0.7 : 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <RefreshCw size={12} className={refreshingAll ? 'animate-spin' : ''} />
             {refreshingAll ? 'Refrescando…' : 'Refrescar todo'}
           </button>
@@ -393,7 +393,7 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
 
         {/* KPIs */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}>
-          <KpiCard Icon={Activity} label="Total" value={data.counts?.total || 0} accent="#818CF8" />
+          <KpiCard Icon={Activity} label="Total" value={data.counts?.total || 0} accent="var(--theme)" />
           <KpiCard Icon={CheckCircle} label="Operativos" value={data.counts?.ok || 0} accent="#4ADE80" />
           <KpiCard Icon={AlertTriangle} label="Degraded" value={data.counts?.degraded || 0} accent="#FACC15" />
           <KpiCard Icon={XCircle} label="Failed" value={data.counts?.failed || 0} accent={data.counts?.failed ? '#F87171' : 'rgba(240,235,224,0.55)'} />
@@ -401,19 +401,19 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
 
         {/* Filters */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Categoría</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Categoría</span>
           {CATEGORY_CHIPS.map(([k, l]) => (
             <button key={k} data-testid={`cat-chip-${k}`} onClick={() => setFilterCat(k)}
-              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filterCat === k ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.08)', background: filterCat === k ? 'rgba(99,102,241,0.10)' : 'transparent', color: filterCat === k ? '#818CF8' : 'rgba(240,235,224,0.55)' }}>
+              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filterCat === k ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.08)', background: filterCat === k ? 'rgba(var(--theme-rgb),0.10)' : 'transparent', color: filterCat === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
               {l}
             </button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Estado</span>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 10.5, color: 'rgba(240, 235, 224, 0.70)', textTransform: 'uppercase', letterSpacing: '0.07em', marginRight: 4 }}>Estado</span>
           {STATUS_CHIPS.map(([k, l]) => (
             <button key={k} data-testid={`status-chip-${k}`} onClick={() => setFilterStatus(k)}
-              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filterStatus === k ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.08)', background: filterStatus === k ? 'rgba(99,102,241,0.10)' : 'transparent', color: filterStatus === k ? '#818CF8' : 'rgba(240,235,224,0.55)' }}>
+              style={{ padding: '5px 12px', borderRadius: 9999, fontSize: 11.5, fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer', border: filterStatus === k ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(255,255,255,0.08)', background: filterStatus === k ? 'rgba(var(--theme-rgb),0.10)' : 'transparent', color: filterStatus === k ? 'var(--theme)' : 'rgba(240,235,224,0.55)' }}>
               {l}
             </button>
           ))}
@@ -421,7 +421,7 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
 
         {/* Grid */}
         {loading ? (
-          <div style={{ padding: 60, textAlign: 'center', color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans' }}>
+          <div style={{ padding: 60, textAlign: 'center', color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans' }}>
             Cargando conectores…
           </div>
         ) : filtered.length === 0 ? (

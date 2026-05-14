@@ -128,7 +128,7 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
         ].map(t => (
           <button key={t.k} data-testid={`sync-tab-${t.k}`} onClick={() => setTab(t.k)} style={{
             padding: '8px 14px', background: 'transparent', border: 'none',
-            borderBottom: `2px solid ${tab === t.k ? '#6366F1' : 'transparent'}`,
+            borderBottom: `2px solid ${tab === t.k ? 'var(--theme)' : 'transparent'}`,
             color: tab === t.k ? 'var(--cream)' : 'var(--cream-3)',
             fontFamily: 'DM Sans', fontWeight: tab === t.k ? 600 : 500, fontSize: 12.5,
             cursor: 'pointer', marginBottom: -1,
@@ -158,8 +158,8 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
                   <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--cream)', fontWeight: 600 }}>{d.field}</span>
                   <span style={{
                     padding: '2px 9px', borderRadius: 9999,
-                    background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)',
-                    color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700,
+                    background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)',
+                    color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700,
                     letterSpacing: '0.08em', textTransform: 'uppercase',
                   }}>{d.source_doc_type}</span>
                   {d.is_private && <span style={{ padding: '2px 9px', borderRadius: 9999, background: 'rgba(148,163,184,0.12)', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>PRIVADO</span>}
@@ -193,7 +193,7 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--cream)', fontWeight: 600 }}>units_overlay</span>
-                <span style={{ padding: '2px 9px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)', color: '#c7d2fe', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>lp</span>
+                <span style={{ padding: '2px 9px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>lp</span>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)' }}>
                 <strong>{unitsDiff.current_count}</strong> unidades actuales → <strong style={{ color: '#86efac' }}>{unitsDiff.proposed_count}</strong> propuestas (reemplazo full).
@@ -219,20 +219,20 @@ export default function SyncPreview({ devId, devName, scope = 'superadmin', onAp
             }}>
               <span style={{
                 padding: '2px 9px', borderRadius: 9999,
-                background: a.kind === 'revert' ? 'rgba(245,158,11,0.12)' : 'rgba(99,102,241,0.12)',
-                color: a.kind === 'revert' ? '#fcd34d' : '#c7d2fe',
+                background: a.kind === 'revert' ? 'rgba(245,158,11,0.12)' : 'rgba(var(--theme-rgb),0.12)',
+                color: a.kind === 'revert' ? '#fcd34d' : 'var(--theme)',
                 fontFamily: 'DM Sans', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
               }}>{a.kind || 'apply'}</span>
               <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--cream)', flexShrink: 0 }}>{a.field}</span>
               <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>
                 {fmtDate(a.applied_at)} · {a.applied_by}
               </span>
-              {a.source_doc_id && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#c7d2fe' }}>{a.source_doc_id}</span>}
+              {a.source_doc_id && <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme)' }}>{a.source_doc_id}</span>}
               <div style={{ marginLeft: 'auto' }}>
                 {a.can_revert && a.kind !== 'revert' && (
                   <button data-testid="sync-revert-btn" onClick={() => revert(a.audit_id)} style={{
-                    padding: '4px 12px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)',
-                    border: '1px solid rgba(99,102,241,0.32)', color: '#c7d2fe',
+                    padding: '4px 12px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)',
+                    border: '1px solid rgba(var(--theme-rgb),0.32)', color: 'var(--theme)',
                     fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, cursor: 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                   }}><RotateCcw size={10} /> Revertir</button>

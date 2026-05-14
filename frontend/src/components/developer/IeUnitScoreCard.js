@@ -16,25 +16,25 @@ const CODE_LABELS = {
 };
 
 const TIER_COLOR = {
-  A: '#6366F1',
+  A: 'var(--theme)',
   B: '#F0EBE0',
   C: '#FCD34D',
   D: '#FB7185',
   F: '#EF4444',
-  green: '#6366F1',
+  green: 'var(--theme)',
   amber: '#FCD34D',
   red: '#FB7185',
   unknown: 'rgba(240,235,224,0.4)',
 };
 
-const tierGradient = 'linear-gradient(90deg, #6366F1, #EC4899)';
+const tierGradient = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
 function ScoreRow({ score }) {
   const label = CODE_LABELS[score.code] || score.code;
   const value = typeof score.value === 'number' ? Math.round(score.value) : 0;
   const tier = score.tier || 'unknown';
   const isTopTier = tier === 'A' || tier === 'green';
-  const barFill = isTopTier ? tierGradient : '#6366F1';
+  const barFill = isTopTier ? tierGradient : 'var(--theme)';
   const tierColor = TIER_COLOR[tier] || TIER_COLOR.unknown;
 
   return (
