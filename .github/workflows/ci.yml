@@ -12,7 +12,8 @@ jobs:
   backend-syntax:
     name: Backend Syntax + Imports
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # CI hardening 2026-05-13: removido continue-on-error: true que enmascaraba
+    # fallos de pytest como success. Ahora si pytest falla, job rojo (correcto).
     steps:
       - uses: actions/checkout@v4
 
@@ -45,9 +46,16 @@ jobs:
           for f in backend/*.py; do
             python -m py_compile "$f" 2>&1 || fail=1
           done
-          [ "$fail" = "0" ] && echo "All backend files compile OK" || echo "WARN: some files failed"
+          if [ "$fail" = "0" ]; then
+            echo "All backend files compile OK"
+          else
+            echo "ERROR: some files failed compile" && exit 1
+          fi
 
       - name: Run unit tests (Wave 1+ · no infra needed)
+        # CI hardening 2026-05-13: removido "| tail -80" que ocultaba exit code real de pytest.
+        # Ahora si pytest falla, step rojo. --continue-on-collection-errors permite que
+        # archivos con import errors no aborten suite, pero errors quedan visibles.
         run: |
           cd backend
           pytest -m unit -v \
@@ -58,13 +66,12 @@ jobs:
             --ignore=tests/wave4/test_free_audit_engine_unit.py \
             --ignore=tests/wave4/test_newsletter_pulse_engine_unit.py \
             --ignore=tests/wave4/test_state_of_cdmx_engine_unit.py \
-            --ignore=tests/wave4/test_tour_3dgs_engine_unit.py \
-            2>&1 | tail -80
+            --ignore=tests/wave4/test_tour_3dgs_engine_unit.py
 
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # CI hardening 2026-05-13: removido continue-on-error · ahora si yarn build falla, job rojo.
     steps:
       - uses: actions/checkout@v4
 
