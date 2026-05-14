@@ -2,11 +2,15 @@
 import React from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { PortalLayout } from '../shared/PortalLayout';
+import { useAuth } from '../../App';
 
 const ROLES_OK = new Set(['superadmin']);
 
-export default function SuperadminLayout({ user, onLogout, children }) {
+export default function SuperadminLayout({ user: propUser, onLogout: propOnLogout, children }) {
   const loc = useLocation();
+  const ctx = useAuth();
+  const user = propUser || ctx.user;
+  const onLogout = propOnLogout || ctx.logout;
 
   if (!user) return <Navigate to={`/?login=1&next=${encodeURIComponent(loc.pathname)}`} replace />;
   if (!ROLES_OK.has(user.role)) {

@@ -29,7 +29,7 @@ from pydantic import BaseModel
 log = logging.getLogger("dmx.wizard")
 router = APIRouter(prefix="/api/dev/wizard", tags=["wizard"])
 
-UPLOAD_ROOT = Path("/app/backend/uploads/wizard_ia")
+UPLOAD_ROOT = Path(os.environ.get("WIZARD_STORAGE_PATH", "/app/backend/uploads/wizard_ia"))
 UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
 MAX_FILE_MB = 20
 MAX_FILES = 10

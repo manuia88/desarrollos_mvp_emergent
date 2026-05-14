@@ -41,3 +41,11 @@ uploads/ie_engine/
 
 # W4.9 Brochure Studio — generated PDFs + social PNGs (regenerated each run)
 backend/storage/brochures/
+
+# Local dev (Mac-only · setup founder)
+scripts/dev-data/
+scripts/logs/
+scripts/.venv/
+.env.local
+backend/.env.local
+frontend/.env.local

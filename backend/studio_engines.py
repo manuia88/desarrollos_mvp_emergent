@@ -23,7 +23,7 @@ import httpx
 from fastapi import HTTPException
 
 # ─── Storage paths ───────────────────────────────────────────────────────────
-UPLOAD_ROOT = Path("/app/backend/uploads/studio")
+UPLOAD_ROOT = Path(os.environ.get("STUDIO_STORAGE_PATH", "/app/backend/uploads/studio"))
 for sub in ("videos", "ads", "tts"):
     (UPLOAD_ROOT / sub).mkdir(parents=True, exist_ok=True)
 

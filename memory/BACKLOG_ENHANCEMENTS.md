@@ -8,6 +8,69 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### Superadmin · Renombrar "Tenants" + explicaciones contextuales en cada tab/card (origen: founder navegación localhost · 2026-05-14)
+
+**Gap detectado**: founder navegando descubrió que:
+1. "Tenants" no es claro · suena técnico
+2. No hay explicación de qué hace cada tab/card · founder pierde visibilidad de los alcances con 36 tabs
+
+**Mejoras propuestas**:
+
+1. **Renombrar "Tenants"** → "Clientes" u "Organizaciones" (decisión founder pendiente)
+2. **Explicaciones contextuales** en cada elemento:
+   - Tooltip al hover sobre tab del sidebar (qué hace · para qué sirve · qué valor da)
+   - Subtítulo descriptivo bajo cada KPI/card (texto natural · 1-2 líneas)
+   - Sección "¿Qué es esto?" colapsable en headers de cada page con detalle más completo
+3. **Lenguaje**: sencillo · concreto · cero jerga técnica · founder-friendly
+4. **Estructura tipo**:
+   - Tab "Data Lake" tooltip: "Almacén centralizado de datos · alimenta scores · forecasts · analytics"
+   - Card "ETL RUNS 7D" subtítulo: "Procesos automáticos que importan datos · ej 7/7 = todos exitosos esta semana"
+   - Card "Cobertura promedio" subtítulo: "% de zonas con datos suficientes para análisis confiable"
+
+**Por qué**: founder pierde sentido de qué hace cada feature · con 36 tabs es imposible recordar. Necesita guía contextual permanente.
+
+**Costo estimado**: 6-10h (textos · tooltips component · sections expandable · QA de cada tooltip)
+
+**Destino**: Wave 5 H2 superadmin polish o **integrado al rediseño superadmin** (sale a la vez con auroras y nueva organización del sidebar).
+
+### Superadmin · Vista "Desarrolladoras" con drill-down y filtros (origen: founder navegación localhost · 2026-05-14)
+
+**Gap detectado**: hoy no hay tab dedicada "Desarrolladoras" en el sidebar superadmin. La info está dispersa en Tenants (mezclada con inmobiliarias).
+
+**Lo que falta**:
+1. **Tab nueva "Desarrolladoras"** en sidebar superadmin · listado SOLO de devs registradas
+2. **Drill-down**: click en una dev → vista detallada con TODOS sus proyectos
+3. **Filtros granulares** en esa vista:
+   - Por dev (search)
+   - Por proyecto (search · estado · tipo)
+   - Por características del proyecto (unidades · m² · precio · zona · stage)
+   - Por health score · ROI · risk
+4. **Quick actions** desde la vista: editar dev · suspender · ver leads del dev · ver inventario · etc
+
+**Por qué**: founder superadmin necesita drill-down rápido para entender qué tiene cada dev sin tener que combinar 3-4 páginas distintas (tenants → ingesta → scores).
+
+**Backend ya tiene**: endpoints existentes (developer_organizations · developments · projects_unified) · solo falta la página UI agregada que los consume.
+
+**Costo estimado**: 8-10h (page UI + endpoint agregador opcional + integración filtros)
+
+**Destino**: Wave 5 H2 superadmin polish o pre-launch operations sprint.
+
+### Bulk Ingest · expandir opciones de upload (origen: founder navegación localhost · 2026-05-14)
+
+**Estado actual**: módulo `/superadmin/bulk-ingest` SOLO acepta URL de Google Drive. Founder detectó UX limitations al navegar.
+
+**Mejoras propuestas**:
+1. **Upload de archivos directos** · soportar CSV · Excel (xlsx) · PDF · JPG/PNG individuales (no solo Drive folder)
+2. **Selector dev_org_id como dropdown** · listar devs existentes en vez de campo texto libre · más opción "+ Crear nuevo dev inline"
+3. **Wizard de ingesta** · UI guía al usuario según tipo de archivo: "¿Estás subiendo proyectos? · ¿inventario? · ¿comparables?" · usa el motor adecuado para cada tipo
+4. **Drag & drop** zone en lugar de input URL/file
+
+**Por qué**: founder superadmin/operaciones necesita flexibilidad para ingestar data de fuentes diversas · Drive folder es solo 1 fuente.
+
+**Costo estimado**: 8-12h (backend endpoint multipart upload · UI wizard · adapter por tipo de archivo · validación schema)
+
+**Destino**: F0 sweep tech debt o post-launch operations sprint.
+
 ### ~~permissions.py vs routes/dev_batch4_2.py · consolidar duplicados~~ ✅ RESUELTO 2026-05-13
 
 **Estado**: **CONSOLIDADO** · sub-acciones 3.1-3.5 completadas.
