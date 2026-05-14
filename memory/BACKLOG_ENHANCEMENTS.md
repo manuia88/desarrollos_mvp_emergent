@@ -8,22 +8,22 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
-### permissions.py vs routes/dev_batch4_2.py · consolidar duplicados (origen: SHA `81800aa` · W4.15.3 tenant isolation tests · 2026-05-11)
+### ~~permissions.py vs routes/dev_batch4_2.py · consolidar duplicados~~ ✅ RESUELTO 2026-05-13
 
-**Hallazgo**: Dos archivos definen `can_view_full_client_data` y `can_move_lead` con lógica diferente:
-- `backend/permissions.py` · lógica laxa (developer_director permite cross-tenant) · NADIE la importa (código zombie)
-- `backend/routes/dev_batch4_2.py` · lógica estricta (valida tenant) · usada por endpoints reales (dev_batch4_4.py:319)
+**Estado**: **CONSOLIDADO** · sub-acciones 3.1-3.5 completadas.
 
-**Riesgo actual**: cero operacional (nadie usa la versión laxa).
-**Riesgo futuro**: medio · si alguien hace `from permissions import can_view_full_client_data` pensando que es la oficial, bug silencioso de seguridad cross-tenant.
+**Hallazgo brutal** (análisis Capa 3): las 5 funciones de `permissions.py` (can_view_kanban · can_move_lead · can_view_full_client_data · can_view_conversation · can_view_ai_summary) eran **código zombie 100%** · NUNCA se usaron en producción. Solo tests/wave1/test_permissions_unit.py las importaba.
 
-**Fix**:
-1. Decidir cuál es la canónica (sugerencia: estricta · `routes/dev_batch4_2.py` → mover a `permissions.py`)
-2. Eliminar duplicado
-3. Re-correr tenant_isolation suite · los 2 xfail deberían pasar
-4. Actualizar tests Wave 1 `test_permissions_unit.py` si afecta
+**Resolución**:
+1. ✅ Eliminadas las 5 funciones zombie de `permissions.py` (sub-acción 3.1)
+2. ✅ `tests/wave1/test_permissions_unit.py` actualizado: importa lead-gates desde `routes/dev_batch4_2.py` · 3 asserts ajustados al comportamiento canónico tenant-aware (sub-acción 3.2)
+3. ✅ `tests/integration/test_tenant_isolation.py` actualizado: eliminados 2 xfail markers · tests pasan canónicamente (sub-acción 3.3)
+4. ✅ `docs/PERMISSIONS_ARCHITECTURE.md` reescrito · refleja arquitectura limpia post-consolidación (sub-acción 3.4)
+5. ✅ Docstring `permissions.py` actualizado · scope claro: role-level helpers SOLO (sub-acción 3.5)
 
-**Costo**: 2-3h · **Destino**: post-launch o pre-Wave 5
+**Tiempo real**: ~2h · vs 4-6h estimado (gracias al análisis Capa 3 que descubrió código zombie).
+
+**Garantía post-consolidación**: cero duplicación · imposible importar la versión equivocada por accidente (ImportError inmediato si alguien intenta `from permissions import can_view_full_client_data`).
 
 ### Onboarding Tour backlog post-W4.15.2 (origen: SHA `1af822a` · 2026-05-11)
 

@@ -1,30 +1,20 @@
-"""Phase 4 Batch 0 — Permission helpers extracted from routes_dev_batch4_2.py.
-Re-exports the canonical permission level and capability checks.
-All other route files should import from here instead of batch4_2.
-Phase 14 Batch 37 — Extended with in-house user roles + cross-org helpers.
+"""Phase 4 Batch 0 — Role-level permission helpers · checks genéricos cross-portal.
+Phase 14 Batch 37 — Extended con in-house user roles + cross-org helpers.
 
-═════════════════════════════════════════════════════════════════════════════
-⚠️  DUAL-SOURCE WARNING · LEER ANTES DE USAR can_view_full_client_data / can_move_lead
-═════════════════════════════════════════════════════════════════════════════
+SCOPE de este archivo (post-consolidación 2026-05-13):
+  - Mapeo de roles a permission levels (`get_user_permission_level`)
+  - Gates de role-level (is_superadmin · can_edit_project · can_view_commercialization · etc)
+  - Helpers de tenant management (can_manage_inmobiliaria · can_view_org_internal_users)
+  - Helpers utilidad (safe_path_param)
 
-Este archivo tiene 5 funciones que ALSO existen en `routes/dev_batch4_2.py`:
-  can_view_kanban · can_move_lead · can_view_full_client_data
-  can_view_conversation · can_view_ai_summary
+FUERA DE SCOPE · NO viven aquí:
+  - Gates de acceso a LEADS (can_view_full_client_data · can_move_lead · can_view_kanban
+    · can_view_conversation · can_view_ai_summary) → viven en `routes/dev_batch4_2.py`
+    porque validan `lead.dev_org_id == user.tenant_id` (lógica estricta · tenant-aware)
 
-Las dos versiones tienen lógica DISTINTA por divergencia histórica (Phase 4 vs
-Phase 13-18). Endpoints de leads/kanban reales usan `routes/dev_batch4_2.py`.
-
-REGLA OBLIGATORIA:
-- Para gates de acceso a LEADS (kanban, lead detail, lead move) →
-  import desde `routes.dev_batch4_2` (versión estricta con validación tenant_id)
-- Para checks de role-level GENÉRICOS (is_superadmin, can_edit_project, etc) →
-  import desde `permissions.py` (este archivo · versión moderna)
-
-Si dudas: revisa cómo lo hacen `routes/dev_batch4_4.py:319` y `routes/dev_batch4_2.py:319`.
-
-Deuda técnica documentada · consolidación post-launch (4-6h) ver
-`docs/PERMISSIONS_ARCHITECTURE.md` y `memory/BACKLOG_ENHANCEMENTS.md`.
-═════════════════════════════════════════════════════════════════════════════
+Historia: hasta 2026-05-13 hubo 5 funciones zombie aquí con lógica laxa que NUNCA
+se usaron en producción (solo tests Wave 1 las importaban). Eliminadas para evitar
+confusión · ver `docs/PERMISSIONS_ARCHITECTURE.md` para detalles.
 """
 from __future__ import annotations
 from typing import Dict
@@ -89,61 +79,28 @@ def get_user_permission_level(user) -> str:
     return "asesor_freelance"
 
 
-def can_view_kanban(user, scope: str, target_org_id: str = "") -> bool:
-    lvl = get_user_permission_level(user)
-    if lvl == "superadmin":
-        return True
-    if scope == "developer":
-        return lvl in ("developer_director", "developer_member")
-    if scope == "inmobiliaria":
-        return lvl in ("inmobiliaria_director", "inmobiliaria_member")
-    if scope == "asesor":
-        return lvl in ("asesor_freelance", "developer_director", "inmobiliaria_director")
-    return False
-
-
-def can_move_lead(user, lead: Dict) -> bool:
-    lvl = get_user_permission_level(user)
-    if lvl == "superadmin":
-        return True
-    if lvl in ("developer_director", "inmobiliaria_director"):
-        return True
-    if lvl == "developer_member":
-        # member can only move leads assigned to them
-        return getattr(user, "user_id", None) == lead.get("assigned_to")
-    if lvl == "asesor_freelance":
-        return getattr(user, "tenant_id", None) == lead.get("tenant_id")
-    return False
-
-
-def can_view_full_client_data(user, lead: Dict) -> bool:
-    lvl = get_user_permission_level(user)
-    if lvl in ("superadmin", "developer_director", "inmobiliaria_director"):
-        return True
-    if lvl == "developer_member":
-        return getattr(user, "user_id", None) == lead.get("assigned_to")
-    if lvl == "asesor_freelance":
-        return getattr(user, "tenant_id", None) == lead.get("tenant_id")
-    return False
-
-
-def can_view_conversation(user, lead: Dict) -> bool:
-    lvl = get_user_permission_level(user)
-    if lvl in ("superadmin", "developer_director", "inmobiliaria_director"):
-        return True
-    if lvl in ("developer_member", "inmobiliaria_member"):
-        return getattr(user, "user_id", None) == lead.get("assigned_to")
-    return False
-
-
-def can_view_ai_summary(user, lead: Dict) -> bool:
-    lvl = get_user_permission_level(user)
-    # AI summaries visible to directors and above, plus assigned member
-    if lvl in ("superadmin", "developer_director", "inmobiliaria_director"):
-        return True
-    if lvl in ("developer_member", "inmobiliaria_member"):
-        return getattr(user, "user_id", None) == lead.get("assigned_to")
-    return False
+# ═════════════════════════════════════════════════════════════════════════════
+# LEAD-LEVEL GATES · MOVED TO routes/dev_batch4_2.py (2026-05-13 consolidation)
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# Las siguientes 5 funciones existieron aquí con lógica LAXA (sin validar
+# tenant_id en el lead). NUNCA se usaron en producción · solo `tests/wave1/
+# test_permissions_unit.py` las importaba.
+#
+# Las versiones canónicas (estrictas · validan `lead.dev_org_id == user.tenant_id`)
+# viven en `backend/routes/dev_batch4_2.py` y son las que usan los endpoints
+# reales de leads/kanban (rutas /api/leads/* via dev_batch4_2 + dev_batch4_4).
+#
+# Funciones eliminadas (importar desde routes.dev_batch4_2 si las necesitas):
+#   - can_view_kanban
+#   - can_move_lead
+#   - can_view_full_client_data
+#   - can_view_conversation
+#   - can_view_ai_summary
+#
+# Para checks de role-level genéricos (project edit · commercialization · superadmin
+# gates · etc), seguir importando desde `permissions.py` como antes.
+# ═════════════════════════════════════════════════════════════════════════════
 
 
 def can_view_full_project_data(user) -> bool:

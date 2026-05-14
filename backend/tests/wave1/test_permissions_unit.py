@@ -15,12 +15,9 @@ Todos los tests usan SimpleNamespace (mock user attribute access).
 import pytest
 from types import SimpleNamespace
 
+# Helpers role-level genéricos · viven en permissions.py
 from permissions import (
     get_user_permission_level,
-    can_view_kanban,
-    can_move_lead,
-    can_view_full_client_data,
-    can_view_conversation,
     can_edit_project,
     can_view_commercialization,
     can_manage_inmobiliaria,
@@ -31,6 +28,14 @@ from permissions import (
     safe_path_param,
     DEV_IN_HOUSE_ROLES,
     INM_IN_HOUSE_ROLES,
+)
+# Lead-gates canónicos (tenant-aware) viven en routes/dev_batch4_2.py
+# Consolidación 2026-05-13: eliminadas versiones zombie laxas de permissions.py
+from routes.dev_batch4_2 import (
+    can_view_kanban,
+    can_move_lead,
+    can_view_full_client_data,
+    can_view_conversation,
 )
 
 
@@ -74,56 +79,84 @@ def test_permission_level_unknown_role_falls_back():
 
 
 def test_can_view_kanban_superadmin_all_scopes():
-    """superadmin puede ver todos los scopes."""
+    """superadmin puede ver todos los scopes (mine · all_org · all_inmobiliaria)."""
     user = SimpleNamespace(role="superadmin", internal_role="")
-    assert can_view_kanban(user, "developer") is True
-    assert can_view_kanban(user, "inmobiliaria") is True
-    assert can_view_kanban(user, "asesor") is True
+    assert can_view_kanban(user, "mine") is True
+    assert can_view_kanban(user, "all_org") is True
+    assert can_view_kanban(user, "all_inmobiliaria") is True
 
 
-def test_can_view_kanban_developer_only_developer_scope():
-    """developer_admin solo ve developer scope."""
-    user = SimpleNamespace(role="developer_admin", internal_role="")
-    assert can_view_kanban(user, "developer") is True
-    assert can_view_kanban(user, "inmobiliaria") is False
+def test_can_view_kanban_developer_director_only_own_org():
+    """developer_director (mapeado de developer_admin) ve all_org solo de SU tenant.
+
+    Lead-gate canónico (routes/dev_batch4_2.py): scopes "mine" · "all_org" ·
+    "all_inmobiliaria" · valida target_org_id contra user.tenant_id.
+    """
+    user = SimpleNamespace(role="developer_admin", internal_role="", tenant_id="T1")
+    assert can_view_kanban(user, "mine") is True
+    assert can_view_kanban(user, "all_org", "T1") is True   # su propio org
+    assert can_view_kanban(user, "all_org", "T2") is False  # otro org
+    assert can_view_kanban(user, "all_inmobiliaria") is False
 
 
-# ─── 3. can_move_lead: ownership ─────────────────────────────────────────────
+# ─── 3. can_move_lead: ownership + tenant-aware (canónico routes/dev_batch4_2.py) ─
 
 
 def test_can_move_lead_member_only_own_assigned():
-    """developer_member solo puede mover leads asignados a él · NO ajenos."""
+    """developer_member mueve lead SOLO si es el assigned_to o created_by (ownership)."""
     user = SimpleNamespace(role="developer_member", internal_role="", user_id="U001", tenant_id="T1")
 
-    own_lead = {"assigned_to": "U001", "tenant_id": "T1"}
+    own_lead = {"assigned_to": "U001", "dev_org_id": "T1"}
     assert can_move_lead(user, own_lead) is True
 
-    foreign_lead = {"assigned_to": "U002", "tenant_id": "T1"}
+    foreign_lead = {"assigned_to": "U002", "dev_org_id": "T1"}
     assert can_move_lead(user, foreign_lead) is False
 
 
-def test_can_move_lead_asesor_freelance_only_own_tenant():
-    """asesor_freelance puede mover leads de su tenant · NO ajenos."""
-    user = SimpleNamespace(role="advisor", internal_role="", user_id="A001", tenant_id="T1")
+def test_can_move_lead_director_validates_dev_org_id_and_origin():
+    """developer_director mueve leads de SU org Y solo origin dev_direct/dev_inhouse.
 
-    own_tenant_lead = {"tenant_id": "T1", "assigned_to": "anyone"}
-    assert can_move_lead(user, own_tenant_lead) is True
-
-    foreign_tenant_lead = {"tenant_id": "T2", "assigned_to": "anyone"}
-    assert can_move_lead(user, foreign_tenant_lead) is False
-
-
-# ─── 4. can_view_full_client_data: PII protection ────────────────────────────
-
-
-def test_can_view_full_client_data_director_yes_member_no():
-    """director siempre · member solo si asignado."""
+    Canónico estricto: NO mueve broker_external leads · NO cross-tenant.
+    """
     director = SimpleNamespace(role="developer_admin", internal_role="", user_id="D1", tenant_id="T1")
-    lead = {"assigned_to": "U999", "tenant_id": "T1"}
-    assert can_view_full_client_data(director, lead) is True
 
+    # Mismo org · origin dev_direct → mueve OK
+    own_org_direct = {"dev_org_id": "T1", "assigned_to": "X", "origin": {"type": "dev_direct"}}
+    assert can_move_lead(director, own_org_direct) is True
+
+    # Mismo org · origin broker_external → NO mueve
+    own_org_broker = {"dev_org_id": "T1", "assigned_to": "X", "origin": {"type": "broker_external"}}
+    assert can_move_lead(director, own_org_broker) is False
+
+    # Otro org · cualquier origin → NO mueve (cross-tenant blocked)
+    other_org = {"dev_org_id": "T2", "assigned_to": "X", "origin": {"type": "dev_direct"}}
+    assert can_move_lead(director, other_org) is False
+
+
+# ─── 4. can_view_full_client_data: PII protection · tenant-aware ───────────────
+
+
+def test_can_view_full_client_data_director_only_own_org():
+    """developer_director ve datos completos SOLO si lead.dev_org_id == su tenant_id."""
+    director = SimpleNamespace(role="developer_admin", internal_role="", user_id="D1", tenant_id="T1")
+
+    own_org_lead = {"assigned_to": "U999", "dev_org_id": "T1"}
+    assert can_view_full_client_data(director, own_org_lead) is True
+
+    # Cross-tenant: director T1 NO debe ver lead de T2 (consolidación 2026-05-13)
+    foreign_org_lead = {"assigned_to": "U999", "dev_org_id": "T2"}
+    assert can_view_full_client_data(director, foreign_org_lead) is False
+
+
+def test_can_view_full_client_data_member_only_if_assigned():
+    """developer_member ve datos completos SOLO si lead.assigned_to == su user_id."""
     member = SimpleNamespace(role="developer_member", internal_role="", user_id="M1", tenant_id="T1")
-    assert can_view_full_client_data(member, lead) is False  # no asignado a M1
+
+    own_lead = {"assigned_to": "M1", "dev_org_id": "T1"}
+    assert can_view_full_client_data(member, own_lead) is True
+
+    not_assigned = {"assigned_to": "U999", "dev_org_id": "T1"}
+    assert can_view_full_client_data(member, not_assigned) is False
 
 
 # ─── 5. can_view_conversation ────────────────────────────────────────────────

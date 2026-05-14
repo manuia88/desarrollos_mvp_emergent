@@ -1,6 +1,6 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-12 (W4.15.1+2+3 ✅ shipped 2026-05-11 · permissions dual-source mitigación ✅ · W5.10 scope expandido 205h→233h +28h Zernio learnings 2026-05-12 · Wave 5 H2 sketch ~542h confirmados · Wave 6 sketch ~227h)
+**Última actualización**: 2026-05-13 (tech-debt críticos pre-Wave 5: W4.1C index fix ✅ · Tenant-Dev mapping centralizado ✅ · **permissions consolidación 100% RESUELTA** ✅ · Etapa 4 A11y pending · W5.10 scope 233h · Wave 5 H2 ~542h · Wave 6 ~227h)
 **Total H1 restante**: ~146.5h (Wave 4 pending de los 495h totales · W4.18.2 32h ✅ shipped · 8h Private Beta Gate pending)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h = 715.5h shipped en H1
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1

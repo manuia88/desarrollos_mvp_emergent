@@ -41,12 +41,16 @@ import os
 # Add backend/ to path so we can import permissions, etc.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from permissions import (
+# Lead-gates canónicos (tenant-aware) viven en routes/dev_batch4_2.py post-consolidación 2026-05-13
+from routes.dev_batch4_2 import (
     can_view_kanban,
     can_move_lead,
     can_view_full_client_data,
     can_view_conversation,
     can_view_ai_summary,
+)
+# Role-level genéricos viven en permissions.py
+from permissions import (
     can_view_full_project_data,
     can_view_engagement_metrics,
     can_manage_inmobiliaria,
@@ -121,15 +125,12 @@ def test_attack_01_cross_tenant_lead_read_denied():
     assert can_view_full_client_data(ASESOR_T1, LEAD_T2) is False
 
 
-@pytest.mark.xfail(
-    reason="HALLAZGO permissions.py vs routes/dev_batch4_2.py · DOS implementaciones "
-    "de can_view_full_client_data · la de permissions.py permite a developer_director "
-    "ver leads de CUALQUIER tenant (sin filtro tenant_id). Los endpoints reales usan "
-    "la de routes/dev_batch4_2.py (más estricta). REPORTAR al founder antes de fix."
-)
 def test_attack_01b_director_cross_tenant_lead_read_denied():
-    """Director T1 NO debería ver datos completos de lead T2 (permissions.py BUG)."""
-    assert can_view_full_client_data(DIRECTOR_T1, LEAD_T2) is False
+    """Director T1 NO ve datos completos de lead T2 (canónico tenant-aware post-consolidación 2026-05-13)."""
+    # LEAD_T2 tiene tenant_id=T2 · necesita dev_org_id para el can_view_full_client_data canónico
+    # _lead() helper agrega tenant_id pero NO dev_org_id · agregamos el dev_org_id para test correcto
+    lead_t2 = dict(LEAD_T2, dev_org_id=T2)
+    assert can_view_full_client_data(DIRECTOR_T1, lead_t2) is False
 
 
 def test_attack_01b_buyer_anon_lead_read_denied():
@@ -148,14 +149,10 @@ def test_attack_02_cross_tenant_lead_move_denied():
     assert can_move_lead(MEMBER_T1, LEAD_T2) is False
 
 
-@pytest.mark.xfail(
-    reason="HALLAZGO permissions.py · can_move_lead permite developer_director "
-    "mover leads de CUALQUIER tenant. Endpoints reales validan tenant aparte vía "
-    "routes/dev_batch4_2.py · permissions.py es laxo. REPORTAR antes de fix."
-)
 def test_attack_02b_director_cannot_move_other_tenant_lead():
-    """Director T1 NO debería mover lead T2 (permissions.py BUG)."""
-    assert can_move_lead(DIRECTOR_T1, LEAD_T2) is False
+    """Director T1 NO puede mover lead T2 (canónico tenant-aware post-consolidación 2026-05-13)."""
+    lead_t2 = dict(LEAD_T2, dev_org_id=T2, origin={"type": "dev_direct"})
+    assert can_move_lead(DIRECTOR_T1, lead_t2) is False
 
 
 def test_attack_02c_superadmin_can_move_any_lead():
@@ -168,10 +165,19 @@ def test_attack_02c_superadmin_can_move_any_lead():
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def test_attack_03_kanban_scope_developer_only_dev():
-    """developer_admin T1 solo ve kanban scope=developer · NO scope=inmobiliaria."""
-    assert can_view_kanban(DIRECTOR_T1, "developer") is True
-    assert can_view_kanban(DIRECTOR_T1, "inmobiliaria") is False
+def test_attack_03_kanban_scope_developer_only_own_org():
+    """developer_admin T1 ve kanban "all_org" SOLO de su tenant · NO de T2.
+
+    Canónico (routes/dev_batch4_2.py): scopes válidos son "mine" · "all_org" ·
+    "all_inmobiliaria" · target_org_id valida cross-tenant.
+    """
+    # scope=mine siempre OK para roles asignables
+    assert can_view_kanban(DIRECTOR_T1, "mine") is True
+    # scope=all_org SOLO de su propio tenant
+    assert can_view_kanban(DIRECTOR_T1, "all_org", T1) is True
+    assert can_view_kanban(DIRECTOR_T1, "all_org", T2) is False
+    # all_inmobiliaria es para inm_director · NO para developer_admin
+    assert can_view_kanban(DIRECTOR_T1, "all_inmobiliaria") is False
 
 
 def test_attack_03b_org_users_list_scope():
