@@ -95,10 +95,16 @@ export default function LinkedInImportModal({ open, onClose, onImported }) {
 
   return (
     <>
-      <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 75,
-        background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)',
-      }} />
+      {/* A11y: backdrop click-to-close · role="presentation" · escape via ESC key handler */}
+      <div
+        role="presentation"
+        aria-hidden="true"
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 75,
+          background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)',
+        }}
+      />
       <div data-testid="linkedin-modal" role="dialog" aria-label="Importar LinkedIn"
            style={{
              position: 'fixed', top: '50%', left: '50%',

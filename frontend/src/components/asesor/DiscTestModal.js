@@ -166,10 +166,16 @@ export default function DiscTestModal({ open, onClose, onSubmitted }) {
 
   return (
     <>
-      <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 75,
-        background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)',
-      }} />
+      {/* A11y: backdrop click-to-close · role="presentation" */}
+      <div
+        role="presentation"
+        aria-hidden="true"
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 75,
+          background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)',
+        }}
+      />
       <div data-testid="disc-modal" role="dialog" aria-label="Test DISC"
            style={{
              position: 'fixed', top: '50%', left: '50%',

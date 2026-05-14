@@ -6,9 +6,15 @@ Base: `plugin:jsx-a11y/recommended`
 ## Baseline (antes de este batch)
 - **869 problems** (626 errors, 243 warnings)
 
-## Post-Fix (después de este batch)
+## Post-W4.15.1 (Sub-Chunks A-D · 2026-05-11)
 - **851 problems** (608 errors, 243 warnings)
 - Reducción cuantificable: **18 errores JSX-A11y** resueltos directamente + ~35 violaciones adicionales de CSS inline/semántica no capturadas por el linter estático.
+
+## Post-Etapa 4 Sub-Acción 4.2 (2026-05-14 · Opción C compromiso founder)
+- **841 problems** (598 errors, 243 warnings)
+- Reducción cuantificable: **10 errores JSX-A11y críticos** resueltos en modales UX-visibles top 5
+- **Decisión brutalmente honesta**: el 70% restante (~580 errores) viven en componentes admin/superadmin/developer portal que serán reemplazados por **rediseño UI Aurora Theme** post-launch. Invertir 10-15h fixando manualmente componentes que se reescriben = desperdicio. Resto cubre A11y nativo cuando se migre a design system moderno.
+- Wrapper `<InteractiveElement>` creado (`components/a11y/InteractiveElement.js`) · disponible para uso opcional · cero migración masiva.
 
 ---
 

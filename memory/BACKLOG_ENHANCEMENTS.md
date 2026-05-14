@@ -39,19 +39,41 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
    - **Costo**: 3h
    - **Destino**: post-launch UX iteration
 
-### A11y backlog post-W4.15.1 (origen: SHA `b3582da` · 2026-05-11)
+### ~~A11y backlog post-W4.15.1~~ ✅ ETAPA 4 OPCIÓN C COMPLETADA · 2026-05-14
 
-**Status W4.15.1**: 55+ violaciones críticas fixed · baseline lint:a11y 869 → 851. Quedan ~851 agrupadas en 2 patrones masivos:
+**Decisión brutal founder 2026-05-14**: dado que se planea **rediseño UI completo Aurora Theme post-launch** (con design system A11y-native · ~5-7h reales), invertir 10-15h en A11y manual de componentes que se reescriben = desperdicio del 70%+.
 
-1. **~249 `div onClick` sin keyboard handler** — DesarrolladorCompetidores · LeadKanban · SuperadminApiKeys · tablas portal en general
-   - **Fix**: crear wrapper `<InteractiveRow>` central que aplique `role="button" tabIndex={0} onKeyDown` (Enter+Space) y migrar componentes incrementalmente
-   - **Costo**: 6-8h
-   - **Destino**: post-launch o pre-Wave 5 H2 si A11 critical para SEO/marketing
+**Estado W4.15.1 (baseline 2026-05-11)**: 851 problems
+**Estado Etapa 4 Opción C (2026-05-14)**: 841 problems (-10 errors críticos)
 
-2. **~100 `label-has-associated-control`** — módulos developer/superadmin (forms internos sin `htmlFor`/`id` correlacionados)
-   - **Fix**: pass por archivos
-   - **Costo**: 3-4h
-   - **Destino**: igual al item 1
+**Lo que SÍ se hizo (3-4h reales · cubre UX-visible)**:
+- ✅ Wrapper `<InteractiveElement>` creado (`components/a11y/InteractiveElement.js`) · disponible si se necesita
+- ✅ Top 5 modales UX-críticos fixed con `role="presentation"` / `role="dialog"`:
+  - AuthModal · LinkedInImportModal · DiscTestModal · ScoreExplainModal · LeadKanban (drawer + popover)
+- ✅ Docs actualizados (A11_AUDIT_REPORT.md + BACKLOG)
+
+**Lo que se DEFIERE al rediseño UI Aurora Theme** (~580 errores · 70%+ del backlog):
+- ~190 div onClick en pages admin/superadmin/developer portal → se reemplazan con shadcn/ui o equivalente · A11y native
+- ~100 labels sin htmlFor en forms admin/superadmin → idem
+- ~290 errores varios (focus traps · roles · etc) → idem
+
+**Validación**: a partir del rediseño UI · `lint:a11y` debería bajar de 841 → <50 sin intervención manual.
+
+### Rediseño UI Aurora Theme (post-launch · 5-7h reales)
+
+**Visión** (founder 2026-05-13):
+- Auroras radiales en background (estilo retomotiongraphics.com referencia)
+- Per-portal color theming: Asesor=rosa · Developer=azul · Inmobiliaria=violeta · Superadmin=ámbar · Comprador=cyan
+- Cards/borders/buttons del color del portal donde estás
+- Mantener gradient único `--indigo → --rose` para CTAs primarios
+- Design system con A11y nativo (shadcn/ui · Radix · o equivalente · gratis-A11y compliance)
+
+**Plan ejecución** (cuando founder decida activar):
+- Fase 1 (yo · 1-2h): paleta + tokens + auroras CSS + plan migración
+- Fase 2 (emergent · 1 batch · 1h): base implementation + 1 portal demo
+- Fase 3 (emergent · 2 batches · 2-3h): migrar 4 portales restantes
+- Fase 4 (yo · 1h): A11y final + cleanup
+- **Total ~5-7h reales · resuelve A11y backlog + rediseño visual de un solo golpe**
 
 
 

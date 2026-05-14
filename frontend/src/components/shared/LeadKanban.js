@@ -402,7 +402,9 @@ function EnrichedSection({ card }) {
               fontFamily: 'DM Sans', fontWeight: 700, fontSize: 10, cursor: 'pointer',
             }}>Contactar dev</button>
           {contactOpen && (
-            <div onClick={ev => ev.stopPropagation()}
+            <div
+              role="presentation"
+              onClick={ev => ev.stopPropagation()}
               style={{
                 position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 12,
                 padding: 6, borderRadius: 8, background: 'rgba(13,17,28,0.97)',
@@ -501,16 +503,22 @@ function LeadDrawer({ leadId, onClose, onToast }) {
   return (
     <div
       data-testid="lead-drawer"
+      role="presentation"
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000,
         display: 'flex', justifyContent: 'flex-end',
       }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: 'min(560px, 100vw)', height: '100vh', overflowY: 'auto',
-        background: 'var(--bg)', borderLeft: '1px solid var(--border)',
-        padding: 24, display: 'flex', flexDirection: 'column', gap: 18,
-      }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Detalle del lead"
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 'min(560px, 100vw)', height: '100vh', overflowY: 'auto',
+          background: 'var(--bg)', borderLeft: '1px solid var(--border)',
+          padding: 24, display: 'flex', flexDirection: 'column', gap: 18,
+        }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div className="eyebrow" style={{ marginBottom: 6 }}>Detalle del lead</div>

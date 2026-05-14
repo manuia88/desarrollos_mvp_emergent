@@ -18,12 +18,22 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
   if (!open) return null;
 
   return (
-    <div data-testid="explain-modal" onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 520,
-      background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(14px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
+    <div
+      data-testid="explain-modal"
+      role="presentation"
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 520,
+        background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(14px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Explicación del Score"
+        onClick={e => e.stopPropagation()}
+        style={{
         width: 620, maxWidth: '100%',
         background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
         border: '1px solid var(--border)',
