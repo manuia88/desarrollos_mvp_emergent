@@ -9,6 +9,7 @@ import {
   getCrossPartnerships, createCrossPartnership,
   approveCrossPartnership, rejectCrossPartnership, revokeCrossPartnership,
 } from '../../api/cross_partnerships';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_CFG = {
   pending:  { label: 'Pendiente', color: '#FACC15', bg: 'rgba(250,204,21,0.10)', bd: 'rgba(250,204,21,0.32)' },
@@ -49,7 +50,7 @@ function CreateModal({ onClose, onSuccess, defaultTargetType = 'dev' }) {
   };
 
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 16 }}>
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
       <div style={{ background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 18, width: '100%', maxWidth: 460, padding: '26px 26px 22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', margin: 0 }}>Nueva alianza cross-org</h2>
@@ -101,7 +102,7 @@ function CreateModal({ onClose, onSuccess, defaultTargetType = 'dev' }) {
 function ReasonModal({ title, label, onClose, onConfirm, busy, confirmLabel }) {
   const [reason, setReason] = useState('');
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.80)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: 16 }}>
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.80)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.DRAWER, padding: 16 }}>
       <div style={{ background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 26 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: '0 0 14px' }}>{title}</h3>
         <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.50)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>{label} *</label>
@@ -178,7 +179,7 @@ export function CrossPartnershipsPage({ user, onLogout, Layout, portalName }) {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="cross-partnerships" style={{ maxWidth: 1000 }}>
         {toast && (
-          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

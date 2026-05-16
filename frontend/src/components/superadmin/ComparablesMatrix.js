@@ -1,6 +1,7 @@
 // W2.9 Phase Z.2 — N×N comparables similarity matrix (heatmap of cells)
 import React, { useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 function cellColor(score) {
   if (score == null) return 'rgba(255,255,255,0.04)';
@@ -24,7 +25,7 @@ function CompareDrawer({ a, b, onClose }) {
   return (
     <div data-testid="intel-compare-drawer" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-      zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 16,
     }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{

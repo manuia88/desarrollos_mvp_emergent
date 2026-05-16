@@ -6,6 +6,7 @@ import AsistenteChat from '../../components/asistente/AsistenteChat';
 import AtlaxVoiceButton from '../../components/landing/AtlaxVoiceButton';
 import * as asistenteApi from '../../api/asistenteApi';
 import { useAuth } from '../../App';
+import { Z } from '../../styles/zIndex';
 
 const STORAGE_KEY = 'dmx_asistente_session';
 
@@ -228,7 +229,7 @@ export default function AsistentePage() {
           padding: '8px 14px', borderRadius: 9999,
           background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.30)',
           color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12,
-          backdropFilter: 'blur(24px)', zIndex: 50,
+          backdropFilter: 'blur(24px)', zIndex: Z.DROPDOWN,
         }}>{error}</div>
       )}
     </div>

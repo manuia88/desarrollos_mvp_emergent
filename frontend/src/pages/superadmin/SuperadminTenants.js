@@ -20,6 +20,7 @@ import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
 import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelligentPanel';
 import AtlaxPersonaPanel from '../../components/superadmin/AtlaxPersonaPanel';
 import MatchWeightsPanel from '../../components/agentic_crm/MatchWeightsPanel';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -95,7 +96,7 @@ function ChipGroup({ value, onChange, options, testid }) {
 function ImpersonateConfirmModal({ tenant, onClose, onConfirm, busy }) {
   if (!tenant) return null;
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', zIndex: 1400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(250,204,21,0.30)', borderRadius: 18, width: '100%', maxWidth: 460, padding: 26 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
           <AlertTriangle size={18} color="#FACC15" />
@@ -127,7 +128,7 @@ function StatusChangeModal({ tenant, status, onClose, onConfirm, busy }) {
   if (!tenant || !status) return null;
   const danger = status === 'suspended';
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', zIndex: 1400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: 'rgba(13,17,28,0.97)', border: `1px solid ${danger ? 'rgba(239,68,68,0.30)' : 'rgba(255,255,255,0.10)'}`, borderRadius: 18, width: '100%', maxWidth: 460, padding: 26 }}>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', margin: '0 0 12px' }}>
           Cambiar estado de {tenant.name}
@@ -167,7 +168,7 @@ function TenantDrawer({ tenantId, onClose }) {
   if (!tenantId) return null;
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1300, display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', justifyContent: 'flex-end' }}>
       <div data-testid="tenant-drawer" style={{ width: '100%', maxWidth: 540, background: 'rgba(13,17,28,0.97)', borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '24px 26px 80px', overflowY: 'auto' }}>
         {loading && <div style={{ padding: 30, color: 'rgba(240, 235, 224, 0.68)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando…</div>}
         {data && (
@@ -427,7 +428,7 @@ export default function SuperadminTenants({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-tenants">
         {toast && (
-          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

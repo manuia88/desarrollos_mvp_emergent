@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, Search, Sparkle } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 function Popover({ label, testId, children, badge, onClear }) {
   const [open, setOpen] = useState(false);
@@ -43,7 +44,7 @@ function Popover({ label, testId, children, badge, onClear }) {
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 6px)', left: 0,
-          minWidth: 280, zIndex: 30,
+          minWidth: 280, zIndex: Z.DROPDOWN,
           background: '#0D1118',
           border: '1px solid var(--border-2)',
           borderRadius: 14, padding: 16,
@@ -316,7 +317,7 @@ export default function TopFilters({ colonias, filters, setFilters, sort, setSor
         <div
           onClick={() => setMoreOpen(false)}
           style={{
-            position: 'fixed', inset: 0, zIndex: 50,
+            position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
             background: 'rgba(6,8,15,0.78)',
             backdropFilter: 'blur(12px)',
             display: 'flex', justifyContent: 'flex-end',

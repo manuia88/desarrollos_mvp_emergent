@@ -13,6 +13,7 @@ import VistaPlantaInteractiva from './VistaPlantaInteractiva';
 import usePreferences from '../../hooks/usePreferences';
 import { listInventory } from '../../api/developer';
 import { Search, Upload, Eye, Building, Bed, Ruler } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_CONFIG = {
   disponible:  { label: 'Disponible',  color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
@@ -213,7 +214,7 @@ function InventarioCompleto({ units, devId, user, onBulkUpload }) {
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(240,235,224,0.1)' }}>
         <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
           <thead>
-            <tr style={{ background: 'rgba(240,235,224,0.06)', position: 'sticky', top: 0, zIndex: 1 }}>
+            <tr style={{ background: 'rgba(240,235,224,0.06)', position: 'sticky', top: 0, zIndex: Z.BASE }}>
               {['Unidad', 'Prototipo', 'Nivel', 'm² total', 'Rec.', 'Precio', 'Estado', 'Acciones'].map(h => (
                 <th key={h} style={{
                   padding: density_mode === 'compacto' ? '8px 12px' : '10px 14px',
@@ -493,7 +494,7 @@ function VistaDePlanta({ units, user, devId }) {
         <div style={{
           position: 'fixed', left: tooltip.x + 12, top: tooltip.y - 8,
           background: 'rgba(6,8,15,0.95)', border: '1px solid rgba(240,235,224,0.18)',
-          borderRadius: 8, padding: '8px 12px', zIndex: 9999, pointerEvents: 'none',
+          borderRadius: 8, padding: '8px 12px', zIndex: Z.MODAL_CRITICAL, pointerEvents: 'none',
           backdropFilter: 'blur(8px)', minWidth: 140,
         }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>Unidad {tooltip.unit.unit_number}</div>

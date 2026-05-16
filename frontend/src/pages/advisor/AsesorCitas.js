@@ -4,6 +4,7 @@ import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import NewCitaModal from '../../components/developer/NewCitaModal';
 import { getAsesorCitas, patchCita } from '../../api/developer';
 import { CalendarCheck, Plus, Clock, CheckCircle, X, Phone, Video, AlertCircle, ExternalLink } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_COLORS = {
   agendada:    { bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)',  text: '#818CF8' },
@@ -69,7 +70,7 @@ function CitaDrawer({ apt, onClose, onAction }) {
   const inputStyle = { width: '100%', padding: '8px 11px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 900, display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: Z.STICKY, display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
       <div style={{ width: 400, height: '100%', background: '#0D1118', borderLeft: '1px solid var(--border)', padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}
         onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

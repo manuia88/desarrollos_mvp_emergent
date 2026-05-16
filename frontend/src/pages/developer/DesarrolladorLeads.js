@@ -9,6 +9,7 @@ import { Activity, Target, Plus, X, Sparkle, MessageCircle } from '../../compone
 import { BarList, FunnelChart } from '../../components/developer/ChartPrimitives';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { anonymizeLead, piiCSS, internalOnlyCSS } from '../../lib/anonymize';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_LABELS = {
   nuevo: 'Nuevo', contactado: 'Contactado', visita_agendada: 'Visita agendada',
@@ -242,7 +243,7 @@ function LeadDrawer({ lead, onClose, onReload, onToast }) {
 
   return (
     <div data-testid="lead-drawer" onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 710, background: 'rgba(8,10,18,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: '#0D1118', borderLeft: '1px solid var(--border)',
         width: 'min(480px, 100%)', height: '100%', overflowY: 'auto', padding: 22,
@@ -635,7 +636,7 @@ const inputStyle = {
   borderRadius: 10, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
 };
 const modalStyle = {
-  position: 'fixed', inset: 0, zIndex: 710, background: 'rgba(8,10,18,0.7)',
+  position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)',
   backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
 };
 const modalContentStyle = {

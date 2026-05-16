@@ -9,6 +9,7 @@ import {
   getDashboard, listAnomalies, listQuickActions, detectAnomaliesNow,
 } from '../../api/superadminFounderConsole';
 import { useFounderPrefetch } from '../../contexts/FounderPrefetchContext';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -168,7 +169,7 @@ export default function SuperadminFounderConsole({ user, onLogout }) {
       <div data-testid="superadmin-founder-console">
         {toast && (
           <div data-testid="founder-toast" style={{
-            position: 'fixed', top: 76, right: 20, zIndex: 2000,
+            position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST,
             padding: '11px 18px', borderRadius: 10,
             background: 'rgba(var(--theme-rgb),0.18)',
             border: '1px solid rgba(var(--theme-rgb),0.35)',

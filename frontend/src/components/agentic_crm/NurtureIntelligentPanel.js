@@ -8,6 +8,7 @@ import {
   Cpu, Database, Zap, Loader2, RefreshCw, AlertCircle,
   Play, Pause, Eye, X, Settings,
 } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -454,7 +455,7 @@ export default function NurtureIntelligentPanel({ orgId }) {
           data-testid="nurture-dryrun-modal-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) setDryRunModal(null); }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 9998,
+            position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
             background: 'rgba(6,8,15,0.72)',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
@@ -597,7 +598,7 @@ export default function NurtureIntelligentPanel({ orgId }) {
           data-testid="nurture-toggle-modal-overlay"
           onClick={(e) => { if (e.target === e.currentTarget && !toggleModal.submitting) setToggleModal(null); }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
+            position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
             background: 'rgba(6,8,15,0.72)',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,

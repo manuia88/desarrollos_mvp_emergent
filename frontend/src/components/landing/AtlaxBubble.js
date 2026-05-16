@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkle, X, ArrowRight, MessageSquare, AlertTriangle, Clock } from '../icons';
 import AtlaxThreadsSidebar from './AtlaxThreadsSidebar';
 import AtlaxVoiceButton from './AtlaxVoiceButton';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const SS_KEY = 'dmx.atlax.session_id';
@@ -441,7 +442,7 @@ export default function AtlaxBubble({ mode = 'floating', startOpen = false } = {
           data-testid="caya-bubble"
           onClick={() => setOpen(true)}
           style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 9998,
+            position: 'fixed', bottom: 24, right: 24, zIndex: Z.MODAL_CRITICAL,
             width: 60, height: 60, borderRadius: 9999,
             background: 'var(--grad)', border: 'none', cursor: 'pointer',
             boxShadow: '0 12px 32px rgba(var(--theme-rgb),0.34)',

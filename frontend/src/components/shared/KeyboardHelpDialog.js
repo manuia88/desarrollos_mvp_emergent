@@ -4,6 +4,7 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const MOD = isMac ? '⌘' : 'Ctrl';
@@ -85,7 +86,7 @@ export default function KeyboardHelpDialog({ onClose, onRestartTour }) {
       style={{
         position: 'fixed', inset: 0,
         background: 'rgba(0,0,0,0.6)',
-        zIndex: 9000,
+        zIndex: Z.MODAL_CRITICAL,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         backdropFilter: 'blur(4px)',
       }}

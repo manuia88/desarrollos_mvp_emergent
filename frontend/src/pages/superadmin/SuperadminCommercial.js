@@ -13,6 +13,7 @@ import {
   listSnapshots, getExpiringTrials, createTemplate, createSnapshot,
 } from '../../api/superadminCommercial';
 import { listTenants } from '../../api/superadminTenants';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -54,7 +55,7 @@ function TenantDrawer({ tenantId, catalog, onClose, onChanged }) {
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1300, display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', justifyContent: 'flex-end' }}>
       <div data-testid="tenant-config-drawer" style={{
         width: '100%', maxWidth: 640, background: 'rgba(13,17,28,0.97)',
         borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '24px 26px 80px', overflowY: 'auto',
@@ -118,7 +119,7 @@ function CreateTemplateModal({ catalog, onClose, onDone }) {
   };
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="create-tpl-modal" style={{ width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Crear plan template</h3>
         <input data-testid="tpl-name" value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" style={{ padding: '9px 14px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
@@ -160,7 +161,7 @@ function CreateSnapshotModal({ tenants, onClose, onDone }) {
   };
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="create-snap-modal" style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Crear snapshot</h3>
         <input data-testid="snap-name" value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" style={{ padding: '9px 14px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
@@ -191,7 +192,7 @@ function ApplyTemplateModal({ template, tenants, onClose, onDone }) {
   };
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="apply-tpl-modal" style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Aplicar {template.name} a tenant</h3>
         {!preview ? (
@@ -226,7 +227,7 @@ function ApplyTemplateModal({ template, tenants, onClose, onDone }) {
 function TrialAlertsModal({ items, onClose }) {
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1450, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 520, maxHeight: '80vh', overflowY: 'auto', background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(250,204,21,0.30)', borderRadius: 14, padding: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <AlertTriangle size={14} color="#FACC15" />
@@ -290,7 +291,7 @@ export default function SuperadminCommercial({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-commercial">
         {toast && (
-          <div data-testid="commercial-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="commercial-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

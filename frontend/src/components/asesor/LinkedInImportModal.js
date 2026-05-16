@@ -6,6 +6,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { importLinkedIn, fetchMyLinkedIn, revokeLinkedIn } from '../../api/asesor_identity';
+import { Z } from '../../styles/zIndex';
 
 const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
@@ -101,14 +102,14 @@ export default function LinkedInImportModal({ open, onClose, onImported }) {
         aria-hidden="true"
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, zIndex: 75,
+          position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
           background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)',
         }}
       />
       <div data-testid="linkedin-modal" role="dialog" aria-label="Importar LinkedIn"
            style={{
              position: 'fixed', top: '50%', left: '50%',
-             transform: 'translate(-50%,-50%)', zIndex: 76,
+             transform: 'translate(-50%,-50%)', zIndex: Z.DROPDOWN,
              width: 'min(560px, 96vw)',
              maxHeight: '92vh', overflowY: 'auto',
              padding: 24, borderRadius: 18,

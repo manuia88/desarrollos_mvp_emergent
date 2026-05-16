@@ -13,6 +13,7 @@ import {
   revokeWhitelistAccess,
   bulkApproveWhitelistRequests,
 } from '../../api/advisor_whitelist';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_CONFIG = {
   pending: {
@@ -77,7 +78,7 @@ function RejectModal({ onClose, onConfirm, busy }) {
         background: 'rgba(6,8,15,0.80)',
         backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1200, padding: 16,
+        zIndex: Z.DRAWER, padding: 16,
       }}
     >
       <div style={{
@@ -143,7 +144,7 @@ function RevokeModal({ onClose, onConfirm, busy }) {
         background: 'rgba(6,8,15,0.80)',
         backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1200, padding: 16,
+        zIndex: Z.DRAWER, padding: 16,
       }}
     >
       <div style={{
@@ -314,7 +315,7 @@ export default function DesarrolladorSolicitudes({ user, onLogout }) {
         {/* Toast */}
         {toast && (
           <div data-testid="solicitudes-toast" style={{
-            position: 'fixed', top: 20, right: 20, zIndex: 2000,
+            position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST,
             padding: '11px 18px', borderRadius: 10,
             background: 'rgba(99,102,241,0.18)',
             border: '1px solid rgba(99,102,241,0.35)',

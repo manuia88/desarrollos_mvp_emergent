@@ -11,6 +11,7 @@ import {
   Database, Map, AlertTriangle, FileText, Bus, MapPin,
   RefreshCw, Search, Loader2, AlertCircle, X,
 } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -208,7 +209,7 @@ function LookupModal({ source, onClose }) {
 
   return (
     <div data-testid="ds-lookup-modal" style={{
-      position: 'fixed', inset: 0, zIndex: 100,
+      position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
       background: 'rgba(6,8,15,0.78)',
       backdropFilter: 'blur(24px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -392,7 +393,7 @@ export default function SuperadminDataSources({ user, onLogout }) {
 
         {toast && (
           <div data-testid="ds-toast" style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 90,
+            position: 'fixed', bottom: 24, right: 24, zIndex: Z.DROPDOWN,
             padding: '12px 18px', borderRadius: 14,
             background: 'rgba(15,18,30,0.95)',
             border: '1px solid rgba(var(--theme-rgb),0.40)',

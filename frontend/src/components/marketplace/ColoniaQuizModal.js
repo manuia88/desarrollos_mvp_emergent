@@ -12,6 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { QUIZ_QUESTIONS } from '../../config/quizQuestions';
 import { submitQuiz } from '../../api/marketplace';
 import { X, ArrowRight, ArrowLeft, Sparkle } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const TOTAL_STEPS = QUIZ_QUESTIONS.length;
 
@@ -85,7 +86,7 @@ export default function ColoniaQuizModal({ open, onClose, onSelectColonia }) {
       data-testid="colonia-quiz-modal-backdrop"
       onClick={close}
       style={{
-        position: 'fixed', inset: 0, zIndex: 70,
+        position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(6,8,15,0.86)', backdropFilter: 'blur(18px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         overflowY: 'auto',

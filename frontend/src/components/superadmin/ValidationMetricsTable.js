@@ -1,6 +1,7 @@
 // W2.7 Phase Z.0 — Validation Metrics Table (R²/RMSE/MAPE per modelo)
 import React, { useState } from 'react';
 import { Info } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 const MODEL_LABEL = {
   cube_avg_price: 'Precio promedio por colonia',
@@ -62,7 +63,7 @@ function HeaderCell({ label, hint }) {
           color: 'rgba(240,235,224,0.85)',
           fontFamily: 'DM Sans', fontSize: 11, fontWeight: 500,
           textTransform: 'none', letterSpacing: 'normal',
-          width: 240, textAlign: 'left', zIndex: 10,
+          width: 240, textAlign: 'left', zIndex: Z.DROPDOWN,
           backdropFilter: 'blur(20px)',
         }}>{hint}</div>
       )}

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import * as api from '../../api/ie_scores';
 import { X, Sparkle } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
   const [data, setData] = useState(null);
@@ -23,7 +24,7 @@ export default function ScoreExplainModal({ zoneId, code, open, onClose }) {
       role="presentation"
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 520,
+        position: 'fixed', inset: 0, zIndex: Z.STICKY,
         background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(14px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}

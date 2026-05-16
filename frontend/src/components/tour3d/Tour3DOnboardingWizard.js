@@ -2,6 +2,7 @@
 // 3 steps: device picker → device instructions → submit Luma URL.
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -105,7 +106,7 @@ export default function Tour3DOnboardingWizard({
         position: 'fixed', inset: 0,
         background: 'rgba(6,8,15,0.78)',
         backdropFilter: 'blur(8px)',
-        zIndex: 9999,
+        zIndex: Z.MODAL_CRITICAL,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
       }}

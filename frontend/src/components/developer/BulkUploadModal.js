@@ -5,6 +5,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { bulkUploadParse, bulkUploadCommit } from '../../api/developer';
 import { Upload, X, AlertTriangle, CheckCircle, FileText } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const COL_LABELS = {
   unit_number: 'Unidad', prototype: 'Prototipo', level: 'Nivel',
@@ -82,7 +83,7 @@ export default function BulkUploadModal({ devId, onClose, onCommitted }) {
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 300,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(12px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>

@@ -11,6 +11,7 @@ import {
 import {
   getHealthOverview, getCrons, getAlerts, resolveAlert, triggerTestAlert,
 } from '../../api/superadminHealth';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -163,7 +164,7 @@ export default function SuperadminHealth({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-health">
         {toast && (
-          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

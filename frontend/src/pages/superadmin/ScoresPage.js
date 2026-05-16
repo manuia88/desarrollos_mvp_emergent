@@ -4,6 +4,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import * as api from '../../api/superadmin';
 import ScoreExplainModal from '../../components/landing/ScoreExplainModal';
 import { Sparkle, Database, X } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const TIER_COLORS = {
   green:   { bg: 'rgba(34,197,94,0.14)',  fg: '#86efac', label: 'Óptimo' },
@@ -37,7 +38,7 @@ function ScoreHistoryDrawer({ zoneId, code, onClose }) {
   if (!zoneId || !code) return null;
   return (
     <div data-testid="history-drawer" onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 510,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)',
       display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end',
     }}>
@@ -320,7 +321,7 @@ export default function ScoresPage({ user, onLogout }) {
 
         {toast && (
           <div data-testid="scores-toast" style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 540,
+            position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
             padding: '12px 18px', borderRadius: 14,
             background: toast.type === 'err' ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.14)',
             border: `1px solid ${toast.type === 'err' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`,

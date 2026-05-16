@@ -1,6 +1,7 @@
 // AuthModal — email/password login + register + Google OAuth + role picker on first signup
 import React, { useState } from 'react';
 import { MapPin } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -74,7 +75,7 @@ export default function AuthModal({ open, onClose, onSuccess, mode: initialMode 
 
   return (
     <div data-testid="auth-modal" onClick={onClose} onKeyDown={handleKeyDown} role="presentation" style={{
-      position: 'fixed', inset: 0, zIndex: 500,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(14px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>

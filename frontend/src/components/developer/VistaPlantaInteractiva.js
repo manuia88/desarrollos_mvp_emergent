@@ -33,6 +33,7 @@ import {
   putFloorLayout,
   patchUnitPosition,
 } from '../../api/developer';
+import { Z } from '../../styles/zIndex';
 
 // Max background image size (frontend mirror of backend cap; B18.5)
 const MAX_BG_BYTES = 500 * 1024;
@@ -167,7 +168,7 @@ function Tooltip({ data }) {
         background: 'rgba(6,8,15,0.96)',
         border: '1px solid rgba(240,235,224,0.18)',
         borderRadius: 10, padding: '10px 14px',
-        zIndex: 9999, pointerEvents: 'none',
+        zIndex: Z.MODAL_CRITICAL, pointerEvents: 'none',
         backdropFilter: 'blur(12px)',
         minWidth: 160, maxWidth: 220,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -714,7 +715,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
         {loading && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(6,8,15,0.7)', zIndex: 10, borderRadius: 12,
+            background: 'rgba(6,8,15,0.7)', zIndex: Z.DROPDOWN, borderRadius: 12,
           }}>
             <span style={{ color: 'var(--cream-3)', fontSize: 13 }}>Cargando piso {selectedFloor}…</span>
           </div>
@@ -876,7 +877,7 @@ export default function VistaPlantaInteractiva({ devId, user, units: propUnits }
           <div
             data-testid="floor-unit-bottom-sheet"
             style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 2000,
+              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: Z.TOAST,
               background: '#0b0e18',
               borderTop: '1px solid rgba(240,235,224,0.15)',
               borderRadius: '14px 14px 0 0',

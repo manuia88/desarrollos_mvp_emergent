@@ -1,5 +1,6 @@
 // F0.1 — ScoreExplanation · expandable breakdown card + methodology modal.
 import React, { useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const FACTOR_META = {
   tir: { label: 'TIR normalizada', desc: 'Tasa interna de retorno anualizada del escenario base (simulator W4.14).', accent: '#6366F1' },
@@ -99,7 +100,7 @@ export default function ScoreExplanation({ score, tier, label, factors, recommen
             position: 'fixed', inset: 0,
             background: 'rgba(6,8,15,0.78)',
             backdropFilter: 'blur(8px)',
-            zIndex: 9999,
+            zIndex: Z.MODAL_CRITICAL,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 16,
           }}

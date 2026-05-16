@@ -3,6 +3,7 @@
  * Form para guardar zona dibujada con name + alert_triggers checkboxes.
  */
 import React, { useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -52,7 +53,7 @@ export default function SaveZoneModal({ open, polygon, onClose, onSaved }) {
     <div
       data-testid="save-zone-modal"
       style={{
-        position: 'fixed', inset: 0, zIndex: 500,
+        position: 'fixed', inset: 0, zIndex: Z.STICKY,
         background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}

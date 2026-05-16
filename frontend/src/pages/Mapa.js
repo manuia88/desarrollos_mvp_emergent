@@ -7,6 +7,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import Navbar from '../components/landing/Navbar';
 import { fetchColonias } from '../api/marketplace';
 import { X, ArrowRight } from '../components/icons';
+import { Z } from '../styles/zIndex';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -198,7 +199,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
         {!TOKEN && (
           <div style={{
             position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-            zIndex: 30, padding: '14px 20px',
+            zIndex: Z.DROPDOWN, padding: '14px 20px',
             background: 'rgba(239,68,68,0.14)',
             border: '1px solid rgba(239,68,68,0.4)',
             borderRadius: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#fca5a5',
@@ -210,7 +211,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
 
         {/* Floating header */}
         <div style={{
-          position: 'absolute', top: 20, left: 20, zIndex: 10,
+          position: 'absolute', top: 20, left: 20, zIndex: Z.DROPDOWN,
           padding: '14px 18px',
           background: 'rgba(6,8,15,0.85)',
           border: '1px solid var(--border-2)',
@@ -229,7 +230,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
 
         {/* Layer toggle */}
         <div style={{
-          position: 'absolute', top: 20, right: 20, zIndex: 10,
+          position: 'absolute', top: 20, right: 20, zIndex: Z.DROPDOWN,
           display: 'flex', gap: 6, padding: 4,
           background: 'rgba(6,8,15,0.85)',
           border: '1px solid var(--border-2)',
@@ -261,7 +262,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
 
         {/* Legend */}
         <div style={{
-          position: 'absolute', bottom: 20, left: 20, zIndex: 10,
+          position: 'absolute', bottom: 20, left: 20, zIndex: Z.DROPDOWN,
           padding: '12px 16px',
           background: 'rgba(6,8,15,0.85)',
           border: '1px solid var(--border-2)',
@@ -285,7 +286,7 @@ export default function Mapa({ user, onLogin, onLogout }) {
           <div
             data-testid="colonia-side-panel"
             style={{
-              position: 'absolute', top: 140, right: 20, zIndex: 11,
+              position: 'absolute', top: 140, right: 20, zIndex: Z.DROPDOWN,
               width: 340, maxHeight: 'calc(100% - 180px)', overflowY: 'auto',
               padding: 22,
               background: 'rgba(6,8,15,0.95)',

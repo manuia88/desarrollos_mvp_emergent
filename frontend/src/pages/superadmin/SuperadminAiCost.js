@@ -10,6 +10,7 @@ import {
 import {
   getOverview, getByTenant, getByFeature, getByModel, getTenantTimeseries, getForecast, listCaps,
 } from '../../api/superadminAiCost';
+import { Z } from '../../styles/zIndex';
 
 function fmtMxn(v) {
   if (v == null) return '—';
@@ -78,7 +79,7 @@ function KpiCard({ Icon, label, value, accent, sub }) {
 function CapsListModal({ caps, onClose, onEdit }) {
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1450, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 560, maxHeight: '80vh', overflowY: 'auto', background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <DollarSign size={14} color="var(--theme)" />
@@ -177,7 +178,7 @@ export default function SuperadminAiCost({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-ai-cost">
         {toast && (
-          <div data-testid="ai-cost-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="ai-cost-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

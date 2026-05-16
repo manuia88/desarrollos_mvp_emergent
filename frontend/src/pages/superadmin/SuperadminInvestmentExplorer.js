@@ -5,6 +5,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge, Empty } from '../../components/advisor/primitives';
 import { listZones, fetchZoneDetail } from '../../api/investmentExplorer';
 import HedonicCoefficientsTable from '../../components/superadmin/HedonicCoefficientsTable';
+import { Z } from '../../styles/zIndex';
 
 const SORTS = [
   { id: 'score',     label: 'Zone Score' },
@@ -137,7 +138,7 @@ export default function SuperadminInvestmentExplorer() {
       {/* Drawer */}
       {drawerZone && (
         <div data-testid="ie-drawer-overlay" onClick={() => { setDrawerZone(null); setDrawerData(null); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
           <div onClick={e => e.stopPropagation()} data-testid="ie-drawer"
             style={{
               position: 'absolute', right: 0, top: 0, bottom: 0,

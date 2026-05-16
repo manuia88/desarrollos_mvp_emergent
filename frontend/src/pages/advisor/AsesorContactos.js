@@ -5,6 +5,7 @@ import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
 import { Search, Sparkle, MessageSquare, ArrowRight } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const TIPOS = ['comprador', 'vendedor', 'propietario', 'inversor', 'broker'];
 const TEMPS = ['frio', 'tibio', 'caliente', 'cliente'];
@@ -324,7 +325,7 @@ function ArgumentarioForm({ contact, devs, onDone }) {
               {hoverCitation === cidx && cite && (
                 <span style={{
                   position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
-                  width: 320, padding: 10, zIndex: 60,
+                  width: 320, padding: 10, zIndex: Z.DROPDOWN,
                   background: '#0A0D16', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 12,
                   fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', lineHeight: 1.45,
                   boxShadow: '0 12px 36px rgba(0,0,0,0.4)', textAlign: 'left',

@@ -8,6 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { fetchAuditLog, fetchAuditStats } from '../../api/audit';
 import { RefreshCw, ClipboardList, ChevronLeft, ChevronRight, X, Shield } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const ENTITY_TYPES = ['operacion', 'contacto', 'unit', 'document', 'sync_overlay', 'proyecto', 'role'];
 const ACTIONS = ['create', 'update', 'delete', 'revert'];
@@ -82,10 +83,10 @@ function DiffDrawer({ entry, onClose }) {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', justifyContent: 'flex-end' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, display: 'flex', justifyContent: 'flex-end' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(6,8,15,0.65)' }} />
       <div data-testid="audit-diff-drawer" style={{
-        position: 'relative', zIndex: 1, width: 600, maxWidth: '100vw',
+        position: 'relative', zIndex: Z.BASE, width: 600, maxWidth: '100vw',
         background: '#0D1118', borderLeft: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', overflowY: 'auto',
         padding: 28, gap: 20,

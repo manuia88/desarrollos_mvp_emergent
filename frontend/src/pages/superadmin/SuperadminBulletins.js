@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge, Empty } from '../../components/advisor/primitives';
 import { listBulletins, generateBulletin, bulletinPdfUrl } from '../../api/bulletins';
+import { Z } from '../../styles/zIndex';
 
 const TOP_ZONES = [
   { id: 'polanco', name: 'Polanco' },
@@ -131,7 +132,7 @@ export default function SuperadminBulletins() {
 
       {preview && (
         <div data-testid="bulletins-preview-overlay" onClick={() => setPreview(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.85)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.85)' }}>
           <div onClick={e => e.stopPropagation()} data-testid="bulletins-preview-modal"
             style={{
               position: 'absolute', inset: 'clamp(20px, 4vh, 60px) auto auto 50%',

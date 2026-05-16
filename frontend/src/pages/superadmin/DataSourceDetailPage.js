@@ -6,6 +6,7 @@ import ConnectModal from '../../components/superadmin/ConnectModal';
 import UploadModal from '../../components/superadmin/UploadModal';
 import * as api from '../../api/superadmin';
 import { ArrowLeft, Sparkle, Database, Bookmark, Shield, Clock } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const fmtDate = (d) => {
   if (!d) return '—';
@@ -195,7 +196,7 @@ export default function DataSourceDetailPage({ user, onLogout }) {
 
       {toast && (
         <div data-testid="detail-toast" style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 700,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 12,
           background: toast.tone === 'ok' ? 'rgba(34,197,94,0.16)' : 'rgba(239,68,68,0.16)',
           border: `1px solid ${toast.tone === 'ok' ? 'rgba(34,197,94,0.32)' : 'rgba(239,68,68,0.32)'}`,

@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import DragDropZone from '../shared/DragDropZone';
 import { listDevAssets } from '../../api/developer';
 import { Upload, X, Download, Star } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -231,7 +232,7 @@ export default function ContenidoTab({ devId, user }) {
           onClick={() => setPreviewAsset(null)}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.92)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.TOAST,
           }}
         >
           <button onClick={() => setPreviewAsset(null)}

@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -252,7 +253,7 @@ export default function AsesorOutbound({ user }) {
 
       {toast && (
         <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 600,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 9999,
           background: toast.type === 'success' ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)',
           border: `1px solid ${toast.type === 'success' ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,

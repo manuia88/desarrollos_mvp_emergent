@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight, Sparkle } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
 import { ComplianceBadgeOverlay } from './ComplianceBadge';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -51,7 +52,7 @@ function IERankPill({ rank }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        position: 'absolute', left: 12, bottom: 12, zIndex: 3,
+        position: 'absolute', left: 12, bottom: 12, zIndex: Z.BASE,
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '5px 12px', borderRadius: 9999,
         background: tone.bg, color: tone.fg,
@@ -75,7 +76,7 @@ function IERankPill({ rank }) {
           color: 'var(--cream-2)',
           fontFamily: 'DM Sans', fontWeight: 500, fontSize: 10.5,
           letterSpacing: '0.02em', textTransform: 'none',
-          whiteSpace: 'nowrap', zIndex: 4,
+          whiteSpace: 'nowrap', zIndex: Z.BASE,
         }}>
           Basado en IE Score · click para ver detalles
         </span>

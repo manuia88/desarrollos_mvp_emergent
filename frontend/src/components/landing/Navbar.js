@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Globe } from '../icons';
 import NotificationBellIcon from '../notifications/NotificationBellIcon';
+import { Z } from '../../styles/zIndex';
 
 const LNG_KEY = 'dmx_lng';
 const PRIVATE_BETA_MODE = (process.env.REACT_APP_PRIVATE_BETA_MODE || '').toLowerCase() === 'true';
@@ -84,7 +85,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
           position: 'fixed',
           top: 0, left: 0, right: 0,
           height: 60,
-          zIndex: 100,
+          zIndex: Z.DROPDOWN,
           display: 'flex',
           alignItems: 'center',
           padding: '0 32px',
@@ -193,7 +194,7 @@ export default function Navbar({ onLogin, user, onLogout }) {
           id="mobile-nav-sheet"
           data-testid="nav-mobile-sheet"
           style={{
-            position: 'fixed', inset: 0, zIndex: 99,
+            position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
             background: 'rgba(6,8,15,0.97)',
             backdropFilter: 'blur(24px)',
             display: 'flex', flexDirection: 'column',

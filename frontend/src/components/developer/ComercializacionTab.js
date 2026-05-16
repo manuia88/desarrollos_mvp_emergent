@@ -11,6 +11,7 @@ import {
 } from '../../api/developer';
 import InlineEditField from '../shared/InlineEditField';
 import { Users, Check } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const BROKER_TYPE_LABELS = {
   advisor: 'Asesor externo',
@@ -76,7 +77,7 @@ function AssignBrokerModal({ projectId, onClose, onAssigned }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', zIndex: 1500,
+      position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', zIndex: Z.DRAWER,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
@@ -227,7 +228,7 @@ export default function ComercializacionTab({ devId, user }) {
                 Aplicar desde otro proyecto ↓
               </button>
               {showDefaults && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100, marginTop: 4, background: 'rgba(6,8,15,0.97)', border: '1px solid rgba(240,235,224,0.16)', borderRadius: 10, overflow: 'hidden', minWidth: 200, boxShadow: '0 16px 40px rgba(0,0,0,0.4)' }}>
+                <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4, background: 'rgba(6,8,15,0.97)', border: '1px solid rgba(240,235,224,0.16)', borderRadius: 10, overflow: 'hidden', minWidth: 200, boxShadow: '0 16px 40px rgba(0,0,0,0.4)' }}>
                   {otherProjects.map(p => (
                     <button key={p.id} onClick={() => applyFrom(p.id)}
                       style={{ width: '100%', background: 'none', border: 'none', padding: '8px 14px', textAlign: 'left', cursor: 'pointer', color: 'var(--cream)', fontSize: 12 }}

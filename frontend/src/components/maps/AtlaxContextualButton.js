@@ -3,6 +3,7 @@
  * Botón flotante bottom-right. Obtiene context del mapa y abre AtlaxBubble.
  */
 import React, { useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -62,7 +63,7 @@ export default function AtlaxContextualButton({ mapState, activeLayers, onOpenAt
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: '0 8px 32px rgba(var(--theme-rgb),0.4)',
-        zIndex: 200,
+        zIndex: Z.STICKY,
         transition: 'all 0.25s ease',
       }}
     >

@@ -2,6 +2,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FadeUp from '../animations/FadeUp';
+import { Z } from '../../styles/zIndex';
 
 function TestimonialCard({ t: item }) {
   return (
@@ -71,16 +72,16 @@ export default function Testimonials() {
 
       <div className="marquee-wrap" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to right, var(--bg), transparent)', zIndex: 2, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to left, var(--bg), transparent)', zIndex: 2, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to right, var(--bg), transparent)', zIndex: Z.BASE, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to left, var(--bg), transparent)', zIndex: Z.BASE, pointerEvents: 'none' }} />
           <div className="marquee-row" style={{ animationDuration: '38s' }}>
             {ROW1.map((item, i) => <TestimonialCard key={i} t={item} />)}
           </div>
         </div>
 
         <div style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to right, var(--bg), transparent)', zIndex: 2, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to left, var(--bg), transparent)', zIndex: 2, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to right, var(--bg), transparent)', zIndex: Z.BASE, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, width: 80, height: '100%', background: 'linear-gradient(to left, var(--bg), transparent)', zIndex: Z.BASE, pointerEvents: 'none' }} />
           <div className="marquee-row rev" style={{ animationDuration: '44s' }}>
             {ROW2.map((item, i) => <TestimonialCard key={i} t={item} />)}
           </div>

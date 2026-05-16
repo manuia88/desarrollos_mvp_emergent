@@ -8,6 +8,7 @@ import {
 import {
   listConnectors, getConnector, testConnector, retryConnector, replayConnector, listInvocations,
 } from '../../api/superadminDataHub';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -58,7 +59,7 @@ function ReplayModal({ connector, onClose, onConfirm }) {
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="replay-modal" style={{
         width: '100%', maxWidth: 460, background: 'rgba(13,17,28,0.97)',
         border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14,
@@ -138,7 +139,7 @@ function ConnectorDrawer({ connectorId, onClose, onAction }) {
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1300, display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', justifyContent: 'flex-end' }}>
       <div data-testid="connector-drawer" style={{
         width: '100%', maxWidth: 600, background: 'rgba(13,17,28,0.97)',
         borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '24px 26px 80px',
@@ -367,7 +368,7 @@ export default function SuperadminDataSourcesHub({ user, onLogout }) {
         <style>{`@keyframes connectorPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); } }`}</style>
 
         {toast && (
-          <div data-testid="hub-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="hub-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

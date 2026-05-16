@@ -10,6 +10,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { getTeamAggregated } from '../../api/metrics';
 import HealthScoreWidget from '../shared/HealthScoreWidget';
 import SmartEmptyState from '../shared/SmartEmptyState';
+import { Z } from '../../styles/zIndex';
 
 const fmtMXN = (v) => {
   if (typeof v !== 'number' || !v) return '$0';
@@ -295,7 +296,7 @@ function AsesorDrawer({ asesor, period, onClose }) {
       <div data-testid="asesor-drawer-overlay"
            onClick={onClose}
            style={{
-             position: 'fixed', inset: 0, zIndex: 480,
+             position: 'fixed', inset: 0, zIndex: Z.STICKY,
              background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(4px)',
            }} />
       <aside data-testid={`asesor-drawer-${asesor.asesor_id}`}
@@ -303,7 +304,7 @@ function AsesorDrawer({ asesor, period, onClose }) {
                position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
                background: 'var(--bg, #06080F)',
                borderLeft: '1px solid var(--border, rgba(240,235,224,0.12))',
-               zIndex: 490, padding: 24, overflow: 'auto', fontFamily: 'DM Sans',
+               zIndex: Z.STICKY, padding: 24, overflow: 'auto', fontFamily: 'DM Sans',
                color: 'var(--cream)',
              }}>
         <button data-testid="asesor-drawer-close" onClick={onClose}

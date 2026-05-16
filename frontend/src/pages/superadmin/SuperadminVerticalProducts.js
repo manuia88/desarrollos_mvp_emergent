@@ -4,6 +4,7 @@ import { Building2, ShieldAlert, FileSearch, TrendingUp, Copy, X } from 'lucide-
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card } from '../../components/advisor/primitives';
 import VerticalProductCard from '../../components/superadmin/VerticalProductCard';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -149,7 +150,7 @@ function TestDrawer({ vertical, onClose }) {
   return (
     <div onClick={onClose}
       data-testid={`vertical-test-drawer-${vertical.key}`}
-      style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.85)' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.85)' }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{
           position: 'absolute', right: 0, top: 0, bottom: 0,

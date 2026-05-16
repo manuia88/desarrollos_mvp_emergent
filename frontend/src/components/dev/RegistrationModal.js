@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ArrowRight, Sparkle } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 export default function RegistrationModal({ open, onClose, onLogin, context }) {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ export default function RegistrationModal({ open, onClose, onLogin, context }) {
       data-testid="registration-modal"
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 200,
+        position: 'fixed', inset: 0, zIndex: Z.STICKY,
         background: 'rgba(6,8,15,0.82)',
         backdropFilter: 'blur(14px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

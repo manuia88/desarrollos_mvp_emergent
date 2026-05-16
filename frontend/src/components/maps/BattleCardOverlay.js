@@ -4,6 +4,7 @@
  * Muestra FeatureLockedOverlay cuando 403 tier_locked.
  */
 import React, { useEffect, useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -51,7 +52,7 @@ export default function BattleCardOverlay({ open, devId, onClose }) {
     <div
       data-testid="battle-card-overlay"
       style={{
-        position: 'fixed', inset: 0, zIndex: 500,
+        position: 'fixed', inset: 0, zIndex: Z.STICKY,
         background: 'rgba(6,8,15,0.88)', backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}

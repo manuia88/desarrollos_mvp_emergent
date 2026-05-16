@@ -7,6 +7,7 @@ import { PageHeader, Card, Badge } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import { Sparkle, ArrowRight, X, Target, Activity, TrendUp, TrendDown } from '../../components/icons';
 import DiagnosticPanel from '../../components/developer/DiagnosticPanel';
+import { Z } from '../../styles/zIndex';
 
 const TIER_COLORS = {
   excellent: { fg: '#86efac', bg: 'rgba(34,197,94,0.14)', bd: 'rgba(34,197,94,0.35)' },
@@ -176,7 +177,7 @@ function DrillDownModal({ score, data, onClose }) {
     <div
       data-testid="ie-drill-modal"
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: '#0D1118', border: '1px solid var(--border)',
         borderRadius: 16, padding: 22, maxWidth: 640, width: '100%', maxHeight: '88vh', overflowY: 'auto',

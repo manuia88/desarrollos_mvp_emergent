@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import BuyerCoachConversation from './BuyerCoachConversation';
+import { Z } from '../../styles/zIndex';
 
 export default function BuyerCoachWidget({ colonia = '' }) {
   const location = useLocation();
@@ -25,7 +26,7 @@ export default function BuyerCoachWidget({ colonia = '' }) {
           position: 'fixed',
           bottom: 28,
           right: 28,
-          zIndex: 8888,
+          zIndex: Z.MODAL_CRITICAL,
         }}
       >
         {!open && (
@@ -56,7 +57,7 @@ export default function BuyerCoachWidget({ colonia = '' }) {
       {/* Modal / drawer */}
       {open && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 9900,
+          position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
           display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end',
           padding: '0 20px 20px',
           pointerEvents: 'none',

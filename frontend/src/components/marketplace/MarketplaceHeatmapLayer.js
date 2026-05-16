@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchHeatmapLayer } from '../../api/marketplace';
+import { Z } from '../../styles/zIndex';
 
 const LAYER_OPTIONS = [
   { key: 'price',    label: 'Precio / m²' },
@@ -158,7 +159,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
       <div
         data-testid="heatmap-layer-toggles"
         style={{
-          position: 'absolute', top: 16, left: 16, zIndex: 20,
+          position: 'absolute', top: 16, left: 16, zIndex: Z.DROPDOWN,
           display: 'flex', gap: 6, padding: 4,
           background: 'rgba(6,8,15,0.90)',
           border: '1px solid rgba(240,235,224,0.15)',
@@ -201,7 +202,7 @@ export default function MarketplaceHeatmapLayer({ mapInstance, onColoniaClick })
       <div
         data-testid="heatmap-legend"
         style={{
-          position: 'absolute', bottom: 24, right: 16, zIndex: 20,
+          position: 'absolute', bottom: 24, right: 16, zIndex: Z.DROPDOWN,
           padding: legendOpen ? '12px 14px' : '8px 12px',
           background: 'rgba(6,8,15,0.90)',
           border: '1px solid rgba(240,235,224,0.15)',

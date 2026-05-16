@@ -14,6 +14,7 @@ import { useAuth } from '../../App';
 import { X, ArrowRight, FileText, Heart } from '../icons';
 import ColoniaReportModal from './ColoniaReportModal';
 import ColoniaHistoryTab from './ColoniaHistoryTab';
+import { Z } from '../../styles/zIndex';
 
 const RISK_LABELS = {
   flood:       'Inundación',
@@ -114,7 +115,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
           data-testid="colonia-sidebar-backdrop"
           onClick={onClose}
           style={{
-            position: 'fixed', inset: 0, zIndex: 39,
+            position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
             background: 'rgba(6,8,15,0.55)',
             backdropFilter: 'blur(4px)',
             display: 'none',
@@ -132,7 +133,7 @@ export default function ColoniaSidebar({ coloniaId, onClose, onFilterByColonia }
           height: '100%',
           width: isOpen ? 380 : 0,
           minWidth: isOpen ? 380 : 0,
-          zIndex: 40,
+          zIndex: Z.DROPDOWN,
           background: 'rgba(6,8,15,0.97)',
           borderLeft: '1px solid rgba(240,235,224,0.10)',
           backdropFilter: 'blur(24px)',

@@ -7,6 +7,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Badge, fmt0 } from '../advisor/primitives';
 import { Sparkle, Activity, TrendUp, ArrowRight, X } from '../icons';
 import * as api from '../../api/developer';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_TONE = {
   disponible: 'ok', vendido: 'neutral', reservado: 'brand', apartado: 'brand',
@@ -36,7 +37,7 @@ function TimelineDrawer({ projectId, unit, onClose }) {
   return (
     <div data-testid="engagement-timeline-drawer" style={{
       position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(440px, 100vw)',
-      background: '#0b0e18', borderLeft: '1px solid var(--border)', zIndex: 1200,
+      background: '#0b0e18', borderLeft: '1px solid var(--border)', zIndex: Z.DRAWER,
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       boxShadow: '-12px 0 32px rgba(0,0,0,0.42)',
     }}>

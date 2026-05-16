@@ -1,5 +1,6 @@
 // F0.1 — ScoreBadge · DMX investment score (0-100 with letter tier).
 import React, { useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const TIER_COLOR = {
   AAA: { bg: 'rgba(34,197,94,0.18)',  fg: '#86efac', accent: '#22c55e' },
@@ -65,7 +66,7 @@ export default function ScoreBadge({
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)', left: 0,
-            zIndex: 100,
+            zIndex: Z.DROPDOWN,
             minWidth: 240,
             background: 'rgba(13,16,23,0.96)',
             border: '1px solid rgba(240,235,224,0.15)',

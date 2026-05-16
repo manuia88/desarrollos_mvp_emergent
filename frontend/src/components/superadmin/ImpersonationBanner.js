@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, LogOut } from 'lucide-react';
 import useImpersonation from '../../hooks/useImpersonation';
+import { Z } from '../../styles/zIndex';
 
 function fmtCountdown(expiresAt) {
   if (!expiresAt) return '';
@@ -41,7 +42,7 @@ export default function ImpersonationBanner() {
   return (
     <div data-testid="impersonation-banner"
       style={{
-        position: 'sticky', top: 0, zIndex: 60,
+        position: 'sticky', top: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(250,204,21,0.14)',
         borderBottom: '1px solid rgba(250,204,21,0.45)',
         backdropFilter: 'blur(24px)',

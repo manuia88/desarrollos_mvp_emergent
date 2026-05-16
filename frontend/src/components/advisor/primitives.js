@@ -1,5 +1,6 @@
 // Shared primitives for advisor portal
 import React from 'react';
+import { Z } from '../../styles/zIndex';
 
 export function PageHeader({ eyebrow, title, sub, actions }) {
   return (
@@ -92,7 +93,7 @@ export function Toast({ kind = 'info', text, onClose }) {
       onClick={onClose}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}
       style={{
-        position: 'fixed', bottom: 24, right: 24, zIndex: 300,
+        position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
         padding: '12px 18px', borderRadius: 12,
         background: p.bg, border: `1px solid ${p.bo}`, color: p.fg,
         fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
@@ -117,7 +118,7 @@ export function Drawer({ open, onClose, title, children, width = 520 }) {
       role="presentation"
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 150,
+        position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(6,8,15,0.72)', backdropFilter: 'blur(10px)',
         display: 'flex', justifyContent: 'flex-end',
       }}

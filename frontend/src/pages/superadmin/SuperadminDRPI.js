@@ -5,6 +5,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge, Empty } from '../../components/advisor/primitives';
 import HedonicCoefficientsTable from '../../components/superadmin/HedonicCoefficientsTable';
 import { listSnapshots, recompute, fetchCoefficients } from '../../api/drpi';
+import { Z } from '../../styles/zIndex';
 
 function fmtPct(v) {
   if (v == null) return '—';
@@ -144,7 +145,7 @@ export default function SuperadminDRPI() {
       {/* Drawer */}
       {drawerZone && (
         <div data-testid="drpi-drawer-overlay" onClick={() => { setDrawerZone(null); setDrawerModel(null); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
           <div onClick={e => e.stopPropagation()}
             data-testid="drpi-drawer"
             style={{

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, CalendarCheck, Video, Phone, CheckCircle, AlertCircle, Plus, ExternalLink } from '../icons';
 import { createCita, getSlotAvailability } from '../../api/developer';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -166,7 +167,7 @@ export default function NewCitaModal({ user, prefilledProject, projects = [], on
     const isReview = result.status === 'under_review';
     const isSuccess = result.status === 'created';
     return (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
         <div style={{ background: 'linear-gradient(135deg, #0D1118, #111827)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 420, padding: 32, textAlign: 'center' }}>
           {isConflict ? (
             <>
@@ -241,7 +242,7 @@ export default function NewCitaModal({ user, prefilledProject, projects = [], on
   const noSlots = form.fecha && availSlots.length > 0 && availSlots.every(s => !s.available);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, padding: '24px 16px', overflowY: 'auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: Z.MODAL, padding: '24px 16px', overflowY: 'auto' }}>
       <div style={{ background: 'linear-gradient(135deg, #0D1118, #111827)', border: '1px solid var(--border)', borderRadius: 20, width: '100%', maxWidth: 540, padding: '28px 28px 24px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

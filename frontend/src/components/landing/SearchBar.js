@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 export default function SearchBar() {
   const { t } = useTranslation();
@@ -31,7 +32,7 @@ export default function SearchBar() {
         borderRadius: 20,
         boxShadow: 'var(--sh-elev)',
         position: 'relative',
-        zIndex: 20,
+        zIndex: Z.DROPDOWN,
       }}
     >
       <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>

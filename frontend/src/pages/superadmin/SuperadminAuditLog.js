@@ -10,6 +10,7 @@ import {
 import {
   listEntries, distinctActors, distinctEntityTypes, getStats, exportUrl,
 } from '../../api/superadminAudit';
+import { Z } from '../../styles/zIndex';
 
 const PAGE = 50;
 
@@ -74,7 +75,7 @@ function ExportModal({ filters, currentTotal, onClose }) {
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="export-modal" style={{
         width: '100%', maxWidth: 460, background: 'rgba(13,17,28,0.97)',
         border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14,
@@ -231,7 +232,7 @@ export default function SuperadminAuditLog({ user, onLogout }) {
     <SuperadminLayout user={user} onLogout={onLogout}>
       <div data-testid="superadmin-audit-log">
         {toast && (
-          <div data-testid="audit-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div data-testid="audit-toast" style={{ position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.35)', color: 'var(--theme)', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}
@@ -462,7 +463,7 @@ function AutocompleteField({ label, value, options, onChange, testId }) {
           placeholder={`Buscar ${label.toLowerCase()}…`}
           style={{ width: '100%', padding: '7px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 11.5, outline: 'none' }} />
         {focus && filtered.length > 0 && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, padding: 4, borderRadius: 10, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', maxHeight: 220, overflowY: 'auto', zIndex: 100 }}>
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, padding: 4, borderRadius: 10, background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)', maxHeight: 220, overflowY: 'auto', zIndex: Z.DROPDOWN }}>
             {filtered.map(o => (
               <button key={o.value} onClick={() => { setDraft(o.value); onChange(o.value); }}
                 data-testid={`${testId}-opt-${o.value}`}

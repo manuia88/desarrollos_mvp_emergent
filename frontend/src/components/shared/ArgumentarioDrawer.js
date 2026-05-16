@@ -9,6 +9,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import { queryArgumentario, fetchArgumentarioRecent } from '../../api/asesor';
+import { Z } from '../../styles/zIndex';
 
 const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
@@ -113,7 +114,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
         data-testid="argumentario-backdrop"
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, zIndex: 70,
+          position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
           background: 'rgba(6,8,15,0.6)', backdropFilter: 'blur(4px)',
         }}
       />
@@ -123,7 +124,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
         role="dialog"
         aria-label="Plan venta IA"
         style={{
-          position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 71,
+          position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: Z.DROPDOWN,
           width: 'min(560px, 100vw)',
           background: 'rgba(6,8,15,0.96)',
           borderLeft: '1px solid rgba(240,235,224,0.12)',

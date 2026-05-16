@@ -13,6 +13,7 @@
 import React, { useState } from 'react';
 import { calculateMortgage, saveMortgage } from '../../api/marketplace';
 import { X, Sparkle } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const FIELDS = [
   { k: 'precio',           label: 'Precio del inmueble (MXN)',     type: 'number', required: true },
@@ -430,7 +431,7 @@ export default function MortgageCalculator({
   if (variant === 'modal') {
     return (
       <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 70,
+        position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(6,8,15,0.86)', backdropFilter: 'blur(18px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         overflowY: 'auto',

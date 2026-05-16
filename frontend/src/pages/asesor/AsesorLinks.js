@@ -8,6 +8,7 @@ import { FilterChipsBar } from '../../components/shared/FilterChipsBar';
 import SmartEmptyState from '../../components/shared/SmartEmptyState';
 import { listLinks, postLink, deleteLink } from '../../api/metrics';
 import { Trash, Copy, Download, Plus } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const SOURCES = ['facebook', 'instagram', 'email', 'whatsapp', 'qr', 'other'];
 const MEDIUMS = ['social', 'email', 'print', 'direct'];
@@ -297,7 +298,7 @@ export default function AsesorLinks({ user, onLogout }) {
       {toast && (
         <div data-testid="links-toast" role="status"
               style={{
-                position: 'fixed', bottom: 16, right: 16, zIndex: 60,
+                position: 'fixed', bottom: 16, right: 16, zIndex: Z.DROPDOWN,
                 padding: '8px 14px', borderRadius: 9999,
                 background: toast.kind === 'success' ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)',
                 border: `1px solid ${toast.kind === 'success' ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,

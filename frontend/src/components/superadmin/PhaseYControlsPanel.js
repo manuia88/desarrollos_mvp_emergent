@@ -3,6 +3,7 @@
  * Panel de configuración Phase Y por org. Montado como tab en TenantDrawer.
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -175,7 +176,7 @@ export function PhaseYControlsPanel({ orgId }) {
       {/* Toast */}
       {toast && (
         <div data-testid="phase-y-toast" style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.MODAL_CRITICAL,
           padding: '10px 18px', borderRadius: 9999,
           background: toast.type === 'error' ? 'rgba(239,68,68,0.92)' : 'rgba(74,222,128,0.92)',
           color: '#06080F', fontWeight: 700, fontSize: 13,

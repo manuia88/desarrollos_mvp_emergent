@@ -5,6 +5,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Badge, Empty } from '../../components/advisor/primitives';
 import { listAllScores, recompute } from '../../api/riskScore';
 import RiskScoreBreakdown from '../../components/developer/RiskScoreBreakdown';
+import { Z } from '../../styles/zIndex';
 
 const LETTERS = { A: 'ok', B: 'ok', C: 'warn', D: 'warn', E: 'bad', F: 'bad' };
 
@@ -119,7 +120,7 @@ export default function SuperadminRiskScore() {
 
       {drawerZone && (
         <div data-testid="risk-drawer-overlay" onClick={() => setDrawerZone(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
           <div onClick={e => e.stopPropagation()}
             data-testid="risk-drawer"
             style={{

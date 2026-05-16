@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { fillOffer } from '../../api/crossSell';
+import { Z } from '../../styles/zIndex';
 
 const inputStyle = {
   width: '100%', background: 'rgba(255,255,255,0.05)',
@@ -51,7 +52,7 @@ export default function PartnerOfferModal({ offer, onClose, onSuccess }) {
       role="presentation"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
+        position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
         background: 'rgba(6,8,15,0.85)',
         backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

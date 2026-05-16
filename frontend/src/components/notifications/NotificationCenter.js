@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationItem from './NotificationItem';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -115,7 +116,7 @@ export default function NotificationCenter({ onCountChange, open, onClose }) {
         borderRadius: 12,
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        zIndex: 9999,
+        zIndex: Z.MODAL_CRITICAL,
         overflow: 'hidden',
         boxShadow: '0 8px 40px rgba(0,0,0,0.4)',
       }}

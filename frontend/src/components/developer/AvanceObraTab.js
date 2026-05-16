@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
 import * as api from '../../api/developer';
 import { CheckCircle, Clock, MessageCircle, Image, Camera, Sparkle } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const STAGE_COLORS = {
   cimentacion:   { bg: 'rgba(var(--theme-rgb),0.14)', bd: 'rgba(var(--theme-rgb),0.35)', fg: 'var(--theme)' },
@@ -190,7 +191,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
           <Card style={{ marginBottom: 22, padding: 0, overflow: 'hidden' }} data-testid="avance-units-table">
             <div style={{ maxHeight: 360, overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
-                <thead style={{ position: 'sticky', top: 0, background: '#0D1118', zIndex: 2 }}>
+                <thead style={{ position: 'sticky', top: 0, background: '#0D1118', zIndex: Z.BASE }}>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
                     {['Unidad', 'Prototipo', 'Etapa actual', '% Avance', 'Última act.', ''].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10.5, fontWeight: 500, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
@@ -286,7 +287,7 @@ export default function AvanceObraTab({ devId, readOnly = false }) {
 
       {toast && (
         <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 620,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
           background: toast.type === 'ok' ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
           border: `1px solid ${toast.type === 'ok' ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,

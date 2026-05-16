@@ -12,6 +12,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Share } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 export default function ShareLinkButton({
   entityType = 'colonia',
@@ -80,7 +81,7 @@ export default function ShareLinkButton({
 
       {open && (
         <div data-testid="share-link-menu" style={{
-          position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 30,
+          position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: Z.DROPDOWN,
           padding: 10, borderRadius: 14, minWidth: 240,
           background: 'rgba(13,16,23,0.98)',
           border: '1px solid rgba(240,235,224,0.14)',

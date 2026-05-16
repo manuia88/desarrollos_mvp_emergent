@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Upload, FileText, AlertTriangle } from '../icons';
 import * as docsApi from '../../api/documents';
+import { Z } from '../../styles/zIndex';
 
 const MAX_BYTES = 50 * 1024 * 1024;
 const ACCEPTED = '.pdf,.jpg,.jpeg,.png,.tif,.tiff';
@@ -80,7 +81,7 @@ export default function UploadDocumentModal({ open, devId, devName, scope = 'sup
 
   return (
     <div data-testid="upload-doc-modal" onClick={handleClose} style={{
-      position: 'fixed', inset: 0, zIndex: 600,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.84)', backdropFilter: 'blur(18px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>

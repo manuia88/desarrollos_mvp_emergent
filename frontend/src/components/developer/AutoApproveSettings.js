@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Zap, Info, ToggleLeft, ToggleRight, ChevronDown, X } from 'lucide-react';
 import { getAutoApproveRule, saveAutoApproveRule, simulateAutoApproveRule } from '../../api/advisor_whitelist';
+import { Z } from '../../styles/zIndex';
 
 const COLONIAS = [
   'Polanco', 'Santa Fe', 'Lomas de Chapultepec', 'Del Valle', 'Nápoles',
@@ -92,7 +93,7 @@ function ColoniasMultiSelect({ selected, onChange }) {
 
       {open && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: Z.DROPDOWN,
           background: 'rgba(13,17,28,0.98)',
           border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: 10, marginTop: 4, overflow: 'hidden',
@@ -208,7 +209,7 @@ export default function AutoApproveSettings() {
       {/* Toast */}
       {toast && (
         <div data-testid="auto-approve-toast" style={{
-          position: 'fixed', top: 20, right: 20, zIndex: 2000,
+          position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST,
           padding: '11px 18px', borderRadius: 10,
           background: 'rgba(var(--theme-rgb),0.18)',
           border: '1px solid rgba(var(--theme-rgb),0.35)',

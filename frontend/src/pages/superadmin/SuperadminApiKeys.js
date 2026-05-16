@@ -6,6 +6,7 @@ import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
 import ApiKeyCard from '../../components/superadmin/ApiKeyCard';
 import StripeSubscriptionPanel from '../../components/superadmin/StripeSubscriptionPanel';
 import { listKeys, createKey, revokeKey, fetchUsage } from '../../api/superadminApiKeys';
+import { Z } from '../../styles/zIndex';
 
 export default function SuperadminApiKeys() {
   const [items, setItems] = useState([]);
@@ -106,7 +107,7 @@ export default function SuperadminApiKeys() {
       {/* Create modal */}
       {showCreate && (
         <div onClick={() => setShowCreate(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.85)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.85)' }}>
           <form onClick={e => e.stopPropagation()} onSubmit={onCreate}
             data-testid="api-keys-create-modal"
             style={{
@@ -148,7 +149,7 @@ export default function SuperadminApiKeys() {
       {/* Generated modal — show key full ONCE */}
       {generated && (
         <div onClick={() => setGenerated(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 8001, background: 'rgba(6,8,15,0.92)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.92)' }}>
           <div onClick={e => e.stopPropagation()}
             data-testid="api-keys-generated-modal"
             style={{
@@ -187,7 +188,7 @@ export default function SuperadminApiKeys() {
       {/* Usage drawer */}
       {drawerKey && (
         <div onClick={() => { setDrawerKey(null); setDrawerUsage(null); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
           <div onClick={e => e.stopPropagation()}
             data-testid="api-keys-usage-drawer"
             style={{

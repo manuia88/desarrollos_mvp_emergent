@@ -2,6 +2,7 @@
 // Renderiza dentro del panel de AtlaxBubble cuando el usuario abre el toggle "Historial".
 import React, { useEffect, useState, useCallback } from 'react';
 import { MessageSquare, X, Plus, Clock } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -59,7 +60,7 @@ export default function AtlaxThreadsSidebar({
 
   return (
     <div data-testid="atlax-threads-sidebar" style={{
-      position: 'absolute', inset: 0, zIndex: 5,
+      position: 'absolute', inset: 0, zIndex: Z.BASE,
       background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
       display: 'flex', flexDirection: 'column',
       animation: 'caya-pop 0.18s ease-out',

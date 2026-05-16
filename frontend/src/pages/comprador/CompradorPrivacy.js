@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchConsents, updateConsents, requestExport, deleteAccount } from '../../api/comprador';
 import CompradorLayout from '../../components/comprador/CompradorLayout';
 import { Shield } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const CONSENTS_DEFS = [
   {
@@ -249,7 +250,7 @@ function DeleteModal({ onClose }) {
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 80,
+      position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
       background: 'rgba(6,8,15,0.92)',
       backdropFilter: 'blur(16px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,

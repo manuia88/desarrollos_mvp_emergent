@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { createProblemReport } from '../../api/diagnostic';
 import { AlertTriangle, X } from '../icons';
 import { Check } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 export default function ReportProblemButton({ user }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +46,7 @@ export default function ReportProblemButton({ user }) {
         onClick={() => setOpen(true)}
         title="Reportar problema"
         style={{
-          position: 'fixed', bottom: 20, right: 20, zIndex: 900,
+          position: 'fixed', bottom: 20, right: 20, zIndex: Z.STICKY,
           background: 'rgba(239,68,68,0.08)',
           color: 'rgba(239,68,68,0.9)',
           border: '1px solid rgba(239,68,68,0.25)',
@@ -62,7 +63,7 @@ export default function ReportProblemButton({ user }) {
 
       {open && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', zIndex: 1600,
+          position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', zIndex: Z.DRAWER,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }} onClick={reset}>
           <div

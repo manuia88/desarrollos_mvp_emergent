@@ -15,6 +15,7 @@ import { Check, Circle } from 'lucide-react';
 import { useServerUndo } from './UndoSnackbar';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { anonymizeKanbanCard, piiCSS } from '../../lib/anonymize';
+import { Z } from '../../styles/zIndex';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -406,7 +407,7 @@ function EnrichedSection({ card }) {
               role="presentation"
               onClick={ev => ev.stopPropagation()}
               style={{
-                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 12,
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: Z.DROPDOWN,
                 padding: 6, borderRadius: 8, background: 'rgba(13,17,28,0.97)',
                 border: '1px solid rgba(255,255,255,0.10)', display: 'flex', flexDirection: 'column', gap: 3,
               }}>
@@ -506,7 +507,7 @@ function LeadDrawer({ leadId, onClose, onToast }) {
       role="presentation"
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000,
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: Z.MODAL,
         display: 'flex', justifyContent: 'flex-end',
       }}>
       <div

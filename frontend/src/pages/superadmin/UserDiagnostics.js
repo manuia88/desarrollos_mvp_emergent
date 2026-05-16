@@ -8,6 +8,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { listProblemReports, getProblemReport, patchProblemReport } from '../../api/diagnostic';
 import { KPIStrip } from '../../components/shared/KPIStrip';
 import { Activity, AlertTriangle, Check } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_CFG = {
   open:          { label: 'Abierto',       color: '#ef4444', bg: 'rgba(239,68,68,0.12)' },
@@ -41,7 +42,7 @@ function ReportDetail({ reportId, onClose, onChanged }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.92)', zIndex: 1500,
+      position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.92)', zIndex: Z.DRAWER,
       display: 'flex', justifyContent: 'flex-end', padding: 20, overflowY: 'auto',
     }} onClick={onClose}>
       <div style={{

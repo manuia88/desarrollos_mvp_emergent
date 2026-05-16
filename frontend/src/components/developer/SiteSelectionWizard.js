@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Badge } from '../advisor/primitives';
 import { X, ArrowRight, ArrowLeft, Check, Sparkle, MapPin } from '../icons';
 import * as api from '../../api/developer';
+import { Z } from '../../styles/zIndex';
 
 const PROJECT_TYPES = [
   { v: 'residencial_vertical', label: 'Residencial vertical' },
@@ -141,7 +142,7 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
 
   return (
     <div data-testid="site-wizard" style={{
-      position: 'fixed', inset: 0, zIndex: 1300,
+      position: 'fixed', inset: 0, zIndex: Z.DRAWER,
       background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>

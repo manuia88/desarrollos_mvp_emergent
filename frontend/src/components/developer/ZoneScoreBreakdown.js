@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Activity } from 'lucide-react';
 import { getZoneScore } from '../../api/phase5Foundation';
+import { Z } from '../../styles/zIndex';
 
 const LETTER_COLOR = {
   A: '#22C55E', B: '#84CC16', C: '#F59E0B',
@@ -102,7 +103,7 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
       data-testid="zone-score-breakdown-overlay"
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 9000,
+        position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
         background: 'rgba(6,8,15,0.72)', backdropFilter: 'blur(6px)',
         display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
       }}
@@ -124,7 +125,7 @@ export default function ZoneScoreBreakdown({ zone_id, zone_name, score_letter, s
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'sticky', top: 0,
           background: 'rgba(13,16,23,0.98)', padding: '0 0 12px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)', zIndex: 1,
+          borderBottom: '1px solid rgba(255,255,255,0.07)', zIndex: Z.BASE,
         }}>
           <div>
             <div style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>

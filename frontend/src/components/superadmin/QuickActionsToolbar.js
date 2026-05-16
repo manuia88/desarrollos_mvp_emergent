@@ -6,6 +6,7 @@ import {
   Plus, X, Settings,
 } from 'lucide-react';
 import { deleteQuickAction, createQuickAction } from '../../api/superadminFounderConsole';
+import { Z } from '../../styles/zIndex';
 
 const ICON_MAP = {
   RefreshCw, AlertTriangle, DollarSign, Sparkles, Camera, FolderUp, Star,
@@ -70,7 +71,7 @@ function CreateModal({ onClose, onDone }) {
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
-        backdropFilter: 'blur(8px)', zIndex: 1500,
+        backdropFilter: 'blur(8px)', zIndex: Z.DRAWER,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}>
       <div data-testid="qa-create-modal" style={{

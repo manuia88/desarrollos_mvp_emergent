@@ -10,6 +10,7 @@ import { useAuth } from '../../App';
 import { fetchColonias, compareEntities, compareEntitiesBuyer, downloadComparePdf, downloadComparePdfBuyer } from '../../api/marketplace';
 import { X, Plus, Download, ArrowRight, Sparkle } from '../../components/icons';
 import ShareLinkButton from '../../components/marketplace/ShareLinkButton';
+import { Z } from '../../styles/zIndex';
 
 const MAX_SLOTS = 3;
 
@@ -67,7 +68,7 @@ function PremiumSectionRow({ label, badge = 'PREMIUM', children, blurred = false
       <div style={{ position: 'relative' }}>
         {blurred && (
           <div style={{
-            position: 'absolute', inset: 0, zIndex: 2,
+            position: 'absolute', inset: 0, zIndex: Z.BASE,
             backdropFilter: 'blur(8px)',
             background: 'rgba(6,8,15,0.65)',
             borderRadius: 12,

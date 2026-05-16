@@ -2,6 +2,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { COLONIAS } from '../../data/colonias';
+import { Z } from '../../styles/zIndex';
 
 export default function LiveTicker() {
   const { t } = useTranslation();
@@ -24,7 +25,7 @@ export default function LiveTicker() {
         overflow: 'hidden',
         marginTop: 24,
         position: 'relative',
-        zIndex: 10,
+        zIndex: Z.DROPDOWN,
       }}
     >
       <div style={{
@@ -32,7 +33,7 @@ export default function LiveTicker() {
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '0 20px',
         borderRight: '1px solid var(--border)',
-        background: '#0A0D16', zIndex: 2,
+        background: '#0A0D16', zIndex: Z.BASE,
       }}>
         <div className="pulse-dot" />
         <span style={{
@@ -46,12 +47,12 @@ export default function LiveTicker() {
       <div style={{
         position: 'absolute', left: 220, top: 0, width: 40, height: '100%',
         background: 'linear-gradient(to right, #0A0D16, transparent)',
-        zIndex: 2, pointerEvents: 'none',
+        zIndex: Z.BASE, pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute', right: 0, top: 0, width: 60, height: '100%',
         background: 'linear-gradient(to left, #0A0D16, transparent)',
-        zIndex: 2, pointerEvents: 'none',
+        zIndex: Z.BASE, pointerEvents: 'none',
       }} />
 
       <div style={{ flex: 1, overflow: 'hidden' }}>

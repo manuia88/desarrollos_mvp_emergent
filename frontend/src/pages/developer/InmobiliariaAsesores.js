@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import InmobiliariaLayout from '../../components/developer/InmobiliariaLayout';
 import { listInmAsesores, createInmAsesor, patchInmAsesor, disableInmAsesor } from '../../api/developer';
 import { Plus, X, UserCheck, CheckCircle, AlertCircle } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const ROLES = ['asesor', 'admin', 'director', 'marketing'];
 const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none', boxSizing: 'border-box' };
@@ -33,7 +34,7 @@ function CreateModal({ onClose, onCreated }) {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
       <div style={{ background: '#0D1118', border: '1px solid var(--border)', borderRadius: 16, width: '100%', maxWidth: 400, padding: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', margin: 0 }}>Nuevo asesor DMX</h2>

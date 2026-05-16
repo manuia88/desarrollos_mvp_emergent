@@ -10,6 +10,7 @@ import { logoutComprador } from '../../api/comprador';
 import { Home, Search, Heart, Clock, Shield, Bell, MessageSquare, Award } from '../icons';
 import { fetchUnreadCount } from '../../api/chat';
 import { fetchWrappedList } from '../../api/wrapped';
+import { Z } from '../../styles/zIndex';
 
 const NAV_BASE = [
   { to: '/comprador', label: 'Dashboard', icon: Home, end: true },
@@ -207,7 +208,7 @@ export default function CompradorLayout({ children }) {
       {/* Mobile topbar */}
       <div className="cmp-topbar-mobile" style={{
         display: 'none',
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: Z.DROPDOWN,
         padding: '12px 18px',
         background: 'rgba(13,16,23,0.95)',
         borderBottom: '1px solid rgba(240,235,224,0.08)',
@@ -248,7 +249,7 @@ export default function CompradorLayout({ children }) {
         <div
           onClick={() => setMobileOpen(false)}
           style={{
-            position: 'fixed', inset: 0, zIndex: 40,
+            position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
             background: 'rgba(6,8,15,0.92)',
             backdropFilter: 'blur(18px)',
           }}

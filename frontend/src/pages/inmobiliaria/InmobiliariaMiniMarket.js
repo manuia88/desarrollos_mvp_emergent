@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import InmobiliariaLayout from '../../components/developer/InmobiliariaLayout';
 import { Store, MapPin, DollarSign, ToggleLeft, ToggleRight, Layers } from 'lucide-react';
 import { getInmMiniMarket, setInmExternalInventory } from '../../api/internal_users';
+import { Z } from '../../styles/zIndex';
 
 function fmtPrice(n) {
   if (!n) return '—';
@@ -116,7 +117,7 @@ export default function InmobiliariaMiniMarket({ user, onLogout }) {
     <InmobiliariaLayout user={user} onLogout={onLogout}>
       <div data-testid="inmobiliaria-mini-market" style={{ maxWidth: 1200 }}>
         {toast && (
-          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { Card, Badge, fmt0 } from '../advisor/primitives';
 import { X, Sparkle, Download, AlertTriangle, TrendUp, TrendDown } from '../icons';
 import * as api from '../../api/developer';
+import { Z } from '../../styles/zIndex';
 
 const inputStyle = {
   width: '100%', padding: '8px 11px', borderRadius: 10,
@@ -145,7 +146,7 @@ export default function ExpansionSimulatorModal({ studyId, zoneColonia, defaultP
 
   return (
     <div data-testid="expansion-modal" style={{
-      position: 'fixed', inset: 0, zIndex: 1400,
+      position: 'fixed', inset: 0, zIndex: Z.DRAWER,
       background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto',
     }}>

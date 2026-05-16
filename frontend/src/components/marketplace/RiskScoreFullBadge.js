@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchRiskScore } from '../../api/riskScore';
 import RiskScoreBreakdown from '../developer/RiskScoreBreakdown';
+import { Z } from '../../styles/zIndex';
 
 const COLORS = {
   A: { bg: '#10B981', fg: '#0c2a1f', label: 'Bajo riesgo' },
@@ -82,7 +83,7 @@ export default function RiskScoreFullBadge({ zoneId, size = 'sm' }) {
         <div data-testid={`risk-fullbadge-tooltip-${zoneId}`}
           style={{
             position: 'absolute', top: 'calc(100% + 8px)', left: 0,
-            zIndex: 50, width: 220,
+            zIndex: Z.DROPDOWN, width: 220,
             background: 'rgba(13,16,23,0.98)',
             border: '1px solid rgba(255,255,255,0.14)',
             borderRadius: 12, padding: 10,
@@ -103,7 +104,7 @@ export default function RiskScoreFullBadge({ zoneId, size = 'sm' }) {
       {open && (
         <div data-testid={`risk-fullbadge-drawer-${zoneId}`}
           onClick={(e) => { e.stopPropagation(); setOpen(false); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
           <div onClick={e => e.stopPropagation()}
             style={{
               position: 'absolute', right: 0, top: 0, bottom: 0,

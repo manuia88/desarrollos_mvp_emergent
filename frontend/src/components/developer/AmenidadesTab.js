@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getProjectAmenities, patchProjectAmenities, listProjectsWithStats } from '../../api/developer';
 import { Check } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const SECTION_LABELS = {
   comunes: 'Áreas comunes',
@@ -154,7 +155,7 @@ export default function AmenidadesTab({ devId, user }) {
               </button>
               {showDefaults && (
                 <div style={{
-                  position: 'absolute', top: '100%', right: 0, zIndex: 100, marginTop: 4,
+                  position: 'absolute', top: '100%', right: 0, zIndex: Z.DROPDOWN, marginTop: 4,
                   background: 'rgba(6,8,15,0.97)', border: '1px solid rgba(240,235,224,0.16)',
                   borderRadius: 10, overflow: 'hidden', minWidth: 220,
                   boxShadow: '0 16px 40px rgba(0,0,0,0.4)',

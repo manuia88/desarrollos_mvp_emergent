@@ -6,6 +6,7 @@ import * as api from '../../api/developer';
 import { Radio, Bell, TrendUp, TrendDown, X, MessageCircle, Zap } from '../../components/icons';
 import { Check } from 'lucide-react';
 import { LineChart } from '../../components/developer/ChartPrimitives';
+import { Z } from '../../styles/zIndex';
 
 export default function DesarrolladorCompetidores({ user, onLogout }) {
   const [data, setData] = useState(null);
@@ -285,7 +286,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
         <div
           data-testid="notif-drawer"
           onClick={() => setShowNotifDrawer(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 710, background: 'rgba(8,10,18,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#0D1118', borderLeft: '1px solid var(--border)',
             width: 'min(420px, 100%)', height: '100%', overflowY: 'auto',
@@ -375,7 +376,7 @@ export default function DesarrolladorCompetidores({ user, onLogout }) {
         <div
           data-testid="comp-history-modal"
           onClick={() => setHistoryFor(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#0D1118', border: '1px solid var(--border)',
             borderRadius: 16, padding: 20, maxWidth: 720, width: '100%',
@@ -452,7 +453,7 @@ function AlertConfigModal({ cfg, onClose, onSave }) {
     <div
       data-testid="comp-config-modal"
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: '#0D1118', border: '1px solid var(--border)',
         borderRadius: 16, padding: 22, maxWidth: 460, width: '100%',

@@ -2,6 +2,7 @@
 // Saves credentials encrypted server-side; optional "Probar al guardar" runs test_connection inline.
 import React, { useState, useEffect } from 'react';
 import { X, Sparkle, Shield } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -109,7 +110,7 @@ export default function ConnectModal({ open, source, onClose, onSaved }) {
 
   return (
     <div data-testid="connect-modal" onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 500,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(14px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>

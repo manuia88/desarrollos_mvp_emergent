@@ -8,6 +8,7 @@ import { PageHeader, Card, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/developer';
 import { Settings, CheckCircle, AlertTriangle, RefreshCw } from '../../components/icons';
 import AutoApproveSettings from '../../components/developer/AutoApproveSettings';
+import { Z } from '../../styles/zIndex';
 
 const ERP_PROVIDERS = [
   { id: 'easybroker', label: 'EasyBroker', color: '#22c55e', desc: 'Sincronización de listings y leads' },
@@ -194,7 +195,7 @@ export default function DesarrolladorConfiguracion({ user, onLogout }) {
 
       {/* ERP Config modal */}
       {activeProvider && (
-        <div onClick={() => setActiveProvider(null)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={() => setActiveProvider(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={e => e.stopPropagation()} data-testid="erp-config-modal" style={{ width: '100%', maxWidth: 460, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', marginBottom: 20 }}>
               Configurar {ERP_PROVIDERS.find(p => p.id === activeProvider)?.label}

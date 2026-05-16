@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import * as drive from '../../api/drive';
 import { Cloud, CheckCircle, AlertTriangle, RefreshCw, X, Folder } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 function fmtAgo(iso) {
   if (!iso) return '—';
@@ -266,7 +267,7 @@ export default function DriveConnect({ devId, role = 'developer_admin' }) {
 
       {toast && (
         <div data-testid={`drive-toast-${toast.kind}`} style={{
-          position: 'fixed', bottom: 96, right: 24, zIndex: 9999,
+          position: 'fixed', bottom: 96, right: 24, zIndex: Z.MODAL_CRITICAL,
           padding: '11px 16px', borderRadius: 12,
           background: toast.kind === 'error' ? 'rgba(239,68,68,0.92)' : toast.kind === 'warn' ? 'rgba(245,158,11,0.92)' : 'rgba(34,197,94,0.92)',
           color: '#0A0D16', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
@@ -290,7 +291,7 @@ const btnGhost = {
   fontFamily: 'DM Sans', fontSize: 10, color: 'var(--cream-3)', cursor: 'pointer',
 };
 const modalBackdrop = {
-  position: 'fixed', inset: 0, zIndex: 9000,
+  position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
   background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
 };

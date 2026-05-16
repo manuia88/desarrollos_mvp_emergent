@@ -6,6 +6,7 @@ import { Card, Badge, Toast, fmtMXN } from '../../components/advisor/primitives'
 import * as api from '../../api/developer';
 import LeadKanban from '../../components/shared/LeadKanban';
 import { Target, Users, Plus, X, ArrowRight } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -468,7 +469,7 @@ const inputStyle = {
   borderRadius: 10, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
 };
 const modalStyle = {
-  position: 'fixed', inset: 0, zIndex: 710, background: 'rgba(8,10,18,0.7)',
+  position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(8,10,18,0.7)',
   backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
 };
 const modalContentStyle = {

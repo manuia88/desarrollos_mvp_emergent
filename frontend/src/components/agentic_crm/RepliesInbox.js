@@ -9,6 +9,7 @@ import {
   AlertCircle, Inbox, Filter, Loader2, RefreshCw,
   Phone, ArrowUpRight, Eye, ArrowRight, Trash2, X,
 } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -594,7 +595,7 @@ export default function RepliesInbox({ asesorId }) {
             }
           }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
+            position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL,
             background: 'rgba(6,8,15,0.72)',
             backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -687,7 +688,7 @@ export default function RepliesInbox({ asesorId }) {
         <div
           data-testid="replies-toast"
           style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 10000,
+            position: 'fixed', bottom: 24, right: 24, zIndex: Z.A11Y,
             padding: '10px 16px', borderRadius: 9999,
             background: toast.kind === 'error' ? 'rgba(239,68,68,0.18)' : 'rgba(16,185,129,0.18)',
             border: `1px solid ${toast.kind === 'error' ? 'rgba(239,68,68,0.45)' : 'rgba(16,185,129,0.45)'}`,

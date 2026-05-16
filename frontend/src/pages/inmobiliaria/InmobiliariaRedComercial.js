@@ -7,6 +7,7 @@ import {
   Search, ChevronRight, HeartHandshake,
 } from 'lucide-react';
 import { getInmobiliariaRedComercial } from '../../api/directories';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -120,7 +121,7 @@ function Drawer({ entity, onClose }) {
   const name = entity.name || entity.branding?.display_name || entity.id;
   return (
     <div data-testid="inm-red-drawer" onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1300, display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', justifyContent: 'flex-end' }}>
       <div style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.96)', borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '28px 28px 80px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <Avatar src={entity.picture || entity.branding?.logo_url} name={name} type={entity.type} />

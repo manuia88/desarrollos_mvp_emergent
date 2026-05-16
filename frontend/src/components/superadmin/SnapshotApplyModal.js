@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { X, ArrowRightCircle } from 'lucide-react';
 import { applySnapshot } from '../../api/superadminCommercial';
+import { Z } from '../../styles/zIndex';
 
 const COMPONENTS = [
   ['features', 'Features (flags)', true],
@@ -33,7 +34,7 @@ export default function SnapshotApplyModal({ snapshot, tenants = [], onClose, on
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="snapshot-apply-modal" style={{
         width: '100%', maxWidth: 500, maxHeight: '85vh', overflowY: 'auto',
         background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(var(--theme-rgb),0.30)',

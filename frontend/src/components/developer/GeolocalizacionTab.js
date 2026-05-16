@@ -4,6 +4,7 @@ import { Card } from '../advisor/primitives';
 import MapboxPicker from './MapboxPicker';
 import * as api from '../../api/developer';
 import { MapPin, CheckCircle, Layers } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const GEOJSON_ALLOWED = new Set(['developer_admin', 'superadmin']);
 
@@ -152,7 +153,7 @@ export default function GeolocalizacionTab({ devId, user, readOnly: readOnlyProp
 
       {toast && (
         <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 620,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
           background: toast.type === 'ok' ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
           border: `1px solid ${toast.type === 'ok' ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,

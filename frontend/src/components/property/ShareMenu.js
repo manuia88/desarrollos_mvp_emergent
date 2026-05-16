@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Share, MessageSquare } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 export default function ShareMenu({ property }) {
   const { t } = useTranslation();
@@ -45,7 +46,7 @@ export default function ShareMenu({ property }) {
             border: '1px solid var(--border-2)',
             borderRadius: 14, padding: 6,
             boxShadow: 'var(--sh-elev)',
-            zIndex: 20,
+            zIndex: Z.DROPDOWN,
           }}
         >
           <button onClick={copy} data-testid="share-copy" style={menuItem()}>

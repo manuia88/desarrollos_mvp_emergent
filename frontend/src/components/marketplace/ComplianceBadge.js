@@ -3,6 +3,7 @@
 // Hidden if no docs uploaded OR RISK_LEGAL=red (cero overshare, cero fearmongering).
 import React, { useEffect, useState } from 'react';
 import { Sparkle, Check, X } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -46,7 +47,7 @@ function ScoreRow({ label, score }) {
 function BreakdownModal({ data, onClose }) {
   return (
     <div data-testid="badge-breakdown-modal" onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 800,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.84)', backdropFilter: 'blur(14px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
@@ -101,7 +102,7 @@ export function ComplianceBadgeOverlay({ devId }) {
   const Icon = tone.icon;
   return (
     <div data-testid={`compliance-badge-overlay-${data.tier}`} style={{
-      position: 'absolute', top: 44, right: 10, zIndex: 3,
+      position: 'absolute', top: 44, right: 10, zIndex: Z.BASE,
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '4px 10px', borderRadius: 9999,
       background: tone.bg, color: tone.fg, border: `1px solid ${tone.border}`,

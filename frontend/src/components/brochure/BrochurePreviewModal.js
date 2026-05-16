@@ -1,6 +1,7 @@
 // W4.9 — BrochurePreviewModal
 // Modal post-generación: PDF + 4 variantes sociales + regenerar (F0.2·Sub-C).
 import React, { useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -68,7 +69,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
         position: 'fixed', inset: 0,
         background: 'rgba(6,8,15,0.78)',
         backdropFilter: 'blur(8px)',
-        zIndex: 10000,
+        zIndex: Z.A11Y,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
       }}

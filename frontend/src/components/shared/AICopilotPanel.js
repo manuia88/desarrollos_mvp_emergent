@@ -14,6 +14,7 @@ import { getQuickActionsForRole } from '../../config/copilotPrompts';
 import {
   Sparkle, X, Plus, Trash, ArrowRight, MessageCircle, ChevronLeft,
 } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 function FloatingTrigger({ hidden, onClick }) {
   if (hidden) return null;
@@ -24,7 +25,7 @@ function FloatingTrigger({ hidden, onClick }) {
       data-testid="copilot-trigger-btn"
       aria-label="Abrir Copilot DMX (Cmd+J)"
       style={{
-        position: 'fixed', right: 22, bottom: 84, zIndex: 901,
+        position: 'fixed', right: 22, bottom: 84, zIndex: Z.STICKY,
         width: 52, height: 52, borderRadius: 9999,
         background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
         border: 'none', color: '#fff', cursor: 'pointer',
@@ -90,7 +91,7 @@ function ConversationsSidebar({
         background: 'rgba(13,16,23,0.96)',
         borderRight: '1px solid rgba(240,235,224,0.10)',
         backdropFilter: 'blur(24px)',
-        display: 'flex', flexDirection: 'column', zIndex: 2,
+        display: 'flex', flexDirection: 'column', zIndex: Z.BASE,
       }}
     >
       <div style={{
@@ -312,7 +313,7 @@ export default function AICopilotPanel({ user }) {
           opacity: cp.isOpen ? 1 : 0,
           pointerEvents: cp.isOpen ? 'auto' : 'none',
           transition: 'opacity 220ms ease',
-          zIndex: 1500,
+          zIndex: Z.DRAWER,
         }}
       />
 
@@ -330,7 +331,7 @@ export default function AICopilotPanel({ user }) {
           transform: cp.isOpen ? 'translateX(0)' : 'translateX(105%)',
           transition: 'transform 320ms cubic-bezier(0.32,0.72,0,1)',
           display: 'flex', flexDirection: 'column',
-          zIndex: 1501,
+          zIndex: Z.DRAWER,
         }}
       >
         {/* Header */}

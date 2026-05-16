@@ -5,6 +5,7 @@ import FadeUp from '../animations/FadeUp';
 import BlurText from '../animations/BlurText';
 import LfpdpppBadge from './LfpdpppBadge';
 import { MapPin } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 export default function CtaFooter() {
   const { t } = useTranslation();
@@ -37,7 +38,7 @@ export default function CtaFooter() {
           pointerEvents: 'none',
         }} />
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 780, margin: '0 auto' }}>
+        <div style={{ position: 'relative', zIndex: Z.BASE, maxWidth: 780, margin: '0 auto' }}>
           <FadeUp>
             <div className="tag-pill" style={{ marginBottom: 20 }}>{t('cta.eyebrow')}</div>
           </FadeUp>

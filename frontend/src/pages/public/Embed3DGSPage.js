@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import Tour3DViewer from '../../components/tour3d/Tour3DViewer';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -116,7 +117,7 @@ export default function Embed3DGSPage() {
             padding: '6px 14px',
             fontFamily: 'Outfit', fontWeight: 700, fontSize: 11, letterSpacing: '0.08em',
             textDecoration: 'none',
-            zIndex: 10,
+            zIndex: Z.DROPDOWN,
           }}
         >
           DESARROLLOS MX

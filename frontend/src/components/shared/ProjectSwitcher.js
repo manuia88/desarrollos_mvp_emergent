@@ -18,6 +18,7 @@ import { SmartEmptyState } from './SmartEmptyState';
 import { pushRecentProject, getMyPreferences } from '../../api/preferences18';
 import { listProjectsWithStats } from '../../api/developer';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -337,7 +338,7 @@ export function ProjectSwitcher({ user }) {
       overflow: 'hidden',
       backdropFilter: 'blur(16px)',
       boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
-      zIndex: 1000,
+      zIndex: Z.MODAL,
     }}>
       <SwitcherDropdown
         projects={projects}
@@ -353,7 +354,7 @@ export function ProjectSwitcher({ user }) {
   const mobileModal = open && mobile && (
     <div
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000,
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: Z.TOAST,
         display: 'flex', flexDirection: 'column',
       }}
       onClick={() => setOpen(false)}

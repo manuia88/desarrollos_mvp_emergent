@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ShieldAlert, DollarSign } from 'lucide-react';
 import { upsertCap, patchCap } from '../../api/superadminAiCost';
+import { Z } from '../../styles/zIndex';
 
 export default function CapModal({ tenant, existingCap, onClose, onSaved }) {
   const isEdit = !!existingCap;
@@ -40,7 +41,7 @@ export default function CapModal({ tenant, existingCap, onClose, onSaved }) {
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div data-testid="cap-modal" style={{
         width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.97)',
         border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14,

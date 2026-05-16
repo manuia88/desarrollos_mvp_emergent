@@ -6,6 +6,7 @@ import {
   Search as SearchIcon, Loader2,
 } from 'lucide-react';
 import { resolveAnomaly, dismissAnomaly } from '../../api/superadminFounderConsole';
+import { Z } from '../../styles/zIndex';
 
 const SEVERITY_COLOR = {
   critical: { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.30)',
@@ -50,7 +51,7 @@ function ActionModal({ title, placeholder, onConfirm, onClose, busy }) {
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
-        backdropFilter: 'blur(8px)', zIndex: 1500,
+        backdropFilter: 'blur(8px)', zIndex: Z.DRAWER,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}>
       <div data-testid="anomaly-action-modal" style={{

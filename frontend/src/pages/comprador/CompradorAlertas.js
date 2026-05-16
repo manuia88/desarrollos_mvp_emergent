@@ -8,6 +8,7 @@ import CompradorLayout from '../../components/comprador/CompradorLayout';
 import AlertSettingsForm from '../../components/comprador/AlertSettingsForm';
 import { fetchAlerts, createAlert, updateAlert, deleteAlert, fetchDeliveries } from '../../api/buyer_alerts';
 import { Plus, Bell, Trash, Check, X, AlertTriangle, Clock } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const TYPE_LABELS = {
   new_match: 'Nuevo match',
@@ -425,7 +426,7 @@ export default function CompradorAlertas() {
         <div
           onClick={() => setShowModal(false)}
           style={{
-            position: 'fixed', inset: 0, zIndex: 50,
+            position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
             background: 'rgba(6,8,15,0.88)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 24,

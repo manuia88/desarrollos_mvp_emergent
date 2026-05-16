@@ -6,6 +6,7 @@ import {
   Store, Building2, MapPin, DollarSign, ToggleLeft, ToggleRight, Layers,
 } from 'lucide-react';
 import { getDevMiniMarket, setDevExternalInventory } from '../../api/internal_users';
+import { Z } from '../../styles/zIndex';
 
 function fmtPrice(n) {
   if (!n) return '—';
@@ -125,7 +126,7 @@ export default function DesarrolladorMiniMarket({ user, onLogout }) {
     <DeveloperLayout user={user} onLogout={onLogout}>
       <div data-testid="desarrollador-mini-market" style={{ maxWidth: 1200 }}>
         {toast && (
-          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
+          <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>
             {toast}
           </div>
         )}

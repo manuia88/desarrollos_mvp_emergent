@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { saveSearch } from '../../api/marketplace';
 import { X, Bell } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 function FiltersPreview({ filters }) {
   const parts = [];
@@ -96,7 +97,7 @@ export default function SaveSearchModal({ open, onClose, filters, aiFilters }) {
       data-testid="save-search-modal-backdrop"
       onClick={handleClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 60,
+        position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(6,8,15,0.82)',
         backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

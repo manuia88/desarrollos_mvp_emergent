@@ -6,6 +6,7 @@ import OnboardingGate from './OnboardingGate';
 import CitaNotifBanner from '../shared/CitaNotifBanner';
 import ArgumentarioDrawer from '../shared/ArgumentarioDrawer';
 import * as api from '../../api/advisor';
+import { Z } from '../../styles/zIndex';
 
 const ROLES_OK = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -57,7 +58,7 @@ export default function AdvisorLayout({ user, onLogout, children }) {
         aria-label="Abrir Plan venta IA"
         onClick={() => setArgOpen(true)}
         style={{
-          position: 'fixed', right: 20, bottom: 148, zIndex: 60,
+          position: 'fixed', right: 20, bottom: 148, zIndex: Z.DROPDOWN,
           width: 56, height: 56, borderRadius: 9999,
           border: 'none',
           background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',

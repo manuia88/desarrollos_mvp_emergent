@@ -14,6 +14,7 @@ import RadarChart from '../../components/developer/RadarChart';
 import CompareTab from '../../components/developer/CompareTab';
 import ExpansionSimulatorModal from '../../components/developer/ExpansionSimulatorModal';
 import DemographicsSection from '../../components/developer/DemographicsSection';
+import { Z } from '../../styles/zIndex';
 
 function StatusPill({ status }) {
   const map = {
@@ -45,7 +46,7 @@ function StudyDetailDrawer({ zone, studyId, onClose, onSimulate }) {
   return (
     <div data-testid="site-zone-drawer" style={{
       position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(480px, 100vw)',
-      background: '#0b0e18', borderLeft: '1px solid var(--border)', zIndex: 1200,
+      background: '#0b0e18', borderLeft: '1px solid var(--border)', zIndex: Z.DRAWER,
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       boxShadow: '-12px 0 32px rgba(0,0,0,0.42)',
     }}>

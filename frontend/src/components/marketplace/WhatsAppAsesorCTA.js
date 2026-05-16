@@ -10,6 +10,7 @@
  *   fallbackPhone — número DMX general si no hay asesor
  */
 import React from 'react';
+import { Z } from '../../styles/zIndex';
 
 const DMX_FALLBACK_PHONE = '525555000000';
 
@@ -46,7 +47,7 @@ export default function WhatsAppAsesorCTA({
     <div style={{
       position: 'fixed',
       right: 24, bottom: 24,
-      zIndex: 50,
+      zIndex: Z.DROPDOWN,
       display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end',
     }}>
       {asesorId && !isFallback && (

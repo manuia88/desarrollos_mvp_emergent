@@ -10,6 +10,7 @@ import {
   UserCheck, Camera, Star,
 } from 'lucide-react';
 import { searchCommands, executeCommand } from '../../api/superadminFounderConsole';
+import { Z } from '../../styles/zIndex';
 
 const ICON_MAP = {
   LayoutDashboard, Users, Layers, DollarSign, Briefcase, Shield, Activity,
@@ -148,7 +149,7 @@ export default function CommandPaletteExtended({ onClose }) {
       style={{
         position: 'fixed', inset: 0,
         background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)',
-        zIndex: 2000,
+        zIndex: Z.TOAST,
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: '12vh 20px 20px',
       }}>

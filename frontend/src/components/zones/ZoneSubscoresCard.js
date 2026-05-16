@@ -4,6 +4,7 @@
  * Diseño: navy/cream + indigo/rose. rounded-full. Sin shadow-2xl. Zero emojis.
  */
 import React, { useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const KEYS = ['lifestyle', 'seguridad', 'transporte', 'amenidades', 'precio', 'vibe'];
 
@@ -148,7 +149,7 @@ export default function ZoneSubscoresCard({ data }) {
                     fontFamily: 'DM Sans',
                     fontSize: 11.5,
                     lineHeight: 1.4,
-                    zIndex: 10,
+                    zIndex: Z.DROPDOWN,
                     pointerEvents: 'none',
                   }}
                 >

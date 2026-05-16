@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Store, ChevronDown } from 'lucide-react';
 import { requestWhitelistAccess } from '../../api/advisor_whitelist';
+import { Z } from '../../styles/zIndex';
 
 const COLONIAS = [
   'Polanco', 'Santa Fe', 'Lomas de Chapultepec', 'Del Valle', 'Nápoles',
@@ -66,7 +67,7 @@ export default function SolicitudAccesoModal({ dev_org_id, dev_name, onClose, on
         background: 'rgba(6,8,15,0.80)',
         backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1100, padding: 16,
+        zIndex: Z.MODAL, padding: 16,
       }}
     >
       <div style={{

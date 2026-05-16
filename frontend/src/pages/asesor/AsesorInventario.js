@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { fetchDevelopments } from '../../api/marketplace';
 import { getAuthorizedDevOrgs } from '../../api/advisor_whitelist';
+import { Z } from '../../styles/zIndex';
 
 function fmtPrice(n) {
   if (!n) return '—';
@@ -51,7 +52,7 @@ function ProjectDrawer({ project, onClose }) {
         position: 'fixed', inset: 0,
         background: 'rgba(6,8,15,0.80)',
         backdropFilter: 'blur(8px)',
-        zIndex: 1100, display: 'flex', justifyContent: 'flex-end',
+        zIndex: Z.MODAL, display: 'flex', justifyContent: 'flex-end',
       }}
     >
       <div style={{

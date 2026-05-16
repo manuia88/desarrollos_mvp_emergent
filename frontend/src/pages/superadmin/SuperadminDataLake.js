@@ -9,6 +9,7 @@ import {
 import {
   listEtlRuns, triggerEtl, getCoverage, getValidationMetrics, runValidationsNow,
 } from '../../api/superadminDataLake';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -141,7 +142,7 @@ function CoveragePanel({ items }) {
         <div onClick={(e) => { if (e.target === e.currentTarget) setMissingModal(null); }}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
-            backdropFilter: 'blur(8px)', zIndex: 1500,
+            backdropFilter: 'blur(8px)', zIndex: Z.DRAWER,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 20,
           }}>
@@ -188,7 +189,7 @@ function ConfirmTriggerModal({ onConfirm, onClose, busy }) {
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
-        backdropFilter: 'blur(8px)', zIndex: 1500,
+        backdropFilter: 'blur(8px)', zIndex: Z.DRAWER,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}>
       <div data-testid="trigger-confirm-modal" style={{
@@ -333,7 +334,7 @@ export default function SuperadminDataLake({ user, onLogout }) {
       <div data-testid="superadmin-data-lake">
         {toast && (
           <div data-testid="data-lake-toast" style={{
-            position: 'fixed', top: 76, right: 20, zIndex: 2000,
+            position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST,
             padding: '11px 18px', borderRadius: 10,
             background: 'rgba(var(--theme-rgb),0.18)',
             border: '1px solid rgba(var(--theme-rgb),0.35)',

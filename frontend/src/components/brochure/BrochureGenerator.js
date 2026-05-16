@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import BrandingVariantSelector from './BrandingVariantSelector';
 import CustomBrochureUploader from './CustomBrochureUploader';
 import BrochurePreviewModal from './BrochurePreviewModal';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -50,7 +51,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
           position: 'fixed', inset: 0,
           background: 'rgba(6,8,15,0.78)',
           backdropFilter: 'blur(8px)',
-          zIndex: 9999,
+          zIndex: Z.MODAL_CRITICAL,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: 16,
         }}

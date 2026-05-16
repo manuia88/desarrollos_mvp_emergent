@@ -11,6 +11,7 @@
 import React, { useState } from 'react';
 import { requestColoniaReport } from '../../api/marketplace';
 import { X, FileText, Download } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 function downloadPdfFromBase64(b64, filename) {
   const byteChars = atob(b64);
@@ -61,7 +62,7 @@ export default function ColoniaReportModal({ open, onClose, coloniaId, coloniaNo
       data-testid="colonia-report-modal-backdrop"
       onClick={close}
       style={{
-        position: 'fixed', inset: 0, zIndex: 70,
+        position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}

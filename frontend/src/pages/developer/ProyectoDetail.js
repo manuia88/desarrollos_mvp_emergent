@@ -31,6 +31,7 @@ import { ChevronRight, Building, Activity } from '../../components/icons';
 import AISuggestionCard from '../../components/shared/AISuggestionCard';
 import InlineEditField from '../../components/shared/InlineEditField';
 import useInlineSaver from '../../hooks/useInlineSaver';
+import { Z } from '../../styles/zIndex';
 
 const STAGE_LABELS = {
   preventa: 'Preventa',
@@ -133,7 +134,7 @@ function ProjectSwitcher({ currentSlug, onSwitch }) {
     <div
       ref={ref}
       style={{
-        position: 'fixed', top: 80, right: 24, width: 280, zIndex: 1000,
+        position: 'fixed', top: 80, right: 24, width: 280, zIndex: Z.MODAL,
         background: 'rgba(6,8,15,0.97)', border: '1px solid rgba(240,235,224,0.18)',
         borderRadius: 12, overflow: 'hidden',
         backdropFilter: 'blur(16px)',
@@ -681,7 +682,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
           style={{
             position: 'fixed', inset: 0,
             background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(8px)',
-            zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: Z.MODAL_CRITICAL, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 16,
           }}
         >
@@ -704,7 +705,7 @@ function Tours3DSection({ projectSlug, devId, user }) {
           style={{
             position: 'fixed', inset: 0,
             background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(8px)',
-            zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: Z.MODAL_CRITICAL, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 24,
           }}
         >

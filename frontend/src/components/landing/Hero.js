@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import BlurText from '../animations/BlurText';
 import FadeUp from '../animations/FadeUp';
 import { MapPin, Play, Leaf, Route, Shield, Store, TrendUp, Radio } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const PARTNERS = ["Christie's", "Sotheby's", 'Lamudi', 'Propiedades.com', 'Pulppo', 'Habimetro'];
 
@@ -30,7 +31,7 @@ function MapOverlay({ t }) {
       right: '6%', top: '50%',
       transform: 'translateY(-50%)',
       width: 320,
-      zIndex: 5,
+      zIndex: Z.BASE,
       background: 'rgba(255,255,255,0.05)',
       border: '1px solid rgba(255,255,255,0.16)',
       backdropFilter: 'blur(24px)',
@@ -53,7 +54,7 @@ function MapOverlay({ t }) {
         <circle cx={220} cy={95} r={3} fill="var(--theme-3)" />
         <circle cx={105} cy={165} r={3} fill="#22C55E" />
       </svg>
-      <div style={{ position: 'relative', zIndex: 1, padding: '16px 20px' }}>
+      <div style={{ position: 'relative', zIndex: Z.BASE, padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           <div style={{ fontFamily: 'DM Sans', fontWeight: 500, fontSize: 11, color: 'var(--cream-3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             {t('hero.overlay_label')}
@@ -128,7 +129,7 @@ export default function Hero() {
         display: 'flex',
         alignItems: 'center',
       }}>
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: Z.BASE }}>
           <div style={{
             position: 'absolute', top: '-30%', left: '-10%',
             width: '80%', height: '80%',
@@ -152,24 +153,24 @@ export default function Hero() {
         </div>
 
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
+          position: 'absolute', inset: 0, zIndex: Z.BASE,
           background: 'radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, rgba(6,8,15,0.7) 100%)',
           pointerEvents: 'none',
         }} />
 
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: 180, zIndex: 2,
+          height: 180, zIndex: Z.BASE,
           background: 'linear-gradient(to bottom, transparent, var(--bg))',
           pointerEvents: 'none',
         }} />
 
-        <div className="map-overlay-wrap" style={{ position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none' }}>
+        <div className="map-overlay-wrap" style={{ position: 'absolute', inset: 0, zIndex: Z.BASE, pointerEvents: 'none' }}>
           <MapOverlay t={t} />
         </div>
 
         <div style={{
-          position: 'relative', zIndex: 10,
+          position: 'relative', zIndex: Z.DROPDOWN,
           maxWidth: 760,
           padding: '0 32px 0',
           marginTop: -60,
@@ -284,7 +285,7 @@ export default function Hero() {
         <div style={{
           position: 'absolute',
           bottom: 40, left: 0, right: 0,
-          zIndex: 10,
+          zIndex: Z.DROPDOWN,
           padding: '0 32px',
           display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
         }}>

@@ -5,6 +5,7 @@ import { Briefcase, Plus, X, CheckCircle, Pause, Play, Trash2 } from 'lucide-rea
 import {
   listDevPartnerships, createDevPartnership, updateDevPartnershipStatus,
 } from '../../api/inmobiliaria';
+import { Z } from '../../styles/zIndex';
 
 const inputStyle = {
   width: '100%', padding: '10px 13px', borderRadius: 9,
@@ -65,7 +66,7 @@ function CreateModal({ onClose, onCreated }) {
     <div role="dialog" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, padding: 16,
+      zIndex: Z.MODAL, padding: 16,
     }}>
       <div style={{
         background: '#0D1118', border: '1px solid var(--border)',

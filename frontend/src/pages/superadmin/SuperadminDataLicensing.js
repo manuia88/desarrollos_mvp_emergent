@@ -8,6 +8,7 @@ import {
   listBundleTemplates, listSubscriptions,
   createSubscription, patchSubscription,
 } from '../../api/dataLicensing';
+import { Z } from '../../styles/zIndex';
 
 export default function SuperadminDataLicensing() {
   const [bundles, setBundles] = useState([]);
@@ -173,7 +174,7 @@ function CreateModal({ bundle, onClose, onSubmit }) {
   return (
     <div onClick={onClose}
       data-testid="data-licensing-create-modal"
-      style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.85)' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.85)' }}>
       <form onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
@@ -263,7 +264,7 @@ function SubDrawer({ sub, onClose, onPatch }) {
   return (
     <div onClick={onClose}
       data-testid={`data-licensing-sub-drawer-${sub.id}`}
-      style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{
           position: 'absolute', right: 0, top: 0, bottom: 0,

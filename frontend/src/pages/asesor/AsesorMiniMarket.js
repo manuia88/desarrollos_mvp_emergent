@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { fetchDevelopments } from '../../api/marketplace';
 import { getMyWhitelistRequests } from '../../api/advisor_whitelist';
+import { Z } from '../../styles/zIndex';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -342,7 +343,7 @@ export default function AsesorMiniMarket({ user, onLogout }) {
         {/* Toast */}
         {successMsg && (
           <div data-testid="solicitud-success-toast" style={{
-            position: 'fixed', top: 20, right: 20, zIndex: 2000,
+            position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST,
             padding: '12px 20px', borderRadius: 12,
             background: 'rgba(74,222,128,0.15)',
             border: '1px solid rgba(74,222,128,0.40)',

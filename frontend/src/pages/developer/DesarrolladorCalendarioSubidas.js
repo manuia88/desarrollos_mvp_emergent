@@ -9,6 +9,7 @@ import { PageHeader, Toast } from '../../components/advisor/primitives';
 import MapboxPicker from '../../components/developer/MapboxPicker';
 import * as api from '../../api/developer';
 import { Plus, X, CheckCircle, AlertTriangle, Upload } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const COLS = [
   { id: 'pending',   label: 'Pendiente',  color: '#f59e0b' },
@@ -228,7 +229,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
 
       {/* Upload modal */}
       {showUpload && (
-        <div onClick={() => setShowUpload(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={() => setShowUpload(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={e => e.stopPropagation()} data-testid="upload-modal" style={{ width: '100%', maxWidth: 480, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Subir contenido</div>
@@ -282,7 +283,7 @@ export default function DesarrolladorCalendarioSubidas({ user, onLogout }) {
 
       {/* Map modal */}
       {showMap && (
-        <div onClick={() => setShowMap(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div onClick={() => setShowMap(false)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div onClick={e => e.stopPropagation()} data-testid="map-modal" style={{ width: '100%', maxWidth: 700, background: '#0D1118', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>Ubicación de proyectos</div>

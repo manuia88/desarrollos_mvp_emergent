@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Shield, AlertTriangle, Eye } from 'lucide-react';
 import { resolveAlert, dismissAlert } from '../../api/fraudDetection';
+import { Z } from '../../styles/zIndex';
 
 const SEVERITY = {
   critical: { bg: 'rgba(239,68,68,0.10)',  bd: 'rgba(239,68,68,0.40)',  fg: '#fca5a5', label: 'Crítica' },
@@ -103,7 +104,7 @@ export default function FraudAlertCard({ alert, onChanged }) {
       {(showResolve || showDismiss) && (
         <div data-testid="fraud-alert-action-overlay"
              onClick={() => { setShowResolve(false); setShowDismiss(false); setNote(''); }}
-             style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+             style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
           <div onClick={e => e.stopPropagation()}
                style={{
                  position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',

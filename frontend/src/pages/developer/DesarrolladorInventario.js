@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { FileText, ArrowRight, Upload, Clock, X } from '../../components/icons';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { blurPriceCSS } from '../../lib/anonymize';
+import { Z } from '../../styles/zIndex';
 
 const STATUSES = ['disponible', 'apartado', 'reservado', 'vendido', 'bloqueado'];
 const TONE = { disponible: 'ok', apartado: 'warn', reservado: 'pink', vendido: 'neutral', bloqueado: 'bad' };
@@ -272,7 +273,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
 
       {/* Status edit modal */}
       {editing && (
-        <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div onClick={e => e.stopPropagation()} data-testid="status-modal" style={{ width: 380, background: '#0E1220', border: '1px solid var(--border)', borderRadius: 18, padding: 22 }}>
             <div className="eyebrow" style={{ marginBottom: 10 }}>UNIDAD {editing.unit.unit_number}</div>
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream)', marginBottom: 14 }}>
@@ -293,7 +294,7 @@ export default function DesarrolladorInventario({ user, onLogout }) {
 
       {/* Hold modal */}
       {holdModal && (
-        <div onClick={() => setHoldModal(null)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div onClick={() => setHoldModal(null)} style={{ position: 'fixed', inset: 0, zIndex: Z.STICKY, background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <div onClick={e => e.stopPropagation()} data-testid="hold-modal" style={{ width: 400, background: '#0E1220', border: '1px solid var(--border)', borderRadius: 18, padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <Clock size={16} color="#f59e0b" />

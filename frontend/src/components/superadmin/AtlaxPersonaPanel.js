@@ -9,6 +9,7 @@ import {
   Save, Eye, X, RefreshCw, AlertCircle, ChevronDown,
   Tag, Shield, MessageSquare, Globe, Loader2,
 } from 'lucide-react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -328,7 +329,7 @@ function PreviewModal({ orgId, form, onClose }) {
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(10px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(10px)', zIndex: Z.TOAST, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
     >
       <div
         data-testid="persona-preview-modal"

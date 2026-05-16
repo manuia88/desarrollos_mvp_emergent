@@ -9,6 +9,7 @@ import SmartEmptyState from '../../components/shared/SmartEmptyState';
 import { ResponsiveSankey } from '@nivo/sankey';
 import { getFunnel, getFunnelBreakdown, getSankey, getFunnelSuggestion } from '../../api/metrics';
 import { Sparkle, X } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const STAGE_LABELS = {
   view_ficha: 'Ver ficha',
@@ -264,7 +265,7 @@ function FunnelChart({ funnel, breakdown, suggestion, suggestDismissed, onDismis
       {/* AI suggestion sticky */}
       {suggestion && !suggestDismissed && (
         <div data-testid="funnel-ai-suggestion" style={{
-          position: 'fixed', bottom: 18, right: 18, zIndex: 60,
+          position: 'fixed', bottom: 18, right: 18, zIndex: Z.DROPDOWN,
           maxWidth: 360, padding: 14, borderRadius: 14,
           background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
           border: '1px solid rgba(240,235,224,0.18)',

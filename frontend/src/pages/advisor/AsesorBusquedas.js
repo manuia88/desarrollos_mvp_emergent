@@ -5,6 +5,7 @@ import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
 import { Sparkle, ArrowRight } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const STAGES = [
   { k: 'pendiente',  label: 'Pendiente',  tone: 'neutral' },
@@ -198,7 +199,7 @@ export default function AsesorBusquedas({ user, onLogout }) {
 
       {ganadaPrompt && (
         <div data-testid="ganada-modal" onClick={() => setGanadaPrompt(null)} style={{
-          position: 'fixed', inset: 0, zIndex: 200,
+          position: 'fixed', inset: 0, zIndex: Z.STICKY,
           background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(12px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }}>

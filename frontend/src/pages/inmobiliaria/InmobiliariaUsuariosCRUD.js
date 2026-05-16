@@ -6,6 +6,7 @@ import { Users, Plus, X, ChevronDown, Mail, AlertCircle } from 'lucide-react';
 import {
   getInmInternalUsers, inviteInmUser, suspendInmUser, resendDevInvitation,
 } from '../../api/internal_users';
+import { Z } from '../../styles/zIndex';
 
 const INM_ROLES = [
   { value: 'inmobiliaria_director', label: 'Director' },
@@ -47,7 +48,7 @@ function InviteModal({ onClose, onSuccess }) {
   };
 
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: 16 }}>
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: Z.MODAL, padding: 16 }}>
       <div style={{ background: 'rgba(13,17,28,0.97)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 18, width: '100%', maxWidth: 440, padding: '26px 26px 22px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', margin: 0 }}>Invitar usuario</h2>
@@ -114,7 +115,7 @@ export default function InmobiliariaUsuariosCRUD({ user, onLogout }) {
   return (
     <InmobiliariaLayout user={user} onLogout={onLogout}>
       <div data-testid="inmobiliaria-usuarios" style={{ maxWidth: 880 }}>
-        {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 2000, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>{toast}</div>}
+        {toast && <div style={{ position: 'fixed', top: 20, right: 20, zIndex: Z.TOAST, padding: '11px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.35)', color: '#818CF8', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, backdropFilter: 'blur(24px)' }}>{toast}</div>}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Sparkle, X, MessageSquare, Database } from '../icons';
 import * as api from '../../api/briefings';
 import ScoreExplainModal from '../landing/ScoreExplainModal';
+import { Z } from '../../styles/zIndex';
 
 function Section({ label, children, eyebrow = false, style = {} }) {
   return (
@@ -144,7 +145,7 @@ export default function BriefingIEModal({ open, development, leadId = null, cont
 
   return (
     <div data-testid="briefing-modal" onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 520,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(12px)',
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(24px, 5vw, 56px)',
       overflowY: 'auto',
@@ -286,7 +287,7 @@ export default function BriefingIEModal({ open, development, leadId = null, cont
 
         {toast && (
           <div data-testid="briefing-toast" style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 600,
+            position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
             padding: '10px 16px', borderRadius: 12,
             background: 'rgba(34,197,94,0.14)', border: '1px solid rgba(34,197,94,0.36)',
             color: '#86efac', fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 500,

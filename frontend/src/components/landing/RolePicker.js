@@ -2,6 +2,7 @@
 // No close/escape allowed until a role is chosen.
 import React, { useState } from 'react';
 import { MapPin } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -55,7 +56,7 @@ export default function RolePicker({ user, onDone }) {
     <div
       data-testid="role-picker-modal"
       style={{
-        position: 'fixed', inset: 0, zIndex: 600,
+        position: 'fixed', inset: 0, zIndex: Z.STICKY,
         background: 'rgba(6,8,15,0.92)',
         backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

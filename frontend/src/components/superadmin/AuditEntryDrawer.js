@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Globe, Hash, User, Clock, ListTree, GitBranch, Edit3, History } from 'lucide-react';
 import { getEntry, entityTimeline } from '../../api/superadminAudit';
 import BeforeAfterDiff from './BeforeAfterDiff';
+import { Z } from '../../styles/zIndex';
 
 function fmtRel(iso) {
   if (!iso) return '—';
@@ -99,7 +100,7 @@ export default function AuditEntryDrawer({ entryId, onClose }) {
 
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: 1300, display: 'flex', justifyContent: 'flex-end' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', justifyContent: 'flex-end' }}>
       <div data-testid="audit-drawer" style={{
         width: '100%', maxWidth: 720, background: 'rgba(13,17,28,0.97)',
         borderLeft: '1px solid rgba(255,255,255,0.10)', padding: '24px 26px 80px',

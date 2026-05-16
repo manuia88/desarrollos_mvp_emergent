@@ -21,6 +21,7 @@ import MatchCatastroPreventa from '../../components/maps/MatchCatastroPreventa';
 import DemandGapToggle from '../../components/maps/DemandGapToggle';
 import SaveZoneModal from '../../components/maps/SaveZoneModal';
 import BattleCardOverlay from '../../components/maps/BattleCardOverlay';
+import { Z } from '../../styles/zIndex';
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN || '';
 
@@ -421,7 +422,7 @@ export default function MapaCDMX({ user }) {
           flexDirection: 'column',
           transition: 'width 0.3s ease, min-width 0.3s ease',
           overflow: 'hidden',
-          zIndex: 10,
+          zIndex: Z.DROPDOWN,
           flexShrink: 0,
         }}
       >
@@ -550,7 +551,7 @@ export default function MapaCDMX({ user }) {
           onClick={() => setSidebarOpen(p => !p)}
           title={sidebarOpen ? 'Cerrar panel' : 'Abrir panel'}
           style={{
-            position: 'absolute', top: 16, left: 16, zIndex: 20,
+            position: 'absolute', top: 16, left: 16, zIndex: Z.DROPDOWN,
             width: 36, height: 36, borderRadius: '9999px',
             background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(12px)',
             border: '1px solid rgba(255,255,255,0.12)',
@@ -582,7 +583,7 @@ export default function MapaCDMX({ user }) {
           <div
             data-testid="mapa-atlax-overlay"
             style={{
-              position: 'absolute', bottom: 100, right: 32, zIndex: 300,
+              position: 'absolute', bottom: 100, right: 32, zIndex: Z.STICKY,
               width: 360, maxWidth: 'calc(100vw - 48px)',
             }}
           >

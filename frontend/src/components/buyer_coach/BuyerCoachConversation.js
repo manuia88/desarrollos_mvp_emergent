@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StageChecklist from './StageChecklist';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -291,7 +292,7 @@ export default function BuyerCoachConversation({ colonia = '' }) {
           position: 'absolute', inset: 0,
           background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10, borderRadius: 'inherit',
+          zIndex: Z.DROPDOWN, borderRadius: 'inherit',
         }}>
           <div style={{
             background: 'rgba(13,16,23,0.98)',

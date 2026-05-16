@@ -11,6 +11,7 @@ import CubeHeatmap from '../../components/superadmin/CubeHeatmap';
 import {
   getStats, manualIngestCSV, getPriceIndexHeatmap, detectAnomaly,
 } from '../../api/superadminTransactionNetwork';
+import { Z } from '../../styles/zIndex';
 
 function fmtNum(v, decimals = 0) {
   if (v == null) return '—';
@@ -43,7 +44,7 @@ function IngestModal({ onClose, onDone }) {
     <div
       data-testid="ingest-modal-overlay"
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 9500, background: 'rgba(6,8,15,0.80)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.80)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
       <div
         data-testid="ingest-modal"

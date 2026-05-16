@@ -1,6 +1,7 @@
 // W4.9.6 — Tour3DViewer
 // Viewer 3D Gaussian Splatting · usa @mkkellogg/gaussian-splats-3d
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -298,7 +299,7 @@ function overlayBtn(position) {
     fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
     cursor: 'pointer',
     transition: 'transform 220ms ease, background 220ms ease',
-    zIndex: 5,
+    zIndex: Z.BASE,
   };
   const positions = {
     'top-right':     { top: 14, right: 14 },

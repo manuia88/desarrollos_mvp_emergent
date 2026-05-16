@@ -6,6 +6,7 @@
 import React, { useRef, useState } from 'react';
 import { parseExternalUrl } from '../../api/marketplace';
 import { X, ExternalLink, Search } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const SUPPORTED = ['inmuebles24.com.mx', 'vivanuncios.com.mx', 'easybroker.com'];
 
@@ -202,7 +203,7 @@ export default function UrlSearchModal({ open, onClose }) {
       data-testid="url-search-modal-backdrop"
       onClick={handleClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 60,
+        position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(6,8,15,0.82)',
         backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

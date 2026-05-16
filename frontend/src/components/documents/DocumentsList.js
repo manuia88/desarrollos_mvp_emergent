@@ -9,6 +9,7 @@ import CrossCheckView from './CrossCheckView';
 import SyncPreview from './SyncPreview';
 import { reorderDocuments } from '../../api/batch17';
 import { useServerUndo } from '../shared/UndoSnackbar';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -58,7 +59,7 @@ function PreviewDrawer({ doc, scope, onClose }) {
   if (!doc) return null;
   return (
     <div data-testid="doc-preview-drawer" onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 590,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.78)', backdropFilter: 'blur(10px)',
       display: 'flex', justifyContent: 'flex-end',
     }}>
@@ -404,7 +405,7 @@ export default function DocumentsList({ devId, devName, scope = 'superadmin', co
 
       {toast && (
         <div data-testid="documents-toast" style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 620,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
           background: toast.type === 'err' ? 'rgba(239,68,68,0.16)' : 'rgba(34,197,94,0.14)',
           border: `1px solid ${toast.type === 'err' ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.35)'}`,

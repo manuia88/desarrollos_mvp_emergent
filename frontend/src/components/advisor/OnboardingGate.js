@@ -5,6 +5,7 @@
 // el wizard está abierto para que useTour espere a que se cierre antes de lanzar el tour.
 import React, { useEffect, useState } from 'react';
 import * as api from '../../api/advisor';
+import { Z } from '../../styles/zIndex';
 
 const COLONIAS_SUGERIDAS = ['polanco', 'condesa', 'roma-norte', 'santa-fe', 'lomas-chapultepec', 'coyoacan', 'del-valle-centro', 'juarez', 'narvarte-poniente', 'escandon', 'san-miguel-chapultepec', 'san-rafael', 'doctores', 'anzures', 'pedregal', 'roma-sur'];
 
@@ -103,7 +104,7 @@ export default function OnboardingGate({ profile, onDone }) {
 
   return (
     <div data-testid="onboarding-gate" style={{
-      position: 'fixed', inset: 0, zIndex: 400,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'linear-gradient(180deg, #06080F, #0A0D16)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24, overflow: 'auto',

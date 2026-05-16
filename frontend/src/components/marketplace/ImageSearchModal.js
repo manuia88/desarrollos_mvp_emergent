@@ -8,6 +8,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { searchByImage } from '../../api/marketplace';
 import { X, Search } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 function SimilarityBadge({ pct }) {
   const color = pct >= 60 ? '#22C55E' : pct >= 35 ? '#F59E0B' : '#6B7280';
@@ -160,7 +161,7 @@ export default function ImageSearchModal({ open, onClose }) {
       data-testid="image-search-modal-backdrop"
       onClick={handleClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 60,
+        position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
         background: 'rgba(6,8,15,0.80)',
         backdropFilter: 'blur(16px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

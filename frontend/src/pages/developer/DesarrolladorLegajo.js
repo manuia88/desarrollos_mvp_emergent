@@ -16,6 +16,7 @@ import GeolocalizacionTab from '../../components/developer/GeolocalizacionTab';
 import SlotsTab from '../../components/developer/SlotsTab';
 import EngagementTab from '../../components/developer/EngagementTab';
 import * as docsApi from '../../api/documents';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -291,7 +292,7 @@ function PlanosTab({ devId }) {
       <AssetGallery devId={devId} scope="developer" filterType="plano_thumbnail" />
       {toast && (
         <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 620,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
           background: toast.ok ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
           border: `1px solid ${toast.ok ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,

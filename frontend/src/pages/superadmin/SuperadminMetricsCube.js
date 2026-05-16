@@ -11,6 +11,7 @@ import {
   getTierDetail, getTierChildren, getHeatmap, getComparables, getUnitDetail,
   refreshAggregations, compareZones, triggerBackfill, getBackfillStatus, listTier,
 } from '../../api/superadminMetricsCube';
+import { Z } from '../../styles/zIndex';
 
 const PERIODS = [
   { key: 'current', label: 'Actual' },
@@ -306,7 +307,7 @@ function CompareModal({ children_, selected, setSelected, data, loading,
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
-        backdropFilter: 'blur(8px)', zIndex: 1500,
+        backdropFilter: 'blur(8px)', zIndex: Z.DRAWER,
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: '8vh 20px 20px',
       }}>
@@ -511,7 +512,7 @@ function BackfillModal({ onClose, onToast }) {
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.65)',
-        backdropFilter: 'blur(8px)', zIndex: 1500,
+        backdropFilter: 'blur(8px)', zIndex: Z.DRAWER,
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}>
       <div data-testid="backfill-modal" style={{
@@ -730,7 +731,7 @@ export default function SuperadminMetricsCube({ user, onLogout }) {
       <div data-testid="superadmin-metrics-cube">
         {toast && (
           <div data-testid="cube-toast" style={{
-            position: 'fixed', top: 76, right: 20, zIndex: 2000,
+            position: 'fixed', top: 76, right: 20, zIndex: Z.TOAST,
             padding: '11px 18px', borderRadius: 10,
             background: 'rgba(var(--theme-rgb),0.18)',
             border: '1px solid rgba(var(--theme-rgb),0.35)',

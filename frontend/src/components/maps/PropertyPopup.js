@@ -9,6 +9,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FunnelInversoCard from './FunnelInversoCard';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -64,7 +65,7 @@ export default function PropertyPopup({ feature, onClose, onAskAtlax, user, onSh
     width: 320, maxWidth: 'calc(100vw - 32px)',
     background: 'rgba(6,8,15,0.95)', backdropFilter: 'blur(24px)',
     border: '1px solid rgba(255,255,255,0.1)', borderRadius: 18,
-    padding: '20px 22px', zIndex: 100,
+    padding: '20px 22px', zIndex: Z.DROPDOWN,
     boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
     fontFamily: 'DM Sans', color: '#F0EBE0',
   };

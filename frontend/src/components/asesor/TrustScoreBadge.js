@@ -5,6 +5,7 @@
  * Reusa patrón HealthScoreWidget B14 (SVG circle + dasharray animación).
  */
 import React, { useState } from 'react';
+import { Z } from '../../styles/zIndex';
 
 const GRADIENT = 'linear-gradient(90deg, var(--theme), var(--theme-3))';
 
@@ -81,14 +82,14 @@ export default function TrustScoreBadge({
       {open && components && (
         <>
           <div onClick={() => setOpen(false)} style={{
-            position: 'fixed', inset: 0, zIndex: 80,
+            position: 'fixed', inset: 0, zIndex: Z.DROPDOWN,
             background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)',
           }} />
           <div data-testid="trust-score-breakdown-modal"
                role="dialog" aria-label="Desglose Trust Score"
                style={{
                  position: 'fixed', top: '50%', left: '50%',
-                 transform: 'translate(-50%,-50%)', zIndex: 81,
+                 transform: 'translate(-50%,-50%)', zIndex: Z.DROPDOWN,
                  width: 'min(440px, 92vw)',
                  padding: 22, borderRadius: 18,
                  background: 'rgba(13,16,23,0.96)',

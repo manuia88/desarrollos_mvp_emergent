@@ -4,6 +4,7 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import NewCitaModal from '../../components/developer/NewCitaModal';
 import { getDevCitas, patchCita, approveLeadReview, rejectLeadReview } from '../../api/developer';
 import { CalendarCheck, Plus, Clock, Phone, Video, X, CheckCircle, AlertCircle } from '../../components/icons';
+import { Z } from '../../styles/zIndex';
 
 const STATUS_COLORS = {
   agendada:     { bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.4)', text: '#818CF8' },
@@ -78,7 +79,7 @@ function CitaDrawer({ apt, user, onClose, onAction }) {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 900, display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: Z.STICKY, display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
       <div style={{ width: 420, height: '100%', background: '#0D1118', borderLeft: '1px solid var(--border)', padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}
         onClick={e => e.stopPropagation()} data-testid="cita-drawer">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

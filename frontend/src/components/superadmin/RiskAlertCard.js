@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { TrendingDown, TrendingUp, Eye, Check } from 'lucide-react';
 import { acknowledgeAlert, fetchTimeline } from '../../api/riskAlerts';
+import { Z } from '../../styles/zIndex';
 
 const SEVERITY = {
   critical: { bg: 'rgba(239,68,68,0.10)',  bd: 'rgba(239,68,68,0.40)',  fg: '#fca5a5', label: 'Crítica' },
@@ -93,7 +94,7 @@ export default function RiskAlertCard({ alert, onChanged }) {
 
       {showTimeline && (
         <div data-testid={`risk-alert-timeline-overlay`} onClick={() => setShowTimeline(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 8000, background: 'rgba(6,8,15,0.78)' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: Z.MODAL_CRITICAL, background: 'rgba(6,8,15,0.78)' }}>
           <div onClick={e => e.stopPropagation()} style={{
             position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
             width: 'min(560px, 92vw)', maxHeight: '80vh', overflowY: 'auto',

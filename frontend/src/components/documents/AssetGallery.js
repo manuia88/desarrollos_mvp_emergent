@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Upload, Trash, Sparkle, RotateCcw, Camera, AlertTriangle } from '../icons';
 import { useServerUndo } from '../shared/UndoSnackbar';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -280,7 +281,7 @@ export default function AssetGallery({ devId, scope = 'developer', filterType = 
 
       {toast && (
         <div data-testid="asset-toast" style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 620,
+          position: 'fixed', bottom: 24, right: 24, zIndex: Z.STICKY,
           padding: '12px 18px', borderRadius: 14,
           background: toast.ok ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.16)',
           border: `1px solid ${toast.ok ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.4)'}`,

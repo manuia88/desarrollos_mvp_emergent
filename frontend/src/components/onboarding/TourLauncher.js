@@ -10,6 +10,7 @@ import { useTour } from '../../hooks/useTour';
 import { getFirstLoginTourId } from '../../config/tours';
 import { useAuth } from '../../App';
 import useReducedMotion from '../../hooks/useReducedMotion';
+import { Z } from '../../styles/zIndex';
 
 // ─── Context ────────────────────────────────────────────────────────────────
 export const TourCtx = createContext({ startTour: () => {}, stopTour: () => {} });
@@ -35,7 +36,7 @@ function buildOptions(reducedMotion) {
     // 3) spotlight sigue funcionando para enfocar elemento sin oscurecer resto
     overlayColor: 'transparent',
     spotlightShadow: '0 0 0 3px var(--theme), 0 0 0 9999px rgba(6,8,15,0.35)',
-    zIndex: 5000,
+    zIndex: Z.TOUR,
   };
 }
 

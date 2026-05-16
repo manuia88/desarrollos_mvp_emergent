@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { toPng } from 'html-to-image';
 import { X, Sparkle, Bookmark, Shield, Database } from '../icons';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const MAX_BYTES = 200 * 1024 * 1024;
@@ -111,7 +112,7 @@ export default function UploadModal({ open, source, onClose, onUploaded }) {
 
   return (
     <div data-testid="upload-modal" onClick={handleClose} style={{
-      position: 'fixed', inset: 0, zIndex: 500,
+      position: 'fixed', inset: 0, zIndex: Z.STICKY,
       background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(14px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       overflowY: 'auto',

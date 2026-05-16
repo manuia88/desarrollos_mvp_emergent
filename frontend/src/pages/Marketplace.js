@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 // W4.2D1 — URL state sync helpers
 import { urlToFilters, filtersToUrl } from '../utils/marketplaceUrlState';
 import MarketplaceMetaTags from '../components/seo/MarketplaceMetaTags';
+import { Z } from '../styles/zIndex';
 
 const TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -348,7 +349,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
           <section
             data-testid="marketplace-search"
             style={{
-              position: 'sticky', top: 60, zIndex: 25,
+              position: 'sticky', top: 60, zIndex: Z.DROPDOWN,
               background: 'rgba(6,8,15,0.92)',
               backdropFilter: 'blur(18px)',
               borderTop: '1px solid var(--border)',
@@ -477,7 +478,7 @@ export default function Marketplace({ user, onLogin, onLogout }) {
             {!TOKEN && (
               <div style={{
                 position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)',
-                zIndex: 30, padding: '14px 20px',
+                zIndex: Z.DROPDOWN, padding: '14px 20px',
                 background: 'rgba(239,68,68,0.14)',
                 border: '1px solid rgba(239,68,68,0.4)',
                 borderRadius: 12, fontFamily: 'DM Sans', fontSize: 13, color: '#fca5a5',

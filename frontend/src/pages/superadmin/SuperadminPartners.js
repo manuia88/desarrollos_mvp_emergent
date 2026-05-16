@@ -9,6 +9,7 @@ import {
   updatePartner,
   getPartnerDetail,
 } from '../../api/superadminPartners';
+import { Z } from '../../styles/zIndex';
 
 const PARTNER_TYPES = [
   { id: 'mortgage_broker',  label: 'Bróker Hipotecario' },
@@ -255,7 +256,7 @@ export default function SuperadminPartners() {
       {detail && (
         <div
           onClick={e => { if (e.target === e.currentTarget) { setDetail(null); setSelectedId(null); }}}
-          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)' }}
+          style={{ position: 'fixed', inset: 0, zIndex: Z.DROPDOWN, background: 'rgba(6,8,15,0.7)', backdropFilter: 'blur(4px)' }}
         >
           <div style={{
             position: 'fixed', right: 0, top: 0, bottom: 0, width: 480,
@@ -385,7 +386,7 @@ export default function SuperadminPartners() {
       {/* Create partner modal */}
       {showCreate && (
         <div onClick={e => { if (e.target === e.currentTarget) setShowCreate(false); }}
-          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(6,8,15,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, zIndex: Z.DROPDOWN, background: 'rgba(6,8,15,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div style={{ background: '#0E1220', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 16, padding: '24px 28px', width: '100%', maxWidth: 440 }}>
             <h3 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)', margin: '0 0 18px' }}>Nuevo partner</h3>
