@@ -34,7 +34,7 @@
 
 | # | Tema | Horas | Notas |
 |---|---|---|---|
-| **W5.1** | AVM ML productionization (Hedonic público) | ~26 | ✅ **SHIPPED 2026-05-16** · emergent preview · pendiente push GitHub · 5 sub-chunks completos (retrain cron · dashboard superadmin · widget+SEO landing · explainability · cache+golden) |
+| **W5.1** | AVM ML productionization (Hedonic público) | ~26 | ✅ **SHIPPED 2026-05-16** · merge `318b93a` + `8f52419` · build OK · 5 sub-chunks completos + AVM Accuracy en nav superadmin |
 | **W5.2** | Zone Score desagregado (subscores escuelas/seguridad/etc) | ~15-20 | Sub-scores YA existen en `zone_scores` collection · trabajo real = exponer + UI + filter + SEO |
 | **W5.3** | Forecast multi-horizonte (precio proyectado 6/12/24m) | ~30 | Pendiente · consume W5.1 |
 | **W5.4** | Buyer Score | ~25 | Bloqueado Apify $49/mo |
