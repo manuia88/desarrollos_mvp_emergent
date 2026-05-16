@@ -615,6 +615,11 @@ from routes.forecast_public import router as forecast_public_router
 app.include_router(forecast_public_router)
 logging.info("[w5.3] forecast-public router mounted")
 
+# W5.3 Parte 2A — Forecast accuracy dashboard (superadmin)
+from routes.forecast_accuracy import router as forecast_accuracy_router
+app.include_router(forecast_accuracy_router)
+logging.info("[w5.3.p2a] forecast-accuracy router mounted")
+
 # W4.18.3 — Private Beta Gate (invite codes + waitlist)
 from routes.private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
@@ -1471,6 +1476,18 @@ async def startup():
             logging.info("[w5.3] forecast retrain cron @ 04:00 UTC")
         except Exception as e:
             logging.warning(f"[w5.3] forecast retrain scheduler register failed: {e}")
+
+        # W5.3 Parte 2A — Subscores reales recompute (02:30 UTC) + accuracy indexes
+        try:
+            from zone_subscores_cron import register_subscores_job, ensure_indexes as _subs_indexes
+            from routes.forecast_accuracy import ensure_indexes as _fa_indexes
+            await _subs_indexes(db)
+            await _fa_indexes(db)
+            if sched:
+                register_subscores_job(sched, db)
+            logging.info("[w5.3.p2a] subscores cron @ 02:30 UTC")
+        except Exception as e:
+            logging.warning(f"[w5.3.p2a] subscores/accuracy register failed: {e}")
     except Exception as e:
         logging.warning(f"[batch20] setup failed: {e}")
 

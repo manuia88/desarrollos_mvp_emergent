@@ -2348,5 +2348,22 @@
       "stable": "Tendencia estable a {{months}} meses.",
       "none": "Sin proyección de zona disponible."
     }
+  },
+  "forecast_accuracy": {
+    "page_title": "Precisión del modelo Forecast",
+    "subtitle": "MAPE histórico por horizonte (6m / 12m / 24m), drift por colonia y validación contra DRPI realizado.",
+    "kpi_mape_6m": "MAPE 6m",
+    "kpi_mape_12m": "MAPE 12m",
+    "kpi_mape_24m": "MAPE 24m",
+    "kpi_zones": "Zonas modeladas",
+    "kpi_last_run": "Último backtest",
+    "btn_backtest": "Correr backtest",
+    "btn_backtest_running": "Corriendo…",
+    "btn_refresh": "Refrescar",
+    "horizon_label": "Horizonte tabla",
+    "trend_card_title": "MAPE por horizonte (histórico 30d)",
+    "trend_empty": "Backtest necesita ≥6 meses de forecasts históricos. Presiona \"Correr backtest\" para procesar los disponibles.",
+    "table_title": "Drift por zona · horizonte {{horizon}}m",
+    "table_empty": "Sin zonas con ≥3 muestras todavía. Espera a que el backtest acumule snapshots."
   }
 }

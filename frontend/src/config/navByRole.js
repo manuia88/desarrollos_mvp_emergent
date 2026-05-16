@@ -190,6 +190,14 @@ const SUPERADMIN_NAV = [
       { key: 'primitives',   to: '/superadmin/primitives-demo',          label: 'UI Primitivas',    Icon: Boxes },
     ],
   },
+  {
+    tier: 3,
+    label: 'Inteligencia',
+    items: [
+      { key: 'avm-accuracy',      to: '/superadmin/avm-accuracy',      label: 'AVM Accuracy',      Icon: TrendingUp },
+      { key: 'forecast-accuracy', to: '/superadmin/forecast-accuracy', label: 'Forecast Accuracy', Icon: TrendingUp },
+    ],
+  },
 ];
 
 export const navByRole = {
