@@ -42,7 +42,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 |---|---|---|---|
 | **W5.1** | AVM ML productionization | ✅ | `f8834a4`+`8f52419` (26h) |
 | **W5.2** | Zone Score desagregado | ✅ | `e36fb9f` (17h) |
-| **W5.3** | Forecast multi-horizonte ARIMA | 🟡 75% | P1 `5425023` · P2A `f8834a4` · P2B en emergent |
+| **W5.3** | Forecast multi-horizonte ARIMA | ✅ | P1 `5425023` + P2A `f8834a4` + P2B `e633f73` (44h) |
 | **W5.4** | Buyer Score | ⬜ STUB | Apify fallback · ~25h |
 | **W5.5** | Live Pulse | ⬜ STUB | Apify fallback · ~25h |
 | **W5.6** | Scenario Storyteller | ⬜ | ~25h · independiente |
@@ -71,9 +71,8 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 
 ### 1.4 Orden sugerido próximos batches
 
-1. W5.3 P2B (en emergent) → cierra W5.3
-2. **W5.ASR.0** cleanup (5-7h Claude Code)
-3. W5.6 Scenario Storyteller (~25h)
+1. **W5.ASR.0** cleanup (5-7h Claude Code)
+2. W5.6 Scenario Storyteller (~25h)
 4. W5.4 Buyer Score STUB (~25h)
 5. W5.ASR.1 WhatsApp QR STUB (40-50h)
 6. W5.ASR.2 Pipeline 7+2 (35-45h)
@@ -98,9 +97,9 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 
 | Bloque | Horas |
 |---|---|
-| Shipped | 76 (W5.1 + W5.2 + W5.3 P1 + P2A) |
-| En proceso | ~11 (W5.3 P2B) |
-| Restante | ~538-602 |
+| Shipped | 87 (W5.1 + W5.2 + W5.3 completo) |
+| En proceso | 0 |
+| Restante | ~527-591 |
 | **Total W5 ajustado** | **~625-689** |
 
 Buildables AHORA (sin bloqueo): **22 de 26 batches** · solo W5.18 Dubai realmente diferido.
