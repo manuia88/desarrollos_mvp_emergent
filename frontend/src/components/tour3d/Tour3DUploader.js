@@ -174,8 +174,8 @@ export default function Tour3DUploader({
           onFile(e.dataTransfer.files?.[0]);
         }}
         style={{
-          border: `1.5px dashed ${dragOver ? 'var(--theme-3)' : 'rgba(240,235,224,0.25)'}`,
-          background: dragOver ? 'rgba(var(--theme-rgb),0.05)' : 'rgba(15,18,28,0.5)',
+          border: `1.5px dashed ${dragOver ? '#EC4899' : 'rgba(240,235,224,0.25)'}`,
+          background: dragOver ? 'rgba(236,72,153,0.05)' : 'rgba(15,18,28,0.5)',
           borderRadius: 14,
           padding: 28, textAlign: 'center',
           cursor: 'pointer',
@@ -204,7 +204,7 @@ export default function Tour3DUploader({
         }}>
           <div style={{
             width: `${progress}%`, height: '100%',
-            background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
             transition: 'width 240ms ease',
           }} />
         </div>
@@ -231,7 +231,7 @@ export default function Tour3DUploader({
           onClick={handleUpload}
           disabled={busy || !file || !unitId}
           style={{
-            background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
             color: '#fff', border: 'none', borderRadius: 9999,
             padding: '11px 24px',
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 12, letterSpacing: '0.1em',

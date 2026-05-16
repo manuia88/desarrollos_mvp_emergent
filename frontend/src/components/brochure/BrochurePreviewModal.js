@@ -122,8 +122,8 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
         <div style={{ overflow: 'auto', padding: 20 }}>
           {/* PDF block */}
           <div style={{
-            background: 'rgba(var(--theme-rgb),0.06)',
-            border: '1px solid rgba(var(--theme-rgb),0.25)',
+            background: 'rgba(99,102,241,0.06)',
+            border: '1px solid rgba(99,102,241,0.25)',
             borderRadius: 14,
             padding: 16,
             marginBottom: 16,
@@ -145,7 +145,7 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
               rel="noopener noreferrer"
               data-testid="brochure-download-pdf"
               style={{
-                background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+                background: 'linear-gradient(90deg, #6366F1, #EC4899)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 9999,
@@ -201,8 +201,8 @@ export default function BrochurePreviewModal({ brochure: initial, onClose, onReg
                   disabled={regenLoading}
                   style={{
                     background: regenLoading
-                      ? 'rgba(var(--theme-rgb),0.40)'
-                      : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+                      ? 'rgba(99,102,241,0.40)'
+                      : 'linear-gradient(90deg, #6366F1, #EC4899)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 9999,

@@ -6,8 +6,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import CtaFooter from '../../components/landing/CtaFooter';
-
-const API = process.env.REACT_APP_BACKEND_URL;
+import ExplainabilityCard from '../../components/avm/ExplainabilityCard';
+import { fetchAvmQuick, fetchTopColonias } from '../../api/avm';
 
 function fmtMXN(n) {
   if (!n) return '—';
@@ -31,28 +31,17 @@ export default function Valores() {
 
   useEffect(() => {
     document.title = 'Valores · ¿Cuánto vale tu propiedad? · DesarrollosMX';
-    fetch(`${API}/api/avm-public/colonias/top?limit=30`)
-      .then(r => r.json())
-      .then(d => setColonias(d.colonias || []))
-      .catch(() => setColonias([]));
+    fetchTopColonias(30).then(d => setColonias(d.colonias || [])).catch(() => setColonias([]));
   }, []);
 
   const submit = async (e) => {
     e?.preventDefault();
     setError(null); setLoading(true); setResult(null);
     try {
-      const params = new URLSearchParams({
-        colonia_slug: coloniaSlug,
-        m2: String(m2), recamaras: String(recamaras),
-        banos: String(banos), antiguedad_anos: String(antiguedad),
+      const data = await fetchAvmQuick({
+        coloniaSlug, m2, recamaras, banos, antiguedadAnos: antiguedad, explain: true,
       });
-      const r = await fetch(`${API}/api/avm-public/quick?${params}`);
-      if (!r.ok) {
-        if (r.status === 429) throw new Error('Demasiadas peticiones. Espera 1 minuto.');
-        if (r.status === 404) throw new Error('Colonia no encontrada.');
-        throw new Error(`Error ${r.status}`);
-      }
-      setResult(await r.json());
+      setResult(data);
     } catch (e) { setError(String(e.message || e)); }
     finally { setLoading(false); }
   };
@@ -199,6 +188,8 @@ export default function Valores() {
                 {result.disclaimer}
               </div>
             </div>
+            {/* W5.1 Sub-D — Explainability */}
+            <ExplainabilityCard explain={result.explain} />
           </section>
         )}
       </main>

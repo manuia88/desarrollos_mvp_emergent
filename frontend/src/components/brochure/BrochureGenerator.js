@@ -71,7 +71,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
             padding: '16px 20px',
             borderBottom: '1px solid rgba(240,235,224,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-            background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.06), rgba(var(--theme-rgb),0.04))',
+            background: 'linear-gradient(90deg, rgba(99,102,241,0.06), rgba(236,72,153,0.04))',
           }}>
             <div>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--cream)' }}>
@@ -161,7 +161,7 @@ export default function BrochureGenerator({ projectId, projectName, onClose }) {
                 onClick={handleGenerate}
                 disabled={busy}
                 style={{
-                  background: busy ? 'rgba(240,235,224,0.15)' : 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+                  background: busy ? 'rgba(240,235,224,0.15)' : 'linear-gradient(90deg, #6366F1, #EC4899)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 9999,

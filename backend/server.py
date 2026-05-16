@@ -30,7 +30,7 @@ app = FastAPI(title="DesarrollosMX API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",")],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -249,9 +249,6 @@ from routes.partners import router as partners_router
 from cross_sell_engine import ensure_indexes as ensure_cross_sell_indexes
 app.include_router(cross_sell_router)
 app.include_router(partners_router)
-# W3.9b — Watchlist subscribe (public)
-from routes.watchlist import router as watchlist_router, ensure_indexes as ensure_watchlist_indexes
-app.include_router(watchlist_router)
 
 # Phase 4 Batch 1 — Dev Portal Foundation
 from routes.dev_batch1 import router as dev_batch1_router, ensure_dev_batch1_indexes
@@ -601,6 +598,10 @@ app.include_router(maps_cross_router)
 from routes.avm_public import router as avm_public_router
 app.include_router(avm_public_router)
 
+# W5.1 — AVM accuracy superadmin dashboard
+from routes.avm_accuracy import router as avm_accuracy_router
+app.include_router(avm_accuracy_router)
+
 # W4.18.3 — Private Beta Gate (invite codes + waitlist)
 from routes.private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
@@ -643,7 +644,7 @@ from routes.mcp_distribution import router as mcp_distribution_router
 from mcp_distribution_engine import ensure_mcp_distribution_indexes as ensure_mcp_distribution_indexes_fn
 app.include_router(mcp_distribution_router)
 
-# F0.1 — Score Inversión DMX 0-100
+# F0.1 — Score Inversión DMX
 from routes.score_inversion import router as score_inversion_router
 from score_inversion_engine import ensure_score_inversion_indexes as ensure_score_inversion_indexes_fn
 app.include_router(score_inversion_router)
@@ -823,7 +824,7 @@ async def startup():
     await db.users.create_index("user_id")
     await db.audit_logs.create_index("ts")
     # Seed superadmin
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.com")
     admin_pw    = os.environ.get("ADMIN_PASSWORD", "Admin2026!")
     existing    = await db.users.find_one({"email": admin_email})
     if not existing:
@@ -1011,11 +1012,6 @@ async def startup():
         await seed_demo_offers(db)
     except Exception as e:
         logging.warning(f"[startup] W3.8 cross-sell seed failed: {e}")
-    # W3.9b — Watchlist subscriber indexes
-    try:
-        await ensure_watchlist_indexes(db)
-    except Exception as e:
-        logging.warning(f"[startup] W3.9b watchlist indexes failed: {e}")
     # Phase 4 Batch 1 — Dev Portal indexes
     await ensure_dev_batch1_indexes(db)
     # Phase 4 Batch 2 — Dashboards + IE + Construcción indexes
@@ -1221,6 +1217,28 @@ async def startup():
         await ensure_buyer_coach_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.14 buyer_coach indexes failed: {e}")
+    # W4.9 — Brochure indexes
+    try:
+        await ensure_brochure_indexes_fn(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.9 brochure indexes failed: {e}")
+    # W4.9.6 — Tour 3DGS indexes
+    try:
+        await ensure_tour_3dgs_indexes_fn(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.9.6 tour_3dgs indexes failed: {e}")
+    # W4.16 — Marketing indexes
+    try:
+        await ensure_free_audit_indexes_fn(db)
+        await ensure_state_of_cdmx_indexes_fn(db)
+        await ensure_mcp_distribution_indexes_fn(db)
+    except Exception as e:
+        logging.warning(f"[startup] W4.16 marketing indexes failed: {e}")
+    # F0.1 — Score Inversión indexes
+    try:
+        await ensure_score_inversion_indexes_fn(db)
+    except Exception as e:
+        logging.warning(f"[startup] F0.1 score_inversion indexes failed: {e}")
     # Phase 4 Batch 12 — Wizard indexes
     await ensure_wizard_indexes(db)
     # Phase 4 Batch 13 — Tracking + cross-portal indexes
@@ -1420,6 +1438,15 @@ async def startup():
                 register_f02_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[f02] scheduler register failed: {e}")
+
+        # W5.1 — AVM nightly retrain cron (03:00 UTC)
+        try:
+            from avm_retrain_cron import register_retrain_job, ensure_indexes as _avm_retrain_indexes
+            await _avm_retrain_indexes(db)
+            if sched:
+                register_retrain_job(sched, db)
+        except Exception as e:
+            logging.warning(f"[w5.1] avm retrain scheduler register failed: {e}")
     except Exception as e:
         logging.warning(f"[batch20] setup failed: {e}")
 

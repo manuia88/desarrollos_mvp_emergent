@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from 'react';
 
 const FALLBACK = [
-  { id: 'corporate_navy', label: 'Corporate Navy', description: 'Navy sólido, restraint institucional.', primary: '#06080F', accent: 'var(--theme)', uses_gradient: false },
+  { id: 'corporate_navy', label: 'Corporate Navy', description: 'Navy sólido, restraint institucional.', primary: '#06080F', accent: '#6366F1', uses_gradient: false },
   { id: 'cream_minimal', label: 'Cream Minimal', description: 'Cream + whitespace editorial.', primary: '#F0EBE0', accent: '#06080F', uses_gradient: false },
-  { id: 'gradient_bold', label: 'Gradient Bold', description: 'Bloques indigo→rose, bold.', primary: '#06080F', accent: 'var(--theme-3)', uses_gradient: true },
-  { id: 'editorial_serif', label: 'Editorial Serif', description: 'Magazine premium, serif.', primary: '#F0EBE0', accent: 'var(--theme)', uses_gradient: false },
-  { id: 'dmx_neutral', label: 'DMX Neutral', description: 'Branding DMX por defecto.', primary: '#06080F', accent: 'var(--theme)', uses_gradient: true },
+  { id: 'gradient_bold', label: 'Gradient Bold', description: 'Bloques indigo→rose, bold.', primary: '#06080F', accent: '#EC4899', uses_gradient: true },
+  { id: 'editorial_serif', label: 'Editorial Serif', description: 'Magazine premium, serif.', primary: '#F0EBE0', accent: '#6366F1', uses_gradient: false },
+  { id: 'dmx_neutral', label: 'DMX Neutral', description: 'Branding DMX por defecto.', primary: '#06080F', accent: '#6366F1', uses_gradient: true },
 ];
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -39,7 +39,7 @@ export default function BrandingVariantSelector({ value, onChange }) {
         {variants.map((v) => {
           const selected = value === v.id;
           const bg = v.uses_gradient
-            ? 'linear-gradient(135deg, var(--theme) 0%, var(--theme-3) 100%)'
+            ? 'linear-gradient(135deg, #6366F1 0%, #EC4899 100%)'
             : v.primary;
           return (
             <button
@@ -51,7 +51,7 @@ export default function BrandingVariantSelector({ value, onChange }) {
                 position: 'relative',
                 textAlign: 'left',
                 background: 'rgba(15,18,28,0.85)',
-                border: selected ? '2px solid var(--theme-3)' : '1px solid rgba(240,235,224,0.12)',
+                border: selected ? '2px solid #EC4899' : '1px solid rgba(240,235,224,0.12)',
                 borderRadius: 14,
                 padding: 14,
                 cursor: 'pointer',
@@ -90,7 +90,7 @@ export default function BrandingVariantSelector({ value, onChange }) {
               {selected && (
                 <div style={{
                   position: 'absolute', top: 8, right: 8,
-                  background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+                  background: 'linear-gradient(90deg, #6366F1, #EC4899)',
                   color: '#fff', borderRadius: 9999,
                   padding: '2px 9px',
                   fontFamily: 'Outfit', fontWeight: 700, fontSize: 9, letterSpacing: '0.1em',

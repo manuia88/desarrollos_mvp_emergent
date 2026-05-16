@@ -163,6 +163,7 @@ const SUPERADMIN_NAV = [
     items: [
       { key: 'scores',              to: '/superadmin/scores',              label: 'Scores',                 Icon: BarChart3 },
       { key: 'drpi',                to: '/superadmin/drpi',                label: 'DRPI',                   Icon: TrendingUp },
+      { key: 'avm-accuracy',        to: '/superadmin/avm-accuracy',        label: 'AVM Accuracy',           Icon: Target },
       { key: 'risk-score',          to: '/superadmin/risk-score',          label: 'Risk Score',             Icon: Shield },
       { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer',    Icon: Target },
       { key: 'intelligence-hub',    to: '/superadmin/intelligence-hub',    label: 'Inteligencia ejecutiva', Icon: Eye },

@@ -214,6 +214,8 @@ const AlcaldiaPage                   = lazy(() => import('./pages/public/Alcaldi
 const IntentLandingPage              = lazy(() => import('./pages/public/IntentLandingPage'));
 // W4.2D3.5 — Superadmin Landing Leads dashboard
 const SuperadminLandingLeads         = lazy(() => import('./pages/superadmin/SuperadminLandingLeads'));
+// F0.2·Sub-E — Free Audit funnel dashboard
+const SuperadminFreeAuditFunnel      = lazy(() => import('./pages/superadmin/SuperadminFreeAuditFunnel'));
 // W4.2.5 — Embeddable widgets + Press kit
 const ScoreWidgetPage                = lazy(() => import('./pages/public/widgets/ScoreWidgetPage'));
 const RiskWidgetPage                 = lazy(() => import('./pages/public/widgets/RiskWidgetPage'));
@@ -225,6 +227,10 @@ const BankAvmWidget                  = lazy(() => import('./pages/public/widgets
 const InsuranceRiskWidget            = lazy(() => import('./pages/public/widgets/InsuranceRiskWidget'));
 const NotariaTitleWidget             = lazy(() => import('./pages/public/widgets/NotariaTitleWidget'));
 const InvestorYieldWidget            = lazy(() => import('./pages/public/widgets/InvestorYieldWidget'));
+// W5.1 — AVM ML productionization
+const AvmWidgetPage                  = lazy(() => import('./pages/widgets/AvmWidgetPage'));
+const ValorColonia                   = lazy(() => import('./pages/public/ValorColonia'));
+const SuperadminAvmAccuracy          = lazy(() => import('./pages/superadmin/SuperadminAvmAccuracy'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -670,9 +676,15 @@ function AppRouter() {
       <Route path="/cdmx/:intent" element={<IntentLandingPage />} />
       {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
       <Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={SuperadminLandingLeads} />} />
+      {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
+      <Route path="/superadmin/free-audit-funnel" element={<AdvisorRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}
       <Route path="/widgets/score/:slug" element={<ScoreWidgetPage />} />
       <Route path="/widgets/risk/:slug" element={<RiskWidgetPage />} />
+      {/* W5.1 — AVM widget embeddable + landing SEO + accuracy dashboard */}
+      <Route path="/widgets/avm/:slug" element={<AvmWidgetPage />} />
+      <Route path="/valor/:slug" element={<ValorColonia />} />
+      <Route path="/superadmin/avm-accuracy" element={<AdvisorRoute Page={SuperadminAvmAccuracy} />} />
       <Route path="/prensa" element={<PrensaPage />} />
       {/* W3.8 — Cross-sell Intelligence */}
       <Route path="/superadmin/partners" element={<AdvisorRoute Page={SuperadminPartners} />} />

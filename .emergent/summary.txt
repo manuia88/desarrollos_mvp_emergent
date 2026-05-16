@@ -7,37 +7,32 @@ PRODUCT REQUIREMENTS:
 - All application UI, mock data, and internal strings MUST strictly be in Spanish .
 - **CRITICAL TESTING RULE**: NO testing subagents allowed ( /  are strictly forbidden). Rely on //, and screenshot tools.
 - **CRITICAL EXECUTION RULE**: If user provides 100% spec, DO NOT pause, DO NOT use  to confirm plans, execute directly in one shot. NO partial shipping. Take conservative decisions on edge cases.
-
-New features implemented in this session:
-- W4.18.2A.0: PostHog setup (session replay + heatmaps) ensuring LFPDPPP compliance (cookieless, hashing PII).
-- W4.18.2B: Mapa Cerebro Espacial cross-features (Funnel inverso, Match Catastro, Demand vs Supply gap, Battle Card) +  AVM +  SEO landings.
-- W4.18.3: Private Beta Gate brokers-only, waitlist logic, invite codes, and Broker Portal.
-- W4.13.A: Lead Journey Outbound tracking for asesor→dev (15 step types, timeline UI, cross-cutting hooks, bulk actions).
+- **CRITICAL DOCS RULE**: NO toques  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  · .
 
 **User's preferred language**: Spanish (es-MX)
-INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages and respond ONLY in Spanish (es-MX). All UI text, logs, code variables, comments, responses, and strings must remain strictly in .
+INSTRUCT NEXT AGENT: You MUST automatically detect the user's primary language from their messages inside the trajectory and INSTRUCT next agent to respond in the user's preferred language only (Spanish es-MX). All UI text, logs, code variables, comments, responses, and strings must remain strictly in . Zero Emojis.
 
 **what currently exists?** 
-The platform has a functional React/FastAPI stack with multi-tenant auth. Mapbox GL JS frontend components and Backend map engines are integrated. In this session, observability (PostHog) was added, complex map cross-features (Battle Cards, demand gaps, Catastro matches) were implemented, a private beta gate (waitlist/invite codes) was established, and a comprehensive lead journey tracking system was deployed with hooks across various backend engines.
+The platform is a React/FastAPI stack. It features Studio Brochure generator, 3D Gaussian Splatting Tour Virtual, Marketing & MCP Distribution, Score Inversión, Resend integrations, and recently implemented F0.2 (Weekly digests, leaderboard, PDF/thumbnail regenerators, cron pre-computes) and F0.3 (Major backend  folder refactoring,  CLI, and Free Audit CSV exports).
 
 **Last working item**:
-    - Last item agent was working: W4.13.A — Lead Journey Outbound asesor→dev. The agent successfully created , API routes, UI components (, ), and integrated step-emission hooks into existing engines (smart routing, nurture, whatsapp, disc inferencer, atlax).
-    - Status: COMPLETED
-    - Agent Testing Done: Y (Extensive backend curl testing and frontend smoke screenshots completed).
+    - Last item agent was working: F0.3 — Refactoring all  files into a dedicated  directory, adding a  CLI mode to , and implementing a CSV export endpoint and frontend button for Free Audit Submissions.
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
     - Which testing method agent to use? manual testing by curl / python -c / screenshot tool / yarn build (TESTING SUBAGENTS STRICTLY FORBIDDEN).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
   Issue 1: Phase 4 Batch 1 UI elements not rendering in DOM () (P2)
      - Attempted fixes: Deferred to H1 sweep by the user.
-     - Next debug checklist: DEFERRED. User explicitly requested to defer this bug to the final sweep of H1. DO NOT attack this bug unless prompted.
+     - Next debug checklist: DEFERRED. DO NOT attack this bug unless prompted.
      - Why fix this issue and what will be achieved with the fix? Will fix a broken render state.
      - Status: BLOCKED (Deferred by User)
      - Is recurring issue? Y
      - Should Test frontend/backend/both after fix? both
      - Blocked on other issue: N/A
 
-  Issue 2: Playwright screenshot runner drops session state/cookies/times out for deeply nested routes (Superadmin pages). (P2)
+  Issue 2: Playwright screenshot runner drops session state/cookies/times out for deeply nested routes (P2)
      - Attempted fixes: Bypassed using SPA internal navigation tricks and relying on  for strict backend testing.
      - Next debug checklist: Continue bypassing nested screenshot checks where possible and trust backend  tests. 
      - Why fix this issue and what will be achieved with the fix? Allows visual tests on gated routes.
@@ -47,8 +42,8 @@ The platform has a functional React/FastAPI stack with multi-tenant auth. Mapbox
      - Blocked on other issue: N/A
 
   Issue 3: ElevenLabs TTS API blocks preview environment (P3)
-     - Attempted fixes: Code implemented properly, but API returns 403 due to Kubernetes IP falling under free-tier blocklist.
-     - Next debug checklist: Acknowledged as a known edge case by the agent. No immediate action required, wait for user to provide paid account if needed.
+     - Attempted fixes: Code implemented properly, but API returns 403.
+     - Next debug checklist: Acknowledged edge case. No immediate action required.
      - Why fix this issue and what will be achieved with the fix? Allow voice synthesis to work inside preview environment.
      - Status: BLOCKED
      - Is recurring issue? N
@@ -56,14 +51,12 @@ The platform has a functional React/FastAPI stack with multi-tenant auth. Mapbox
      - Blocked on other issue: N/A
 
 **In progress Task List**:
- None.
+  - None. (F0.3 fully implemented and git committed).
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
     - Add a consolidated ROI Dashboard Panel in TenantDrawer summing the  (P1).
     - Superadmin endpoint/dashboard to track which external domains are embedding the widgets (P1).
-    - CLI script  for founder to test lead nurture emails manually (P2).
-    - Refactoring: Migrating  into a dedicated  folder (P1).
     - W4.13.B: Meta Ads automation integration for the Lead Journey.
 
     Future Tasks:
@@ -73,11 +66,10 @@ The platform has a functional React/FastAPI stack with multi-tenant auth. Mapbox
     - Cross-org lead movement (Wave 5 deferral).
 
 **Completed work in this session**
-- W4.18.2A — Finalized frontend Mapbox map hooks and UI elements (DONE).
-- W4.18.2A.0 — PostHog initialization, memory persistence, LFPDPPP-compliance (DONE).
-- W4.18.2B — Map cross-features (Funnel inverso, Match Catastro, Demand Gap, Battle Card,  AVM, SEO landings) (DONE).
-- W4.18.3 — Private Beta Gate (Waitlist form, Invite Codes, Broker Portal, Superadmin Invites table) (DONE).
-- W4.13.A — Lead Journey tracking engines, API endpoints, hooks, and timeline UI (DONE).
+- F0.2: Digest semanal asesor, Leaderboard cohort, Brochure regenerate, 3DGS thumbnail regenerate, Free Audit funnel stats, and Cron pre-compute. (DONE)
+- F0.3 Sub-Chunk A: Refactored 125 backend  files into the  directory and updated over 60 import references inside  and other modules. (DONE)
+- F0.3 Sub-Chunk B: Implemented Argparse CLI functionality inside  to allow manual execution testing via  and specific filters. (DONE)
+- F0.3 Sub-Chunk C: Added CSV export API  and a UI download button in . (DONE)
 
 **Earlier issues found/mentioned but not fixed**
    - Issue 1: Shapefile parsing in production (Requires / and OS-level GDAL libraries in Dockerfile, noted as future DevOps task).
@@ -92,29 +84,21 @@ The platform has a functional React/FastAPI stack with multi-tenant auth. Mapbox
 
 
 **Key Technical Concepts**
-FastAPI, React (Shadcn UI), Mapbox GL JS, PostHog (Session Replay), LFPDPPP Privacy Compliance, Twilio API, ElevenLabs TTS, JWT Auth, MongoDB.
+FastAPI, React (Shadcn UI), Luma AI API, ReportLab (PDFs), Pillow (PNG Composition), Gaussian Splatting (mkkellogg/gaussian-splats-3d), Redis/In-memory Rate Limiting, APScheduler (cron jobs), CLI Argparse testing ().
 
 **key DB schema**
-  - : 
-  - : 
-  - : 
-  - : 
-  - : 
+  - , , , , .
 
 **changes in tech stack**
-  - Added  to .
+  -  dependency utilized implicitly (or text fallback) for terminal CLI tabular outputs.
 
 **All files of reference** 
-  - 
-  - , 
-  - , 
-  - , 
-  - , 
-  - , , 
-  - , 
+  - Backend Routes: 
+  - Servers/Engines: , , 
+  - Frontend Pages: , 
 
 **Areas that need refactoring**:
-  - Migrating all  files into a dedicated  folder.
+  - The major route refactoring was successfully completed in this session.
 
 **key api endpoints**
   - 
@@ -122,40 +106,35 @@ FastAPI, React (Shadcn UI), Mapbox GL JS, PostHog (Session Replay), LFPDPPP Priv
   - 
   - 
   - 
-  - 
-  - 
-  - 
+  -  (NEW)
 
 **Critical Info for New Agent**
   - **EXECUTION DIRECTIVE**: The user provides 100% complete specs in their prompts. DO NOT use  to confirm options. Execute fully in one shot, run tests manually, and summarize. NO partial shipping.
   - **TESTING RULE**: NO testing subagents allowed. Execute testing manually via , , screenshot tools, and verify the React build via yarn run v1.22.22
 info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command..
-  - **LANGUAGE & UI**: Outputs, code, responses, and strings must strictly be . 
-  - **EMOJIS**: NEVER use emojis in the UI. 
+  - **LANGUAGE & UI**: Outputs, code, responses, and strings must strictly be . NEVER use emojis in UI elements or responses.
+  - **NO TOUCH RULE**: You must absolutely NEVER touch  files (PRD, CHANGELOG, BACKLOG_ENHANCEMENTS, test_credentials, etc.) or  reference docs. The user was extremely upset about this previously.
+  - **GIT PUSH**: For git operations, remember the user utilizes the explicit Save to Github chat input button; your responsibility is committing locally ( was recently created).
 
 **documents and test reports created in this job**
-  - 
-  - 
+  - None (Touching .md documentation files was explicitly prohibited)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: Provided 100% spec for W4.18.2A (Mapa Cerebro Espacial DMX core) - Agent completed.
- - User: Provided 100% spec for W4.18.2A.0 (PostHog Setup) - Agent executed perfectly.
- - User: Provided 100% spec for W4.18.2B (Maps cross-features, AVM, SEO landing) - Agent completed.
- - User: Provided 100% spec for W4.18.3 (Private Beta Gate brokers-only) - Agent completed.
- - User: Provided 100% spec for W4.13.A (Lead Journey Outbound tracking) - Agent successfully implemented and tested everything.
- - *No Pending User Request.* The agent finished the task entirely.
+ - User: Provided 100% spec for F0.2 (Digest semanal asesor + Leaderboard cohort + Brochure regenerate + 3DGS thumbnail + Free Audit funnel + Cron pre-compute). Agent completed.
+ - User: Provided 100% spec for F0.3 (Refactor routes_*.py + CLI lead_nurture dry-run + Free Audit CSV export). Agent executed completely and committed code. **[COMPLETED]**
 
 **Project Health Check:**
   - Broken: ElevenLabs API blocks free-tier accounts from Kubernetes environments. Playwright screenshot runner auth drop.
-  - Mocked: Stripe Key, Microsoft/LinkedIn OAuth, PostHog API Key.
+  - Mocked: Luma AI API (running in stub mode returning mock data), Stripe Key, Microsoft/LinkedIn OAuth.
 
 **3rd Party Integrations** 
+  - Luma AI API (Gaussian Splatting) — Requires User API Key (). Currently running in stub mode.
+  - Resend (Emails) — Requires User API Key ().
   - Mapbox (Maps) — Requires User API Key ( / ).
   - Twilio (WhatsApp) — Requires User API Key ( / ).
   - ElevenLabs (Voice TTS) — Requires User API Key ().
   - PostHog (Observability) — Requires User API Key ().
-  - Claude Sonnet 4.5 / Claude Haiku 4.5 (Newsletter/Chat) — Powered by Emergent LLM Key.
-  - OpenAI Whisper (Voice STT) — Uses OpenAI via Emergent LLM Key.
+  - Claude Sonnet 4.5 / Claude Haiku 4.5 — Powered by Emergent LLM Key.
 
 **Testing status**
   - Testing agent used after significant changes: **NO (Strictly Forbidden by user)**
@@ -169,4 +148,4 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
   -  / 
 
 **What agent forgot to execute**
-  - Nothing. The agent successfully fulfilled all explicit specifications in the provided chunks, ran curl tests to validate backend routes/logic, and used screenshots to smoke-test frontend rendering successfully.</analysis>
+  - Nothing. The agent successfully addressed F0.2 and F0.3 in full, handling edge cases cleanly and adhering entirely to the constraints.</analysis>

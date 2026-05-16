@@ -141,7 +141,10 @@ export default function TourLauncher({ children }) {
 
   return (
     <TourCtx.Provider value={{ startTour, stopTour }}>
-      {steps.length > 0 && (
+      {/* Bug-fix 2026-05-16: Joyride SOLO se monta cuando run=true · safeguard adicional
+          al disableOverlay=true · si por alguna razón el overlay aparece bloqueando, no
+          existe el componente en absoluto cuando el tour no está activo. */}
+      {run && steps.length > 0 && (
         <Joyride
           steps={steps}
           run={run}

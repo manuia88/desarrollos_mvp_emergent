@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 
 const FACTOR_META = {
-  tir: { label: 'TIR normalizada', desc: 'Tasa interna de retorno anualizada del escenario base (simulator W4.14).', accent: 'var(--theme)' },
+  tir: { label: 'TIR normalizada', desc: 'Tasa interna de retorno anualizada del escenario base (simulator W4.14).', accent: '#6366F1' },
   zone: { label: 'Zone Score', desc: 'Índice DMX de plusvalía y atributos urbanos (W3 zone_score_engine).', accent: '#8B5CF6' },
-  demand: { label: 'Demand-Supply gap', desc: 'Diferencia demanda real vs oferta activa (maps_cross_engine).', accent: 'var(--theme-3)' },
+  demand: { label: 'Demand-Supply gap', desc: 'Diferencia demanda real vs oferta activa (maps_cross_engine).', accent: '#EC4899' },
   stress: { label: 'Resiliencia stress', desc: 'Porcentaje de escenarios ROI ≥ 0% bajo recesión + alza tasas + supply shock.', accent: '#F97316' },
 };
 
@@ -52,7 +52,7 @@ export default function ScoreExplanation({ score, tier, label, factors, recommen
 
       <div style={{ display: 'grid', gap: 10 }}>
         {Object.entries(factors || {}).map(([k, v]) => {
-          const meta = FACTOR_META[k] || { label: k, desc: '', accent: 'var(--theme)' };
+          const meta = FACTOR_META[k] || { label: k, desc: '', accent: '#6366F1' };
           const pct = Math.max(0, Math.min(Number(v?.value ?? 0), 100));
           return (
             <div
@@ -137,7 +137,7 @@ export default function ScoreExplanation({ score, tier, label, factors, recommen
                 type="button"
                 onClick={() => setOpenModal(false)}
                 style={{
-                  background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+                  background: 'linear-gradient(90deg, #6366F1, #EC4899)',
                   color: '#fff', border: 'none', borderRadius: 9999,
                   padding: '10px 24px',
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em',

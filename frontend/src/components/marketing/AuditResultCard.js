@@ -30,7 +30,7 @@ export default function AuditResultCard({ auditId, projectName, colonia, email }
       data-testid="audit-result-card"
       style={{
         background: 'rgba(13,16,23,0.92)',
-        border: '1px solid rgba(var(--theme-rgb),0.35)',
+        border: '1px solid rgba(99,102,241,0.35)',
         borderRadius: 18,
         padding: 28,
         backdropFilter: 'blur(24px)',
@@ -39,7 +39,7 @@ export default function AuditResultCard({ auditId, projectName, colonia, email }
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <span style={{
           padding: '4px 12px', borderRadius: 9999,
-          background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+          background: 'linear-gradient(90deg, #6366F1, #EC4899)',
           color: '#fff',
           fontFamily: 'Outfit', fontWeight: 800, fontSize: 10, letterSpacing: '0.1em',
         }}>LISTO</span>
@@ -65,7 +65,7 @@ export default function AuditResultCard({ auditId, projectName, colonia, email }
           rel="noopener noreferrer"
           data-testid="audit-download-btn"
           style={{
-            background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
+            background: 'linear-gradient(90deg, #6366F1, #EC4899)',
             color: '#fff', border: 'none', borderRadius: 9999,
             padding: '12px 28px',
             fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
@@ -116,7 +116,7 @@ export default function AuditResultCard({ auditId, projectName, colonia, email }
         ¿Quieres profundizar? Un asesor DMX puede ayudarte a estructurar la comercialización.
         <a
           href="/asesores"
-          style={{ marginLeft: 6, color: 'var(--theme)', textDecoration: 'none', fontWeight: 600 }}
+          style={{ marginLeft: 6, color: '#a5b4fc', textDecoration: 'none', fontWeight: 600 }}
         >
           Hablar con asesor →
         </a>
