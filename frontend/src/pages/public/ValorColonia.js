@@ -9,6 +9,7 @@ import { useParams, Link } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import CtaFooter from '../../components/landing/CtaFooter';
 import ExplainabilityCard from '../../components/avm/ExplainabilityCard';
+import ForecastChart from '../../components/forecast/ForecastChart';
 import { fetchAvmLanding } from '../../api/avm';
 
 function fmtMXN(n) {
@@ -159,6 +160,12 @@ export default function ValorColonia() {
 
           {/* Explainability */}
           {sample.explain && <ExplainabilityCard explain={sample.explain} />}
+
+          {/* W5.3 Parte 1 — Forecast multi-horizonte (vivienda típica) */}
+          <ForecastChart
+            mode="property"
+            params={{ colonia: slug, m2: 80, recamaras: 2, banos: 2, antiguedadAnos: 8, horizons: '6,12,24' }}
+          />
         </section>
 
         {/* Top desarrollos */}

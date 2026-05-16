@@ -2334,5 +2334,19 @@
     "not_found_title": "Página no encontrada",
     "not_found_body": "El tema solicitado no existe.",
     "back_to_marketplace": "Volver al marketplace"
+  },
+  "forecast": {
+    "header_label": "Proyección multi-horizonte",
+    "delta_suffix": "% / 12m",
+    "ci_label": "CI95",
+    "today": "Hoy",
+    "disclaimer": "Proyección estadística ARIMA con intervalo de confianza al 95%. No constituye recomendación de inversión.",
+    "error_unavailable": "Forecast no disponible para esta zona.",
+    "narratives": {
+      "rising": "Tendencia alcista +{{delta}}% en {{months}} meses.",
+      "falling": "Tendencia bajista {{delta}}% en {{months}} meses.",
+      "stable": "Tendencia estable a {{months}} meses.",
+      "none": "Sin proyección de zona disponible."
+    }
   }
 }
