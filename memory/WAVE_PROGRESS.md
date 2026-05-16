@@ -1,11 +1,14 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-13 (tech-debt críticos pre-Wave 5: W4.1C index fix ✅ · Tenant-Dev mapping centralizado ✅ · **permissions consolidación 100% RESUELTA** ✅ · Etapa 4 A11y pending · W5.10 scope 233h · Wave 5 H2 ~542h · Wave 6 ~227h)
+**Última actualización**: 2026-05-16 (W5 integrado: 22 originales + 6 ASR redesign asesor · pipeline 7+2 · z-index tokens · cross-portal impact · W5.1 AVM ML arranca)
 **Total H1 restante**: ~146.5h (Wave 4 pending de los 495h totales · W4.18.2 32h ✅ shipped · 8h Private Beta Gate pending)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h = 715.5h shipped en H1
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1
-**Wave 5 H2 sketch**: ~296h alimentadas + ⚠️79h alimentación tardía · Ver `memory/WAVE5_PLAN.md` para detalle
+**Wave 5 H2**: ~672-726h total (542h originales + 155-207h asesor redesign + 5-7h cleanup) · plan canónico `memory/WAVE5_PLAN.md` · arranca W5.1 AVM ML 2026-05-16
+**Wave 6 H2/H3**: ~317-337h (60-80h derivados redesign + ~30h movidos W5 + ~227h originales sketch) · skeleton `memory/WAVE6_PLAN.md`
+**Wave 7**: ~115-123h + originales TBD · skeleton `memory/WAVE7_PLAN.md`
 **Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
+**Trámite paralelo**: Meta App Review (Facebook Business Verification + WhatsApp QR + FB Lead Ads) · iniciar día 0 W5 · ETA 2-4 sem · bloquea W5.ASR.1+5
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
