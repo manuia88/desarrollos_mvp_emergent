@@ -8,6 +8,26 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### W5.2 ext · Persistir 6 sub-scores oficiales en `zone_scores` collection (origen: emergent W5.2 edge case · 2026-05-16)
+
+**Qué**: `zone_scores` collection actualmente almacena `components: {liquidez, supply, demand, risk, yield_score, denue_density}` + `score_numeric`. NO almacena los 6 sub-scores oficiales que W5.2 expone (lifestyle/seguridad/transporte/amenidades/precio/vibe). Helper `get_zone_with_subscores` aplica fallback chain con seed mapping antiguo (`lifestyle←vida` etc.).
+
+**Por qué**: para que los 6 sub-scores reflejen datos REALES (no derivados/proxy del seed). Activa SEO landings con cifras precisas + AVM consume con accuracy + ZoneSubscoresCard muestra fuentes verificadas.
+
+**Cómo**: nuevo cron `zone_subscores_compute_daily` que calcula los 6 sub-scores de fuentes reales y los upserta en `zone_scores[slug].subscores = {lifestyle, seguridad, transporte, amenidades, precio, vibe}`. Fuentes por sub-score:
+- `lifestyle` = derivado OSM POIs (restaurantes + bares + parques + comercios) normalizado 0-100
+- `seguridad` = SESNSP delitos por colonia / cuadrante (inversa · menos delitos = mayor score)
+- `transporte` = GTFS Metro/Metrobús stops + estaciones < 800m + frequency
+- `amenidades` = OSM POIs (hospitales + escuelas + supermercados + bancos) normalizado
+- `precio` = DRPI relativo a promedio CDMX (mayor = mejor relación precio/calidad)
+- `vibe` = combo Trends queries + reviews sentimiento + densidad cultural OSM
+
+**Costo**: ~8-10h (cron engine + 6 algoritmos normalización + tests numéricos golden colonias).
+
+**Destino**: ~~Wave 6 ext W5.2~~ (sugiero **Wave 5 mini-batch entre W5.3 y W5.4** porque desbloquea precision en W5.3 forecast + W5.ASR.4 CMA · alternativamente diferir si scope W5 ya muy lleno).
+
+**Activar cuando**: founder decida priorizar precision data sobre velocidad shipping nuevos batches.
+
 ### W5.1 ext · Botón "Compartir tasación" en `/valor/:slug` + OG-image dinámica + tracking embeds (origen: emergent W5.1 potential improvement · 2026-05-16)
 
 **Qué**: añadir botón "Compartir tasación" en `/valor/:slug` landing SEO. Genera OG-image dinámica (precio + colonia) vía Vercel OG o Cloudinary cuando se comparte. Endpoint tracking `/api/avm-public/embed-track` registra cuándo/dónde se embeben widgets externos. Dashboard superadmin muestra dominios embebedores (medios + blogs + prensa).
