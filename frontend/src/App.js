@@ -46,7 +46,7 @@ const Mapa              = lazy(() => import('./pages/Mapa'));
 const BrokerPortal       = lazy(() => import('./pages/public/BrokerPortal'));
 const SuperadminInvites  = lazy(() => import('./pages/superadmin/SuperadminInvites'));
 // W4.13.A — Lead Journey Outbound
-const AsesorOutbound     = lazy(() => import('./pages/advisor/AsesorOutbound'));
+const AsesorOutbound     = lazy(() => import('./pages/asesor/AsesorOutbound'));
 // W4.14 — Buyer Coach + Investment Simulator
 const Simulador = lazy(() => import('./pages/public/Simulador'));
 // W4.17 — Notifications Settings
@@ -67,18 +67,18 @@ const Inteligencia      = lazy(() => import('./pages/Inteligencia'));
 const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
 // Advisor portal
-const AsesorDashboard   = lazy(() => import('./pages/advisor/AsesorDashboard'));
-const AsesorContactos   = lazy(() => import('./pages/advisor/AsesorContactos'));
-const AsesorBusquedas   = lazy(() => import('./pages/advisor/AsesorBusquedas'));
-const AsesorCaptaciones = lazy(() => import('./pages/advisor/AsesorCaptaciones'));
-const AsesorTareas      = lazy(() => import('./pages/advisor/AsesorTareas'));
-const AsesorOperaciones = lazy(() => import('./pages/advisor/AsesorOperaciones'));
-const AsesorComisiones  = lazy(() => import('./pages/advisor/AsesorComisiones'));
-const AsesorRanking     = lazy(() => import('./pages/advisor/AsesorRanking'));
-const StudioDashboard   = lazy(() => import('./pages/advisor/StudioDashboard'));
-const AsesorBriefings   = lazy(() => import('./pages/advisor/AsesorBriefings'));
-const AsesorCitas       = lazy(() => import('./pages/advisor/AsesorCitas'));
-const AsesorLeadsDev    = lazy(() => import('./pages/advisor/AsesorLeadsDev'));
+const AsesorDashboard   = lazy(() => import('./pages/asesor/AsesorDashboard'));
+const AsesorContactos   = lazy(() => import('./pages/asesor/AsesorContactos'));
+const AsesorBusquedas   = lazy(() => import('./pages/asesor/AsesorBusquedas'));
+const AsesorCaptaciones = lazy(() => import('./pages/asesor/AsesorCaptaciones'));
+const AsesorTareas      = lazy(() => import('./pages/asesor/AsesorTareas'));
+const AsesorOperaciones = lazy(() => import('./pages/asesor/AsesorOperaciones'));
+const AsesorComisiones  = lazy(() => import('./pages/asesor/AsesorComisiones'));
+const AsesorRanking     = lazy(() => import('./pages/asesor/AsesorRanking'));
+const StudioDashboard   = lazy(() => import('./pages/asesor/StudioDashboard'));
+const AsesorBriefings   = lazy(() => import('./pages/asesor/AsesorBriefings'));
+const AsesorCitas       = lazy(() => import('./pages/asesor/AsesorCitas'));
+const AsesorLeadsDev    = lazy(() => import('./pages/asesor/AsesorLeadsDev'));
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
@@ -261,7 +261,7 @@ const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoPro
 const LinksTrackingPage          = lazy(() => import('./pages/asesor/LinksTracking'));
 
 // Phase 4 Batch 15 — Multi-broker Calendar
-const CalendarSettings           = lazy(() => import('./pages/advisor/CalendarSettings'));
+const CalendarSettings           = lazy(() => import('./pages/asesor/CalendarSettings'));
 const CitasPolicies              = lazy(() => import('./pages/developer/CitasPolicies'));
 const AutoAssignments            = lazy(() => import('./pages/developer/AutoAssignments'));
 
