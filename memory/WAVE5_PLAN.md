@@ -71,35 +71,34 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 
 ### 1.4 Orden sugerido próximos batches
 
-1. **W5.ASR.0** cleanup (5-7h Claude Code)
-2. W5.6 Scenario Storyteller (~25h)
-4. W5.4 Buyer Score STUB (~25h)
-5. W5.ASR.1 WhatsApp QR STUB (40-50h)
-6. W5.ASR.2 Pipeline 7+2 (35-45h)
-7. W5.ASR.3 Smart Lists + reportes (20-30h)
-8. W5.ASR.4 CMA + microsite (30-40h)
-9. W5.ASR.5 Lead capture STUB (25-35h)
-10. W5.8 Construction Quality Index (~25h)
-11. W5.11 Entity Resolution + Governance (~30h)
-12. W5.12 Knowledge Graph (~35h)
-13. W5.5 Live Pulse STUB (~25h)
-14. W5.9 Climate Migration STUB (~25h)
-15. W5.15 FSD + Accuracy (~25h)
-16. W5.17 Virtual staging (8h)
-17. W5.19 Probability UX (6h)
-18. W5.23 Dev Battle Card (12h)
-19. W5.16 Marketing distribution MCP (~10h)
-20. W5.10 Social/Ads STUB (233h)
-21. W5.20-21 Insights Layer (41h)
-22. W5.22+ Phase Z Studio Marketing (224h)
+1. **W5.6** Scenario Storyteller (~25h) ← próximo
+2. W5.4 Buyer Score STUB (~25h)
+3. W5.ASR.1 WhatsApp QR STUB (40-50h)
+4. W5.ASR.2 Pipeline 7+2 (35-45h)
+5. W5.ASR.3 Smart Lists + reportes (20-30h)
+6. W5.ASR.4 CMA + microsite (30-40h)
+7. W5.ASR.5 Lead capture STUB (25-35h)
+8. W5.8 Construction Quality Index (~25h)
+9. W5.11 Entity Resolution + Governance (~30h)
+10. W5.12 Knowledge Graph (~35h)
+11. W5.5 Live Pulse STUB (~25h)
+12. W5.9 Climate Migration STUB (~25h)
+13. W5.15 FSD + Accuracy (~25h)
+14. W5.17 Virtual staging (8h)
+15. W5.19 Probability UX (6h)
+16. W5.23 Dev Battle Card (12h)
+17. W5.16 Marketing distribution MCP (~10h)
+18. W5.10 Social/Ads STUB (233h)
+19. W5.20-21 Insights Layer (41h)
+20. W5.22+ Phase Z Studio Marketing (224h)
 
 ### 1.5 Total W5
 
 | Bloque | Horas |
 |---|---|
-| Shipped | 87 (W5.1 + W5.2 + W5.3 completo) |
+| Shipped | 92 (W5.1 + W5.2 + W5.3 + W5.ASR.0) |
 | En proceso | 0 |
-| Restante | ~527-591 |
+| Restante | ~522-586 |
 | **Total W5 ajustado** | **~625-689** |
 
 Buildables AHORA (sin bloqueo): **22 de 26 batches** · solo W5.18 Dubai realmente diferido.
