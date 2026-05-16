@@ -266,6 +266,254 @@ async def list_all_scores(
     return [doc async for doc in cursor]
 
 
+# ─── W5.2 — Sub-scores desagregados (lifestyle, seguridad, transporte,
+#            amenidades, precio, vibe) ─────────────────────────────────────────
+
+SUBSCORE_KEYS = ("lifestyle", "seguridad", "transporte", "amenidades", "precio", "vibe")
+
+SUBSCORE_LABELS_ES = {
+    "lifestyle":  "Lifestyle",
+    "seguridad":  "Seguridad",
+    "transporte": "Transporte",
+    "amenidades": "Amenidades",
+    "precio":     "Precio / m²",
+    "vibe":       "Vibe urbano",
+}
+
+SUBSCORE_DEFINITIONS_ES = {
+    "lifestyle":  "Calidad de vida diaria: parques, gastronomía, cultura.",
+    "seguridad":  "Incidencia delictiva normalizada y percepción ciudadana.",
+    "transporte": "Cercanía a Metro, Metrobús y conectividad vial.",
+    "amenidades": "Densidad comercial y servicios DENUE en 1 km.",
+    "precio":     "Plusvalía esperada y costo / m² competitivo.",
+    "vibe":       "Carácter cultural y atractivo de barrio.",
+}
+
+# Mapping desde el seed COLONIAS_BY_ID (keys antiguas) a las 6 sub-scores oficiales.
+# Decisión conservadora: cuando el seed no tiene la clave nueva, usamos el proxy
+# definido aquí para no devolver fallback 50 sobre toda la base.
+SEED_KEY_MAPPING = {
+    "lifestyle":  "vida",
+    "seguridad":  "seguridad",
+    "transporte": "movilidad",
+    "amenidades": "comercio",
+    "precio":     "plusvalia",
+    "vibe":       "educacion",
+}
+
+
+def _narrative_es(label: str, value: Optional[float]) -> str:
+    if value is None:
+        return f"{label}: sin datos suficientes"
+    v = float(value)
+    if v >= 75:
+        return f"{label} alto"
+    if v >= 60:
+        return f"{label} medio"
+    return f"{label} bajo"
+
+
+def _extract_subscores_from_doc(doc: Dict[str, Any]) -> Dict[str, Optional[float]]:
+    """Buscar los 6 sub-scores en un doc de zone_scores o en un seed colonia.
+
+    Orden de prioridad por clave:
+      1. `score_{key}` (ej. score_lifestyle) ← canónico (brochure_renderer)
+      2. `{key}` directo en root ← fallback brochure
+      3. `subscores.{key}` ← formato W5.2 si llega a persistirse así
+      4. `scores.{seed_mapping}` ← mock seed COLONIAS_BY_ID
+    """
+    out: Dict[str, Optional[float]] = {}
+    subscores_obj = doc.get("subscores") or {}
+    seed_scores = doc.get("scores") or {}
+    for key in SUBSCORE_KEYS:
+        val = (
+            doc.get(f"score_{key}")
+            or doc.get(key)
+            or subscores_obj.get(key)
+            or seed_scores.get(SEED_KEY_MAPPING[key])
+        )
+        try:
+            out[key] = float(val) if val is not None else None
+        except (TypeError, ValueError):
+            out[key] = None
+    return out
+
+
+async def get_zone_with_subscores(db, slug: str) -> Dict[str, Any]:
+    """W5.2 Sub-A — devolver zone + 6 sub-scores + narratives.
+
+    Estructura:
+      {
+        slug, name, alcaldia, score_total, score_letter,
+        subscores: {lifestyle, seguridad, transporte, amenidades, precio, vibe},
+        narratives: {<key>: "frase generada"},
+        source: 'zone_scores' | 'seed' | 'fallback'
+      }
+    """
+    # Try zone_scores collection first
+    zs_doc = await db.zone_scores.find_one(
+        {"zone_id": slug},
+        {"_id": 0, "computed_at_dt": 0},
+        sort=[("computed_at_dt", -1)],
+    )
+    source = "fallback"
+    subs: Dict[str, Optional[float]] = {k: None for k in SUBSCORE_KEYS}
+    score_total: Optional[float] = None
+    score_letter: Optional[str] = None
+    name: Optional[str] = None
+    alcaldia: Optional[str] = None
+
+    if zs_doc:
+        score_total = zs_doc.get("score_numeric")
+        score_letter = zs_doc.get("score_letter")
+        name = zs_doc.get("zone_name")
+        extracted = _extract_subscores_from_doc(zs_doc)
+        for k in SUBSCORE_KEYS:
+            if extracted.get(k) is not None:
+                subs[k] = extracted[k]
+                source = "zone_scores"
+
+    # Fallback to seed COLONIAS_BY_ID for missing sub-scores
+    try:
+        from data_seed import COLONIAS_BY_ID
+        seed = COLONIAS_BY_ID.get(slug)
+        if seed:
+            name = name or seed.get("name")
+            alcaldia = seed.get("alcaldia")
+            seed_extracted = _extract_subscores_from_doc(seed)
+            for k in SUBSCORE_KEYS:
+                if subs[k] is None and seed_extracted.get(k) is not None:
+                    subs[k] = seed_extracted[k]
+                    if source == "fallback":
+                        source = "seed"
+    except Exception:
+        pass
+
+    # Build narratives + final fallback 50
+    narratives: Dict[str, str] = {}
+    final_subs: Dict[str, float] = {}
+    for k in SUBSCORE_KEYS:
+        label = SUBSCORE_LABELS_ES[k]
+        val = subs[k]
+        if val is None:
+            final_subs[k] = 50.0
+            narratives[k] = f"{label}: sin datos suficientes"
+        else:
+            final_subs[k] = round(float(val), 2)
+            narratives[k] = _narrative_es(label, val)
+
+    return {
+        "slug": slug,
+        "name": name or slug.replace("-", " ").title(),
+        "alcaldia": alcaldia,
+        "score_total": round(float(score_total), 2) if score_total is not None else None,
+        "score_letter": score_letter,
+        "subscores": final_subs,
+        "narratives": narratives,
+        "labels": SUBSCORE_LABELS_ES,
+        "definitions": SUBSCORE_DEFINITIONS_ES,
+        "source": source,
+        "generated_at": _iso(),
+    }
+
+
+async def list_top_zones_by_subscore(
+    db, subscore: str, limit: int = 20,
+) -> List[Dict[str, Any]]:
+    """W5.2 Sub-A — ordenar colonias por un sub-score específico desc.
+
+    Itera sobre el seed COLONIAS + zone_scores (preferencia DB). Devuelve top N.
+    """
+    if subscore not in SUBSCORE_KEYS:
+        return []
+
+    candidates: Dict[str, Dict[str, Any]] = {}
+
+    # 1) DB zone_scores
+    try:
+        cursor = db.zone_scores.aggregate([
+            {"$sort": {"computed_at_dt": -1}},
+            {"$group": {"_id": "$zone_id", "doc": {"$first": "$$ROOT"}}},
+            {"$replaceRoot": {"newRoot": "$doc"}},
+        ])
+        async for d in cursor:
+            zid = d.get("zone_id")
+            if not zid:
+                continue
+            extracted = _extract_subscores_from_doc(d)
+            val = extracted.get(subscore)
+            if val is not None:
+                candidates[zid] = {
+                    "slug": zid,
+                    "name": d.get("zone_name") or zid,
+                    "score": float(val),
+                    "alcaldia": None,
+                }
+    except Exception as e:
+        log.warning(f"[w5.2] list_top_zones_by_subscore zone_scores error: {e}")
+
+    # 2) Seed fallback (or augment)
+    try:
+        from data_seed import COLONIAS
+        for c in COLONIAS:
+            slug = c.get("id")
+            if not slug:
+                continue
+            seed_extracted = _extract_subscores_from_doc(c)
+            val = seed_extracted.get(subscore)
+            if val is None:
+                continue
+            existing = candidates.get(slug)
+            if not existing:
+                candidates[slug] = {
+                    "slug": slug,
+                    "name": c.get("name"),
+                    "score": float(val),
+                    "alcaldia": c.get("alcaldia"),
+                }
+            else:
+                existing["alcaldia"] = existing.get("alcaldia") or c.get("alcaldia")
+                existing["name"] = existing.get("name") or c.get("name")
+    except Exception as e:
+        log.warning(f"[w5.2] seed COLONIAS load failed: {e}")
+
+    items = sorted(candidates.values(), key=lambda x: -x["score"])
+    return items[:limit]
+
+
+async def list_top_zones_by_avg(
+    db, subscores: List[str], limit: int = 20,
+) -> List[Dict[str, Any]]:
+    """Promedio simple de N sub-scores y ordenar desc."""
+    valid = [s for s in subscores if s in SUBSCORE_KEYS]
+    if not valid:
+        return []
+
+    candidates: Dict[str, Dict[str, Any]] = {}
+    try:
+        from data_seed import COLONIAS
+        for c in COLONIAS:
+            slug = c.get("id")
+            if not slug:
+                continue
+            seed_extracted = _extract_subscores_from_doc(c)
+            vals = [seed_extracted.get(s) for s in valid if seed_extracted.get(s) is not None]
+            if not vals:
+                continue
+            avg = sum(vals) / len(vals)
+            candidates[slug] = {
+                "slug": slug,
+                "name": c.get("name"),
+                "score": round(avg, 2),
+                "alcaldia": c.get("alcaldia"),
+            }
+    except Exception as e:
+        log.warning(f"[w5.2] list_top_zones_by_avg seed failed: {e}")
+
+    items = sorted(candidates.values(), key=lambda x: -x["score"])
+    return items[:limit]
+
+
 async def get_score_history(
     db, zone_id: str, days: int = 90,
 ) -> List[Dict[str, Any]]:

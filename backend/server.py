@@ -602,6 +602,14 @@ app.include_router(avm_public_router)
 from routes.avm_accuracy import router as avm_accuracy_router
 app.include_router(avm_accuracy_router)
 
+# W5.2 — Zone Score público desagregado + SEO landings temáticas
+from routes.zones_public import router as zones_public_router
+from routes.seo_themed import router as seo_themed_router
+app.include_router(zones_public_router)
+app.include_router(seo_themed_router)
+logging.info("[w5.2] zones-public router mounted")
+logging.info("[w5.2] seo-themed router mounted")
+
 # W4.18.3 — Private Beta Gate (invite codes + waitlist)
 from routes.private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode

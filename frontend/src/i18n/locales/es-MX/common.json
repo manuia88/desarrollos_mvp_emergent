@@ -2286,5 +2286,53 @@
     "search": "Buscar en la plataforma",
     "main_nav": "Navegación principal",
     "portal_header": "Encabezado del portal"
+  },
+  "zones_w52": {
+    "subscores_title": "Sub-scores de la zona",
+    "subscores_lead": "¿Cómo se vive en {{name}}?",
+    "labels": {
+      "lifestyle": "Lifestyle",
+      "seguridad": "Seguridad",
+      "transporte": "Transporte",
+      "amenidades": "Amenidades",
+      "precio": "Precio / m²",
+      "vibe": "Vibe urbano"
+    },
+    "definitions": {
+      "lifestyle": "Calidad de vida diaria: parques, gastronomía, cultura.",
+      "seguridad": "Incidencia delictiva normalizada y percepción ciudadana.",
+      "transporte": "Cercanía a Metro, Metrobús y conectividad vial.",
+      "amenidades": "Densidad comercial y servicios DENUE en 1 km.",
+      "precio": "Plusvalía esperada y costo / m² competitivo.",
+      "vibe": "Carácter cultural y atractivo de barrio."
+    },
+    "filter_panel": {
+      "section_title": "Por dimensión zona",
+      "title": "Filtrar por sub-scores",
+      "apply": "Aplicar filtros",
+      "clear": "Limpiar",
+      "any": "cualquiera",
+      "min": "≥{{value}}"
+    },
+    "narratives": {
+      "high": "{{label}} alto",
+      "mid": "{{label}} medio",
+      "low": "{{label}} bajo",
+      "no_data": "{{label}}: sin datos suficientes"
+    },
+    "fallback_note": "Algunos sub-scores muestran valores por defecto (50) por falta de datos suficientes."
+  },
+  "seo_themed": {
+    "breadcrumb_root": "DesarrollosMX",
+    "breadcrumb_section": "CDMX",
+    "methodology_title": "Metodología",
+    "methodology_body": "El ranking combina sub-scores de DesarrollosMX (Lifestyle · Seguridad · Transporte · Amenidades · Precio · Vibe) calculados con datos auditables.",
+    "methodology_link": "Ver metodología completa",
+    "cta_title": "¿Quieres profundizar?",
+    "cta_body": "Habla con un asesor DesarrollosMX y recibe el análisis completo de tu colonia preferida.",
+    "cta_button": "Habla con asesor DMX",
+    "not_found_title": "Página no encontrada",
+    "not_found_body": "El tema solicitado no existe.",
+    "back_to_marketplace": "Volver al marketplace"
   }
 }

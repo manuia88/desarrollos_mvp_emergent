@@ -6,7 +6,7 @@ Backward-compat: same URLs, same response shape.
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
@@ -261,6 +261,7 @@ async def generate_property_briefing(prop_id: str, request: Request):
 # ─── Developments ──────────────────────────────────────────────────────────────
 @router.get("/api/developments")
 async def list_developments(
+    request: Request,
     colonia: Optional[List[str]] = Query(None),
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
@@ -274,6 +275,7 @@ async def list_developments(
     featured: Optional[bool] = None,
     sort: Optional[str] = "recent",
     limit: int = 100,
+    subscore_min: Optional[str] = Query(None, description="W5.2 — JSON encoded ej. {\"seguridad\":85}"),
 ):
     results = list(DEVELOPMENTS)
     if colonia:
@@ -300,6 +302,36 @@ async def list_developments(
         results = [d for d in results if aset.issubset(set(d.get("amenities", [])))]
     if featured is not None:
         results = [d for d in results if d["featured"] == featured]
+
+    # W5.2 Sub-C — Filter by zone sub-scores
+    if subscore_min:
+        try:
+            import json as _json
+            thresholds = _json.loads(subscore_min)
+            if isinstance(thresholds, dict) and thresholds:
+                from zone_score_engine import get_zone_with_subscores, SUBSCORE_KEYS
+                valid_thresholds = {
+                    k: float(v) for k, v in thresholds.items()
+                    if k in SUBSCORE_KEYS
+                }
+                if valid_thresholds:
+                    db = request.app.state.db
+                    zone_cache: Dict[str, Dict[str, Any]] = {}
+                    needed_zones = {d.get("colonia_id") for d in results}
+                    for z in needed_zones:
+                        if z and z not in zone_cache:
+                            zone_cache[z] = await get_zone_with_subscores(db, z)
+                    filtered: List[Dict[str, Any]] = []
+                    for d in results:
+                        z_doc = zone_cache.get(d.get("colonia_id")) or {}
+                        subs = z_doc.get("subscores") or {}
+                        if all((subs.get(k) or 0) >= thr for k, thr in valid_thresholds.items()):
+                            filtered.append(d)
+                    results = filtered
+        except (ValueError, TypeError):
+            # JSON inválido → ignorar filtro (backward-compat)
+            pass
+
     if sort == "price_asc":
         results.sort(key=lambda d: d["price_from"])
     elif sort == "price_desc":
