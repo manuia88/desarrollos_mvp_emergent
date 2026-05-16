@@ -1,8 +1,63 @@
 # DMX Data Sources Map (canonical)
 
-**Última actualización**: 2026-05-07 (post-análisis Teseo expansion)
+**Última actualización**: 2026-05-16 (W6.13 External Sources Activation · 3 tracks ingesta documentados)
 
-Mapa exhaustivo de fuentes de información que DMX consume o consumirá. Estado per fuente + URL exacta + token requerido + Wave/batch que la usa.
+Mapa exhaustivo de fuentes de información que DMX consume o consumirá. Estado per fuente + URL exacta + token requerido + Wave/batch que la usa + **tipo de ingesta**.
+
+## Tipos de ingesta soportados (W6.13)
+
+| Tipo | Cómo opera | Effort |
+|---|---|---|
+| 🟢 **API live** | Auto-pull cron · sin intervención | Alta automatización |
+| 🟡 **Cron download** | URL fija · descarga + parse periódica CSV/Excel/GeoJSON | Semi-auto |
+| 🟠 **Upload manual** | Founder/admin sube CSV/Excel/PDF en `/superadmin/data-uploads` · valida schema · audit log | Manual pero escalable |
+| 🔴 **Partnership only** | Requiere acuerdo bilateral · no público | Bloqueado |
+
+## W6.13 fuentes pendientes activar (post-W5 build · 3 tracks paralelos)
+
+### Track A · API auto-pull (~12-15h)
+
+| Fuente | Tipo | Auth | Datos |
+|---|---|---|---|
+| INEGI DENUE | 🟢 API | `INEGI_TOKEN` ya tenemos | Empresas SCIAN + lat/lng + empleados |
+| BANXICO SIE | 🟢 API | Token gratis | INPC construcción + tasas + USDMXN |
+| DataMéxico SE federal | 🟢 API | Sin auth | Macro económico |
+| CONAVI subsidios | 🟢 API | Sin auth | Subsidios + crecimiento vivienda |
+| SESNSP delitos | 🟢 CSV mensual | Sin auth | Crimen real por municipio |
+| CENAPRED Atlas Riesgos | 🟢 GeoJSON estático | Sin auth | Sísmico + hidrometeorológico |
+
+### Track B · Cron download CSV/Excel/PDF periódicos (~10-15h)
+
+| Fuente | Tipo | Frecuencia | Datos |
+|---|---|---|---|
+| SEP Estadística 911 | 🟡 CSV/Excel | Anual | Escuelas individuales nacional |
+| INEGI Censo ITER | 🟡 CSV | Quinquenal + updates | Demografía por AGEB |
+| IMSS asegurados | 🟡 Excel mensual | Mensual | Empleo formal por municipio |
+| CNBV Portafolio | 🟡 XLS/CSV | Mensual | Cartera hipotecaria |
+| ENVIPE INEGI | 🟡 CSV | Anual | Percepción seguridad |
+| Atlas Riesgo CDMX | 🟡 GeoJSON | Anual | Riesgo sísmico/hundimiento por colonia |
+
+### Track C · Upload manual admin (~10-15h)
+
+| Fuente | Tipo | Frecuencia | Datos |
+|---|---|---|---|
+| Notarías CDMX gremio (CNNyM) | 🟠 PDF | Anual | Estadísticas agregadas transacciones |
+| Registro Público Propiedad CDMX | 🟠 PDF boletín | Anual/trimestral | Volumen operaciones (sin precio individual) |
+| Catastro Miguel Hidalgo + Cuauhtémoc | 🟠 Open data + boletines | Variable | Granularidad predial limitada |
+| SHF reportes trimestrales | 🟠 PDF financiero | Trimestral | Índice precios + crédito hipotecario |
+| BMV FIBRAS REITs | 🟠 PDF financials | Trimestral | Benchmark cap rates renta |
+| CFE cobertura/tarifas | 🟠 PDF reportes | Anual | Cobertura energía |
+| CONAGUA cobertura agua | 🟠 Excel sectorial | Anual | Cobertura agua/drenaje municipal |
+| CMIC sector construcción | 🟠 Scraping/boletines | Variable | Capex sector + proyectos cartera |
+
+**Implementación Track C**: `routes/admin_data_uploads.py` + `pages/superadmin/SuperadminDataUploads.js` · drag-drop UI · valida schema por fuente · taggea con `source_name + period + uploaded_at + uploaded_by` · audit log inmutable.
+
+### 🔴 Partnership-only (Y2 piloto · NO scrappable)
+
+| Fuente | Razón bloqueador |
+|---|---|
+| Notarías individuales (no gremio) | Privacidad fuerte · requiere acuerdo bilateral 1-2 notarías piloto |
+| RPP CDMX consulta individual | Per-folio paid · NO bulk |
 
 ---
 

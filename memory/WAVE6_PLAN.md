@@ -20,12 +20,32 @@
 
 ---
 
-## 2 · Batches movidos de W5 (recomendación Claude · founder pendiente confirmar)
+## 2 · Batches movidos de W5 (confirmados founder 2026-05-16)
 
 | # | Tema | Horas | Por qué |
 |---|---|---|---|
-| **W6.MOV.1** | W5.13 Integrations expand (Schools SEP API + más) | ~20 | W5 sobrecargado (~700h) · W5.13 no es bloqueador asesor |
-| **W6.MOV.2** | W5.16 Marketing distribution (MCP) | ~10 | Idem · puede consumir W5.ASR.* outputs |
+| **W6.MOV.1** | W5.7 SOC franquicia (reemplaza Mortgage simulator) | 20 | Founder compró pero no urgente para asesor MVP |
+| **W6.MOV.2** | W5.13 → W6.13 External Sources Activation (3 tracks: API + cron + manual upload) | **32-45** | Scope expandido · ver §2.1 detalle |
+| **W6.MOV.3** | W5.14 Reviews residentes (sentimiento + ranking) | 25 | Alimenta W5.2 sub-score · post-asesor MVP |
+| **W6.MOV.4** | W5.16 Marketing distribution (MCP) | ~10 | Candidato mover · puede consumir W5.ASR.* outputs |
+
+### 2.1 W6.13 External Sources Activation · sub-spec detallado
+
+**Tracks paralelos**:
+
+| Track | Qué construye | Fuentes que activa | Horas |
+|---|---|---|---|
+| **A · API auto-pull** | Cron live API integrations | INEGI DENUE · BANXICO SIE · DataMéxico SE · CONAVI · SESNSP delitos · CENAPRED Atlas Riesgos | 12-15 |
+| **B · Cron download parsers** | Scripts cron descargan CSV/Excel · parsean · ingestan a colecciones | SEP Estadística 911 · INEGI Censo ITER · IMSS asegurados · CNBV Portafolio · ENVIPE seguridad · Atlas Riesgo CDMX | 10-15 |
+| **C · Admin Upload UI** | Página `/superadmin/data-uploads` · drag-drop · valida schema · audit log fuente+fecha | Notarías CNNyM (PDF anual) · RPP CDMX (PDF trim) · Catastros Miguel Hidalgo/Cuauhtémoc · SHF reportes trim · BMV FIBRAS · CFE/CONAGUA cobertura · cualquier fuente PDF/Excel manual | 10-15 |
+
+**Por qué 3 tracks · no solo API**:
+- Muchas fuentes gov MX NO tienen API (Notarías · Catastros · BMV)
+- Pero SÍ publican CSV/Excel/PDF periódicos descargables
+- Admin Upload UI permite a founder/admin subir manualmente
+- Adds defensibility (competidores no se molestan en hacer esto)
+
+**Ver `memory/DATA_SOURCES.md` para detalle por fuente con tipo de ingesta**.
 
 ---
 
@@ -40,14 +60,14 @@
 
 ---
 
-## 4 · Roadmap W6 (estimado)
+## 4 · Roadmap W6 (estimado · post-moves 2026-05-16)
 
 | Bloque | Horas |
 |---|---|
-| W6.AS.1-3 derivados redesign | 60-80 |
-| W6.MOV.1-2 movidos de W5 | ~30 |
+| W6.AS.1-3 derivados redesign asesor | 60-80 |
+| W6.MOV.1-4 movidos de W5 (5.7 + 5.13 + 5.14 + 5.16 candidato) | 87-100 |
 | W6 originales sketch (a reconstruir) | ~227 |
-| **Total W6 estimado** | **~317-337h** |
+| **Total W6 estimado** | **~374-407h** |
 
 ---
 

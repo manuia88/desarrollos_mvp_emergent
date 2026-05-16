@@ -34,21 +34,21 @@
 
 | # | Tema | Horas | Notas |
 |---|---|---|---|
-| **W5.1** | AVM ML (Hedonic público) | ~25-35 | **🚀 INICIA AHORA** · no depende Meta · `hedonic_regression_engine.py` existe (242L) · swap heurístico→real en `avm_public_engine.py` + extend público + ML productionization |
-| **W5.2** | Zone Score desagregado (subscores escuelas/seguridad/etc) | ~30 | Pendiente |
-| **W5.3** | Forecast multi-horizonte (precio proyectado 6/12/24m) | ~30 | Pendiente |
+| **W5.1** | AVM ML productionization (Hedonic público) | ~26 | ✅ **SHIPPED 2026-05-16** · emergent preview · pendiente push GitHub · 5 sub-chunks completos (retrain cron · dashboard superadmin · widget+SEO landing · explainability · cache+golden) |
+| **W5.2** | Zone Score desagregado (subscores escuelas/seguridad/etc) | ~15-20 | Sub-scores YA existen en `zone_scores` collection · trabajo real = exponer + UI + filter + SEO |
+| **W5.3** | Forecast multi-horizonte (precio proyectado 6/12/24m) | ~30 | Pendiente · consume W5.1 |
 | **W5.4** | Buyer Score | ~25 | Bloqueado Apify $49/mo |
 | **W5.5** | Live Pulse | ~25 | Bloqueado Apify |
 | **W5.6** | Scenario Storyteller (IA narrativa) | ~25 | Pendiente |
-| **W5.7** | SOC franquicia (reemplaza Mortgage simulator) | ~20 | Founder compró |
+| ~~**W5.7**~~ | ~~SOC franquicia~~ → **W6** | 20 | **MOVIDO W6** · founder compró pero no urgente para asesor MVP |
 | **W5.8** | Construction Quality Index (score calidad obra) | ~25 | Pendiente |
 | **W5.9** | Climate Migration | ~25 | Bloqueado Apify |
-| **W5.10** | Social/Ads Multi-tenant + Analytics + IA Layer | **233** | Scope cerrado · ver `BACKLOG_ENHANCEMENTS.md` L367 |
+| **W5.10** | Social/Ads Multi-tenant + Analytics + IA Layer | **233** | Scope cerrado · ver `BACKLOG_ENHANCEMENTS.md` L367 · bloqueado Meta App Review |
 | **W5.11** | Entity Resolution + Governance | ~30 | Dedupe + audit |
 | **W5.12** | Knowledge Graph completo | ~35 | Índice canónico |
-| **W5.13** | Integrations expand (Schools SEP API + más) | ~20 | Candidato mover W6 |
-| **W5.14** | Reviews residentes | ~25 | Sentimiento + ranking |
-| **W5.15** | FSD + Accuracy dashboard | ~25 | Full-self-deploy + métricas modelos |
+| ~~**W5.13**~~ | ~~Integrations expand~~ → **W6** | 32-45 | **MOVIDO W6** · scope expandido (API + cron + manual upload · 3 tracks) |
+| ~~**W5.14**~~ | ~~Reviews residentes~~ → **W6** | 25 | **MOVIDO W6** · alimenta W5.2 sub-score sentimiento |
+| **W5.15** | FSD + Accuracy dashboard | ~25 | Full-self-deploy + métricas modelos · revisar solapamiento con W5.1 Sub-B |
 | **W5.16** | Marketing distribution (MCP) | ~10 | Candidato mover W6 |
 | **W5.17** | Virtual staging IA | 8 | Bundle con video |
 | **W5.18** | Dubai full (Phase 11) | 38 | Expansión H2 · i18n AR + multi-currency MXN/AED/USD |
@@ -57,7 +57,7 @@
 | **W5.22+** | Phase Z DMX Studio Marketing | **224** | Scope cerrado · ver `BACKLOG_ENHANCEMENTS.md` L526 |
 | **W5.23** | Dev Battle Card | 12 | Reasignado de W5.10 (resolución conflicto numbering 2026-05-13) |
 
-**Subtotal originales W5**: ~542h (per `WAVE_PROGRESS.md` encabezado pre-redesign)
+**Subtotal originales W5 (post-moves)**: ~465-475h (542h - 20 SOC - 32-45 Integrations - 25 Reviews movidos a W6)
 
 ### 1.3 Nuevos batches asesor redesign (insertados con prioridad)
 
@@ -71,16 +71,16 @@
 
 **Subtotal asesor**: 155-207h
 
-### 1.4 Total W5 actualizado
+### 1.4 Total W5 actualizado (post-moves 2026-05-16)
 
 | Bloque | Horas |
 |---|---|
 | W5.ASR.0 cleanup | 5-7 |
 | W5.ASR.1-5 redesign asesor | 155-207 |
-| W5 originales (22 batches) | ~542 |
-| **Total W5 bruto** | **~702-756h** |
-| Mover W5.13 + W5.16 a W6 (recomendación) | -30 |
-| **Total W5 ajustado** | **~672-726h** |
+| W5 originales post-moves (19 batches · removed 5.7+5.13+5.14) | ~465-475 |
+| **Total W5 ajustado** | **~625-689h** |
+| W5.1 shipped ✅ | -26 |
+| **W5 restante** | **~600-663h** |
 
 ---
 
@@ -88,11 +88,12 @@
 
 | # | Decisión | Resolución |
 |---|---|---|
-| 1 | ¿Cuál batch primero? | **Founder validó orden actual · arranca W5.1 AVM ML** (no depende Meta · paralelo a trámite) |
-| 2 | ¿Mover W5.13 + W5.16 a W6? | Recomendación Claude · founder pendiente confirmar |
+| 1 | ¿Cuál batch primero? | ✅ W5.1 AVM ML SHIPPED 2026-05-16 emergent preview |
+| 2 | ¿Mover W5.7 + W5.13 + W5.14 a W6? | ✅ Confirmado founder 2026-05-16 · movidos |
 | 3 | ¿Phase Z (224h) sigue en W5? | Sí (W5.22+ ya en plan) |
-| 4 | ¿Cuándo Meta App Review? | Día 0 W5 (paralelo · founder ops) |
-| 5 | ¿Cuándo upgrade Apify $49/mo? | Antes de W5.4 (cuando arranque) |
+| 4 | ¿Cuándo Meta App Review? | ✅ Iniciado founder ops 2026-05-16 · ETA 2-4 sem |
+| 5 | ¿Cuándo upgrade Apify $49/mo? | ✅ Diferido hasta completar build (founder 2026-05-16) |
+| 6 | Próximo batch post-W5.1 | Pendiente decidir · candidatos W5.2 (no bloqueado · ~15-20h) o W5.6 Scenario Storyteller |
 
 ---
 

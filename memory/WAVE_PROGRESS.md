@@ -1,14 +1,15 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-16 (W5 integrado: 22 originales + 6 ASR redesign asesor · pipeline 7+2 · z-index tokens · cross-portal impact · W5.1 AVM ML arranca)
+**Última actualización**: 2026-05-16 (W5.1 AVM ML ✅ SHIPPED emergent preview · W5.7+W5.13+W5.14 movidos a W6 · pendiente push GitHub)
 **Total H1 restante**: ~146.5h (Wave 4 pending de los 495h totales · W4.18.2 32h ✅ shipped · 8h Private Beta Gate pending)
-**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h = 715.5h shipped en H1
+**Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h + Wave 5 🟡 26h (W5.1) = 741.5h shipped
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1
-**Wave 5 H2**: ~672-726h total (542h originales + 155-207h asesor redesign + 5-7h cleanup) · plan canónico `memory/WAVE5_PLAN.md` · arranca W5.1 AVM ML 2026-05-16
-**Wave 6 H2/H3**: ~317-337h (60-80h derivados redesign + ~30h movidos W5 + ~227h originales sketch) · skeleton `memory/WAVE6_PLAN.md`
+**Wave 5 H2**: ~625-689h post-moves (W5.7+5.13+5.14 a W6) · W5.1 ✅ 26h shipped · restante ~600-663h · plan `memory/WAVE5_PLAN.md`
+**Wave 6 H2/H3**: ~374-407h (60-80h derivados redesign asesor + 87-100h movidos W5 + ~227h originales sketch) · `memory/WAVE6_PLAN.md`
 **Wave 7**: ~115-123h + originales TBD · skeleton `memory/WAVE7_PLAN.md`
-**Operativo**: Apify FREE plan (W4.18.1) en STUB MODE · founder decision: upgrade STARTER $49/mo cuando active W5.4/5.5/5.9
-**Trámite paralelo**: Meta App Review (Facebook Business Verification + WhatsApp QR + FB Lead Ads) · iniciar día 0 W5 · ETA 2-4 sem · bloquea W5.ASR.1+5
+**Operativo**: Apify FREE STUB · founder decision 2026-05-16: upgrade $49/mo DIFERIDO hasta completar build W5
+**Trámite paralelo**: ✅ Meta App Review INICIADO founder ops 2026-05-16 · ETA 2-4 sem · bloquea W5.10 + W5.ASR.1+5
+**Próximo batch candidato**: W5.2 Zone Score desagregado (~15-20h · sub-scores ya existen) o W5.6 Scenario Storyteller (~25h)
 
 Este doc se actualiza después de cada batch shipped. Estado siempre refleja último push a main.
 
@@ -227,6 +228,7 @@ Formato canónico per-batch (founder request):
 | 2026-05-09 | **W4.4D Phase Y.1D — What-if Simulator** | 6h | `a85d7d9` (merge `eace9e4`) | 4 escenarios price/promo/delay/mix + Director 6th tool + MCP 9th tool + WhatIfPanel UI |
 | 2026-05-09 | **W4.4C Phase Y.1C — MCP Exposure Director** | 4h | `e2d9aa7` (merge `d4a162a`) | 3 nuevas tools MCP (director_chat/retrieve_memory/session_summary) · 8 tools total · cross-tenant safety |
 | 2026-05-09 | **W4.4B Phase Y.1B — Director Memory Layer RAG** | 8h | `17eaa3d` (merge `87ef728`) | DirectorMemoryEngine + retrieve_memory tool + auto-inject T2+ + cron daily/weekly + TEXT index español |
+| 2026-05-16 | **W5.1 AVM ML productionization (Hedonic público)** | 26h | emergent preview (pending push GitHub) | 5 sub-chunks: retrain cron nocturno 03:00 UTC + auto-promote >5pp ΔR² · dashboard superadmin `/superadmin/avm-accuracy` (43 zonas · 3 promovidas · cache LRU hit_rate 14.29%) · widget público `/widgets/avm/:slug` iframe-ready dark/light · landing SEO `/valor/:slug` con JSON-LD · explainability stacked bar 4 features · cache LRU 512 entries TTL 1h · golden dataset 20 props CDMX MAPE 19.56% within_10=4 within_20=7 |
 | 2026-05-09 | **W4.4A Phase Y.1A — Director Agent core** | 10h | `de46500` (merge `b3cf110`) | DirectorAgent + 4 tools internas + simulation mode + tier caps + chat panel UI |
 | 2026-05-09 | **W4.3 Phase Y.0 Foundation + Behavioral Tracking** | 16h | `2498e8e` (merge `d63e4f0`) | Master switch + 9 tiers + behavioral_tracking_engine LFPDPPP-compliant |
 | 2026-05-07 | **Wave 1 CERRADA** — W1.6 Polish + push consolidado | 4h | TBD | E2E pytest 23 endpoints · audit limpio · founder test guide · PRD/ROADMAP closure |

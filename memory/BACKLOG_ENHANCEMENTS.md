@@ -8,6 +8,18 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### W5.1 ext · Botón "Compartir tasación" en `/valor/:slug` + OG-image dinámica + tracking embeds (origen: emergent W5.1 potential improvement · 2026-05-16)
+
+**Qué**: añadir botón "Compartir tasación" en `/valor/:slug` landing SEO. Genera OG-image dinámica (precio + colonia) vía Vercel OG o Cloudinary cuando se comparte. Endpoint tracking `/api/avm-public/embed-track` registra cuándo/dónde se embeben widgets externos. Dashboard superadmin muestra dominios embebedores (medios + blogs + prensa).
+
+**Por qué**: convierte cada landing/widget en viral funnel hacia DMX. Datos ROI directos de SEO/PR (qué medios embeben · qué tráfico generan). Alineado con wedge competitivo W4.18.2 "Mapa Cerebro Espacial" viral mechanism.
+
+**Por qué diferir (no W5.1 ahora)**: sin tráfico real, OG tracking no informa. Necesita launch público + prensa outreach primero. Mejor timing: con W5.16 marketing distribution o W5.20-21 Insights Layer (post-launch público).
+
+**Destino**: enhancement W5.1 activate cuando W5.16 o W5.20-21 arranquen · 4-6h emergent.
+
+**Activar cuando**: launch público brokers + prensa outreach activa.
+
 ### Superadmin · Renombrar "Tenants" + explicaciones contextuales en cada tab/card (origen: founder navegación localhost · 2026-05-14)
 
 **Gap detectado**: founder navegando descubrió que:
