@@ -230,6 +230,8 @@ const InvestorYieldWidget            = lazy(() => import('./pages/public/widgets
 const AvmWidgetPage                  = lazy(() => import('./pages/widgets/AvmWidgetPage'));
 const ValorColonia                   = lazy(() => import('./pages/public/ValorColonia'));
 const SuperadminAvmAccuracy          = lazy(() => import('./pages/superadmin/SuperadminAvmAccuracy'));
+// W5.3 Parte 2A — Forecast Accuracy dashboard
+const SuperadminForecastAccuracy     = lazy(() => import('./pages/superadmin/SuperadminForecastAccuracy'));
 // W5.2 — Zone Score desagregado · SEO themed landings
 const SeoThemedLanding               = lazy(() => import('./pages/public/SeoThemedLanding'));
 
@@ -696,6 +698,7 @@ function AppRouter() {
       <Route path="/widgets/avm/:slug" element={<AvmWidgetPage />} />
       <Route path="/valor/:slug" element={<ValorColonia />} />
       <Route path="/superadmin/avm-accuracy" element={<AdvisorRoute Page={SuperadminAvmAccuracy} />} />
+      <Route path="/superadmin/forecast-accuracy" element={<AdvisorRoute Page={SuperadminForecastAccuracy} />} />
       <Route path="/prensa" element={<PrensaPage />} />
       {/* W3.8 — Cross-sell Intelligence */}
       <Route path="/superadmin/partners" element={<AdvisorRoute Page={SuperadminPartners} />} />

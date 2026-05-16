@@ -342,13 +342,8 @@ def _extract_subscores_from_doc(doc: Dict[str, Any]) -> Dict[str, Optional[float
 async def get_zone_with_subscores(db, slug: str) -> Dict[str, Any]:
     """W5.2 Sub-A — devolver zone + 6 sub-scores + narratives.
 
-    Estructura:
-      {
-        slug, name, alcaldia, score_total, score_letter,
-        subscores: {lifestyle, seguridad, transporte, amenidades, precio, vibe},
-        narratives: {<key>: "frase generada"},
-        source: 'zone_scores' | 'seed' | 'fallback'
-      }
+    W5.3 Parte 2A — Prioriza `zone_scores[slug].subscores_real` (computado por
+    cron de engines reales) sobre la fallback chain de seed.
     """
     # Try zone_scores collection first
     zs_doc = await db.zone_scores.find_one(
@@ -358,10 +353,28 @@ async def get_zone_with_subscores(db, slug: str) -> Dict[str, Any]:
     )
     source = "fallback"
     subs: Dict[str, Optional[float]] = {k: None for k in SUBSCORE_KEYS}
+    per_key_source: Dict[str, str] = {}
+    per_key_computed_at: Dict[str, Optional[str]] = {}
     score_total: Optional[float] = None
     score_letter: Optional[str] = None
     name: Optional[str] = None
     alcaldia: Optional[str] = None
+
+    # ── W5.3 Parte 2A — Prioridad: subscores_real ────────────────────────────
+    real = (zs_doc or {}).get("subscores_real") or {}
+    if real:
+        for k in SUBSCORE_KEYS:
+            entry = real.get(k) or {}
+            val = entry.get("value")
+            src = entry.get("source")
+            if val is not None and src and src != "stub":
+                try:
+                    subs[k] = float(val)
+                    per_key_source[k] = src
+                    per_key_computed_at[k] = entry.get("computed_at")
+                    source = "real"
+                except (TypeError, ValueError):
+                    pass
 
     if zs_doc:
         score_total = zs_doc.get("score_numeric")
@@ -369,9 +382,11 @@ async def get_zone_with_subscores(db, slug: str) -> Dict[str, Any]:
         name = zs_doc.get("zone_name")
         extracted = _extract_subscores_from_doc(zs_doc)
         for k in SUBSCORE_KEYS:
-            if extracted.get(k) is not None:
+            if subs[k] is None and extracted.get(k) is not None:
                 subs[k] = extracted[k]
-                source = "zone_scores"
+                per_key_source[k] = "zone_scores_legacy"
+                if source == "fallback":
+                    source = "zone_scores"
 
     # Fallback to seed COLONIAS_BY_ID for missing sub-scores
     try:
@@ -384,6 +399,7 @@ async def get_zone_with_subscores(db, slug: str) -> Dict[str, Any]:
             for k in SUBSCORE_KEYS:
                 if subs[k] is None and seed_extracted.get(k) is not None:
                     subs[k] = seed_extracted[k]
+                    per_key_source[k] = "seed"
                     if source == "fallback":
                         source = "seed"
     except Exception:
@@ -392,15 +408,22 @@ async def get_zone_with_subscores(db, slug: str) -> Dict[str, Any]:
     # Build narratives + final fallback 50
     narratives: Dict[str, str] = {}
     final_subs: Dict[str, float] = {}
+    final_meta: Dict[str, Dict[str, Any]] = {}
     for k in SUBSCORE_KEYS:
         label = SUBSCORE_LABELS_ES[k]
         val = subs[k]
         if val is None:
             final_subs[k] = 50.0
             narratives[k] = f"{label}: sin datos suficientes"
+            final_meta[k] = {"value": 50.0, "source": "stub", "computed_at": None}
         else:
             final_subs[k] = round(float(val), 2)
             narratives[k] = _narrative_es(label, val)
+            final_meta[k] = {
+                "value": round(float(val), 2),
+                "source": per_key_source.get(k, "unknown"),
+                "computed_at": per_key_computed_at.get(k),
+            }
 
     return {
         "slug": slug,
@@ -409,6 +432,7 @@ async def get_zone_with_subscores(db, slug: str) -> Dict[str, Any]:
         "score_total": round(float(score_total), 2) if score_total is not None else None,
         "score_letter": score_letter,
         "subscores": final_subs,
+        "subscores_meta": final_meta,
         "narratives": narratives,
         "labels": SUBSCORE_LABELS_ES,
         "definitions": SUBSCORE_DEFINITIONS_ES,
