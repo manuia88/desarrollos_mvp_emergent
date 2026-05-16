@@ -35,7 +35,7 @@
 | # | Tema | Horas | Notas |
 |---|---|---|---|
 | **W5.1** | AVM ML productionization (Hedonic público) | ~26 | ✅ **SHIPPED 2026-05-16** · merge `318b93a` + `8f52419` · build OK · 5 sub-chunks completos + AVM Accuracy en nav superadmin |
-| **W5.2** | Zone Score desagregado (subscores escuelas/seguridad/etc) | ~15-20 | Sub-scores YA existen en `zone_scores` collection · trabajo real = exponer + UI + filter + SEO |
+| **W5.2** | Zone Score desagregado (subscores) | 17 real | ✅ **SHIPPED 2026-05-16** · merge `e36fb9f` (origen `081d4b3`) · 4 sub-chunks: helper + 2 endpoints zones-public + ZoneSubscoresCard + filtro `subscore_min` en /api/developments + 6 SEO landings `/cdmx/{theme}` + sitemap +6 entries · build 19.74s |
 | **W5.3** | Forecast multi-horizonte (precio proyectado 6/12/24m) | ~30 | Pendiente · consume W5.1 |
 | **W5.4** | Buyer Score | ~25 | Bloqueado Apify $49/mo |
 | **W5.5** | Live Pulse | ~25 | Bloqueado Apify |
