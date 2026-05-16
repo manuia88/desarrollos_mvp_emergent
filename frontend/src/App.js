@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { UndoProvider } from './components/shared/UndoSnackbar';
-import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate, useParams as useReactRouterParams } from 'react-router-dom';
 import { PresentationModeProvider } from './hooks/usePresentationMode';
 import SkipToContent from './components/a11y/SkipToContent';
 import TourLauncher from './components/onboarding/TourLauncher';
@@ -230,6 +230,8 @@ const InvestorYieldWidget            = lazy(() => import('./pages/public/widgets
 const AvmWidgetPage                  = lazy(() => import('./pages/widgets/AvmWidgetPage'));
 const ValorColonia                   = lazy(() => import('./pages/public/ValorColonia'));
 const SuperadminAvmAccuracy          = lazy(() => import('./pages/superadmin/SuperadminAvmAccuracy'));
+// W5.2 — Zone Score desagregado · SEO themed landings
+const SeoThemedLanding               = lazy(() => import('./pages/public/SeoThemedLanding'));
 
 // Superadmin
 const SuperadminDashboard        = lazy(() => import('./pages/superadmin/SuperadminDashboard'));
@@ -443,6 +445,20 @@ function AuthCallback() {
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
+
+// W5.2 — Dispatcher para /cdmx/:slug: SEO themed (top-*) o intent landing
+const SEO_THEMED_KEYS = new Set([
+  'top-seguras', 'top-familias', 'top-movilidad',
+  'top-vibe', 'mejor-precio-calidad', 'top-amenidades',
+]);
+function CdmxSlugDispatcher() {
+  const { intent } = useReactRouterParams();
+  if (intent && SEO_THEMED_KEYS.has(intent)) {
+    return <SeoThemedLanding />;
+  }
+  return <IntentLandingPage />;
+}
+
 function AppRouter() {
   const location = useLocation();
 
@@ -668,7 +684,7 @@ function AppRouter() {
       <Route path="/zona/:slug" element={<ZonePage />} />
       {/* W4.2D3 — Programmatic SEO alcaldía + intent landings */}
       <Route path="/alcaldia/:slug" element={<AlcaldiaPage />} />
-      <Route path="/cdmx/:intent" element={<IntentLandingPage />} />
+      <Route path="/cdmx/:intent" element={<CdmxSlugDispatcher />} />
       {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
       <Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={SuperadminLandingLeads} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}

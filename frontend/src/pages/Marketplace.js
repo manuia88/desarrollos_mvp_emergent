@@ -14,6 +14,7 @@ import UrlSearchModal from '../components/marketplace/UrlSearchModal';
 import SaveSearchModal from '../components/marketplace/SaveSearchModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 import BuyerCoachWidget from '../components/buyer_coach/BuyerCoachWidget';
+import SubscoreFilterPanel from '../components/zones/SubscoreFilterPanel';
 import { Camera, ExternalLink, Bell, Sparkle, BarChart } from '../components/icons';
 import { Link } from 'react-router-dom';
 import { fetchColonias, fetchDevelopments, aiSearchParse } from '../api/marketplace';
@@ -49,6 +50,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
   const [quizOpen, setQuizOpen] = useState(false);
   const navigate = useNavigate();
 
+  // W5.2 Sub-C — Subscore filters (zone dimensions)
+  const [subscoreMin, setSubscoreMin] = useState({});
+
   // Mapbox refs
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
@@ -62,6 +66,19 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       // Exclude colonia array (handled by coloniaFilter above)
       const { colonia: _ignored, ...restFilters } = urlFilters;
       if (Object.keys(restFilters).length > 0) setFilters(prev => ({ ...prev, ...restFilters }));
+    }
+    // W5.2 Sub-C — Hydrate subscore_min from URL
+    const sp = new URLSearchParams(window.location.search);
+    const raw = sp.get('subscore_min');
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') setSubscoreMin(parsed);
+      } catch {/* noop */}
+    }
+    const filterBy = sp.get('filter-by');
+    if (filterBy && ['seguridad','lifestyle','transporte','amenidades','precio','vibe'].includes(filterBy)) {
+      setSubscoreMin(prev => ({ ...prev, [filterBy]: 85 }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -79,17 +96,34 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   useEffect(() => {
     setLoading(true);
+    const hasActiveSubscores = Object.keys(subscoreMin).length > 0;
     const merged = {
       ...filters,
       ...(aiFilters || {}),
       ...(coloniaFilter ? { colonia: coloniaFilter } : {}),
+      ...(hasActiveSubscores ? { subscore_min: JSON.stringify(subscoreMin) } : {}),
       sort,
     };
     fetchDevelopments(merged).then(list => {
       setDevelopments(list);
       setLoading(false);
     }).catch(() => { setDevelopments([]); setLoading(false); });
-  }, [filters, aiFilters, sort, coloniaFilter]);
+  }, [filters, aiFilters, sort, coloniaFilter, subscoreMin]);
+
+  // W5.2 Sub-C — Sync subscore_min to URL
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (Object.keys(subscoreMin).length > 0) {
+      sp.set('subscore_min', JSON.stringify(subscoreMin));
+    } else {
+      sp.delete('subscore_min');
+    }
+    const qs = sp.toString();
+    const newUrl = `/marketplace${qs ? '?' + qs : ''}`;
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [subscoreMin]);
 
   const onAIQuery = async (query) => {
     setAiLoading(true);
@@ -379,29 +413,41 @@ export default function Marketplace({ user, onLogin, onLogout }) {
               {resultsText}
             </div>
 
-            {loading ? (
-              <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
-            ) : developments.length === 0 ? (
-              <div data-testid="mkp-empty" style={{
-                padding: 60, textAlign: 'center',
-                background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)',
-                borderRadius: 16, fontFamily: 'DM Sans', color: 'var(--cream-2)',
-              }}>
-                {t('marketplace_v2.empty')}
-              </div>
-            ) : (
-              <div className="dev-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: 20,
-              }}>
-                {developments.map((d, i) => (
-                  <div key={d.id} data-testid="development-card">
-                    <DevelopmentCard dev={d} index={i} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 280px) 1fr', gap: 24, alignItems: 'flex-start' }}>
+              <aside data-testid="marketplace-sidebar" style={{ position: 'sticky', top: 130 }}>
+                <SubscoreFilterPanel
+                  value={subscoreMin}
+                  onApply={(v) => setSubscoreMin(v)}
+                  onClear={() => setSubscoreMin({})}
+                  compact={false}
+                />
+              </aside>
+              <div>
+                {loading ? (
+                  <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans' }}>…</div>
+                ) : developments.length === 0 ? (
+                  <div data-testid="mkp-empty" style={{
+                    padding: 60, textAlign: 'center',
+                    background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)',
+                    borderRadius: 16, fontFamily: 'DM Sans', color: 'var(--cream-2)',
+                  }}>
+                    {t('marketplace_v2.empty')}
                   </div>
-                ))}
+                ) : (
+                  <div className="dev-grid" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 20,
+                  }}>
+                    {developments.map((d, i) => (
+                      <div key={d.id} data-testid="development-card">
+                        <DevelopmentCard dev={d} index={i} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </section>
         )}
 

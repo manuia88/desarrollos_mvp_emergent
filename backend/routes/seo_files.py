@@ -89,6 +89,13 @@ async def serve_sitemap(request: Request):
     # Base static URLs
     entries = list(_SITEMAP_URLS)
 
+    # W5.2 — SEO themed landings
+    try:
+        from routes.seo_themed import all_theme_paths
+        entries.extend(all_theme_paths())
+    except Exception:
+        pass
+
     # Dynamic combos from MongoDB (if request.app.state.db available)
     try:
         db = request.app.state.db

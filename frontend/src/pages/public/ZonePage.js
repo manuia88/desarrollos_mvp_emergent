@@ -10,6 +10,7 @@ import Navbar from '../../components/landing/Navbar';
 import CtaFooter from '../../components/landing/CtaFooter';
 import ZoneStructuredData, { buildFaqs } from '../../components/seo/ZoneStructuredData';
 import LandingLeadCaptureForm from '../../components/seo/LandingLeadCaptureForm';
+import ZoneSubscoresCard from '../../components/zones/ZoneSubscoresCard';
 import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -153,6 +154,7 @@ export default function ZonePage() {
   const { slug } = useParams();
   const { user } = useAuth();
   const [zone, setZone] = useState(null);
+  const [subscoresData, setSubscoresData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -161,6 +163,7 @@ export default function ZonePage() {
     setLoading(true);
     setError(null);
     setZone(null);
+    setSubscoresData(null);
 
     fetch(`${API}/api/public/landing/colonia/${slug}`)
       .then(async r => {
@@ -187,6 +190,12 @@ export default function ZonePage() {
           setLoading(false);
         }
       });
+
+    // W5.2 Sub-B — Fetch sub-scores desagregados (no bloquea render principal)
+    fetch(`${API}/api/zones-public/${slug}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled && d) setSubscoresData(d); })
+      .catch(() => {});
 
     return () => { cancelled = true; };
   }, [slug]);
@@ -529,6 +538,10 @@ export default function ZonePage() {
             />
           </div>
         </section>
+
+        {/* W5.2 Sub-B — Sub-scores desagregados */}
+        {subscoresData && <ZoneSubscoresCard data={subscoresData} />}
+
 
         {/* Section 2 — Top 3 IE Scores */}
         {top3.length > 0 && (
