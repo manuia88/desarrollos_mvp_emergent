@@ -319,6 +319,26 @@ backend/routes/
 
 ## 🟢 MEDIA PRIORIDAD (Phase específica)
 
+### W5.3 P2B gap · Forecast enrichment en lead_nurture_engine stalled-recovery (origen: W5.3 P2B audit · 2026-05-16)
+
+**Qué**: W5.3 P2B implementó "DATO DE MERCADO" prepend en `ai_suggestions._build_context` (argumentarios directos) PERO `lead_nurture_engine.py` también genera argumentarios en sequence stalled-recovery (4 touches con argumentario · 0h, 48h, 168h, 336h) y NO recibió el enrichment.
+
+**Score honest 4/10**: stalled-recovery es flow de bajo volumen vs argumentarios directos · gap menor. Cuando se active al volumen, vale la pena.
+
+**Costo**: ~3h (replicar pattern `_build_context` en lead_nurture_engine).
+
+**Activar cuando**: hay volumen real en stalled-recovery sequences (post-launch público asesor).
+
+### W5.3 ext · Widget público Forecast embebible (origen: emergent W5.3 P2B potential improvement · 2026-05-16)
+
+**Qué**: widget público `/widgets/forecast/:slug` iframe-ready (similar a AVM widget W5.1) para que asesores/blogs/prensa lo embeben + tracking dominios externos.
+
+**Score honest 5/10**: es 1:1 igual al "Compartir tasación" descartado para W5.1 ext · sin tráfico real el tracking no informa.
+
+**Costo**: ~4-6h.
+
+**Activar cuando**: launch público + prensa outreach activa (mismo trigger que W5.1 "Compartir tasación").
+
 ### W5.3 P2A ext · Poblar DENUE + SESNSP para activar 4 sub-scores reales (origen: W5.3 Parte 2A edge case · 2026-05-16)
 
 **Re-evaluación honesta 2026-05-16**: arquitectura ya existe (W5.3 P2A construyó `zone_subscores_compute.py` con 6 algoritmos reales) · 4 de 6 sub-scores caen a stub 50 por falta de data (DENUE + SESNSP no cargados). Antes lo califiqué 9/10 inflando "más data = mejor". Honest score = **5/10**: no bloquea release · no mueve aguja revenue/adquisición hoy · user no distingue stub vs real sin tráfico · importa cuando haya prensa real para defender cifras.
