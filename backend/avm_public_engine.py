@@ -65,12 +65,40 @@ async def avm_quick_async(
     recamaras: int,
     banos: int,
     antiguedad_anos: int,
+    *,
+    skip_cache: bool = False,
+    with_explain: bool = False,
 ) -> Dict[str, Any]:
     """Async path that prefers hedonic_regression_engine real model.
-    Falls back to heuristic if the model is not available."""
+    Falls back to heuristic if the model is not available.
+
+    W5.1 — added LRU cache + opt-in explainability breakdown.
+    """
     col = _colonia_record(colonia_slug)
     if not col:
         return {"error": "colonia_not_found", "colonia_slug": colonia_slug}
+
+    # ── Cache lookup (W5.1 Sub-E) ───────────────────────────────────────────
+    if not skip_cache:
+        try:
+            import avm_cache
+            cached = await avm_cache.get(colonia_slug, m2, recamaras, banos, antiguedad_anos)
+            if cached is not None:
+                out = dict(cached)
+                out["cache_hit"] = True
+                if with_explain and "explain" not in out:
+                    try:
+                        from avm_explain_engine import explain_for_avm_response
+                        out["explain"] = await explain_for_avm_response(
+                            db, out,
+                            {"m2": m2, "recamaras": recamaras, "banos": banos, "antiguedad_anos": antiguedad_anos},
+                            base_pm2=col.get("price_m2_num"),
+                        )
+                    except Exception:
+                        pass
+                return out
+        except Exception:
+            pass
 
     base_per_m2 = col.get("price_m2_num") or 50000
     rec_factor = 1.0 + (recamaras - 2) * 0.04
@@ -158,11 +186,33 @@ async def avm_quick_async(
     except Exception as exc:
         log.warning(f"[avm] hedonic_predict error · fallback heuristic · {exc}")
 
-    return _avm_response(
+    response = _avm_response(
         colonia_slug, col, m2, recamaras, banos, antiguedad_anos,
         estimate, adj_pm2, range_low, range_high, confidence,
         pricing_model, r_squared, model_id,
     )
+    response["cache_hit"] = False
+
+    # ── Cache store (W5.1 Sub-E) ────────────────────────────────────────────
+    try:
+        import avm_cache
+        await avm_cache.set(colonia_slug, m2, recamaras, banos, antiguedad_anos, response)
+    except Exception:
+        pass
+
+    # ── Explainability (W5.1 Sub-D) opt-in ──────────────────────────────────
+    if with_explain:
+        try:
+            from avm_explain_engine import explain_for_avm_response
+            response["explain"] = await explain_for_avm_response(
+                db, response,
+                {"m2": m2, "recamaras": recamaras, "banos": banos, "antiguedad_anos": antiguedad_anos},
+                base_pm2=col.get("price_m2_num"),
+            )
+        except Exception as exc:
+            log.warning(f"[avm] explain failed: {exc}")
+
+    return response
 
 
 def _avm_response(

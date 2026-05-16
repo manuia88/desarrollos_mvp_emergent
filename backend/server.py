@@ -598,6 +598,10 @@ app.include_router(maps_cross_router)
 from routes.avm_public import router as avm_public_router
 app.include_router(avm_public_router)
 
+# W5.1 — AVM accuracy superadmin dashboard
+from routes.avm_accuracy import router as avm_accuracy_router
+app.include_router(avm_accuracy_router)
+
 # W4.18.3 — Private Beta Gate (invite codes + waitlist)
 from routes.private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
@@ -1434,6 +1438,15 @@ async def startup():
                 register_f02_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[f02] scheduler register failed: {e}")
+
+        # W5.1 — AVM nightly retrain cron (03:00 UTC)
+        try:
+            from avm_retrain_cron import register_retrain_job, ensure_indexes as _avm_retrain_indexes
+            await _avm_retrain_indexes(db)
+            if sched:
+                register_retrain_job(sched, db)
+        except Exception as e:
+            logging.warning(f"[w5.1] avm retrain scheduler register failed: {e}")
     except Exception as e:
         logging.warning(f"[batch20] setup failed: {e}")
 
