@@ -526,6 +526,13 @@ async def move_lead_column(lead_id: str, payload: KanbanMovePayload, request: Re
     if payload.target_status == "cerrado_perdido" and not old.get("lost_reason"):
         raise HTTPException(422, "Para mover a cerrado_perdido actualiza primero el lost_reason")
 
+    # W5.ASR.0 Chunk 3 — Guard crítico: visita_realizada requiere outcome
+    if payload.target_status == "visita_realizada" and not old.get("visit_outcome"):
+        raise HTTPException(
+            422,
+            "Para mover a visita_realizada registra primero visit_outcome (interes/no/follow-up)",
+        )
+
     # days in previous column
     try:
         prev_ts = datetime.fromisoformat(old.get("last_activity_at") or old.get("created_at"))

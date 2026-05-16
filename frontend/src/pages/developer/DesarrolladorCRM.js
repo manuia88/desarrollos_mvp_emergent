@@ -108,6 +108,26 @@ function KanbanTab({ projectId, onToast }) {
     const fromCol = e.dataTransfer.getData('text/from-col');
     if (!leadId || fromCol === colKey) return;
     const target = COL_TO_DEFAULT_STATUS[colKey];
+    // W5.ASR.0 Chunk 3 — visita_realizada requiere outcome
+    if (target === 'visita_realizada') {
+      const outcome = window.prompt('Resultado de la visita: interes / no / follow-up');
+      if (!outcome) {
+        onToast({ kind: 'error', text: 'Operación cancelada · outcome requerido' });
+        return;
+      }
+      try {
+        const r = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/leads/${leadId}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visit_outcome: outcome }),
+        });
+        if (!r.ok) throw new Error('No se pudo registrar visit_outcome');
+      } catch (e3) {
+        onToast({ kind: 'error', text: e3.message || 'Error registrando outcome' });
+        return;
+      }
+    }
     try {
       await api.moveLeadColumn(leadId, target);
       onToast({ kind: 'success', text: `Lead movido a "${target}"` });

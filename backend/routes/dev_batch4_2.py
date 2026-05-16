@@ -439,6 +439,13 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
     if payload.target_status == "cerrado_perdido" and not lead.get("lost_reason"):
         raise HTTPException(422, "Para mover a cerrado_perdido actualiza primero el lost_reason")
 
+    # W5.ASR.0 Chunk 3 — Guard crítico: visita_realizada requiere outcome
+    if payload.target_status == "visita_realizada" and not lead.get("visit_outcome"):
+        raise HTTPException(
+            422,
+            "Para mover a visita_realizada registra primero visit_outcome (interes/no/follow-up)",
+        )
+
     try:
         prev_ts = datetime.fromisoformat(lead.get("last_activity_at") or lead.get("created_at"))
         days_in_prev = max(0, (_now() - prev_ts).days)
