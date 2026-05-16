@@ -286,6 +286,35 @@ async def simulate(
                 "optimista": base * 1.5,
             }
 
+    # W5.3 Parte 2B Sub-C — Override rates con forecast real si está disponible.
+    # Anualizamos delta_pct_12m (ya es % anual proxy) y aplicamos low95/value/high95
+    # del horizonte 12m para conservador/base/optimista.
+    forecast_used = False
+    try:
+        from forecast_engine import get_zone_forecast
+        zf = await get_zone_forecast(db, colonia_slug)
+        if zf and zf.get("horizons"):
+            band = (zf["horizons"] or {}).get("12m") or {}
+            baseline = float(zf.get("baseline_index") or 0)
+            if band and baseline > 0:
+                # delta = (value - baseline) / baseline; aplicamos a 12 meses → tasa anual.
+                value = float(band.get("value") or baseline)
+                low95 = float(band.get("low95") or baseline)
+                high95 = float(band.get("high95") or baseline)
+                # Tasas anualizadas (cap conservador a 0; cap optimista a 0.20 para
+                # evitar ROIs absurdos cuando CI95 12m está muy abierto).
+                base_rate = (value - baseline) / baseline
+                low_rate = (low95 - baseline) / baseline
+                high_rate = (high95 - baseline) / baseline
+                rates = {
+                    "conservador": max(0.0, min(low_rate, 0.10)),
+                    "base": max(0.005, min(base_rate, 0.15)),
+                    "optimista": max(0.01, min(high_rate, 0.20)),
+                }
+                forecast_used = True
+    except Exception:
+        pass
+
     rental_yield = RENTAL_YIELDS.get(tier, DEFAULT_RENTAL_YIELD)
 
     # Compute 3 scenarios
@@ -311,6 +340,7 @@ async def simulate(
         "tier_zona": tier,
         "zone_score": zone_score_val,
         "hedonic_pm2": hedonic_pm2,
+        "forecast_used": forecast_used,
         "conservador": conservador,
         "base": base,
         "optimista": optimista,

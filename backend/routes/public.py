@@ -276,6 +276,7 @@ async def list_developments(
     sort: Optional[str] = "recent",
     limit: int = 100,
     subscore_min: Optional[str] = Query(None, description="W5.2 — JSON encoded ej. {\"seguridad\":85}"),
+    forecast_delta_min: Optional[int] = Query(None, description="W5.3 P2B — % mínimo crecimiento 12m"),
 ):
     results = list(DEVELOPMENTS)
     if colonia:
@@ -330,6 +331,25 @@ async def list_developments(
                     results = filtered
         except (ValueError, TypeError):
             # JSON inválido → ignorar filtro (backward-compat)
+            pass
+
+    # W5.3 Parte 2B Sub-E — Filter by zone forecast delta 12m
+    if forecast_delta_min is not None and forecast_delta_min > 0:
+        try:
+            db = request.app.state.db
+            threshold = float(forecast_delta_min)
+            needed = {d.get("colonia_id") for d in results}
+            cursor = db.zone_forecasts.find(
+                {"zone_slug": {"$in": list(needed)}, "available": True},
+                {"_id": 0, "zone_slug": 1, "horizons.12m.delta_pct": 1},
+            )
+            allowed: set = set()
+            async for fc in cursor:
+                d12 = (((fc.get("horizons") or {}).get("12m") or {}).get("delta_pct"))
+                if d12 is not None and float(d12) >= threshold:
+                    allowed.add(fc.get("zone_slug"))
+            results = [d for d in results if d.get("colonia_id") in allowed]
+        except Exception:
             pass
 
     if sort == "price_asc":

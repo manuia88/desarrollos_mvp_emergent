@@ -52,6 +52,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
 
   // W5.2 Sub-C — Subscore filters (zone dimensions)
   const [subscoreMin, setSubscoreMin] = useState({});
+  // W5.3 Parte 2B Sub-E — Forecast 12m growth minimum filter
+  const [forecastDeltaMin, setForecastDeltaMin] = useState(0);
 
   // Mapbox refs
   const mapContainer = useRef(null);
@@ -80,6 +82,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     if (filterBy && ['seguridad','lifestyle','transporte','amenidades','precio','vibe'].includes(filterBy)) {
       setSubscoreMin(prev => ({ ...prev, [filterBy]: 85 }));
     }
+    // W5.3 Parte 2B Sub-E — Hydrate forecast_delta_min
+    const fdm = parseInt(sp.get('forecast_delta_min') || '0', 10);
+    if (!Number.isNaN(fdm) && fdm > 0) setForecastDeltaMin(fdm);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -102,15 +107,16 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       ...(aiFilters || {}),
       ...(coloniaFilter ? { colonia: coloniaFilter } : {}),
       ...(hasActiveSubscores ? { subscore_min: JSON.stringify(subscoreMin) } : {}),
+      ...(forecastDeltaMin > 0 ? { forecast_delta_min: forecastDeltaMin } : {}),
       sort,
     };
     fetchDevelopments(merged).then(list => {
       setDevelopments(list);
       setLoading(false);
     }).catch(() => { setDevelopments([]); setLoading(false); });
-  }, [filters, aiFilters, sort, coloniaFilter, subscoreMin]);
+  }, [filters, aiFilters, sort, coloniaFilter, subscoreMin, forecastDeltaMin]);
 
-  // W5.2 Sub-C — Sync subscore_min to URL
+  // W5.2/W5.3 — Sync subscore_min + forecast_delta_min to URL
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     if (Object.keys(subscoreMin).length > 0) {
@@ -118,12 +124,17 @@ export default function Marketplace({ user, onLogin, onLogout }) {
     } else {
       sp.delete('subscore_min');
     }
+    if (forecastDeltaMin > 0) {
+      sp.set('forecast_delta_min', String(forecastDeltaMin));
+    } else {
+      sp.delete('forecast_delta_min');
+    }
     const qs = sp.toString();
     const newUrl = `/marketplace${qs ? '?' + qs : ''}`;
     if (window.location.pathname + window.location.search !== newUrl) {
       window.history.replaceState(null, '', newUrl);
     }
-  }, [subscoreMin]);
+  }, [subscoreMin, forecastDeltaMin]);
 
   const onAIQuery = async (query) => {
     setAiLoading(true);
@@ -420,6 +431,8 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                   onApply={(v) => setSubscoreMin(v)}
                   onClear={() => setSubscoreMin({})}
                   compact={false}
+                  forecastValue={forecastDeltaMin}
+                  onForecastChange={(v) => setForecastDeltaMin(Number(v) || 0)}
                 />
               </aside>
               <div>

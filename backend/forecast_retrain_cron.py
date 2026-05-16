@@ -48,18 +48,35 @@ async def retrain_all_zones(db) -> Dict[str, Any]:
     insufficient = 0
     errors = 0
     samples: List[Dict[str, Any]] = []
+    notifications_sent = 0
 
     for zone_slug in zones:
         try:
             res = await fit_zone_forecast(db, zone_slug)
             if res.get("available"):
                 fitted_ok += 1
+                delta_12m = (res.get("horizons") or {}).get("12m", {}).get("delta_pct")
                 samples.append({
                     "zone_slug": zone_slug,
                     "arima_order": res.get("arima_order"),
                     "mape_test": res.get("mape_test"),
-                    "delta_12m_pct": (res.get("horizons") or {}).get("12m", {}).get("delta_pct"),
+                    "delta_12m_pct": delta_12m,
                 })
+                # W5.3 Parte 2B Sub-C — Forecast trend alert
+                try:
+                    if delta_12m is not None:
+                        from notifications_engine import rule_forecast_trend_alert
+                        try:
+                            from data_seed import COLONIAS_BY_ID
+                            zone_name = (COLONIAS_BY_ID.get(zone_slug) or {}).get("name", zone_slug)
+                        except Exception:
+                            zone_name = zone_slug
+                        sent = await rule_forecast_trend_alert(
+                            db, zone_slug, zone_name, float(delta_12m),
+                        )
+                        notifications_sent += sent
+                except Exception as e:
+                    log.warning(f"[forecast] notif alert fail {zone_slug}: {e}")
             else:
                 insufficient += 1
         except Exception as e:
@@ -84,6 +101,7 @@ async def retrain_all_zones(db) -> Dict[str, Any]:
         "fitted_ok": fitted_ok,
         "insufficient": insufficient,
         "errors": errors,
+        "notifications_sent": notifications_sent,
         "samples": samples[:50],
     }
     try:
