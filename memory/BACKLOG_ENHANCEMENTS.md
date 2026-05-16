@@ -8,6 +8,27 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### W5.3 P2A ext · Poblar DENUE + SESNSP para activar 4 sub-scores reales (origen: emergent W5.3 Parte 2A edge case · 2026-05-16)
+
+**Qué**: W5.3 Parte 2A construyó `zone_subscores_compute.py` con 6 algoritmos REALES pero solo 2 de 6 sub-scores son reales hoy:
+- ✅ **transporte** = seed_proxy `COLONIAS_BY_ID.scores.movilidad` (proxy aceptable)
+- ✅ **precio** = DRPI relativo (real)
+- ❌ **lifestyle / amenidades / vibe** = stub 50 (DENUE `denue_zone_density` no poblado)
+- ❌ **seguridad** = stub 50 (`crime_data_engine.aggregate_crime_zone` existe pero sin datos SESNSP cargados)
+
+**Por qué activar**: hoy ZoneSubscoresCard + SEO landings + AVM downstream + Atlax respuestas con 4 de 6 sub-scores = 50 fijo. Sin esto, valor visible de W5.2/W5.3 es 33% del prometido.
+
+**Cómo**:
+1. **DENUE ingest** (~3h): cron mensual descarga DENUE CSV oficial (INEGI) · ingesta a `db.denue_pois` con SCIAN tags · helper `denue_zone_density(slug)` que cuenta POIs <1km del centroid colonia y normaliza 0-100
+2. **SESNSP ingest** (~3h): cron mensual descarga SESNSP CSV "Víctimas y unidades robadas" · ingesta a `db.crime_records` · `crime_data_engine.aggregate_crime_zone` lee de ahí (helper ya existe)
+3. **Re-run cron subscores** (~0h): cron 02:30 UTC ya está · al correr siguiente vez recalcula con datos reales · ningún cambio de código
+
+**Costo**: ~6-8h (2 ingest crons · helpers de mapping POI→colonia · validación con 1 colonia test)
+
+**Destino**: mini-batch **W5.3 P2A.5** intercalado entre W5.3 P2B y W5.4 (alto valor · desbloquea 4 sub-scores reales · sin esto W5.2/W5.3/W5.ASR.4 quedan con error sistemático en 4 de 6 dimensiones).
+
+**Activar cuando**: founder valida que W5.3 P2B no urge primero · este batch destraba precisión real de toda la rama Zone Score.
+
 ### W5.1 ext · Botón "Compartir tasación" en `/valor/:slug` + OG-image dinámica + tracking embeds (origen: emergent W5.1 potential improvement · 2026-05-16)
 
 **Qué**: añadir botón "Compartir tasación" en `/valor/:slug` landing SEO. Genera OG-image dinámica (precio + colonia) vía Vercel OG o Cloudinary cuando se comparte. Endpoint tracking `/api/avm-public/embed-track` registra cuándo/dónde se embeben widgets externos. Dashboard superadmin muestra dominios embebedores (medios + blogs + prensa).
