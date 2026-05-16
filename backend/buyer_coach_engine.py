@@ -436,6 +436,15 @@ async def get_zone_recommendations(db, conversation_id: str) -> List[Dict[str, A
                 narrative_parts.append(
                     f"{z.get('zone_name') or z.get('name') or slug} proyecta {sign}{forecast_pct:.1f}% en 12 meses según ARIMA"
                 )
+
+            # W5.6 Sub-C — narrative_short por zona
+            narrative_short: Optional[str] = None
+            try:
+                from narrative_engine import get_zone_narrative_short
+                narrative_short = await get_zone_narrative_short(db, slug)
+            except Exception:
+                pass
+
             recommendations.append({
                 "zone_id": slug,
                 "name": z.get("zone_name") or z.get("name") or slug,
@@ -443,6 +452,7 @@ async def get_zone_recommendations(db, conversation_id: str) -> List[Dict[str, A
                 "fit_reason": base_reason,
                 "forecast_12m_pct": forecast_pct,
                 "narrative": " · ".join(narrative_parts),
+                "narrative_short": narrative_short,
             })
         return recommendations
     except Exception as exc:
@@ -464,15 +474,29 @@ async def get_zone_recommendations(db, conversation_id: str) -> List[Dict[str, A
                             sign = "+" if d12 >= 0 else ""
                             it["forecast_12m_pct"] = float(d12)
                             it["narrative"] = f"{it['fit_reason']} · {it['name']} proyecta {sign}{d12:.1f}% en 12 meses según ARIMA"
+                            it.setdefault("narrative_short", None)
                             continue
                 except Exception:
                     pass
                 it["forecast_12m_pct"] = None
                 it["narrative"] = it["fit_reason"]
+                it.setdefault("narrative_short", None)
         except Exception:
             for it in fallback:
                 it.setdefault("forecast_12m_pct", None)
                 it.setdefault("narrative", it["fit_reason"])
+                it.setdefault("narrative_short", None)
+
+        # W5.6 Sub-C — narrative_short para fallback
+        try:
+            from narrative_engine import get_zone_narrative_short
+            for it in fallback:
+                try:
+                    it["narrative_short"] = await get_zone_narrative_short(db, it["zone_id"])
+                except Exception:
+                    it["narrative_short"] = None
+        except Exception:
+            pass
         return fallback
 
 

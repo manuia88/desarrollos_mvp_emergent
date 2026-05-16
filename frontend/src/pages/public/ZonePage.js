@@ -12,6 +12,7 @@ import ZoneStructuredData, { buildFaqs } from '../../components/seo/ZoneStructur
 import LandingLeadCaptureForm from '../../components/seo/LandingLeadCaptureForm';
 import ZoneSubscoresCard from '../../components/zones/ZoneSubscoresCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
+import NarrativeBlock from '../../components/landing/NarrativeBlock';
 import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -542,6 +543,11 @@ export default function ZonePage() {
 
         {/* W5.2 Sub-B — Sub-scores desagregados */}
         {subscoresData && <ZoneSubscoresCard data={subscoresData} />}
+
+        {/* W5.6 Sub-A — Narrativa AI para la zona */}
+        <div style={{ marginBottom: 32 }}>
+          <NarrativeBlock entityType="zone" entityId={slug} />
+        </div>
 
         {/* W5.3 Parte 1 — Forecast multi-horizonte para la zona */}
         <ForecastChart mode="zone" slug={slug} />

@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { fetchAvmQuick, fetchAvmWidgetConfig } from '../../api/avm';
+import NarrativeBlock from '../../components/landing/NarrativeBlock';
 
 function fmtMXN(n) {
   if (!n) return '—';
@@ -18,6 +19,7 @@ export default function AvmWidgetPage() {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
   const theme = searchParams.get('theme') === 'light' ? 'light' : 'dark';
+  const showNarrative = searchParams.get('narrative') === 'true';
   const [config, setConfig] = useState(null);
   const [m2, setM2] = useState(80);
   const [recamaras, setRecamaras] = useState(2);
@@ -157,6 +159,26 @@ export default function AvmWidgetPage() {
           >Ver análisis completo →</a>
           <span>Powered by DesarrollosMX</span>
         </div>
+
+        {/* W5.6 Sub-A — Narrative compact (solo si ?narrative=true) */}
+        {showNarrative && (
+          <div
+            data-testid="avm-widget-narrative"
+            style={{
+              marginTop: 12, padding: '10px 12px', borderRadius: 10,
+              background: theme === 'dark' ? 'rgba(99,102,241,0.06)' : 'rgba(99,102,241,0.04)',
+              border: `1px solid ${p.accent_a}33`,
+              fontSize: 11, color: p.fg_muted, lineHeight: 1.6,
+            }}
+          >
+            <NarrativeBlock
+              entityType="zone"
+              entityId={slug}
+              mode="compact"
+              showFooter={false}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

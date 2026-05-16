@@ -2368,5 +2368,17 @@
     "trend_empty": "Backtest necesita ≥6 meses de forecasts históricos. Presiona \"Correr backtest\" para procesar los disponibles.",
     "table_title": "Drift por zona · horizonte {{horizon}}m",
     "table_empty": "Sin zonas con ≥3 muestras todavía. Espera a que el backtest acumule snapshots."
+  },
+  "narrative": {
+    "ai_badge": "NARRATIVA AI · N5",
+    "scenario_badge": "COMPRA AHORA VS ESPERAR · IA",
+    "scenario_section_title": "Compra ahora vs esperar",
+    "scenario_loading": "Analizando escenario de compra…",
+    "scenario_partial": "Analisis parcial · datos de forecast pendientes",
+    "scenario_error": "Analisis multi-escenario no disponible en este momento",
+    "read_more": "Leer mas",
+    "collapse": "Ocultar",
+    "zone_loading": "Generando narrativa AI…",
+    "zone_error": "Narrativa aun no disponible"
   }
 }

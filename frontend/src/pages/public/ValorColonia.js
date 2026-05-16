@@ -10,6 +10,7 @@ import Navbar from '../../components/landing/Navbar';
 import CtaFooter from '../../components/landing/CtaFooter';
 import ExplainabilityCard from '../../components/avm/ExplainabilityCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
+import NarrativeBlock from '../../components/landing/NarrativeBlock';
 import { fetchAvmLanding } from '../../api/avm';
 
 function fmtMXN(n) {
@@ -160,6 +161,18 @@ export default function ValorColonia() {
 
           {/* Explainability */}
           {sample.explain && <ExplainabilityCard explain={sample.explain} />}
+
+          {/* W5.6 Sub-A — Narrativa AI de la zona */}
+          <div style={{ marginTop: 16 }}>
+            <NarrativeBlock entityType="zone" entityId={slug} />
+          </div>
+
+          {/* W5.6 Sub-B — Multi-escenario: compra ahora vs esperar */}
+          <NarrativeBlock
+            entityType="scenario"
+            entityId={slug}
+            paramsObject={{ colonia: slug, m2: 80, rec: 2, ban: 2, age: 8 }}
+          />
 
           {/* W5.3 Parte 1 — Forecast multi-horizonte (vivienda típica) */}
           <ForecastChart
