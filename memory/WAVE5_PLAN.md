@@ -62,7 +62,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.20-21** | Insights Layer Wiki + público | ⬜ | 41h |
 | **W5.22+** | Phase Z DMX Studio Marketing | ⬜ | 224h |
 | **W5.23** | Dev Battle Card | ⬜ | 12h |
-| **W5.ASR.0** | Cleanup pre-batch | ⬜ | 5-7h Claude Code |
+| **W5.ASR.0** | Cleanup pre-batch | ✅ | C1 `f5af028` (z-index 254→tokens) + C2 `ab2cb4f` (advisor→asesor) + C3 `0ad997e` (pipeline guard) — 2026-05-16 |
 | **W5.ASR.1** | WhatsApp QR + Inbox unificado | ⬜ STUB | 40-50h · Baileys local + UI completa · activa OAuth FB cuando approve |
 | **W5.ASR.2** | Pipeline 7+2 etapas hard-rules | ⬜ | 35-45h |
 | **W5.ASR.3** | Smart Lists + reportes asesor + broker | ⬜ | 20-30h · depende ASR.2 |
