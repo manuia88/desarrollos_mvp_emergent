@@ -30,57 +30,80 @@
 |---|---|---|---|
 | **W5.ASR.0** | Cleanup pre-batch:<br>· Z-index design tokens CSS (`--z-base/dropdown/sticky/modal/drawer/toast/tour/tour-tip/modal-critical/a11y`)<br>· Sweep 93 ocurrencias hardcoded → tokens<br>· Merge `frontend/src/pages/advisor/` + `pages/asesor/` (eliminar split)<br>· Fix pipeline guard-rails en `backend/routes/dev_batch4_2.py` (hard-rules antes UI nueva)<br>· Trigger Meta App Review (founder ops paralelo) | 5-7 | Claude Code |
 
-### 1.2 Originales W5 ya documentados (orden founder validado)
+### 1.2 Patrón STUB MODE (founder decision 2026-05-16)
 
-| # | Tema | Horas | Notas |
+Todos los batches "bloqueados" (Meta App Review · Apify upgrade · OAuth pendientes) **SE CONSTRUYEN AHORA en modo STUB**. Arquitectura completa + UI funcional + stubs en lugar de API real. Cuando founder paga/recibe approval, flip env var = activo. Cero rework.
+
+Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49/mo).
+
+### 1.3 Checklist canónico (único · refleja avance real)
+
+| # | Batch | Status | SHA / Notas |
 |---|---|---|---|
-| **W5.1** | AVM ML productionization (Hedonic público) | ~26 | ✅ **SHIPPED 2026-05-16** · merge `318b93a` + `8f52419` · build OK · 5 sub-chunks completos + AVM Accuracy en nav superadmin |
-| **W5.2** | Zone Score desagregado (subscores) | 17 real | ✅ **SHIPPED 2026-05-16** · merge `e36fb9f` (origen `081d4b3`) · 4 sub-chunks: helper + 2 endpoints zones-public + ZoneSubscoresCard + filtro `subscore_min` en /api/developments + 6 SEO landings `/cdmx/{theme}` + sitemap +6 entries · build 19.74s |
-| **W5.3** | Forecast multi-horizonte ARIMA (6/12/24m) · upgrades cross-module full | ~20 P1 + 13 P2A + 9-12 P2B | 🟡 Parte 1 ✅ `5425023` · Parte 2A ✅ `f8834a4` (origen `cd52319` · subscores reales + forecast accuracy dashboard) · Parte 2B pendiente (hooks notif/coach/simulator + Atlax + Plan Venta + marketplace filter) |
-| **W5.4** | Buyer Score | ~25 | Bloqueado Apify $49/mo |
-| **W5.5** | Live Pulse | ~25 | Bloqueado Apify |
-| **W5.6** | Scenario Storyteller (IA narrativa) | ~25 | Pendiente |
-| ~~**W5.7**~~ | ~~SOC franquicia~~ → **W6** | 20 | **MOVIDO W6** · founder compró pero no urgente para asesor MVP |
-| **W5.8** | Construction Quality Index (score calidad obra) | ~25 | Pendiente |
-| **W5.9** | Climate Migration | ~25 | Bloqueado Apify |
-| **W5.10** | Social/Ads Multi-tenant + Analytics + IA Layer | **233** | Scope cerrado · ver `BACKLOG_ENHANCEMENTS.md` L367 · bloqueado Meta App Review |
-| **W5.11** | Entity Resolution + Governance | ~30 | Dedupe + audit |
-| **W5.12** | Knowledge Graph completo | ~35 | Índice canónico |
-| ~~**W5.13**~~ | ~~Integrations expand~~ → **W6** | 32-45 | **MOVIDO W6** · scope expandido (API + cron + manual upload · 3 tracks) |
-| ~~**W5.14**~~ | ~~Reviews residentes~~ → **W6** | 25 | **MOVIDO W6** · alimenta W5.2 sub-score sentimiento |
-| **W5.15** | FSD + Accuracy dashboard | ~25 | Full-self-deploy + métricas modelos · revisar solapamiento con W5.1 Sub-B |
-| **W5.16** | Marketing distribution (MCP) | ~10 | Candidato mover W6 |
-| **W5.17** | Virtual staging IA | 8 | Bundle con video |
-| **W5.18** | Dubai full (Phase 11) | 38 | Expansión H2 · i18n AR + multi-currency MXN/AED/USD |
-| **W5.19** | Probability UX (Kalshi) | 6 | Pendiente |
-| **W5.20-21** | Insights Layer Wiki + Backend público | 41 | Pendiente |
-| **W5.22+** | Phase Z DMX Studio Marketing | **224** | Scope cerrado · ver `BACKLOG_ENHANCEMENTS.md` L526 |
-| **W5.23** | Dev Battle Card | 12 | Reasignado de W5.10 (resolución conflicto numbering 2026-05-13) |
+| **W5.1** | AVM ML productionization | ✅ | `f8834a4`+`8f52419` (26h) |
+| **W5.2** | Zone Score desagregado | ✅ | `e36fb9f` (17h) |
+| **W5.3** | Forecast multi-horizonte ARIMA | 🟡 75% | P1 `5425023` · P2A `f8834a4` · P2B en emergent |
+| **W5.4** | Buyer Score | ⬜ STUB | Apify fallback · ~25h |
+| **W5.5** | Live Pulse | ⬜ STUB | Apify fallback · ~25h |
+| **W5.6** | Scenario Storyteller | ⬜ | ~25h · independiente |
+| ~~**W5.7**~~ | SOC franquicia | ➡️ W6 | Movido founder 2026-05-16 |
+| **W5.8** | Construction Quality Index | ⬜ | ~25h |
+| **W5.9** | Climate Migration | ⬜ STUB | Apify fallback · ~25h |
+| **W5.10** | Social/Ads Multi-tenant + IA | ⬜ STUB | 233h · Meta OAuth stub · activa cuando App Review |
+| **W5.11** | Entity Resolution + Governance | ⬜ | ~30h |
+| **W5.12** | Knowledge Graph completo | ⬜ | ~35h |
+| ~~**W5.13**~~ | Integrations expand | ➡️ W6 | Movido founder 2026-05-16 |
+| ~~**W5.14**~~ | Reviews residentes | ➡️ W6 | Movido founder 2026-05-16 |
+| **W5.15** | FSD + Accuracy dashboard | ⬜ | ~25h · revisar solape W5.1 Sub-B |
+| **W5.16** | Marketing distribution (MCP) | ⬜ | ~10h |
+| **W5.17** | Virtual staging IA | ⬜ | 8h |
+| **W5.18** | Dubai full (Phase 11) | ⏸ | 38h · expansión H2 fase 2 (decisión separada) |
+| **W5.19** | Probability UX (Kalshi) | ⬜ | 6h |
+| **W5.20-21** | Insights Layer Wiki + público | ⬜ | 41h |
+| **W5.22+** | Phase Z DMX Studio Marketing | ⬜ | 224h |
+| **W5.23** | Dev Battle Card | ⬜ | 12h |
+| **W5.ASR.0** | Cleanup pre-batch | ⬜ | 5-7h Claude Code |
+| **W5.ASR.1** | WhatsApp QR + Inbox unificado | ⬜ STUB | 40-50h · Baileys local + UI completa · activa OAuth FB cuando approve |
+| **W5.ASR.2** | Pipeline 7+2 etapas hard-rules | ⬜ | 35-45h |
+| **W5.ASR.3** | Smart Lists + reportes asesor + broker | ⬜ | 20-30h · depende ASR.2 |
+| **W5.ASR.4** | CMA visual + microsite subdomain | ⬜ | 30-40h · consume W5.1 |
+| **W5.ASR.5** | Lead auto-capture | ⬜ STUB | 25-35h · email parser real + FB Lead Ads webhook stub |
 
-**Subtotal originales W5 (post-moves)**: ~465-475h (542h - 20 SOC - 32-45 Integrations - 25 Reviews movidos a W6)
+### 1.4 Orden sugerido próximos batches
 
-### 1.3 Nuevos batches asesor redesign (insertados con prioridad)
+1. W5.3 P2B (en emergent) → cierra W5.3
+2. **W5.ASR.0** cleanup (5-7h Claude Code)
+3. W5.6 Scenario Storyteller (~25h)
+4. W5.4 Buyer Score STUB (~25h)
+5. W5.ASR.1 WhatsApp QR STUB (40-50h)
+6. W5.ASR.2 Pipeline 7+2 (35-45h)
+7. W5.ASR.3 Smart Lists + reportes (20-30h)
+8. W5.ASR.4 CMA + microsite (30-40h)
+9. W5.ASR.5 Lead capture STUB (25-35h)
+10. W5.8 Construction Quality Index (~25h)
+11. W5.11 Entity Resolution + Governance (~30h)
+12. W5.12 Knowledge Graph (~35h)
+13. W5.5 Live Pulse STUB (~25h)
+14. W5.9 Climate Migration STUB (~25h)
+15. W5.15 FSD + Accuracy (~25h)
+16. W5.17 Virtual staging (8h)
+17. W5.19 Probability UX (6h)
+18. W5.23 Dev Battle Card (12h)
+19. W5.16 Marketing distribution MCP (~10h)
+20. W5.10 Social/Ads STUB (233h)
+21. W5.20-21 Insights Layer (41h)
+22. W5.22+ Phase Z Studio Marketing (224h)
 
-| # | Tema | Horas | Sub-spec |
-|---|---|---|---|
-| **W5.ASR.1** | WhatsApp QR + Inbox unificado | 40-50 | WA QR vía Baileys/whatsapp-web.js + OAuth FB page (NO Business API) · IG DM + FB Messenger + email vía Meta Conversations API · inbox sincrónico unificado · DISC analiza msj · Plan Venta IA sugiere respuesta · Trust Score alerta · Smart Match referencias |
-| **W5.ASR.2** | Pipeline 7+2 etapas con hard-rules | 35-45 | **Ver §3 Pipeline detallado** |
-| **W5.ASR.3** | Smart Lists + reportes asesor + broker rollup | 20-30 | Smart Lists tipo FUB con badge counter · reportes operativos asesor/inmobiliaria · cross-asesor manager view |
-| **W5.ASR.4** | CMA visual + share link rich + microsite subdomain | 30-40 | CMA reusa `hedonic_regression_engine` + DRPI + AVM (consume W5.1 output) · share link con OG preview · microsite `{slug}.asesores.desarrollosmx.io` · custom domain → W6 |
-| **W5.ASR.5** | Lead auto-capture (email parser + FB Lead Ads MVP) | 25-35 | Email alias parser Inmuebles24/Lamudi · FB Lead Ads webhook (OAuth FB page) · routes via `SmartRoutingEngine` existente · enrichment Clay → W7 · IG/TikTok → W6/W7 |
-
-**Subtotal asesor**: 155-207h
-
-### 1.4 Total W5 actualizado (post-moves 2026-05-16)
+### 1.5 Total W5
 
 | Bloque | Horas |
 |---|---|
-| W5.ASR.0 cleanup | 5-7 |
-| W5.ASR.1-5 redesign asesor | 155-207 |
-| W5 originales post-moves (19 batches · removed 5.7+5.13+5.14) | ~465-475 |
-| **Total W5 ajustado** | **~625-689h** |
-| W5.1 shipped ✅ | -26 |
-| **W5 restante** | **~600-663h** |
+| Shipped | 76 (W5.1 + W5.2 + W5.3 P1 + P2A) |
+| En proceso | ~11 (W5.3 P2B) |
+| Restante | ~538-602 |
+| **Total W5 ajustado** | **~625-689** |
+
+Buildables AHORA (sin bloqueo): **22 de 26 batches** · solo W5.18 Dubai realmente diferido.
 
 ---
 
