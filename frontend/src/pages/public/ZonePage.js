@@ -11,6 +11,7 @@ import CtaFooter from '../../components/landing/CtaFooter';
 import ZoneStructuredData, { buildFaqs } from '../../components/seo/ZoneStructuredData';
 import LandingLeadCaptureForm from '../../components/seo/LandingLeadCaptureForm';
 import ZoneSubscoresCard from '../../components/zones/ZoneSubscoresCard';
+import ForecastChart from '../../components/forecast/ForecastChart';
 import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -541,6 +542,9 @@ export default function ZonePage() {
 
         {/* W5.2 Sub-B — Sub-scores desagregados */}
         {subscoresData && <ZoneSubscoresCard data={subscoresData} />}
+
+        {/* W5.3 Parte 1 — Forecast multi-horizonte para la zona */}
+        <ForecastChart mode="zone" slug={slug} />
 
 
         {/* Section 2 — Top 3 IE Scores */}
