@@ -67,8 +67,28 @@ export function useTour(user) {
         if (tour) {
           setTourId(firstLoginId);
           setSteps(tour.steps);
-          // Small delay so the UI renders first
-          setTimeout(() => setRun(true), 1200);
+          // Bug-fix 2026-05-15 v2: el tour overlay zIndex 9000 tapaba modales
+          // estándar (zIndex 200-2000) en developer module y otros portales.
+          // Detección sistémica de bloqueadores:
+          //   a) body classes (dmx-onboarding-blocking · dmx-tour-blocker)
+          //   b) cualquier elemento [role="dialog"] (modales accesibles)
+          //   c) body.style.overflow === 'hidden' (modales bloquean scroll)
+          // Si cualquiera presente → esperar · sin esto, modales aparecen
+          // tapados por el overlay del tour e impiden cerrarlos.
+          setTimeout(() => {
+            const tryLaunch = () => {
+              const hasBlockerClass = document.body.classList.contains('dmx-onboarding-blocking')
+                || document.body.classList.contains('dmx-tour-blocker');
+              const hasDialog = document.querySelector('[role="dialog"]') !== null;
+              const bodyLocked = document.body.style.overflow === 'hidden';
+              if (hasBlockerClass || hasDialog || bodyLocked) {
+                setTimeout(tryLaunch, 500);
+              } else {
+                setRun(true);
+              }
+            };
+            tryLaunch();
+          }, 2000);
         }
       }
     });
@@ -105,6 +125,13 @@ export function useTour(user) {
       } else if (status === STATUS.SKIPPED && tourId) {
         await markTourDismiss(tourId);
       }
+    }
+    // Bug-fix 2026-05-15: si Joyride dispara action 'close' (X del tooltip), tratar como skip
+    // y dismissar permanentemente. Previene tooltips atascados sin botón Saltar visible.
+    if (action === 'close' && tourId) {
+      setRun(false);
+      setStepIndex(0);
+      await markTourDismiss(tourId);
     }
   }, [tourId]);
 

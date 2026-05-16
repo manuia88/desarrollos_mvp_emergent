@@ -25,9 +25,17 @@ function buildOptions(reducedMotion) {
     backgroundColor: 'rgba(13,16,23,0.97)',
     textColor: '#F0EBE0',
     arrowColor: 'rgba(13,16,23,0.97)',
-    overlayColor: reducedMotion ? 'rgba(0,0,0,0.35)' : 'rgba(6,8,15,0.72)',
-    spotlightShadow: '0 0 0 2px var(--theme)',
-    zIndex: 9000,
+    // Bug-fix 2026-05-15: overlay oscuro a zIndex 9000 tapaba modales (zIndex
+    // 200-2000) en developer module · 11+ páginas afectadas (CRM, Solicitudes,
+    // Mini Market, Reportes, Demanda, Site Selection, Precios, Alianzas,
+    // Configuración, Mis Proyectos, ProyectoDetail). Solución sistémica:
+    // 1) overlayColor transparente (sin dimming · no bloquea clicks visuales)
+    // 2) zIndex 5000 (debajo de cualquier modal estándar 1000-2000 · arriba
+    //    de banners 200) · modales naturalmente quedan arriba del tour
+    // 3) spotlight sigue funcionando para enfocar elemento sin oscurecer resto
+    overlayColor: 'transparent',
+    spotlightShadow: '0 0 0 3px var(--theme), 0 0 0 9999px rgba(6,8,15,0.35)',
+    zIndex: 5000,
   };
 }
 
@@ -144,7 +152,11 @@ export default function TourLauncher({ children }) {
           showSkipButton
           scrollToFirstStep
           disableOverlayClose={false}
-          spotlightClicks={false}
+          spotlightClicks={true}
+          // Bug-fix 2026-05-15 v2: disableOverlay elimina el div fullscreen
+          // que tapaba modales (11+ páginas developer reportadas). Tooltips
+          // siguen funcionando · sin overlay = sin bloqueo de clicks.
+          disableOverlay={true}
           disableAnimation={reducedMotion}
           locale={{
             back: t('tours.nav.back', 'Atrás'),

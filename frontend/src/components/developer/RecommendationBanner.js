@@ -48,6 +48,16 @@ export default function RecommendationBanner() {
     return () => { cancelled = true; };
   }, []);
 
+  // Bug-fix 2026-05-15: marcar body con `dmx-tour-blocker` mientras este banner está
+  // visible para que `useTour` espere antes de lanzar Joyride (overlay zIndex 9000
+  // tapaba este banner e impedía cerrarlo en developer first-login).
+  useEffect(() => {
+    if (status === 'visible') {
+      document.body.classList.add('dmx-tour-blocker');
+      return () => document.body.classList.remove('dmx-tour-blocker');
+    }
+  }, [status]);
+
   const dismiss = () => {
     if (rec?.rec_id) markDismissed(rec.rec_id);
     setStatus('hidden');
