@@ -442,7 +442,7 @@ export default function ArgumentarioPanel({ leadId, asesorId, leadName }) {
             data-testid="argumentario-refresh-btn"
             onClick={handleRefresh}
             disabled={refreshing}
-            title="Refrescar argumentario (máx 1 vez / 12h)"
+            title="Refrescar plan venta IA (máx 1 vez / 12h)"
             style={{
               background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 9999, padding: '5px 10px', cursor: refreshing ? 'not-allowed' : 'pointer',

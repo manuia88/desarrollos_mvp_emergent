@@ -207,7 +207,7 @@ function ProjectDrawer({ project, onClose }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function AsesorInventario({ user, onLogout }) {
+export default function AsesorInventario({ user, onLogout, withoutLayout = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -254,8 +254,8 @@ export default function AsesorInventario({ user, onLogout }) {
     return true;
   });
 
-  return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+  const content = (
+    <>
       <div data-testid="asesor-inventario" style={{ maxWidth: 1200 }}>
 
         {/* Header */}
@@ -452,6 +452,9 @@ export default function AsesorInventario({ user, onLogout }) {
       {activeDrawer && (
         <ProjectDrawer project={activeDrawer} onClose={() => setActiveDrawer(null)} />
       )}
-    </AdvisorLayout>
+    </>
   );
+
+  if (withoutLayout) return content;
+  return <AdvisorLayout user={user} onLogout={onLogout}>{content}</AdvisorLayout>;
 }

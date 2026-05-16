@@ -139,7 +139,7 @@ function KpisTab() {
         <KpiCard label="Lead routings" value={(counts.lead_routings || 0).toLocaleString()} />
         <KpiCard label="Visit dossiers" value={(counts.visit_prep_dossiers || 0).toLocaleString()} />
         <KpiCard label="Replies clasificadas" value={(counts.email_replies || 0).toLocaleString()} />
-        <KpiCard label="Argumentarios" value={(counts.argumentario_scripts || 0).toLocaleString()} />
+        <KpiCard label="Planes venta IA" value={(counts.argumentario_scripts || 0).toLocaleString()} />
         <KpiCard label="DISC profiles" value={(counts.disc_profiles || 0).toLocaleString()} />
       </div>
 

@@ -13,7 +13,7 @@ const PILLARS = [
   },
   {
     Icon: Sparkle,
-    t: 'Argumentario IA por contacto',
+    t: 'Plan venta IA por contacto',
     d: 'Claude Sonnet genera un pitch personalizado por contacto × desarrollo, listo para enviar por WhatsApp o email.',
   },
   {
@@ -73,7 +73,7 @@ export default function AsesoresLanding() {
           fontFamily: 'DM Sans', fontSize: 17, color: 'var(--cream-2)',
           lineHeight: 1.65, maxWidth: 760, margin: '0 0 28px',
         }}>
-          Un portal pensado para el asesor residencial de CDMX. CRM + argumentario IA
+          Un portal pensado para el asesor residencial de CDMX. CRM + plan venta IA
           + split transparente, con la data del territorio en vivo. Sin cuotas
           ocultas: pagas un porcentaje fijo solo cuando cierras.
         </p>

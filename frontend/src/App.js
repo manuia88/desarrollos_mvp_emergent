@@ -155,6 +155,8 @@ const InmobiliariaCrossPartnerships  = lazy(() => import('./pages/inmobiliaria/I
 // Phase 15 Batch 38 — Directorio Cruzado
 const DesarrolladorRedComercial      = lazy(() => import('./pages/developer/DesarrolladorRedComercial'));
 const AsesorMisAliados               = lazy(() => import('./pages/asesor/AsesorMisAliados'));
+// Bug-fix 2026-05-15: AsesorDesarrollos consolida Mis Aliados + Inventario en 1 tab con sub-tabs
+const AsesorDesarrollos              = lazy(() => import('./pages/asesor/AsesorDesarrollos'));
 const InmobiliariaRedComercial       = lazy(() => import('./pages/inmobiliaria/InmobiliariaRedComercial'));
 
 // W1.2 SA1.1 — Superadmin Tenants Management
@@ -582,7 +584,8 @@ function AppRouter() {
 
       {/* Phase 13 Batch 36 — Marketplace Asesor + Whitelist Developer + Auto-Approve */}
       <Route path="/asesor/mini-market" element={<AdvisorRoute Page={AsesorMiniMarket} />} />
-      <Route path="/asesor/inventario" element={<AdvisorRoute Page={AsesorInventario} />} />
+      {/* Bug-fix 2026-05-15: redirect a /asesor/desarrollos?tab=inventario (consolidado) */}
+      <Route path="/asesor/inventario" element={<Navigate to="/asesor/desarrollos?tab=inventario" replace />} />
       <Route path="/desarrollador/solicitudes" element={<AdvisorRoute Page={DesarrolladorSolicitudes} />} />
 
       {/* Phase 14 Batch 37 — In-house Users + Mini Markets + Cross-Org Partnerships */}
@@ -595,7 +598,9 @@ function AppRouter() {
 
       {/* Phase 15 Batch 38 — Directorio Cruzado */}
       <Route path="/desarrollador/red-comercial" element={<AdvisorRoute Page={DesarrolladorRedComercial} />} />
-      <Route path="/asesor/mis-aliados" element={<AdvisorRoute Page={AsesorMisAliados} />} />
+      {/* Bug-fix 2026-05-15: nueva ruta consolidada · viejos redirigen aquí */}
+      <Route path="/asesor/desarrollos" element={<AdvisorRoute Page={AsesorDesarrollos} />} />
+      <Route path="/asesor/mis-aliados" element={<Navigate to="/asesor/desarrollos?tab=aliados" replace />} />
       <Route path="/inmobiliaria/red-comercial" element={<AdvisorRoute Page={InmobiliariaRedComercial} />} />
 
       {/* W1.2 SA1.1 — Superadmin Tenants */}

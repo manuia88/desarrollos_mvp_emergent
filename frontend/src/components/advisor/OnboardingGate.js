@@ -1,9 +1,43 @@
 // OnboardingGate — blocks the advisor portal until profile is completed on first login
+//
+// Bug-fix 2026-05-15: el wizard tiene zIndex 400 pero Joyride tour (useTour) monta con
+// zIndex 9000 y captura clicks. Solución: marcar `body.dmx-onboarding-blocking` mientras
+// el wizard está abierto para que useTour espere a que se cierre antes de lanzar el tour.
 import React, { useEffect, useState } from 'react';
 import * as api from '../../api/advisor';
 
 const COLONIAS_SUGERIDAS = ['polanco', 'condesa', 'roma-norte', 'santa-fe', 'lomas-chapultepec', 'coyoacan', 'del-valle-centro', 'juarez', 'narvarte-poniente', 'escandon', 'san-miguel-chapultepec', 'san-rafael', 'doctores', 'anzures', 'pedregal', 'roma-sur'];
-const IDIOMAS = [{ k: 'es-MX', l: 'Español' }, { k: 'en-US', l: 'Inglés' }, { k: 'pt-BR', l: 'Portugués' }, { k: 'fr-FR', l: 'Francés' }, { k: 'zh-CN', l: 'Mandarín' }];
+
+// Bug-fix 2026-05-15: display nombres oficiales (Title Case + acentos + preposiciones)
+// Keys son slugs internos · NO cambiar para preservar compat con backend.
+const COLONIA_DISPLAY = {
+  'polanco': 'Polanco',
+  'condesa': 'Condesa',
+  'roma-norte': 'Roma Norte',
+  'santa-fe': 'Santa Fe',
+  'lomas-chapultepec': 'Lomas de Chapultepec',
+  'coyoacan': 'Coyoacán',
+  'del-valle-centro': 'Del Valle Centro',
+  'juarez': 'Juárez',
+  'narvarte-poniente': 'Narvarte Poniente',
+  'escandon': 'Escandón',
+  'san-miguel-chapultepec': 'San Miguel Chapultepec',
+  'san-rafael': 'San Rafael',
+  'doctores': 'Doctores',
+  'anzures': 'Anzures',
+  'pedregal': 'Pedregal',
+  'roma-sur': 'Roma Sur',
+};
+
+const IDIOMAS = [
+  { k: 'es-MX', l: 'Español' },
+  { k: 'en-US', l: 'Inglés' },
+  { k: 'pt-BR', l: 'Portugués' },
+  { k: 'fr-FR', l: 'Francés' },
+  { k: 'it-IT', l: 'Italiano' },
+  { k: 'de-DE', l: 'Alemán' },
+  { k: 'zh-CN', l: 'Mandarín' },
+];
 
 export default function OnboardingGate({ profile, onDone }) {
   const [step, setStep] = useState(1);
@@ -20,12 +54,19 @@ export default function OnboardingGate({ profile, onDone }) {
   const [sub, setSub] = useState(false);
   const [err, setErr] = useState(null);
 
+  // Body class para que useTour sepa que el wizard bloquea la pantalla
+  useEffect(() => {
+    document.body.classList.add('dmx-onboarding-blocking');
+    return () => document.body.classList.remove('dmx-onboarding-blocking');
+  }, []);
+
   const inputStyle = { width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
   const lblStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 };
 
+  // Step 2: si es Independiente NO requiere nombre · si es Inmobiliaria/Desarrolladora SÍ
   const canProceed = {
     1: f.full_name.trim().length >= 3,
-    2: f.brokerage.trim().length >= 2,
+    2: f.brokerage_type === 'independent' || f.brokerage.trim().length >= 2,
     3: true, // AMPI optional
     4: f.colonias.length >= 1 && f.colonias.length <= 5,
     5: f.languages.length >= 1,
@@ -36,14 +77,18 @@ export default function OnboardingGate({ profile, onDone }) {
     try {
       await api.updateProfile({
         full_name: f.full_name,
-        brokerage: f.brokerage,
+        brokerage: f.brokerage_type === 'independent' ? '' : f.brokerage,
+        brokerage_type: f.brokerage_type,
         license_ampi: f.license_ampi,
         colonias: f.colonias,
         languages: f.languages,
         bio: f.bio,
       });
       onDone();
-    } catch { setErr('No se pudo guardar. Intenta de nuevo.'); }
+    } catch (e) {
+      console.error('[OnboardingGate] submit failed', e);
+      setErr('No se pudo guardar. Intenta de nuevo.');
+    }
     finally { setSub(false); }
   };
 
@@ -98,22 +143,41 @@ export default function OnboardingGate({ profile, onDone }) {
         {step === 2 && (
           <>
             <h2 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--cream)', letterSpacing: '-0.022em', margin: '0 0 10px', lineHeight: 1.15 }}>
-              ¿Con qué agencia operas?
+              ¿Cómo operas?
             </h2>
-            <label><div style={lblStyle}>Nombre de agencia *</div>
-              <input value={f.brokerage} onChange={e => setF({ ...f, brokerage: e.target.value })} style={inputStyle} data-testid="ob-brokerage" placeholder="Ej. Pulppo, Coldwell, Independiente" />
-            </label>
-            <div style={{ marginTop: 14 }}>
-              <div style={lblStyle}>Tipo de agencia</div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.6, marginBottom: 14 }}>
+              Elige tu modalidad principal. Si trabajas con varias, indica la que más usas.
+            </p>
+            <div style={{ marginBottom: 14 }}>
+              <div style={lblStyle}>Modalidad *</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[{ k: 'independent', l: 'Independiente' }, { k: 'branch', l: 'Sucursal' }, { k: 'network', l: 'Red / Franquicia' }].map(o => (
-                  <button key={o.k} onClick={() => setF({ ...f, brokerage_type: o.k })} data-testid={`ob-type-${o.k}`}
+                {[
+                  { k: 'independent', l: 'Independiente' },
+                  { k: 'inmobiliaria', l: 'Inmobiliaria' },
+                  { k: 'desarrolladora', l: 'Desarrolladora' },
+                ].map(o => (
+                  <button key={o.k} onClick={() => setF({ ...f, brokerage_type: o.k, brokerage: o.k === 'independent' ? '' : f.brokerage })} data-testid={`ob-type-${o.k}`}
                     className={`filter-chip${f.brokerage_type === o.k ? ' active' : ''}`}>
                     {o.l}
                   </button>
                 ))}
               </div>
             </div>
+            {f.brokerage_type === 'independent' && (
+              <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', lineHeight: 1.6, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                Operas por cuenta propia · sin inmobiliaria ni desarrolladora. Puedes continuar.
+              </p>
+            )}
+            {f.brokerage_type === 'inmobiliaria' && (
+              <label><div style={lblStyle}>Nombre de la inmobiliaria *</div>
+                <input value={f.brokerage} onChange={e => setF({ ...f, brokerage: e.target.value })} style={inputStyle} data-testid="ob-brokerage" placeholder="Ej. Coldwell Banker, RE/MAX, Century 21" />
+              </label>
+            )}
+            {f.brokerage_type === 'desarrolladora' && (
+              <label><div style={lblStyle}>Nombre de la desarrolladora *</div>
+                <input value={f.brokerage} onChange={e => setF({ ...f, brokerage: e.target.value })} style={inputStyle} data-testid="ob-brokerage" placeholder="Ej. ICA, GICSA, Inmobiliaria Vinte" />
+              </label>
+            )}
           </>
         )}
         {step === 3 && (
@@ -147,7 +211,7 @@ export default function OnboardingGate({ profile, onDone }) {
                 return (
                   <button key={col} onClick={() => toggleArr('colonias', col, 5)} disabled={disabled} data-testid={`ob-col-${col}`}
                     className={`filter-chip${active ? ' active' : ''}`} style={{ opacity: disabled ? 0.4 : 1, justifyContent: 'flex-start' }}>
-                    {col.replace(/-/g, ' ')}
+                    {COLONIA_DISPLAY[col] || col.replace(/-/g, ' ')}
                   </button>
                 );
               })}

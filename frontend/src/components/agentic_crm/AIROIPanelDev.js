@@ -300,7 +300,7 @@ export default function AIROIPanelDev({ user }) {
             }}>Asistentes asesor</div>
             <BreakdownRow label="Smart routings"        value={breakdown.smart_routings} />
             <BreakdownRow label="Visit dossiers"        value={breakdown.visit_dossiers} />
-            <BreakdownRow label="Argumentarios usados"  value={breakdown.argumentarios_used} />
+            <BreakdownRow label="Planes venta IA"        value={breakdown.argumentarios_used} />
             <BreakdownRow label="Replies clasificadas"  value={breakdown.replies_classified} />
             <BreakdownRow label="Touches nurture"       value={breakdown.nurture_touches_sent} />
             <BreakdownRow label="Perfiles DISC"          value={breakdown.disc_profiles} />

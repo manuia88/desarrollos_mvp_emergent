@@ -135,7 +135,7 @@ export default function AsesorContactos({ user, onLogout }) {
         )}
       </Drawer>
 
-      <Drawer open={showArg} onClose={() => setShowArg(false)} title="Argumentario IA · Claude" width={560}>
+      <Drawer open={showArg} onClose={() => setShowArg(false)} title="Plan venta IA · Claude" width={560}>
         {selected && <ArgumentarioForm contact={selected} devs={devs} onDone={() => setToast({ kind: 'success', text: 'Mensaje generado' })} />}
       </Drawer>
 
@@ -241,7 +241,7 @@ function ContactDetail({ contact, devs, onOpenArg, onReload, onNote }) {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={onOpenArg} data-testid="open-arg" className="btn btn-primary">
           <Sparkle size={12} />
-          Generar argumentario IA
+          Generar plan venta IA
         </button>
         {waUrl && (
           <a href={waUrl} target="_blank" rel="noreferrer" data-testid="wa-contact" className="btn btn-glass">
@@ -361,7 +361,7 @@ function ArgumentarioForm({ contact, devs, onDone }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <label>
         <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-          Desarrollo (opcional · si vacío: argumentario libre)
+          Desarrollo (opcional · si vacío: plan venta IA general)
         </div>
         <select data-testid="arg-dev" value={devId} onChange={e => setDevId(e.target.value)} className="asr-select" style={{ width: '100%' }}>
           <option value="">— Sin desarrollo específico —</option>
@@ -370,7 +370,7 @@ function ArgumentarioForm({ contact, devs, onDone }) {
       </label>
       <button onClick={run} disabled={loading} data-testid="arg-run" className="btn btn-primary" style={{ justifyContent: 'center', opacity: loading ? 0.6 : 1 }}>
         <Sparkle size={12} />
-        {loading ? 'Generando con RAG + Claude…' : 'Generar argumentario data-backed'}
+        {loading ? 'Generando con RAG + Claude…' : 'Generar plan venta IA'}
       </button>
 
       {out && out.error && (

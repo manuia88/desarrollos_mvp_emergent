@@ -1522,7 +1522,7 @@
       }
     },
     "argumentario": {
-      "title": "Argumentario",
+      "title": "Plan venta IA",
       "subtitle": "Scripts personalizados DISC-adaptive por lead",
       "section": {
         "opening": "Apertura de contacto",
@@ -1547,16 +1547,16 @@
       "actions": {
         "refresh": "Refrescar",
         "mark_used": "Marcar como usado",
-        "used": "Argumentario usado",
+        "used": "Plan venta IA usado",
         "copy": "Copiar",
         "copied": "Copiado"
       },
       "followup_label": "Seguimiento",
-      "loading": "Generando argumentario…",
+      "loading": "Generando plan venta IA…",
       "errors": {
-        "tier_required": "Argumentario requiere tier T1+",
-        "rate_limit": "Sólo puedes refrescar el argumentario 1 vez cada 12h",
-        "load_failed": "Error al cargar argumentario",
+        "tier_required": "Plan venta IA requiere tier T1+",
+        "rate_limit": "Sólo puedes refrescar el plan venta IA 1 vez cada 12h",
+        "load_failed": "Error al cargar plan venta IA",
         "refresh_failed": "Error al refrescar argumentario"
       }
     },
@@ -1587,7 +1587,7 @@
         "feature_routing": "Smart Routing",
         "feature_nurture": "Nurture sequences",
         "feature_disc": "DISC inferencer",
-        "feature_argumentario": "Argumentario adoption",
+        "feature_argumentario": "Plan venta IA adoption",
         "feature_avm": "AVM (estimación de valor)",
         "sample_label": "muestra"
       },

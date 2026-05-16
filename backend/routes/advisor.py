@@ -121,6 +121,7 @@ class ArgumentarioIn(BaseModel):
 class AsesorProfilePatch(BaseModel):
     full_name: Optional[str] = None
     brokerage: Optional[str] = None
+    brokerage_type: Optional[str] = None  # 'independent' | 'inmobiliaria' | 'desarrolladora'
     license_ampi: Optional[str] = None
     colonias: Optional[List[str]] = None
     languages: Optional[List[str]] = None
@@ -199,11 +200,15 @@ async def patch_profile(payload: AsesorProfilePatch, request: Request):
     if not patch:
         raise HTTPException(400, "Sin cambios")
     # Auto-set profile_completed if minimum fields satisfied
+    # Bug-fix 2026-05-15: brokerage solo es requerido si NO es independiente.
+    # Si brokerage_type == 'independent', el asesor opera por cuenta propia y NO tiene inmobiliaria/desarrolladora.
     existing = await db.asesor_profiles.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
     merged = {**existing, **patch}
+    is_independent = merged.get("brokerage_type") == "independent"
+    brokerage_ok = is_independent or (merged.get("brokerage") and len(merged.get("brokerage", "").strip()) >= 2)
     merged["profile_completed"] = bool(
         merged.get("full_name") and len(merged.get("full_name", "").strip()) >= 3
-        and merged.get("brokerage") and len(merged.get("brokerage", "").strip()) >= 2
+        and brokerage_ok
         and (merged.get("colonias") or [])
     )
     patch["profile_completed"] = merged["profile_completed"]

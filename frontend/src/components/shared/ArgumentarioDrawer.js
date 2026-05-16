@@ -121,7 +121,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
       <aside
         data-testid="argumentario-drawer"
         role="dialog"
-        aria-label="Argumentario AI"
+        aria-label="Plan venta IA"
         style={{
           position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 71,
           width: 'min(560px, 100vw)',
@@ -151,7 +151,7 @@ export default function ArgumentarioDrawer({ open, onClose }) {
               color: 'var(--cream-3)',
             }}>Coach inline</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cream)', marginTop: 2 }}>
-              Argumentario AI
+              Plan venta IA
             </div>
           </div>
           <button

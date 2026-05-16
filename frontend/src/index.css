@@ -403,3 +403,52 @@ textarea:focus-visible,
   border-color: rgba(99,102,241,0.40);
   color: var(--indigo-3);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   FORM CONTROLS · dark mode global
+   Bug-fix 2026-05-15: <select> y <input type="number"> mostraban spinners
+   blancos del OS (color-scheme default light). Forzar dark + estilizar
+   .asr-select (usada en formularios del CRM).
+   ────────────────────────────────────────────────────────────────────────── */
+:root, body, input, select, textarea { color-scheme: dark; }
+
+/* Hide native number-input spinners (founder los ve como cuadrados blancos en dark) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Custom select styling para formularios CRM */
+.asr-select {
+  padding: 10px 36px 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23F0EBE0' opacity='0.5' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  transition: border-color 0.18s ease;
+}
+.asr-select:hover {
+  border-color: rgba(255,255,255,0.18);
+}
+.asr-select:focus {
+  border-color: rgba(var(--theme-rgb), 0.40);
+}
+.asr-select option {
+  background: #0d1118;
+  color: var(--cream);
+}

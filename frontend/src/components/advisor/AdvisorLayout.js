@@ -54,7 +54,7 @@ export default function AdvisorLayout({ user, onLogout, children }) {
       <button
         data-testid="argumentario-fab"
         type="button"
-        aria-label="Abrir Argumentario AI"
+        aria-label="Abrir Plan venta IA"
         onClick={() => setArgOpen(true)}
         style={{
           position: 'fixed', right: 20, bottom: 148, zIndex: 60,

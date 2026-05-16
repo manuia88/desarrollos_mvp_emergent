@@ -171,7 +171,7 @@ function Drawer({ aliado, onClose, onVerInventario }) {
   );
 }
 
-export default function AsesorMisAliados({ user, onLogout }) {
+export default function AsesorMisAliados({ user, onLogout, withoutLayout = false }) {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -204,8 +204,8 @@ export default function AsesorMisAliados({ user, onLogout }) {
     return true;
   });
 
-  return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+  const content = (
+    <>
       <div data-testid="asesor-mis-aliados" style={{ maxWidth: 1200 }}>
         <div style={{ marginBottom: 22 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -262,6 +262,9 @@ export default function AsesorMisAliados({ user, onLogout }) {
         )}
       </div>
       <Drawer aliado={drawer} onClose={() => setDrawer(null)} onVerInventario={handleVerInventario} />
-    </AdvisorLayout>
+    </>
   );
+
+  if (withoutLayout) return content;
+  return <AdvisorLayout user={user} onLogout={onLogout}>{content}</AdvisorLayout>;
 }
