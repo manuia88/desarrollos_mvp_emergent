@@ -15,13 +15,14 @@ const SUBSCORES = [
   { key: 'vibe',       label: 'Vibe urbano' },
 ];
 
-export default function SubscoreFilterPanel({ value, onApply, onClear, compact = false }) {
+export default function SubscoreFilterPanel({ value, onApply, onClear, compact = false, forecastValue = 0, onForecastChange }) {
   const [open, setOpen] = useState(!compact);
   const [drafts, setDrafts] = useState(() => {
     const init = {};
     SUBSCORES.forEach(s => { init[s.key] = (value && value[s.key]) || 0; });
     return init;
   });
+  const [forecastDraft, setForecastDraft] = useState(forecastValue || 0);
 
   useEffect(() => {
     if (value) {
@@ -33,6 +34,8 @@ export default function SubscoreFilterPanel({ value, onApply, onClear, compact =
     }
   }, [value]);
 
+  useEffect(() => { setForecastDraft(forecastValue || 0); }, [forecastValue]);
+
   const setOne = (k, v) => setDrafts(prev => ({ ...prev, [k]: Number(v) }));
 
   const apply = () => {
@@ -42,16 +45,19 @@ export default function SubscoreFilterPanel({ value, onApply, onClear, compact =
       if (v > 0) active[s.key] = v;
     }
     onApply?.(active);
+    onForecastChange?.(forecastDraft);
   };
 
   const clear = () => {
     const reset = {};
     SUBSCORES.forEach(s => { reset[s.key] = 0; });
     setDrafts(reset);
+    setForecastDraft(0);
     onClear?.();
+    onForecastChange?.(0);
   };
 
-  const activeCount = Object.values(drafts).filter(v => v > 0).length;
+  const activeCount = Object.values(drafts).filter(v => v > 0).length + (forecastDraft > 0 ? 1 : 0);
 
   return (
     <div
@@ -126,6 +132,32 @@ export default function SubscoreFilterPanel({ value, onApply, onClear, compact =
                 />
               </label>
             ))}
+            {/* W5.3 Parte 2B Sub-E — Forecast 12m growth slider */}
+            <label
+              data-testid="subscore-slider-forecast"
+              style={{ display: 'block', fontFamily: 'DM Sans', paddingTop: 10, marginTop: 4, borderTop: '1px dashed rgba(255,255,255,0.10)' }}
+              title="Filtra solo zonas con proyección anual mayor o igual al umbral seleccionado (ARIMA 12 meses)"
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(240,235,224,0.75)', marginBottom: 4 }}>
+                <span>Forecast crecimiento mínimo 12m</span>
+                <span style={{ color: forecastDraft > 0 ? '#a3e635' : 'rgba(240,235,224,0.45)', fontWeight: 700 }}>
+                  {forecastDraft > 0 ? `≥+${forecastDraft}%` : 'cualquiera'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={25}
+                step={1}
+                value={forecastDraft}
+                onChange={e => setForecastDraft(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#A3E635', cursor: 'pointer' }}
+                aria-label="Filtrar zonas con crecimiento mínimo en 12 meses"
+              />
+              <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.45)', marginTop: 4, fontStyle: 'italic' }}>
+                Proyección ARIMA 12 meses · umbral mínimo de crecimiento anual
+              </div>
+            </label>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>

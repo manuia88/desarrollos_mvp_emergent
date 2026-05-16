@@ -24,7 +24,7 @@ NOTIF_TYPES = {
     "cron_failed", "saved_zone_alert", "message_pending",
     "listing_view_repeat", "comparable_price_drop", "drop_off_pico",
     "tenant_signup", "api_limit_warn", "lfpdppp_dsr", "audit_suspicious",
-    "nurture_cooldown", "generic",
+    "nurture_cooldown", "forecast_trend_alert", "generic",
 }
 
 RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
@@ -46,6 +46,7 @@ DEFAULT_CATEGORIES = {
     "lfpdppp_dsr":           {"in_app": True, "email": True,  "whatsapp": False},
     "audit_suspicious":      {"in_app": True, "email": True,  "whatsapp": False},
     "nurture_cooldown":      {"in_app": True, "email": False, "whatsapp": False},
+    "forecast_trend_alert":  {"in_app": True, "email": True,  "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 
@@ -172,6 +173,7 @@ async def emit_notification(
     notif_id = _notif_id()
     now = _now()
     doc = {
+        "id": notif_id,
         "notif_id": notif_id,
         "user_id": user_id,
         "tenant_id": tenant_id,
@@ -341,6 +343,105 @@ async def rule_saved_zone_alert(db, user_id: str, zone_name: str, zone_id: str,
         payload={"zone_id": zone_id, "zone_name": zone_name, "trigger_type": trigger_type},
         action_url="/mapa",
     )
+
+
+# ─── W5.3 Parte 2B Sub-C — Forecast trend alert ──────────────────────────────
+
+async def rule_forecast_trend_alert(
+    db,
+    zone_slug: str,
+    zone_name: str,
+    delta_pct_12m: float,
+    tenant_id: Optional[str] = None,
+) -> int:
+    """Notifica a usuarios con saved_zones[slug]=true cuando el forecast 12m
+    cruza umbrales (+10 alcista · -5 bajista). Idempotencia 14 días por
+    (user_id, rule_key, zone_slug) usando colección `notification_dedupe`.
+
+    Devuelve cantidad de notificaciones emitidas.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    if delta_pct_12m >= 10:
+        severity = "normal"
+        title = f"Buena oportunidad: {zone_name}"
+        body = f"{zone_name} proyecta +{delta_pct_12m:.1f}% en 12 meses según nuestro modelo ARIMA."
+        channels = ["in_app", "email"]
+    elif delta_pct_12m <= -5:
+        severity = "high"
+        title = f"Riesgo: {zone_name}"
+        body = f"{zone_name} proyecta {delta_pct_12m:.1f}% en 12 meses según nuestro modelo ARIMA."
+        channels = ["in_app"]
+    else:
+        return 0
+
+    rule_key = "forecast_trend_alert"
+    sent = 0
+    cutoff = datetime.now(timezone.utc) - timedelta(days=14)
+
+    # Buscar usuarios con la zona guardada (saved_zones es dict o array según schema)
+    user_cursor = db.users.find(
+        {"$or": [
+            {f"saved_zones.{zone_slug}": True},
+            {"saved_zones": zone_slug},
+        ]},
+        {"_id": 0, "user_id": 1, "id": 1, "email": 1, "tenant_id": 1},
+    )
+    async for u in user_cursor:
+        uid = u.get("user_id") or u.get("id")
+        if not uid:
+            continue
+        # Idempotencia
+        try:
+            recent = await db.notification_dedupe.find_one({
+                "user_id": uid,
+                "rule_key": rule_key,
+                "zone_slug": zone_slug,
+                "sent_at_dt": {"$gte": cutoff},
+            })
+            if recent:
+                continue
+        except Exception:
+            pass
+
+        notif_id = await emit_notification(
+            db,
+            user_id=uid,
+            tenant_id=u.get("tenant_id") or tenant_id,
+            type="forecast_trend_alert",
+            severity=severity,
+            title=title,
+            body=body,
+            payload={
+                "zone_slug": zone_slug,
+                "zone_name": zone_name,
+                "delta_pct_12m": round(float(delta_pct_12m), 2),
+                "channels": channels,
+            },
+            action_url=f"/zona/{zone_slug}",
+        )
+        if notif_id:
+            sent += 1
+            try:
+                await db.notification_dedupe.insert_one({
+                    "user_id": uid,
+                    "rule_key": rule_key,
+                    "zone_slug": zone_slug,
+                    "sent_at_dt": datetime.now(timezone.utc),
+                })
+            except Exception:
+                pass
+
+            # Email opcional para alcistas
+            if "email" in channels and u.get("email"):
+                try:
+                    await _send_email_notification(
+                        u["email"], title, body, action_url=f"/zona/{zone_slug}",
+                    )
+                except Exception:
+                    pass
+
+    return sent
 
 
 async def rule_message_pending(db, lead_id: str, asesor_id: str, hours: float,

@@ -394,7 +394,12 @@ async def get_zone_recommendations(db, conversation_id: str) -> List[Dict[str, A
     try:
         from zone_score_engine import list_all_scores
         scores = await list_all_scores(db, tier="colonia", limit=50)
-        zones = scores.get("scores", []) or scores if isinstance(scores, list) else []
+        if isinstance(scores, list):
+            zones = scores
+        elif isinstance(scores, dict):
+            zones = scores.get("scores", []) or []
+        else:
+            zones = []
 
         # Boost zones matching hint
         def _rank(z):
@@ -409,23 +414,66 @@ async def get_zone_recommendations(db, conversation_id: str) -> List[Dict[str, A
             return -score
 
         zones_sorted = sorted(zones, key=_rank)[:5]
-        return [
-            {
-                "zone_id": z.get("zone_id") or z.get("slug") or "",
-                "name": z.get("zone_name") or z.get("name") or z.get("zone_id") or "",
+
+        # W5.3 Parte 2B Sub-C — Enriquecer con forecast 12m por zona
+        recommendations: List[Dict[str, Any]] = []
+        for z in zones_sorted:
+            slug = z.get("zone_id") or z.get("slug") or ""
+            forecast_pct: Optional[float] = None
+            try:
+                from forecast_engine import get_zone_forecast
+                zf = await get_zone_forecast(db, slug)
+                if zf and zf.get("horizons"):
+                    forecast_pct = (zf["horizons"].get("12m") or {}).get("delta_pct")
+            except Exception:
+                pass
+
+            base_reason = ("Buena relación plusvalía/precio" if disc in ("D", "C")
+                           else "Excelente entorno y amenidades")
+            narrative_parts = [base_reason]
+            if forecast_pct is not None:
+                sign = "+" if forecast_pct >= 0 else ""
+                narrative_parts.append(
+                    f"{z.get('zone_name') or z.get('name') or slug} proyecta {sign}{forecast_pct:.1f}% en 12 meses según ARIMA"
+                )
+            recommendations.append({
+                "zone_id": slug,
+                "name": z.get("zone_name") or z.get("name") or slug,
                 "score_total": z.get("score_total") or z.get("score") or 0,
-                "fit_reason": "Buena relación plusvalía/precio" if disc in ("D", "C")
-                              else "Excelente entorno y amenidades",
-            }
-            for z in zones_sorted
-        ]
+                "fit_reason": base_reason,
+                "forecast_12m_pct": forecast_pct,
+                "narrative": " · ".join(narrative_parts),
+            })
+        return recommendations
     except Exception as exc:
         log.warning(f"[buyer_coach] zone_recommendations failed: {exc}")
-        return [
+        fallback = [
             {"zone_id": "del-valle", "name": "Del Valle", "score_total": 85, "fit_reason": "Alta demanda y plusvalía estable"},
             {"zone_id": "narvarte", "name": "Narvarte Poniente", "score_total": 82, "fit_reason": "Precio accesible y buena ubicación"},
             {"zone_id": "roma-sur", "name": "Roma Sur", "score_total": 80, "fit_reason": "Estilo de vida urbano con crecimiento"},
         ]
+        # W5.3 Parte 2B Sub-C — enriquecer fallback con forecast 12m si disponible
+        try:
+            from forecast_engine import get_zone_forecast
+            for it in fallback:
+                try:
+                    zf = await get_zone_forecast(db, it["zone_id"])
+                    if zf and zf.get("horizons"):
+                        d12 = (zf["horizons"].get("12m") or {}).get("delta_pct")
+                        if d12 is not None:
+                            sign = "+" if d12 >= 0 else ""
+                            it["forecast_12m_pct"] = float(d12)
+                            it["narrative"] = f"{it['fit_reason']} · {it['name']} proyecta {sign}{d12:.1f}% en 12 meses según ARIMA"
+                            continue
+                except Exception:
+                    pass
+                it["forecast_12m_pct"] = None
+                it["narrative"] = it["fit_reason"]
+        except Exception:
+            for it in fallback:
+                it.setdefault("forecast_12m_pct", None)
+                it.setdefault("narrative", it["fit_reason"])
+        return fallback
 
 
 async def capture_lead(

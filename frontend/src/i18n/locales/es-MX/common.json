@@ -2312,7 +2312,10 @@
       "apply": "Aplicar filtros",
       "clear": "Limpiar",
       "any": "cualquiera",
-      "min": "≥{{value}}"
+      "min": "≥{{value}}",
+      "forecast_label": "Forecast crecimiento mínimo 12m",
+      "forecast_tooltip": "Filtra solo zonas con proyección anual mayor o igual al umbral seleccionado (ARIMA 12 meses).",
+      "forecast_hint": "Proyección ARIMA 12 meses · umbral mínimo de crecimiento anual"
     },
     "narratives": {
       "high": "{{label}} alto",

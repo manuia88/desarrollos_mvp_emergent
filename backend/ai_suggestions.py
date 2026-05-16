@@ -130,6 +130,20 @@ async def _build_context(db, entity_type: str, entity_id: str) -> Dict[str, Any]
                 if hs:
                     ctx["health_score"] = hs.get("score")
                     ctx["trend_7d"] = hs.get("trend_7d")
+                # W5.3 Parte 2B Sub-D — Forecast enrichment for argumentario
+                _zone = p.get("colonia_id")
+                if _zone:
+                    try:
+                        from forecast_engine import get_zone_forecast
+                        _zf = await get_zone_forecast(db, _zone)
+                        if _zf and _zf.get("horizons"):
+                            _h12 = (_zf["horizons"] or {}).get("12m") or {}
+                            _h24 = (_zf["horizons"] or {}).get("24m") or {}
+                            ctx["forecast_delta_12m_pct"] = _h12.get("delta_pct")
+                            ctx["forecast_delta_24m_pct"] = _h24.get("delta_pct")
+                            ctx["forecast_zone_name"] = _zone
+                    except Exception:
+                        pass
                 # Leads count
                 ctx["leads_active"] = await db.leads.count_documents({
                     "project_id": entity_id,
@@ -156,6 +170,20 @@ async def _build_context(db, entity_type: str, entity_id: str) -> Dict[str, Any]
                     try:
                         lt = datetime.fromisoformat(lead["last_touch_at"].replace("Z", "+00:00"))
                         ctx["days_since_last_touch"] = (_now() - lt).days
+                    except Exception:
+                        pass
+                # W5.3 Parte 2B Sub-D — Forecast enrichment for lead argumentario
+                _zone_lead = lead.get("zone_of_interest") or lead.get("colonia_interest") or lead.get("zone_id")
+                if _zone_lead:
+                    try:
+                        from forecast_engine import get_zone_forecast
+                        _zf = await get_zone_forecast(db, _zone_lead)
+                        if _zf and _zf.get("horizons"):
+                            _h12 = (_zf["horizons"] or {}).get("12m") or {}
+                            _h24 = (_zf["horizons"] or {}).get("24m") or {}
+                            ctx["forecast_delta_12m_pct"] = _h12.get("delta_pct")
+                            ctx["forecast_delta_24m_pct"] = _h24.get("delta_pct")
+                            ctx["forecast_zone_name"] = _zone_lead
                     except Exception:
                         pass
         elif entity_type == "unit":
@@ -247,7 +275,24 @@ async def _call_claude(db, dev_org_id: str, entity_type: str,
         pass
 
     system = _SYSTEM_BASE + "\n\n" + _SYSTEM_BY_TYPE.get(entity_type, "")
-    user_text = "CONTEXTO:\n" + json.dumps(ctx, ensure_ascii=False, default=str)
+
+    # W5.3 Parte 2B Sub-D — Prepend forecast block si aplica
+    forecast_block = ""
+    _f12 = ctx.get("forecast_delta_12m_pct")
+    _f24 = ctx.get("forecast_delta_24m_pct")
+    _fzone = ctx.get("forecast_zone_name")
+    if _fzone and (_f12 is not None or _f24 is not None):
+        parts = []
+        if _f12 is not None:
+            parts.append(f"{_f12:+.1f}% en 12 meses")
+        if _f24 is not None:
+            parts.append(f"{_f24:+.1f}% en 24 meses")
+        forecast_block = (
+            f"DATO DE MERCADO: {_fzone} proyecta {' · '.join(parts)} (modelo ARIMA propio). "
+            f"Usa estos números cuando ayuden a cerrar.\n\n"
+        )
+
+    user_text = forecast_block + "CONTEXTO:\n" + json.dumps(ctx, ensure_ascii=False, default=str)
 
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage

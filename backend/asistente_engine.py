@@ -186,6 +186,11 @@ TOOLS Y PARAMS:
     devuelve: 3 escenarios ROI/TIR (conservador · base · optimista) con break-even y flujo mensual.
     Usar cuando: user pregunta ROI inversión, cuánto vale en X años, vale la pena invertir en X colonia, TIR, rendimiento.
 
+16. get_zone_forecast
+    params: {{ "zone_slug": str (requerido), "horizons": str (default "6,12,24") }}
+    devuelve: proyección de precio multi-horizonte (6m / 12m / 24m) para una colonia con CI95 + narrative + delta_pct. Modelo ARIMA propio.
+    Usar cuando: user pregunta "cuánto crecerá X", "tendencia zona Y a futuro", "proyección 12/24 meses", "vale la pena esperar a comprar".
+
 REGLAS:
 - Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
@@ -196,6 +201,7 @@ REGLAS:
 - Si user pregunta interés / búsquedas / Google / qué se busca / popularidad → usa get_trends_for_query
 - Si user pregunta proceso de compra / qué necesito / cómo comprar / checklist → usa buyer_coach_consult
 - Si user pregunta ROI / TIR / inversión / rendimiento / cuánto vale en X años → usa investment_simulate
+- Si user pregunta crecimiento / tendencia futura / proyección X meses / vale la pena esperar → usa get_zone_forecast
 - Si user menciona presupuesto/intención de comprar/cita/WhatsApp → al final del response sugiere capturar contacto: "Si quieres, te conectamos con un asesor especializado para resolver dudas concretas."
 - NUNCA inventes precios o nombres de proyectos. Si no tienes data, di "no tengo ese dato actualizado, te conecto con un asesor".
 - Si pregunta sobre algo fuera de CDMX (otras ciudades), responde: "Por ahora solo cubrimos CDMX en detalle, pero próximamente expandimos a Monterrey y Guadalajara."
@@ -266,6 +272,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 m2=float(params.get("m2") or 80),
                 colonia=params.get("colonia") or params.get("colonia_slug") or "del-valle",
                 apreciacion_pct=params.get("apreciacion_pct"),
+            )
+        # W5.3 Parte 2B Sub-D — Forecast multi-horizonte
+        if tool_name == "get_zone_forecast":
+            return await _tool_get_zone_forecast(
+                db,
+                params.get("zone_slug", "") or params.get("slug", ""),
+                params.get("horizons", "6,12,24"),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -1133,4 +1146,77 @@ async def _tool_investment_simulate(
         }
     except Exception as exc:
         log.warning(f"[asistente_tool] investment_simulate failed: {exc}")
+        return {"error": str(exc), "source": "fallback"}
+
+
+
+# ─── W5.3 Parte 2B Sub-D · Forecast multi-horizonte tool ─────────────────────
+
+async def _tool_get_zone_forecast(db, zone_slug: str, horizons: str = "6,12,24") -> Dict[str, Any]:
+    """Tool: get_zone_forecast — proyección de precio multi-horizonte por colonia.
+
+    Reusa `forecast_engine` (W5.3 P1) + cache LRU. Devuelve shape compatible con
+    el endpoint `/api/forecast-public/zone/{slug}` para que Atlax narre cifras.
+    """
+    if not zone_slug:
+        return {"error": "zone_slug requerido"}
+    try:
+        from forecast_engine import (
+            get_zone_forecast, build_narrative, HORIZONS_MONTHS, _parse_horizons_list,
+        )
+        import forecast_cache
+
+        cache_key = f"atlax|{zone_slug}|{horizons}"
+        cached = await forecast_cache.get(cache_key)
+        if cached is not None:
+            return {**cached, "cache_hit": True}
+
+        zf = await get_zone_forecast(db, zone_slug)
+        if not zf:
+            return {
+                "error": "forecast_unavailable",
+                "reason": "insufficient_history",
+                "zone_slug": zone_slug,
+                "source": "forecast_engine",
+            }
+
+        requested = _parse_horizons_list(horizons)
+        horizons_arr = []
+        for h in HORIZONS_MONTHS:
+            if h not in requested:
+                continue
+            band = (zf.get("horizons") or {}).get(f"{h}m")
+            if not band:
+                continue
+            horizons_arr.append({
+                "months": h,
+                "value": band["value"],
+                "low95": band["low95"],
+                "high95": band["high95"],
+                "delta_pct": band.get("delta_pct"),
+            })
+
+        try:
+            from data_seed import COLONIAS_BY_ID
+            name = (COLONIAS_BY_ID.get(zone_slug) or {}).get("name", zone_slug)
+        except Exception:
+            name = zone_slug
+
+        payload = {
+            "slug": zone_slug,
+            "name": name,
+            "baseline": zf.get("baseline_index"),
+            "horizons": horizons_arr,
+            "narrative": build_narrative(zf.get("horizons") or {}),
+            "model_type": zf.get("model_type"),
+            "arima_order": zf.get("arima_order"),
+            "mape_test": zf.get("mape_test"),
+            "model_fitted_at": zf.get("fitted_at"),
+            "source": "forecast_engine",
+            "cache_hit": False,
+        }
+        await forecast_cache.set(cache_key, payload)
+        return payload
+    except Exception as exc:
+        log.warning(f"[asistente_tool] get_zone_forecast failed: {exc}")
         return {"error": str(exc), "source": "fallback"}
