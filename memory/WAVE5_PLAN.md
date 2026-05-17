@@ -64,16 +64,16 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.23** | Dev Battle Card | ⬜ | 12h |
 | **W5.ASR.0** | Cleanup pre-batch | ✅ | C1 `f5af028` (z-index 254→tokens) + C2 `ab2cb4f` (advisor→asesor) + C3 `0ad997e` (pipeline guard) — 2026-05-16 |
 | **W5.ASR.1** | WhatsApp QR + Inbox unificado | ⬜ STUB | 40-50h · Baileys local + UI completa · activa OAuth FB cuando approve |
-| **W5.ASR.2** | Pipeline 7+2 etapas hard-rules | ⬜ | 35-45h |
-| **W5.ASR.3** | Smart Lists + reportes asesor + broker | ⬜ | 20-30h · depende ASR.2 |
+| **W5.ASR.2** | Pipeline 7+2 etapas hard-rules | ✅ | P1 `701ead1` + P2 `127af26` (38h) |
+| **W5.ASR.3** | Smart Lists + reportes asesor + broker + **auto-nurture trigger** | ⬜ | 23-33h · depende ASR.2 · incluye cron auto-mover leads a nurture cuando days_in_status_v2>14 (W5.ASR.2 P2 enhancement 8/10) |
 | **W5.ASR.4** | CMA visual + microsite subdomain | ⬜ | 30-40h · consume W5.1 |
 | **W5.ASR.5** | Lead auto-capture | ⬜ STUB | 25-35h · email parser real + FB Lead Ads webhook stub |
 
 ### 1.4 Orden sugerido próximos batches
 
 1. **W5.ASR.1** WhatsApp QR STUB (40-50h) ← próximo
-2. W5.ASR.2 Pipeline 7+2 (35-45h)
-3. W5.ASR.3 Smart Lists + reportes (20-30h)
+2. W5.ASR.4 CMA + microsite (~35h) ← próximo
+3. W5.ASR.3 Smart Lists + reportes + auto-nurture cron (23-33h)
 4. W5.ASR.4 CMA + microsite (30-40h)
 5. W5.ASR.5 Lead capture STUB (25-35h)
 6. W5.8 Construction Quality Index (~25h)
