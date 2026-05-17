@@ -4,6 +4,7 @@
  * KPIs · MAPE por horizonte · Drift per zona · trend chart · backtest manual.
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import {
   fetchForecastAccuracySummary,
@@ -28,9 +29,9 @@ function daysAgo(s) {
 }
 
 const card = { padding: 18, borderRadius: 16, background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.08)' };
-const kpi  = { padding: 16, borderRadius: 14, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' };
-const btn  = { padding: '9px 16px', borderRadius: 9999, border: 'none', background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
-const btnGhost = { padding: '9px 16px', borderRadius: 9999, background: 'rgba(99,102,241,0.10)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.4)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const kpi  = { padding: 16, borderRadius: 14, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)' };
+const btn  = { padding: '9px 16px', borderRadius: 9999, border: 'none', background: 'linear-gradient(90deg,var(--theme),var(--theme-3))', color: '#fff', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnGhost = { padding: '9px 16px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme-2)', border: '1px solid rgba(var(--theme-rgb),0.4)', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 10, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.06em' };
 const td = { padding: '9px 12px', fontFamily: 'DM Sans', fontSize: 12, color: '#F0EBE0', borderTop: '1px solid rgba(255,255,255,0.05)' };
 
@@ -85,9 +86,10 @@ export default function SuperadminForecastAccuracy() {
   const mapeH = (k) => summary?.mape_by_horizon?.[k] || {};
 
   return (
-    <div data-testid="superadmin-forecast-accuracy" style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0', padding: '32px 24px 60px', fontFamily: 'DM Sans' }}>
+    <SuperadminLayout>
+    <div data-testid="superadmin-forecast-accuracy" style={{ minHeight: '100vh', color: 'var(--cream)', padding: '32px 24px 60px', fontFamily: 'DM Sans' }}>
       <header style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
-        <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 6 }}>
           Superadmin · W5.3
         </div>
         <h1 style={{ fontFamily: 'Outfit', fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
@@ -112,26 +114,26 @@ export default function SuperadminForecastAccuracy() {
       {/* KPI strip */}
       <section style={{ maxWidth: 1300, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 22 }}>
         <div style={kpi} data-testid="kpi-mape-6m">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>MAPE 6m</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>MAPE 6m</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{fmt(mapeH('6m').mape_pct)}%</div>
           <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{mapeH('6m').sample_size || 0} muestras</div>
         </div>
         <div style={kpi} data-testid="kpi-mape-12m">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>MAPE 12m</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>MAPE 12m</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{fmt(mapeH('12m').mape_pct)}%</div>
           <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{mapeH('12m').sample_size || 0} muestras</div>
         </div>
         <div style={kpi} data-testid="kpi-mape-24m">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>MAPE 24m</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>MAPE 24m</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{fmt(mapeH('24m').mape_pct)}%</div>
           <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{mapeH('24m').sample_size || 0} muestras</div>
         </div>
         <div style={kpi} data-testid="kpi-zones-modeled">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zonas modeladas</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zonas modeladas</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{summary?.zones_modeled ?? '—'}</div>
         </div>
         <div style={kpi} data-testid="kpi-last-run">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Último backtest</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Último backtest</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 18, fontWeight: 700, marginTop: 4 }}>{daysAgo(summary?.last_run?.finished_at)}</div>
           <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{summary?.total_snapshots ?? 0} snapshots</div>
         </div>
@@ -153,7 +155,7 @@ export default function SuperadminForecastAccuracy() {
               style={{
                 ...btnGhost,
                 padding: '6px 12px',
-                background: horizon === h ? 'rgba(99,102,241,0.30)' : btnGhost.background,
+                background: horizon === h ? 'rgba(var(--theme-rgb),0.30)' : btnGhost.background,
                 color: horizon === h ? '#F0EBE0' : btnGhost.color,
               }}
             >{h}m</button>
@@ -164,7 +166,7 @@ export default function SuperadminForecastAccuracy() {
       {/* Trend chart */}
       <section style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
         <div style={card} data-testid="trend-card">
-          <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 12 }}>
             MAPE por horizonte (histórico 30d)
           </div>
           {trendData.length === 0 ? (
@@ -178,9 +180,9 @@ export default function SuperadminForecastAccuracy() {
                   <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis dataKey="date" stroke="rgba(240,235,224,0.5)" tick={{ fontSize: 11, fontFamily: 'DM Sans' }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.10)' }} />
                   <YAxis stroke="rgba(240,235,224,0.5)" tick={{ fontSize: 11, fontFamily: 'DM Sans' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
-                  <Tooltip contentStyle={{ background: 'rgba(6,8,15,0.96)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 12, color: '#F0EBE0' }} />
+                  <Tooltip contentStyle={{ background: 'rgba(6,8,15,0.96)', border: '1px solid rgba(var(--theme-rgb),0.4)', borderRadius: 12, color: '#F0EBE0' }} />
                   <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'DM Sans', color: 'rgba(240,235,224,0.65)' }} />
-                  <Line type="monotone" dataKey="mape_12m" name="MAPE 12m" stroke="#6366F1" strokeWidth={2} dot={{ r: 3, fill: '#6366F1' }} />
+                  <Line type="monotone" dataKey="mape_12m" name="MAPE 12m" stroke="var(--theme)" strokeWidth={2} dot={{ r: 3, fill: 'var(--theme)' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -191,7 +193,7 @@ export default function SuperadminForecastAccuracy() {
       {/* Per-zona table */}
       <section style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
         <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ padding: '14px 18px', fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             Drift por zona · horizonte {horizon}m
             <span style={{ marginLeft: 10, color: 'rgba(240,235,224,0.5)' }}>
               ({perZone.length} zonas con ≥3 muestras)
@@ -230,5 +232,6 @@ export default function SuperadminForecastAccuracy() {
         </div>
       </section>
     </div>
+    </SuperadminLayout>
   );
 }

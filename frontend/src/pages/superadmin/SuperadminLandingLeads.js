@@ -481,7 +481,7 @@ function NurtureIntelligentGlobalBadge() {
         padding: '5px 12px', borderRadius: 9999,
         background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.18), rgba(var(--theme-rgb),0.14))',
         border: '1px solid rgba(var(--theme-rgb),0.4)',
-        color: '#A5B4FC',
+        color: 'var(--theme-2)',
         fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
         marginBottom: 14,
       }}

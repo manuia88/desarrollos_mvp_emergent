@@ -40,7 +40,7 @@ function fmtDate(iso) {
 function StatusBadge({ status }) {
   const map = {
     ready: { bg: 'rgba(34,197,94,0.14)', fg: '#86efac', bd: 'rgba(34,197,94,0.40)' },
-    processing: { bg: 'rgba(99,102,241,0.14)', fg: '#a5b4fc', bd: 'rgba(99,102,241,0.40)' },
+    processing: { bg: 'rgba(var(--theme-rgb),0.14)', fg: 'var(--theme-2)', bd: 'rgba(var(--theme-rgb),0.40)' },
     failed: { bg: 'rgba(239,68,68,0.14)', fg: '#fca5a5', bd: 'rgba(239,68,68,0.40)' },
   };
   const c = map[status] || { bg: 'rgba(255,255,255,0.05)', fg: 'var(--cream-2)', bd: 'rgba(255,255,255,0.18)' };
@@ -138,7 +138,7 @@ export default function SuperadminFreeAuditFunnel({ user, onLogout }) {
               style={{
                 padding: '6px 14px', borderRadius: 9999,
                 background: period === opt.value
-                  ? 'linear-gradient(90deg, #6366F1, #EC4899)'
+                  ? 'linear-gradient(90deg, var(--theme), var(--theme-3))'
                   : 'transparent',
                 border: period === opt.value
                   ? 'none'
@@ -159,7 +159,7 @@ export default function SuperadminFreeAuditFunnel({ user, onLogout }) {
             style={{
               marginLeft: 'auto',
               padding: '8px 18px', borderRadius: 9999,
-              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              background: 'linear-gradient(90deg, var(--theme), var(--theme-3))',
               color: '#fff', textDecoration: 'none',
               fontFamily: 'Outfit', fontWeight: 800, fontSize: 11, letterSpacing: '0.1em',
               border: 'none',
@@ -242,7 +242,7 @@ export default function SuperadminFreeAuditFunnel({ user, onLogout }) {
                         <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>
                           {i + 1}. {(c.slug || '—').replace(/-/g, ' ')}
                         </span>
-                        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: '#a5b4fc' }}>
+                        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--theme-2)' }}>
                           {c.count}
                         </span>
                       </div>

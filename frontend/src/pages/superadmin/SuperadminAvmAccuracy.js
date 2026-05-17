@@ -5,6 +5,7 @@
  * Golden dataset validation · Cache stats.
  */
 import React, { useEffect, useState, useCallback } from 'react';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import {
   fetchAvmAccuracySummary,
   fetchAvmPromotions,
@@ -41,19 +42,19 @@ const card = {
 
 const kpi = {
   padding: 16, borderRadius: 14,
-  background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
+  background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)',
 };
 
 const btn = {
   padding: '9px 16px', borderRadius: 9999, border: 'none',
-  background: 'linear-gradient(90deg,#6366F1,#EC4899)', color: '#fff',
+  background: 'linear-gradient(90deg,var(--theme),var(--theme-3))', color: '#fff',
   fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer',
 };
 
 const btnGhost = {
   padding: '9px 16px', borderRadius: 9999,
-  background: 'rgba(99,102,241,0.10)', color: '#a5b4fc',
-  border: '1px solid rgba(99,102,241,0.4)',
+  background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme-2)',
+  border: '1px solid rgba(var(--theme-rgb),0.4)',
   fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700, cursor: 'pointer',
 };
 
@@ -122,9 +123,10 @@ export default function SuperadminAvmAccuracy() {
   }, [toast]);
 
   return (
-    <div data-testid="superadmin-avm-accuracy" style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0', padding: '32px 24px 60px', fontFamily: 'DM Sans' }}>
+    <SuperadminLayout>
+    <div data-testid="superadmin-avm-accuracy" style={{ minHeight: '100vh', color: 'var(--cream)', padding: '32px 24px 60px', fontFamily: 'DM Sans' }}>
       <header style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
-        <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, marginBottom: 6 }}>
           Superadmin · W5.1
         </div>
         <h1 style={{ fontFamily: 'Outfit', fontSize: 36, fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
@@ -150,23 +152,23 @@ export default function SuperadminAvmAccuracy() {
 
       <section style={{ maxWidth: 1300, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 22 }}>
         <div style={kpi} data-testid="kpi-zones-modeled">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zonas modeladas</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zonas modeladas</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{fmtNum(summary?.kpis?.total_zones_modeled)}</div>
         </div>
         <div style={kpi} data-testid="kpi-zones-promoted">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zonas promovidas</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zonas promovidas</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{fmtNum(summary?.kpis?.total_zones_promoted)}</div>
         </div>
         <div style={kpi} data-testid="kpi-avg-r2">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>R² promedio</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>R² promedio</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{pct(summary?.kpis?.avg_promoted_r2)}</div>
         </div>
         <div style={kpi} data-testid="kpi-avg-sample">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sample size promedio</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sample size promedio</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{fmtNum(summary?.kpis?.avg_sample_size)}</div>
         </div>
         <div style={kpi} data-testid="kpi-promos-30d">
-          <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Promociones 30d</div>
+          <div style={{ fontSize: 10, color: 'rgba(var(--theme-rgb),0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Promociones 30d</div>
           <div style={{ fontFamily: 'Outfit', fontSize: 30, fontWeight: 800, marginTop: 4 }}>{fmtNum(summary?.kpis?.promotions_last_30d)}</div>
         </div>
       </section>
@@ -187,7 +189,7 @@ export default function SuperadminAvmAccuracy() {
       {/* Cache + Last Run */}
       <section style={{ maxWidth: 1300, margin: '0 auto 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
         <div style={card}>
-          <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Cache LRU</div>
+          <div style={{ fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Cache LRU</div>
           {summary?.cache_stats ? (
             <div style={{ fontSize: 12, lineHeight: 1.9 }}>
               <div>Hits: <strong>{fmtNum(summary.cache_stats.hits)}</strong> · Misses: <strong>{fmtNum(summary.cache_stats.misses)}</strong></div>
@@ -199,7 +201,7 @@ export default function SuperadminAvmAccuracy() {
         </div>
 
         <div style={card}>
-          <div style={{ fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Última corrida nocturna</div>
+          <div style={{ fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Última corrida nocturna</div>
           {summary?.last_retrain_run ? (
             <div style={{ fontSize: 12, lineHeight: 1.9 }}>
               <div>Inició: {fmtDate(summary.last_retrain_run.started_at)}</div>
@@ -215,7 +217,7 @@ export default function SuperadminAvmAccuracy() {
       {/* Drift table */}
       <section style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
         <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ padding: '14px 18px', fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             Drift por colonia (últimos 100)
           </div>
           <div style={{ maxHeight: 420, overflowY: 'auto' }}>
@@ -257,7 +259,7 @@ export default function SuperadminAvmAccuracy() {
       {/* Promotions log */}
       <section style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
         <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ padding: '14px 18px', fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
             Log de promociones (últimas 50)
           </div>
           <div style={{ maxHeight: 360, overflowY: 'auto' }}>
@@ -296,7 +298,7 @@ export default function SuperadminAvmAccuracy() {
       {golden && (
         <section style={{ maxWidth: 1300, margin: '0 auto 22px' }}>
           <div style={{ ...card, padding: 0, overflow: 'hidden' }} data-testid="golden-section">
-            <div style={{ padding: '14px 18px', fontSize: 11, color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ padding: '14px 18px', fontSize: 11, color: 'var(--theme-2)', textTransform: 'uppercase', letterSpacing: '0.08em', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               Golden Dataset · MAPE {fmtPct(golden.mape_pct)} · Evaluados {golden.evaluated}/{golden.total_cases}
               <span style={{ marginLeft: 12, color: 'rgba(240,235,224,0.55)' }}>
                 ≤10% err: {golden.within_10pct} · ≤20% err: {golden.within_20pct}
@@ -336,5 +338,6 @@ export default function SuperadminAvmAccuracy() {
         </section>
       )}
     </div>
+    </SuperadminLayout>
   );
 }

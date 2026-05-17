@@ -4,7 +4,7 @@
  * Panel de estadísticas de captura automática de leads para superadmin.
  */
 import React, { useEffect, useState } from 'react';
-import AdvisorLayout from '../../components/advisor/AdvisorLayout';
+import SuperadminLayout from "../../components/superadmin/SuperadminLayout";
 import { PageHeader, Card, Empty } from '../../components/advisor/primitives';
 import { getSourcesStats } from '../../api/lead_capture';
 import { TrendingUp, Mail, Building2, Megaphone, Globe, AlertTriangle } from 'lucide-react';
@@ -19,7 +19,7 @@ const SOURCE_LABELS = {
 };
 
 const SOURCE_COLORS = {
-  email_alias:        '#a5b4fc',
+  email_alias:        'var(--theme-2)',
   portal_inmuebles24: '#fda4af',
   portal_lamudi:      '#fcd34d',
   fb_lead_ads:        '#93c5fd',
@@ -99,7 +99,7 @@ export default function SuperadminLeadSources({ user, onLogout }) {
   useEffect(() => { load(); }, [days]); // eslint-disable-line
 
   return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout}>
       <PageHeader
         eyebrow="SUPERADMIN · LEAD SOURCES"
         title="Lead Sources"
@@ -114,9 +114,9 @@ export default function SuperadminLeadSources({ user, onLogout }) {
                 style={{
                   padding: '6px 14px', borderRadius: 6, fontSize: 12,
                   fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                  background: days === d ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.04)',
-                  border: days === d ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--border)',
-                  color: days === d ? '#a5b4fc' : 'var(--cream-2)',
+                  background: days === d ? 'rgba(var(--theme-rgb),0.22)' : 'rgba(255,255,255,0.04)',
+                  border: days === d ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid var(--border)',
+                  color: days === d ? 'var(--theme-2)' : 'var(--cream-2)',
                   transition: 'all 0.15s',
                 }}>
                 {d}d
@@ -152,7 +152,7 @@ export default function SuperadminLeadSources({ user, onLogout }) {
               value={stats.total_events}
               sub={`últimos ${days} días`}
               icon={TrendingUp}
-              color="#a5b4fc"
+              color="var(--theme-2)"
             />
             <KpiCard
               label="Leads capturados"
@@ -197,7 +197,7 @@ export default function SuperadminLeadSources({ user, onLogout }) {
                   <tbody>
                     {stats.top_aliases.map((a, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 10px', color: '#a5b4fc', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>{a.alias}</td>
+                        <td style={{ padding: '8px 10px', color: 'var(--theme-2)', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>{a.alias}</td>
                         <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--cream)', fontWeight: 700 }}>{a.count}</td>
                       </tr>
                     ))}
@@ -260,6 +260,6 @@ export default function SuperadminLeadSources({ user, onLogout }) {
           )}
         </>
       )}
-    </AdvisorLayout>
+    </SuperadminLayout>
   );
 }
