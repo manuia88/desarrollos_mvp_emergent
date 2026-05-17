@@ -1053,7 +1053,7 @@ async def startup():
     await ensure_disputes_indexes(db)
     # W5.12 Parte 1 — Knowledge Graph: health check + constraints (best-effort)
     try:
-        from knowledge_graph_engine import health_check, ensure_kg_constraints, KG_VERSION, NODE_TYPES, EDGE_TYPES
+        from knowledge_graph_engine import health_check, ensure_kg_constraints, NODE_TYPES, EDGE_TYPES
         hc = await health_check()
         if hc.get("connected"):
             await ensure_kg_constraints()
@@ -1066,6 +1066,12 @@ async def startup():
                 f"[KG] Neo4j unavailable · KG_AVAILABLE=False · reason={hc.get('error')} · "
                 f"endpoints retornaran 503 con fallback relational"
             )
+        # W5.12 P2 — KG anomaly indexes (Mongo · siempre creamos para que persist no falle)
+        try:
+            from kg_anomaly_detector import ensure_kg_anomaly_indexes
+            await ensure_kg_anomaly_indexes(db)
+        except Exception as exc:
+            logging.warning(f"[KG anomaly] ensure indexes failed: {exc}")
     except Exception as exc:
         logging.warning(f"[KG] startup hook failed: {exc}")
     # Phase 18 Batch 35 — Inmobiliaria relationships + AMPI verifications

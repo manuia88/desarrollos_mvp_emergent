@@ -144,20 +144,211 @@ TEMPLATES: Dict[str, Dict[str, Any]] = {
         LIMIT 200
         """,
     },
+
+    # ─── W5.12 P2 · 7 templates adicionales (12 total) ──────────────────────
+    "proyectos_activos_por_dev": {
+        "description": "Proyectos de un dev_org con actividad VIEWED en N dias.",
+        "required_params": ["dev_org_id", "last_days"],
+        "optional_params": [],
+        "param_validators": {
+            "dev_org_id": _is_str_id,
+            "last_days": _is_int_range(1, 365),
+        },
+        "param_hints": {
+            "dev_org_id": "ID alfanumerico (max 80 chars)",
+            "last_days": "1-365 dias",
+        },
+        "cypher_template": """
+        MATCH (p:Project)-[:OWNED_BY]->(:DevOrg {id: $dev_org_id})
+        OPTIONAL MATCH (p)<-[v:VIEWED]-(:BehavioralSession)
+        WITH p, count(v) AS view_count, max(v.last_seen) AS last_view
+        WHERE view_count > 0
+        RETURN p.id AS project_id, p.name AS project_name,
+               view_count, last_view
+        ORDER BY view_count DESC
+        LIMIT 100
+        """,
+    },
+
+    "leads_por_buyer_segment": {
+        "description": "Leads agrupados por segmento de buyer (alto/medio/bajo intent).",
+        "required_params": ["intent_min", "last_days"],
+        "optional_params": [],
+        "param_validators": {
+            "intent_min": _is_int_range(0, 100),
+            "last_days": _is_int_range(1, 365),
+        },
+        "param_hints": {
+            "intent_min": "0-100 (umbral de intent score)",
+            "last_days": "1-365 dias",
+        },
+        "cypher_template": """
+        MATCH (l:Lead)-[:INTERESTED_IN]->(p:Project)
+        WHERE l.created_at IS NOT NULL
+        OPTIONAL MATCH (b:BehavioralSession {user_id: l.client_global_id})-[:VIEWED]->(p)
+        WITH l, p, count(b) AS sessions
+        WHERE sessions >= $intent_min / 10
+        RETURN l.status AS segment, count(l) AS leads_count, avg(sessions) AS avg_sessions
+        ORDER BY leads_count DESC
+        LIMIT 50
+        """,
+    },
+
+    "zonas_top_forecast_12m": {
+        "description": "Zonas con mayor cantidad de Project + IEScore alto (proxy de forecast 12m).",
+        "required_params": ["score_min"],
+        "optional_params": ["tier"],
+        "param_validators": {
+            "score_min": _is_int_range(0, 100),
+            "tier": _is_tier,
+        },
+        "param_hints": {
+            "score_min": "0-100 (umbral score)",
+            "tier": "A | B | C | D | premium | media | popular",
+        },
+        "cypher_template": """
+        MATCH (p:Project)-[:LOCATED_IN]->(z:Zone)
+        OPTIONAL MATCH (p)-[:SCORED_BY]->(s:IEScore)
+        WITH z, count(DISTINCT p) AS projects, avg(coalesce(s.score, 0)) AS avg_score
+        WHERE avg_score >= $score_min
+          AND ($tier IS NULL OR z.tier = $tier)
+        RETURN z.slug AS zone_slug, z.name AS zone_name, z.tier AS tier,
+               projects, avg_score
+        ORDER BY avg_score DESC, projects DESC
+        LIMIT 50
+        """,
+    },
+
+    "transacciones_por_dev_periodo": {
+        "description": "Comparables (transacciones cerradas) por dev_org dentro de un periodo.",
+        "required_params": ["dev_org_id", "last_days"],
+        "optional_params": [],
+        "param_validators": {
+            "dev_org_id": _is_str_id,
+            "last_days": _is_int_range(1, 730),
+        },
+        "param_hints": {
+            "dev_org_id": "ID alfanumerico",
+            "last_days": "1-730 dias",
+        },
+        "cypher_template": """
+        MATCH (p:Project)-[:OWNED_BY]->(:DevOrg {id: $dev_org_id})
+        MATCH (p)-[:COMPARABLE_TO]->(c:Comparable)
+        WITH p, c
+        RETURN p.id AS project_id, p.name AS project_name,
+               count(c) AS comparables_count,
+               avg(c.price) AS avg_price,
+               max(c.closed_at) AS last_closed
+        ORDER BY comparables_count DESC
+        LIMIT 100
+        """,
+    },
+
+    "units_disponibles_por_proyecto": {
+        "description": "Units disponibles de un proyecto con estatus libre.",
+        "required_params": ["project_id"],
+        "optional_params": [],
+        "param_validators": {
+            "project_id": _is_str_id,
+        },
+        "param_hints": {
+            "project_id": "ID alfanumerico (max 80 chars)",
+        },
+        "cypher_template": """
+        MATCH (p:Project {id: $project_id})-[:HAS_UNIT]->(u:Unit)
+        WHERE u.estatus IS NULL OR u.estatus IN ['disponible', 'libre', 'available']
+        RETURN u.id AS unit_id, u.numero AS numero,
+               u.tipo AS tipo, u.precio AS precio, u.estatus AS estatus
+        ORDER BY u.precio ASC
+        LIMIT 500
+        """,
+    },
+
+    "behavioral_intent_alto_sin_lead": {
+        "description": "BehavioralSession con intent alto pero sin Lead asociado (oportunidades).",
+        "required_params": ["last_days"],
+        "optional_params": [],
+        "param_validators": {
+            "last_days": _is_int_range(1, 90),
+        },
+        "param_hints": {
+            "last_days": "1-90 dias",
+        },
+        "cypher_template": """
+        MATCH (b:BehavioralSession)-[:VIEWED]->(p:Project)
+        WHERE b.intent IN ['high', 'alto', 'comprador_activo']
+          AND b.user_id IS NOT NULL
+        OPTIONAL MATCH (l:Lead {client_global_id: b.user_id})-[:INTERESTED_IN]->(p)
+        WITH b, p, l
+        WHERE l IS NULL
+        RETURN b.user_id AS user_id, p.id AS project_id, p.name AS project_name,
+               b.intent AS intent, b.created_at AS last_view
+        ORDER BY b.created_at DESC
+        LIMIT 200
+        """,
+    },
+
+    "devs_con_dispute_history": {
+        "description": "DevOrgs con disputas rechazadas activas (cooldown > now) o historial denso.",
+        "required_params": ["min_disputes"],
+        "optional_params": [],
+        "param_validators": {
+            "min_disputes": _is_int_range(1, 100),
+        },
+        "param_hints": {
+            "min_disputes": "1-100 (minimo de disputas)",
+        },
+        "cypher_template": """
+        MATCH (l:Lead)-[:INTERESTED_IN]->(p:Project)-[:OWNED_BY]->(d:DevOrg)
+        WHERE l.status = 'cerrado_perdido'
+        WITH d, count(l) AS disputes_count
+        WHERE disputes_count >= $min_disputes
+        RETURN d.id AS dev_org_id, d.name AS dev_name, disputes_count
+        ORDER BY disputes_count DESC
+        LIMIT 100
+        """,
+    },
 }
 
 
+def _summarize_validator(template_key: str, param_name: str) -> str:
+    """Devuelve hint humano para un validator (UI render)."""
+    tpl = TEMPLATES.get(template_key, {})
+    hints = tpl.get("param_hints", {})
+    if param_name in hints:
+        return hints[param_name]
+    val = tpl.get("param_validators", {}).get(param_name)
+    if val is None:
+        return "Cualquier valor"
+    name = getattr(val, "__name__", "")
+    if "str_id" in name:
+        return "ID alfanumerico (max 80 chars)"
+    if "slug" in name:
+        return "Slug minusculas (a-z 0-9 -)"
+    if "tier" in name:
+        return "A | B | C | D | premium | media | popular"
+    return "Numero entero"
+
+
 def list_templates() -> List[Dict[str, Any]]:
-    """Retorna metadata de plantillas (sin Cypher) para UI/docs."""
-    return [
-        {
+    """Retorna metadata de plantillas (sin Cypher) para UI/docs.
+
+    Incluye param_validators_summary para que UI pueda renderizar hints.
+    """
+    out: List[Dict[str, Any]] = []
+    for k, v in TEMPLATES.items():
+        param_summary: Dict[str, str] = {}
+        for p in v.get("required_params", []) + v.get("optional_params", []):
+            param_summary[p] = _summarize_validator(k, p)
+        out.append({
             "key": k,
+            "name": k,
             "description": v["description"],
-            "required_params": v["required_params"],
+            "required_params": v.get("required_params", []),
             "optional_params": v.get("optional_params", []),
-        }
-        for k, v in TEMPLATES.items()
-    ]
+            "param_validators_summary": param_summary,
+        })
+    return out
 
 
 def validate_params(template_key: str, params: Dict[str, Any]):

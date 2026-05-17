@@ -4256,6 +4256,11 @@ cssstyle@^2.3.0:
   dependencies:
     cssom "~0.3.6"
 
+cytoscape@^3.33.3:
+  version "3.33.3"
+  resolved "https://registry.yarnpkg.com/cytoscape/-/cytoscape-3.33.3.tgz#6c885823cb088eb8c31087c35d978661dcde5eae"
+  integrity sha512-Gej7U+OKR+LZ8kvX7rb2HhCYJ0IhvEFsnkud4SB1PR+BUY/TsSO0dmOW59WEVLu51b1Rm+gQRKoz4bLYxGSZ2g==
+
 "d3-array@1 - 2", d3-array@2:
   version "2.12.1"
   resolved "https://registry.yarnpkg.com/d3-array/-/d3-array-2.12.1.tgz#e20b41aafcdffdf5d50928004ececf815a465e81"

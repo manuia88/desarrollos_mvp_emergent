@@ -203,6 +203,7 @@ const SUPERADMIN_NAV = [
     items: [
       { key: 'avm-accuracy',      to: '/superadmin/avm-accuracy',      label: 'AVM Accuracy',      Icon: TrendingUp },
       { key: 'forecast-accuracy', to: '/superadmin/forecast-accuracy', label: 'Forecast Accuracy', Icon: TrendingUp },
+      { key: 'knowledge-graph',   to: '/superadmin/knowledge-graph',   label: 'Knowledge Graph',   Icon: Network },
     ],
   },
 ];
