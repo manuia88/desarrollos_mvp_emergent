@@ -6,6 +6,8 @@ import { PageHeader, Card, Badge, Empty, Drawer, Toast } from '../../components/
 import * as api from '../../api/advisor';
 import { Search, Sparkle, MessageSquare, ArrowRight } from '../../components/icons';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
+import SmartListsSidebar from '../../components/asesor/SmartListsSidebar';
+import { getLeadsInPreset } from '../../api/smart_lists';
 
 const TIPOS = ['comprador', 'vendedor', 'propietario', 'inversor', 'broker'];
 const TEMPS = ['frio', 'tibio', 'caliente', 'cliente'];
@@ -26,29 +28,41 @@ export default function AsesorContactos({ user, onLogout }) {
   const [selected, setSelected] = useState(null);
   const [showArg, setShowArg] = useState(false);
   const [devs, setDevs] = useState([]);
+  // W5.ASR.3 Parte 1 — Smart List filter
+  const [smartList, setSmartList] = useState(() => searchParams.get('smart_list') || null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const params = { q, tipo, temp };
-      if (scoreMin > 0) params.score_min = scoreMin;
-      const items = await api.listContactos(params);
-      // Sort client-side
-      if (sortBy === 'score') {
-        items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
+      if (smartList) {
+        // Smart list activa: usar endpoint smart-lists en lugar de listado standard
+        const r = await getLeadsInPreset(smartList, { limit: 200 });
+        let items = r.items || [];
+        if (sortBy === 'score') {
+          items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
+        }
+        setList(items);
+      } else {
+        const params = { q, tipo, temp };
+        if (scoreMin > 0) params.score_min = scoreMin;
+        const items = await api.listContactos(params);
+        if (sortBy === 'score') {
+          items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
+        }
+        setList(items);
       }
-      setList(items);
     } finally { setLoading(false); }
   };
 
-  // Sync score_min to URL
+  // Sync URL params (score_min + smart_list)
   useEffect(() => {
     const params = {};
-    if (scoreMin > 0) params.score_min = String(scoreMin);
+    if (scoreMin > 0 && !smartList) params.score_min = String(scoreMin);
+    if (smartList) params.smart_list = smartList;
     setSearchParams(params, { replace: true });
-  }, [scoreMin]); // eslint-disable-line
+  }, [scoreMin, smartList]); // eslint-disable-line
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, tipo, temp, scoreMin, sortBy]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, tipo, temp, scoreMin, sortBy, smartList]);
 
   useEffect(() => {
     if (id) {
@@ -60,7 +74,14 @@ export default function AsesorContactos({ user, onLogout }) {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs);
   }, []);
 
-  const openContact = (c) => nav(`/asesor/contactos/${c.id}`);
+  const openContact = (c) => {
+    // W5.ASR.3 Parte 1 — leads de smart list no son contactos · skip drawer
+    if (c._smart_list_lead) {
+      setToast({ kind: 'info', text: 'Este es un lead del pipeline · ábrelo desde el Kanban' });
+      return;
+    }
+    nav(`/asesor/contactos/${c.id}`);
+  };
   const closeDetail = () => nav('/asesor/contactos');
 
   return (
@@ -75,6 +96,18 @@ export default function AsesorContactos({ user, onLogout }) {
           </button>
         }
       />
+
+      <div
+        data-testid="contactos-layout"
+        style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}
+        className="contactos-layout">
+        <SmartListsSidebar
+          activePreset={smartList}
+          onSelectPreset={(k) => setSmartList(k)}
+          onClear={() => setSmartList(null)}
+        />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
 
       <Card style={{ marginBottom: 14, padding: 12 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -105,7 +138,8 @@ export default function AsesorContactos({ user, onLogout }) {
             <option value="score">Por score (alto a bajo)</option>
             <option value="created_at">Por fecha de creacion</option>
           </select>
-          {/* W5.4 Sub-B — Filtro score minimo */}
+          {/* W5.4 Sub-B — Filtro score minimo · oculto cuando smart_list activa (mutuamente exclusivo) */}
+          {!smartList && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 180 }}>
             <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>
               Score min: <strong style={{ color: scoreMin > 0 ? '#86efac' : 'var(--cream-2)' }}>{scoreMin > 0 ? scoreMin : 'cualquiera'}</strong>
@@ -121,11 +155,30 @@ export default function AsesorContactos({ user, onLogout }) {
               style={{ flex: 1, cursor: 'pointer', accentColor: '#6366f1' }}
             />
           </div>
+          )}
+          {smartList && (
+            <div data-testid="smart-list-active-badge" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', borderRadius: 9999,
+              background: 'rgba(99,102,241,0.10)',
+              border: '1px solid rgba(99,102,241,0.32)',
+              color: '#a5b4fc', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
+            }}>
+              Smart list activa: {smartList}
+              <button
+                data-testid="smart-list-inline-clear"
+                onClick={() => setSmartList(null)}
+                style={{
+                  background: 'transparent', border: 'none', color: 'inherit',
+                  cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1,
+                }}>×</button>
+            </div>
+          )}
         </div>
       </Card>
 
       {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
-        : list.length === 0 ? <Empty title="Sin contactos" sub="Crea tu primer contacto o ajusta filtros." />
+        : list.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin contactos'} sub={smartList ? 'Prueba con otra smart list o limpia el filtro.' : 'Crea tu primer contacto o ajusta filtros.'} />
         : (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <table data-testid="contacts-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans' }}>
@@ -193,7 +246,15 @@ export default function AsesorContactos({ user, onLogout }) {
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
 
-      <style>{`.asr-select { padding: 8px 14px; border-radius: 9999px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--cream-2); font-family: 'DM Sans'; font-size: 12px; outline: none; }`}</style>
+        </div>
+      </div>
+
+      <style>{`
+        .asr-select { padding: 8px 14px; border-radius: 9999px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--cream-2); font-family: 'DM Sans'; font-size: 12px; outline: none; }
+        @media (max-width: 768px) {
+          .contactos-layout { flex-direction: column; }
+        }
+      `}</style>
     </AdvisorLayout>
   );
 }

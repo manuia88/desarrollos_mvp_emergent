@@ -1618,6 +1618,14 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.asr.4] cma engine init failed: {e}")
 
+    # W5.ASR.3 Parte 1 — Smart Lists Engine (asesor)
+    try:
+        from routes.smart_lists import router as smart_lists_router
+        app.include_router(smart_lists_router)
+        logging.info("[w5.asr.3] smart_lists engine init")
+    except Exception as e:
+        logging.warning(f"[w5.asr.3] smart_lists engine init failed: {e}")
+
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:

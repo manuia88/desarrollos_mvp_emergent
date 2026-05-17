@@ -2470,5 +2470,36 @@
       "submitting": "Generando análisis…",
       "error_generic": "No se pudo generar el CMA"
     }
+  },
+  "smart_lists": {
+    "title": "Smart lists",
+    "section_eyebrow": "SMART LISTS",
+    "clear_filter": "Limpiar filtro",
+    "active_label": "Smart list activa",
+    "empty_state_title": "Sin leads en este filtro",
+    "empty_state_sub": "Prueba con otra smart list o limpia el filtro.",
+    "lead_row_hint": "Este es un lead del pipeline · ábrelo desde el Kanban",
+    "presets": {
+      "hot_leads": {
+        "label": "Hot leads",
+        "description": "Tier hot · pipeline activo"
+      },
+      "sin_contactar_48h": {
+        "label": "Sin contactar (48h)",
+        "description": "Leads nuevos sin primer contacto >48h"
+      },
+      "stalled_14d": {
+        "label": "Sin actividad (14d)",
+        "description": "Sin movimientos hace +14 días"
+      },
+      "visita_pendiente": {
+        "label": "Visita pendiente",
+        "description": "Cita agendada sin outcome"
+      },
+      "negociacion_activa": {
+        "label": "En negociación",
+        "description": "En etapa de negociación"
+      }
+    }
   }
 }
