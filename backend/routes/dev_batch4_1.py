@@ -1167,6 +1167,14 @@ async def create_cita(payload: CitaBody, request: Request):
         )
 
     status_out = "under_review" if is_under_review else "created"
+
+    # W5.12 Parte 1 — KG sync (best-effort · no-op si KG_AVAILABLE=False)
+    try:
+        from knowledge_graph_engine import kg_sync
+        await kg_sync.upsert_lead_node(db, lead)
+    except Exception as _kg_exc:
+        log.warning(f"[KG sync] upsert_lead_node skipped: {_kg_exc}")
+
     return {
         "lead_id": lead["id"],
         "appointment_id": appointment["id"],
