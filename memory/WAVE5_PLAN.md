@@ -51,7 +51,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.9** | Climate Migration | ⬜ STUB | Apify fallback · ~25h |
 | **W5.10** | Social/Ads Multi-tenant + IA | ⬜ STUB | 233h · Meta OAuth stub · activa cuando App Review |
 | **W5.11** | Entity Resolution + Governance | ✅ | P1 engine+audit + P2 UI superadmin `c10f63e` + P3 dispute resolution `6be6798` + aurora audit fix `0d92469` (36h total) · P4 form+WA+CRM ya estaba shipped en B4.1 2026-05-02 (POST /api/cita completo) |
-| **W5.12** | Knowledge Graph completo | ⬜ | ~35h |
+| **W5.12** | Knowledge Graph completo | 🟡 | P1 Backend KG+Neo4j+ETL `bb49837` (20h shipped · 40h pending P2 UI 15h + P3 integraciones 25h) |
 | ~~**W5.13**~~ | Integrations expand | ➡️ W6 | Movido founder 2026-05-16 |
 | ~~**W5.14**~~ | Reviews residentes | ➡️ W6 | Movido founder 2026-05-16 |
 | **W5.15** | FSD + Accuracy dashboard | ⬜ | ~25h · revisar solape W5.1 Sub-B |
