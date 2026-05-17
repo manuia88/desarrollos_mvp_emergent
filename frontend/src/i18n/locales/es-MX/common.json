@@ -2449,6 +2449,13 @@
     },
     "share_button": "Compartir link público",
     "share_copied": "Link público copiado al portapapeles",
+    "share_preview_title": "Preview link público",
+    "share_preview_caption_with_subdomain": "Tu microsite asesor está vinculado a este CMA. Compártelo en WhatsApp, redes sociales o email.",
+    "share_preview_caption_default": "Comparte este link público con tus clientes. La preview rich incluye valor estimado y comparables.",
+    "pdf_button": "Descargar PDF",
+    "pdf_generating": "Generando PDF…",
+    "pdf_downloaded": "PDF descargado correctamente",
+    "pdf_error": "No se pudo descargar el PDF",
     "back_button": "← Volver a la lista",
     "generate_modal": {
       "title": "Generar CMA nuevo",

@@ -13,6 +13,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.cma_routes")
@@ -135,3 +136,44 @@ async def public_cma_endpoint(cma_id: str, request: Request) -> Dict[str, Any]:
     await increment_share_count(db, cma_id)
     # Shape pública: strip asesor_id + shared_count + flags internas
     return {k: v for k, v in cma.items() if k not in ("asesor_id", "shared_count", "_id")}
+
+
+# ─── W5.ASR.4 Parte 2 · Export PDF (owner only) ──────────────────────────────
+
+@router.get("/api/asesor/cma/{cma_id}/pdf")
+async def export_cma_pdf(cma_id: str, request: Request):
+    """Render PDF del CMA con branding del asesor. Owner-only · superadmin override."""
+    user = await _auth_asesor(request)
+    db = _db(request)
+    asesor_id = getattr(user, "user_id", "") or "anon"
+    role = (getattr(user, "role", "") or "").lower()
+
+    from cma_engine import get_cma
+    from cma_pdf_renderer import render_cma_pdf
+
+    cma = await get_cma(db, cma_id)
+    if not cma:
+        raise HTTPException(404, "CMA no encontrado")
+    if cma.get("asesor_id") != asesor_id and role != "superadmin":
+        raise HTTPException(403, "Sin acceso a este CMA")
+
+    try:
+        pdf_bytes = await render_cma_pdf(db, cma_id, asesor_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    except Exception as exc:
+        log.exception(f"[cma.pdf] render failed · {exc}")
+        raise HTTPException(500, "Error al generar PDF")
+
+    colonia = (cma.get("subject_property") or {}).get("colonia_slug", "cma")
+    from datetime import datetime as _dt
+    date_str = _dt.now().strftime("%Y%m%d")
+    filename = f"CMA_{colonia}_{date_str}.pdf"
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(pdf_bytes)),
+        },
+    )

@@ -48,6 +48,25 @@ export async function fetchPublicProfile(asesorId) {
   return r.json();
 }
 
+// W5.ASR.4 Parte 2 — Subdomain slug resolver
+export async function fetchPublicProfileBySlug(slug) {
+  const r = await fetch(`${API}/api/asesor-identity/by-slug/${encodeURIComponent(slug)}`);
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.detail || 'Asesor no encontrado');
+  }
+  return r.json();
+}
+
+export async function fetchMySlug() {
+  const r = await fetch(`${API}/api/asesor-identity/me/slug`, { credentials: 'include' });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.detail || 'Sin slug');
+  }
+  return r.json();
+}
+
 // ─── LinkedIn (auth asesor) ────────────────────────────────────────────────
 
 export async function importLinkedIn({ linkedinUrl, profileData }) {

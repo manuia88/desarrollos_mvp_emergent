@@ -31,6 +31,38 @@ export const getCMA = (cmaId) =>
 export const getPublicCMA = (cmaId) =>
   j(`/api/public/cma/${cmaId}`);
 
+// ─── W5.ASR.4 Parte 2 · PDF + Share meta ───────────────────────────────────
+export const downloadCMAPdf = async (cmaId) => {
+  const r = await fetch(`${API}/api/asesor/cma/${cmaId}/pdf`, { credentials: 'include' });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(e.detail || 'Error al generar PDF'), { status: r.status });
+  }
+  const blob = await r.blob();
+  const cd = r.headers.get('Content-Disposition') || '';
+  const m = /filename="([^"]+)"/.exec(cd);
+  const filename = m ? m[1] : `CMA_${cmaId}.pdf`;
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+  return filename;
+};
+
+export const getCMAShareMeta = (cmaId) =>
+  j(`/api/share/cma/${cmaId}/meta`);
+
+export const cmaOgImageUrl = (cmaId) =>
+  `${API}/api/share/cma/${cmaId}/og-image`;
+
 // Helper para construir URL pública compartible
 export const publicCMAUrl = (cmaId) =>
   `${window.location.origin}/cma-publico/${cmaId}`;
+
+// W5.ASR.4 Parte 2 — URL con subdomain del asesor
+export const subdomainCMAUrl = (slug, cmaId) =>
+  `https://${slug}.asesores.desarrollosmx.io/cma/${cmaId}`;
