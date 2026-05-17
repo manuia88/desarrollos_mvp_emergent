@@ -1582,6 +1582,24 @@ async def startup():
         await ensure_cross_partnership_indexes(db)
     except Exception as e:
         logging.warning(f"[batch37] indexes failed: {e}")
+
+    # W5.4 — Buyer Score Motor + Cron (02:45 UTC)
+    try:
+        from buyer_score_engine import ensure_buyer_score_indexes
+        from routes.buyer_score import router as buyer_score_router
+        await ensure_buyer_score_indexes(db)
+        app.include_router(buyer_score_router)
+        logging.info("[w5.4] buyer_score indexes OK · router registered")
+    except Exception as e:
+        logging.warning(f"[w5.4] buyer_score init failed: {e}")
+    try:
+        from buyer_score_cron import register_buyer_score_job
+        if sched:
+            register_buyer_score_job(sched, db)
+        logging.info("[w5.4] buyer_score cron @ 02:45 UTC")
+    except Exception as e:
+        logging.warning(f"[w5.4] buyer_score cron register failed: {e}")
+
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:

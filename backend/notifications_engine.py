@@ -24,7 +24,7 @@ NOTIF_TYPES = {
     "cron_failed", "saved_zone_alert", "message_pending",
     "listing_view_repeat", "comparable_price_drop", "drop_off_pico",
     "tenant_signup", "api_limit_warn", "lfpdppp_dsr", "audit_suspicious",
-    "nurture_cooldown", "forecast_trend_alert", "generic",
+    "nurture_cooldown", "forecast_trend_alert", "buyer_hot_jump", "generic",
 }
 
 RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
@@ -47,6 +47,7 @@ DEFAULT_CATEGORIES = {
     "audit_suspicious":      {"in_app": True, "email": True,  "whatsapp": False},
     "nurture_cooldown":      {"in_app": True, "email": False, "whatsapp": False},
     "forecast_trend_alert":  {"in_app": True, "email": True,  "whatsapp": False},
+    "buyer_hot_jump":        {"in_app": True, "email": True,  "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 
@@ -722,3 +723,77 @@ async def ensure_notifications_indexes(db) -> None:
         log.info("[notifications] indexes OK")
     except Exception as exc:
         log.warning(f"[notifications] index creation warning: {exc}")
+
+
+async def rule_buyer_hot_jump(
+    db,
+    buyer_user_id: str,
+    prev_score: float,
+    new_score: float,
+    tier: str,
+) -> Optional[str]:
+    """W5.4 Sub-D — Emite alerta al asesor cuando el buyer sube ≥10 puntos de score.
+
+    Idempotencia 7d: una sola notif por (asesor_id, buyer_user_id) por semana.
+    """
+    if new_score - prev_score < 10:
+        return None
+
+    # Obtener nombre del buyer
+    buyer_user = await db.users.find_one(
+        {"user_id": buyer_user_id}, {"_id": 0, "first_name": 1, "last_name": 1, "email": 1}
+    )
+    buyer_name = (
+        f"{(buyer_user or {}).get('first_name', '')} {(buyer_user or {}).get('last_name', '')}".strip()
+        or (buyer_user or {}).get("email", buyer_user_id)
+    )
+
+    # Buscar asesor responsable: leads con email del buyer
+    asesor_id: Optional[str] = None
+    buyer_email = (buyer_user or {}).get("email", "")
+    if buyer_email:
+        lead = await db.leads.find_one(
+            {"email": buyer_email},
+            {"_id": 0, "asesor_id": 1, "owner_id": 1},
+            sort=[("created_at", -1)],
+        )
+        asesor_id = (lead or {}).get("asesor_id") or (lead or {}).get("owner_id")
+
+    if not asesor_id:
+        # Intentar en buyer_assignments
+        assignment = await db.buyer_assignments.find_one(
+            {"buyer_user_id": buyer_user_id}, {"_id": 0, "asesor_id": 1}
+        )
+        asesor_id = (assignment or {}).get("asesor_id")
+
+    if not asesor_id:
+        log.warning(f"[notif] buyer_hot_jump: sin asesor responsable para buyer {buyer_user_id} · skip")
+        return None
+
+    # Idempotencia 7d
+    cutoff_str = (_now() - timedelta(days=7)).isoformat()
+    existing = await db.notifications.find_one({
+        "user_id": asesor_id,
+        "type": "buyer_hot_jump",
+        "payload.buyer_user_id": buyer_user_id,
+        "created_at": {"$gte": cutoff_str},
+    })
+    if existing:
+        log.info(f"[notif] buyer_hot_jump duplicate suprimido · asesor={asesor_id} buyer={buyer_user_id}")
+        return None
+
+    tier_label = {"hot": "ACTIVO", "warm": "tibio", "cold": "frio"}.get(tier, tier)
+    copy = (
+        f"{buyer_name} subio de score {int(prev_score)} a {int(new_score)} ({tier_label}) · contactalo ahora"
+    )
+
+    return await emit_notification(
+        db,
+        user_id=asesor_id,
+        type="buyer_hot_jump",
+        severity="high",
+        title="Buyer activo — score elevado",
+        body=copy,
+        payload={"buyer_user_id": buyer_user_id, "prev_score": prev_score, "new_score": new_score, "tier": tier},
+        action_url="/asesor/contactos?score_min=75",
+    )

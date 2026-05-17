@@ -2380,5 +2380,29 @@
     "collapse": "Ocultar",
     "zone_loading": "Generando narrativa AI…",
     "zone_error": "Narrativa aun no disponible"
+  },
+  "buyer_score": {
+    "title": "Score Comprador",
+    "tier_hot": "ACTIVO",
+    "tier_warm": "TIBIO",
+    "tier_cold": "FRIO",
+    "sort_by_score": "Por score (alto a bajo)",
+    "sort_by_date": "Por fecha de creacion",
+    "score_min_label": "Score minimo",
+    "score_any": "cualquiera",
+    "filter_chip_hot": "Solo activos (≥75)",
+    "no_score": "Sin score disponible",
+    "summary_title": "Distribucion buyer scores",
+    "trigger_recompute": "Recomputar ahora",
+    "recompute_success": "Recompute completado",
+    "components": {
+      "behavioral_pct": "Comportamiento",
+      "match_pct": "Match zonas",
+      "coach_stage_pct": "Etapa coach",
+      "quiz_completed_pct": "Quiz completado",
+      "favoritos_pct": "Favoritos",
+      "visitas_pct": "Visitas agendadas",
+      "apify_enrichment_pct": "Busquedas externas"
+    }
   }
 }

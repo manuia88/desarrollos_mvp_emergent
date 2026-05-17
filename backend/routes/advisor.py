@@ -244,7 +244,13 @@ async def dashboard(request: Request):
 
 # ─── Contactos ────────────────────────────────────────────────────────────────
 @router.get("/contactos")
-async def list_contactos(request: Request, q: Optional[str] = None, tipo: Optional[str] = None, temp: Optional[str] = None):
+async def list_contactos(
+    request: Request,
+    q: Optional[str] = None,
+    tipo: Optional[str] = None,
+    temp: Optional[str] = None,
+    score_min: Optional[int] = None,
+):
     user = await require_advisor(request)
     db = get_db(request)
     flt = {"owner_id": user.user_id}
@@ -257,6 +263,46 @@ async def list_contactos(request: Request, q: Optional[str] = None, tipo: Option
             {"phones": {"$regex": q}},
         ]
     items = await db.asesor_contactos.find(flt, {"_id": 0}).sort("created_at", -1).limit(500).to_list(500)
+
+    # W5.4 Sub-B — JOIN buyer_scores vía email → user_id
+    try:
+        all_emails = list({(c.get("emails") or [None])[0] for c in items if (c.get("emails") or [None])[0]})
+        email_to_uid: dict = {}
+        if all_emails:
+            async for u in db.users.find(
+                {"email": {"$in": all_emails}},
+                {"_id": 0, "user_id": 1, "email": 1},
+            ):
+                if u.get("user_id") and u.get("email"):
+                    email_to_uid[u["email"]] = u["user_id"]
+
+        uids = list(email_to_uid.values())
+        scores_map: dict = {}
+        if uids:
+            async for s in db.buyer_scores.find(
+                {"user_id": {"$in": uids}},
+                {"_id": 0, "user_id": 1, "score": 1, "tier": 1, "delta_pct": 1},
+            ):
+                scores_map[s["user_id"]] = {
+                    "value": s.get("score", 0),
+                    "tier": s.get("tier", "cold"),
+                    "delta_pct": s.get("delta_pct", 0),
+                }
+
+        for c in items:
+            email = (c.get("emails") or [None])[0]
+            uid = email_to_uid.get(email) if email else None
+            c["buyer_score"] = scores_map.get(uid) if uid else None
+    except Exception as _e:
+        import logging as _l
+        _l.getLogger("dmx.advisor").warning(f"[advisor] buyer_score JOIN failed: {_e}")
+        for c in items:
+            c["buyer_score"] = None
+
+    # Filtrar por score_min si se proporciona
+    if score_min is not None and score_min > 0:
+        items = [c for c in items if (c.get("buyer_score") or {}).get("value", 0) >= score_min]
+
     return items
 
 

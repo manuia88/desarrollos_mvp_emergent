@@ -327,6 +327,19 @@ async def respond(db, conversation_id: str, user_message: str) -> Dict[str, Any]
     # Suggested next actions based on stage
     next_actions = _suggested_actions(new_stage, len(messages))
 
+    # W5.4 Sub-C — recomputa buyer_score post-respond (si hay user_id en la conversación)
+    _conv_user_id = conv.get("user_id") or None
+    if _conv_user_id:
+        try:
+            from buyer_score_engine import compute_user_score, upsert_score
+            _score_data = await compute_user_score(db, _conv_user_id)
+            await upsert_score(db, _conv_user_id, _score_data)
+        except Exception as _exc:
+            import logging as _log
+            _log.getLogger("dmx.buyer_coach").warning(
+                f"[buyer_coach] score recompute post-respond failed for {_conv_user_id}: {_exc}"
+            )
+
     return {
         "assistant_reply": assistant_reply,
         "current_stage": new_stage,
