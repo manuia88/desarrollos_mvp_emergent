@@ -1,11 +1,12 @@
 // /asesor/contactos — list + detail drawer with argumentario AI
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
 import { Search, Sparkle, MessageSquare, ArrowRight } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
+import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
 
 const TIPOS = ['comprador', 'vendedor', 'propietario', 'inversor', 'broker'];
 const TEMPS = ['frio', 'tibio', 'caliente', 'cliente'];
@@ -13,10 +14,13 @@ const TEMPS = ['frio', 'tibio', 'caliente', 'cliente'];
 export default function AsesorContactos({ user, onLogout }) {
   const { id } = useParams();
   const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState([]);
   const [q, setQ] = useState('');
   const [tipo, setTipo] = useState('');
   const [temp, setTemp] = useState('');
+  const [scoreMin, setScoreMin] = useState(() => parseInt(searchParams.get('score_min') || '0', 10));
+  const [sortBy, setSortBy] = useState('score');
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState(null);
@@ -27,12 +31,25 @@ export default function AsesorContactos({ user, onLogout }) {
   const load = async () => {
     setLoading(true);
     try {
-      const items = await api.listContactos({ q, tipo, temp });
+      const params = { q, tipo, temp };
+      if (scoreMin > 0) params.score_min = scoreMin;
+      const items = await api.listContactos(params);
+      // Sort client-side
+      if (sortBy === 'score') {
+        items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
+      }
       setList(items);
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, tipo, temp]);
+  // Sync score_min to URL
+  useEffect(() => {
+    const params = {};
+    if (scoreMin > 0) params.score_min = String(scoreMin);
+    setSearchParams(params, { replace: true });
+  }, [scoreMin]); // eslint-disable-line
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, tipo, temp, scoreMin, sortBy]);
 
   useEffect(() => {
     if (id) {
@@ -79,6 +96,32 @@ export default function AsesorContactos({ user, onLogout }) {
             <option value="">Temperatura · todas</option>
             {TEMPS.map(x => <option key={x} value={x}>{x}</option>)}
           </select>
+          {/* W5.4 Sub-B — Sort por score */}
+          <select
+            data-testid="sort-by-select"
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            className="asr-select"
+          >
+            <option value="score">Por score (alto a bajo)</option>
+            <option value="created_at">Por fecha de creacion</option>
+          </select>
+          {/* W5.4 Sub-B — Filtro score minimo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 180 }}>
+            <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>
+              Score min: <strong style={{ color: scoreMin > 0 ? '#86efac' : 'var(--cream-2)' }}>{scoreMin > 0 ? scoreMin : 'cualquiera'}</strong>
+            </span>
+            <input
+              data-testid="score-min-slider"
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={scoreMin}
+              onChange={e => setScoreMin(Number(e.target.value))}
+              style={{ flex: 1, cursor: 'pointer', accentColor: '#6366f1' }}
+            />
+          </div>
         </div>
       </Card>
 
@@ -89,7 +132,7 @@ export default function AsesorContactos({ user, onLogout }) {
             <table data-testid="contacts-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Nombre', 'Tipo', 'Temperatura', 'Tags', 'Teléfono', 'Email', ''].map(c => (
+                  {['Nombre', 'Tipo', 'Temperatura', 'Score', 'Tags', 'Teléfono', 'Email', ''].map(c => (
                     <th key={c} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{c}</th>
                   ))}
                 </tr>
@@ -107,6 +150,15 @@ export default function AsesorContactos({ user, onLogout }) {
                       <Badge tone={c.temperatura === 'caliente' ? 'bad' : c.temperatura === 'tibio' ? 'warn' : c.temperatura === 'cliente' ? 'ok' : 'neutral'}>
                         {c.temperatura}
                       </Badge>
+                    </td>
+                    {/* W5.4 Sub-B — Buyer Score Badge */}
+                    <td style={{ padding: '11px 14px' }} data-testid={`score-cell-${c.id}`}>
+                      <BuyerScoreBadge
+                        score={c.buyer_score?.value}
+                        tier={c.buyer_score?.tier}
+                        delta={c.buyer_score?.delta_pct}
+                        size="sm"
+                      />
                     </td>
                     <td style={{ padding: '11px 14px', color: 'var(--cream-3)', fontSize: 12 }}>
                       {(c.tags || []).slice(0, 3).join(' · ')}
