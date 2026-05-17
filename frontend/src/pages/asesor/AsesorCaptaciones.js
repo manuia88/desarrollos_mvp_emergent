@@ -1,8 +1,10 @@
 // /asesor/captaciones — Kanban 6 stages with min-fields gate
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
+import SmartListsSidebar from '../../components/asesor/SmartListsSidebar';
 
 const STAGES = [
   { k: 'pendiente',     label: 'Pendiente',     tone: 'neutral' },
@@ -19,12 +21,18 @@ export default function AsesorCaptaciones({ user, onLogout }) {
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState(null);
   const [dragging, setDragging] = useState(null);
+  const nav = useNavigate();
 
   const load = async () => {
     setLoading(true);
     try { setItems(await api.listCaptaciones()); } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+
+  // W5.ASR.3 Parte 1 — Click en preset navega a /asesor/contactos con filtro aplicado
+  const handleSelectPreset = (presetKey) => {
+    nav(`/asesor/contactos?smart_list=${encodeURIComponent(presetKey)}`);
+  };
 
   const onDrop = async (stage) => {
     if (!dragging) return;
@@ -48,6 +56,18 @@ export default function AsesorCaptaciones({ user, onLogout }) {
           </button>
         }
       />
+
+      <div
+        data-testid="captaciones-layout"
+        style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}
+        className="captaciones-layout">
+        <SmartListsSidebar
+          activePreset={null}
+          onSelectPreset={handleSelectPreset}
+          onClear={() => { /* no-op aquí · el filtro vive en contactos */ }}
+        />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
 
       {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
         : items.length === 0 ? <Empty title="Sin captaciones" sub="Inicia tu primera captación." />
@@ -104,6 +124,15 @@ export default function AsesorCaptaciones({ user, onLogout }) {
       </Drawer>
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
+
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .captaciones-layout { flex-direction: column; }
+        }
+      `}</style>
     </AdvisorLayout>
   );
 }
