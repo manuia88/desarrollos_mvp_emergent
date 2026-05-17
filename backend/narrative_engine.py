@@ -14,13 +14,18 @@ Schema ie_narratives:
 """
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
+
+log = logging.getLogger("dmx.narrative")
 
 from recipes.narrative.prompts import (
     PROMPT_VERSION,
@@ -39,6 +44,20 @@ DRIFT_THRESHOLD = 5.0           # abs punto diff en cualquier score N1-N4 → in
 
 pub_router = APIRouter(prefix="/api", tags=["narratives"])
 sa_router = APIRouter(prefix="/api/superadmin", tags=["narratives-admin"])
+
+# Rate limit para /narrative/scenario: 30 llamadas/min por IP
+_scenario_ip_buckets: Dict[str, List[float]] = {}
+SCENARIO_IP_CAP = 30
+
+
+def _check_scenario_rate(ip: str) -> bool:
+    now = time.monotonic()
+    bucket = _scenario_ip_buckets.setdefault(ip, [])
+    _scenario_ip_buckets[ip] = [t for t in bucket if now - t < 60]
+    if len(_scenario_ip_buckets[ip]) >= SCENARIO_IP_CAP:
+        return False
+    _scenario_ip_buckets[ip].append(now)
+    return True
 
 
 def _ensure_aware(dt):
@@ -222,6 +241,321 @@ async def get_or_generate(db, scope: str, entity_id: str, force: bool = False) -
     await db.ie_narratives.insert_one(doc)
     doc.pop("_id", None)
     return {**doc, "cache_hit": False}
+
+
+# ─── Helper: narrativa corta por zona (Sub-C / Sub-D) ────────────────────────
+
+_SHORT_SYSTEM = (
+    "Eres analista inmobiliario CDMX de DesarrollosMX. "
+    "Genera UNA sola oración (máximo 50 palabras) que describa el diferenciador principal de esta colonia. "
+    "Solo datos objetivos, español es-MX, sin emojis, sin markdown. Cierra con 'DMX no opina, mide.'"
+)
+
+
+def _first_sentence(text: str, max_words: int = 50) -> str:
+    """Extrae primera oración y aplica hard cap de palabras."""
+    parts = text.replace("\n", " ").split(". ")
+    first = (parts[0].strip() + ".") if parts else text.strip()
+    words = first.split()
+    if len(words) > max_words:
+        first = " ".join(words[:max_words]) + "…"
+    return first
+
+
+async def get_zone_narrative_short(db, zone_slug: str) -> Optional[str]:
+    """Retorna primera oración de la narrativa cacheada de la zona (max 50 palabras).
+
+    Prioridad:
+    1. Cache hit en ie_narratives → extrae primera oración.
+    2. Sin cache → genera con prompt corto via Claude (50 palabras).
+    3. Si falla por cualquier razón → retorna None silenciosamente.
+    """
+    slug_db = zone_slug.replace("-", "_")
+    slug_dash = zone_slug.replace("_", "-")
+
+    # 1. Buscar en cache (acepta ambas formas de slug)
+    try:
+        existing = await db.ie_narratives.find_one(
+            {
+                "scope": "colonia",
+                "entity_id": {"$in": [slug_db, slug_dash]},
+                "expires_at": {"$gt": _now()},
+            },
+            {"_id": 0, "narrative_text": 1},
+            sort=[("generated_at", -1)],
+        )
+        if existing and existing.get("narrative_text"):
+            return _first_sentence(existing["narrative_text"])
+    except Exception as exc:
+        log.warning(f"[narrative_short] cache lookup failed for {zone_slug}: {exc}")
+
+    # 2. Intentar generar narrativa corta
+    try:
+        used = await _session_budget_used(db)
+        if used >= SESSION_BUDGET_CAP_USD:
+            return None
+
+        scores = await _fetch_scores_map(db, slug_db)
+        if not scores:
+            scores = await _fetch_scores_map(db, slug_dash)
+        if not scores or all(d.get("value") is None for d in scores.values()):
+            return None
+
+        score_lines = ", ".join(
+            f"{k}={float(d['value']):.0f}"
+            for k, d in sorted(scores.items())
+            if d.get("value") is not None
+        )[:4 * 10]  # cap string length
+
+        user_prompt = (
+            f"Colonia: {zone_slug} (CDMX). "
+            f"Scores IE disponibles: {score_lines}. "
+            "Escribe UNA sola oración (max 50 palabras) sobre su diferenciador principal. "
+            "Cierra con 'DMX no opina, mide.'"
+        )
+        out = await _generate_narrative("colonia_short", slug_db, _SHORT_SYSTEM, user_prompt)
+        text = out.get("text", "").strip()
+        if text:
+            return _first_sentence(text)
+    except Exception as exc:
+        log.warning(f"[narrative_short] generation failed for {zone_slug}: {exc}")
+
+    return None
+
+
+# ─── Scenario: endpoint + modelo ─────────────────────────────────────────────
+
+class ScenarioNarrativeOut(BaseModel):
+    colonia: str
+    scenario_narrative: str
+    cache_hit: bool = False
+    partial: bool = False
+    scenario_inputs: Dict[str, Any]
+    generated_at: datetime
+    expires_at: datetime
+    model: str
+
+
+@pub_router.get("/narrative/scenario", response_model=ScenarioNarrativeOut)
+async def public_scenario_narrative(
+    request: Request,
+    colonia: str = Query(..., description="Slug de la colonia"),
+    m2: float = Query(80, ge=10, le=2000),
+    rec: int = Query(2, ge=0, le=10),
+    ban: int = Query(2, ge=0, le=10),
+    age: int = Query(8, ge=0, le=150),
+):
+    """W5.6 Sub-B — Narrativa multi-escenario: compra ahora vs esperar 12 meses."""
+    ip = request.client.host if request.client else "unknown"
+    if not _check_scenario_rate(ip):
+        raise HTTPException(429, "Límite de 30 solicitudes/min alcanzado. Intenta en un momento.")
+
+    db = request.app.state.db
+
+    # Clave de caché incluye inputs
+    cache_id = f"scenario_{colonia}_{int(m2)}_{rec}_{ban}_{age}"
+
+    # Cache lookup
+    existing = await db.ie_narratives.find_one(
+        {"scope": "scenario", "entity_id": cache_id},
+        {"_id": 0},
+        sort=[("generated_at", -1)],
+    )
+    if (
+        existing
+        and existing.get("expires_at")
+        and _ensure_aware(existing["expires_at"]) > _now()
+    ):
+        return ScenarioNarrativeOut(
+            colonia=colonia,
+            scenario_narrative=existing.get("narrative_text", ""),
+            cache_hit=True,
+            partial=existing.get("partial", False),
+            scenario_inputs=existing.get("scenario_inputs", {}),
+            generated_at=existing["generated_at"],
+            expires_at=existing["expires_at"],
+            model=existing.get("model", ""),
+        )
+
+    # Budget gate
+    used = await _session_budget_used(db)
+    if used >= SESSION_BUDGET_CAP_USD:
+        if existing:
+            return ScenarioNarrativeOut(
+                colonia=colonia,
+                scenario_narrative=existing.get("narrative_text", ""),
+                cache_hit=True,
+                partial=existing.get("partial", False),
+                scenario_inputs=existing.get("scenario_inputs", {}),
+                generated_at=existing["generated_at"],
+                expires_at=existing["expires_at"],
+                model=existing.get("model", ""),
+            )
+        raise HTTPException(429, f"Cap de presupuesto LLM alcanzado ({used:.2f}/{SESSION_BUDGET_CAP_USD} USD/h).")
+
+    # Fetch en paralelo: AVM + forecast + subscores
+    from avm_public_engine import avm_quick_async
+    from forecast_engine import get_zone_forecast
+    from zone_score_engine import get_zone_with_subscores
+
+    avm_result, forecast_result, subscores_result = await asyncio.gather(
+        avm_quick_async(db, colonia, m2, rec, ban, age),
+        get_zone_forecast(db, colonia),
+        get_zone_with_subscores(db, colonia),
+        return_exceptions=True,
+    )
+
+    partial = False
+
+    # AVM
+    avm_now = 0.0
+    avm_low = 0.0
+    avm_high = 0.0
+    if isinstance(avm_result, Exception) or (isinstance(avm_result, dict) and "error" in avm_result):
+        partial = True
+    elif isinstance(avm_result, dict):
+        avm_now = float(avm_result.get("precio_estimado") or 0)
+        avm_low = float(avm_result.get("range_low") or 0)
+        avm_high = float(avm_result.get("range_high") or 0)
+
+    # Forecast
+    forecast_12m_value = None
+    forecast_12m_delta_pct = None
+    forecast_24m_value = None
+    if isinstance(forecast_result, Exception) or not forecast_result:
+        partial = True
+    elif isinstance(forecast_result, dict) and forecast_result.get("horizons"):
+        h12 = (forecast_result["horizons"] or {}).get("12m") or {}
+        h24 = (forecast_result["horizons"] or {}).get("24m") or {}
+        forecast_12m_value = h12.get("value")
+        forecast_12m_delta_pct = h12.get("delta_pct")
+        forecast_24m_value = h24.get("value")
+
+    # Subscores
+    subscores: Dict[str, Optional[float]] = {}
+    zone_name = colonia
+    if isinstance(subscores_result, Exception) or not subscores_result:
+        partial = True
+    elif isinstance(subscores_result, dict):
+        zone_name = subscores_result.get("name") or colonia
+        raw_subs = subscores_result.get("subscores") or {}
+        subscores = {k: v for k, v in raw_subs.items() if v is not None}
+
+    # Si no tenemos AVM, usar fallback numérico conservador
+    if avm_now <= 0:
+        avm_now = 0.0
+        avm_low = 0.0
+        avm_high = 0.0
+        partial = True
+
+    # Generar narrativa
+    from recipes.narrative.prompts_scenario import (
+        PROMPT_VERSION_SCENARIO,
+        SYSTEM_PROMPT_SCENARIO,
+        build_user_prompt_scenario,
+    )
+
+    user_prompt = build_user_prompt_scenario(
+        zone_name=zone_name,
+        colonia=colonia,
+        avm_now=avm_now,
+        avm_low=avm_low,
+        avm_high=avm_high,
+        forecast_12m_value=forecast_12m_value,
+        forecast_12m_delta_pct=forecast_12m_delta_pct,
+        forecast_24m_value=forecast_24m_value,
+        subscores=subscores,
+    )
+
+    # Fallback genérica si no hay datos suficientes
+    if partial and avm_now <= 0 and not forecast_12m_delta_pct:
+        fallback_text = (
+            f"{zone_name} es una colonia en CDMX con inventario activo en DesarrollosMX. "
+            "Para un análisis multi-escenario completo se requieren datos AVM y forecast para esta zona. "
+            "Consulta el widget AVM individual para una estimación personalizada. DMX no opina, mide."
+        )
+        now = _now()
+        scenario_inputs = {"colonia": colonia, "m2": m2, "rec": rec, "ban": ban, "age": age}
+        doc = {
+            "id": uuid.uuid4().hex,
+            "scope": "scenario",
+            "entity_id": cache_id,
+            "narrative_text": fallback_text,
+            "prompt_version": PROMPT_VERSION_SCENARIO,
+            "scenario_inputs": scenario_inputs,
+            "partial": True,
+            "scores_snapshot": {},
+            "generated_at": now,
+            "expires_at": now + timedelta(hours=6),  # TTL corto para fallback
+            "model": "fallback",
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cost_usd": 0.0,
+        }
+        await db.ie_narratives.insert_one(doc)
+        doc.pop("_id", None)
+        return ScenarioNarrativeOut(
+            colonia=colonia,
+            scenario_narrative=fallback_text,
+            cache_hit=False,
+            partial=True,
+            scenario_inputs=scenario_inputs,
+            generated_at=now,
+            expires_at=now + timedelta(hours=6),
+            model="fallback",
+        )
+
+    out = await _generate_narrative("scenario", cache_id, SYSTEM_PROMPT_SCENARIO, user_prompt)
+
+    # Hard cap 200 palabras
+    words = out["text"].split()
+    if len(words) > 200:
+        out["text"] = " ".join(words[:200]) + "…"
+
+    now = _now()
+    scenario_inputs = {"colonia": colonia, "m2": m2, "rec": rec, "ban": ban, "age": age}
+    doc = {
+        "id": uuid.uuid4().hex,
+        "scope": "scenario",
+        "entity_id": cache_id,
+        "narrative_text": out["text"],
+        "prompt_version": PROMPT_VERSION_SCENARIO,
+        "scenario_inputs": scenario_inputs,
+        "partial": partial,
+        "scores_snapshot": {},
+        "generated_at": now,
+        "expires_at": now + timedelta(days=CACHE_TTL_DAYS),
+        "model": out["model"],
+        "input_tokens": out["input_tokens"],
+        "output_tokens": out["output_tokens"],
+        "cost_usd": out["cost_usd"],
+    }
+
+    try:
+        from ai_budget import track_ai_call
+        await track_ai_call(
+            db, "narrative_engine", out["model"],
+            out["input_tokens"] + out["output_tokens"],
+            "narrative_scenario",
+            tokens_in=out["input_tokens"],
+            tokens_out=out["output_tokens"],
+            feature_key="narrative_engine",
+        )
+    except Exception:
+        pass
+
+    await db.ie_narratives.insert_one(doc)
+    doc.pop("_id", None)
+    return ScenarioNarrativeOut(
+        colonia=colonia,
+        scenario_narrative=out["text"],
+        cache_hit=False,
+        partial=partial,
+        scenario_inputs=scenario_inputs,
+        generated_at=now,
+        expires_at=now + timedelta(days=CACHE_TTL_DAYS),
+        model=out["model"],
+    )
 
 
 # ─── Endpoints públicos ──────────────────────────────────────────────────────

@@ -186,6 +186,15 @@ async def _build_context(db, entity_type: str, entity_id: str) -> Dict[str, Any]
                             ctx["forecast_zone_name"] = _zone_lead
                     except Exception:
                         pass
+                # W5.6 Sub-D — narrative_short para argumentario de lead
+                if _zone_lead:
+                    try:
+                        from narrative_engine import get_zone_narrative_short
+                        _ns = await get_zone_narrative_short(db, _zone_lead)
+                        if _ns:
+                            ctx["narrative_zone_short"] = _ns
+                    except Exception:
+                        pass
         elif entity_type == "unit":
             # entity_id format: "{dev_id}:{unit_id}" or just unit_id
             parts = entity_id.split(":")
@@ -276,6 +285,14 @@ async def _call_claude(db, dev_org_id: str, entity_type: str,
 
     system = _SYSTEM_BASE + "\n\n" + _SYSTEM_BY_TYPE.get(entity_type, "")
 
+    # W5.6 Sub-D — Prepend narrative_zone_short si disponible
+    narrative_zone_block = ""
+    _ns = ctx.get("narrative_zone_short")
+    if _ns:
+        narrative_zone_block = (
+            f"CONTEXTO ZONA: {_ns}. Usa este contexto para personalizar tu argumentario.\n\n"
+        )
+
     # W5.3 Parte 2B Sub-D — Prepend forecast block si aplica
     forecast_block = ""
     _f12 = ctx.get("forecast_delta_12m_pct")
@@ -292,7 +309,7 @@ async def _call_claude(db, dev_org_id: str, entity_type: str,
             f"Usa estos números cuando ayuden a cerrar.\n\n"
         )
 
-    user_text = forecast_block + "CONTEXTO:\n" + json.dumps(ctx, ensure_ascii=False, default=str)
+    user_text = narrative_zone_block + forecast_block + "CONTEXTO:\n" + json.dumps(ctx, ensure_ascii=False, default=str)
 
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
