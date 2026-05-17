@@ -96,3 +96,105 @@ async def get_leads_in_preset(
         "limit": limit,
         "offset": offset,
     }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# W5.ASR.3 Parte 2 — Broker rollup cross-asesor (director/admin only)
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Cache rollup por org_id (TTL 5 min)
+import time as _rt_time
+_ROLLUP_CACHE: Dict[str, tuple] = {}
+_ROLLUP_TTL_S = 300
+_ROLLUP_RATE: Dict[str, list] = {}
+
+
+async def _auth_director(request: Request):
+    """Auth para director/admin de inmobiliaria. Roles permitidos:
+    developer_admin · developer_director · inmobiliaria_admin · superadmin.
+    """
+    from server import get_current_user
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    role = (getattr(user, "role", "") or "").lower()
+    allowed = {"developer_admin", "developer_director",
+               "inmobiliaria_admin", "superadmin"}
+    if role not in allowed:
+        raise HTTPException(403, "Solo directores/admins de inmobiliaria")
+    return user
+
+
+@router.get("/api/inmobiliaria/smart-lists/rollup")
+async def get_smart_lists_rollup(request: Request) -> Dict[str, Any]:
+    """Rollup cross-asesor: por cada preset · total + breakdown per_asesor."""
+    user = await _auth_director(request)
+    db = _db(request)
+    role = (getattr(user, "role", "") or "").lower()
+    org_id = getattr(user, "tenant_id", None) or "default"
+    cache_key = f"{org_id}::{role}"
+
+    # Rate-limit 30/min/(org+role)
+    now_mono = _rt_time.monotonic()
+    bucket = _ROLLUP_RATE.setdefault(cache_key, [])
+    pruned = [t for t in bucket if now_mono - t < 60]
+    _ROLLUP_RATE[cache_key] = pruned
+    if len(pruned) >= 30:
+        raise HTTPException(429, "Límite 30/min alcanzado")
+    pruned.append(now_mono)
+
+    # Cache hit
+    entry = _ROLLUP_CACHE.get(cache_key)
+    if entry and (_rt_time.monotonic() - entry[1]) < _ROLLUP_TTL_S:
+        return {**entry[0], "_cache": "hit"}
+
+    # Resolver asesores del org
+    asesor_filter: Dict[str, Any] = {"role": {"$in": ["advisor", "asesor_admin",
+                                                      "asesor_freelance"]}}
+    if role != "superadmin":
+        asesor_filter["tenant_id"] = org_id
+    asesores: List[Dict[str, str]] = []
+    async for u in db.users.find(
+        asesor_filter,
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1},
+    ).limit(500):
+        if u.get("user_id"):
+            asesores.append({
+                "asesor_id": u["user_id"],
+                "asesor_name": u.get("name") or u.get("email") or u["user_id"],
+            })
+
+    from smart_lists_engine import PRESETS, count_lead_in_preset
+    rollup: Dict[str, Any] = {}
+    for preset_key in PRESETS.keys():
+        per_asesor_rows: List[Dict[str, Any]] = []
+        total = 0
+        for ase in asesores:
+            try:
+                c = await count_lead_in_preset(db, preset_key, ase["asesor_id"])
+            except Exception:
+                c = 0
+            total += c
+            per_asesor_rows.append({
+                "asesor_id": ase["asesor_id"],
+                "asesor_name": ase["asesor_name"],
+                "count": c,
+            })
+        # Orden desc por count para top 3 fácil consumo
+        per_asesor_rows.sort(key=lambda r: r["count"], reverse=True)
+        rollup[preset_key] = {
+            "label": PRESETS[preset_key]["label"],
+            "color": PRESETS[preset_key]["color"],
+            "icon": PRESETS[preset_key]["icon"],
+            "total": total,
+            "per_asesor": per_asesor_rows,
+            "top_3": per_asesor_rows[:3],
+        }
+
+    response = {
+        "org_id": org_id,
+        "asesores_count": len(asesores),
+        "rollup": rollup,
+    }
+    _ROLLUP_CACHE[cache_key] = (response, _rt_time.monotonic())
+    return {**response, "_cache": "miss"}

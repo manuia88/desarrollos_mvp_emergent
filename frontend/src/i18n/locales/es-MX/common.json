@@ -2500,6 +2500,17 @@
         "label": "En negociación",
         "description": "En etapa de negociación"
       }
+    },
+    "rollup": {
+      "section_title": "Smart Lists del equipo",
+      "loading": "Cargando rollup…",
+      "asesores_count_label": "asesores · click para drill-down",
+      "drill_down_title": "Smart list · breakdown",
+      "table_header_asesor": "Asesor",
+      "table_header_count": "Count",
+      "table_header_pct": "% del total",
+      "no_data": "Sin datos",
+      "no_asesores": "Sin asesores activos"
     }
   }
 }
