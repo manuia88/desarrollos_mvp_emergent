@@ -87,9 +87,9 @@ export default function DuplicateDiffCard({ canonical = {}, candidate = {}, brea
             </div>
           );
         })}
-        <div style={{ background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.28)', borderRadius: 6, padding: '4px 10px', display: 'flex', gap: 5, alignItems: 'center' }}>
-          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: '#a5b4fc', textTransform: 'uppercase' }}>TOTAL</span>
-          <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: '#a5b4fc' }}>
+        <div style={{ background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.28)', borderRadius: 6, padding: '4px 10px', display: 'flex', gap: 5, alignItems: 'center' }}>
+          <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--theme-2)', textTransform: 'uppercase' }}>TOTAL</span>
+          <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--theme-2)' }}>
             {Object.entries(BREAKDOWN_WEIGHTS).reduce((s, [f, w]) => s + (breakdown[f] ?? 0) * w, 0).toFixed(1)}
           </span>
         </div>

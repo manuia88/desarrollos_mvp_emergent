@@ -11,7 +11,7 @@
  * lista. Soporta paginación incremental (skip / limit).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import AdvisorLayout from '../../components/advisor/AdvisorLayout';
+import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Empty, Badge, Toast } from '../../components/advisor/primitives';
 import DuplicateDiffCard from '../../components/superadmin/DuplicateDiffCard';
 import {
@@ -62,9 +62,9 @@ function pillStyle(active) {
     fontFamily: 'DM Sans',
     fontWeight: 600,
     cursor: 'pointer',
-    background: active ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.04)',
-    border: active ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--border)',
-    color: active ? '#a5b4fc' : 'var(--cream-2)',
+    background: active ? 'rgba(var(--theme-rgb),0.22)' : 'rgba(255,255,255,0.04)',
+    border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid var(--border)',
+    color: active ? 'var(--theme-2)' : 'var(--cream-2)',
     transition: 'all 0.15s',
   };
 }
@@ -136,7 +136,7 @@ function PendingRow({ row, onMerge, onReject, onIgnore, busy }) {
           <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11 }}>{row.candidate_id}</span>
         </div>
         <div style={{ flex: '0 0 70px', textAlign: 'right' }}>
-          <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: '#a5b4fc' }}>
+          <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 18, color: 'var(--theme-2)' }}>
             {Number(row.score_combined || 0).toFixed(1)}
           </span>
         </div>
@@ -266,7 +266,7 @@ export default function SuperadminDuplicates({ user, onLogout }) {
   }, [skip, pending.length, total]);
 
   return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout}>
       <PageHeader
         eyebrow="SUPERADMIN · ENTITY RESOLUTION"
         title="Duplicados pendientes"
@@ -376,6 +376,6 @@ export default function SuperadminDuplicates({ user, onLogout }) {
       )}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
-    </AdvisorLayout>
+    </SuperadminLayout>
   );
 }

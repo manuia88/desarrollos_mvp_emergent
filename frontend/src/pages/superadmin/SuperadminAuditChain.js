@@ -8,7 +8,7 @@
  * con detalle (expected vs actual checksum, prev_checksum, índice).
  */
 import React, { useEffect, useState } from 'react';
-import AdvisorLayout from '../../components/advisor/AdvisorLayout';
+import SuperadminLayout from "../../components/superadmin/SuperadminLayout";
 import { PageHeader, Card, Empty, Badge } from '../../components/advisor/primitives';
 import { verifyAuditChain, queryAuditLog, exportAuditLog } from '../../api/entity_resolution';
 import {
@@ -31,9 +31,9 @@ function pillStyle(active) {
     fontFamily: 'DM Sans',
     fontWeight: 600,
     cursor: 'pointer',
-    background: active ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.04)',
-    border: active ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--border)',
-    color: active ? '#a5b4fc' : 'var(--cream-2)',
+    background: active ? 'rgba(var(--theme-rgb),0.22)' : 'rgba(255,255,255,0.04)',
+    border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid var(--border)',
+    color: active ? 'var(--theme-2)' : 'var(--cream-2)',
     transition: 'all 0.15s',
   };
 }
@@ -122,7 +122,7 @@ export default function SuperadminAuditChain({ user, onLogout }) {
   useEffect(() => { handleVerify(); /* eslint-disable-next-line */ }, []);
 
   return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout}>
       <PageHeader
         eyebrow="SUPERADMIN · AUDIT CHAIN"
         title="Verificacion de cadena inmutable"
@@ -201,7 +201,7 @@ export default function SuperadminAuditChain({ user, onLogout }) {
                   </div>
                   <div style={{ marginTop: 10, fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-2)' }}>
                     {verifyResult.broken_at && (
-                      <div>Ruptura en ID: <span style={{ color: '#a5b4fc' }}>{verifyResult.broken_at}</span></div>
+                      <div>Ruptura en ID: <span style={{ color: 'var(--theme-2)' }}>{verifyResult.broken_at}</span></div>
                     )}
                     {verifyResult.reason && (
                       <div>Razón: <span style={{ color: '#fcd34d' }}>{verifyResult.reason}</span></div>
@@ -298,7 +298,7 @@ export default function SuperadminAuditChain({ user, onLogout }) {
                       <td style={{ padding: '8px 10px', color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>
                         {(r.timestamp || '').slice(0, 19).replace('T', ' ')}
                       </td>
-                      <td style={{ padding: '8px 10px', color: '#a5b4fc', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>
+                      <td style={{ padding: '8px 10px', color: 'var(--theme-2)', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>
                         {r.actor_user_id || '—'}
                       </td>
                       <td style={{ padding: '8px 10px' }}>
@@ -324,6 +324,6 @@ export default function SuperadminAuditChain({ user, onLogout }) {
           </>
         )}
       </Card>
-    </AdvisorLayout>
+    </SuperadminLayout>
   );
 }

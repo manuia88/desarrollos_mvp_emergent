@@ -8,7 +8,7 @@
  * detalles de cada intento (timestamp, lead_id, score, decision).
  */
 import React, { useEffect, useState } from 'react';
-import AdvisorLayout from '../../components/advisor/AdvisorLayout';
+import SuperadminLayout from "../../components/superadmin/SuperadminLayout";
 import { PageHeader, Card, Empty, Badge } from '../../components/advisor/primitives';
 import { listFraudPatterns } from '../../api/entity_resolution';
 import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Shield, User } from 'lucide-react';
@@ -35,9 +35,9 @@ function pillStyle(active) {
     fontFamily: 'DM Sans',
     fontWeight: 600,
     cursor: 'pointer',
-    background: active ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.04)',
-    border: active ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--border)',
-    color: active ? '#a5b4fc' : 'var(--cream-2)',
+    background: active ? 'rgba(var(--theme-rgb),0.22)' : 'rgba(255,255,255,0.04)',
+    border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid var(--border)',
+    color: active ? 'var(--theme-2)' : 'var(--cream-2)',
     transition: 'all 0.15s',
   };
 }
@@ -111,7 +111,7 @@ function PatternRow({ row }) {
                     <td style={{ padding: '8px 10px', color: 'var(--cream-2)', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>
                       {(s.attempted_at || s.timestamp || '').slice(0, 19).replace('T', ' ')}
                     </td>
-                    <td style={{ padding: '8px 10px', color: '#a5b4fc', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>{s.lead_id || s.entity_id || '—'}</td>
+                    <td style={{ padding: '8px 10px', color: 'var(--theme-2)', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>{s.lead_id || s.entity_id || '—'}</td>
                     <td style={{ padding: '8px 10px', color: '#93c5fd', fontFamily: 'DM Mono, monospace', fontSize: 10 }}>{s.matched_with || s.canonical_id || '—'}</td>
                     <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--cream)', fontWeight: 700 }}>
                       {s.score != null ? Number(s.score).toFixed(1) : '—'}
@@ -158,7 +158,7 @@ export default function SuperadminFraudPatterns({ user, onLogout }) {
   const high     = patterns.filter(p => (p.pattern_count_30d || 0) >= 5 && (p.pattern_count_30d || 0) < 10).length;
 
   return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+    <SuperadminLayout user={user} onLogout={onLogout}>
       <PageHeader
         eyebrow="SUPERADMIN · FRAUD PATTERNS"
         title="Patrones de fraude broker"
@@ -205,10 +205,10 @@ export default function SuperadminFraudPatterns({ user, onLogout }) {
         </Card>
         <Card style={{ flex: '1 1 160px', minWidth: 140 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <User size={13} color="#a5b4fc" />
+            <User size={13} color="var(--theme-2)" />
             <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total brokers</span>
           </div>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: '#a5b4fc' }}>{patterns.length}</div>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 26, color: 'var(--theme-2)' }}>{patterns.length}</div>
           <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>con patrón activo</div>
         </Card>
       </div>
@@ -234,6 +234,6 @@ export default function SuperadminFraudPatterns({ user, onLogout }) {
           {patterns.map(p => <PatternRow key={p.asesor_id} row={p} />)}
         </div>
       )}
-    </AdvisorLayout>
+    </SuperadminLayout>
   );
 }
