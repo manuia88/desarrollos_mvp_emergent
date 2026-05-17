@@ -20,14 +20,15 @@
 
 ---
 
-## 2 · Batches movidos de W5 (confirmados founder 2026-05-16)
+## 2 · Batches movidos de W5
 
 | # | Tema | Horas | Por qué |
 |---|---|---|---|
-| **W6.MOV.1** | W5.7 SOC franquicia (reemplaza Mortgage simulator) | 20 | Founder compró pero no urgente para asesor MVP |
+| **W6.MOV.1** | W5.7 SOC franquicia (reemplaza Mortgage simulator) | 20 | Founder compró pero no urgente |
 | **W6.MOV.2** | W5.13 → W6.13 External Sources Activation (3 tracks: API + cron + manual upload) | **32-45** | Scope expandido · ver §2.1 detalle |
 | **W6.MOV.3** | W5.14 Reviews residentes (sentimiento + ranking) | 25 | Alimenta W5.2 sub-score · post-asesor MVP |
-| **W6.MOV.4** | W5.16 Marketing distribution (MCP) | ~10 | Candidato mover · puede consumir W5.ASR.* outputs |
+| **W6.MOV.4** | W5.16 Marketing distribution (MCP) | ~10 | Candidato mover · consume W5.ASR.* |
+| **W6.MOV.5** | W5.8 Construction Quality Index | 25 | Movido founder 2026-05-17 · combina avance+acabados+defectos+cronograma · scoring 0-100 |
 
 ### 2.1 W6.13 External Sources Activation · sub-spec detallado
 

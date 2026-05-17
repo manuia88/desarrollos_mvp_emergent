@@ -47,7 +47,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.5** | Live Pulse | ⬜ STUB | Apify fallback · ~25h |
 | **W5.6** | Scenario Storyteller · narrativa multi-módulo | ✅ | merge `fb3caa5` (origen `8cb2ef0`) · ~16h (cierre ciclo · NO aislado) |
 | ~~**W5.7**~~ | SOC franquicia | ➡️ W6 | Movido founder 2026-05-16 |
-| **W5.8** | Construction Quality Index | ⬜ | ~25h |
+| ~~**W5.8**~~ | Construction Quality Index | ➡️ W6 | Movido founder 2026-05-17 · ~25h |
 | **W5.9** | Climate Migration | ⬜ STUB | Apify fallback · ~25h |
 | **W5.10** | Social/Ads Multi-tenant + IA | ⬜ STUB | 233h · Meta OAuth stub · activa cuando App Review |
 | **W5.11** | Entity Resolution + Governance | ⬜ | ~30h |
@@ -72,8 +72,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 ### 1.4 Orden sugerido próximos batches
 
 1. **W5.ASR.1** WhatsApp QR STUB (40-50h) ← próximo
-2. W5.8 Construction Quality Index (~25h) ← próximo
-6. W5.8 Construction Quality Index (~25h)
+2. W5.11 Entity Resolution + Governance (~30h) ← próximo
 7. W5.11 Entity Resolution + Governance (~30h)
 8. W5.12 Knowledge Graph (~35h)
 9. W5.5 Live Pulse STUB (~25h)
