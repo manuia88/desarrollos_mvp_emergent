@@ -8,10 +8,25 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import TrustScoreBadge from '../../components/asesor/TrustScoreBadge';
 import EndorsementsCard from '../../components/asesor/EndorsementsCard';
-import { fetchPublicProfile } from '../../api/asesor_identity';
+import { fetchPublicProfile, fetchPublicProfileBySlug } from '../../api/asesor_identity';
 import { PRIMARY_LABELS, PRIMARY_COLORS } from '../../config/discQuestions';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
+
+// W5.ASR.4 Parte 2 — Detect subdomain pattern `{slug}.asesores.{domain}` o
+// host con prefijo `asesor-{slug}`. Captura el slug si encontrado.
+const SUBDOMAIN_RE = /^([a-z0-9-]+)\.asesores\./i;
+
+function detectSubdomainSlug() {
+  try {
+    const host = window.location.hostname || '';
+    const m = SUBDOMAIN_RE.exec(host);
+    if (m && m[1]) return m[1].toLowerCase();
+  } catch (_) {
+    /* SSR-safe noop */
+  }
+  return null;
+}
 
 const cardStyle = {
   padding: 20, borderRadius: 16,
@@ -35,6 +50,9 @@ export default function PerfilAsesor() {
   const [params] = useSearchParams();
   const justConfirmed = params.get('confirmed') === 'true';
 
+  // W5.ASR.4 Parte 2 — Subdomain detection
+  const [subdomainSlug] = useState(() => detectSubdomainSlug());
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -42,14 +60,16 @@ export default function PerfilAsesor() {
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const d = await fetchPublicProfile(asesorId);
+      const d = subdomainSlug
+        ? await fetchPublicProfileBySlug(subdomainSlug)
+        : await fetchPublicProfile(asesorId);
       setData(d);
     } catch (e) {
       setError(e.message || 'No se pudo cargar el perfil');
     } finally {
       setLoading(false);
     }
-  }, [asesorId]);
+  }, [asesorId, subdomainSlug]);
 
   useEffect(() => { load(); }, [load]);
 

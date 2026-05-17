@@ -280,3 +280,214 @@ async def export_qr(url: str):
         media_type="image/png",
         headers={"Cache-Control": "public, max-age=3600"},
     )
+
+
+# ─── W5.ASR.4 Parte 2 · CMA share meta + og:image ───────────────────────────
+
+import time as _cma_time
+from collections import OrderedDict as _CmaOD
+
+# LRU in-memory cache para PNG bytes · max 200 · TTL 24h
+_CMA_OG_CACHE: "_CmaOD[str, tuple]" = _CmaOD()
+_CMA_OG_CACHE_MAX = 200
+_CMA_OG_CACHE_TTL = 86400  # 24h
+
+# Rate-limit público OG image 100/min/IP
+_CMA_OG_RATE: dict = {}
+
+
+def _check_cma_rate(ip: str, cap: int = 100, window_s: int = 60) -> bool:
+    now = _cma_time.monotonic()
+    bucket = _CMA_OG_RATE.setdefault(ip, [])
+    pruned = [t for t in bucket if now - t < window_s]
+    _CMA_OG_RATE[ip] = pruned
+    if len(pruned) >= cap:
+        return False
+    pruned.append(now)
+    return True
+
+
+def _make_og_image_cma(cma: dict) -> bytes:
+    """Genera OG image PNG 1200x630 para un CMA con gradient indigo→rose."""
+    from PIL import Image, ImageDraw
+    img = Image.new("RGB", (OG_W, OG_H), NAVY)
+
+    # Gradient background (suave indigo→rose en banda inferior)
+    band = Image.new("RGBA", (OG_W, OG_H), (0, 0, 0, 0))
+    band_draw = ImageDraw.Draw(band)
+    for x in range(OG_W):
+        ratio = x / OG_W
+        r = int(INDIGO[0] * (1 - ratio) + ROSE[0] * ratio)
+        g = int(INDIGO[1] * (1 - ratio) + ROSE[1] * ratio)
+        b = int(INDIGO[2] * (1 - ratio) + ROSE[2] * ratio)
+        band_draw.line([(x, 0), (x, 8)], fill=(r, g, b, 255))
+    img = Image.alpha_composite(img.convert("RGBA"), band).convert("RGB")
+    d = ImageDraw.Draw(img)
+
+    # Brand top-left
+    f_brand = _font(28, bold=True)
+    d.text((48, 50), "DesarrollosMX", fill=CREAM, font=f_brand)
+
+    # Eyebrow
+    f_eyebrow = _font(18)
+    d.text((48, 100), "ANÁLISIS COMPARATIVO DE MERCADO",
+           fill=(170, 170, 190), font=f_eyebrow)
+
+    # Estimated value GIGANTE centrado
+    val = cma.get("estimated_value") or 0
+    val_str = f"${val/1_000_000:.2f}M MXN" if val >= 1_000_000 else f"${int(val):,}".replace(",", " ")
+    f_value = _font(96, bold=True)
+    # Centra horizontalmente
+    try:
+        bbox = d.textbbox((0, 0), val_str, font=f_value)
+        text_w = bbox[2] - bbox[0]
+    except Exception:
+        text_w = len(val_str) * 48
+    d.text(((OG_W - text_w) // 2, 200), val_str, fill=CREAM, font=f_value)
+
+    # Colonia name center subtitle
+    subj = cma.get("subject_property") or {}
+    colonia = subj.get("colonia_name") or subj.get("colonia_slug", "—")
+    summary = f"{colonia.title()} · {subj.get('m2', '—')} m² · {subj.get('recamaras', '—')} rec"
+    f_sub = _font(32)
+    try:
+        bbox = d.textbbox((0, 0), summary, font=f_sub)
+        sub_w = bbox[2] - bbox[0]
+    except Exception:
+        sub_w = len(summary) * 16
+    d.text(((OG_W - sub_w) // 2, 330), summary, fill=(200, 200, 215), font=f_sub)
+
+    # Footer bottom-left: N comparables · confianza
+    n_comp = len(cma.get("comparables") or [])
+    conf = (cma.get("confidence") or "media").upper()
+    f_meta = _font(22)
+    d.text((48, OG_H - 80),
+           f"{n_comp} comparables analizados  ·  Confianza {conf}",
+           fill=CREAM, font=f_meta)
+
+    # Forecast badge bottom-left line 2
+    fc12 = cma.get("forecast_12m_pct")
+    if fc12 is not None:
+        fc_str = f"Proyección 12m: {fc12:+.1f}%"
+        d.text((48, OG_H - 50), fc_str, fill=(170, 170, 190), font=f_meta)
+
+    # Bottom-right CTA chip
+    f_cta = _font(20, bold=True)
+    d.rectangle([OG_W - 280, OG_H - 70, OG_W - 48, OG_H - 30], fill=INDIGO)
+    d.rectangle([OG_W - 164, OG_H - 70, OG_W - 48, OG_H - 30], fill=ROSE)
+    d.text((OG_W - 264, OG_H - 64), "desarrollosmx.io", fill=CREAM, font=f_cta)
+
+    # Bottom gradient bar
+    bar = Image.new("RGB", (OG_W, 4), NAVY)
+    bd = ImageDraw.Draw(bar)
+    for x in range(OG_W):
+        ratio = x / OG_W
+        r = int(INDIGO[0] * (1 - ratio) + ROSE[0] * ratio)
+        g = int(INDIGO[1] * (1 - ratio) + ROSE[1] * ratio)
+        b = int(INDIGO[2] * (1 - ratio) + ROSE[2] * ratio)
+        bd.line([(x, 0), (x, 4)], fill=(r, g, b))
+    img.paste(bar, (0, OG_H - 4))
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
+@router.get("/api/share/cma/{cma_id}/og-image")
+async def share_cma_og_image(cma_id: str, request: Request):
+    """Genera OG image PNG 1200x630 para un CMA · cache 24h LRU · 100/min/IP."""
+    ip = request.client.host if request.client else "unknown"
+    if not _check_cma_rate(ip, cap=100, window_s=60):
+        raise HTTPException(429, "Límite 100/min alcanzado")
+
+    # Cache hit
+    now = _cma_time.time()
+    entry = _CMA_OG_CACHE.get(cma_id)
+    if entry and (now - entry[1]) < _CMA_OG_CACHE_TTL:
+        _CMA_OG_CACHE.move_to_end(cma_id)
+        return Response(content=entry[0], media_type="image/png",
+                        headers={"Cache-Control": "public, max-age=86400",
+                                 "X-Cma-Cache": "hit"})
+
+    # Generate
+    db = _get_db(request)
+    from cma_engine import get_cma
+    cma = await get_cma(db, cma_id)
+    if not cma:
+        raise HTTPException(404, "CMA no encontrado")
+    try:
+        png_bytes = _make_og_image_cma(cma)
+    except Exception as exc:
+        log.exception(f"[share_meta] cma og-image failed · {exc}")
+        raise HTTPException(500, "Error generando og:image")
+
+    # Watermark best-effort
+    try:
+        from export_brand import add_watermark
+        png_bytes = add_watermark(png_bytes)
+    except Exception:
+        pass
+
+    # Persist en LRU
+    _CMA_OG_CACHE[cma_id] = (png_bytes, now)
+    _CMA_OG_CACHE.move_to_end(cma_id)
+    while len(_CMA_OG_CACHE) > _CMA_OG_CACHE_MAX:
+        _CMA_OG_CACHE.popitem(last=False)
+
+    return Response(content=png_bytes, media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=86400",
+                             "X-Cma-Cache": "miss"})
+
+
+@router.get("/api/share/cma/{cma_id}/meta")
+async def share_cma_meta(cma_id: str, request: Request):
+    """JSON meta para previews redes sociales (og + schema.org JSON-LD)."""
+    db = _get_db(request)
+    from cma_engine import get_cma
+    cma = await get_cma(db, cma_id)
+    if not cma:
+        raise HTTPException(404, "CMA no encontrado")
+
+    subj = cma.get("subject_property") or {}
+    colonia = subj.get("colonia_name") or subj.get("colonia_slug", "—")
+    val = cma.get("estimated_value") or 0
+    val_str = f"${val/1_000_000:.2f}M MXN" if val >= 1_000_000 else f"${int(val):,}"
+    n_comp = len(cma.get("comparables") or [])
+    conf = (cma.get("confidence") or "media")
+
+    backend_base = str(request.base_url).rstrip("/")
+    og_image_url = f"{backend_base}/api/share/cma/{cma_id}/og-image"
+    public_path = f"/cma-publico/{cma_id}"
+
+    title = f"CMA {colonia} · {val_str} · DesarrollosMX"
+    description = (
+        f"Análisis comparativo de mercado: {subj.get('m2', '—')}m² en {colonia}. "
+        f"{n_comp} comparables · confianza {conf}. Generado con DesarrollosMX."
+    )
+
+    jsonld = {
+        "@context": "https://schema.org",
+        "@type": "RealEstateListing",
+        "name": title[:120],
+        "description": description[:300],
+        "image": og_image_url,
+        "url": f"{backend_base}{public_path}",
+        "offers": {
+            "@type": "Offer",
+            "price": int(val) if val else None,
+            "priceCurrency": "MXN",
+            "availability": "https://schema.org/InStock",
+        },
+        "additionalProperty": [
+            {"@type": "PropertyValue", "name": "m2", "value": subj.get("m2")},
+            {"@type": "PropertyValue", "name": "recamaras", "value": subj.get("recamaras")},
+            {"@type": "PropertyValue", "name": "banos", "value": subj.get("banos")},
+        ],
+    }
+    return {
+        "title": title[:120],
+        "description": description[:300],
+        "og_image_url": og_image_url,
+        "share_url_path": public_path,
+        "schema_org_jsonld": jsonld,
+    }

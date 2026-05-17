@@ -224,6 +224,97 @@ async def get_public_trust(asesor_id: str, request: Request):
     return {"asesor_id": asesor_id, "score": t["score"]}
 
 
+# ═══ W5.ASR.4 Parte 2 · Subdomain slug resolver ══════════════════════════════
+
+def _normalize_slug(text: str) -> str:
+    """Normaliza a kebab-case sin acentos · solo [a-z0-9-]."""
+    import re
+    import unicodedata
+    if not text:
+        return ""
+    # NFD + filtra combining (remueve acentos)
+    nfd = unicodedata.normalize("NFD", text.strip().lower())
+    no_accents = "".join(ch for ch in nfd if unicodedata.category(ch) != "Mn")
+    # Reemplaza no-alfanuméricos por guión
+    slug = re.sub(r"[^a-z0-9]+", "-", no_accents)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug[:80]
+
+
+async def _ensure_slug(db, user_doc: Dict[str, Any]) -> str:
+    """Asegura que el asesor tenga un slug único · genera + persiste si falta.
+
+    Estrategia: normalize(name) → si conflicto, sufijo numérico incremental.
+    Idempotente: si ya tiene slug, retorna sin tocar DB.
+    """
+    if not user_doc:
+        return ""
+    if user_doc.get("slug"):
+        return user_doc["slug"]
+    name = user_doc.get("name") or user_doc.get("email", "").split("@")[0] or "asesor"
+    base = _normalize_slug(name) or f"asesor-{user_doc.get('user_id', '')[:8]}"
+    candidate = base
+    suffix = 2
+    while True:
+        existing = await db.users.find_one(
+            {"slug": candidate, "user_id": {"$ne": user_doc.get("user_id")}},
+            {"_id": 0, "user_id": 1},
+        )
+        if not existing:
+            break
+        candidate = f"{base}-{suffix}"
+        suffix += 1
+        if suffix > 50:  # circuit breaker
+            import uuid
+            candidate = f"{base}-{uuid.uuid4().hex[:6]}"
+            break
+    try:
+        await db.users.update_one(
+            {"user_id": user_doc.get("user_id")},
+            {"$set": {"slug": candidate}},
+        )
+    except Exception as exc:
+        log.warning(f"[asesor-identity] persist slug failed · {exc}")
+    return candidate
+
+
+@router.get("/api/asesor-identity/by-slug/{slug}")
+async def get_asesor_by_slug(slug: str, request: Request):
+    """Resuelve subdomain slug → asesor_id y retorna el mismo shape que by-id.
+
+    Lookup en `db.users` por campo `slug` (normalizado).
+    Auto-genera slug para asesores existentes que no lo tengan.
+    """
+    db = _db(request)
+    slug_norm = _normalize_slug(slug)
+    if not slug_norm:
+        raise HTTPException(400, "Slug inválido")
+    user = await db.users.find_one(
+        {"slug": slug_norm, "role": {"$in": ["advisor", "asesor_admin", "asesor_freelance"]}},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "avatar_url": 1,
+         "phone": 1, "tenant_id": 1, "slug": 1, "role": 1},
+    )
+    if not user:
+        raise HTTPException(404, f"Asesor con slug '{slug_norm}' no encontrado")
+    # Devuelve el mismo shape que el endpoint by-id reutilizándolo
+    return await get_public_profile(user["user_id"], request)
+
+
+@router.get("/api/asesor-identity/me/slug")
+async def get_my_slug(request: Request):
+    """Retorna el slug del asesor authenticated · auto-genera si falta."""
+    user = await _auth_asesor(request)
+    db = _db(request)
+    doc = await db.users.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "slug": 1},
+    )
+    if not doc:
+        raise HTTPException(404, "Usuario no encontrado")
+    slug = await _ensure_slug(db, doc)
+    return {"slug": slug, "user_id": user.user_id}
+
+
 # ═══ LinkedIn — auth asesor ══════════════════════════════════════════════════
 
 @router.post("/api/asesor/linkedin/import")

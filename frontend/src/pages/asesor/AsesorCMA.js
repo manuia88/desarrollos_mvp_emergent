@@ -4,7 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as cmaApi from '../../api/cma';
-import { publicCMAUrl } from '../../api/cma';
+import { publicCMAUrl, subdomainCMAUrl, downloadCMAPdf, cmaOgImageUrl } from '../../api/cma';
+import { fetchMySlug } from '../../api/asesor_identity';
 import CMAKpiStrip from '../../components/asesor/CMAKpiStrip';
 import CMAComparablesTable from '../../components/asesor/CMAComparablesTable';
 import CMAComparablesMap from '../../components/asesor/CMAComparablesMap';
@@ -177,6 +178,8 @@ function CMADetail({ cmaId, onBack, onToast }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hoveredCompId, setHoveredCompId] = useState(null);
+  const [mySlug, setMySlug] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -194,15 +197,40 @@ function CMADetail({ cmaId, onBack, onToast }) {
     return () => { mounted = false; };
   }, [cmaId]);
 
+  // W5.ASR.4 Parte 2 — Fetch slug del asesor para construir subdomain URL
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetchMySlug();
+        setMySlug(r?.slug || null);
+      } catch (_) {
+        setMySlug(null);
+      }
+    })();
+  }, []);
+
+  const shareUrl = mySlug ? subdomainCMAUrl(mySlug, cmaId) : (cma?.id ? publicCMAUrl(cma.id) : '');
+
   const handleShare = async () => {
-    if (!cma?.id) return;
-    const url = publicCMAUrl(cma.id);
+    if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl);
       onToast?.({ kind: 'success', text: 'Link público copiado al portapapeles' });
     } catch (_) {
-      // Fallback prompt
-      window.prompt('Copia este link público:', url);
+      window.prompt('Copia este link público:', shareUrl);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!cma?.id || downloadingPdf) return;
+    setDownloadingPdf(true);
+    try {
+      await downloadCMAPdf(cma.id);
+      onToast?.({ kind: 'success', text: 'PDF descargado correctamente' });
+    } catch (e) {
+      onToast?.({ kind: 'error', text: e.message || 'No se pudo descargar el PDF' });
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -239,17 +267,71 @@ function CMADetail({ cmaId, onBack, onToast }) {
           title={cma.subject_property?.colonia_name || cma.subject_property?.colonia_slug || 'CMA'}
           sub={`${cma.subject_property?.m2} m² · ${cma.subject_property?.recamaras} rec · ${cma.subject_property?.banos} bañ · ${cma.subject_property?.antiguedad} años de antigüedad`}
           actions={
-            <>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                data-testid="cma-pdf-btn"
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf}
+                style={{
+                  padding: '8px 14px', borderRadius: 9999,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--cream)',
+                  fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
+                  cursor: downloadingPdf ? 'wait' : 'pointer',
+                  opacity: downloadingPdf ? 0.6 : 1,
+                }}>
+                {downloadingPdf ? 'Generando PDF…' : 'Descargar PDF'}
+              </button>
               <button
                 data-testid="cma-share-btn"
                 onClick={handleShare}
                 className="btn btn-primary">
                 Compartir link público
               </button>
-            </>
+            </div>
           }
         />
       </div>
+
+      {/* W5.ASR.4 Parte 2 — Share URL display + OG preview */}
+      {shareUrl && (
+        <Card data-testid="cma-share-preview" style={{ marginBottom: 18, padding: 14 }}>
+          <div style={{
+            display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap',
+          }}>
+            <img
+              src={cmaOgImageUrl(cma.id)}
+              alt="Preview redes sociales"
+              data-testid="cma-og-thumbnail"
+              style={{
+                width: 220, height: 'auto', aspectRatio: '1200 / 630',
+                borderRadius: 8, border: '1px solid var(--border)', objectFit: 'cover',
+              }}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>LINK PÚBLICO</div>
+              <div
+                onClick={handleShare}
+                style={{
+                  padding: '8px 12px', background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid var(--border)', borderRadius: 8,
+                  fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-2)',
+                  cursor: 'pointer', wordBreak: 'break-all', marginBottom: 8,
+                }}
+                title="Click para copiar">
+                {shareUrl}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
+                {mySlug
+                  ? 'Tu microsite asesor está vinculado a este CMA. Compártelo en WhatsApp, redes sociales o email.'
+                  : 'Comparte este link público con tus clientes. La preview rich incluye valor estimado y comparables.'}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Sección 1: Hero KPIs */}
       <CMAKpiStrip cma={cma} />
