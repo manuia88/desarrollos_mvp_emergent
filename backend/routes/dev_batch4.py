@@ -204,6 +204,14 @@ async def create_lead(payload: LeadCreate, request: Request):
     if not assigned_to:
         assigned_to = await _round_robin_assignee(db, dev_org_id)
 
+    # W5.ASR.5 — Extraer UTM de query params si presentes
+    utm_fields = {}
+    try:
+        from lead_capture_engine import extract_utm_from_request
+        utm_fields = extract_utm_from_request(request)
+    except Exception:
+        pass
+
     now_iso = _now().isoformat()
     lead = {
         "id": _uid("lead"),
@@ -222,6 +230,7 @@ async def create_lead(payload: LeadCreate, request: Request):
         "updated_at":        now_iso,
         "last_activity_at":  now_iso,
         "created_by":        user.user_id,
+        **utm_fields,
     }
     await db.leads.insert_one(dict(lead))
     lead.pop("_id", None)

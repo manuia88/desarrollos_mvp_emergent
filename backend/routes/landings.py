@@ -209,6 +209,14 @@ async def submit_landing_lead(body: LandingLeadIn, request: Request) -> Dict[str
         raise HTTPException(400, "zone_interest requerido")
 
     db = request.app.state.db
+
+    # W5.ASR.5 — Extraer UTM de query params
+    try:
+        from lead_capture_engine import extract_utm_from_request
+        utm_fields = extract_utm_from_request(request)
+    except Exception:
+        utm_fields = {}
+
     doc = {
         "lead_id": f"land_{secrets.token_urlsafe(10)}",
         "email": email,
@@ -218,6 +226,7 @@ async def submit_landing_lead(body: LandingLeadIn, request: Request) -> Dict[str
         "ip_hash": _hash_ip(request),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "pending_inventory",
+        **utm_fields,
     }
     try:
         await db.landing_leads.insert_one(doc)
