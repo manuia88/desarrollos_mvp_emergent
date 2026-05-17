@@ -65,6 +65,29 @@ async def list_pending(
     cursor = db.entity_duplicates_pending.find(query, {"_id": 0}).sort("score_combined", -1).skip(skip).limit(limit)
     async for doc in cursor:
         docs.append(doc)
+
+    # Hidratar canonical_doc + candidate_doc desde la coleccion correspondiente
+    from entity_resolution_engine import _get_collection
+    cache: Dict[str, Dict[str, Any]] = {}
+
+    async def _fetch_doc(et: str, eid: str) -> Dict[str, Any]:
+        cache_key = f"{et}:{eid}"
+        if cache_key in cache:
+            return cache[cache_key]
+        coll = _get_collection(db, et)
+        if coll is None:
+            cache[cache_key] = {}
+            return {}
+        id_field = "user_id" if et == "users" else "id"
+        found = await coll.find_one({id_field: eid}, {"_id": 0}) or {}
+        cache[cache_key] = found
+        return found
+
+    for d in docs:
+        et = d.get("entity_type")
+        d["canonical_doc"] = await _fetch_doc(et, d.get("canonical_id"))
+        d["candidate_doc"] = await _fetch_doc(et, d.get("candidate_id"))
+
     total = await db.entity_duplicates_pending.count_documents(query)
     return {"pending": docs, "total": total, "limit": limit, "skip": skip}
 

@@ -83,6 +83,10 @@ const AsesorLeadsDev    = lazy(() => import('./pages/advisor/AsesorLeadsDev'));
 const AsesorCMA         = lazy(() => import('./pages/asesor/AsesorCMA'));
 const AsesorLeadAliases = lazy(() => import('./pages/asesor/AsesorLeadAliases'));
 const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
+// W5.11 Parte 2 — Entity resolution + audit chain
+const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
+const SuperadminFraudPatterns = lazy(() => import('./pages/superadmin/SuperadminFraudPatterns'));
+const SuperadminAuditChain    = lazy(() => import('./pages/superadmin/SuperadminAuditChain'));
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
@@ -691,6 +695,10 @@ function AppRouter() {
       {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
       <Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={SuperadminLandingLeads} />} />
       <Route path="/superadmin/lead-sources" element={<AdvisorRoute Page={SuperadminLeadSources} />} />
+      {/* W5.11 Parte 2 — Entity resolution + audit chain */}
+      <Route path="/superadmin/duplicates" element={<AdvisorRoute Page={SuperadminDuplicates} />} />
+      <Route path="/superadmin/fraud-patterns" element={<AdvisorRoute Page={SuperadminFraudPatterns} />} />
+      <Route path="/superadmin/audit-chain" element={<AdvisorRoute Page={SuperadminAuditChain} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
       <Route path="/superadmin/free-audit-funnel" element={<AdvisorRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}

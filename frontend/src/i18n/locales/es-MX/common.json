@@ -2544,6 +2544,77 @@
         "failures_title": "Fallos por razón",
         "days_selector_label": "Últimos"
       }
+    },
+    "entity_resolution": {
+      "duplicates_page": {
+        "title": "Duplicados pendientes",
+        "subtitle": "Revisar pares detectados por el motor de 8 capas. Acciones: fusionar, rechazar o blacklistear.",
+        "reload": "Recargar",
+        "trigger_run": "Disparar detección",
+        "filter_entity_type": "Tipo de entidad",
+        "filter_tier": "Tier de confianza",
+        "tier_critical": "Crítico (>=90)",
+        "tier_high": "Alto (75-89)",
+        "tier_medium": "Medio (60-74)",
+        "tier_all": "Todos los tiers",
+        "action_merge": "Fusionar",
+        "action_reject": "Rechazar",
+        "action_ignore": "No es duplicado (blacklist)",
+        "confirm_merge": "Fusionar candidato dentro del canónico. Esta acción puede deshacerse durante 30 días. ¿Continuar?",
+        "confirm_ignore": "Marcar como NO duplicado y añadir a blacklist (nunca volverá a sugerirse)?",
+        "empty_title": "Sin duplicados pendientes",
+        "empty_sub": "No hay pares pendientes con los filtros seleccionados.",
+        "cross_asesor_warning": "Ambos registros asignados a asesores diferentes · revisar manualmente antes de fusionar"
+      },
+      "fraud_page": {
+        "title": "Patrones de fraude broker",
+        "subtitle": "Asesores con intentos repetidos de registrar leads duplicados (ventana 30 días).",
+        "kpi_critical": "Críticos",
+        "kpi_high": "Altos",
+        "kpi_total_brokers": "Total brokers",
+        "samples_col_date": "Fecha",
+        "samples_col_lead": "Lead ID",
+        "samples_col_match": "Coincide con",
+        "samples_col_score": "Score",
+        "samples_col_decision": "Decisión",
+        "empty_title": "Sin patrones detectados",
+        "empty_sub": "Ningún asesor presenta intentos duplicados en los últimos 30 días."
+      },
+      "audit_page": {
+        "title": "Verificación de cadena inmutable",
+        "subtitle": "Cadena SHA-256 sobre audit_immutable. Cada entrada referencia el checksum previo. Verificación detecta tampering.",
+        "verify_chain": "Verificar cadena",
+        "export_json": "Exportar JSON",
+        "chain_valid": "Cadena válida",
+        "chain_valid_sub": "entradas verificadas · sin rupturas detectadas",
+        "chain_broken": "Cadena ROTA · posible tampering",
+        "chain_broken_sub": "entradas revisadas antes de la ruptura.",
+        "broken_index": "Índice",
+        "broken_id": "ID",
+        "broken_expected": "Esperado",
+        "broken_received": "Recibido",
+        "broken_prev": "Prev",
+        "stat_entries": "Entradas",
+        "stat_first_id": "Primer ID",
+        "stat_last_id": "Último ID",
+        "stat_last_checksum": "Último checksum",
+        "query_title": "Consultar audit log",
+        "filter_entity_id": "Entity ID",
+        "filter_entity_type": "Entity type",
+        "filter_actor": "Actor user_id",
+        "filter_action": "Action",
+        "filter_date_from": "Desde",
+        "filter_date_to": "Hasta",
+        "search": "Buscar",
+        "clear": "Limpiar",
+        "empty_title": "Sin resultados",
+        "empty_sub": "Ajusta los filtros o ejecuta una búsqueda."
+      },
+      "nav": {
+        "duplicates": "Duplicados pendientes",
+        "fraud_patterns": "Patrones de fraude",
+        "audit_chain": "Audit Chain (SHA-256)"
+      }
     }
   }
 }
