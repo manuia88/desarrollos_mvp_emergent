@@ -81,6 +81,8 @@ const AsesorCitas       = lazy(() => import('./pages/advisor/AsesorCitas'));
 const AsesorLeadsDev    = lazy(() => import('./pages/advisor/AsesorLeadsDev'));
 // W5.ASR.4 Parte 1 — CMA visual asesor
 const AsesorCMA         = lazy(() => import('./pages/asesor/AsesorCMA'));
+const AsesorLeadAliases = lazy(() => import('./pages/asesor/AsesorLeadAliases'));
+const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
@@ -546,6 +548,7 @@ function AppRouter() {
       {/* W5.ASR.4 Parte 1 — CMA */}
       <Route path="/asesor/cma" element={<AdvisorRoute Page={AsesorCMA} />} />
       <Route path="/asesor/cma/:id" element={<AdvisorRoute Page={AsesorCMA} />} />
+      <Route path="/asesor/lead-aliases" element={<AdvisorRoute Page={AsesorLeadAliases} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
 
       {/* Phase 4 Batch 10 — Mis Proyectos + CRM Shell */}
@@ -687,6 +690,7 @@ function AppRouter() {
       <Route path="/cdmx/:intent" element={<CdmxSlugDispatcher />} />
       {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
       <Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={SuperadminLandingLeads} />} />
+      <Route path="/superadmin/lead-sources" element={<AdvisorRoute Page={SuperadminLeadSources} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
       <Route path="/superadmin/free-audit-funnel" element={<AdvisorRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}

@@ -24,7 +24,8 @@ NOTIF_TYPES = {
     "cron_failed", "saved_zone_alert", "message_pending",
     "listing_view_repeat", "comparable_price_drop", "drop_off_pico",
     "tenant_signup", "api_limit_warn", "lfpdppp_dsr", "audit_suspicious",
-    "nurture_cooldown", "forecast_trend_alert", "buyer_hot_jump", "generic",
+    "nurture_cooldown", "forecast_trend_alert", "buyer_hot_jump",
+    "lead_captured_auto", "generic",
 }
 
 RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
@@ -48,6 +49,7 @@ DEFAULT_CATEGORIES = {
     "nurture_cooldown":      {"in_app": True, "email": False, "whatsapp": False},
     "forecast_trend_alert":  {"in_app": True, "email": True,  "whatsapp": False},
     "buyer_hot_jump":        {"in_app": True, "email": True,  "whatsapp": False},
+    "lead_captured_auto":    {"in_app": True, "email": True,  "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 
@@ -796,4 +798,67 @@ async def rule_buyer_hot_jump(
         body=copy,
         payload={"buyer_user_id": buyer_user_id, "prev_score": prev_score, "new_score": new_score, "tier": tier},
         action_url="/asesor/contactos?score_min=75",
+    )
+
+
+
+# ─── W5.ASR.5 Parte 2 — Lead capturado automáticamente ──────────────────────
+
+_SOURCE_LABELS = {
+    "portal_inmuebles24": "Inmuebles24",
+    "portal_lamudi":      "Lamudi",
+    "fb_lead_ads":        "FB Lead Ads",
+    "email_alias":        "Email directo",
+    "landing":            "Landing page",
+    "manual":             "Manual",
+}
+
+
+async def rule_lead_captured_auto(
+    db,
+    lead_id: str,
+    asesor_id: str,
+    source: str,
+    lead_name: Optional[str] = None,
+    parser_used: Optional[str] = None,
+    tenant_id: Optional[str] = None,
+) -> Optional[str]:
+    """W5.ASR.5 P2 — Notifica al asesor cuando un lead es capturado automáticamente.
+
+    Idempotencia 1h por (asesor_id, lead_id) — evita duplicar si hay reproceso.
+    """
+    if not asesor_id:
+        return None
+
+    # Idempotencia: 1 hora
+    cutoff_str = (_now() - timedelta(hours=1)).isoformat()
+    existing = await db.notifications.find_one({
+        "user_id": asesor_id,
+        "type": "lead_captured_auto",
+        "payload.lead_id": lead_id,
+        "created_at": {"$gte": cutoff_str},
+    })
+    if existing:
+        log.info(f"[notif] lead_captured_auto idempotente · asesor={asesor_id} lead={lead_id}")
+        return None
+
+    source_label = _SOURCE_LABELS.get(source, source)
+    display_name = lead_name or lead_id
+    body = f"Nuevo lead automático: {display_name} · vía {source_label} · click para abrir"
+
+    return await emit_notification(
+        db,
+        user_id=asesor_id,
+        tenant_id=tenant_id,
+        type="lead_captured_auto",
+        severity="high",
+        title="Nuevo lead capturado automáticamente",
+        body=body,
+        payload={
+            "lead_id": lead_id,
+            "source": source,
+            "parser_used": parser_used,
+            "source_label": source_label,
+        },
+        action_url="/asesor/contactos",
     )

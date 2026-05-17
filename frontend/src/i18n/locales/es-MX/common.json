@@ -2511,6 +2511,39 @@
       "table_header_pct": "% del total",
       "no_data": "Sin datos",
       "no_asesores": "Sin asesores activos"
+    },
+    "lead_capture_auto": {
+      "sources": {
+        "email_alias":        { "label": "Email directo" },
+        "portal_inmuebles24": { "label": "Inmuebles24" },
+        "portal_lamudi":      { "label": "Lamudi" },
+        "fb_lead_ads":        { "label": "FB Lead Ads" },
+        "landing":            { "label": "Landing page" },
+        "manual":             { "label": "Manual" }
+      },
+      "aliases_page": {
+        "title": "Conectar fuentes de leads",
+        "subtitle": "Reenvía emails de portales a tu alias o conecta FB Lead Ads para captura automática.",
+        "generate_alias_btn": "Generar alias",
+        "alias_table_header": "Alias email",
+        "copy_success": "Alias copiado",
+        "banner": "Captura automática activa",
+        "stub_mode_label": "Stub mode (modo desarrollo · no requiere firma Meta)",
+        "save_fb_config": "Guardar configuración",
+        "fb_config_modal_title": "Configurar FB Lead Ads"
+      },
+      "superadmin_stats": {
+        "title": "Lead Sources",
+        "subtitle": "Estadísticas de captura automática por canal.",
+        "kpi_total": "Total eventos",
+        "kpi_captured": "Leads capturados",
+        "kpi_success_rate": "Tasa de éxito",
+        "donut_title": "Distribución por fuente",
+        "top_aliases_title": "Top aliases de email",
+        "top_fb_title": "Top FB Lead Ad forms",
+        "failures_title": "Fallos por razón",
+        "days_selector_label": "Últimos"
+      }
     }
   }
 }

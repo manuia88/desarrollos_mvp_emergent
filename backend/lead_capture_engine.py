@@ -231,19 +231,15 @@ async def process_email_capture(
     except Exception:  # noqa: BLE001
         pass
 
-    # Smart Routing (best-effort, fire-and-forget)
-    try:
-        from agentic_crm.smart_routing_engine import SmartRoutingEngine
-        import asyncio
-        async def _bg_route():
-            try:
-                engine = SmartRoutingEngine(db, "dmx")
-                await engine.route_lead(lead_id)
-            except Exception:
-                pass
-        asyncio.create_task(_bg_route())
-    except Exception:  # noqa: BLE001
-        pass
+    # AI hooks + Smart Routing (todos fire-and-forget)
+    import asyncio as _asyncio
+    lead_email = lead_doc.get("email")
+    lead_display_name = (
+        " ".join(filter(None, [lead_doc.get("first_name"), lead_doc.get("last_name")])) or None
+    )
+    _asyncio.create_task(
+        _run_postcapture_hooks(db, lead_id, matched_asesor_id, source, lead_email, lead_display_name, parser_used)
+    )
 
     await _log_capture_event(
         db, event_id, ingested_at,
@@ -363,12 +359,22 @@ async def process_fb_lead_ad(
     except Exception:
         pass
 
-    parser_used = "fb_lead_ads_stub" if stub_mode else "fb_lead_ads"
+    parser_used_str = "fb_lead_ads_stub" if stub_mode else "fb_lead_ads"
+
+    # AI hooks + SmartRouting + notif (fire-and-forget)
+    import asyncio as _asyncio
+    lead_display_name = (
+        " ".join(filter(None, [lead_doc.get("first_name"), lead_doc.get("last_name")])) or None
+    )
+    _asyncio.create_task(
+        _run_postcapture_hooks(db, lead_id, asesor_id, "fb_lead_ads", email, lead_display_name, parser_used_str)
+    )
+
     await _log_capture_event(
         db, event_id, ingested_at,
         source="fb_lead_ads",
         raw_payload=_safe_payload(payload),
-        parser_used=parser_used,
+        parser_used=parser_used_str,
         parsed_lead_id=lead_id,
         success=True,
     )
@@ -381,6 +387,75 @@ async def process_fb_lead_ad(
         "stub_mode": stub_mode,
         "event_id": event_id,
     }
+
+
+# ─── AI Post-capture hooks ────────────────────────────────────────────────────
+
+async def _run_postcapture_hooks(
+    db,
+    lead_id: str,
+    asesor_id: Optional[str],
+    source: str,
+    lead_email: Optional[str],
+    lead_display_name: Optional[str],
+    parser_used: Optional[str],
+) -> None:
+    """Ejecuta todos los hooks de IA post-captura en paralelo (fire-and-forget).
+    Cada hook tiene su try/except individual — un fallo no afecta a los demás.
+    """
+
+    # Hook 1: SmartRouting — reasignar asesor si hay criterios mejores
+    try:
+        from agentic_crm.smart_routing_engine import SmartRoutingEngine
+        engine = SmartRoutingEngine(db, "dmx")
+        await engine.route_lead(lead_id)
+        log.debug(f"[hooks] SmartRouting OK lead={lead_id}")
+    except Exception as exc:  # noqa: BLE001
+        log.debug(f"[hooks] SmartRouting skip lead={lead_id}: {exc}")
+
+    # Refresh asesor_id post-routing (puede haber cambiado)
+    routed_asesor_id = asesor_id
+    try:
+        updated_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "assigned_to": 1})
+        if updated_lead:
+            routed_asesor_id = updated_lead.get("assigned_to") or asesor_id
+    except Exception:
+        pass
+
+    # Hook 2: BuyerScore — si el email del lead coincide con un usuario registrado
+    try:
+        if lead_email:
+            matched_user = await db.users.find_one(
+                {"email": lead_email}, {"_id": 0, "user_id": 1, "id": 1}
+            )
+            if matched_user:
+                uid = matched_user.get("user_id") or matched_user.get("id")
+                if uid:
+                    from buyer_score_engine import compute_user_score, upsert_score
+                    score_data = await compute_user_score(db, uid)
+                    await upsert_score(db, uid, score_data)
+                    log.debug(f"[hooks] BuyerScore updated uid={uid} lead={lead_id}")
+    except Exception as exc:  # noqa: BLE001
+        log.debug(f"[hooks] BuyerScore skip lead={lead_id}: {exc}")
+
+    # Hook 3: Smart Match — skip silencioso (necesita user_id registrado · deferido a Parte 3)
+    # (requiere user_id de comprador, que no tenemos si el lead es nuevo y anónimo)
+
+    # Hook 4: Notificación al asesor
+    try:
+        if routed_asesor_id:
+            from notifications_engine import rule_lead_captured_auto
+            await rule_lead_captured_auto(
+                db,
+                lead_id=lead_id,
+                asesor_id=routed_asesor_id,
+                source=source,
+                lead_name=lead_display_name,
+                parser_used=parser_used,
+            )
+            log.debug(f"[hooks] notif lead_captured_auto emitida asesor={routed_asesor_id}")
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"[hooks] notif rule_lead_captured_auto failed lead={lead_id}: {exc}")
 
 
 # ─── UTM Tracking ─────────────────────────────────────────────────────────────

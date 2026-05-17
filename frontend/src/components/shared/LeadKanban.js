@@ -16,6 +16,7 @@ import { useServerUndo } from './UndoSnackbar';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { anonymizeKanbanCard, piiCSS } from '../../lib/anonymize';
 import PipelineParallelChips from '../asesor/PipelineParallelChips';
+import SourceBadge from '../asesor/SourceBadge';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -275,6 +276,10 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6, alignItems: 'center' }}>
         <Badge tone="neutral">{SOURCE_LABELS[card.source] || card.source}</Badge>
+        {/* W5.ASR.5 P2 — SourceBadge compact (auto-capture sources) */}
+        {card.source && ['email_alias','portal_inmuebles24','portal_lamudi','fb_lead_ads'].includes(card.source) && (
+          <SourceBadge source={card.source} date={card.created_at} compact />
+        )}
         {card.intent && <Badge tone="neutral">{card.intent}</Badge>}
         {card.heat_tag && <HeatBadge tag={card.heat_tag} score={card.heat_score} />}
         <PipelineParallelChips parallelStates={card.parallel_states} leadId={card.id} compact />
