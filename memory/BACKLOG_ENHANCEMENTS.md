@@ -319,6 +319,18 @@ backend/routes/
 
 ## 🟢 MEDIA PRIORIDAD (Phase específica)
 
+### W5.6 ext · Selector interactivo m²/rec/baños/edad en bloque "Compra ahora vs esperar" (origen: emergent W5.6 potential improvement · 2026-05-16)
+
+**Qué**: añadir form interactivo en `/valor/:slug` sección "Compra ahora vs esperar" para que user personalice m²/rec/baños/edad en tiempo real (cada cambio re-llama `/api/narrative/scenario`).
+
+**Score honest 5/10**: nice-to-have engagement · sin tráfico SEO real hoy · el tracking no informa. Activar cuando launch público + volumen real.
+
+**Costo**: ~3-5h emergent.
+
+**Activar cuando**: post-launch público + SEO traffic ≥100 visitas/día en `/valor/:slug`.
+
+
+
 ### W5.3 P2B gap · Forecast enrichment en lead_nurture_engine stalled-recovery (origen: W5.3 P2B audit · 2026-05-16)
 
 **Qué**: W5.3 P2B implementó "DATO DE MERCADO" prepend en `ai_suggestions._build_context` (argumentarios directos) PERO `lead_nurture_engine.py` también genera argumentarios en sequence stalled-recovery (4 touches con argumentario · 0h, 48h, 168h, 336h) y NO recibió el enrichment.
