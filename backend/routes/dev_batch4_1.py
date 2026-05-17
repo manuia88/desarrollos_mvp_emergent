@@ -317,6 +317,19 @@ def _build_wa_template_2(*, dev_admin_name: str, dev_phone: str, project_name: s
     return f"https://wa.me/{phone_digits}?text={quote(text)}"
 
 
+# W5.11 Parte 3 — Plantilla 3: nudge al asesor cuyo lead fue cerrado por disputa rechazada
+# pero hay actividad cross-project (otro asesor lo atiende en otro proyecto). Genérico.
+def _build_wa_template_3(*, asesor_phone: str, client_name: str, last_activity_days: int) -> str:
+    text = (
+        f"🔔 {client_name} está activo. Otro asesor lo está atendiendo en otro proyecto. "
+        f"Está comparando, cerca de decidir. Tu ventaja: ya construiste relación. "
+        f"Cierra quien suma valor cuando más importa. "
+        f"Tu última actividad: hace {last_activity_days} días."
+    )
+    phone_digits = re.sub(r"\D", "", asesor_phone or "")
+    return f"https://wa.me/{phone_digits}?text={quote(text)}"
+
+
 async def _get_project_dev_info(db, project_id: str) -> Dict[str, str]:
     """Return {dev_org_id, project_name, dev_admin_name, dev_phone} for a project."""
     fallback_phone = os.environ.get("DMX_FALLBACK_WHATSAPP", "+525512345678")
@@ -415,6 +428,136 @@ async def _fire_movement_alert(db, asesor_id: str, client_name: str, activity: f
         pass
 
 
+# W5.11 Parte 3 helper · activity_score cross-project para un client_global_id.
+# Pesos: ≤7d=1.0, 7-14d=0.5, 14-21d=0.25, >21d=0. NO cuenta system auto-notes.
+async def _compute_activity_score(
+    db, *, client_global_id: str, exclude_lead_id: Optional[str] = None, days_back: int = 30,
+):
+    """Retorna (score_total, last_age_days). last_age_days=999 si no hay actividad."""
+    if not client_global_id:
+        return (0.0, 999)
+    now = _now()
+    cutoff = (now - timedelta(days=days_back)).isoformat()
+    score = 0.0
+    last_ts: Optional[datetime] = None
+
+    def _bucket(age_days: int) -> float:
+        if age_days < 0:
+            return 0.0
+        if age_days <= 7:
+            return 1.0
+        if age_days <= 14:
+            return 0.5
+        if age_days <= 21:
+            return 0.25
+        return 0.0
+
+    # 1) Leads del mismo cliente (sin el dispute lead) — notas non-system
+    lead_query: Dict[str, Any] = {"client_global_id": client_global_id}
+    if exclude_lead_id:
+        lead_query["id"] = {"$ne": exclude_lead_id}
+    lead_ids: List[str] = []
+    async for lead in db.leads.find(lead_query, {"_id": 0, "id": 1, "notes": 1}):
+        lid = lead.get("id")
+        if lid:
+            lead_ids.append(lid)
+        for note in (lead.get("notes") or []):
+            uid = note.get("user_id")
+            if uid in (None, "system", "system_auto"):
+                continue
+            ts_str = note.get("created_at", "")
+            try:
+                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                continue
+            age = (now - ts).days
+            if age > days_back:
+                continue
+            score += _bucket(age)
+            if last_ts is None or ts > last_ts:
+                last_ts = ts
+
+    if not lead_ids:
+        last_age = 999 if last_ts is None else max(1, (now - last_ts).days)
+        return (score, last_age)
+
+    # 2) audit_log events relacionados
+    AUDIT_ACTIONS = {
+        "note_added", "lead_updated", "status_changed",
+        "doc_shared", "reschedule", "wa_sent", "email_sent", "call_logged",
+    }
+    try:
+        cursor = db.audit_log.find(
+            {"entity_id": {"$in": lead_ids}, "ts": {"$gte": cutoff}},
+            {"_id": 0, "ts": 1, "action": 1, "actor": 1},
+        ).limit(500)
+        async for ev in cursor:
+            actor = ev.get("actor") or {}
+            if (actor.get("user_id") in (None, "system", "system_auto")) or actor.get("role") == "system":
+                continue
+            if ev.get("action") and ev["action"] not in AUDIT_ACTIONS:
+                continue
+            ts_str = ev.get("ts", "")
+            try:
+                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                continue
+            age = (now - ts).days
+            if age > days_back:
+                continue
+            score += _bucket(age)
+            if last_ts is None or ts > last_ts:
+                last_ts = ts
+    except Exception:
+        pass
+
+    # 3) Appointments
+    try:
+        cursor = db.appointments.find(
+            {"lead_id": {"$in": lead_ids}, "created_at": {"$gte": cutoff}},
+            {"_id": 0, "created_at": 1},
+        ).limit(200)
+        async for apt in cursor:
+            ts_str = apt.get("created_at", "")
+            try:
+                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                continue
+            age = (now - ts).days
+            if age > days_back:
+                continue
+            score += _bucket(age)
+            if last_ts is None or ts > last_ts:
+                last_ts = ts
+    except Exception:
+        pass
+
+    # 4) WhatsApp outbound
+    try:
+        cursor = db.whatsapp_messages.find(
+            {"lead_id": {"$in": lead_ids}, "direction": "outbound", "created_at": {"$gte": cutoff}},
+            {"_id": 0, "created_at": 1},
+        ).limit(200)
+        async for msg in cursor:
+            ts_str = msg.get("created_at", "")
+            try:
+                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                continue
+            age = (now - ts).days
+            if age > days_back:
+                continue
+            score += _bucket(age)
+            if last_ts is None or ts > last_ts:
+                last_ts = ts
+    except Exception:
+        pass
+
+    last_age = 999 if last_ts is None else max(1, (now - last_ts).days)
+    return (score, last_age)
+
+
+
 async def _run_antifraude(
     db, *, project_id: str, contact: Dict,
     phone_norm: str, email_norm: str, name_norm: str,
@@ -428,6 +571,25 @@ async def _run_antifraude(
       {"status": "under_review", "reason": str, "suspected_match_id"?: str, "velocity_count"?: int}
     """
     CLOSED = {"cerrado_ganado", "cerrado_perdido"}
+
+    # CHECK 0 — Cooldown 90d (W5.11 P3): asesor con disputa rechazada previa en este project_id
+    if asesor_id:
+        now_iso = now.isoformat()
+        cooldown_doc = await db.asesor_dispute_history.find_one(
+            {
+                "asesor_id": asesor_id,
+                "project_id": project_id,
+                "resolution": "rejected",
+                "cooldown_until": {"$gt": now_iso},
+            },
+            {"_id": 0, "cooldown_until": 1, "reason_text": 1, "reason_code": 1},
+            sort=[("cooldown_until", -1)],
+        )
+        if cooldown_doc:
+            cu = cooldown_doc.get("cooldown_until", "")
+            cu_date = cu.split("T")[0] if "T" in cu else cu
+            prev_reason = (cooldown_doc.get("reason_text") or cooldown_doc.get("reason_code") or "disputa rechazada")
+            raise HTTPException(409, f"Cooldown activo hasta {cu_date}. Razon previa: {prev_reason}")
 
     # CHECK 1 — Exact match in same project (409 block)
     if phone_norm:

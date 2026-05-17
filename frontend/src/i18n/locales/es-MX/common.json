@@ -2615,6 +2615,45 @@
         "fraud_patterns": "Patrones de fraude",
         "audit_chain": "Audit Chain (SHA-256)"
       }
+    },
+    "disputes": {
+      "eyebrow": "Workflow diario · revisión de leads",
+      "title": "Disputas de leads",
+      "subtitle": "Revisa los leads en estado bajo revisión. Aprueba si son legítimos · rechaza para cerrar y activar cooldown 90d en este proyecto.",
+      "empty": "Sin disputas pendientes",
+      "empty_sub": "Todos los leads han sido revisados. Vuelve más tarde.",
+      "loading": "Cargando disputas…",
+      "reload": "Recargar",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "cancel": "Cancelar",
+      "sending": "Enviando…",
+      "approve_title": "Aprobar disputa",
+      "approve_body": "El lead volverá a estado 'nuevo' y el asesor podrá operarlo. Esta acción queda registrada en el audit log inmutable.",
+      "reject_title": "Rechazar disputa",
+      "reason_code_label": "Razón",
+      "reason_text_label": "Detalle",
+      "reason_text_placeholder": "Explica al asesor por qué se rechaza…",
+      "reason_codes": {
+        "duplicate_confirmed": "Duplicado confirmado",
+        "low_intent": "Intent bajo",
+        "data_falsification": "Falsificación de datos",
+        "other": "Otra"
+      },
+      "cooldown_warning": "Al rechazar, este asesor no podrá registrar leads en este proyecto durante 90 días",
+      "pending_count": "{{count}} pendientes",
+      "kpi_pending": "Pendientes",
+      "kpi_approved_30d": "Aprobadas 30d",
+      "kpi_rejected_30d": "Rechazadas 30d",
+      "kpi_cooldown_active": "Cooldown activos",
+      "field_advisor": "Asesor",
+      "field_project": "Proyecto",
+      "field_created": "Creado",
+      "field_budget": "Presupuesto",
+      "suspected_match": "Posible match",
+      "toast_approved": "Disputa aprobada",
+      "toast_rejected": "Disputa rechazada · cooldown 90d activo",
+      "toast_error": "Error al resolver disputa"
     }
   }
 }

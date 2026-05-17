@@ -25,7 +25,7 @@ NOTIF_TYPES = {
     "listing_view_repeat", "comparable_price_drop", "drop_off_pico",
     "tenant_signup", "api_limit_warn", "lfpdppp_dsr", "audit_suspicious",
     "nurture_cooldown", "forecast_trend_alert", "buyer_hot_jump",
-    "lead_captured_auto", "generic",
+    "lead_captured_auto", "dispute_resolved", "generic",
 }
 
 RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
@@ -50,6 +50,7 @@ DEFAULT_CATEGORIES = {
     "forecast_trend_alert":  {"in_app": True, "email": True,  "whatsapp": False},
     "buyer_hot_jump":        {"in_app": True, "email": True,  "whatsapp": False},
     "lead_captured_auto":    {"in_app": True, "email": True,  "whatsapp": False},
+    "dispute_resolved":      {"in_app": True, "email": True,  "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 
