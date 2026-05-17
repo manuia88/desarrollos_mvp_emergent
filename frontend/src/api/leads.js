@@ -33,6 +33,14 @@ export const getLead = (leadId) => j(`/api/leads/${leadId}`);
 export const moveColumn = (leadId, targetStatus) =>
   post(`/api/leads/${leadId}/move-column`, { target_status: targetStatus });
 
+// ─── W5.ASR.2 Parte 2 — Pipeline V2 estados paralelos ────────────────────
+export const activateNurture = (leadId) =>
+  post(`/api/leads/${leadId}/activate-nurture`, {});
+export const deactivateNurture = (leadId) =>
+  post(`/api/leads/${leadId}/deactivate-nurture`, {});
+export const markLost = (leadId, reason) =>
+  post(`/api/leads/${leadId}/mark-lost`, { reason });
+
 // ─── Conditional Sections (403 if no permission) ──────────────────────────
 export const getConversation = (leadId) => j(`/api/leads/${leadId}/conversation`);
 export const getAiSummary = (leadId) => j(`/api/leads/${leadId}/ai-summary`);

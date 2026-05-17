@@ -546,6 +546,28 @@ async def capture_lead(
         {"conversation_id": conversation_id},
         {"$set": {"lead_captured": True, "lead_id": lead_id, "last_activity": now.isoformat()}},
     )
+    # W5.ASR.2 Parte 2 — Hook lead_journey: emit `captured` con metadata del coach
+    try:
+        from lead_journey_engine import emit_step
+        await emit_step(
+            db,
+            lead_id=lead_id,
+            tenant_id=None,
+            step_type="captured",
+            actor_type="buyer",
+            actor_id=None,
+            payload={
+                "source": "buyer_coach",
+                "conversation_id": conversation_id,
+                "stage_at_capture": conv.get("current_stage", 1),
+                "inferred_disc": conv.get("inferred_disc", ""),
+                "inferred_budget_range": conv.get("inferred_budget_range", ""),
+                "pipeline_version": 2,
+                "status_v2": "lead_nuevo",
+            },
+        )
+    except Exception as exc:
+        log.warning(f"[buyer_coach.capture_lead] lead_journey emit failed: {exc}")
     return {"ok": True, "lead_id": lead_id}
 
 

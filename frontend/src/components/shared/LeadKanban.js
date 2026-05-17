@@ -16,6 +16,7 @@ import { useServerUndo } from './UndoSnackbar';
 import { usePresentationMode } from '../../hooks/usePresentationMode';
 import { anonymizeKanbanCard, piiCSS } from '../../lib/anonymize';
 import { Z } from '../../styles/zIndex';
+import PipelineParallelChips from '../asesor/PipelineParallelChips';
 
 const SOURCE_LABELS = {
   web_form: 'Web', caya_bot: 'Caya', whatsapp: 'WhatsApp', feria: 'Feria',
@@ -23,20 +24,33 @@ const SOURCE_LABELS = {
 };
 
 // Column accents — opacity ladder of cream + semantic tokens.
-// nuevo / en_contacto / propuesta → cream opacities (visual progression)
-// visita_realizada → --amber (warning: cita pasada esperando feedback)
-// cerrado → --green (success: closed)
+// V1 cols: nuevo / en_contacto / visita_realizada / propuesta / cerrado
+// V2 cols: lead_nuevo / contactado / calificado / visita / negociacion / cierre / vendido
 const COL_TOKEN = {
+  // V1
   nuevo:            { bg: 'rgba(240,235,224,0.04)', bd: 'rgba(240,235,224,0.12)', fg: 'var(--cream-2)' },
   en_contacto:      { bg: 'rgba(240,235,224,0.07)', bd: 'rgba(240,235,224,0.18)', fg: 'var(--cream-2)' },
   visita_realizada: { bg: 'rgba(245,158,11,0.08)',  bd: 'rgba(245,158,11,0.30)',  fg: 'var(--amber)' },
   propuesta:        { bg: 'rgba(240,235,224,0.10)', bd: 'rgba(240,235,224,0.26)', fg: 'var(--cream)' },
   cerrado:          { bg: 'rgba(34,197,94,0.08)',   bd: 'rgba(34,197,94,0.30)',   fg: 'var(--green)' },
+  // V2
+  lead_nuevo:       { bg: 'rgba(240,235,224,0.04)', bd: 'rgba(240,235,224,0.12)', fg: 'var(--cream-2)' },
+  contactado:       { bg: 'rgba(240,235,224,0.07)', bd: 'rgba(240,235,224,0.18)', fg: 'var(--cream-2)' },
+  calificado:       { bg: 'rgba(99,102,241,0.08)',  bd: 'rgba(99,102,241,0.30)',  fg: '#a5b4fc' },
+  visita:           { bg: 'rgba(245,158,11,0.08)',  bd: 'rgba(245,158,11,0.30)',  fg: 'var(--amber)' },
+  negociacion:      { bg: 'rgba(236,72,153,0.08)',  bd: 'rgba(236,72,153,0.30)',  fg: '#f9a8d4' },
+  cierre:           { bg: 'rgba(240,235,224,0.10)', bd: 'rgba(240,235,224,0.26)', fg: 'var(--cream)' },
+  vendido:          { bg: 'rgba(34,197,94,0.08)',   bd: 'rgba(34,197,94,0.30)',   fg: 'var(--green)' },
 };
 
-const COL_TO_DEFAULT_STATUS = {
+const COL_TO_DEFAULT_STATUS_V1 = {
   nuevo: 'nuevo', en_contacto: 'contactado', visita_realizada: 'visita_realizada',
   propuesta: 'propuesta', cerrado: 'cerrado_ganado',
+};
+// V2: column key === target status_v2 (identity map)
+const COL_TO_DEFAULT_STATUS_V2 = {
+  lead_nuevo: 'lead_nuevo', contactado: 'contactado', calificado: 'calificado',
+  visita: 'visita', negociacion: 'negociacion', cierre: 'cierre', vendido: 'vendido',
 };
 
 const fmtMXN = (v) => v == null ? '—' : `$${(v / 1_000_000).toFixed(1)}M`;
@@ -44,23 +58,28 @@ const fmtMXN = (v) => v == null ? '—' : `$${(v / 1_000_000).toFixed(1)}M`;
 // ═════════════════════════════════════════════════════════════════════════════
 // Main component
 // ═════════════════════════════════════════════════════════════════════════════
-export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
+export default function LeadKanban({ scope = 'mine', projectId, onToast, pipelineVersion = 'v2' }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(null);
   const [openLeadId, setOpenLeadId] = useState(null);
   const { showServerUndo } = useServerUndo();
 
+  const useV2 = pipelineVersion === 'v2';
+  const COL_TO_DEFAULT_STATUS = useV2 ? COL_TO_DEFAULT_STATUS_V2 : COL_TO_DEFAULT_STATUS_V1;
+
   const load = async () => {
     setLoading(true);
     try {
-      const r = await leadsApi.getKanban({ scope, project_id: projectId });
+      const params = { scope, project_id: projectId };
+      if (useV2) params.pipeline = 'v2';
+      const r = await leadsApi.getKanban(params);
       setData(r);
     } catch (e) {
       onToast?.({ kind: 'error', text: e.body?.detail || 'Error al cargar kanban' });
     } finally { setLoading(false); }
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [scope, projectId]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [scope, projectId, pipelineVersion]);
 
   const handleDrop = async (colKey, e) => {
     e.preventDefault();
@@ -109,8 +128,9 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
 
   return (
     <>
-      <div data-testid="lead-kanban-grid" style={{
-        display: 'grid', gridTemplateColumns: 'repeat(5, minmax(220px, 1fr))',
+      <div data-testid="lead-kanban-grid" data-pipeline-version={useV2 ? 'v2' : 'v1'} style={{
+        display: 'grid',
+        gridTemplateColumns: useV2 ? 'repeat(7, minmax(200px, 1fr))' : 'repeat(5, minmax(220px, 1fr))',
         gap: 10, overflowX: 'auto', paddingBottom: 8,
       }} className="density-kanban-grid">
         {data.columns.map(col => {
@@ -165,6 +185,8 @@ export default function LeadKanban({ scope = 'mine', projectId, onToast }) {
           leadId={openLeadId}
           onClose={() => setOpenLeadId(null)}
           onToast={onToast}
+          pipelineVersion={pipelineVersion}
+          onChanged={load}
         />
       )}
     </>
@@ -256,6 +278,7 @@ function LeadKanbanCard({ card, colKey, tok, onOpen }) {
         <Badge tone="neutral">{SOURCE_LABELS[card.source] || card.source}</Badge>
         {card.intent && <Badge tone="neutral">{card.intent}</Badge>}
         {card.heat_tag && <HeatBadge tag={card.heat_tag} score={card.heat_score} />}
+        <PipelineParallelChips parallelStates={card.parallel_states} leadId={card.id} compact />
         {isBrokerExternal && (
           /* Single allowed gradient usage: Broker externo badge */
           <span data-testid={`broker-badge-${card.id}`} style={{
@@ -450,7 +473,7 @@ function EnrichedSection({ card }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // LeadDrawer — full lead detail with conditional sections
 // ═════════════════════════════════════════════════════════════════════════════
-function LeadDrawer({ leadId, onClose, onToast }) {
+function LeadDrawer({ leadId, onClose, onToast, pipelineVersion = 'v1', onChanged }) {
   const [lead, setLead] = useState(null);
   const [conv, setConv] = useState(null);
   const [ai, setAi] = useState(null);
@@ -460,6 +483,7 @@ function LeadDrawer({ leadId, onClose, onToast }) {
   const [loading, setLoading] = useState(true);
   const [convLocked, setConvLocked] = useState(false);
   const [aiLocked, setAiLocked] = useState(false);
+  const [pipelineBusy, setPipelineBusy] = useState(false);
 
   // B19 Sub-C — Presentation mode
   const { isActive: pmActive, config: pmConfig } = usePresentationMode();
@@ -499,6 +523,37 @@ function LeadDrawer({ leadId, onClose, onToast }) {
     } catch (e) {
       onToast?.({ kind: 'error', text: e.body?.detail || 'Error al refrescar' });
     } finally { setAiLoading(false); }
+  };
+
+  // W5.ASR.2 Parte 2 — acciones paralelas V2
+  const handleNurtureToggle = async () => {
+    if (pipelineBusy) return;
+    setPipelineBusy(true);
+    try {
+      const active = !!lead?.nurture_active;
+      const fn = active ? leadsApi.deactivateNurture : leadsApi.activateNurture;
+      const r = await fn(leadId);
+      setLead(prev => prev ? { ...prev, nurture_active: !active, _pipeline_state: r.pipeline_state } : prev);
+      onToast?.({ kind: 'success', text: active ? 'Nurture desactivado' : 'Nurture activado' });
+      onChanged?.();
+    } catch (e) {
+      onToast?.({ kind: 'error', text: e.body?.detail || 'Error al actualizar nurture' });
+    } finally { setPipelineBusy(false); }
+  };
+
+  const handleMarkLost = async () => {
+    if (pipelineBusy) return;
+    const reason = window.prompt('Motivo para marcar el lead como perdido:');
+    if (!reason || !reason.trim()) return;
+    setPipelineBusy(true);
+    try {
+      const r = await leadsApi.markLost(leadId, reason.trim());
+      setLead(prev => prev ? { ...prev, lost_at: new Date().toISOString(), lost_reason: reason.trim(), _pipeline_state: r.pipeline_state } : prev);
+      onToast?.({ kind: 'success', text: 'Lead marcado como perdido' });
+      onChanged?.();
+    } catch (e) {
+      onToast?.({ kind: 'error', text: e.body?.detail || 'Error al marcar perdido' });
+    } finally { setPipelineBusy(false); }
   };
 
   return (
@@ -548,6 +603,72 @@ function LeadDrawer({ leadId, onClose, onToast }) {
               <PermBadge active={lead._permissions?.can_view_ai_summary} label="Resumen IA" />
               <PermBadge active={lead._permissions?.can_move} label="Mover columna" />
             </div>
+
+            {pipelineVersion === 'v2' && (
+              <Section title="Pipeline V2" icon={<Sparkle size={13} />} testid="lead-drawer-pipeline-v2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontFamily: 'DM Sans' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Etapa lineal:
+                    </span>
+                    <span data-testid="lead-drawer-status-v2" style={{
+                      padding: '3px 9px', borderRadius: 9999,
+                      background: 'rgba(240,235,224,0.05)', border: '1px solid var(--border)',
+                      color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 10.5, fontWeight: 700,
+                      textTransform: 'uppercase', letterSpacing: '0.04em',
+                    }}>
+                      {lead.status_v2 || '—'}
+                    </span>
+                    <PipelineParallelChips
+                      parallelStates={[
+                        ...(lead.nurture_active ? ['nurture'] : []),
+                        ...(lead.lost_at ? ['perdido'] : []),
+                      ]}
+                      leadId={leadId}
+                    />
+                  </div>
+                  {lead.lost_at && lead.lost_reason && (
+                    <div style={{ fontSize: 11.5, color: 'var(--cream-2)' }}>
+                      <strong style={{ color: 'var(--cream-3)' }}>Motivo perdido:</strong> {lead.lost_reason}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      data-testid="pipeline-toggle-nurture"
+                      disabled={pipelineBusy || !lead._permissions?.can_move}
+                      onClick={handleNurtureToggle}
+                      style={{
+                        padding: '6px 12px', borderRadius: 9999,
+                        background: lead.nurture_active ? 'rgba(99,102,241,0.12)' : 'rgba(240,235,224,0.04)',
+                        border: `1px solid ${lead.nurture_active ? 'rgba(99,102,241,0.32)' : 'var(--border)'}`,
+                        color: lead.nurture_active ? '#a5b4fc' : 'var(--cream-2)',
+                        fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
+                        cursor: (pipelineBusy || !lead._permissions?.can_move) ? 'not-allowed' : 'pointer',
+                        opacity: (pipelineBusy || !lead._permissions?.can_move) ? 0.6 : 1,
+                      }}>
+                      {lead.nurture_active ? 'Desactivar nurture' : 'Activar nurture'}
+                    </button>
+                    {!lead.lost_at && (
+                      <button
+                        data-testid="pipeline-mark-lost"
+                        disabled={pipelineBusy || !lead._permissions?.can_move}
+                        onClick={handleMarkLost}
+                        style={{
+                          padding: '6px 12px', borderRadius: 9999,
+                          background: 'rgba(239,68,68,0.08)',
+                          border: '1px solid rgba(239,68,68,0.30)',
+                          color: '#fca5a5',
+                          fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
+                          cursor: (pipelineBusy || !lead._permissions?.can_move) ? 'not-allowed' : 'pointer',
+                          opacity: (pipelineBusy || !lead._permissions?.can_move) ? 0.6 : 1,
+                        }}>
+                        Marcar perdido
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Section>
+            )}
 
             <Section title="Contacto" icon={<MessageCircle size={13} />}>
               {lead._scrubbed ? (

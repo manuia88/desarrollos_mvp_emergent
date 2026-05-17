@@ -35,12 +35,25 @@ LEAD_STATUSES = [
 # W5.ASR.2 — Statuses V2 aceptados en move endpoints
 from pipeline_engine import (
     LEAD_STATUSES_V2 as _LEAD_STATUSES_V2,
+    LINEAR_STAGES_ORDER as _LINEAR_STAGES_V2,
     validate_transition_v2 as _validate_transition_v2,
     get_lead_pipeline_state as _get_pipeline_state,
     set_parallel_state as _set_parallel_state,
     map_v1_to_v2 as _map_v1_to_v2,
 )
 _ALL_VALID_STATUSES = set(LEAD_STATUSES) | set(_LEAD_STATUSES_V2)
+
+# W5.ASR.2 Parte 2 — Kanban V2: 7 columnas lineales (paralelas se renderizan como chips en cards)
+KANBAN_COLUMNS_V2 = [
+    {"key": "lead_nuevo",   "label": "Nuevo",        "statuses": ["lead_nuevo"]},
+    {"key": "contactado",   "label": "Contactado",   "statuses": ["contactado"]},
+    {"key": "calificado",   "label": "Calificado",   "statuses": ["calificado"]},
+    {"key": "visita",       "label": "Visita",       "statuses": ["visita"]},
+    {"key": "negociacion",  "label": "Negociación",  "statuses": ["negociacion"]},
+    {"key": "cierre",       "label": "Cierre",       "statuses": ["cierre"]},
+    {"key": "vendido",      "label": "Vendido",      "statuses": ["vendido"]},
+]
+COLUMN_BY_STATUS_V2 = {s: col["key"] for col in KANBAN_COLUMNS_V2 for s in col["statuses"]}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -235,9 +248,20 @@ def _build_card(lead: Dict, name_by_id: Dict[str, str], now: datetime,
         contact_name = f"Cliente de {asesor_name}"
         contact_email = None
         contact_phone = None
+    # W5.ASR.2 Parte 2 — pipeline V2 metadata para frontend
+    parallel_states: List[str] = []
+    if lead.get("nurture_active"):
+        parallel_states.append("nurture")
+    if lead.get("lost_at"):
+        parallel_states.append("perdido")
     return {
         "id": lead["id"],
         "status": lead.get("status", "nuevo"),
+        "status_v2": lead.get("status_v2"),
+        "pipeline_version": lead.get("pipeline_version", 1),
+        "parallel_states": parallel_states,
+        "nurture_active": bool(lead.get("nurture_active")),
+        "lost_at": lead.get("lost_at"),
         "project_id": lead.get("project_id"),
         "source": lead.get("source"),
         "origin_type": origin_type,
@@ -277,6 +301,7 @@ async def _run_kanban(
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     q_search: Optional[str] = None,
+    pipeline: str = "v1",
 ):
     user = await _auth(request)
     db = _db(request)
@@ -348,14 +373,21 @@ async def _run_kanban(
                 cross_counts[gid] = other_count
 
     now = _now()
-    cols: Dict[str, List] = {c["key"]: [] for c in KANBAN_COLUMNS}
-    total_counts: Dict[str, int] = {c["key"]: 0 for c in KANBAN_COLUMNS}
-    sum_budgets: Dict[str, float] = {c["key"]: 0.0 for c in KANBAN_COLUMNS}
+    use_v2 = (str(pipeline).lower() == "v2")
+    active_columns = KANBAN_COLUMNS_V2 if use_v2 else KANBAN_COLUMNS
+    active_lookup = COLUMN_BY_STATUS_V2 if use_v2 else COLUMN_BY_STATUS
+    cols: Dict[str, List] = {c["key"]: [] for c in active_columns}
+    total_counts: Dict[str, int] = {c["key"]: 0 for c in active_columns}
+    sum_budgets: Dict[str, float] = {c["key"]: 0.0 for c in active_columns}
 
     for lead in items:
-        col_key = COLUMN_BY_STATUS.get(lead.get("status", "nuevo"))
-        if not col_key:
-            col_key = "nuevo"
+        if use_v2:
+            sv2 = lead.get("status_v2") or _map_v1_to_v2(lead.get("status", "nuevo"))
+            col_key = active_lookup.get(sv2) or "lead_nuevo"
+        else:
+            col_key = active_lookup.get(lead.get("status", "nuevo"))
+            if not col_key:
+                col_key = "nuevo"
         can_m = can_move_lead(user, lead)
         can_f = can_view_full_client_data(user, lead)
         gid = lead.get("client_global_id", "")
@@ -375,7 +407,7 @@ async def _run_kanban(
         sum_budgets[col_key] = sum_budgets.get(col_key, 0) + bmax
 
     columns_out = []
-    for c in KANBAN_COLUMNS:
+    for c in active_columns:
         columns_out.append({
             "key": c["key"],
             "label": c["label"],
@@ -389,6 +421,7 @@ async def _run_kanban(
         "total": len(items),
         "scope": scope,
         "project_id": project_id,
+        "pipeline_version": 2 if use_v2 else 1,
     }
 
 
@@ -402,10 +435,12 @@ async def unified_kanban(
     from_date: Annotated[Optional[str], Query(alias="from")] = None,
     to_date: Annotated[Optional[str], Query(alias="to")] = None,
     q_search: Annotated[Optional[str], Query(alias="q")] = None,
+    pipeline: str = "v1",
 ):
     return await _run_kanban(
         request, scope=scope, project_id=project_id, source=source,
         asesor_id=asesor_id, from_date=from_date, to_date=to_date, q_search=q_search,
+        pipeline=pipeline,
     )
 
 
@@ -495,6 +530,33 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
         },
     )
     updated = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+
+    # W5.ASR.2 Parte 2 — Hook lead_journey: emite step_type basado en target V2
+    try:
+        from lead_journey_engine import emit_step, step_type_for_v2_target
+        v2_target: Optional[str] = None
+        if payload.target_status in _LEAD_STATUSES_V2:
+            v2_target = payload.target_status
+        elif lead.get("pipeline_version") == 2 or lead.get("status_v2"):
+            v2_target = _map_v1_to_v2(payload.target_status)
+        if v2_target:
+            step_t = step_type_for_v2_target(v2_target)
+            if step_t:
+                await emit_step(
+                    db,
+                    lead_id=lead_id,
+                    tenant_id=getattr(user, "tenant_id", None),
+                    step_type=step_t,
+                    actor_type="asesor",
+                    actor_id=getattr(user, "user_id", None),
+                    payload={
+                        "from_status_v2": lead.get("status_v2"),
+                        "to_status_v2": v2_target,
+                        "source": "kanban_move",
+                    },
+                )
+    except Exception as exc:
+        log.warning(f"[move-column] lead_journey emit failed: {exc}")
 
     # Phase 4 Batch 17 — register undo
     try:
@@ -817,6 +879,17 @@ async def activate_nurture(lead_id: str, request: Request):
         before={"nurture_active": lead.get("nurture_active", False)}, after={"nurture_active": True},
         request=request, ml_event="lead_nurture_activate", ml_context={"lead_id": lead_id},
     )
+    # W5.ASR.2 Parte 2 — Hook lead_journey
+    try:
+        from lead_journey_engine import emit_step
+        await emit_step(
+            db, lead_id=lead_id, tenant_id=getattr(user, "tenant_id", None),
+            step_type="nurtured", actor_type="asesor",
+            actor_id=getattr(user, "user_id", None),
+            payload={"source": "activate_nurture"},
+        )
+    except Exception as exc:
+        log.warning(f"[activate-nurture] lead_journey emit failed: {exc}")
     return {"ok": True, "lead_id": lead_id, "pipeline_state": state}
 
 
@@ -838,6 +911,17 @@ async def deactivate_nurture(lead_id: str, request: Request):
         before={"nurture_active": True}, after={"nurture_active": False},
         request=request, ml_event="lead_nurture_deactivate", ml_context={"lead_id": lead_id},
     )
+    # W5.ASR.2 Parte 2 — Hook lead_journey
+    try:
+        from lead_journey_engine import emit_step
+        await emit_step(
+            db, lead_id=lead_id, tenant_id=getattr(user, "tenant_id", None),
+            step_type="nurture_paused", actor_type="asesor",
+            actor_id=getattr(user, "user_id", None),
+            payload={"source": "deactivate_nurture"},
+        )
+    except Exception as exc:
+        log.warning(f"[deactivate-nurture] lead_journey emit failed: {exc}")
     return {"ok": True, "lead_id": lead_id, "pipeline_state": state}
 
 
@@ -862,5 +946,16 @@ async def mark_lead_lost(lead_id: str, payload: MarkLostPayload, request: Reques
         before={"lost_at": lead.get("lost_at")}, after={"lost_reason": payload.reason},
         request=request, ml_event="lead_mark_lost", ml_context={"lead_id": lead_id, "reason": payload.reason},
     )
+    # W5.ASR.2 Parte 2 — Hook lead_journey
+    try:
+        from lead_journey_engine import emit_step
+        await emit_step(
+            db, lead_id=lead_id, tenant_id=getattr(user, "tenant_id", None),
+            step_type="closed_lost", actor_type="asesor",
+            actor_id=getattr(user, "user_id", None),
+            payload={"source": "mark_lost", "reason": payload.reason.strip()},
+        )
+    except Exception as exc:
+        log.warning(f"[mark-lost] lead_journey emit failed: {exc}")
     return {"ok": True, "lead_id": lead_id, "pipeline_state": state}
 

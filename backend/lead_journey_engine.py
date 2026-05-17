@@ -26,6 +26,28 @@ VALID_STEP_TYPES = {
 ACTOR_TYPES = {"system", "asesor", "broker", "buyer", "atlax", "cron"}
 IDEMPOTENCY_WINDOW_S = 60
 
+# W5.ASR.2 Parte 2 — Mapeo de status V2 (lineales + paralelos) → step_type del journey
+V2_STATUS_TO_STEP: Dict[str, str] = {
+    # Lineales (7)
+    "lead_nuevo":   "captured",
+    "contactado":   "first_touch_email",
+    "calificado":   "disc_inferred",
+    "visita":       "meeting_scheduled",
+    "negociacion":  "quote_sent",
+    "cierre":       "quote_sent",
+    "vendido":      "closed_won",
+    # Paralelos (2)
+    "nurture":      "nurtured",
+    "perdido":      "closed_lost",
+}
+
+
+def step_type_for_v2_target(target_status_v2: str) -> Optional[str]:
+    """W5.ASR.2 Parte 2 — Devuelve el step_type del journey correspondiente al
+    target status V2. Retorna None si el status es desconocido.
+    """
+    return V2_STATUS_TO_STEP.get(target_status_v2)
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
