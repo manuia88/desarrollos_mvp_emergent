@@ -172,6 +172,13 @@ async def resolve_dispute(lead_id: str, payload: ResolveDisputeBody, request: Re
         lead_update["lost_reason"] = "dispute_rejected"
     await db.leads.update_one({"id": lead_id}, {"$set": lead_update})
 
+    # W5.12 Parte 1 — KG sync lead status (best-effort · no-op si KG_AVAILABLE=False)
+    try:
+        from knowledge_graph_engine import kg_sync
+        await kg_sync.set_lead_status(db, lead_id, new_status, actor_user_id=getattr(user, "user_id", None))
+    except Exception as _kg_exc:
+        log.warning(f"[KG sync] set_lead_status skipped: {_kg_exc}")
+
     # 4. Notify asesor (dispute_resolved)
     project_name = lead.get("project_name") or project_id
     contact = lead.get("contact") or {}

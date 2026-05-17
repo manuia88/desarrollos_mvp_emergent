@@ -274,6 +274,10 @@ app.include_router(dev_batch4_1_router)
 from routes.disputes import router as disputes_router, ensure_disputes_indexes
 app.include_router(disputes_router)
 
+# W5.12 Parte 1 — Knowledge Graph (Neo4j)
+from routes.knowledge_graph import router as kg_router
+app.include_router(kg_router)
+
 # Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
 from routes.dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
 app.include_router(dev_batch4_2_router)
@@ -1047,6 +1051,23 @@ async def startup():
     await seed_dmx_inmobiliaria(db)
     # W5.11 Parte 3 — Disputes
     await ensure_disputes_indexes(db)
+    # W5.12 Parte 1 — Knowledge Graph: health check + constraints (best-effort)
+    try:
+        from knowledge_graph_engine import health_check, ensure_kg_constraints, KG_VERSION, NODE_TYPES, EDGE_TYPES
+        hc = await health_check()
+        if hc.get("connected"):
+            await ensure_kg_constraints()
+            logging.info(
+                f"[KG] connected to Neo4j {hc.get('version')} · constraints OK · "
+                f"{len(NODE_TYPES)} node types · {len(EDGE_TYPES)} edge types"
+            )
+        else:
+            logging.warning(
+                f"[KG] Neo4j unavailable · KG_AVAILABLE=False · reason={hc.get('error')} · "
+                f"endpoints retornaran 503 con fallback relational"
+            )
+    except Exception as exc:
+        logging.warning(f"[KG] startup hook failed: {exc}")
     # Phase 18 Batch 35 — Inmobiliaria relationships + AMPI verifications
     from services.inmobiliaria_relationships import ensure_inmobiliaria_relationship_indexes
     await ensure_inmobiliaria_relationship_indexes(db)
@@ -1363,6 +1384,12 @@ async def startup():
             register_diagnostic_jobs(sched, db, app)
         except Exception as e:
             logging.warning(f"[batch0.5] diagnostic scheduler register failed: {e}")
+        # W5.12 Parte 1 — Knowledge Graph nightly rebuild
+        try:
+            from kg_cron import register_kg_jobs
+            register_kg_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[KG cron] register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:
