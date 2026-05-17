@@ -8,10 +8,17 @@ import { Search, Sparkle, MessageSquare, ArrowRight } from '../../components/ico
 import { Z } from '../../styles/zIndex';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
 import SmartListsSidebar from '../../components/asesor/SmartListsSidebar';
+import SourceBadge from '../../components/asesor/SourceBadge';
 import { getLeadsInPreset } from '../../api/smart_lists';
 
 const TIPOS = ['comprador', 'vendedor', 'propietario', 'inversor', 'broker'];
 const TEMPS = ['frio', 'tibio', 'caliente', 'cliente'];
+const SOURCES = ['email_alias', 'portal_inmuebles24', 'portal_lamudi', 'fb_lead_ads', 'landing', 'manual'];
+const SOURCE_LABELS = {
+  email_alias: 'Email alias', portal_inmuebles24: 'Inmuebles24',
+  portal_lamudi: 'Lamudi', fb_lead_ads: 'FB Lead Ads',
+  landing: 'Landing', manual: 'Manual',
+};
 
 export default function AsesorContactos({ user, onLogout }) {
   const { id } = useParams();
@@ -31,6 +38,8 @@ export default function AsesorContactos({ user, onLogout }) {
   const [devs, setDevs] = useState([]);
   // W5.ASR.3 Parte 1 — Smart List filter
   const [smartList, setSmartList] = useState(() => searchParams.get('smart_list') || null);
+  // W5.ASR.5 Parte 2 — Source filter
+  const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
 
   const load = async () => {
     setLoading(true);
@@ -46,6 +55,7 @@ export default function AsesorContactos({ user, onLogout }) {
       } else {
         const params = { q, tipo, temp };
         if (scoreMin > 0) params.score_min = scoreMin;
+        if (sourceFilter) params.source = sourceFilter;
         const items = await api.listContactos(params);
         if (sortBy === 'score') {
           items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
@@ -55,15 +65,16 @@ export default function AsesorContactos({ user, onLogout }) {
     } finally { setLoading(false); }
   };
 
-  // Sync URL params (score_min + smart_list)
+  // Sync URL params (score_min + smart_list + source)
   useEffect(() => {
     const params = {};
     if (scoreMin > 0 && !smartList) params.score_min = String(scoreMin);
     if (smartList) params.smart_list = smartList;
+    if (sourceFilter) params.source = sourceFilter;
     setSearchParams(params, { replace: true });
-  }, [scoreMin, smartList]); // eslint-disable-line
+  }, [scoreMin, smartList, sourceFilter]); // eslint-disable-line
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, tipo, temp, scoreMin, sortBy, smartList]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, tipo, temp, scoreMin, sortBy, smartList, sourceFilter]);
 
   useEffect(() => {
     if (id) {
@@ -129,6 +140,11 @@ export default function AsesorContactos({ user, onLogout }) {
             <option value="">Temperatura · todas</option>
             {TEMPS.map(x => <option key={x} value={x}>{x}</option>)}
           </select>
+          {/* W5.ASR.5 P2 — Filtro por fuente · URL sync ?source=xxx */}
+          <select data-testid="filter-source" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="asr-select">
+            <option value="">Fuente · todas</option>
+            {SOURCES.map(s => <option key={s} value={s}>{SOURCE_LABELS[s]}</option>)}
+          </select>
           {/* W5.4 Sub-B — Sort por score */}
           <select
             data-testid="sort-by-select"
@@ -185,7 +201,7 @@ export default function AsesorContactos({ user, onLogout }) {
             <table data-testid="contacts-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Nombre', 'Tipo', 'Temperatura', 'Score', 'Tags', 'Teléfono', 'Email', ''].map(c => (
+                  {['Nombre', 'Fuente', 'Tipo', 'Temperatura', 'Score', 'Tags', 'Teléfono', 'Email', ''].map(c => (
                     <th key={c} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{c}</th>
                   ))}
                 </tr>
@@ -198,6 +214,10 @@ export default function AsesorContactos({ user, onLogout }) {
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <td style={{ padding: '11px 14px', color: 'var(--cream)', fontWeight: 500, fontSize: 13 }}>{c.first_name} {c.last_name}</td>
+                    {/* W5.ASR.5 P2 — SourceBadge */}
+                    <td style={{ padding: '11px 14px' }}>
+                      <SourceBadge source={c.source} date={c.created_at} />
+                    </td>
                     <td style={{ padding: '11px 14px', color: 'var(--cream-2)', fontSize: 12 }}>{c.tipo}</td>
                     <td style={{ padding: '11px 14px' }}>
                       <Badge tone={c.temperatura === 'caliente' ? 'bad' : c.temperatura === 'tibio' ? 'warn' : c.temperatura === 'cliente' ? 'ok' : 'neutral'}>

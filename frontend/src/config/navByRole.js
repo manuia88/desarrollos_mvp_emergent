@@ -92,6 +92,7 @@ const ASESOR_NAV = [
       { key: 'briefing-traffic', to: '/asesor/briefing',                 label: 'Tráfico+Clima',    Icon: MapPin },
       { key: 'links',        to: '/asesor/links-tracking',               label: 'Links tracking',   Icon: Link },
       { key: 'cma',          to: '/asesor/cma',                          label: 'CMA · Análisis comparativo', Icon: BarChart3 },
+      { key: 'lead-aliases', to: '/asesor/lead-aliases',                 label: 'Conectar fuentes leads', Icon: Plug },
     ],
   },
 ];
@@ -204,6 +205,7 @@ const SUPERADMIN_NAV = [
       { key: 'newsletter',    to: '/superadmin/newsletter',           label: 'Newsletter Pulse',  Icon: Mail },
       { key: 'bulletins',     to: '/superadmin/bulletins',            label: 'Boletines',         Icon: FileText },
       { key: 'landing-leads', to: '/superadmin/landing-leads',        label: 'Leads landing',     Icon: Megaphone },
+      { key: 'lead-sources',  to: '/superadmin/lead-sources',         label: 'Lead Sources',      Icon: Megaphone },
       { key: 'partners',      to: '/superadmin/partners',             label: 'Partners',          Icon: HeartHandshake },
       { key: 'onboarding',    to: '/superadmin/onboarding-analytics', label: 'Tours Onboarding',  Icon: Sparkles },
     ],
