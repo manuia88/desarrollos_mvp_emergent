@@ -91,6 +91,7 @@ const ASESOR_NAV = [
       { key: 'briefings',    to: '/asesor/briefings',                    label: 'Briefings',        Icon: FileText },
       { key: 'briefing-traffic', to: '/asesor/briefing',                 label: 'Tráfico+Clima',    Icon: MapPin },
       { key: 'links',        to: '/asesor/links-tracking',               label: 'Links tracking',   Icon: Link },
+      { key: 'cma',          to: '/asesor/cma',                          label: 'CMA · Análisis comparativo', Icon: BarChart3 },
     ],
   },
 ];

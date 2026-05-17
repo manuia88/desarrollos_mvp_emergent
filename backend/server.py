@@ -1608,6 +1608,16 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.asr.2] pipeline engine init failed: {e}")
 
+    # W5.ASR.4 Parte 1 — CMA Engine (Comparative Market Analysis)
+    try:
+        from cma_engine import ensure_indexes as cma_ensure_indexes
+        from routes.cma import router as cma_router
+        await cma_ensure_indexes(db)
+        app.include_router(cma_router)
+        logging.info("[w5.asr.4] cma engine init")
+    except Exception as e:
+        logging.warning(f"[w5.asr.4] cma engine init failed: {e}")
+
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:
