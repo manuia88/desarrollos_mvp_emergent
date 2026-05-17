@@ -1626,6 +1626,19 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.asr.3] smart_lists engine init failed: {e}")
 
+    # W5.ASR.3 Parte 2 — Auto-Nurture Cron (daily 05:00 UTC)
+    try:
+        from auto_nurture_cron import (
+            ensure_indexes as auto_nurture_ensure_indexes,
+            register_auto_nurture_job,
+        )
+        await auto_nurture_ensure_indexes(db)
+        if sched:
+            register_auto_nurture_job(sched, db)
+        logging.info("[w5.asr.3] auto-nurture cron @ 05:00 UTC")
+    except Exception as e:
+        logging.warning(f"[w5.asr.3] auto-nurture cron register failed: {e}")
+
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:

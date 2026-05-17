@@ -18,3 +18,7 @@ export const getSmartListCounts = () =>
 
 export const getLeadsInPreset = (presetKey, { limit = 50, offset = 0 } = {}) =>
   j(`/api/asesor/smart-lists/${presetKey}/leads?limit=${limit}&offset=${offset}`);
+
+// W5.ASR.3 Parte 2 — Broker rollup cross-asesor
+export const getSmartListsRollup = () =>
+  j('/api/inmobiliaria/smart-lists/rollup');

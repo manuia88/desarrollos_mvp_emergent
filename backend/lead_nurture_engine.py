@@ -1210,6 +1210,115 @@ async def run_lead_nurture_intelligent_all_orgs(db) -> Dict[str, Any]:
             "ts": _now().isoformat()}
 
 
+# ═════════════════════════════════════════════════════════════════════════════
+# W5.ASR.3 Parte 2 — Helper directo para auto-nurture cron (stalled-recovery)
+# ═════════════════════════════════════════════════════════════════════════════
+
+_STALLED_RECOVERY_OFFSETS_H = [0, 48, 168, 336]
+_STALLED_RECOVERY_CHANNELS = ["email", "whatsapp", "email", "asesor_handoff"]
+
+
+async def start_stalled_recovery_for_lead(db, lead: Dict[str, Any]) -> str:
+    """Crea o reactiva una nurture_sequence tipo 'stalled-recovery' para el lead.
+
+    Returns one of:
+        'created'        — sequence nueva insertada
+        'reactivated'    — existía pausada/expirada y reanudada
+        'skipped_active' — ya hay una secuencia activa (idempotent)
+        'noop'           — datos insuficientes
+    """
+    import uuid as _uuid
+
+    lead_id = lead.get("id")
+    if not lead_id:
+        return "noop"
+    org_id = lead.get("tenant_id") or lead.get("dev_org_id") or "default"
+
+    existing = await db.nurture_sequences.find_one(
+        {"org_id": org_id, "lead_id": lead_id},
+        {"_id": 1, "status": 1, "sequence_type": 1},
+    )
+    if existing and (existing.get("status") == "active"):
+        return "skipped_active"
+
+    now = _now()
+    touches: List[Dict[str, Any]] = []
+    for i, (off_h, ch) in enumerate(zip(_STALLED_RECOVERY_OFFSETS_H,
+                                         _STALLED_RECOVERY_CHANNELS)):
+        touches.append({
+            "step": i + 1,
+            "offset_hours": off_h,
+            "channel": ch,
+            "subject": f"Recuperación · paso {i + 1}/4",
+            "body": (
+                "Hola, vimos que tu interés en la zona quedó pausado. "
+                "Tenemos novedades importantes que pueden encajar contigo. "
+                "¿Te ayudamos a retomar?" if ch != "asesor_handoff"
+                else "Pasar a tu asesor para retomar el seguimiento personal."
+            ),
+            "scheduled_at": (now + timedelta(hours=off_h)).isoformat(),
+            "status": "scheduled",
+            "rationale": "auto-nurture · 14d sin actividad · template stalled-recovery",
+        })
+
+    seq_doc = {
+        "org_id": org_id,
+        "lead_id": lead_id,
+        "lead_signature": _lead_signature_nrt(lead, None),
+        "sequence_type": "stalled-recovery",
+        "touches": touches,
+        "current_step": 0,
+        "total_steps": len(touches),
+        "generated_at": now,
+        "last_touch_at": None,
+        "next_touch_scheduled_at": now + timedelta(hours=_STALLED_RECOVERY_OFFSETS_H[0]),
+        "status": "active",
+        "layer_used": "auto_nurture_cron",
+        "data_quality": "auto_template",
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "cost_usd": 0.0,
+        "latency_ms": 0,
+        "expires_at": now + timedelta(days=30),
+        "simulation": False,
+    }
+    if existing:
+        await db.nurture_sequences.update_one(
+            {"org_id": org_id, "lead_id": lead_id},
+            {"$set": seq_doc},
+        )
+        try:
+            await db.activity_log.insert_one({
+                "id": f"act_{_uuid.uuid4().hex[:12]}",
+                "type": "nurture_intelligent.reactivated",
+                "org_id": org_id, "lead_id": lead_id,
+                "sequence_type": "stalled-recovery",
+                "trigger": "auto_nurture_cron_14d",
+                "created_at": now,
+            })
+        except Exception:
+            pass
+        return "reactivated"
+
+    seq_doc["_id"] = f"nrt_{_uuid.uuid4().hex[:14]}"
+    await db.nurture_sequences.insert_one(dict(seq_doc))
+    try:
+        await db.activity_log.insert_one({
+            "id": f"act_{_uuid.uuid4().hex[:12]}",
+            "type": "nurture_intelligent.designed",
+            "org_id": org_id, "lead_id": lead_id,
+            "sequence_type": "stalled-recovery",
+            "trigger": "auto_nurture_cron_14d",
+            "total_steps": len(touches),
+            "layer_used": "auto_nurture_cron",
+            "created_at": now,
+        })
+    except Exception:
+        pass
+    return "created"
+
+
+
 async def ensure_nurture_sequences_indexes(db) -> None:
     try:
         await db.nurture_sequences.create_index(
