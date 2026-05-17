@@ -2654,6 +2654,99 @@
       "toast_approved": "Disputa aprobada",
       "toast_rejected": "Disputa rechazada · cooldown 90d activo",
       "toast_error": "Error al resolver disputa"
+    },
+    "knowledge_graph": {
+      "eyebrow": "SUPERADMIN · KNOWLEDGE GRAPH",
+      "title": "Knowledge Graph",
+      "subtitle": "Explora relaciones del grafo de DesarrollosMX. Plantillas seguras, visualizacion Cytoscape, deteccion de anomalias nocturna y monitoring del servicio Neo4j.",
+      "tabs": {
+        "preguntas": "Preguntas",
+        "grafo": "Grafo",
+        "anomalias": "Anomalias",
+        "monitoring": "Monitoring"
+      },
+      "templates_select_label": "Plantilla",
+      "choose_template": "Elige una plantilla",
+      "seed_type": "Tipo de nodo seed",
+      "seed_id": "ID del nodo seed",
+      "depth": "Profundidad",
+      "loading": "Cargando...",
+      "last_updated": "Actualizado",
+      "truncated_warning": "Resultado limitado a 200 nodos. Reduce la profundidad para ver el subgrafo completo.",
+      "fallback_message": "Knowledge Graph no disponible · usando fallback relacional",
+      "actions": {
+        "ejecutar": "Ejecutar query",
+        "visualizar": "Visualizar",
+        "reset_view": "Reset view",
+        "rerun_detection": "Re-correr deteccion ahora",
+        "refresh": "Recargar",
+        "retry": "Reintentar",
+        "trigger_rebuild": "Disparar rebuild",
+        "export_csv": "Exportar CSV"
+      },
+      "errors": {
+        "missing_params": "Faltan parametros: {{params}}",
+        "seed_required": "Ingresa un ID de nodo seed",
+        "service_unavailable": "Servicio no disponible · reintenta"
+      },
+      "empty_states": {
+        "no_results": "Sin resultados",
+        "no_anomalies": "Sin anomalias detectadas",
+        "no_anomalies_sub": "El grafo no muestra patrones sospechosos en el ultimo barrido nocturno.",
+        "graph_initial": "Selecciona un nodo seed y presiona Visualizar para ver el subgrafo."
+      },
+      "templates": {
+        "compradores_por_proyecto_zona": "Compradores por proyecto + zona",
+        "proyectos_dev_por_zona_tier": "Proyectos de un dev por zona/tier",
+        "leads_cross_project_cliente": "Leads cross-project de un cliente",
+        "asesores_leads_compartidos": "Asesores que comparten leads",
+        "proyectos_huerfanos": "Proyectos huerfanos",
+        "proyectos_activos_por_dev": "Proyectos activos por dev",
+        "leads_por_buyer_segment": "Leads por segmento de buyer",
+        "zonas_top_forecast_12m": "Zonas top forecast 12m",
+        "transacciones_por_dev_periodo": "Transacciones por dev en periodo",
+        "units_disponibles_por_proyecto": "Units disponibles por proyecto",
+        "behavioral_intent_alto_sin_lead": "Behavioral intent alto sin Lead",
+        "devs_con_dispute_history": "Devs con historial de disputas"
+      },
+      "kpi": {
+        "total_nodes": "Nodos totales",
+        "total_edges": "Edges totales",
+        "queries_24h": "Queries 24h",
+        "avg_latency": "Latencia avg",
+        "uptime": "Neo4j",
+        "last_rebuild": "Ultimo rebuild"
+      },
+      "chart": {
+        "ping_history": "Health checks · ultimos 10 (ping ms)",
+        "nodes_by_type": "Nodos por tipo"
+      },
+      "health_history": "Ultimas verificaciones",
+      "banner": {
+        "kg_unavailable": "Neo4j no disponible. Arranca el servicio con",
+        "kg_unavailable_tail": "y verifica las credenciales en .env"
+      },
+      "anomaly": {
+        "all": "Todas",
+        "filter_severity": "Severidad",
+        "filter_type": "Tipo",
+        "severity": {
+          "high": "Alta",
+          "medium": "Media",
+          "low": "Baja"
+        },
+        "types": {
+          "fraud_rings": "Anillos de fraude",
+          "devs_ghost": "Devs fantasma",
+          "leads_zombies": "Leads zombies",
+          "asesores_fantasma": "Asesores fantasma",
+          "zone_collapse": "Colapso de zona"
+        },
+        "skipped": "Deteccion pausada · Neo4j no disponible",
+        "detected_n": "{{n}} anomalias detectadas",
+        "rerun_error": "Error al ejecutar deteccion",
+        "paused_kg_down": "Deteccion pausada · Neo4j no disponible. Las anomalias del ultimo barrido siguen disponibles."
+      }
     }
   }
 }

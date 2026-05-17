@@ -164,60 +164,9 @@ const SUPERADMIN_NAV = [
   {
     tier: 3, label: 'Inteligencia', section_key: 'inteligencia',
     items: [
-      { key: 'scores',              to: '/superadmin/scores',              label: 'Scores',                 Icon: BarChart3 },
-      { key: 'drpi',                to: '/superadmin/drpi',                label: 'DRPI',                   Icon: TrendingUp },
-      { key: 'avm-accuracy',        to: '/superadmin/avm-accuracy',        label: 'AVM Accuracy',           Icon: Target },
-      { key: 'forecast-accuracy',   to: '/superadmin/forecast-accuracy',   label: 'Forecast Accuracy',      Icon: TrendingUp },
-      { key: 'risk-score',          to: '/superadmin/risk-score',          label: 'Risk Score',             Icon: Shield },
-      { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer',    Icon: Target },
-      { key: 'intelligence-hub',    to: '/superadmin/intelligence-hub',    label: 'Inteligencia ejecutiva', Icon: Eye },
-      { key: 'trends',              to: '/superadmin/trends',              label: 'Google Trends',          Icon: TrendingUp },
-      { key: 'phase5-foundation',   to: '/superadmin/phase5-foundation',   label: 'Foundation Phase 5',     Icon: Activity },
-      { key: 'transactions',        to: '/superadmin/transactions',        label: 'Transaction Network',    Icon: Network },
-    ],
-  },
-  {
-    tier: 4, label: 'Operación', section_key: 'operacion',
-    items: [
-      { key: 'health',                to: '/superadmin/health',                label: 'Salud del sistema',       Icon: Activity },
-      { key: 'observability',         to: '/superadmin/observability',         label: 'Observabilidad',          Icon: Eye },
-      { key: 'phase-y-observability', to: '/superadmin/phase-y-observability', label: 'Phase Y · Observability', Icon: Eye },
-      { key: 'audit-log',             to: '/superadmin/audit-log',             label: 'Auditoría',               Icon: Shield },
-      { key: 'audit-chain',           to: '/superadmin/audit-chain',           label: 'Audit Chain (SHA-256)',   Icon: ShieldCheck },
-      { key: 'duplicates',            to: '/superadmin/duplicates',            label: 'Duplicados pendientes',   Icon: GitMerge },
-      { key: 'fraud-patterns',        to: '/superadmin/fraud-patterns',        label: 'Patrones de fraude',      Icon: AlertTriangle },
-      { key: 'fraud-alerts',          to: '/superadmin/fraud-alerts',          label: 'Fraud Alerts',            Icon: AlertTriangle },
-      { key: 'risk-alerts',           to: '/superadmin/risk-alerts',           label: 'Risk Alerts',             Icon: AlertTriangle },
-      { key: 'compliance',            to: '/superadmin/compliance',            label: 'Compliance',              Icon: Shield },
-    ],
-  },
-  {
-    tier: 5, label: 'Monetización', section_key: 'monetizacion',
-    items: [
-      { key: 'ai-cost',           to: '/superadmin/ai-cost',                label: 'Costos IA',            Icon: DollarSign },
-      { key: 'commercial',        to: '/superadmin/commercial',             label: 'Comercial',            Icon: Briefcase },
-      { key: 'api-keys',          to: '/superadmin/api-keys',               label: 'API Keys + Stripe',    Icon: Key },
-      { key: 'vertical-products', to: '/superadmin/vertical-products',      label: 'Productos Verticales', Icon: Package },
-      { key: 'data-licensing',    to: '/superadmin/data-licensing',         label: 'Data Licensing',       Icon: Briefcase },
-      { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',   label: 'Cross-sell Analytics', Icon: BarChart2 },
-    ],
-  },
-  {
-    tier: 6, label: 'Crecimiento', section_key: 'crecimiento',
-    items: [
-      { key: 'whatsapp',      to: '/superadmin/whatsapp',             label: 'WhatsApp Business', Icon: Phone },
-      { key: 'newsletter',    to: '/superadmin/newsletter',           label: 'Newsletter Pulse',  Icon: Mail },
-      { key: 'bulletins',     to: '/superadmin/bulletins',            label: 'Boletines',         Icon: FileText },
-      { key: 'landing-leads', to: '/superadmin/landing-leads',        label: 'Leads landing',     Icon: Megaphone },
-      { key: 'lead-sources',  to: '/superadmin/lead-sources',         label: 'Lead Sources',      Icon: Megaphone },
-      { key: 'partners',      to: '/superadmin/partners',             label: 'Partners',          Icon: HeartHandshake },
-      { key: 'onboarding',    to: '/superadmin/onboarding-analytics', label: 'Tours Onboarding',  Icon: Sparkles },
-    ],
-  },
-  {
-    tier: 7, label: 'Dev Tools', section_key: 'devtools',
-    items: [
-      { key: 'primitives', to: '/superadmin/primitives-demo', label: 'UI Primitivas', Icon: Boxes },
+      { key: 'avm-accuracy',      to: '/superadmin/avm-accuracy',      label: 'AVM Accuracy',      Icon: TrendingUp },
+      { key: 'forecast-accuracy', to: '/superadmin/forecast-accuracy', label: 'Forecast Accuracy', Icon: TrendingUp },
+      { key: 'knowledge-graph',   to: '/superadmin/knowledge-graph',   label: 'Knowledge Graph',   Icon: Network },
     ],
   },
 ];

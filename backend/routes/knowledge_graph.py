@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -173,7 +173,7 @@ async def kg_query(payload: KGQueryBody, request: Request) -> Dict[str, Any]:
     }
 
 
-# ─── POST /trigger-rebuild ────────────────────────────────────────────────────
+# ─── GET /trigger-rebuild ────────────────────────────────────────────────────
 
 @router.post("/api/superadmin/kg/trigger-rebuild")
 async def kg_trigger_rebuild(request: Request) -> Dict[str, Any]:
@@ -187,6 +187,191 @@ async def kg_trigger_rebuild(request: Request) -> Dict[str, Any]:
     from kg_etl import rebuild_full
     summary = await rebuild_full(db)
     await _audit_route(db, user, "kg_trigger_rebuild", {"summary_keys": list(summary.keys()), "duration_s": summary.get("duration_s")})
+    return {"ok": True, "summary": summary}
+
+
+# ─── GET /templates (W5.12 P2) ───────────────────────────────────────────────
+
+@router.get("/api/superadmin/kg/templates")
+async def kg_templates(request: Request) -> Dict[str, Any]:
+    await _auth_superadmin(request)
+    from kg_template_registry import list_templates
+    tpls = list_templates()
+    return {"templates": tpls, "count": len(tpls)}
+
+
+# ─── GET /subgraph (W5.12 P2) ────────────────────────────────────────────────
+
+@router.get("/api/superadmin/kg/subgraph")
+async def kg_subgraph(
+    request: Request,
+    node_id: str,
+    node_type: Optional[str] = None,
+    depth: int = 1,
+) -> Dict[str, Any]:
+    user = await _auth_superadmin(request)
+    db = _db(request)
+    from knowledge_graph_engine import KG_AVAILABLE, KGDriver, NODE_TYPES
+    import re as _re
+
+    if not _re.match(r"^[A-Za-z0-9_\-]{1,80}$", node_id or ""):
+        raise HTTPException(422, "node_id invalido")
+    if node_type and node_type not in NODE_TYPES:
+        raise HTTPException(422, f"node_type debe ser uno de {NODE_TYPES}")
+    depth = max(1, min(3, depth))
+
+    if not KG_AVAILABLE:
+        await _audit_route(db, user, "kg_subgraph", {"node_id": node_id, "depth": depth, "fallback": True})
+        raise HTTPException(503, detail={"fallback": "use_relational_sql", "reason": "KG no disponible"})
+
+    # Cap a 200 nodos. Cypher con LIMIT en el path expansion.
+    label_filter = f":{node_type}" if node_type else ""
+    cypher = f"""
+    MATCH (n{label_filter} {{id: $node_id}})
+    OPTIONAL MATCH path = (n)-[*1..{depth}]-(m)
+    WITH n, collect(DISTINCT nodes(path)) AS node_paths, collect(DISTINCT relationships(path)) AS rel_paths
+    WITH n,
+         apoc.coll.toSet(reduce(acc = [], np IN node_paths | acc + np)) AS all_nodes,
+         apoc.coll.toSet(reduce(acc = [], rp IN rel_paths | acc + rp)) AS all_rels
+    RETURN n, all_nodes, all_rels
+    """
+    # Fallback sin APOC si no esta disponible
+    cypher_fallback = f"""
+    MATCH (n{label_filter} {{id: $node_id}})
+    OPTIONAL MATCH path = (n)-[*1..{depth}]-(m)
+    WITH n, collect(DISTINCT m) AS connected, collect(DISTINCT relationships(path)) AS rels
+    RETURN n, connected, rels
+    """
+    drv = await KGDriver.get()
+    try:
+        try:
+            rows = await drv.run(cypher, {"node_id": node_id}, retries=1)
+        except Exception:
+            rows = await drv.run(cypher_fallback, {"node_id": node_id}, retries=1)
+    except Exception as exc:
+        await _audit_route(db, user, "kg_subgraph", {"node_id": node_id, "error": str(exc)[:200]})
+        raise HTTPException(500, f"Error: {exc}")
+
+    nodes_out: List[Dict[str, Any]] = []
+    edges_out: List[Dict[str, Any]] = []
+    seen_nodes: set = set()
+    seen_edges: set = set()
+
+    def _add_node(neo_node):
+        if neo_node is None:
+            return
+        nid = neo_node.get("id") or neo_node.get("slug") or str(id(neo_node))
+        if nid in seen_nodes:
+            return
+        seen_nodes.add(nid)
+        labels = list(getattr(neo_node, "labels", []) or [])
+        ntype = labels[0] if labels else (neo_node.get("__type__") or "Unknown")
+        label = neo_node.get("name") or neo_node.get("slug") or neo_node.get("id") or nid
+        props = {k: v for k, v in dict(neo_node).items() if not k.startswith("_")}
+        nodes_out.append({"id": nid, "type": ntype, "label": label, "props": props})
+
+    def _add_edge(rel):
+        if rel is None:
+            return
+        try:
+            etype = rel.type
+            sn = rel.start_node
+            en = rel.end_node
+        except Exception:
+            return
+        if sn is None or en is None:
+            return
+        a = sn.get("id") or sn.get("slug")
+        b = en.get("id") or en.get("slug")
+        if not a or not b:
+            return
+        key = f"{a}|{etype}|{b}"
+        if key in seen_edges:
+            return
+        seen_edges.add(key)
+        _add_node(sn)
+        _add_node(en)
+        edges_out.append({"from": a, "to": b, "type": etype})
+        if len(nodes_out) >= 200:
+            return
+
+    truncated = False
+    for r in rows:
+        seed = r.get("n")
+        _add_node(seed)
+        connected = r.get("all_nodes") or r.get("connected") or []
+        rels = r.get("all_rels") or r.get("rels") or []
+        # rels puede venir anidado (lista de listas) en fallback
+        flat_rels = []
+        for el in rels:
+            if isinstance(el, list):
+                flat_rels.extend(el)
+            else:
+                flat_rels.append(el)
+        for nd in connected:
+            if nd is None:
+                continue
+            _add_node(nd)
+            if len(nodes_out) >= 200:
+                truncated = True
+                break
+        for re_ in flat_rels:
+            _add_edge(re_)
+            if len(nodes_out) >= 200:
+                truncated = True
+                break
+
+    payload_audit = {"node_id": node_id, "depth": depth, "nodes": len(nodes_out), "edges": len(edges_out), "truncated": truncated}
+    await _audit_route(db, user, "kg_subgraph", payload_audit)
+
+    return {
+        "seed": {"id": node_id, "type": node_type},
+        "depth": depth,
+        "nodes": nodes_out,
+        "edges": edges_out,
+        "truncated": truncated,
+        "cap": 200,
+    }
+
+
+# ─── GET /anomalies (W5.12 P2) ───────────────────────────────────────────────
+
+@router.get("/api/superadmin/kg/anomalies")
+async def kg_anomalies(
+    request: Request,
+    severity: Optional[str] = None,
+    type: Optional[str] = None,  # noqa: A002 (shadows builtin)
+    limit: int = 50,
+    skip: int = 0,
+) -> Dict[str, Any]:
+    user = await _auth_superadmin(request)
+    db = _db(request)
+    limit = min(max(limit, 1), 500)
+    query: Dict[str, Any] = {}
+    if severity and severity in ("high", "medium", "low"):
+        query["severity"] = severity
+    if type:
+        query["type"] = type
+
+    rows: List[Dict[str, Any]] = []
+    cursor = db.kg_anomalies.find(query, {"_id": 0}).sort("detected_at", -1).skip(skip).limit(limit)
+    async for doc in cursor:
+        rows.append(doc)
+    total = await db.kg_anomalies.count_documents(query)
+
+    await _audit_route(db, user, "kg_anomalies_query", {"filters": query, "count": len(rows)})
+    return {"anomalies": rows, "count": len(rows), "total": total, "limit": limit, "skip": skip}
+
+
+# ─── POST /trigger-anomaly (W5.12 P2) ────────────────────────────────────────
+
+@router.post("/api/superadmin/kg/trigger-anomaly")
+async def kg_trigger_anomaly(request: Request) -> Dict[str, Any]:
+    user = await _auth_superadmin(request)
+    db = _db(request)
+    from kg_anomaly_detector import run_anomaly_detection
+    summary = await run_anomaly_detection(db)
+    await _audit_route(db, user, "kg_trigger_anomaly", {"detected": summary.get("detected"), "duration_s": summary.get("duration_s")})
     return {"ok": True, "summary": summary}
 
 
