@@ -270,6 +270,10 @@ app.include_router(dev_batch4_router)
 from routes.dev_batch4_1 import router as dev_batch4_1_router, ensure_batch4_1_indexes, seed_dmx_inmobiliaria
 app.include_router(dev_batch4_1_router)
 
+# W5.11 Parte 3 — Dispute resolution + cooldown 90d
+from routes.disputes import router as disputes_router, ensure_disputes_indexes
+app.include_router(disputes_router)
+
 # Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
 from routes.dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
 app.include_router(dev_batch4_2_router)
@@ -1041,6 +1045,8 @@ async def startup():
     # Phase 4 Batch 4.1 — Cita Registration + DMX Inmobiliaria + Anti-fraude
     await ensure_batch4_1_indexes(db)
     await seed_dmx_inmobiliaria(db)
+    # W5.11 Parte 3 — Disputes
+    await ensure_disputes_indexes(db)
     # Phase 18 Batch 35 — Inmobiliaria relationships + AMPI verifications
     from services.inmobiliaria_relationships import ensure_inmobiliaria_relationship_indexes
     await ensure_inmobiliaria_relationship_indexes(db)

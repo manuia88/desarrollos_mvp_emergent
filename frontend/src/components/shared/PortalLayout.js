@@ -33,6 +33,7 @@ import {
 import ImpersonationBanner from '../superadmin/ImpersonationBanner';
 import CommandPaletteExtended from '../superadmin/CommandPaletteExtended';
 import { FounderPrefetchProvider } from '../../contexts/FounderPrefetchContext';
+import { disputes_pending_count as fetchDisputesPendingCount } from '../../api/badges';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -42,6 +43,7 @@ const BADGE_SOURCES = {
   citas_today:             () => fetch(`${API}/api/dev/citas/count-today`,  { credentials: 'include' }).then(r => r.json()).then(d => d.count ?? 0).catch(() => 0),
   projects_health_below_60: () => fetch(`${API}/api/dev/projects/count-unhealthy`, { credentials: 'include' }).then(r => r.json()).then(d => d.count ?? 0).catch(() => 0),
   asesor_contacts_new:     () => fetch(`${API}/api/asesor/contacts/count-new`,     { credentials: 'include' }).then(r => r.json()).then(d => d.count ?? 0).catch(() => 0),
+  disputes_pending_count:  fetchDisputesPendingCount,
 };
 
 // Role label map

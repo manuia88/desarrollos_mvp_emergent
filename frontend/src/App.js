@@ -82,6 +82,8 @@ const AsesorLeadsDev    = lazy(() => import('./pages/advisor/AsesorLeadsDev'));
 // W5.ASR.4 Parte 1 — CMA visual asesor
 const AsesorCMA         = lazy(() => import('./pages/asesor/AsesorCMA'));
 const AsesorLeadAliases = lazy(() => import('./pages/asesor/AsesorLeadAliases'));
+// W5.11 Parte 3 — Disputas dev portal
+const DesarrolladorDisputas = lazy(() => import('./pages/developer/DesarrolladorDisputas'));
 const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
 // W5.11 Parte 2 — Entity resolution + audit chain
 const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
@@ -617,6 +619,7 @@ function AppRouter() {
       <Route path="/asesor/mini-market" element={<AdvisorRoute Page={AsesorMiniMarket} />} />
       <Route path="/asesor/inventario" element={<AdvisorRoute Page={AsesorInventario} />} />
       <Route path="/desarrollador/solicitudes" element={<AdvisorRoute Page={DesarrolladorSolicitudes} />} />
+      <Route path="/desarrollador/disputas" element={<AdvisorRoute Page={DesarrolladorDisputas} />} />
 
       {/* Phase 14 Batch 37 — In-house Users + Mini Markets + Cross-Org Partnerships */}
       <Route path="/in-house/aceptar-invitacion" element={<InHouseSignup />} />
