@@ -43,7 +43,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.1** | AVM ML productionization | ✅ | `f8834a4`+`8f52419` (26h) |
 | **W5.2** | Zone Score desagregado | ✅ | `e36fb9f` (17h) |
 | **W5.3** | Forecast multi-horizonte ARIMA | ✅ | P1 `5425023` + P2A `f8834a4` + P2B `e633f73` (44h) |
-| **W5.4** | Buyer Score | ⬜ STUB | Apify fallback · ~25h |
+| **W5.4** | Buyer Score · motor 7D + asesor + hooks | ✅ STUB | merge `7c02d1f` (origen `6e1bf21`) · 23h · Apify STUB determinista |
 | **W5.5** | Live Pulse | ⬜ STUB | Apify fallback · ~25h |
 | **W5.6** | Scenario Storyteller · narrativa multi-módulo | ✅ | merge `fb3caa5` (origen `8cb2ef0`) · ~16h (cierre ciclo · NO aislado) |
 | ~~**W5.7**~~ | SOC franquicia | ➡️ W6 | Movido founder 2026-05-16 |
@@ -71,33 +71,32 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 
 ### 1.4 Orden sugerido próximos batches
 
-1. **W5.4** Buyer Score STUB (~25h) ← próximo
-2. W5.ASR.1 WhatsApp QR STUB (40-50h)
-3. W5.ASR.2 Pipeline 7+2 (35-45h)
-4. W5.ASR.3 Smart Lists + reportes (20-30h)
-5. W5.ASR.4 CMA + microsite (30-40h)
-6. W5.ASR.5 Lead capture STUB (25-35h)
-7. W5.8 Construction Quality Index (~25h)
-8. W5.11 Entity Resolution + Governance (~30h)
-9. W5.12 Knowledge Graph (~35h)
-10. W5.5 Live Pulse STUB (~25h)
-11. W5.9 Climate Migration STUB (~25h)
-12. W5.15 FSD + Accuracy (~25h)
-13. W5.17 Virtual staging (8h)
-14. W5.19 Probability UX (6h)
-15. W5.23 Dev Battle Card (12h)
-16. W5.16 Marketing distribution MCP (~10h)
-17. W5.10 Social/Ads STUB (233h)
-18. W5.20-21 Insights Layer (41h)
-19. W5.22+ Phase Z Studio Marketing (224h)
+1. **W5.ASR.1** WhatsApp QR STUB (40-50h) ← próximo
+2. W5.ASR.2 Pipeline 7+2 (35-45h)
+3. W5.ASR.3 Smart Lists + reportes (20-30h)
+4. W5.ASR.4 CMA + microsite (30-40h)
+5. W5.ASR.5 Lead capture STUB (25-35h)
+6. W5.8 Construction Quality Index (~25h)
+7. W5.11 Entity Resolution + Governance (~30h)
+8. W5.12 Knowledge Graph (~35h)
+9. W5.5 Live Pulse STUB (~25h)
+10. W5.9 Climate Migration STUB (~25h)
+11. W5.15 FSD + Accuracy (~25h)
+12. W5.17 Virtual staging (8h)
+13. W5.19 Probability UX (6h)
+14. W5.23 Dev Battle Card (12h)
+15. W5.16 Marketing distribution MCP (~10h)
+16. W5.10 Social/Ads STUB (233h)
+17. W5.20-21 Insights Layer (41h)
+18. W5.22+ Phase Z Studio Marketing (224h)
 
 ### 1.5 Total W5
 
 | Bloque | Horas |
 |---|---|
-| Shipped | 108 (W5.1 + W5.2 + W5.3 + W5.ASR.0 + W5.6) |
+| Shipped | 131 (W5.1+W5.2+W5.3+W5.ASR.0+W5.6+W5.4) |
 | En proceso | 0 |
-| Restante | ~506-570 |
+| Restante | ~483-547 |
 | **Total W5 ajustado** | **~625-689** |
 
 Buildables AHORA (sin bloqueo): **22 de 26 batches** · solo W5.18 Dubai realmente diferido.

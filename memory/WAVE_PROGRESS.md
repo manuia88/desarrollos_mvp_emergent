@@ -1,6 +1,6 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-16 (W5.6 SHIPPED · 5 batches shipped: W5.1+W5.2+W5.3+W5.ASR.0+W5.6 = 108h · próximo W5.4 Buyer Score STUB)
+**Última actualización**: 2026-05-16 (W5.4 SHIPPED · 6 batches shipped: W5.1+W5.2+W5.3+W5.ASR.0+W5.6+W5.4 = 131h · próximo W5.ASR.1 WhatsApp QR STUB)
 **Total H1 restante**: ~146.5h (Wave 4 pending de los 495h totales · W4.18.2 32h ✅ shipped · 8h Private Beta Gate pending)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h + Wave 5 🟡 26h (W5.1) = 741.5h shipped
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1

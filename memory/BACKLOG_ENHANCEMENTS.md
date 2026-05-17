@@ -319,6 +319,18 @@ backend/routes/
 
 ## 🟢 MEDIA PRIORIDAD (Phase específica)
 
+### W5.4 ext · Panel superadmin Buyer Scores visual (gráfica + tabla per-user) (origen: emergent W5.4 potential improvement · 2026-05-16)
+
+**Qué**: UI superadmin con gráfica distribución by_tier (donut/bars) + tabla per-user filtrable por tier. Endpoints `/api/superadmin/buyer-score/summary` y `/per-user` YA EXISTEN (W5.4 Sub-A) · solo falta UI.
+
+**Score honest 5-6/10**: cierra ciclo (UI sobre endpoints construidos · misma deuda que narrative_engine sub-utilizado) pero sin tráfico real ni sales team operativo no mueve aguja hoy.
+
+**Costo**: ~4-6h.
+
+**Activar cuando**: launch público + sales team operativo (≥3 asesores activos diariamente).
+
+
+
 ### W5.6 ext · Selector interactivo m²/rec/baños/edad en bloque "Compra ahora vs esperar" (origen: emergent W5.6 potential improvement · 2026-05-16)
 
 **Qué**: añadir form interactivo en `/valor/:slug` sección "Compra ahora vs esperar" para que user personalice m²/rec/baños/edad en tiempo real (cada cambio re-llama `/api/narrative/scenario`).
