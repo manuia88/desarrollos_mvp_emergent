@@ -1649,6 +1649,21 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.asr.5] lead capture engine init failed: {e}")
 
+    # W5.11 Parte 1 — Entity Resolution + Audit Inmutable
+    try:
+        from entity_resolution_engine import ensure_indexes as er_ensure_indexes
+        from audit_immutable_engine import ensure_indexes as audit_ensure_indexes
+        from routes.entity_resolution import router as entity_resolution_router
+        from entity_resolution_cron import register_jobs as er_register_jobs
+        await er_ensure_indexes(db)
+        await audit_ensure_indexes(db)
+        app.include_router(entity_resolution_router)
+        if sched:
+            er_register_jobs(sched, db)
+        logging.info("[w5.11] entity_resolution engine init OK")
+    except Exception as e:
+        logging.warning(f"[w5.11] entity_resolution engine init failed: {e}")
+
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:
