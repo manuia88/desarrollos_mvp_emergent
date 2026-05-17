@@ -4256,7 +4256,7 @@ cssstyle@^2.3.0:
   dependencies:
     cssom "~0.3.6"
 
-cytoscape@^3.33.3:
+cytoscape@3.33.3:
   version "3.33.3"
   resolved "https://registry.yarnpkg.com/cytoscape/-/cytoscape-3.33.3.tgz#6c885823cb088eb8c31087c35d978661dcde5eae"
   integrity sha512-Gej7U+OKR+LZ8kvX7rb2HhCYJ0IhvEFsnkud4SB1PR+BUY/TsSO0dmOW59WEVLu51b1Rm+gQRKoz4bLYxGSZ2g==

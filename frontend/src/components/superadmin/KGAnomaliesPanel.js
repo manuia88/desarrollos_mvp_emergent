@@ -31,8 +31,8 @@ function ChipBtn({ children, active, onClick, testid }) {
         padding: '6px 14px', borderRadius: 9999,
         fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600,
         cursor: 'pointer',
-        background: active ? 'rgba(124,47,255,0.22)' : 'rgba(255,255,255,0.04)',
-        border: active ? '1px solid rgba(124,47,255,0.45)' : '1px solid var(--border, rgba(255,255,255,0.10))',
+        background: active ? 'rgba(var(--theme-rgb),0.22)' : 'rgba(255,255,255,0.04)',
+        border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid var(--border, rgba(255,255,255,0.10))',
         color: active ? '#c4b5fd' : 'var(--cream-2, #d6d2c4)',
         transition: 'all 0.15s',
       }}>
@@ -76,7 +76,7 @@ function AnomalyCard({ row }) {
         style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
         {open ? <ChevronUp size={14} color="var(--cream-3, rgba(240,235,224,0.55))" /> : <ChevronDown size={14} color="var(--cream-3, rgba(240,235,224,0.55))" />}
         <SeverityBadge severity={row.severity} />
-        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#a5b4fc' }}>{row.type}</span>
+        <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--theme-2)' }}>{row.type}</span>
         <div style={{ flex: 1, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2, rgba(240,235,224,0.85))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           <span style={{ color: 'var(--cream-3, rgba(240,235,224,0.55))' }}>{row.entity_type}</span>
           {' '}<span style={{ fontFamily: 'DM Mono, monospace', fontSize: 11 }}>{row.entity_id}</span>
@@ -230,7 +230,7 @@ export default function KGAnomaliesPanel({ kgAvailable }) {
         <div data-testid="kg-anomaly-toast" style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 200,
           padding: '12px 18px', borderRadius: 9999,
-          background: 'rgba(124,47,255,0.18)', border: '1px solid rgba(124,47,255,0.42)',
+          background: 'rgba(var(--theme-rgb),0.18)', border: '1px solid rgba(var(--theme-rgb),0.42)',
           color: '#e0e7ff', fontFamily: 'DM Sans', fontWeight: 500, fontSize: 13,
           backdropFilter: 'blur(24px)',
         }}>{toast}</div>

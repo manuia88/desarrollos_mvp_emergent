@@ -33,8 +33,8 @@ function TabBtn({ tab, active, onClick }) {
         padding: '10px 18px', borderRadius: 9999,
         fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
         cursor: 'pointer',
-        background: active ? 'linear-gradient(90deg, rgba(124,47,255,0.22), rgba(192,38,211,0.18))' : 'rgba(255,255,255,0.04)',
-        border: active ? '1px solid rgba(124,47,255,0.45)' : '1px solid var(--border, rgba(255,255,255,0.10))',
+        background: active ? 'linear-gradient(90deg, rgba(var(--theme-rgb),0.22), rgba(192,38,211,0.18))' : 'rgba(255,255,255,0.04)',
+        border: active ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid var(--border, rgba(255,255,255,0.10))',
         color: active ? '#e0e7ff' : 'var(--cream-2, #d6d2c4)',
         transition: 'all 0.18s',
       }}>

@@ -135,7 +135,7 @@ export default function KGMonitoringPanel() {
 
       <div data-testid="kg-kpi-strip" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <KpiCard label={t('knowledge_graph.kpi.total_nodes', 'Nodos totales')} value={stats?.total_nodes ?? '—'} Icon={Layers} color="#c4b5fd" testid="kpi-total-nodes" />
-        <KpiCard label={t('knowledge_graph.kpi.total_edges', 'Edges totales')} value={stats?.total_edges ?? '—'} Icon={Activity} color="#a5b4fc" testid="kpi-total-edges" />
+        <KpiCard label={t('knowledge_graph.kpi.total_edges', 'Edges totales')} value={stats?.total_edges ?? '—'} Icon={Activity} color="var(--theme-2)" testid="kpi-total-edges" />
         <KpiCard label={t('knowledge_graph.kpi.queries_24h', 'Queries 24h')} value={stats?.queries_24h ?? '—'} Icon={Database} color="#86efac" testid="kpi-queries-24h" />
         <KpiCard label={t('knowledge_graph.kpi.avg_latency', 'Latencia avg')} value={stats?.avg_latency_ms != null ? `${stats.avg_latency_ms} ms` : '—'} Icon={Cpu} color="#fcd34d" testid="kpi-latency" />
         <KpiCard label={t('knowledge_graph.kpi.uptime', 'Neo4j')} value={kgAvailable ? 'UP' : 'DOWN'} Icon={kgAvailable ? CheckCircle2 : AlertTriangle} color={kgAvailable ? '#86efac' : '#fda4af'} sub={health?.version || (health?.error ? String(health.error).slice(0, 80) : '')} testid="kpi-uptime" />

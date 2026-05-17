@@ -48,7 +48,7 @@ const NODE_COLORS = {
   Zone: '#f59e0b',
   Unit: '#10b981',
   Comparable: '#94a3b8',
-  BehavioralSession: '#ec4899',
+  BehavioralSession: 'var(--theme-3)',
   IEScore: '#a3e635',
   Unknown: '#9ca3af',
 };
@@ -102,7 +102,7 @@ function NodeDetailPanel({ node, onClose }) {
       <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream, #F0EBE0)', marginBottom: 6 }}>
         {node.label}
       </div>
-      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: '#a5b4fc', marginBottom: 14 }}>
+      <div style={{ fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--theme-2)', marginBottom: 14 }}>
         {node.id}
       </div>
       {node.props && Object.keys(node.props).length > 0 && (
@@ -128,7 +128,7 @@ function NodeDetailPanel({ node, onClose }) {
             <a key={l.href} href={l.href} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '7px 14px', borderRadius: 9999,
-              background: 'rgba(124,47,255,0.10)', border: '1px solid rgba(124,47,255,0.35)',
+              background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.35)',
               color: '#c4b5fd', textDecoration: 'none', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
             }}>
               <ExternalLink size={11} /> {l.label}
