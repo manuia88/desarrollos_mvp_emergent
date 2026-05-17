@@ -333,6 +333,16 @@ backend/routes/
 
 ## 🟢 MEDIA PRIORIDAD (Phase específica)
 
+### W5.ASR.5 ext · Weekly Digest asesor lunes resumen leads capturados (origen: emergent W5.ASR.5 P2 sugerencia · 2026-05-17)
+
+**Qué**: cron lunes 09:00 envía digest a asesor con resumen leads capturados semana anterior por source (email + in-app notif). Reusa cron auto-nurture pattern.
+
+**Score honest 6/10**: canal retention nice-to-have · sin volumen real no informa · activate post-launch.
+
+**Costo**: ~4h.
+
+**Activar cuando**: launch público + ≥10 leads/asesor/semana real.
+
 ### W5.ASR.5 ext · Mini-dashboard "Origen de Leads" 30d en AsesorDashboard (origen: emergent W5.ASR.5 P1 sugerencia · 2026-05-17)
 
 **Qué**: panel en `/asesor` (AsesorDashboard) mostrando distribución de leads por source los últimos 30 días (email_alias · portal_inmuebles24 · portal_lamudi · fb_lead_ads · landing · manual). Donut chart + tabla counts.
