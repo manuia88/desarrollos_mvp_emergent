@@ -14,7 +14,7 @@ import {
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
-  AlertTriangle, Key, Package, Mail, Phone,
+  AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -182,6 +182,9 @@ const SUPERADMIN_NAV = [
       { key: 'observability',         to: '/superadmin/observability',         label: 'Observabilidad',          Icon: Eye },
       { key: 'phase-y-observability', to: '/superadmin/phase-y-observability', label: 'Phase Y · Observability', Icon: Eye },
       { key: 'audit-log',             to: '/superadmin/audit-log',             label: 'Auditoría',               Icon: Shield },
+      { key: 'audit-chain',           to: '/superadmin/audit-chain',           label: 'Audit Chain (SHA-256)',   Icon: ShieldCheck },
+      { key: 'duplicates',            to: '/superadmin/duplicates',            label: 'Duplicados pendientes',   Icon: GitMerge },
+      { key: 'fraud-patterns',        to: '/superadmin/fraud-patterns',        label: 'Patrones de fraude',      Icon: AlertTriangle },
       { key: 'fraud-alerts',          to: '/superadmin/fraud-alerts',          label: 'Fraud Alerts',            Icon: AlertTriangle },
       { key: 'risk-alerts',           to: '/superadmin/risk-alerts',           label: 'Risk Alerts',             Icon: AlertTriangle },
       { key: 'compliance',            to: '/superadmin/compliance',            label: 'Compliance',              Icon: Shield },
