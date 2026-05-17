@@ -491,7 +491,9 @@ def _verify_svix_signature(secret: str, raw_body: bytes,
 
 @router.post("/api/agentic-crm/webhooks/resend-inbound")
 async def resend_inbound_webhook(request: Request):
-    """PÚBLICO · valida Svix-Signature de Resend antes de procesar."""
+    """PÚBLICO · valida Svix-Signature de Resend antes de procesar.
+    W5.ASR.5: Si el To: coincide con alias de lead_capture → deriva a engine de captura.
+    """
     secret = os.environ.get("RESEND_WEBHOOK_SECRET", "")
     raw_body = await request.body()
     svix_id = request.headers.get("svix-id", "")
@@ -508,6 +510,28 @@ async def resend_inbound_webhook(request: Request):
         raise HTTPException(400, "Payload JSON inválido")
 
     db = request.app.state.db
+
+    # W5.ASR.5 — Interceptar emails dirigidos a alias de captura
+    try:
+        to_header = (
+            (payload.get("data") or {}).get("to")
+            or (payload.get("data") or {}).get("headers", {}).get("to", "")
+            or payload.get("to", "")
+            or ""
+        )
+        _ALIAS_DOMAIN = "leads.desarrollosmx.io"
+        if _ALIAS_DOMAIN in to_header.lower():
+            from lead_capture_engine import build_alias_map, process_email_capture
+            alias_map = await build_alias_map(db)
+            # Normalizar payload a formato raw_email esperado por el engine
+            raw_email_payload = payload.get("data") or payload
+            capture_result = await process_email_capture(db, raw_email_payload, alias_map)
+            if capture_result.get("captured"):
+                return {"ok": True, "flow": "lead_capture", **capture_result}
+            # Si no capturó (alias no encontrado en mapa) → continúa flow normal
+    except Exception as _lce:  # noqa: BLE001
+        log.warning(f"[resend_inbound] lead_capture intercept error (continuando): {_lce}")
+
     try:
         ingest_result = await ingest_webhook_reply(db, payload, raw_body)
     except Exception as e:  # noqa: BLE001

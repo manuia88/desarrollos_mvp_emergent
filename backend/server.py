@@ -1639,6 +1639,16 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.asr.3] auto-nurture cron register failed: {e}")
 
+    # W5.ASR.5 Parte 1 — Lead Capture Engine (email alias + portales + FB Lead Ads + UTM)
+    try:
+        from lead_capture_engine import ensure_indexes as lce_ensure_indexes
+        from routes.lead_capture import router as lead_capture_router
+        await lce_ensure_indexes(db)
+        app.include_router(lead_capture_router)
+        logging.info("[w5.asr.5] lead capture engine init OK")
+    except Exception as e:
+        logging.warning(f"[w5.asr.5] lead capture engine init failed: {e}")
+
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:
