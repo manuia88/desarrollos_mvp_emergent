@@ -79,6 +79,8 @@ const StudioDashboard   = lazy(() => import('./pages/advisor/StudioDashboard'));
 const AsesorBriefings   = lazy(() => import('./pages/advisor/AsesorBriefings'));
 const AsesorCitas       = lazy(() => import('./pages/advisor/AsesorCitas'));
 const AsesorLeadsDev    = lazy(() => import('./pages/advisor/AsesorLeadsDev'));
+// W5.ASR.4 Parte 1 — CMA visual asesor
+const AsesorCMA         = lazy(() => import('./pages/asesor/AsesorCMA'));
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
@@ -541,6 +543,9 @@ function AppRouter() {
       <Route path="/asesor/briefings" element={<AdvisorRoute Page={AsesorBriefings} />} />
       <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
       <Route path="/asesor/leads-dev" element={<AdvisorRoute Page={AsesorLeadsDev} />} />
+      {/* W5.ASR.4 Parte 1 — CMA */}
+      <Route path="/asesor/cma" element={<AdvisorRoute Page={AsesorCMA} />} />
+      <Route path="/asesor/cma/:id" element={<AdvisorRoute Page={AsesorCMA} />} />
       <Route path="/desarrollador" element={<AdvisorRoute Page={DesarrolladorDashboard} />} />
 
       {/* Phase 4 Batch 10 — Mis Proyectos + CRM Shell */}

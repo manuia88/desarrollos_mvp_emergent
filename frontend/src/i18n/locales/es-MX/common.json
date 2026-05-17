@@ -2404,5 +2404,64 @@
       "visitas_pct": "Visitas agendadas",
       "apify_enrichment_pct": "Busquedas externas"
     }
+  },
+  "cma": {
+    "title": "Análisis comparativo de mercado",
+    "subtitle": "Genera un CMA completo con AVM, comparables, subscores de zona y forecast a 12/24 meses. Compártelo con tus clientes en un link público.",
+    "nav_label": "CMA · Análisis comparativo",
+    "list": {
+      "new_btn": "+ Generar CMA nuevo",
+      "empty_title": "Aún no has generado ningún CMA",
+      "empty_sub": "Inicia tu primer análisis comparativo de mercado para ofrecer una valoración profesional a tus clientes."
+    },
+    "kpis": {
+      "value": "Valor estimado",
+      "range": "Rango de valor",
+      "confidence": "Confianza",
+      "forecast_12m": "Proyección 12 meses",
+      "forecast_24m": "24 meses",
+      "drpi_trend": "Tendencia DRPI",
+      "trend_positive": "Al alza",
+      "trend_negative": "A la baja",
+      "trend_flat": "Estable"
+    },
+    "comparables": {
+      "title": "Comparables",
+      "headers": {
+        "project": "Proyecto",
+        "m2": "m²",
+        "rec_ban": "Rec/Bañ",
+        "price": "Precio",
+        "price_per_m2": "$/m²",
+        "distance": "Distancia",
+        "similarity": "Similaridad"
+      },
+      "sim_high": "Alta",
+      "sim_medium": "Media",
+      "sim_low": "Baja",
+      "empty": "Sin comparables encontrados para los inputs."
+    },
+    "narrative": {
+      "title": "Análisis"
+    },
+    "subscores": {
+      "title": "Subscores de la zona"
+    },
+    "share_button": "Compartir link público",
+    "share_copied": "Link público copiado al portapapeles",
+    "back_button": "← Volver a la lista",
+    "generate_modal": {
+      "title": "Generar CMA nuevo",
+      "field_colonia": "Colonia",
+      "field_m2": "Metros cuadrados",
+      "field_antiguedad": "Antigüedad (años)",
+      "field_rec": "Recámaras",
+      "field_ban": "Baños",
+      "field_address": "Dirección (opcional)",
+      "address_placeholder": "Calle, número, colonia",
+      "submit": "Generar CMA",
+      "submitting": "Generando análisis…",
+      "error_generic": "No se pudo generar el CMA"
+    }
   }
 }
