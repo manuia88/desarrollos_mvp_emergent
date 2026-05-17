@@ -1600,6 +1600,14 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.4] buyer_score cron register failed: {e}")
 
+    # W5.ASR.2 — Pipeline 7+2 Engine
+    try:
+        from pipeline_engine import ensure_indexes as pipeline_ensure_indexes
+        await pipeline_ensure_indexes(db)
+        logging.info("[w5.asr.2] pipeline 7+2 engine init OK")
+    except Exception as e:
+        logging.warning(f"[w5.asr.2] pipeline engine init failed: {e}")
+
     try:
         # Polling 30min · auto-renew daily 03:00 · briefing cron hourly
         if sched is not None:

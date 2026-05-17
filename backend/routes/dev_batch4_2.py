@@ -32,6 +32,15 @@ LEAD_STATUSES = [
     "nuevo", "under_review", "contactado", "visita_agendada",
     "visita_realizada", "propuesta", "cerrado_ganado", "cerrado_perdido",
 ]
+# W5.ASR.2 — Statuses V2 aceptados en move endpoints
+from pipeline_engine import (
+    LEAD_STATUSES_V2 as _LEAD_STATUSES_V2,
+    validate_transition_v2 as _validate_transition_v2,
+    get_lead_pipeline_state as _get_pipeline_state,
+    set_parallel_state as _set_parallel_state,
+    map_v1_to_v2 as _map_v1_to_v2,
+)
+_ALL_VALID_STATUSES = set(LEAD_STATUSES) | set(_LEAD_STATUSES_V2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -411,7 +420,7 @@ class MovePayload(BaseModel):
 async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if payload.target_status not in LEAD_STATUSES:
+    if payload.target_status not in _ALL_VALID_STATUSES:
         raise HTTPException(400, f"status inválido: {payload.target_status}")
 
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
@@ -436,6 +445,12 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
         )
         raise HTTPException(403, detail)
 
+    # W5.ASR.2 Sub-B — Hard-rules V2 (si target es V2 o lead tiene status_v2)
+    if payload.target_status in _LEAD_STATUSES_V2:
+        ok, err = _validate_transition_v2(lead, payload.target_status)
+        if not ok:
+            raise HTTPException(422, err)
+
     if payload.target_status == "cerrado_perdido" and not lead.get("lost_reason"):
         raise HTTPException(422, "Para mover a cerrado_perdido actualiza primero el lost_reason")
 
@@ -446,10 +461,17 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
         days_in_prev = None
 
     now_iso = _now().isoformat()
+    # W5.ASR.2 — Dual-write: actualizar status_v2 si target es V2 o lead está migrado
+    v2_update: Dict[str, Any] = {}
+    if payload.target_status in _LEAD_STATUSES_V2:
+        v2_update["status_v2"] = payload.target_status
+    elif lead.get("pipeline_version") == 2 or lead.get("status_v2"):
+        v2_update["status_v2"] = _map_v1_to_v2(payload.target_status)
+
     await db.leads.update_one(
         {"id": lead_id},
         {"$set": {"status": payload.target_status, "updated_at": now_iso, "last_activity_at": now_iso,
-                  "heat_recalc_pending": True}},
+                  "heat_recalc_pending": True, **v2_update}},
     )
     lvl = get_user_permission_level(user)
     await _safe_audit_ml(
@@ -548,6 +570,8 @@ async def get_lead_detail(lead_id: str, request: Request):
         "can_view_ai_summary": can_ai,
         "permission_level": lvl,
     }
+    # W5.ASR.2 Sub-C — pipeline state (linear + paralelas)
+    result["pipeline_state"] = _get_pipeline_state(lead)
     return result
 
 
@@ -758,3 +782,78 @@ async def ensure_batch4_2_indexes(db) -> None:
     await db.leads.create_index([("created_by", 1), ("status", 1)], background=True)
     await db.leads.create_index([("inmobiliaria_id", 1), ("status", 1)], background=True)
     log.info("[batch4.2] indexes ensured")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# W5.ASR.2 Sub-C — Estados paralelos: nurture + perdido
+# ─────────────────────────────────────────────────────────────────────────────
+
+class MarkLostPayload(BaseModel):
+    reason: str
+
+
+@router.post("/api/leads/{lead_id}/activate-nurture")
+async def activate_nurture(lead_id: str, request: Request):
+    """Activa estado paralelo nurture en el lead (sin cambiar etapa lineal)."""
+    user = await _auth(request)
+    db = _db(request)
+
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead no encontrado")
+    if not can_move_lead(user, lead):
+        raise HTTPException(403, "Sin permisos para modificar este lead")
+
+    state = await _set_parallel_state(db, lead_id, "nurture", True)
+    await _safe_audit_ml(
+        db, user, action="update", entity_type="lead_nurture_activate", entity_id=lead_id,
+        before={"nurture_active": lead.get("nurture_active", False)}, after={"nurture_active": True},
+        request=request, ml_event="lead_nurture_activate", ml_context={"lead_id": lead_id},
+    )
+    return {"ok": True, "lead_id": lead_id, "pipeline_state": state}
+
+
+@router.post("/api/leads/{lead_id}/deactivate-nurture")
+async def deactivate_nurture(lead_id: str, request: Request):
+    """Desactiva estado paralelo nurture en el lead."""
+    user = await _auth(request)
+    db = _db(request)
+
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead no encontrado")
+    if not can_move_lead(user, lead):
+        raise HTTPException(403, "Sin permisos para modificar este lead")
+
+    state = await _set_parallel_state(db, lead_id, "nurture", False)
+    await _safe_audit_ml(
+        db, user, action="update", entity_type="lead_nurture_deactivate", entity_id=lead_id,
+        before={"nurture_active": True}, after={"nurture_active": False},
+        request=request, ml_event="lead_nurture_deactivate", ml_context={"lead_id": lead_id},
+    )
+    return {"ok": True, "lead_id": lead_id, "pipeline_state": state}
+
+
+@router.post("/api/leads/{lead_id}/mark-lost")
+async def mark_lead_lost(lead_id: str, payload: MarkLostPayload, request: Request):
+    """Marca lead como perdido (estado paralelo). Requiere reason no vacío."""
+    user = await _auth(request)
+    db = _db(request)
+
+    if not payload.reason or not payload.reason.strip():
+        raise HTTPException(422, "reason es requerido para marcar lead como perdido")
+
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead no encontrado")
+    if not can_move_lead(user, lead):
+        raise HTTPException(403, "Sin permisos para modificar este lead")
+
+    state = await _set_parallel_state(db, lead_id, "perdido", True, reason=payload.reason.strip())
+    await _safe_audit_ml(
+        db, user, action="update", entity_type="lead_mark_lost", entity_id=lead_id,
+        before={"lost_at": lead.get("lost_at")}, after={"lost_reason": payload.reason},
+        request=request, ml_event="lead_mark_lost", ml_context={"lead_id": lead_id, "reason": payload.reason},
+    )
+    return {"ok": True, "lead_id": lead_id, "pipeline_state": state}
+
