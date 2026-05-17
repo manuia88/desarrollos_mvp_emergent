@@ -8,6 +8,18 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
+### W5.ASR.4 DNS ops · Wildcard `*.asesores.desarrollosmx.io` A record (origen: emergent W5.ASR.4 P2 · 2026-05-17)
+
+**Qué**: configurar wildcard A record en DNS provider apuntando a IP servidor frontend DMX. Subdomain logic ya activa en código (PerfilAsesor.js detectSubdomainSlug + endpoint /api/asesor-identity/by-slug).
+
+**Sin esto**: subdomain microsite NO funciona · fallback automático a `/asesor-publico/{id}` y `/cma-publico/{id}` standard URLs sigue operativo.
+
+**Owner**: founder ops (no requiere código emergent · es config DNS provider · ~10 min).
+
+**Activar cuando**: hay >5 asesores activos que quieren branding personal con subdomain propio.
+
+
+
 ### W5.1 ext · Botón "Compartir tasación" en `/valor/:slug` + OG-image dinámica + tracking embeds (origen: emergent W5.1 potential improvement · 2026-05-16)
 
 **Qué**: añadir botón "Compartir tasación" en `/valor/:slug` landing SEO. Genera OG-image dinámica (precio + colonia) vía Vercel OG o Cloudinary cuando se comparte. Endpoint tracking `/api/avm-public/embed-track` registra cuándo/dónde se embeben widgets externos. Dashboard superadmin muestra dominios embebedores (medios + blogs + prensa).
