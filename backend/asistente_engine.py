@@ -191,6 +191,11 @@ TOOLS Y PARAMS:
     devuelve: proyección de precio multi-horizonte (6m / 12m / 24m) para una colonia con CI95 + narrative + delta_pct. Modelo ARIMA propio.
     Usar cuando: user pregunta "cuánto crecerá X", "tendencia zona Y a futuro", "proyección 12/24 meses", "vale la pena esperar a comprar".
 
+19. query_knowledge_graph
+    params: {{ "template": str (uno de: proyectos_similares, compradores_cross_project, zonas_similares_a, devs_dominantes_zona, proyectos_huerfanos_zona), "params": dict }}
+    devuelve: filas del grafo de conocimiento (relaciones multi-entidad). Si KG no disponible retorna fallback_required=true y debes responder con tools 1-18.
+    Usar SOLO cuando la pregunta involucra RELACIONES multi-entidad (compradores cross-project, proyectos similares, asesores con patrones, zonas con compradores comunes, devs dominantes). NO uses para consultas simples de 1 entidad (esas usan tools 1-18).
+
 REGLAS:
 - Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
@@ -280,6 +285,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 params.get("zone_slug", "") or params.get("slug", ""),
                 params.get("horizons", "6,12,24"),
             )
+        # W5.12 Parte 3 — Tool 19: Knowledge Graph relational queries
+        if tool_name == "query_knowledge_graph":
+            return await _tool_query_knowledge_graph(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1220,3 +1228,49 @@ async def _tool_get_zone_forecast(db, zone_slug: str, horizons: str = "6,12,24")
     except Exception as exc:
         log.warning(f"[asistente_tool] get_zone_forecast failed: {exc}")
         return {"error": str(exc), "source": "fallback"}
+
+
+# ─── W5.12 Parte 3 · Tool 19 query_knowledge_graph ────────────────────────────
+# Whitelist de 5 templates logicos para Atlax. NO permite Cypher libre.
+_KG_TOOL_ALLOWED = {
+    "proyectos_similares",
+    "compradores_cross_project",
+    "zonas_similares_a",
+    "devs_dominantes_zona",
+    "proyectos_huerfanos_zona",
+}
+
+
+async def _tool_query_knowledge_graph(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    template = (params.get("template") or "").strip()
+    q_params = params.get("params") or {}
+    if template not in _KG_TOOL_ALLOWED:
+        return {
+            "error": f"Template no autorizado para Atlax: {template}",
+            "allowed": sorted(_KG_TOOL_ALLOWED),
+            "source": "kg_consumer",
+        }
+    try:
+        from kg_query_helper import kg_query
+        result = await kg_query(template, q_params, caller_module="asistente_atlax", db=db)
+        if result.get("kg_unavailable"):
+            log.warning(f"[asistente] KG fallback (template={template} reason={result.get('reason')})")
+            return {
+                "source": "kg_consumer",
+                "kg_unavailable": True,
+                "fallback_required": True,
+                "rows": [],
+                "reason": result.get("reason"),
+                "template": template,
+            }
+        return {
+            "source": "kg_consumer",
+            "template": template,
+            "rows": result.get("rows", []),
+            "count": result.get("count", 0),
+            "latency_ms": result.get("latency_ms"),
+            "cache_hit": result.get("cache_hit", False),
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_knowledge_graph failed: {exc}")
+        return {"error": str(exc), "source": "kg_consumer", "kg_unavailable": True, "fallback_required": True}

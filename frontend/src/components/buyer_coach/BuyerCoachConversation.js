@@ -30,6 +30,8 @@ export default function BuyerCoachConversation({ colonia = '' }) {
   const [leadForm, setLeadForm] = useState({ email: '', whatsapp: '', consent: false });
   const [leadSent, setLeadSent] = useState(false);
   const [zones, setZones] = useState([]);
+  // W5.12 P3 Sub-D · Proyectos similares via KG (con fallback legacy)
+  const [similarProjects, setSimilarProjects] = useState({ rows: [], source: null });
   const bottomRef = useRef(null);
 
   // Start conversation
@@ -89,6 +91,18 @@ export default function BuyerCoachConversation({ colonia = '' }) {
         .catch(() => {});
     }
   }, [stage, convId, zones.length]);
+
+  // W5.12 P3 Sub-D · Cargar proyectos similares al pasar a stage 4 (alternativas)
+  useEffect(() => {
+    const seed = (zones[0]?.zone_id) || colonia;
+    if (stage >= 4 && seed && !similarProjects.rows.length) {
+      fetch(`${API}/api/buyer-coach/similar-projects?project_id=${encodeURIComponent(seed)}&limit=5`,
+        { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => d && setSimilarProjects({ rows: d?.rows || [], source: d?.source || 'unknown' }))
+        .catch(() => setSimilarProjects({ rows: [], source: 'error' }));
+    }
+  }, [stage, zones, colonia, similarProjects.rows.length]);
 
   const handleCaptureLead = async () => {
     if (!leadForm.email || !leadForm.consent) return;
@@ -160,6 +174,46 @@ export default function BuyerCoachConversation({ colonia = '' }) {
           >
             Ver mapa con estas zonas
           </button>
+        )}
+
+        {/* W5.12 P3 Sub-D · Proyectos similares (KG con fallback legacy) */}
+        {stage >= 4 && similarProjects.rows.length > 0 && (
+          <div data-testid="bc-similar-projects" style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(240,235,224,0.45)' }}>
+                Proyectos similares
+              </span>
+              <span data-testid="bc-similar-source-badge" style={{
+                padding: '2px 8px', borderRadius: 9999, fontSize: 8, fontFamily: 'DM Mono, monospace', fontWeight: 700,
+                background: similarProjects.source === 'kg' ? 'rgba(99,102,241,0.18)' : 'rgba(245,158,11,0.10)',
+                border: similarProjects.source === 'kg' ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(245,158,11,0.30)',
+                color: similarProjects.source === 'kg' ? '#a5b4fc' : '#fcd34d',
+                textTransform: 'uppercase',
+              }}>
+                {similarProjects.source === 'kg' ? 'via KG' : 'legacy'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {similarProjects.rows.slice(0, 5).map(p => (
+                <a key={p.project_id || p.slug}
+                   data-testid={`bc-similar-${p.project_id || p.slug}`}
+                   href={`/detalle-proyecto/${encodeURIComponent(p.slug || p.project_id)}`}
+                   style={{
+                     display: 'block', padding: '8px 10px', borderRadius: 8,
+                     background: 'rgba(255,255,255,0.04)',
+                     border: '1px solid rgba(255,255,255,0.06)',
+                     fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream)',
+                     textDecoration: 'none', lineHeight: 1.4,
+                   }}>
+                  <div style={{ fontWeight: 600 }}>{p.name || p.project_id}</div>
+                  <div style={{ fontSize: 9, fontFamily: 'DM Mono, monospace', color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase' }}>
+                    {p.zone_slug || '—'}
+                    {p.precio_min ? ` · $${Math.round((p.precio_min || 0) / 1000).toLocaleString('es-MX')}k` : ''}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

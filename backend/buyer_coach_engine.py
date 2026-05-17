@@ -583,3 +583,95 @@ async def ensure_buyer_coach_indexes(db) -> None:
         log.info("[buyer_coach] indexes OK")
     except Exception as exc:
         log.warning(f"[buyer_coach] index creation warning: {exc}")
+
+
+
+# ─── W5.12 Parte 3 · Similar projects via Knowledge Graph ─────────────────────
+# Intenta KG primero (template proyectos_similares); si KG indica fallback_required,
+# usa heuristico relacional: misma zone + price ±20%.
+async def _similar_projects_legacy(db, project_id: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """Fallback heuristico (misma zone + price ±20%)."""
+    try:
+        seed = await db.developments.find_one(
+            {"$or": [{"id": project_id}, {"project_id": project_id}, {"slug": project_id}]},
+            {"_id": 0, "id": 1, "slug": 1, "name": 1, "nombre": 1, "zone_slug": 1, "colonia_slug": 1,
+             "precio_min": 1, "precio_max": 1, "price_min": 1, "price_max": 1, "cover_image_url": 1, "ie_score": 1},
+        )
+        if not seed:
+            return []
+        zone = seed.get("zone_slug") or seed.get("colonia_slug")
+        pmin = seed.get("precio_min") or seed.get("price_min") or 0
+        pmax = seed.get("precio_max") or seed.get("price_max") or 0
+        lo = pmin * 0.80 if pmin else 0
+        hi = (pmax or pmin) * 1.20 if (pmin or pmax) else 10**12
+        query: Dict[str, Any] = {"$or": [{"zone_slug": zone}, {"colonia_slug": zone}]} if zone else {}
+        cursor = db.developments.find(query, {
+            "_id": 0, "id": 1, "slug": 1, "name": 1, "nombre": 1, "zone_slug": 1, "colonia_slug": 1,
+            "precio_min": 1, "precio_max": 1, "price_min": 1, "price_max": 1,
+            "cover_image_url": 1, "main_image_url": 1, "ie_score": 1, "score": 1,
+        }).limit(80)
+        out: List[Dict[str, Any]] = []
+        seed_id = seed.get("id") or seed.get("slug")
+        async for doc in cursor:
+            did = doc.get("id") or doc.get("slug")
+            if did == seed_id:
+                continue
+            p_min = doc.get("precio_min") or doc.get("price_min") or 0
+            if p_min and lo and p_min < lo * 0.5:
+                continue
+            if p_min and hi and p_min > hi * 1.5:
+                continue
+            out.append({
+                "project_id": did,
+                "slug": doc.get("slug"),
+                "name": doc.get("name") or doc.get("nombre"),
+                "zone_slug": doc.get("zone_slug") or doc.get("colonia_slug"),
+                "precio_min": doc.get("precio_min") or doc.get("price_min"),
+                "precio_max": doc.get("precio_max") or doc.get("price_max"),
+                "cover_image_url": doc.get("cover_image_url") or doc.get("main_image_url"),
+                "score": doc.get("ie_score") or doc.get("score"),
+            })
+            if len(out) >= limit:
+                break
+        return out
+    except Exception as exc:
+        log.warning(f"[buyer_coach] _similar_projects_legacy failed: {exc}")
+        return []
+
+
+async def similar_projects_via_kg(db, *, project_id: str, limit: int = 5) -> Dict[str, Any]:
+    """Returns {"source":"kg"|"legacy", "rows":[...], "count":N, "kg_unavailable":bool}.
+
+    Reuse the helper kg_query (W5.12 P3 Sub-A). El template `proyectos_similares`
+    es alias-only y degrada a fallback_required=True actualmente → siempre legacy
+    hasta que se registre el Cypher real en kg_template_registry.
+    """
+    try:
+        from kg_query_helper import kg_query
+        res = await kg_query(
+            "proyectos_similares",
+            {"project_id": project_id, "limit": limit},
+            caller_module="buyer_coach_similar",
+            db=db,
+        )
+        if res.get("kg_unavailable") or res.get("fallback_required"):
+            legacy = await _similar_projects_legacy(db, project_id, limit=limit)
+            return {
+                "source": "legacy",
+                "rows": legacy,
+                "count": len(legacy),
+                "kg_unavailable": True,
+                "reason": res.get("reason"),
+            }
+        return {
+            "source": "kg",
+            "rows": res.get("rows", []),
+            "count": res.get("count", 0),
+            "kg_unavailable": False,
+            "latency_ms": res.get("latency_ms"),
+            "cache_hit": res.get("cache_hit", False),
+        }
+    except Exception as exc:
+        log.warning(f"[buyer_coach] similar_projects_via_kg failed: {exc}")
+        legacy = await _similar_projects_legacy(db, project_id, limit=limit)
+        return {"source": "legacy", "rows": legacy, "count": len(legacy), "kg_unavailable": True, "reason": str(exc)[:200]}
