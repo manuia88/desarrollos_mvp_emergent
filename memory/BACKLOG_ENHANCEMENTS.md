@@ -333,6 +333,18 @@ backend/routes/
 
 ## 🟢 MEDIA PRIORIDAD (Phase específica)
 
+### W5.ASR.5 ext · Mini-dashboard "Origen de Leads" 30d en AsesorDashboard (origen: emergent W5.ASR.5 P1 sugerencia · 2026-05-17)
+
+**Qué**: panel en `/asesor` (AsesorDashboard) mostrando distribución de leads por source los últimos 30 días (email_alias · portal_inmuebles24 · portal_lamudi · fb_lead_ads · landing · manual). Donut chart + tabla counts.
+
+**Score honest 6-7/10**: nice-to-have insight · sin volumen real de leads no informa. Activar cuando asesor capture ≥10 leads/semana de fuentes mixtas.
+
+**Costo**: ~3-4h emergent.
+
+**Activar cuando**: launch público asesores + volumen real (≥10 leads/asesor/semana).
+
+
+
 ### W5.4 ext · Panel superadmin Buyer Scores visual (gráfica + tabla per-user) (origen: emergent W5.4 potential improvement · 2026-05-16)
 
 **Qué**: UI superadmin con gráfica distribución by_tier (donut/bars) + tabla per-user filtrable por tier. Endpoints `/api/superadmin/buyer-score/summary` y `/per-user` YA EXISTEN (W5.4 Sub-A) · solo falta UI.
