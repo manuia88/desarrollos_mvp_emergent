@@ -77,7 +77,7 @@ export default function DesarrolladorCRM({ user, onLogout }) {
         })}
       </div>
 
-      {tab === 'kanban'  && <LeadKanban scope="all_org" projectId={slug} onToast={setToast} />}
+      {tab === 'kanban'  && <LeadKanban scope="all_org" projectId={slug} pipelineVersion="v2" onToast={setToast} />}
       {tab === 'brokers' && <BrokersTab projectId={slug} user={user} onToast={setToast} />}
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
