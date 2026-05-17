@@ -38,6 +38,13 @@ LEAD_STATUSES = [
     "nuevo", "contactado", "visita_agendada", "visita_realizada",
     "propuesta", "cerrado_ganado", "cerrado_perdido",
 ]
+# W5.ASR.2 — Statuses V2 aceptados en move endpoints
+from pipeline_engine import (
+    LEAD_STATUSES_V2 as _LEAD_STATUSES_V2,
+    validate_transition_v2 as _validate_transition_v2,
+    map_v1_to_v2 as _map_v1_to_v2,
+)
+_ALL_VALID_STATUSES_V1 = set(LEAD_STATUSES) | set(_LEAD_STATUSES_V2)
 LEAD_SOURCES = {
     "web_form", "caya_bot", "whatsapp", "feria", "asesor_referral", "erp_webhook", "manual",
 }
@@ -516,12 +523,18 @@ class KanbanMovePayload(BaseModel):
 async def move_lead_column(lead_id: str, payload: KanbanMovePayload, request: Request):
     user = await _auth(request)
     db = _db(request)
-    if payload.target_status not in LEAD_STATUSES:
+    if payload.target_status not in _ALL_VALID_STATUSES_V1:
         raise HTTPException(400, f"status inválido: {payload.target_status}")
 
     old = await db.leads.find_one({"id": lead_id, "dev_org_id": _tenant(user)}, {"_id": 0})
     if not old:
         raise HTTPException(404, "Lead no encontrado")
+
+    # W5.ASR.2 Sub-B — Hard-rules V2 (si target es V2 o lead tiene status_v2)
+    if payload.target_status in _LEAD_STATUSES_V2:
+        ok, err = _validate_transition_v2(old, payload.target_status)
+        if not ok:
+            raise HTTPException(422, err)
 
     if payload.target_status == "cerrado_perdido" and not old.get("lost_reason"):
         raise HTTPException(422, "Para mover a cerrado_perdido actualiza primero el lost_reason")
@@ -541,9 +554,16 @@ async def move_lead_column(lead_id: str, payload: KanbanMovePayload, request: Re
         days_in_prev = None
 
     now_iso = _now().isoformat()
+    # W5.ASR.2 — Dual-write status_v2
+    v2_update: Dict[str, Any] = {}
+    if payload.target_status in _LEAD_STATUSES_V2:
+        v2_update["status_v2"] = payload.target_status
+    elif old.get("pipeline_version") == 2 or old.get("status_v2"):
+        v2_update["status_v2"] = _map_v1_to_v2(payload.target_status)
+
     await db.leads.update_one(
         {"id": lead_id},
-        {"$set": {"status": payload.target_status, "updated_at": now_iso, "last_activity_at": now_iso}},
+        {"$set": {"status": payload.target_status, "updated_at": now_iso, "last_activity_at": now_iso, **v2_update}},
     )
     await _safe_audit_ml(
         db, user, action="update", entity_type="lead_kanban_move", entity_id=lead_id,
