@@ -288,6 +288,69 @@ TEMPLATES: Dict[str, Dict[str, Any]] = {
         """,
     },
 
+    "proyectos_similares": {
+        "description": "Proyectos similares a uno seed via COMPARABLE_TO edge (±15% precio, misma Zone preferred).",
+        "required_params": ["project_id"],
+        "optional_params": ["limit"],
+        "param_validators": {
+            "project_id": _is_str_id,
+            "limit": _is_int_range(1, 50),
+        },
+        "param_hints": {
+            "project_id": "id del proyecto seed",
+            "limit": "1-50 (default 10)",
+        },
+        "cypher_template": """
+        MATCH (seed:Project {id: $project_id})
+        OPTIONAL MATCH (seed)-[:LOCATED_IN]->(z:Zone)<-[:LOCATED_IN]-(p:Project)
+        WHERE p.id <> seed.id
+        OPTIONAL MATCH (seed)-[:COMPARABLE_TO]-(comp:Project)
+        WHERE comp.id <> seed.id
+        WITH seed, COLLECT(DISTINCT p) + COLLECT(DISTINCT comp) AS candidates
+        UNWIND candidates AS p
+        WITH seed, p
+        WHERE p IS NOT NULL
+        OPTIONAL MATCH (p)-[:OWNED_BY]->(d:DevOrg)
+        OPTIONAL MATCH (p)-[:LOCATED_IN]->(pz:Zone)
+        RETURN DISTINCT p.id AS project_id, p.name AS name, p.price AS price,
+               pz.slug AS zone_slug, pz.name AS zone_name, d.name AS dev_name,
+               p.status AS status
+        ORDER BY p.price ASC
+        LIMIT toInteger(coalesce($limit, 10))
+        """,
+    },
+
+    "zonas_similares_a": {
+        "description": "Zonas similares vía sub-score proximity + misma alcaldía/tier (excluye seed).",
+        "required_params": ["zone_slug"],
+        "optional_params": ["limit"],
+        "param_validators": {
+            "zone_slug": _is_slug,
+            "limit": _is_int_range(1, 30),
+        },
+        "param_hints": {
+            "zone_slug": "slug zona seed",
+            "limit": "1-30 (default 10)",
+        },
+        "cypher_template": """
+        MATCH (seed:Zone {slug: $zone_slug})
+        MATCH (z:Zone)
+        WHERE z.slug <> seed.slug
+          AND (z.alcaldia = seed.alcaldia OR z.tier = seed.tier)
+        WITH seed, z,
+             abs(coalesce(z.score_lifestyle,0) - coalesce(seed.score_lifestyle,0)) +
+             abs(coalesce(z.score_seguridad,0) - coalesce(seed.score_seguridad,0)) +
+             abs(coalesce(z.score_transporte,0) - coalesce(seed.score_transporte,0)) +
+             abs(coalesce(z.score_amenidades,0) - coalesce(seed.score_amenidades,0)) +
+             abs(coalesce(z.score_precio,0) - coalesce(seed.score_precio,0)) +
+             abs(coalesce(z.score_vibe,0) - coalesce(seed.score_vibe,0)) AS dist
+        RETURN z.slug AS zone_slug, z.name AS zone_name, z.alcaldia AS alcaldia,
+               z.tier AS tier, dist AS proximity_score
+        ORDER BY dist ASC
+        LIMIT toInteger(coalesce($limit, 10))
+        """,
+    },
+
     "devs_con_dispute_history": {
         "description": "DevOrgs con disputas rechazadas activas (cooldown > now) o historial denso.",
         "required_params": ["min_disputes"],

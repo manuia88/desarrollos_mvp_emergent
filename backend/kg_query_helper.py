@@ -53,10 +53,24 @@ def _map_proyectos_huerfanos(p: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _map_proyectos_similares(p: Dict[str, Any]) -> Dict[str, Any]:
+    out = {"project_id": p.get("project_id") or ""}
+    if p.get("limit") is not None:
+        out["limit"] = int(p["limit"])
+    return out
+
+
+def _map_zonas_similares(p: Dict[str, Any]) -> Dict[str, Any]:
+    out = {"zone_slug": p.get("zone_slug") or ""}
+    if p.get("limit") is not None:
+        out["limit"] = int(p["limit"])
+    return out
+
+
 ALIAS_MAP: Dict[str, Optional[tuple]] = {
     # logical_name → (registry_template, params_mapper) | None = fallback only
-    "proyectos_similares":         None,
-    "zonas_similares_a":           None,
+    "proyectos_similares":         ("proyectos_similares", _map_proyectos_similares),
+    "zonas_similares_a":           ("zonas_similares_a", _map_zonas_similares),
     "compradores_cross_project":   ("compradores_por_proyecto_zona", _map_compradores_cross),
     "devs_dominantes_zona":        ("proyectos_dev_por_zona_tier", _map_devs_dominantes),
     "proyectos_huerfanos_zona":    ("proyectos_huerfanos", _map_proyectos_huerfanos),
