@@ -106,7 +106,13 @@ Cada gate check → metric logged (denial · grant · cache_hit). Cierra ciclo c
 
 ---
 
-### W5.FF3 · UI Visibility Matrix + Plantillas + Atlax · 6h · **Emergent**
+### W5.FF3 · UI Visibility Matrix + Plantillas + Atlax · 6h · **Claude Code (REASSIGNED 2026-05-18)**
+
+⚠️ **DECISIÓN ARQUITECTÓNICA 2026-05-18**: emergent intento 1 (SHA `5b8079f` · NUNCA mergeado) **ROLLBACK** por 3 bugs catastróficos: SuperadminLayout.js reescrito completo · paleta inventada (operacion=#F59E0B vs canónico #FFA040) · syntax error variable `section` duplicada · build FAIL.
+
+Track record emergent superadmin: 5 bugs aurora consecutivos en 5 batches. Reassigned a **Claude Code terminal con prompt ULTRA-defensivo** "solo añadir · NUNCA reescribir": Edit puntual 1 línea regex sectionFromPath · Edit puntual 1 item navByRole tier 4 · cero reescritura archivos críticos.
+
+Pre-checkpoint activo: `pre-W5.FF3-matrix-20260518-1101` (rollback safe <2 min).
 
 | Sub | h | Qué hace |
 |---|---|---|

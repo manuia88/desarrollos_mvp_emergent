@@ -172,6 +172,58 @@ Cero risk de leak · cero risk de "undefined CSS variable" rompiendo otro portal
 
 ---
 
+## 2026-05-18 · Sidebar RESTAURADO completamente (cierre del rediseño)
+
+**Bug detectado founder 2026-05-18**: el comentario `// SUPERADMIN — 7 secciones por color (Aurora design)` estaba en código pero SUPERADMIN_NAV solo implementaba **3 secciones** (Principal · Datos · Inteligencia). **41 features superadmin existían como pages + rutas registradas pero NO se veían en sidebar**.
+
+Agent forense rescató spec original sesión `b5ec2643` 2026-05-14 21:37 UTC con 7 secciones + items textuales exactos.
+
+### Estado final SUPERADMIN_NAV · 7 secciones · 45 items
+
+| Tier | Sección | Color | Items |
+|---|---|---|---|
+| 1 | Principal | rosa #ff2e7e | inicio · tenants |
+| 2 | Datos | cyan #00E5FF | bulk-ingest · data-sources · drive · documents · data-lake · metrics-cube |
+| 3 | Inteligencia | morado #7c2fff | 12 items (subdivididos): Accuracy/ML W5.x (avm-accuracy · forecast-accuracy) + Intelligence layer W3.x (scores · drpi · risk-score · investment-explorer · intelligence-hub · trends · phase5-foundation · transactions) + Graph & Live W5.x (knowledge-graph · live-pulse) |
+| 4 | Operación | naranja #FFA040 | 10 items (subdivididos): System health (health · observability · phase-y-observability) + Audit & compliance (audit-log · audit-chain · compliance) + Fraud & risk (duplicates · fraud-patterns · fraud-alerts · risk-alerts) |
+| 5 | Monetización | verde #5BE235 | ai-cost · commercial · api-keys · vertical-products · data-licensing · cross-sell |
+| 6 | Crecimiento | teal #14B8A6 | whatsapp · newsletter · bulletins · landing-leads · partners · onboarding · free-audit · lead-sources |
+| 7 | Dev Tools | morado #7c2fff | primitives-demo |
+
+### sectionFromPath() extendido (2026-05-18)
+
+Mapping URL → sección actualizado con TODOS los paths shipped W5.x:
+- `inteligencia` regex añadido: `avm-accuracy · forecast-accuracy · knowledge-graph · live-pulse`
+- `operacion` regex añadido: `audit-chain · duplicates · fraud-patterns`
+- Próximo paso pendiente: añadir `feature-visibility` cuando W5.FF3 shipped
+
+### Commits cierre
+
+- `fbc462d3` (sidebar fix 4 secciones nuevas)
+- `02109c1e` (11 features legacy huérfanas restauradas vs spec May 14)
+- pre-tag rollback: `pre-sidebar-fix-20260518-1011`
+
+### Status post-restauración
+**Descubribilidad features superadmin**: 25% → ~100% · yarn build OK · cero hex hardcoded · Icons ya importados.
+
+---
+
+## ⚠️ Lecciones críticas · 5 bugs aurora consecutivos emergent (2026-05-17 / 18)
+
+Track record emergent en archivos críticos superadmin:
+
+| Bug # | Batch | Qué pasó | Fix Claude Code |
+|---|---|---|---|
+| 1 | W5.11 P2 | 32 hex hardcoded · falta sectionFromPath duplicates/fraud-patterns/audit-chain | `0d92469` |
+| 2 | W5.12 P2 | 10 hex hardcoded · falta sectionFromPath knowledge-graph | `babacae` |
+| 3 | W5.5 P2 | 68 hex hardcoded · "var(--theme) no existe" (FALSO) | `d9d538e` |
+| 4 | W5.15 P2 | 16 rgba hardcoded en FsdDistributionTab + tab nav | `0ae93dc` |
+| 5 | W5.FF3 INTENTO 1 | **SuperadminLayout.js reescrito** · paleta inventada · syntax error · build FAIL · ROLLBACK | rollback a `59a5f4ea` |
+
+**Decisión arquitectónica 2026-05-18**: futuros batches W5.FF y cualquier toque superadmin = **Claude Code terminal con prompt ULTRA-defensivo "solo añadir · NUNCA reescribir"**. Emergent reservado para UI nueva agnostic (no superadmin) o backend puro features sin dependencia de aurora.
+
+---
+
 ## Reglas de oro · si emergent toca superadmin
 
 3 líneas obligatorias al inicio de CADA prompt a emergent que toque superadmin:
