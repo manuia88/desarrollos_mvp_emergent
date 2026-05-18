@@ -85,8 +85,8 @@ export default function LivePulseAlertsTab({ user, readinessState }) {
                 style={{
                   padding: '8px 18px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
                   cursor: 'pointer', color: '#fff',
-                  background: 'linear-gradient(90deg, rgba(124,47,255,0.90), rgba(192,38,211,0.90))',
-                  border: '1px solid rgba(124,47,255,0.55)',
+                  background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.90), rgba(192,38,211,0.90))',
+                  border: '1px solid rgba(var(--theme-rgb),0.55)',
                 }}>+ {t('live_pulse.actions.new_subscription')}</button>
             </div>
             {subs.length === 0 ? (
@@ -94,11 +94,11 @@ export default function LivePulseAlertsTab({ user, readinessState }) {
             ) : (
               <div style={{
                 background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-                border: '1px solid rgba(124,47,255,0.20)', borderRadius: 14, overflow: 'hidden',
+                border: '1px solid rgba(var(--theme-rgb),0.20)', borderRadius: 14, overflow: 'hidden',
               }}>
                 <table data-testid="lp-subs-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12.5 }}>
                   <thead>
-                    <tr style={{ background: 'rgba(124,47,255,0.10)' }}>
+                    <tr style={{ background: 'rgba(var(--theme-rgb),0.10)' }}>
                       <Th>{t('live_pulse.fields.zone')}</Th>
                       <Th>{t('live_pulse.fields.threshold_score')}</Th>
                       <Th>{t('live_pulse.fields.created_at')}</Th>
@@ -152,8 +152,8 @@ export default function LivePulseAlertsTab({ user, readinessState }) {
               style={{
                 padding: '9px 20px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
                 cursor: 'pointer', color: '#fff',
-                background: 'linear-gradient(90deg, rgba(124,47,255,0.95), rgba(192,38,211,0.95))',
-                border: '1px solid rgba(124,47,255,0.65)',
+                background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.95), rgba(192,38,211,0.95))',
+                border: '1px solid rgba(var(--theme-rgb),0.65)',
               }}>{t('live_pulse.actions.change_frequency')}</button>
           </div>
         </section>
@@ -173,7 +173,7 @@ export default function LivePulseAlertsTab({ user, readinessState }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 80,
         }} onClick={() => setAddOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            background: 'rgba(13,16,23,0.98)', border: '1px solid rgba(124,47,255,0.40)', borderRadius: 16,
+            background: 'rgba(13,16,23,0.98)', border: '1px solid rgba(var(--theme-rgb),0.40)', borderRadius: 16,
             padding: 26, width: 'min(440px, 92vw)', display: 'flex', flexDirection: 'column', gap: 14,
           }}>
             <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream, #F0EBE0)', margin: 0 }}>
@@ -189,19 +189,19 @@ export default function LivePulseAlertsTab({ user, readinessState }) {
               style={{
                 padding: '10px 14px', borderRadius: 14, fontFamily: 'DM Sans', fontSize: 13,
                 background: 'rgba(255,255,255,0.05)', color: 'var(--cream, #F0EBE0)',
-                border: '1px solid rgba(124,47,255,0.30)',
+                border: '1px solid rgba(var(--theme-rgb),0.30)',
               }}>
               <option value="">—</option>
               {zones.map((z) => <option key={z} value={z}>{z}</option>)}
             </select>
             <label style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.60)' }}>
-              {t('live_pulse.subscribe_modal.threshold_label')}: <strong style={{ color: 'rgba(124,47,255,0.95)' }}>{threshold}</strong>
+              {t('live_pulse.subscribe_modal.threshold_label')}: <strong style={{ color: 'rgba(var(--theme-rgb),0.95)' }}>{threshold}</strong>
             </label>
             <input
               data-testid="lp-add-threshold"
               type="range" min={60} max={100} step={5}
               value={threshold} onChange={(e) => setThreshold(Number(e.target.value))}
-              style={{ accentColor: 'rgba(124,47,255,0.95)' }}
+              style={{ accentColor: 'rgba(var(--theme-rgb),0.95)' }}
             />
             {err && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#fecaca' }}>{err}</div>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 6 }}>
@@ -215,8 +215,8 @@ export default function LivePulseAlertsTab({ user, readinessState }) {
                 onClick={handleAdd}
                 style={{
                   padding: '8px 18px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  background: 'linear-gradient(90deg, rgba(124,47,255,0.95), rgba(192,38,211,0.95))',
-                  color: '#fff', border: '1px solid rgba(124,47,255,0.65)',
+                  background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.95), rgba(192,38,211,0.95))',
+                  color: '#fff', border: '1px solid rgba(var(--theme-rgb),0.65)',
                 }}>{t('live_pulse.actions.confirm')}</button>
             </div>
           </div>
@@ -226,7 +226,7 @@ export default function LivePulseAlertsTab({ user, readinessState }) {
       {flash && (
         <div data-testid="lp-alerts-flash" style={{
           position: 'fixed', bottom: 24, right: 24, padding: '10px 18px', borderRadius: 9999,
-          background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(124,47,255,0.45)',
+          background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(var(--theme-rgb),0.45)',
           fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream, #F0EBE0)', zIndex: 95,
         }}>{flash}</div>
       )}
@@ -246,7 +246,7 @@ function SectionHeader({ title }) {
 function EmptyState({ text }) {
   return (
     <div data-testid="lp-empty-state" style={{
-      background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(124,47,255,0.15)',
+      background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(var(--theme-rgb),0.15)',
       borderRadius: 14, padding: 28, textAlign: 'center',
       fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.55)',
     }}>{text}</div>
@@ -265,7 +265,7 @@ function KpiCard({ label, value, prominent }) {
   return (
     <div style={{
       background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-      border: prominent ? '1px solid rgba(124,47,255,0.45)' : '1px solid rgba(124,47,255,0.20)',
+      border: prominent ? '1px solid rgba(var(--theme-rgb),0.45)' : '1px solid rgba(var(--theme-rgb),0.20)',
       borderRadius: 14, padding: 14,
     }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -273,7 +273,7 @@ function KpiCard({ label, value, prominent }) {
       </div>
       <div style={{
         fontFamily: 'Outfit', fontWeight: 700, fontSize: prominent ? 18 : 22,
-        color: prominent ? 'rgba(124,47,255,0.95)' : 'var(--cream, #F0EBE0)', marginTop: 4,
+        color: prominent ? 'rgba(var(--theme-rgb),0.95)' : 'var(--cream, #F0EBE0)', marginTop: 4,
       }}>
         {value}
       </div>

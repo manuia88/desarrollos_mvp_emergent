@@ -14,7 +14,7 @@ const STATE_COLORS = {
   bootstrap: { fill: 'rgba(120,120,128,0.85)', label: 'rgba(120,120,128,0.95)' },
   growing:   { fill: 'rgba(234,179,8,0.85)',   label: 'rgba(234,179,8,0.95)' },
   ready:     { fill: 'rgba(34,197,94,0.85)',   label: 'rgba(34,197,94,0.95)' },
-  optimal:   { fill: 'rgba(124,47,255,0.95)',  label: 'rgba(124,47,255,0.95)' },
+  optimal:   { fill: 'rgba(var(--theme-rgb),0.95)',  label: 'rgba(var(--theme-rgb),0.95)' },
 };
 
 export default function LivePulseReadinessTab({ onStateChange }) {
@@ -72,7 +72,7 @@ export default function LivePulseReadinessTab({ onStateChange }) {
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16 }}>
         <div style={{
           background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(124,47,255,0.25)', borderRadius: 14, padding: 18,
+          border: '1px solid rgba(var(--theme-rgb),0.25)', borderRadius: 14, padding: 18,
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
         }}>
           <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -109,7 +109,7 @@ export default function LivePulseReadinessTab({ onStateChange }) {
 
         <div style={{
           background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(124,47,255,0.25)', borderRadius: 14, padding: 18,
+          border: '1px solid rgba(var(--theme-rgb),0.25)', borderRadius: 14, padding: 18,
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <div>
@@ -121,8 +121,8 @@ export default function LivePulseReadinessTab({ onStateChange }) {
             </p>
           </div>
           <div style={{
-            padding: 12, background: 'rgba(124,47,255,0.08)',
-            border: '1px solid rgba(124,47,255,0.30)', borderRadius: 12,
+            padding: 12, background: 'rgba(var(--theme-rgb),0.08)',
+            border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 12,
           }}>
             <div style={{ fontFamily: 'DM Mono', fontSize: 10, color: 'rgba(240,235,224,0.55)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
               {t('live_pulse.readiness_tab.eta_title')}
@@ -140,8 +140,8 @@ export default function LivePulseReadinessTab({ onStateChange }) {
               alignSelf: 'flex-start', padding: '9px 20px', borderRadius: 9999,
               fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
               color: '#fff',
-              background: 'linear-gradient(90deg, rgba(124,47,255,0.95), rgba(192,38,211,0.95))',
-              border: '1px solid rgba(124,47,255,0.65)',
+              background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.95), rgba(192,38,211,0.95))',
+              border: '1px solid rgba(var(--theme-rgb),0.65)',
             }}>{t('live_pulse.actions.change_frequency')}</button>
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function LivePulseReadinessTab({ onStateChange }) {
       {/* Metrics */}
       <div style={{
         background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(124,47,255,0.20)', borderRadius: 14, padding: 18,
+        border: '1px solid rgba(var(--theme-rgb),0.20)', borderRadius: 14, padding: 18,
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream, #F0EBE0)', marginBottom: 14 }}>
           {t('live_pulse.readiness_tab.metrics_title')}
@@ -181,7 +181,7 @@ export default function LivePulseReadinessTab({ onStateChange }) {
       {/* History 90d */}
       <div style={{
         background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(124,47,255,0.20)', borderRadius: 14, padding: 18,
+        border: '1px solid rgba(var(--theme-rgb),0.20)', borderRadius: 14, padding: 18,
       }}>
         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream, #F0EBE0)', marginBottom: 10 }}>
           {t('live_pulse.readiness_tab.history_title')}
@@ -195,11 +195,11 @@ export default function LivePulseReadinessTab({ onStateChange }) {
             <LineChart data={history} margin={{ top: 8, right: 16, left: -8, bottom: 0 }}>
               <XAxis dataKey="ts" tick={{ fontSize: 10, fill: 'rgba(240,235,224,0.55)' }} stroke="rgba(255,255,255,0.10)" />
               <YAxis tick={{ fontSize: 10, fill: 'rgba(240,235,224,0.55)' }} stroke="rgba(255,255,255,0.10)" domain={[0, 100]} />
-              <Tooltip contentStyle={{ background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(124,47,255,0.45)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(var(--theme-rgb),0.45)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 11 }} />
               <ReferenceLine y={30} stroke="rgba(120,120,128,0.45)" strokeDasharray="3 3" />
               <ReferenceLine y={60} stroke="rgba(234,179,8,0.45)" strokeDasharray="3 3" />
               <ReferenceLine y={85} stroke="rgba(34,197,94,0.55)" strokeDasharray="3 3" />
-              <Line type="monotone" dataKey="score" stroke="rgba(124,47,255,0.95)" strokeWidth={2.2} dot={false} />
+              <Line type="monotone" dataKey="score" stroke="rgba(var(--theme-rgb),0.95)" strokeWidth={2.2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -224,8 +224,8 @@ function Metric({ label, metric, badge }) {
         <span style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'rgba(240,235,224,0.75)' }}>{label}</span>
         <span style={{
           fontFamily: 'DM Mono', fontSize: 10, padding: '3px 10px', borderRadius: 9999,
-          background: 'rgba(124,47,255,0.12)', color: 'rgba(124,47,255,0.95)',
-          border: '1px solid rgba(124,47,255,0.35)', letterSpacing: '0.04em',
+          background: 'rgba(var(--theme-rgb),0.12)', color: 'rgba(var(--theme-rgb),0.95)',
+          border: '1px solid rgba(var(--theme-rgb),0.35)', letterSpacing: '0.04em',
         }}>{badge}</span>
       </div>
       <div style={{
@@ -233,7 +233,7 @@ function Metric({ label, metric, badge }) {
       }}>
         <div style={{
           height: '100%', width: `${Math.min(100, value)}%`,
-          background: 'linear-gradient(90deg, rgba(124,47,255,0.85), rgba(192,38,211,0.85))',
+          background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.85), rgba(192,38,211,0.85))',
           borderRadius: 9999, transition: 'width 0.3s',
         }} />
       </div>

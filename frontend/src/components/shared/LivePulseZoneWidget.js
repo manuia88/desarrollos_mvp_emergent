@@ -62,7 +62,7 @@ export default function LivePulseZoneWidget({ zone_slug, user, compact = false }
       data-testid={`lp-widget-${zone_slug}`}
       style={{
         background: 'rgba(13,16,23,0.85)', backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(124,47,255,0.22)', borderRadius: 14,
+        border: '1px solid rgba(var(--theme-rgb),0.22)', borderRadius: 14,
         padding: compact ? 12 : 16,
         display: 'flex', flexDirection: 'column', gap: 8, minWidth: 200,
       }}>
@@ -83,7 +83,7 @@ export default function LivePulseZoneWidget({ zone_slug, user, compact = false }
         }}>{t(`live_pulse.buckets.${bucket}`)}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: compact ? 24 : 30, color: 'rgba(124,47,255,0.95)', letterSpacing: '-0.02em' }}>
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: compact ? 24 : 30, color: 'rgba(var(--theme-rgb),0.95)', letterSpacing: '-0.02em' }}>
           {pulse.score}
         </span>
         <span style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(240,235,224,0.55)' }}>/ 100</span>
@@ -92,13 +92,13 @@ export default function LivePulseZoneWidget({ zone_slug, user, compact = false }
         <div style={{ height: compact ? 28 : 36 }}>
           <ResponsiveContainer>
             <LineChart data={spark}>
-              <Line type="monotone" dataKey="score" stroke="rgba(124,47,255,0.85)" strokeWidth={1.6} dot={false} />
+              <Line type="monotone" dataKey="score" stroke="rgba(var(--theme-rgb),0.85)" strokeWidth={1.6} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
       <a href={linkTo} data-testid={`lp-widget-link-${zone_slug}`} style={{
-        fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(124,47,255,0.95)', textDecoration: 'none', marginTop: 2,
+        fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(var(--theme-rgb),0.95)', textDecoration: 'none', marginTop: 2,
       }}>{t('live_pulse.widget.ver_detalle')} →</a>
     </div>
   );

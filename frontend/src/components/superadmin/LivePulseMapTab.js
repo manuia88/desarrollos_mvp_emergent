@@ -97,7 +97,7 @@ export default function LivePulseMapTab({ onPickZone }) {
               'surging', BUCKET_COLORS.surging,
               BUCKET_COLORS.unknown,
             ],
-            'fill-outline-color': 'rgba(124,47,255,0.45)',
+            'fill-outline-color': 'rgba(var(--theme-rgb),0.45)',
           },
         });
         map.addLayer({
@@ -105,7 +105,7 @@ export default function LivePulseMapTab({ onPickZone }) {
           type: 'line',
           source: 'lp_zones',
           paint: {
-            'line-color': 'rgba(124,47,255,0.55)',
+            'line-color': 'rgba(var(--theme-rgb),0.55)',
             'line-width': 1,
           },
         });
@@ -158,7 +158,7 @@ export default function LivePulseMapTab({ onPickZone }) {
 
   return (
     <div data-testid="lp-map-tab" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, height: 'calc(100vh - 320px)', minHeight: 480 }}>
-      <div ref={containerRef} data-testid="lp-map-container" style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(124,47,255,0.25)' }} />
+      <div ref={containerRef} data-testid="lp-map-container" style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(var(--theme-rgb),0.25)' }} />
       <ZoneDetailPanel slug={selected} pulse={selectedPulse} t={t} />
     </div>
   );
@@ -171,7 +171,7 @@ function ZoneDetailPanel({ slug, pulse, t }) {
         data-testid="lp-map-panel-empty"
         style={{
           background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(124,47,255,0.20)', borderRadius: 14, padding: 22,
+          border: '1px solid rgba(var(--theme-rgb),0.20)', borderRadius: 14, padding: 22,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.55)', textAlign: 'center',
         }}>
@@ -185,7 +185,7 @@ function ZoneDetailPanel({ slug, pulse, t }) {
       data-testid={`lp-map-panel-${slug}`}
       style={{
         background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(124,47,255,0.30)', borderRadius: 14, padding: 22,
+        border: '1px solid rgba(var(--theme-rgb),0.30)', borderRadius: 14, padding: 22,
         display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto',
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -200,7 +200,7 @@ function ZoneDetailPanel({ slug, pulse, t }) {
         <BucketBadge bucket={pulse.bucket || bucketOf(pulse.score)} t={t} />
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 42, color: 'rgba(124,47,255,0.95)', letterSpacing: '-0.02em' }}>{pulse.score}</span>
+        <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 42, color: 'rgba(var(--theme-rgb),0.95)', letterSpacing: '-0.02em' }}>{pulse.score}</span>
         <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.55)' }}>/ 100</span>
       </div>
       <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>

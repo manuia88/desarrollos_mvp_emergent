@@ -33,10 +33,10 @@ function TabBtn({ tab, active, onClick }) {
         padding: '10px 18px', borderRadius: 9999,
         fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
         background: active
-          ? 'linear-gradient(90deg, rgba(124,47,255,0.22), rgba(192,38,211,0.18))'
+          ? 'linear-gradient(90deg, rgba(var(--theme-rgb),0.22), rgba(192,38,211,0.18))'
           : 'rgba(255,255,255,0.04)',
         border: active
-          ? '1px solid rgba(124,47,255,0.50)'
+          ? '1px solid rgba(var(--theme-rgb),0.50)'
           : '1px solid rgba(255,255,255,0.10)',
         color: active ? '#e0e7ff' : 'rgba(240,235,224,0.65)',
         transition: 'all 0.18s',
@@ -103,7 +103,7 @@ export default function SuperadminLivePulse({ user, onLogout }) {
           <KpiPill label={t('live_pulse.buckets.warm')}    count={dist.warm ?? 0}    color="rgba(234,179,8,0.85)" />
           <KpiPill label={t('live_pulse.buckets.hot')}     count={dist.hot ?? 0}     color="rgba(249,115,22,0.85)" />
           <KpiPill label={t('live_pulse.buckets.surging')} count={dist.surging ?? 0} color="rgba(239,68,68,0.85)" />
-          <KpiPill label={t('live_pulse.kpi_strip.total_zones')} count={dist.total ?? 0} color="rgba(124,47,255,0.85)" />
+          <KpiPill label={t('live_pulse.kpi_strip.total_zones')} count={dist.total ?? 0} color="rgba(var(--theme-rgb),0.85)" />
         </div>
 
         {/* Sticky tabs */}

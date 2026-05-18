@@ -65,7 +65,7 @@ export default function LivePulseFrequencyModal({ open, onClose, current, readin
       }}
       onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: 'rgba(13,16,23,0.98)', border: '1px solid rgba(124,47,255,0.40)', borderRadius: 16,
+        background: 'rgba(13,16,23,0.98)', border: '1px solid rgba(var(--theme-rgb),0.40)', borderRadius: 16,
         padding: 28, width: 'min(460px, 92vw)', display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         <div>
@@ -94,7 +94,7 @@ export default function LivePulseFrequencyModal({ open, onClose, current, readin
             style={{
               padding: '10px 14px', borderRadius: 14, fontFamily: 'DM Sans', fontSize: 13,
               background: 'rgba(255,255,255,0.05)', color: 'var(--cream, #F0EBE0)',
-              border: '1px solid rgba(124,47,255,0.30)',
+              border: '1px solid rgba(var(--theme-rgb),0.30)',
             }}>
             {ALL_FREQS.map((f) => <option key={f} value={f}>{labelFor(f)}</option>)}
           </select>
@@ -110,7 +110,7 @@ export default function LivePulseFrequencyModal({ open, onClose, current, readin
               <input
                 data-testid="lp-freq-ack"
                 type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)}
-                style={{ accentColor: 'rgba(124,47,255,0.95)' }} />
+                style={{ accentColor: 'rgba(var(--theme-rgb),0.95)' }} />
               <span>{t('live_pulse.warnings.understand_risk')}</span>
             </label>
           </div>
@@ -136,8 +136,8 @@ export default function LivePulseFrequencyModal({ open, onClose, current, readin
             style={{
               padding: '9px 20px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
               cursor: canConfirm ? 'pointer' : 'not-allowed', opacity: canConfirm ? 1 : 0.5,
-              background: 'linear-gradient(90deg, rgba(124,47,255,0.95), rgba(192,38,211,0.95))',
-              color: '#fff', border: '1px solid rgba(124,47,255,0.65)',
+              background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.95), rgba(192,38,211,0.95))',
+              color: '#fff', border: '1px solid rgba(var(--theme-rgb),0.65)',
             }}>{busy ? '...' : t('live_pulse.actions.confirm')}</button>
         </div>
       </div>
