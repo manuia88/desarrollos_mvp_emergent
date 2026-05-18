@@ -165,8 +165,19 @@ const SUPERADMIN_NAV = [
   {
     tier: 3, label: 'Inteligencia', section_key: 'inteligencia',
     items: [
+      // ─ Accuracy & ML (W5.x) ─
       { key: 'avm-accuracy',      to: '/superadmin/avm-accuracy',      label: 'AVM Accuracy',      Icon: TrendingUp },
       { key: 'forecast-accuracy', to: '/superadmin/forecast-accuracy', label: 'Forecast Accuracy', Icon: TrendingUp },
+      // ─ Intelligence layer (W3.x legacy) ─
+      { key: 'scores',            to: '/superadmin/scores',            label: 'Scores',            Icon: Target },
+      { key: 'drpi',              to: '/superadmin/drpi',              label: 'DRPI',              Icon: LineChart },
+      { key: 'risk-score',        to: '/superadmin/risk-score',        label: 'Risk Score',        Icon: AlertTriangle },
+      { key: 'investment-explorer', to: '/superadmin/investment-explorer', label: 'Investment Explorer', Icon: DollarSign },
+      { key: 'intelligence-hub',  to: '/superadmin/intelligence-hub',  label: 'Intelligence Hub',  Icon: Sparkles },
+      { key: 'trends',            to: '/superadmin/trends',            label: 'Google Trends',     Icon: BarChart3 },
+      { key: 'phase5-foundation', to: '/superadmin/phase5-foundation', label: 'Foundation Phase 5', Icon: Database },
+      { key: 'transactions',      to: '/superadmin/transactions',      label: 'Transaction Network', Icon: Network },
+      // ─ Graph & Live (W5.x) ─
       { key: 'knowledge-graph',   to: '/superadmin/knowledge-graph',   label: 'Knowledge Graph',   Icon: Network },
       { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
     ],
@@ -175,13 +186,19 @@ const SUPERADMIN_NAV = [
   {
     tier: 4, label: 'Operación', section_key: 'operacion',
     items: [
-      { key: 'health',         to: '/superadmin/health',         label: 'Salud sistema',          Icon: Activity },
-      { key: 'observability',  to: '/superadmin/observability',  label: 'Observabilidad',         Icon: Eye },
-      { key: 'audit-log',      to: '/superadmin/audit-log',      label: 'Audit log',              Icon: FileText },
-      { key: 'audit-chain',    to: '/superadmin/audit-chain',    label: 'Audit Chain (SHA-256)',  Icon: ShieldCheck },
-      { key: 'duplicates',     to: '/superadmin/duplicates',     label: 'Duplicados pendientes',  Icon: GitMerge },
-      { key: 'fraud-patterns', to: '/superadmin/fraud-patterns', label: 'Patrones de fraude',     Icon: AlertTriangle },
-      { key: 'compliance',     to: '/superadmin/compliance',     label: 'Compliance',             Icon: Shield },
+      // ─ System health ─
+      { key: 'health',                 to: '/superadmin/health',                 label: 'Salud sistema',          Icon: Activity },
+      { key: 'observability',          to: '/superadmin/observability',          label: 'Observabilidad',         Icon: Eye },
+      { key: 'phase-y-observability',  to: '/superadmin/phase-y-observability',  label: 'Phase Y Observability',  Icon: BarChart2 },
+      // ─ Audit & compliance ─
+      { key: 'audit-log',              to: '/superadmin/audit-log',              label: 'Audit log',              Icon: FileText },
+      { key: 'audit-chain',            to: '/superadmin/audit-chain',            label: 'Audit Chain (SHA-256)',  Icon: ShieldCheck },
+      { key: 'compliance',             to: '/superadmin/compliance',             label: 'Compliance',             Icon: Shield },
+      // ─ Fraud & risk ─
+      { key: 'duplicates',             to: '/superadmin/duplicates',             label: 'Duplicados pendientes',  Icon: GitMerge },
+      { key: 'fraud-patterns',         to: '/superadmin/fraud-patterns',         label: 'Patrones de fraude',     Icon: AlertTriangle },
+      { key: 'fraud-alerts',           to: '/superadmin/fraud-alerts',           label: 'Fraud Alerts',           Icon: AlertTriangle },
+      { key: 'risk-alerts',            to: '/superadmin/risk-alerts',            label: 'Risk Alerts',            Icon: AlertTriangle },
     ],
   },
   // ─── tier 5 · MONETIZACIÓN verde · 2026-05-18 sidebar fix ─────────────────────────────
