@@ -45,13 +45,28 @@ Cada gate check → metric logged (denial · grant · cache_hit). Cierra ciclo c
 
 ## 2 · Plan híbrido · 5 batches · 28h
 
-### W5.FF1 · Foundation Core defensiva · 6h · **Claude Code**
+### W5.FF1 · Foundation Core defensiva · 6h · **Claude Code** ✅ SHIPPED 2026-05-18
 
-| Sub | h | Qué hace |
+| Sub | h | Status |
 |---|---|---|
-| A | 3h | Backend: `feature_gate_engine.py` decorator `@requires_feature` + FAIL-OPEN default + cache request-scope · audit log cada gate check |
-| B | 2h | Frontend: hook `useFeatureFlag(key)` + cache 3 layers (request/memory/sessionStorage) · default empty array si fetch fails |
-| C | 1h | Endpoint `GET /api/me/features` retorna array de features enabled del user · cache 60s per-tenant |
+| A | 3h | ✅ `backend/feature_gate_engine.py` NEW 206L · decorator + FAIL-OPEN + delegación pura W2.4 SA5 · audit log |
+| B | 2h | ✅ `frontend/src/hooks/useFeatureFlag.js` EXTENDED · L3 sessionStorage + alias useFeatureFlags + clearCache export · `api/feature_flags.js` NEW |
+| C | 1h | ✅ Endpoint `/api/me/feature-flags` EXTENDED backward compat aditivos (tier+cached_at+expires_in_s) · Opción C+ no greenfield |
+
+**Decisión arquitectónica clave 2026-05-18** (founder approved Opción C+):
+- NO crear `/api/me/features` paralelo · usar legacy `/api/me/feature-flags` existente con campos aditivos backward compat
+- NO replace `useFeatureFlag.js` · EXTEND para mantener consumers W2.4 SA5 (UpgradeTeaser.js)
+- Delegación pura `feature_gate_engine.get_user_features()` → `feature_flags_engine.get_tenant_flags()` (cero duplicación)
+
+**Tags rollback**:
+- pre-W5.FF1-foundation-20260518-0930 (rollback safe)
+- shipped-W5.FF1-foundation-20260518-0946 (post-checkpoint)
+- SHA main + conflict: `6816d80`
+
+**Riesgos residuales NO bloqueantes** (resolver en W5.FF2-4):
+1. Audit chain volume (45 features × N requests) → sample rate 10% en W5.FF4
+2. Tier "free" si 0 flags activos → W5.FF2 Legacy adapter mapea tier de org doc
+3. L3 sessionStorage NO se limpia en logout → W5.FF2 conectar `clearFeatureFlagsCache()` al logout handler
 
 **Files NEW**:
 - `backend/feature_gate_engine.py` (decorator + FAIL-OPEN)
