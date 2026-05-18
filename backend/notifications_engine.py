@@ -26,7 +26,8 @@ NOTIF_TYPES = {
     "tenant_signup", "api_limit_warn", "lfpdppp_dsr", "audit_suspicious",
     "nurture_cooldown", "forecast_trend_alert", "buyer_hot_jump",
     "lead_captured_auto", "dispute_resolved", "kg_alert", "kg_relational_alert",
-    "live_pulse_alert", "readiness_ready", "generic",
+    "live_pulse_alert", "readiness_ready",
+    "lead_close_accuracy", "accuracy_drift_alert", "generic",
 }
 
 RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
@@ -56,6 +57,8 @@ DEFAULT_CATEGORIES = {
     "kg_relational_alert":   {"in_app": True, "email": True,  "whatsapp": False},
     "live_pulse_alert":      {"in_app": True, "email": False, "whatsapp": False},
     "readiness_ready":       {"in_app": True, "email": False, "whatsapp": False},
+    "lead_close_accuracy":   {"in_app": True, "email": True,  "whatsapp": False},
+    "accuracy_drift_alert":  {"in_app": True, "email": True,  "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 
