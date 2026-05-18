@@ -14,7 +14,7 @@ import {
   ClipboardList, LineChart, FileText, Database, Eye,
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
-  AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck,
+  AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck, Swords,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -32,6 +32,7 @@ const DEV_NAV = [
       { key: 'disputas',     to: '/desarrollador/disputas',          label: 'Disputas leads', Icon: AlertTriangle,   badge_source: 'disputes_pending_count' },
       { key: 'mini-market',  to: '/desarrollador/mini-market',       label: 'Mini Market',    Icon: Store },
       { key: 'mensajes',     to: '/desarrollador/mensajes',          label: 'Mensajes',       Icon: MessageSquare },
+      { key: 'battle-card',  to: '/desarrollador/battle-card',       label: 'Battle Card',    Icon: Swords },
     ],
   },
   {

@@ -107,6 +107,7 @@ const DesarrolladorUsuarios          = lazy(() => import('./pages/developer/Desa
 const DesarrolladorConfiguracion     = lazy(() => import('./pages/developer/DesarrolladorConfiguracion'));
 const DesarrolladorCalendarioSubidas = lazy(() => import('./pages/developer/DesarrolladorCalendarioSubidas'));
 const DesarrolladorCompetidores      = lazy(() => import('./pages/developer/DesarrolladorCompetidores'));
+const DeveloperBattleCard            = lazy(() => import('./pages/developer/DeveloperBattleCard'));
 const DesarrolladorIEDetail          = lazy(() => import('./pages/developer/DesarrolladorIEDetail'));
 const DesarrolladorLeads             = lazy(() => import('./pages/developer/DesarrolladorLeads'));
 const DesarrolladorCitas             = lazy(() => import('./pages/developer/DesarrolladorCitas'));
@@ -615,6 +616,8 @@ function AppRouter() {
       <Route path="/desarrollador/reportes" element={<AdvisorRoute Page={DesarrolladorReportes} />} />
       <Route path="/desarrollador/pricing" element={<AdvisorRoute Page={DesarrolladorPricing} />} />
       <Route path="/desarrollador/competidores" element={<AdvisorRoute Page={DesarrolladorCompetidores} />} />
+      <Route path="/desarrollador/battle-card/:project_id" element={<AdvisorRoute Page={DeveloperBattleCard} />} />
+      <Route path="/desarrollador/battle-card" element={<AdvisorRoute Page={DeveloperBattleCard} />} />
       <Route path="/desarrollador/usuarios" element={<AdvisorRoute Page={DesarrolladorUsuarios} />} />
       <Route path="/desarrollador/configuracion" element={<AdvisorRoute Page={DesarrolladorConfiguracion} />} />
       <Route path="/inmobiliaria" element={<AdvisorRoute Page={InmobiliariaDashboard} />} />

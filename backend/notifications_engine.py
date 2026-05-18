@@ -28,7 +28,9 @@ NOTIF_TYPES = {
     "lead_captured_auto", "dispute_resolved", "kg_alert", "kg_relational_alert",
     "live_pulse_alert", "readiness_ready",
     "lead_close_accuracy", "accuracy_drift_alert",
-    "probability_threshold_crossed", "generic",
+    "probability_threshold_crossed",
+    "battle_card_weekly_digest", "battle_card_ranking_change",
+    "generic",
 }
 
 RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
@@ -61,6 +63,8 @@ DEFAULT_CATEGORIES = {
     "lead_close_accuracy":   {"in_app": True, "email": True,  "whatsapp": False},
     "accuracy_drift_alert":  {"in_app": True, "email": True,  "whatsapp": False},
     "probability_threshold_crossed": {"in_app": True, "email": False, "whatsapp": False},
+    "battle_card_weekly_digest":    {"in_app": True, "email": True,  "whatsapp": False},
+    "battle_card_ranking_change":   {"in_app": True, "email": False, "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 

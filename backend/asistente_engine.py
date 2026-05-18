@@ -207,6 +207,11 @@ TOOLS Y PARAMS:
     devuelve: probability_pct (0-100), confidence_lvl (ALTA|MEDIA|BAJA), sources_breakdown, explanation_es, insufficient_data.
     Usar cuando: user pregunte probabilidad de eventos inmobiliarios (¿cuánto crecerá X?, ¿venderán todo el proyecto?, ¿cierra debajo del precio?).
 
+21. query_battle_card
+    params: {{ "project_id": str (requerido), "dimension": str? (opcional · solo retorna ese score si pasado · uno de: precio/ventas/zona/marketing/lead_gen), "user_tier": str (pasar "T3" si usuario es T3+ developer) }}
+    devuelve: composite_score, ranking, dim_scores, recommended_action, sources_breakdown, explanation_es.
+    Usar cuando: dev user T3 pregunte sobre posicion competitiva, ranking, score vs competidores, que mejorar, como va su proyecto.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -215,6 +220,15 @@ Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos
 SIEMPRE incluye sources_breakdown en tu respuesta con formato Robinhood transparency.
 Ejemplo response: "82% (Forecast 65% + WhatIf 25% + AVM 10% · confianza ALTA)".
 NUNCA inventes números. Si insufficient_data=true → di "los datos para esa zona/proyecto están acumulándose, no tengo suficiente historial aún."
+
+══ BATTLE CARD (tool 21 · T3 dev premium) ══
+Usa query_battle_card cuando developer T3 pregunte sobre posición competitiva:
+  - ¿Cómo voy vs competidores? / ¿Cuál es mi ranking? / ¿Qué debo mejorar?
+  - Pasar user_tier="T3" en params si el usuario es developer T3+
+SIEMPRE incluye ranking actual + recommended_action en respuesta.
+Ejemplo: "Tu proyecto X está rank #2 en Polanco (subiste 1 lugar) · acción recomendada: ajustar precio -3% según comp velocity · score 72/100".
+Si user tier < T3 → responde "Battle Card requiere upgrade a tier T3 para developers Enterprise".
+Si insufficient_competitors → responde "Necesitamos al menos 3 desarrolladores en esa zona · data acumulándose".
 
 REGLAS:- Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
@@ -310,6 +324,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W5.19 — Tool 20: Probability UX (Kalshi-inspired)
         if tool_name == "query_probability":
             return await _tool_query_probability(db, params)
+        # W5.23 — Tool 21: Battle Card (Competitive Intelligence T3)
+        if tool_name == "query_battle_card":
+            return await _tool_query_battle_card(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1373,3 +1390,129 @@ async def _tool_query_probability(db, params: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as exc:
         log.warning(f"[asistente_tool] query_probability failed: {exc}")
         return {"error": str(exc), "source": "probability_engine", "insufficient_data": True}
+
+
+# ─── Tool 21: Battle Card ─────────────────────────────────────────────────────
+
+async def _tool_query_battle_card(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.23 Tool 21 — Battle Card competitivo (T3 developer premium).
+
+    Responde con composite_score + ranking + recommended_action + sources_breakdown.
+    Si user_tier < T3 en params → retorna mensaje de upgrade.
+    Si insufficient_competitors → retorna estado honest.
+    """
+    project_id = (params.get("project_id") or "").strip()
+    dimension = (params.get("dimension") or "").strip().lower()
+    user_tier = (params.get("user_tier") or "").strip()
+
+    if not project_id:
+        return {
+            "error": "project_id requerido",
+            "source": "battle_card_engine",
+        }
+
+    # Tier check contextual (Atlax no tiene acceso directo al JWT aquí)
+    # Si user_tier pasado explícitamente y es < T3 → bloquear
+    TIER_RANK = {"free": 0, "t1": 1, "T1": 1, "t2": 2, "T2": 2}
+    if user_tier and TIER_RANK.get(user_tier, 99) < 3:
+        return {
+            "error": "Battle Card requiere tier T3+ para developers Enterprise.",
+            "source": "battle_card_engine",
+            "tier_required": "T3",
+        }
+
+    try:
+        from battle_card_engine import (
+            get_my_score,
+            compute_ranking,
+            recommend_next_action,
+            insufficient_competitors_check,
+        )
+        from data_developments import DEVELOPMENTS_BY_ID
+        from audit_immutable_engine import log as audit_log
+
+        dev = DEVELOPMENTS_BY_ID.get(project_id)
+        if not dev:
+            return {
+                "error": f"Proyecto {project_id} no encontrado.",
+                "source": "battle_card_engine",
+            }
+
+        zone_slug = dev.get("colonia_id") or dev.get("colonia") or ""
+
+        # Check insufficient_competitors
+        insuff = await insufficient_competitors_check(db, zone_slug)
+        if insuff:
+            return {
+                "source": "battle_card_engine",
+                "state": "insufficient",
+                "message": (
+                    f"Necesitamos al menos 3 desarrolladores en la zona {zone_slug} "
+                    "para generar Battle Card. Los datos se están acumulando."
+                ),
+            }
+
+        my_score = await get_my_score(db, project_id)
+        ranking = await compute_ranking(db, project_id, zone_slug)
+        recommendation = await recommend_next_action(db, project_id)
+
+        dim_scores = my_score.get("dim_scores", {})
+        composite = my_score.get("composite_score", 0)
+
+        # sources_breakdown (contribución de cada dimensión)
+        sources_breakdown = [
+            {"dim": d, "contribution_pct": 20.0, "score": dim_scores.get(d, 0)}
+            for d in ["precio", "ventas", "zona", "marketing", "lead_gen"]
+        ]
+
+        rank_str = f"#{ranking.get('rank')} de {ranking.get('total_in_zone')}" if ranking.get("available") else "—"
+        delta_pos = ranking.get("delta_position", 0)
+        delta_str = f" (subio {delta_pos} lugar{'es' if abs(delta_pos) > 1 else ''})" if delta_pos > 0 else (
+            f" (bajo {abs(delta_pos)} lugar{'es' if abs(delta_pos) > 1 else ''})" if delta_pos < 0 else ""
+        )
+
+        explanation = (
+            f"Tu proyecto {dev.get('name', project_id)} esta en rank {rank_str}{delta_str} "
+            f"· score {composite:.1f}/100 · accion: {recommendation.get('action', '—')[:80]}"
+        )
+
+        # Si se pide solo una dimensión
+        result_dims = dim_scores
+        if dimension and dimension in dim_scores:
+            result_dims = {dimension: dim_scores[dimension]}
+
+        # Audit
+        try:
+            await audit_log(
+                db,
+                actor={"user_id": "atlax_dev", "role": "asistente"},
+                action="battle_card_query",
+                entity_type="battle_card",
+                entity_id=project_id,
+                before=None,
+                after={
+                    "composite_score": composite,
+                    "caller_module": "asistente_atlax_battle_card",
+                },
+            )
+        except Exception:
+            pass
+
+        return {
+            "source": "battle_card_engine",
+            "state": "ok",
+            "project_id": project_id,
+            "composite_score": composite,
+            "color": my_score.get("color"),
+            "ranking": rank_str,
+            "delta_position": delta_pos,
+            "recommended_action": recommendation.get("action"),
+            "weakest_dim": recommendation.get("weakest_dim"),
+            "dim_scores": result_dims,
+            "sources_breakdown": sources_breakdown,
+            "explanation_es": explanation,
+        }
+
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_battle_card failed: {exc}")
+        return {"error": str(exc), "source": "battle_card_engine"}

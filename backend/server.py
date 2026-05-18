@@ -290,6 +290,10 @@ app.include_router(accuracy_router)
 from probability_engine import router as probability_router
 app.include_router(probability_router)
 
+# W5.23 — Battle Card (Competitive Intelligence T3)
+from routes.battle_card import router as battle_card_router
+app.include_router(battle_card_router)
+
 # Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
 from routes.dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
 app.include_router(dev_batch4_2_router)
@@ -1437,6 +1441,14 @@ async def startup():
             probability_cron.register_probability_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[Probability] startup register failed: {e}")
+        # W5.23 — Battle Card: indexes + 2 crons (snapshot dom 23:00 + email lun 08:00)
+        try:
+            import battle_card_engine
+            import battle_card_cron
+            await battle_card_engine.ensure_battle_card_indexes(db)
+            battle_card_cron.register_battle_card_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[BattleCard] startup register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:
