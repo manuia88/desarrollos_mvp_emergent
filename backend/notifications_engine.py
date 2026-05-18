@@ -27,7 +27,8 @@ NOTIF_TYPES = {
     "nurture_cooldown", "forecast_trend_alert", "buyer_hot_jump",
     "lead_captured_auto", "dispute_resolved", "kg_alert", "kg_relational_alert",
     "live_pulse_alert", "readiness_ready",
-    "lead_close_accuracy", "accuracy_drift_alert", "generic",
+    "lead_close_accuracy", "accuracy_drift_alert",
+    "probability_threshold_crossed", "generic",
 }
 
 RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
@@ -59,6 +60,7 @@ DEFAULT_CATEGORIES = {
     "readiness_ready":       {"in_app": True, "email": False, "whatsapp": False},
     "lead_close_accuracy":   {"in_app": True, "email": True,  "whatsapp": False},
     "accuracy_drift_alert":  {"in_app": True, "email": True,  "whatsapp": False},
+    "probability_threshold_crossed": {"in_app": True, "email": False, "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 

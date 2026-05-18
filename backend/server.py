@@ -286,6 +286,10 @@ app.include_router(live_pulse_router)
 from routes.accuracy import router as accuracy_router
 app.include_router(accuracy_router)
 
+# W5.19 — Probability UX (Kalshi-inspired)
+from probability_engine import router as probability_router
+app.include_router(probability_router)
+
 # Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
 from routes.dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
 app.include_router(dev_batch4_2_router)
@@ -1426,6 +1430,13 @@ async def startup():
             accuracy_cron.register_accuracy_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[Accuracy] startup register failed: {e}")
+        # W5.19 — Probability UX: indexes + weekly cron threshold crossing
+        try:
+            import probability_cron
+            await probability_cron.ensure_probability_indexes(db)
+            probability_cron.register_probability_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[Probability] startup register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:
