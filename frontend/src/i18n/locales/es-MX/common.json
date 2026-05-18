@@ -2237,39 +2237,114 @@
       "restart_tour": "Reiniciar tour de bienvenida"
     },
     "dev_first_login": {
-      "step1": { "title": "Bienvenido a DesarrollosMX", "content": "Tu plataforma AI-native para gestionar proyectos residenciales en LATAM." },
-      "step2": { "title": "Navegación por niveles", "content": "El sidebar organiza todas las funciones en 3 niveles: Proyectos, Ventas y Configuración." },
-      "step3": { "title": "Mis Proyectos", "content": "Aquí encuentras todos tus desarrollos con health scores, leads activos y métricas clave." },
-      "step4": { "title": "Crea tu primer proyecto", "content": "Usa el wizard guiado de 7 pasos para subir tu desarrollo y publicarlo en el marketplace." },
-      "step5": { "title": "CRM de Ventas", "content": "Gestiona tu pipeline de leads con Kanban visual, filtros inteligentes y heat scoring IA." },
-      "step6": { "title": "Motor de Diagnóstico", "content": "El engine analiza tu proyecto en 35 dimensiones y genera acciones correctivas priorizadas." },
-      "step7": { "title": "Project Switcher · Cmd+/", "content": "Usa Cmd+/ para cambiar de proyecto al instante. Cmd+K para búsqueda universal." }
+      "step1": {
+        "title": "Bienvenido a DesarrollosMX",
+        "content": "Tu plataforma AI-native para gestionar proyectos residenciales en LATAM."
+      },
+      "step2": {
+        "title": "Navegación por niveles",
+        "content": "El sidebar organiza todas las funciones en 3 niveles: Proyectos, Ventas y Configuración."
+      },
+      "step3": {
+        "title": "Mis Proyectos",
+        "content": "Aquí encuentras todos tus desarrollos con health scores, leads activos y métricas clave."
+      },
+      "step4": {
+        "title": "Crea tu primer proyecto",
+        "content": "Usa el wizard guiado de 7 pasos para subir tu desarrollo y publicarlo en el marketplace."
+      },
+      "step5": {
+        "title": "CRM de Ventas",
+        "content": "Gestiona tu pipeline de leads con Kanban visual, filtros inteligentes y heat scoring IA."
+      },
+      "step6": {
+        "title": "Motor de Diagnóstico",
+        "content": "El engine analiza tu proyecto en 35 dimensiones y genera acciones correctivas priorizadas."
+      },
+      "step7": {
+        "title": "Project Switcher · Cmd+/",
+        "content": "Usa Cmd+/ para cambiar de proyecto al instante. Cmd+K para búsqueda universal."
+      }
     },
     "asesor_first_login": {
-      "step1": { "title": "Bienvenido, Asesor", "content": "Tu portal CRM con IA para gestionar contactos, búsquedas y cerrar más operaciones." },
-      "step2": { "title": "CRM Kanban", "content": "Arrastra contactos entre columnas del pipeline. Validaciones inteligentes protegen el flujo." },
-      "step3": { "title": "Calendar OAuth", "content": "Conecta tu Google Calendar para gestionar disponibilidad y confirmar citas automáticamente." },
-      "step4": { "title": "Mis Leads", "content": "Cada contacto tiene timeline completo, resumen IA y argumentario Claude personalizado." },
-      "step5": { "title": "Links de Tracking", "content": "Genera links únicos con UTM para rastrear qué canales te traen más conversiones." }
+      "step1": {
+        "title": "Bienvenido, Asesor",
+        "content": "Tu portal CRM con IA para gestionar contactos, búsquedas y cerrar más operaciones."
+      },
+      "step2": {
+        "title": "CRM Kanban",
+        "content": "Arrastra contactos entre columnas del pipeline. Validaciones inteligentes protegen el flujo."
+      },
+      "step3": {
+        "title": "Calendar OAuth",
+        "content": "Conecta tu Google Calendar para gestionar disponibilidad y confirmar citas automáticamente."
+      },
+      "step4": {
+        "title": "Mis Leads",
+        "content": "Cada contacto tiene timeline completo, resumen IA y argumentario Claude personalizado."
+      },
+      "step5": {
+        "title": "Links de Tracking",
+        "content": "Genera links únicos con UTM para rastrear qué canales te traen más conversiones."
+      }
     },
     "inmobiliaria_first_login": {
-      "step1": { "title": "Bienvenido a tu Portal", "content": "Dashboard centralizado para gestionar tu red de asesores y pipeline de ventas." },
-      "step2": { "title": "Portfolio Overview", "content": "Visualiza el performance consolidado de todos tus desarrollos en tiempo real." },
-      "step3": { "title": "Gestión de Asesores", "content": "Asigna desarrollos, revisa métricas por asesor y activa comisiones automáticas." },
-      "step4": { "title": "Lead Pipeline", "content": "CRM unificado con filtros por colonia, precio y stage de conversión." },
-      "step5": { "title": "Reportes y Exportación", "content": "Descarga reportes ejecutivos en PDF o CSV para tus reuniones de directorio." }
+      "step1": {
+        "title": "Bienvenido a tu Portal",
+        "content": "Dashboard centralizado para gestionar tu red de asesores y pipeline de ventas."
+      },
+      "step2": {
+        "title": "Portfolio Overview",
+        "content": "Visualiza el performance consolidado de todos tus desarrollos en tiempo real."
+      },
+      "step3": {
+        "title": "Gestión de Asesores",
+        "content": "Asigna desarrollos, revisa métricas por asesor y activa comisiones automáticas."
+      },
+      "step4": {
+        "title": "Lead Pipeline",
+        "content": "CRM unificado con filtros por colonia, precio y stage de conversión."
+      },
+      "step5": {
+        "title": "Reportes y Exportación",
+        "content": "Descarga reportes ejecutivos en PDF o CSV para tus reuniones de directorio."
+      }
     },
     "comprador_first_login": {
-      "step1": { "title": "Bienvenido al Marketplace", "content": "Explora todos los desarrollos residenciales disponibles en LATAM con datos en tiempo real." },
-      "step2": { "title": "Búsqueda Inteligente", "content": "Filtra por colonia, precio, amenidades o usa búsqueda por foto e IA conversacional." },
-      "step3": { "title": "Tarjetas de Desarrollo", "content": "Cada card muestra score de inversión, plusvalía proyectada y contacto directo al asesor." },
-      "step4": { "title": "Solicitar Información", "content": "Conecta con el asesor del desarrollo que más te interese con un clic." }
+      "step1": {
+        "title": "Bienvenido al Marketplace",
+        "content": "Explora todos los desarrollos residenciales disponibles en LATAM con datos en tiempo real."
+      },
+      "step2": {
+        "title": "Búsqueda Inteligente",
+        "content": "Filtra por colonia, precio, amenidades o usa búsqueda por foto e IA conversacional."
+      },
+      "step3": {
+        "title": "Tarjetas de Desarrollo",
+        "content": "Cada card muestra score de inversión, plusvalía proyectada y contacto directo al asesor."
+      },
+      "step4": {
+        "title": "Solicitar Información",
+        "content": "Conecta con el asesor del desarrollo que más te interese con un clic."
+      }
     },
     "dev_post_first_project": {
-      "step1": { "title": "Proyecto publicado", "content": "Tu desarrollo ya está en el marketplace. Ahora configura tu estrategia de ventas." },
-      "step2": { "title": "Reportes de Inteligencia", "content": "Analiza comportamiento de compradores, fuentes de leads y tendencias de precios por colonia." },
-      "step3": { "title": "Activa el CRM", "content": "Conecta el pipeline de leads con tu equipo de ventas y activa nurturing automatizado." },
-      "step4": { "title": "Acceso Rápido Universal", "content": "Cmd+K te da acceso a cualquier sección, proyecto o contacto sin usar el mouse." }
+      "step1": {
+        "title": "Proyecto publicado",
+        "content": "Tu desarrollo ya está en el marketplace. Ahora configura tu estrategia de ventas."
+      },
+      "step2": {
+        "title": "Reportes de Inteligencia",
+        "content": "Analiza comportamiento de compradores, fuentes de leads y tendencias de precios por colonia."
+      },
+      "step3": {
+        "title": "Activa el CRM",
+        "content": "Conecta el pipeline de leads con tu equipo de ventas y activa nurturing automatizado."
+      },
+      "step4": {
+        "title": "Acceso Rápido Universal",
+        "content": "Cmd+K te da acceso a cualquier sección, proyecto o contacto sin usar el mouse."
+      }
     }
   },
   "a11y": {
@@ -2514,12 +2589,24 @@
     },
     "lead_capture_auto": {
       "sources": {
-        "email_alias":        { "label": "Email directo" },
-        "portal_inmuebles24": { "label": "Inmuebles24" },
-        "portal_lamudi":      { "label": "Lamudi" },
-        "fb_lead_ads":        { "label": "FB Lead Ads" },
-        "landing":            { "label": "Landing page" },
-        "manual":             { "label": "Manual" }
+        "email_alias": {
+          "label": "Email directo"
+        },
+        "portal_inmuebles24": {
+          "label": "Inmuebles24"
+        },
+        "portal_lamudi": {
+          "label": "Lamudi"
+        },
+        "fb_lead_ads": {
+          "label": "FB Lead Ads"
+        },
+        "landing": {
+          "label": "Landing page"
+        },
+        "manual": {
+          "label": "Manual"
+        }
       },
       "aliases_page": {
         "title": "Conectar fuentes de leads",
@@ -2756,6 +2843,147 @@
         "similar_zones": "Zonas similares (Knowledge Graph)",
         "loading_suggestions": "Cargando sugerencias..."
       }
+    }
+  },
+  "live_pulse": {
+    "eyebrow": "SUPERADMIN · LIVE PULSE",
+    "title": "Live Pulse CDMX",
+    "subtitle": "Bloomberg Terminal residencial · 50 zonas tracked en tiempo real",
+    "tabs": {
+      "heatmap": "Heatmap",
+      "timeline": "Timeline",
+      "alertas": "Alertas",
+      "readiness": "Readiness"
+    },
+    "kpi_strip": {
+      "total_zones": "Zonas tracked",
+      "frecuencia_actual": "Frecuencia"
+    },
+    "buckets": {
+      "cold": "Frio",
+      "warm": "Calida",
+      "hot": "Caliente",
+      "surging": "Surging",
+      "all": "Todos"
+    },
+    "signals": {
+      "search_velocity": "Velocidad de busquedas",
+      "view_volume": "Volumen de vistas",
+      "trend_velocity": "Tendencia (Google Trends)",
+      "lead_intent_velocity": "Intencion de leads",
+      "price_movement": "Movimiento de precio"
+    },
+    "states": {
+      "bootstrap": "Bootstrap",
+      "growing": "Growing",
+      "ready": "Ready",
+      "optimal": "Optimal"
+    },
+    "frequencies": {
+      "weekly": "Semanal (lunes 06:00 UTC)",
+      "biweekly": "Quincenal (dias 1 y 15)",
+      "monthly": "Mensual (dia 1 06:00 UTC)",
+      "daily": "Diario (06:00 UTC)",
+      "hourly": "Cada hora",
+      "15min": "Cada 15 minutos"
+    },
+    "actions": {
+      "subscribe": "Suscribirme a alertas",
+      "unsubscribe": "Eliminar suscripcion",
+      "change_frequency": "Cambiar frecuencia",
+      "view_timeline": "Ver timeline",
+      "refresh": "Refrescar",
+      "load": "Cargar",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "new_subscription": "Nueva suscripcion",
+      "view_detail": "Ver detalle"
+    },
+    "warnings": {
+      "premature_hourly": "Cambiar a hourly o */15min sin readiness >=61 puede generar falsos positivos por datos thin",
+      "threshold_recommended": "Frecuencia recomendada por readiness actual",
+      "understand_risk": "Entiendo el riesgo y quiero continuar"
+    },
+    "empty_states": {
+      "no_subs": "Sin suscripciones · suscribete a zonas para recibir alertas cuando suban",
+      "no_data": "Sin datos · ejecuta primero el cron para poblar snapshots",
+      "no_data_cta": "Disparar primera corrida",
+      "insufficient": "Datos insuficientes",
+      "no_timeline": "Sin historico para esta zona en el rango seleccionado",
+      "requires_t3": "Requiere tier T3+ para suscribirte a alertas"
+    },
+    "errors": {
+      "load_failed": "No se pudo cargar la informacion",
+      "subscribe_failed": "No se pudo crear la suscripcion",
+      "frequency_change_failed": "No se pudo cambiar la frecuencia",
+      "tier_required": "Necesitas tier T3 o superior",
+      "permission_denied": "Acceso restringido a superadmin"
+    },
+    "fields": {
+      "zone": "Zona",
+      "score": "Score",
+      "bucket": "Bucket",
+      "threshold_score": "Umbral de alerta",
+      "created_at": "Creada",
+      "current_frequency": "Frecuencia actual",
+      "last_run": "Ultima corrida",
+      "next_run": "Proxima corrida",
+      "snapshots_24h": "Snapshots 24h",
+      "alerts_30d": "Alertas 30d",
+      "avg_score": "Score promedio",
+      "days": "Dias",
+      "leads_coverage": "Cobertura de leads",
+      "behavioral_coverage": "Cobertura behavioral",
+      "atlax_coverage": "Cobertura Atlax",
+      "apify_real": "Apify Trends real",
+      "eta_hourly": "ETA para hourly",
+      "history_90d": "Historico 90 dias",
+      "recommendation": "Recomendacion"
+    },
+    "subscribe_modal": {
+      "title": "Suscribirme a esta zona",
+      "subtitle": "Recibe una alerta cuando el score supere el umbral",
+      "zone_label": "Zona",
+      "threshold_label": "Umbral de score"
+    },
+    "frequency_modal": {
+      "title": "Cambiar frecuencia del cron",
+      "subtitle": "Live Pulse recalcula los pulsos al disparar el cron",
+      "current": "Frecuencia actual",
+      "new": "Nueva frecuencia"
+    },
+    "widget": {
+      "pulse_de_tu_zona": "Pulso de tu zona",
+      "ver_detalle": "Ver detalle",
+      "score_label": "Score",
+      "no_pulse_yet": "Sin pulso registrado"
+    },
+    "readiness_tab": {
+      "score_title": "Readiness score",
+      "metrics_title": "Metricas de cobertura",
+      "eta_title": "ETA para readiness ready",
+      "eta_days": "Estimado: {{n}} dias para llegar a ready",
+      "eta_none": "Sin datos suficientes para extrapolar",
+      "history_title": "Historico 90 dias"
+    },
+    "alerts_tab": {
+      "my_subs_title": "Mis suscripciones",
+      "cron_section_title": "Frecuencia del cron"
+    },
+    "timeline_tab": {
+      "select_zone": "Selecciona una zona",
+      "no_zones": "Sin zonas disponibles",
+      "stats": {
+        "avg": "Promedio",
+        "peak": "Maximo",
+        "low": "Minimo"
+      }
+    },
+    "heatmap_tab": {
+      "panel_title": "Detalle de zona",
+      "no_zone_selected": "Selecciona una zona en el mapa para ver el detalle",
+      "last_computed": "Calculado",
+      "signals_breakdown": "Senales (delta vs baseline)"
     }
   }
 }

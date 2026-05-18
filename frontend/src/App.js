@@ -86,6 +86,8 @@ const AsesorLeadAliases = lazy(() => import('./pages/asesor/AsesorLeadAliases'))
 const DesarrolladorDisputas = lazy(() => import('./pages/developer/DesarrolladorDisputas'));
 // W5.12 Parte 2 — Knowledge Graph UI superadmin
 const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/SuperadminKnowledgeGraph'));
+// W5.5 Parte 2 — Live Pulse UI superadmin
+const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
 const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
 // W5.11 Parte 2 — Entity resolution + audit chain
 const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
@@ -712,6 +714,7 @@ function AppRouter() {
       <Route path="/superadmin/fraud-patterns" element={<AdvisorRoute Page={SuperadminFraudPatterns} />} />
       <Route path="/superadmin/audit-chain" element={<AdvisorRoute Page={SuperadminAuditChain} />} />
       <Route path="/superadmin/knowledge-graph" element={<AdvisorRoute Page={SuperadminKnowledgeGraph} />} />
+      <Route path="/superadmin/live-pulse" element={<AdvisorRoute Page={SuperadminLivePulse} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
       <Route path="/superadmin/free-audit-funnel" element={<AdvisorRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}

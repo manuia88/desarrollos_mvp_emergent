@@ -13,6 +13,7 @@ import LandingLeadCaptureForm from '../../components/seo/LandingLeadCaptureForm'
 import ZoneSubscoresCard from '../../components/zones/ZoneSubscoresCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
 import NarrativeBlock from '../../components/landing/NarrativeBlock';
+import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
 import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -467,6 +468,11 @@ export default function ZonePage() {
           <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.25)' }}>›</span>
           <span style={{ color: 'var(--cream-2)' }}>{zone.name}</span>
         </nav>
+
+        {/* W5.5 P2 — Live Pulse widget T0 */}
+        <div style={{ marginBottom: 24 }}>
+          <LivePulseZoneWidget zone_slug={slug} user={user} />
+        </div>
 
         {/* Hero */}
         <header style={{ marginBottom: 36 }}>
