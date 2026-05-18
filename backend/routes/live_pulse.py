@@ -313,8 +313,6 @@ async def set_frequency(request: Request, body: Dict[str, Any]):
     return {"ok": True, "old": old_freq, "new": new_freq}
 
 
-# ─── Endpoint 8 — stats (superadmin) ─────────────────────────────────────────
-
 @router.get("/api/superadmin/live-pulse/stats")
 async def stats(request: Request):
     from permissions import require_superadmin
@@ -382,3 +380,39 @@ async def stats(request: Request):
         "top_5_trending": top5,
         "current_frequency": os.environ.get("LIVE_PULSE_FREQUENCY", "weekly"),
     }
+
+
+# ─── Endpoint 9 (W5.5 P2) — score-distribution (superadmin) ──────────────────
+
+@router.get("/api/superadmin/live-pulse/score-distribution")
+async def score_distribution(request: Request):
+    """Aggregate latest snapshot por zona y agrupa por bucket."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = _db(request)
+    dist = {"cold": 0, "warm": 0, "hot": 0, "surging": 0, "total": 0}
+    try:
+        cursor = db.live_pulse_snapshots.aggregate([
+            {"$sort": {"computed_at": -1}},
+            {"$group": {"_id": "$zone_slug", "latest": {"$first": "$$ROOT"}}},
+            {"$replaceRoot": {"newRoot": "$latest"}},
+        ])
+        async for r in cursor:
+            score = float(r.get("score") or 0.0)
+            bucket = r.get("bucket")
+            if not bucket:
+                # fallback derivar del score
+                if score <= 40:
+                    bucket = "cold"
+                elif score <= 65:
+                    bucket = "warm"
+                elif score <= 85:
+                    bucket = "hot"
+                else:
+                    bucket = "surging"
+            if bucket in dist:
+                dist[bucket] += 1
+            dist["total"] += 1
+    except Exception as exc:
+        log.warning(f"[live_pulse.score_distribution] failed: {exc}")
+    return dist

@@ -16,6 +16,7 @@ import { blurPriceCSS } from '../../lib/anonymize';
 import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
+import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -205,6 +206,26 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
               <Stat label="Ingresos cerrados" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtMXN(data.revenue_booked)}</span>} accent="#86efac" />
               <Stat label="Pipeline reservado" value={<span className={pmActive && pmConfig.hide_pricing ? blurPriceCSS : ''} onClick={pmActive ? e => { e.currentTarget.classList.toggle('revealed'); setTimeout(() => e.currentTarget.classList.remove('revealed'), 3000); } : undefined}>{fmtMXN(data.revenue_pipeline)}</span>} accent="#fcd34d" />
             </div>
+
+            {/* W5.5 P2 — Pulso de tus zonas */}
+            {(() => {
+              const slugs = Array.from(new Set(
+                (data?.developments || data?.projects || [])
+                  .map((p) => p.zone_slug || p.colonia_slug || p.zone || p.colonia)
+                  .filter(Boolean)
+              )).slice(0, 5);
+              if (slugs.length === 0) return null;
+              return (
+                <div data-testid="dev-pulse-widgets" style={{ marginBottom: 22 }}>
+                  <div className="eyebrow" style={{ marginBottom: 8 }}>PULSO DE TUS ZONAS</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                    {slugs.map((s) => (
+                      <LivePulseZoneWidget key={s} zone_slug={s} user={user} compact />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 22 }} className="ddash-grid">
               <Card style={{ background: 'linear-gradient(140deg, rgba(99,102,241,0.1), transparent)' }}>
