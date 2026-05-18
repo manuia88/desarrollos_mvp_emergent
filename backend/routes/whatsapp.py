@@ -237,3 +237,7 @@ async def whatsapp_stats(request: Request, days: int = 7):
         "inbound": inbound,
         "by_status": status_counts,
     })
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("whatsapp_business", plan_tier="pro",        monthly_price_mxn=299, category="growth",      name="WhatsApp Business")

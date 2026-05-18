@@ -464,3 +464,7 @@ async def get_stats(request: Request):
         "pending_review_total": pending_review,
         "ai_cost_mes_mxn": ai_cost_mes,
     }
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("bulk_drive_ingest", plan_tier="enterprise", monthly_price_mxn=399, category="operations",   name="Bulk Drive Ingest")

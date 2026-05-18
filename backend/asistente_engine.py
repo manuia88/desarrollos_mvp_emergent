@@ -1601,3 +1601,7 @@ async def _tool_query_my_features(db, params: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as exc:
         log.warning(f"[asistente_tool] query_my_features failed: {exc}")
         return {"error": str(exc), "source": "feature_visibility"}
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("atlax_chat", plan_tier="free",       monthly_price_mxn=0,   category="ai",          name="Atlax Chat")

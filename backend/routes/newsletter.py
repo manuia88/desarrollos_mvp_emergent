@@ -201,3 +201,7 @@ async def newsletter_opt_out(user_id: str, segment: str, request: Request):
 
     from fastapi.responses import HTMLResponse
     return HTMLResponse(content=html)
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("newsletter_pulse", plan_tier="enterprise", monthly_price_mxn=199, category="growth",      name="Newsletter Pulse")

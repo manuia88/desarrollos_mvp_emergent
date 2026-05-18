@@ -212,3 +212,7 @@ async def public_validation_route(request: Request):
             "estadísticos: R², RMSE, MAPE."
         ),
     }
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("data_lake", plan_tier="enterprise", monthly_price_mxn=599, category="monetization", name="Data Lake")

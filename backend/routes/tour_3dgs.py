@@ -331,3 +331,7 @@ async def embed_loaded(request: Request, body: EmbedLoadBody):
         pass
     log.info(f"[embed] 3dgs loaded · ip_hash={payload['ip_hash'][:8]} unit={payload['unit_id']} ref={payload['referrer'][:80]}")
     return JSONResponse({"ok": True})
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("tour_3dgs", plan_tier="pro",        monthly_price_mxn=149, category="marketing",   name="Tour 3DGS")

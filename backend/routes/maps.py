@@ -200,3 +200,7 @@ async def maps_cache_refresh(request: Request, layer_key: Optional[str] = None):
         "deleted": result.deleted_count,
         "layer": layer_key or "all",
     })
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("mapa_cdmx", plan_tier="free",       monthly_price_mxn=0,   category="intelligence", name="Mapa CDMX")

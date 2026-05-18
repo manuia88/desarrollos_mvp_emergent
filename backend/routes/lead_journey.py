@@ -156,3 +156,7 @@ async def emit_step_manual(body: EmitStepIn, request: Request):
         actor_id=u["user_id"], payload=body.payload or {},
     )
     return JSONResponse({"ok": True, "step_id": sid})
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("lead_journey", plan_tier="pro",        monthly_price_mxn=149, category="growth",      name="Lead Journey")

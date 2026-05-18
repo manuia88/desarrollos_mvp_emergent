@@ -12,6 +12,7 @@ import {
   fetchUsersWithFeatures,
   grantFeature,
   applyTemplate,
+  fetchUsage,
 } from '../../api/feature_visibility';
 
 const ROLE_FILTERS = [
@@ -74,6 +75,8 @@ export default function SuperadminFeatureVisibility() {
   const [busyKey, setBusyKey] = useState('');
   const [tplOpen, setTplOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  // W5.FF4 · Mini-widget usage analytics (top features últimos 7d)
+  const [usageSummary, setUsageSummary] = useState(null);
 
   // Initial catalog fetch (once)
   useEffect(() => {
@@ -86,6 +89,18 @@ export default function SuperadminFeatureVisibility() {
       .catch(e => setToast({ kind: 'error', text: e.message || 'Error catalog' }));
     return () => { cancelled = true; };
   }, []);
+
+  // W5.FF4 · Mini-widget usage (silenciosamente oculto si falla)
+  useEffect(() => {
+    let cancelled = false;
+    fetchUsage({ days: 7 })
+      .then(d => {
+        if (cancelled) return;
+        setUsageSummary(d?.summary || null);
+      })
+      .catch(() => { /* silent · hide widget */ });
+    return () => { cancelled = true; };
+  }, [refreshKey]);
 
   // Users fetch (re-runs on filters)
   useEffect(() => {
@@ -131,7 +146,16 @@ export default function SuperadminFeatureVisibility() {
     } catch (e) {
       // Revert on failure
       setRefreshKey(k => k + 1);
-      setToast({ kind: 'error', text: e.message || 'Error grant' });
+      // W5.FF4 · special-case missing_dependencies (409) → warning informativo
+      if (e.status === 409 && e.body?.detail?.error === 'missing_dependencies') {
+        const req = (e.body.detail.required || []).join(', ');
+        setToast({
+          kind: 'warning',
+          text: `Requiere primero: ${req}`,
+        });
+      } else {
+        setToast({ kind: 'error', text: e.message || 'Error grant' });
+      }
     } finally {
       setBusyKey('');
     }
@@ -165,6 +189,55 @@ export default function SuperadminFeatureVisibility() {
         title="Feature Visibility"
         sub="Concede o revoca features por usuario · plantillas por tier · audit chain mandatorio"
       />
+
+      {/* W5.FF4 · Mini-widget usage analytics (oculto si fetch falla) */}
+      {usageSummary && usageSummary.top && usageSummary.top.length > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <div style={{
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            flexWrap: 'wrap',
+            fontFamily: 'DM Sans',
+          }}>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              color: 'var(--cream-3)',
+            }}>
+              Top features (últimos {usageSummary.period_days || 7}d)
+            </div>
+            {(usageSummary.top || []).map(t => (
+              <span
+                key={t.feature_key}
+                title={`${t.count} eventos`}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: 'rgba(var(--theme-rgb), 0.14)',
+                  border: '1px solid rgba(var(--theme-rgb), 0.35)',
+                  color: 'var(--theme-2)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t.feature_key} · {t.count}
+              </span>
+            ))}
+            <span style={{
+              marginLeft: 'auto',
+              fontSize: 10,
+              color: 'var(--cream-3)',
+            }}>
+              {usageSummary.total_events || 0} eventos totales · {usageSummary.feature_count || 0} features con uso
+            </span>
+          </div>
+        </Card>
+      )}
 
       <div style={{
         display: 'flex',

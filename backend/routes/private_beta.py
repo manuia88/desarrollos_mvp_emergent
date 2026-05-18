@@ -234,3 +234,7 @@ async def superadmin_waitlist(
     db = _db(request)
     out = await eng.list_waitlist(db, page, limit)
     return {"ok": True, **out}
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("private_beta_invites", plan_tier="enterprise", monthly_price_mxn=0,   category="operations",   name="Private Beta Invites")

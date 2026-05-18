@@ -189,3 +189,7 @@ def schedule_ai_cost_daily_aggregation(scheduler, db) -> None:
         )
     except Exception as e:
         log.warning(f"[ai_cost] schedule daily cron failed: {e}")
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("ai_cost_dashboard", plan_tier="enterprise", monthly_price_mxn=0,   category="monetization", name="AI Cost Dashboard")

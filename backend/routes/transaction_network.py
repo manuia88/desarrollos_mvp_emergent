@@ -296,3 +296,7 @@ async def transaction_stats(request: Request):
     await _sa(request)
     db = _db(request)
     return await txn_engine.compute_stats(db)
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("transactions_network", plan_tier="enterprise", monthly_price_mxn=499, category="intelligence", name="Transactions Network")

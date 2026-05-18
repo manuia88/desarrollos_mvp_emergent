@@ -215,3 +215,7 @@ async def superadmin_list(
     total = await db.drpi_snapshots.count_documents(q)
     return {"items": items, "count": len(items), "count_total": total,
             "skip": skip, "limit": limit}
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("drpi", plan_tier="pro",        monthly_price_mxn=199, category="intelligence", name="DRPI")

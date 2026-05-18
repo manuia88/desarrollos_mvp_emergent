@@ -286,3 +286,9 @@ async def query_audit_log(
     filters = {k: v for k, v in filters.items() if v}
     rows = await query_audit(db, filters=filters, limit=limit, skip=skip)
     return {"audit_log": rows, "count": len(rows), "limit": limit, "skip": skip}
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("entity_resolution", plan_tier="enterprise", monthly_price_mxn=399, category="operations",   name="Entity Resolution")
+_w5ff4_register_feature("audit_chain", plan_tier="enterprise", monthly_price_mxn=0,   category="operations",   name="Audit Chain")
+_w5ff4_register_feature("duplicates", plan_tier="enterprise", monthly_price_mxn=0,   category="operations",   name="Duplicates Review")

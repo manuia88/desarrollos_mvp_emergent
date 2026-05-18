@@ -12,9 +12,17 @@ const _h = () => ({
 async function _j(r) {
   if (!r.ok) {
     let msg = `HTTP ${r.status}`;
-    try { const d = await r.json(); msg = d.detail || d.message || msg; } catch {}
+    let body = null;
+    try {
+      body = await r.json();
+      // detail puede ser string O dict (W5.FF4 · 409 missing_dependencies)
+      if (typeof body?.detail === 'string') msg = body.detail;
+      else if (body?.detail?.error) msg = body.detail.error;
+      else if (typeof body?.message === 'string') msg = body.message;
+    } catch { /* non-JSON body */ }
     const e = new Error(msg);
     e.status = r.status;
+    e.body = body;
     throw e;
   }
   return r.json();
@@ -50,4 +58,10 @@ export async function applyTemplate({ user_id, tenant_id, template }) {
     credentials: 'include',
     body: JSON.stringify({ user_id, tenant_id, template }),
   }));
+}
+
+// W5.FF4 · Usage analytics
+export async function fetchUsage({ days = 7 } = {}) {
+  const qs = new URLSearchParams({ days: String(days) });
+  return _j(await fetch(`${BASE}/usage?${qs.toString()}`, { headers: _h(), credentials: 'include' }));
 }

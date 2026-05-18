@@ -180,3 +180,7 @@ async def forecast_property(
 @router.get("/api/forecast-public/cache-stats")
 async def cache_stats():
     return JSONResponse({"ok": True, **forecast_cache.stats()})
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("forecast", plan_tier="pro",        monthly_price_mxn=199, category="intelligence", name="Forecast Multi-Horizonte")

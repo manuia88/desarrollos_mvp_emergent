@@ -220,3 +220,8 @@ async def avm_landing(colonia_slug: str, request: Request):
         },
         "json_ld": [json_ld, breadcrumb_ld],
     })
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("avm_public", plan_tier="free",       monthly_price_mxn=0,   category="intelligence", name="AVM Público")
+_w5ff4_register_feature("valores_landing", plan_tier="free",       monthly_price_mxn=0,   category="growth",      name="Valores Landing")

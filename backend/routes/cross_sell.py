@@ -194,3 +194,7 @@ async def my_offers(
     ).sort("presented_at", -1).limit(limit)
     items = [d async for d in cursor]
     return {"items": items, "count": len(items)}
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("cross_sell_analytics", plan_tier="enterprise", monthly_price_mxn=0,   category="monetization", name="Cross-Sell Analytics")

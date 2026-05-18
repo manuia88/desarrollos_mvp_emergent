@@ -30,6 +30,8 @@ NOTIF_TYPES = {
     "lead_close_accuracy", "accuracy_drift_alert",
     "probability_threshold_crossed",
     "battle_card_weekly_digest", "battle_card_ranking_change",
+    # W5.FF4 · churn detection
+    "churn_risk_alert", "user_re_engagement",
     "generic",
 }
 
@@ -65,6 +67,8 @@ DEFAULT_CATEGORIES = {
     "probability_threshold_crossed": {"in_app": True, "email": False, "whatsapp": False},
     "battle_card_weekly_digest":    {"in_app": True, "email": True,  "whatsapp": False},
     "battle_card_ranking_change":   {"in_app": True, "email": False, "whatsapp": False},
+    "churn_risk_alert":      {"in_app": True, "email": True,  "whatsapp": False},
+    "user_re_engagement":    {"in_app": True, "email": False, "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 
@@ -877,3 +881,7 @@ async def rule_lead_captured_auto(
         },
         action_url="/asesor/contactos",
     )
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("smart_notifications", plan_tier="pro",        monthly_price_mxn=99,  category="growth",      name="Smart Notifications")

@@ -330,3 +330,7 @@ def _fmt(v):
         return f"{f:,.2f}"
     except Exception:
         return str(v)
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("intelligence_hub", plan_tier="enterprise", monthly_price_mxn=0,   category="intelligence", name="Intelligence Hub")

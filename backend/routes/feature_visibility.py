@@ -165,6 +165,20 @@ async def grant_feature(request: Request, body: GrantBody):
     actor = await require_superadmin(request)
     db = _db(request)
 
+    # W5.FF4 · validate dependencies (only when enabling)
+    if body.enabled:
+        from feature_dependencies import validate_dependencies
+        is_valid, missing = await validate_dependencies(db, body.user_id, body.tenant_id, body.feature_key)
+        if not is_valid:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "missing_dependencies",
+                    "feature_key": body.feature_key,
+                    "required": missing,
+                },
+            )
+
     # Upsert in tenant_features (W2.4 SA5 storage) · respeta schema existente.
     try:
         doc = await ff.upsert_feature(
@@ -249,6 +263,9 @@ async def apply_template_endpoint(request: Request, body: ApplyTemplateBody):
     # Also include inherited features (pro hereda free, etc) via adapter helper
     from feature_legacy_adapter import resolve_features_from_tier
     target_keys = resolve_features_from_tier(tier_key)
+    # W5.FF4 · cascade dependencies (prerequisites first)
+    from feature_dependencies import resolve_cascade
+    target_keys = resolve_cascade(target_keys)
 
     granted: List[str] = []
     skipped: List[Dict[str, str]] = []
@@ -319,4 +336,20 @@ async def apply_template_endpoint(request: Request, body: ApplyTemplateBody):
         "granted": granted,
         "skipped": skipped,
         "granted_count": len(granted),
+    }
+
+
+# ─── Endpoint 5 · W5.FF4 · Feature usage analytics ────────────────────────────
+@router.get(PREFIX + "/usage")
+async def get_feature_usage(request: Request, days: int = Query(7, ge=1, le=90)):
+    _rate_limit(request)
+    await require_superadmin(request)
+    db = _db(request)
+    from feature_usage_analytics import compute_feature_usage, compute_global_summary
+    usage = await compute_feature_usage(db, days=days)
+    summary = await compute_global_summary(db, days=days, top_n=5)
+    return {
+        "usage": usage,
+        "period_days": days,
+        "summary": summary,
     }

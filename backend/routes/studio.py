@@ -712,3 +712,8 @@ async def update_budget_cap(user_id: str, payload: BudgetPatch, request: Request
     )
     return {"ok": True, "user_id": user_id, "cap_usd": payload.cap_usd}
 
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("studio_video", plan_tier="pro",        monthly_price_mxn=249, category="marketing",   name="Studio Video")
+_w5ff4_register_feature("studio_ads", plan_tier="pro",        monthly_price_mxn=249, category="marketing",   name="Studio Ads")

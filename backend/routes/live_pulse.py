@@ -416,3 +416,7 @@ async def score_distribution(request: Request):
     except Exception as exc:
         log.warning(f"[live_pulse.score_distribution] failed: {exc}")
     return dist
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("live_pulse_alerts", plan_tier="pro",        monthly_price_mxn=199, category="intelligence", name="Live Pulse Alerts")

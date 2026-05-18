@@ -605,3 +605,7 @@ def schedule_metrics_cube_daily_aggregation(scheduler, db) -> None:
         )
     except Exception as e:
         log.warning(f"[cube] schedule daily cron failed: {e}")
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("metrics_cube", plan_tier="enterprise", monthly_price_mxn=499, category="monetization", name="Metrics Cube")

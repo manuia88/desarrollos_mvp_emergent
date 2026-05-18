@@ -640,3 +640,7 @@ def _render_battle_card_pdf(
     c.save()
 
     return buf.getvalue()
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("battle_card", plan_tier="pro",        monthly_price_mxn=299, category="intelligence", name="Battle Card")

@@ -1401,6 +1401,12 @@ async def startup():
             register_batch5_jobs(sched, db)
         except Exception as e:
             logging.warning(f"batch5 scheduler register failed: {e}")
+        # W5.FF4 — Churn prediction daily cron (04:00 UTC)
+        try:
+            from churn_prediction_cron import register_churn_jobs
+            register_churn_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W5.FF4] churn scheduler register failed: {e}")
         # Phase 4 Batch 8 — daily 6am cash-flow recalc for active projects
         try:
             from apscheduler.triggers.cron import CronTrigger

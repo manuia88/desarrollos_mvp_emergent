@@ -132,3 +132,7 @@ async def search_by_image(
         "processing_ms": processing_ms,
         "total_found": len(matches),
     }
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("compradores_search", plan_tier="free",       monthly_price_mxn=0,   category="growth",      name="Marketplace Search")

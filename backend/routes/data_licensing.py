@@ -398,3 +398,7 @@ async def _send_welcome_email(sub: Dict[str, Any]) -> str:
     except Exception as e:
         log.warning(f"[dls] resend send failed: {e}")
         return f"exception:{str(e)[:120]}"
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("data_licensing", plan_tier="enterprise", monthly_price_mxn=999, category="monetization", name="Data Licensing")

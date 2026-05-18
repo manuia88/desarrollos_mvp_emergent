@@ -391,3 +391,7 @@ async def _audit_route(db, user, action: str, payload: Dict[str, Any]) -> None:
         )
     except Exception as exc:
         log.warning(f"[KG audit] route audit log failed: {exc}")
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("knowledge_graph_view", plan_tier="enterprise", monthly_price_mxn=499, category="intelligence", name="Knowledge Graph")

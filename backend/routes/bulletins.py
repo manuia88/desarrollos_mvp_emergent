@@ -264,3 +264,7 @@ async def superadmin_generate(body: GenerateBody, request: Request):
     except Exception:
         pass
     return out
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("bulletins", plan_tier="pro",        monthly_price_mxn=99,  category="growth",      name="Bulletins")

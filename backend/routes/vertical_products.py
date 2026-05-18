@@ -281,3 +281,7 @@ async def v1_investor_yield(body: InvestorYieldBody, request: Request, response:
     except Exception:
         pass
     return out
+
+# W5.FF4 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff4_register_feature
+_w5ff4_register_feature("vertical_products", plan_tier="enterprise", monthly_price_mxn=0,   category="monetization", name="Vertical Products")
