@@ -56,11 +56,11 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | ~~**W5.14**~~ | Reviews residentes | ➡️ W6 | Movido founder 2026-05-16 |
 | **W5.15** | FSD per-property + Accuracy (Fitch-style) | ✅ | P1 Backend `7d883e6` + P2 UI Fitch-style + cross-modules + PDF `0ae93dc` (26h total · 7 upgrades incluyendo ML loop drift+self-tuning · /confianza público T0 + widget AvmConfidenceRange embebido /valor + /detalle-proyecto · tab FSD Distribution superadmin) |
 | **W5.16** | Marketing distribution (MCP) | ⬜ | ~10h |
-| **W5.17** | Virtual staging IA | ⬜ | 8h |
+| ~~**W5.17**~~ | ~~Virtual staging IA standalone~~ | 🔄 **ABSORBIDO en W5.22** | Founder decision 2026-05-18 · coherencia arquitectónica con Phase Z Studio Marketing · va con video bundle 34h + 7 sub-chunks más · scope total Phase Z mantiene 224h |
 | **W5.18** | Dubai full (Phase 11) | ⏸ | 38h · expansión H2 fase 2 (decisión separada) |
 | **W5.19** | Probability UX (Kalshi) | ⬜ | 6h |
 | **W5.20-21** | Insights Layer Wiki + público | ⬜ | 41h |
-| **W5.22+** | Phase Z DMX Studio Marketing | ⬜ | 224h |
+| **W5.22+** | Phase Z DMX Studio Marketing | ⬜ | 224h · incluye virtual staging IA 8h (ex-W5.17 absorbido) + video bundle 34h + 7 sub-chunks más · spec canónico `memory/STUDIO_MARKETING_RESEARCH.md` |
 | **W5.23** | Dev Battle Card | ⬜ | 12h |
 | **W5.ASR.0** | Cleanup pre-batch | ✅ | C1 `f5af028` (z-index 254→tokens) + C2 `ab2cb4f` (advisor→asesor) + C3 `0ad997e` (pipeline guard) — 2026-05-16 |
 | **W5.ASR.1** | WhatsApp QR + Inbox unificado | ⬜ STUB | 40-50h · Baileys local + UI completa · activa OAuth FB cuando approve |
@@ -77,8 +77,8 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 8. W5.12 Knowledge Graph (~60h) ✅
 9. W5.5 Live Pulse STUB (~27h) ✅
 10. **W5.15 FSD + Accuracy (~25h) ← AHORA**
-11. W5.17 Virtual staging (8h)
-12. W5.19 Probability UX (6h)
+11. ~~W5.17 Virtual staging~~ **ABSORBIDO en W5.22 Phase Z**
+12. **W5.19 Probability UX (6h) ← AHORA**
 13. W5.23 Dev Battle Card (12h)
 14. W5.16 Marketing distribution MCP (~10h)
 15. W5.9 Climate Migration STUB (~25h-33h) **DIFERIDO al final W5 · founder decision 2026-05-17 (revisar fuentes gov MX maduras + decisión upgrade Apify $49)**

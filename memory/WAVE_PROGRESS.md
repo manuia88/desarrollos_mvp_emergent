@@ -1,6 +1,6 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-18 (W5.15 CERRADO ✅ P2 + aurora fix · 20 batches/partes shipped = 404h · próximo W5.17 Virtual staging IA · W5.9 diferido al final · ASR redesign cerrado excepto WA QR)
+**Última actualización**: 2026-05-18 (W5.15 CERRADO ✅ · 20 batches/partes shipped = 404h · W5.17 Virtual staging ABSORBIDO en W5.22 Phase Z (coherencia arquitectónica founder 2026-05-18) · próximo W5.19 Probability UX 6h · W5.9 diferido al final · ASR redesign cerrado excepto WA QR)
 **Total H1 restante**: ~146.5h (Wave 4 pending de los 495h totales · W4.18.2 32h ✅ shipped · 8h Private Beta Gate pending)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h + Wave 5 🟡 26h (W5.1) = 741.5h shipped
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1
