@@ -171,6 +171,52 @@ const SUPERADMIN_NAV = [
       { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
     ],
   },
+  // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─
+  {
+    tier: 4, label: 'Operación', section_key: 'operacion',
+    items: [
+      { key: 'health',         to: '/superadmin/health',         label: 'Salud sistema',          Icon: Activity },
+      { key: 'observability',  to: '/superadmin/observability',  label: 'Observabilidad',         Icon: Eye },
+      { key: 'audit-log',      to: '/superadmin/audit-log',      label: 'Audit log',              Icon: FileText },
+      { key: 'audit-chain',    to: '/superadmin/audit-chain',    label: 'Audit Chain (SHA-256)',  Icon: ShieldCheck },
+      { key: 'duplicates',     to: '/superadmin/duplicates',     label: 'Duplicados pendientes',  Icon: GitMerge },
+      { key: 'fraud-patterns', to: '/superadmin/fraud-patterns', label: 'Patrones de fraude',     Icon: AlertTriangle },
+      { key: 'compliance',     to: '/superadmin/compliance',     label: 'Compliance',             Icon: Shield },
+    ],
+  },
+  // ─── tier 5 · MONETIZACIÓN verde · 2026-05-18 sidebar fix ─────────────────────────────
+  {
+    tier: 5, label: 'Monetización', section_key: 'monetizacion',
+    items: [
+      { key: 'ai-cost',           to: '/superadmin/ai-cost',               label: 'AI Cost',            Icon: DollarSign },
+      { key: 'commercial',        to: '/superadmin/commercial',            label: 'Comercial',          Icon: TrendingUp },
+      { key: 'api-keys',          to: '/superadmin/api-keys',              label: 'API Keys',           Icon: Key },
+      { key: 'vertical-products', to: '/superadmin/vertical-products',     label: 'Productos verticales', Icon: Boxes },
+      { key: 'data-licensing',    to: '/superadmin/data-licensing',        label: 'Data Licensing',     Icon: Briefcase },
+      { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell',         Icon: HeartHandshake },
+    ],
+  },
+  // ─── tier 6 · CRECIMIENTO teal · 2026-05-18 sidebar fix ───────────────────────────────
+  {
+    tier: 6, label: 'Crecimiento', section_key: 'crecimiento',
+    items: [
+      { key: 'whatsapp',     to: '/superadmin/whatsapp',              label: 'WhatsApp',             Icon: MessageSquare },
+      { key: 'newsletter',   to: '/superadmin/newsletter',            label: 'Newsletter',           Icon: Mail },
+      { key: 'bulletins',    to: '/superadmin/bulletins',             label: 'Bulletins',            Icon: Megaphone },
+      { key: 'landing-leads',to: '/superadmin/landing-leads',         label: 'Landing leads',        Icon: Users },
+      { key: 'partners',     to: '/superadmin/partners',              label: 'Partners',             Icon: HeartHandshake },
+      { key: 'onboarding',   to: '/superadmin/onboarding-analytics',  label: 'Onboarding analytics', Icon: BarChart3 },
+      { key: 'free-audit',   to: '/superadmin/free-audit-funnel',     label: 'Free Audit funnel',    Icon: ClipboardList },
+      { key: 'lead-sources', to: '/superadmin/lead-sources',          label: 'Lead sources',         Icon: Plug },
+    ],
+  },
+  // ─── tier 7 · DEV TOOLS morado · 2026-05-18 sidebar fix ───────────────────────────────
+  {
+    tier: 7, label: 'Dev Tools', section_key: 'devtools',
+    items: [
+      { key: 'primitives-demo', to: '/superadmin/primitives-demo', label: 'Primitives demo', Icon: Sparkles },
+    ],
+  },
 ];
 
 export const navByRole = {
