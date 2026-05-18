@@ -61,7 +61,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.19** | Probability UX (Kalshi) | ✅ | Plan B 9h `5fe627b` (origen `688b833`) · 4 sub-chunks · 3 helpers backend + Badge/Bar shared + Atlax tool #20 explainability + cron weekly threshold crossing · 10 inputs + 8 outputs récord cierre cross-module |
 | **W5.20-21** | Insights Layer Wiki + público | ⬜ | 41h |
 | **W5.22+** | Phase Z DMX Studio Marketing | ⬜ | 224h · incluye virtual staging IA 8h (ex-W5.17 absorbido) + video bundle 34h + 7 sub-chunks más · spec canónico `memory/STUDIO_MARKETING_RESEARCH.md` |
-| **W5.23** | Dev Battle Card | ⬜ | 12h |
+| **W5.23** | Dev Battle Card | 🟡 | Plan B 17h founder approved 2026-05-18 · core 12h + 3 upgrades (PDF export +2h · email weekly digest +2h · Atlax tool #21 +1h) · spec `memory/W5_23_BATTLE_CARD_SPEC.md` · 1 batch · 5 sub-chunks · T3 dev premium |
 | **W5.ASR.0** | Cleanup pre-batch | ✅ | C1 `f5af028` (z-index 254→tokens) + C2 `ab2cb4f` (advisor→asesor) + C3 `0ad997e` (pipeline guard) — 2026-05-16 |
 | **W5.ASR.1** | WhatsApp QR + Inbox unificado | ⬜ STUB | 40-50h · Baileys local + UI completa · activa OAuth FB cuando approve |
 | **W5.ASR.2** | Pipeline 7+2 etapas hard-rules | ✅ | P1 `701ead1` + P2 `127af26` (38h) |
