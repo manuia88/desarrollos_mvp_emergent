@@ -278,6 +278,10 @@ app.include_router(disputes_router)
 from routes.knowledge_graph import router as kg_router
 app.include_router(kg_router)
 
+# W5.5 Parte 1 — Live Pulse + Readiness + cron configurable
+from routes.live_pulse import router as live_pulse_router
+app.include_router(live_pulse_router)
+
 # Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
 from routes.dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
 app.include_router(dev_batch4_2_router)
@@ -1396,6 +1400,14 @@ async def startup():
             register_kg_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[KG cron] register failed: {e}")
+        # W5.5 Parte 1 — Live Pulse compute + readiness snapshot cron
+        try:
+            import live_pulse_engine
+            import live_pulse_cron
+            await live_pulse_engine.ensure_live_pulse_indexes(db)
+            live_pulse_cron.register_live_pulse_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[LivePulse] startup register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:
