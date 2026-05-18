@@ -17,6 +17,7 @@ import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
+import AvmConfidenceRange from '../components/shared/AvmConfidenceRange';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // Phase 4 Batch 27 — Mortgage + Tour + WA CTA
@@ -306,6 +307,11 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
                   precioInicial={dev.price_from || 0}
                 />
               )}
+            </div>
+
+            {/* W5.15 P2 — AVM Confidence Range para este desarrollo */}
+            <div style={{ marginTop: 24 }}>
+              <AvmConfidenceRange property_id={`${dev.colonia_slug || dev.colonia || 'cdmx'}_dev_${dev.id}`} />
             </div>
 
             {/* W4.14 — Investment Simulator embed (siempre visible debajo de tabs) */}

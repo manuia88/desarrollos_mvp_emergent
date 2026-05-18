@@ -277,6 +277,40 @@ async def compute_price_movement(db, zone_slug: str) -> Dict[str, Any]:
         return {"value": 0, "baseline": 0, "delta_pct": 0, "source": "unavailable", "confidence": 0.0}
 
 
+# ─── Signal 6 (W5.15 P2 Sub-E): accuracy_drift ───────────────────────────────
+# Preparatorio · weight=0 inicial · activacion gradual via ACCURACY_DRIFT_WEIGHT env var.
+
+async def compute_accuracy_drift(db, zone_slug: str) -> Dict[str, Any]:
+    """Mide la mejora/empeoramiento de la precision del AVM en la zona.
+
+    delta_pct negativo = MAPE_30d < baseline_180d = el modelo MEJORO. Para que
+    ese delta sea senal POSITIVA en Live Pulse, lo invertimos.
+    """
+    try:
+        import accuracy_engine
+        m30 = await accuracy_engine.compute_mape_rolling(db, zone_slug, days=30)
+        m180 = await accuracy_engine.compute_mape_rolling(db, zone_slug, days=180)
+        if not m30.get("available"):
+            return {"value": 0, "baseline": 0, "delta_pct": 0,
+                    "source": "insufficient_data", "confidence": 0.0}
+        mape_30 = float(m30["mape_pct"])
+        mape_180 = float(m180.get("mape_pct") or mape_30)
+        # Mejora = baseline - actual. Mejor accuracy = signal positivo.
+        improvement_pp = mape_180 - mape_30
+        # Normalizamos a un delta_pct similar al de las otras senales (cap [-100,500])
+        delta = _cap_delta(improvement_pp * 5.0)
+        return {
+            "value": round(mape_30, 4),
+            "baseline": round(mape_180, 4),
+            "delta_pct": round(delta, 2),
+            "source": "real",
+            "confidence": min(int(m30.get("sample_size") or 0) / 100.0, 1.0),
+        }
+    except Exception as exc:
+        log.warning(f"[live_pulse] accuracy_drift failed for {zone_slug}: {exc}")
+        return {"value": 0, "baseline": 0, "delta_pct": 0, "source": "unavailable", "confidence": 0.0}
+
+
 # ─── Score composer ──────────────────────────────────────────────────────────
 
 WEIGHTS = {
@@ -285,6 +319,8 @@ WEIGHTS = {
     "trend_velocity": 0.15,
     "lead_intent_velocity": 0.20,
     "price_movement": 0.05,
+    # W5.15 P2 — preparatorio. Activacion gradual via env ACCURACY_DRIFT_WEIGHT.
+    "accuracy_drift": float(os.environ.get("ACCURACY_DRIFT_WEIGHT", "0") or 0),
 }
 
 
@@ -317,13 +353,14 @@ def _stub_flags(signals: Dict[str, Dict[str, Any]]) -> Dict[str, bool]:
 # ─── Orchestrator ────────────────────────────────────────────────────────────
 
 async def compute_pulse(db, zone_slug: str) -> Dict[str, Any]:
-    """Orchestrator: 5 signals en paralelo + score + bucket. NO persiste."""
-    sv, vv, tv, lv, pm = await asyncio.gather(
+    """Orchestrator: 6 signals en paralelo + score + bucket. NO persiste."""
+    sv, vv, tv, lv, pm, ad = await asyncio.gather(
         compute_search_velocity(db, zone_slug),
         compute_view_volume(db, zone_slug),
         compute_trend_velocity(db, zone_slug),
         compute_lead_intent_velocity(db, zone_slug),
         compute_price_movement(db, zone_slug),
+        compute_accuracy_drift(db, zone_slug),
         return_exceptions=True,
     )
 
@@ -339,6 +376,7 @@ async def compute_pulse(db, zone_slug: str) -> Dict[str, Any]:
         "trend_velocity": _safe(tv),
         "lead_intent_velocity": _safe(lv),
         "price_movement": _safe(pm),
+        "accuracy_drift": _safe(ad),
     }
     score = compose_score(signals)
     return {

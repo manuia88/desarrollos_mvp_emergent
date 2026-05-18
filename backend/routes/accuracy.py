@@ -290,3 +290,280 @@ async def export_csv(request: Request, period: str = "30d"):
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="accuracy_{period}.csv"'},
     )
+
+
+# ─── Endpoint 9 — PDF export Fitch-style (T0 publico · rate-limit 10/min/IP) ──
+
+@router.get("/api/accuracy/export.pdf")
+async def export_pdf(request: Request, period: str = "30d"):
+    # Rate-limit mas estricto: 10/min/IP
+    _rate_limit_pdf(request)
+    days_map = {"30d": 30, "90d": 90, "365d": 365}
+    if period not in days_map:
+        raise HTTPException(status_code=422, detail="period debe ser 30d, 90d o 365d")
+    days = days_map[period]
+    db = _db(request)
+
+    # Recopilar data
+    meta = await accuracy_engine.compute_mape_rolling(db, None, days=days)
+    hit = await accuracy_engine.compute_hit_rate(db, None, days=days)
+    pct = await accuracy_engine.compute_percentile_errors(db, None, days=days)
+    cal = await accuracy_engine.calibration_curve(db, days=days, bins=10)
+    zones = await drift_detector.list_top_zones_for_drift(db, limit=10)
+    per_zone_rows = []
+    for z in zones:
+        m = await accuracy_engine.compute_mape_rolling(db, z, days=days)
+        h = await accuracy_engine.compute_hit_rate(db, z, days=days)
+        per_zone_rows.append({
+            "zone_slug": z,
+            "mape": m.get("mape_pct"),
+            "hit_rate": h.get("hit_rate"),
+            "sample_size": m.get("sample_size"),
+        })
+
+    # Drift events ultimos N dias via audit_immutable
+    drift_events = []
+    try:
+        cutoff = _now() - timedelta(days=days)
+        cursor = db.audit_immutable.find(
+            {"action": "drift_detected", "timestamp": {"$gte": cutoff.isoformat()}},
+            {"_id": 0, "entity_id": 1, "after_state": 1, "timestamp": 1},
+        ).sort("timestamp", -1).limit(20)
+        async for d in cursor:
+            drift_events.append(d)
+    except Exception:
+        pass
+
+    pdf_bytes = _render_accuracy_pdf(period, meta, hit, pct, cal, per_zone_rows, drift_events)
+
+    # Audit
+    try:
+        from audit_immutable_engine import log as audit_log
+        await audit_log(
+            db,
+            actor={"user_id": "anon", "role": "anon"},
+            action="accuracy_pdf_export",
+            entity_type="accuracy_report",
+            entity_id=period,
+            before=None,
+            after={"period": period, "size_bytes": len(pdf_bytes)},
+            request=request,
+        )
+    except Exception as exc:
+        log.warning(f"[accuracy.pdf] audit failed: {exc}")
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="accuracy_report_{period}.pdf"'},
+    )
+
+
+_RATE_BUCKET_PDF: Dict[str, deque] = defaultdict(lambda: deque(maxlen=10))
+
+
+def _rate_limit_pdf(request: Request) -> None:
+    ip = request.client.host if request.client else "anon"
+    bucket = _RATE_BUCKET_PDF[ip]
+    now = time.time()
+    while bucket and (now - bucket[0]) > 60:
+        bucket.popleft()
+    if len(bucket) >= 10:
+        raise HTTPException(status_code=429, detail="Rate limit excedido · 10/min para PDF")
+    bucket.append(now)
+
+
+def _render_accuracy_pdf(
+    period: str,
+    meta: Dict[str, Any],
+    hit: Dict[str, Any],
+    pct: Dict[str, Any],
+    cal: Dict[str, Any],
+    per_zone_rows: list,
+    drift_events: list,
+) -> bytes:
+    """Render Fitch-style PDF via reportlab (mismo stack que brochure_renderer W4.9)."""
+    import io as _io
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib.colors import HexColor, white
+    from reportlab.pdfgen import canvas
+
+    BG = HexColor("#06080F")
+    CREAM = HexColor("#F0EBE0")
+    INDIGO = HexColor("#6366F1")
+    ROSE = HexColor("#EC4899")
+    GRAY = HexColor("#6B7280")
+    GREEN = HexColor("#22C55E")
+    ORANGE = HexColor("#F59E0B")
+
+    buf = _io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=A4)
+    W, H = A4
+    margin = 18 * mm
+    page_num = [0]
+    total_pages_estimate = 4
+
+    def _new_page():
+        c.setFillColor(BG)
+        c.rect(0, 0, W, H, fill=1, stroke=0)
+        page_num[0] += 1
+
+    def _footer():
+        c.setFont("Helvetica", 7.5)
+        c.setFillColor(GRAY)
+        c.drawString(margin, 12 * mm, "Datos auditables en cadena SHA-256 · DesarrollosMX 2026")
+        c.drawRightString(W - margin, 12 * mm, f"Pagina {page_num[0]} de {total_pages_estimate}")
+
+    def _header(title: str):
+        c.setFillColor(CREAM)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(margin, H - 14 * mm, "DESARROLLOSMX  ·  REPORTE DE PRECISION INSTITUCIONAL")
+        c.setFont("Helvetica", 8)
+        c.setFillColor(GRAY)
+        c.drawRightString(W - margin, H - 14 * mm, f"Periodo: {period}  ·  Generado: {_now().strftime('%Y-%m-%d %H:%M UTC')}")
+        c.setStrokeColor(INDIGO)
+        c.setLineWidth(0.7)
+        c.line(margin, H - 16 * mm, W - margin, H - 16 * mm)
+        c.setFont("Helvetica-Bold", 18)
+        c.drawString(margin, H - 26 * mm, title)
+
+    # ── Page 1: Cover + KPIs ──────────────────────────────────────────────
+    _new_page()
+    _header("Reporte de Precision Institucional")
+    y = H - 38 * mm
+    c.setFont("Helvetica", 11)
+    c.setFillColor(CREAM)
+    c.drawString(margin, y, "Resumen Ejecutivo")
+    c.setStrokeColor(INDIGO)
+    c.line(margin, y - 2, margin + 50 * mm, y - 2)
+    y -= 12 * mm
+
+    def _kpi(x, label, value, color=INDIGO):
+        c.setFillColor(color)
+        c.setFont("Helvetica", 7.5)
+        c.drawString(x, y + 16 * mm, label.upper())
+        c.setFillColor(CREAM)
+        c.setFont("Helvetica-Bold", 22)
+        c.drawString(x, y + 4 * mm, str(value))
+
+    mape_str = f"{meta.get('mape_pct', '—'):.2f}%" if meta.get("available") else "—"
+    hit_str = f"{(hit.get('hit_rate', 0) * 100):.1f}%" if hit.get("available") else "—"
+    sample_str = str(meta.get("sample_size") or 0)
+    conf = "ALTA" if (meta.get("mape_pct") or 99) < 8 else "MEDIA" if (meta.get("mape_pct") or 99) < 15 else "BAJA"
+    p90 = f"{pct.get('p90', 0):.2f}%" if pct.get("available") else "—"
+    p95 = f"{pct.get('p95', 0):.2f}%" if pct.get("available") else "—"
+    _kpi(margin,            "MAPE",         mape_str, INDIGO)
+    _kpi(margin + 45 * mm,  "HIT RATE",     hit_str,  GREEN)
+    _kpi(margin + 90 * mm,  "SAMPLE SIZE",  sample_str, ROSE)
+    _kpi(margin + 135 * mm, "CONFIANZA",    conf,     ORANGE)
+    y -= 30 * mm
+    c.setFont("Helvetica", 8)
+    c.setFillColor(GRAY)
+    c.drawString(margin, y, f"P90 error: {p90}    ·    P95 error: {p95}    ·    Calibration error: {cal.get('calibration_error', '—')}")
+    _footer()
+    c.showPage()
+
+    # ── Page 2: Methodology ────────────────────────────────────────────────
+    _new_page()
+    _header("Metodologia")
+    y = H - 38 * mm
+    c.setFillColor(CREAM)
+    c.setFont("Helvetica", 10)
+    paragraphs = [
+        "El modelo AVM (Automated Valuation Model) de DesarrollosMX utiliza regresion hedonica OLS",
+        "sobre transacciones recientes por colonia. Cada prediccion incluye un intervalo de confianza",
+        "del 80% (FSD - Full-spectrum Diagnostic) calculado a partir del RMSE de los residuales del",
+        "modelo entrenado para la zona.",
+        "",
+        "El error MAPE (Mean Absolute Percentage Error) se mide al cierre real de cada lead que pasa",
+        "a estado 'cerrado_ganado': comparamos el valor predicho con el precio efectivo de venta.",
+        "",
+        "Cuando la zona acumula mas de 50 cierres en 365 dias, entrenamos pesos especificos via",
+        "Ridge regression (alpha=1.0). Si el R2 del modelo zone-specific supera al modelo global,",
+        "el predictor del AVM bascula automaticamente al zone-specific.",
+        "",
+        "Detectamos drift comparando MAPE rolling 30d contra el baseline 180d. Si la diferencia",
+        "supera +10 puntos porcentuales y no hubo retrain en los ultimos 7 dias, disparamos un",
+        "retrain del modelo y notificamos al equipo superadmin.",
+        "",
+        "Toda esta cadena de decisiones queda registrada en audit immutable SHA-256.",
+    ]
+    for line in paragraphs:
+        c.drawString(margin, y, line)
+        y -= 6 * mm
+    _footer()
+    c.showPage()
+
+    # ── Page 3: Per-zone table ─────────────────────────────────────────────
+    _new_page()
+    _header("Precision por colonia (top 10)")
+    y = H - 38 * mm
+    c.setFillColor(GRAY)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(margin, y, "COLONIA")
+    c.drawString(margin + 65 * mm, y, "MAPE")
+    c.drawString(margin + 90 * mm, y, "HIT RATE")
+    c.drawString(margin + 120 * mm, y, "SAMPLE")
+    y -= 4 * mm
+    c.setStrokeColor(INDIGO)
+    c.line(margin, y, W - margin, y)
+    y -= 6 * mm
+    c.setFillColor(CREAM)
+    c.setFont("Helvetica", 9.5)
+    if not per_zone_rows:
+        c.setFillColor(GRAY)
+        c.drawString(margin, y, "Sin data suficiente para desglose por colonia.")
+        y -= 6 * mm
+    for r in per_zone_rows:
+        c.setFillColor(CREAM)
+        c.drawString(margin, y, str(r.get("zone_slug") or "")[:30])
+        c.drawString(margin + 65 * mm, y, f"{r.get('mape', '—'):.2f}%" if r.get("mape") is not None else "—")
+        hr = r.get("hit_rate")
+        c.drawString(margin + 90 * mm, y, f"{(hr * 100):.1f}%" if hr is not None else "—")
+        c.drawString(margin + 120 * mm, y, str(r.get("sample_size") or 0))
+        y -= 6 * mm
+        if y < 25 * mm:
+            break
+    _footer()
+    c.showPage()
+
+    # ── Page 4: Drift events + calibration summary ─────────────────────────
+    _new_page()
+    _header("Eventos de drift detectados")
+    y = H - 38 * mm
+    c.setFillColor(CREAM)
+    c.setFont("Helvetica", 9.5)
+    if not drift_events:
+        c.setFillColor(GRAY)
+        c.drawString(margin, y, "Sin eventos de drift en el periodo.")
+    else:
+        for d in drift_events[:14]:
+            after = d.get("after_state") or {}
+            line = (
+                f"{(d.get('timestamp') or '')[:16].replace('T', ' ')}  ·  "
+                f"{d.get('entity_id', '—')}  ·  Δ {after.get('delta_pp', '—')}pp  ·  "
+                f"retrain {'OK' if after.get('retrain_triggered') else '—'}"
+            )
+            c.drawString(margin, y, line)
+            y -= 6 * mm
+            if y < 30 * mm:
+                break
+
+    # Calibration summary
+    y -= 6 * mm
+    c.setFillColor(CREAM)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(margin, y, "Calibracion del modelo")
+    y -= 6 * mm
+    c.setFont("Helvetica", 9.5)
+    if cal.get("available"):
+        c.drawString(margin, y, f"Calibration error: {cal.get('calibration_error'):.4f}  ·  Bins con data: {len([b for b in cal.get('bins', []) if b.get('sample', 0) > 0])} / {len(cal.get('bins', []))}")
+    else:
+        c.setFillColor(GRAY)
+        c.drawString(margin, y, "Sin data suficiente para reliability diagram en este periodo.")
+    _footer()
+    c.showPage()
+
+    c.save()
+    return buf.getvalue()

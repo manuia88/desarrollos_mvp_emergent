@@ -88,6 +88,8 @@ const DesarrolladorDisputas = lazy(() => import('./pages/developer/Desarrollador
 const SuperadminKnowledgeGraph = lazy(() => import('./pages/superadmin/SuperadminKnowledgeGraph'));
 // W5.5 Parte 2 — Live Pulse UI superadmin
 const SuperadminLivePulse = lazy(() => import('./pages/superadmin/SuperadminLivePulse'));
+// W5.15 Parte 2 — Pagina publica /confianza Fitch-style
+const ConfianzaPage = lazy(() => import('./pages/public/ConfianzaPage'));
 const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLeadSources'));
 // W5.11 Parte 2 — Entity resolution + audit chain
 const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
@@ -522,6 +524,8 @@ function AppRouter() {
       {/* W4.18.2B Sub-D — public AVM + colonia landings */}
       <Route path="/valores" element={<Valores />} />
       <Route path="/colonia/:slug" element={<ColoniaLanding />} />
+      {/* W5.15 P2 — Pagina publica de confianza institucional */}
+      <Route path="/confianza" element={<ConfianzaPage />} />
       {/* W4.18.3 — Private Beta Gate */}
       <Route path="/broker-portal" element={<BrokerPortal />} />
       <Route path="/superadmin/invites" element={<SuperadminInvitesRoute />} />
