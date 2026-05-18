@@ -212,6 +212,11 @@ TOOLS Y PARAMS:
     devuelve: composite_score, ranking, dim_scores, recommended_action, sources_breakdown, explanation_es.
     Usar cuando: dev user T3 pregunte sobre posicion competitiva, ranking, score vs competidores, que mejorar, como va su proyecto.
 
+22. query_my_features
+    params: {{ "user_id": str (requerido), "tenant_id": str (requerido · usar user_id si no se conoce) }}
+    devuelve: {{ features_count, features:[{{key, name, category}}], tier_inferred }}.
+    Usar cuando: user pregunta qué features tiene activas, qué incluye su plan, qué puede ver/usar en el portal, qué upgrades existen.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -229,6 +234,15 @@ SIEMPRE incluye ranking actual + recommended_action en respuesta.
 Ejemplo: "Tu proyecto X está rank #2 en Polanco (subiste 1 lugar) · acción recomendada: ajustar precio -3% según comp velocity · score 72/100".
 Si user tier < T3 → responde "Battle Card requiere upgrade a tier T3 para developers Enterprise".
 Si insufficient_competitors → responde "Necesitamos al menos 3 desarrolladores en esa zona · data acumulándose".
+
+══ FEATURE VISIBILITY (tool 22 · qué tiene activo el user) ══
+Usa query_my_features cuando user pregunte qué features tiene activas, qué incluye su plan, qué puede usar en el portal:
+  - ¿Qué features tengo activas? / ¿Qué incluye mi plan? / ¿Qué puedo usar?
+  - ¿Tengo Battle Card / Live Pulse / Knowledge Graph?
+SIEMPRE menciona features_count + tier_inferred + 3-5 features principales por nombre.
+Ejemplo: "Tienes 8 features activas en plan Pro: Battle Card, FSD Accuracy, Live Pulse, Knowledge Graph + 4 más. ¿Quieres conocer alguna en detalle?"
+Si features_count=0 → responde "Aún no tienes features activas · ¿quieres saber qué hay disponible?".
+Si tier_inferred="free" → menciona que upgrade a Pro habilita Battle Card + Live Pulse.
 
 REGLAS:- Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
@@ -327,6 +341,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W5.23 — Tool 21: Battle Card (Competitive Intelligence T3)
         if tool_name == "query_battle_card":
             return await _tool_query_battle_card(db, params)
+        # W5.FF3 — Tool 22: Feature visibility for the calling user
+        if tool_name == "query_my_features":
+            return await _tool_query_my_features(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1516,3 +1533,71 @@ async def _tool_query_battle_card(db, params: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as exc:
         log.warning(f"[asistente_tool] query_battle_card failed: {exc}")
         return {"error": str(exc), "source": "battle_card_engine"}
+
+
+# W5.FF3 — Tool 22 · Feature visibility for the calling user
+async def _tool_query_my_features(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Returns the features enabled for a given (user_id, tenant_id) pair.
+
+    Delegates to feature_legacy_adapter.merge_legacy_with_flags (W5.FF2):
+      UNION explicit grants ∪ implicit tier features · FAIL-OPEN [] si DB rota.
+    """
+    user_id = (params.get("user_id") or "").strip()
+    tenant_id = (params.get("tenant_id") or user_id or "").strip()
+    if not user_id:
+        return {"error": "user_id requerido", "source": "feature_visibility"}
+
+    try:
+        from feature_legacy_adapter import merge_legacy_with_flags
+        import feature_flags_engine as ff
+        from feature_gate_engine import derive_user_tier
+        from audit_immutable_engine import log as audit_log
+
+        feats = await merge_legacy_with_flags(db, user_id, tenant_id)
+
+        # Tier inferred from active flags
+        try:
+            flags = await ff.get_tenant_flags(db, tenant_id)
+            tier_inferred = derive_user_tier(flags)
+        except Exception:
+            tier_inferred = "free"
+
+        # Hydrate name/category from extended catalog
+        cat_by_key = {f["key"]: f for f in ff.get_extended_catalog()}
+        items = []
+        for k in feats:
+            meta = cat_by_key.get(k, {})
+            items.append({
+                "key": k,
+                "name": meta.get("name") or k.replace("_", " ").title(),
+                "category": meta.get("category") or "general",
+            })
+
+        # Audit (best-effort)
+        try:
+            await audit_log(
+                db,
+                actor={"user_id": user_id, "role": "asistente"},
+                action="feature_visibility_query",
+                entity_type="user_features",
+                entity_id=user_id,
+                before=None,
+                after={
+                    "features_count": len(items),
+                    "tier_inferred": tier_inferred,
+                    "caller_module": "asistente_atlax_features",
+                },
+            )
+        except Exception:
+            pass
+
+        return {
+            "source": "feature_visibility",
+            "features_count": len(items),
+            "features": items,
+            "tier_inferred": tier_inferred,
+        }
+
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_my_features failed: {exc}")
+        return {"error": str(exc), "source": "feature_visibility"}

@@ -3191,5 +3191,68 @@
       "updated_label": "Datos actualizados: domingo de cada semana",
       "audit_chain_link": "Ver cadena de auditoria"
     }
+  },
+  "feature_visibility": {
+    "page": {
+      "eyebrow": "W5.FF3",
+      "title": "Feature Visibility",
+      "subtitle": "Concede o revoca features por usuario · plantillas por tier · audit chain mandatorio"
+    },
+    "filters": {
+      "search_placeholder": "Buscar email o nombre…",
+      "role_label": "Rol:",
+      "tier_label": "Tier:",
+      "role_all": "Todos",
+      "role_dev_admin": "Dev admin",
+      "role_dev_member": "Dev member",
+      "role_inmob_admin": "Inmob admin",
+      "role_inmob_member": "Inmob member",
+      "role_advisor": "Advisor",
+      "role_buyer": "Buyer",
+      "tier_all": "Todos",
+      "tier_free": "Free",
+      "tier_pro": "Pro",
+      "tier_enterprise": "Enterprise"
+    },
+    "actions": {
+      "apply_template": "Aplicar plantilla",
+      "refresh": "Refrescar",
+      "prev": "← Anterior",
+      "next": "Siguiente →",
+      "cancel": "Cancelar",
+      "applying": "Aplicando…",
+      "loading_matrix": "Cargando matriz…",
+      "empty": "Sin datos para mostrar."
+    },
+    "stats": {
+      "total_users": "Total usuarios",
+      "catalog_count": "Features catalog",
+      "avg_per_user": "Promedio features/user"
+    },
+    "matrix": {
+      "user_col": "Usuario",
+      "pagination": "Mostrando {{count}} de {{total}} usuarios"
+    },
+    "modal": {
+      "title": "Aplicar plantilla a usuario",
+      "user_label": "Usuario",
+      "user_placeholder": "— Selecciona —",
+      "template_label": "Plantilla",
+      "select_user_error": "Selecciona un usuario.",
+      "templates": {
+        "starter_label": "Starter (free)",
+        "starter_desc": "Dashboard · Marketplace · Perfil",
+        "pro_label": "Pro",
+        "pro_desc": "Battle Card · FSD Accuracy · Live Pulse · Knowledge Graph + free",
+        "enterprise_label": "Enterprise",
+        "enterprise_desc": "API Keys · Bulk CSV · A/B Testing · Data Licensing + pro"
+      }
+    },
+    "toast": {
+      "feature_enabled": "Habilitado · {{key}} → {{user}}",
+      "feature_disabled": "Deshabilitado · {{key}} → {{user}}",
+      "template_applied": "Plantilla {{template}} aplicada · {{count}} features",
+      "error_generic": "Ocurrió un error al actualizar"
+    }
   }
 }

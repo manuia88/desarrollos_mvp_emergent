@@ -160,6 +160,10 @@ from trial_expiry_cron import ensure_trial_alerts_indexes
 app.include_router(superadmin_commercial_router)
 app.include_router(me_feature_flags_router)
 
+# W5.FF3 — UI Feature Visibility Matrix (4 endpoints superadmin)
+from routes.feature_visibility import router as feature_visibility_router
+app.include_router(feature_visibility_router)
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes

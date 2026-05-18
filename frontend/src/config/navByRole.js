@@ -199,6 +199,8 @@ const SUPERADMIN_NAV = [
       { key: 'fraud-patterns',         to: '/superadmin/fraud-patterns',         label: 'Patrones de fraude',     Icon: AlertTriangle },
       { key: 'fraud-alerts',           to: '/superadmin/fraud-alerts',           label: 'Fraud Alerts',           Icon: AlertTriangle },
       { key: 'risk-alerts',            to: '/superadmin/risk-alerts',            label: 'Risk Alerts',            Icon: AlertTriangle },
+      // W5.FF3 · Feature Visibility Matrix (GoHighLevel-style snapshot grants)
+      { key: 'feature-visibility',     to: '/superadmin/feature-visibility',     label: 'Feature Visibility',     Icon: GitMerge },
     ],
   },
   // ─── tier 5 · MONETIZACIÓN verde · 2026-05-18 sidebar fix ─────────────────────────────

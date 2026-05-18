@@ -95,6 +95,8 @@ const SuperadminLeadSources = lazy(() => import('./pages/superadmin/SuperadminLe
 const SuperadminDuplicates    = lazy(() => import('./pages/superadmin/SuperadminDuplicates'));
 const SuperadminFraudPatterns = lazy(() => import('./pages/superadmin/SuperadminFraudPatterns'));
 const SuperadminAuditChain    = lazy(() => import('./pages/superadmin/SuperadminAuditChain'));
+// W5.FF3 — UI Visibility Matrix
+const SuperadminFeatureVisibility = lazy(() => import('./pages/superadmin/SuperadminFeatureVisibility'));
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
@@ -720,6 +722,8 @@ function AppRouter() {
       <Route path="/superadmin/duplicates" element={<AdvisorRoute Page={SuperadminDuplicates} />} />
       <Route path="/superadmin/fraud-patterns" element={<AdvisorRoute Page={SuperadminFraudPatterns} />} />
       <Route path="/superadmin/audit-chain" element={<AdvisorRoute Page={SuperadminAuditChain} />} />
+      {/* W5.FF3 · UI Feature Visibility Matrix */}
+      <Route path="/superadmin/feature-visibility" element={<AdvisorRoute Page={SuperadminFeatureVisibility} />} />
       <Route path="/superadmin/knowledge-graph" element={<AdvisorRoute Page={SuperadminKnowledgeGraph} />} />
       <Route path="/superadmin/live-pulse" element={<AdvisorRoute Page={SuperadminLivePulse} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}

@@ -12,7 +12,7 @@ function sectionFromPath(p) {
   if (p === '/superadmin' || p.startsWith('/superadmin/tenants')) return 'principal';
   if (/^\/superadmin\/(bulk-ingest|data-sources|drive|documents|data-lake|metrics-cube|lead-sources)/.test(p)) return 'datos';
   if (/^\/superadmin\/(scores|drpi|risk-score|investment-explorer|intelligence-hub|trends|phase5-foundation|transactions|avm-accuracy|forecast-accuracy|knowledge-graph|live-pulse)/.test(p)) return 'inteligencia';
-  if (/^\/superadmin\/(health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates)/.test(p)) return 'operacion';
+  if (/^\/superadmin\/(health|observability|phase-y-observability|audit-log|audit-chain|fraud-alerts|fraud-patterns|risk-alerts|compliance|duplicates|feature-visibility)/.test(p)) return 'operacion';
   if (/^\/superadmin\/(ai-cost|commercial|api-keys|vertical-products|data-licensing|cross-sell-analytics)/.test(p)) return 'monetizacion';
   if (/^\/superadmin\/(whatsapp|newsletter|bulletins|landing-leads|partners|onboarding-analytics|free-audit-funnel)/.test(p)) return 'crecimiento';
   if (/^\/superadmin\/primitives-demo/.test(p)) return 'devtools';
