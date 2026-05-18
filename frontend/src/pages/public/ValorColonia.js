@@ -11,6 +11,7 @@ import CtaFooter from '../../components/landing/CtaFooter';
 import ExplainabilityCard from '../../components/avm/ExplainabilityCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
 import NarrativeBlock from '../../components/landing/NarrativeBlock';
+import AvmConfidenceRange from '../../components/shared/AvmConfidenceRange';
 import { fetchAvmLanding } from '../../api/avm';
 
 function fmtMXN(n) {
@@ -161,6 +162,11 @@ export default function ValorColonia() {
 
           {/* Explainability */}
           {sample.explain && <ExplainabilityCard explain={sample.explain} />}
+
+          {/* W5.15 P2 — AVM Confidence Range widget · property_id sintetico misma logica que en fsd persist */}
+          <div style={{ marginTop: 16 }}>
+            <AvmConfidenceRange property_id={`${slug}_m2${Math.round(sample.m2 || 80)}_r${sample.recamaras || 2}_b${sample.banos || 2}_a${sample.antiguedad_anos || 8}`} />
+          </div>
 
           {/* W5.6 Sub-A — Narrativa AI de la zona */}
           <div style={{ marginTop: 16 }}>

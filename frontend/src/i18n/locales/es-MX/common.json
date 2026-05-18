@@ -2985,5 +2985,104 @@
       "last_computed": "Calculado",
       "signals_breakdown": "Senales (delta vs baseline)"
     }
+  },
+  "confianza": {
+    "eyebrow": "TRANSPARENCIA INSTITUCIONAL",
+    "title": "Como medimos nuestra precision",
+    "subtitle": "Reporte tipo Fitch · Auditable en cadena SHA-256 · Datos en vivo",
+    "fallback": {
+      "insufficient": "Data acumulandose · proximo update estimado en {{n}} dias",
+      "no_data": "Aun no hay suficientes cierres registrados",
+      "sample_label": "Cierres acumulados"
+    },
+    "kpis": {
+      "mape_30d": "MAPE 30 dias",
+      "mape_90d": "MAPE 90 dias",
+      "mape_365d": "MAPE 365 dias",
+      "hit_rate": "Hit rate",
+      "sample_size": "Sample size",
+      "confidence_label": "Confianza global"
+    },
+    "sections": {
+      "horizon": "Precision por horizonte",
+      "reliability": "Reliability diagram",
+      "reliability_sub": "Predicted confidence vs actual accuracy · linea ideal y=x",
+      "calibration_error": "Calibration error",
+      "per_zone": "Precision por colonia (top 10)",
+      "top_zones": "Top 3 zonas con mayor precision"
+    },
+    "fields": {
+      "zone": "Colonia",
+      "mape": "MAPE",
+      "hit_rate": "Hit rate",
+      "sample": "Sample",
+      "confidence": "Confianza",
+      "weights_version": "Weights version"
+    },
+    "confidence": {
+      "ALTA": "ALTA",
+      "MEDIA": "MEDIA",
+      "BAJA": "BAJA"
+    },
+    "cta": {
+      "download_pdf": "Descargar reporte PDF",
+      "select_period": "Periodo",
+      "methodology": "Metodologia",
+      "view_zone": "Ver detalle"
+    },
+    "periods": {
+      "30d": "30 dias",
+      "90d": "90 dias",
+      "365d": "365 dias"
+    },
+    "footer": {
+      "audit_trail": "Datos auditables en cadena SHA-256 · DMX 2026",
+      "last_updated": "Ultima actualizacion"
+    },
+    "widget": {
+      "title": "Rango de valor estimado",
+      "subtitle_alta": "Modelo con alta confianza para esta zona",
+      "subtitle_media": "Modelo con confianza media",
+      "subtitle_baja": "Datos thin · usar como referencia",
+      "central": "Estimacion central",
+      "lower": "Rango bajo",
+      "upper": "Rango alto",
+      "fsd_label": "Margen de error",
+      "fsd_tooltip": "Margen de error estimado del modelo: +/-{{pct}}%",
+      "how_calculated": "Como se calcula",
+      "top_features": "Senales principales del modelo",
+      "feature_contrib": "Aportacion al precio",
+      "loading": "Calculando...",
+      "unavailable": "Sin estimacion para este inmueble aun"
+    },
+    "ticker": {
+      "label": "TOP 3 ZONAS POR PRECISION",
+      "metric": "MAPE",
+      "auto_scroll_hint": "Pasa el cursor para pausar"
+    },
+    "fsd_distribution": {
+      "tab_title": "Distribucion FSD",
+      "histogram_title": "Distribucion FSD% ultimos 30 dias",
+      "no_data": "Sin data aun",
+      "zone_weights_title": "Pesos aprendidos por zona",
+      "zone_weights_empty": "Aun no se han optimizado pesos para ninguna zona",
+      "drift_title": "Drift alerts ultimos 30 dias",
+      "drift_empty": "Sin drift detectado",
+      "trigger_drift": "Disparar drift check manual",
+      "trigger_drift_zone": "Zona",
+      "fields": {
+        "r2_score": "R2",
+        "sample_size": "Sample",
+        "optimized_at": "Optimizado",
+        "version": "Version",
+        "delta_pp": "Delta pp",
+        "retrain_status": "Retrain",
+        "triggered_at": "Disparado"
+      }
+    },
+    "errors": {
+      "fetch_failed": "No se pudo cargar la informacion",
+      "rate_limited": "Demasiadas peticiones · espera 1 minuto"
+    }
   }
 }

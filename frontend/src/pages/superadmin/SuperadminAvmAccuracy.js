@@ -12,6 +12,7 @@ import {
   fetchAvmGoldenValidation,
   invalidateAvmCache,
 } from '../../api/avm';
+import FsdDistributionTab from '../../components/superadmin/FsdDistributionTab';
 
 function pct(n) {
   if (n === null || n === undefined) return '—';
@@ -68,6 +69,7 @@ export default function SuperadminAvmAccuracy() {
   const [loadingGolden, setLoadingGolden] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
+  const [activeTab, setActiveTab] = useState('accuracy');
 
   const load = useCallback(async () => {
     try {
@@ -148,6 +150,38 @@ export default function SuperadminAvmAccuracy() {
         </div>
       )}
 
+      {/* W5.15 P2 — Tabs nav */}
+      <nav data-testid="avm-accuracy-tabs" style={{ maxWidth: 1300, margin: '0 auto 18px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {[
+          { key: 'accuracy',         label: 'AVM Accuracy' },
+          { key: 'fsd_distribution', label: 'FSD Distribution' },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            data-testid={`avm-accuracy-tab-${tab.key}`}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              padding: '9px 18px', borderRadius: 9999, cursor: 'pointer',
+              fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700,
+              background: activeTab === tab.key
+                ? 'linear-gradient(90deg, rgba(124,47,255,0.30), rgba(192,38,211,0.25))'
+                : 'rgba(255,255,255,0.04)',
+              color: activeTab === tab.key ? '#e0e7ff' : 'rgba(240,235,224,0.65)',
+              border: activeTab === tab.key
+                ? '1px solid rgba(124,47,255,0.55)'
+                : '1px solid rgba(255,255,255,0.10)',
+            }}>
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === 'fsd_distribution' ? (
+        <div style={{ maxWidth: 1300, margin: '0 auto' }}>
+          <FsdDistributionTab />
+        </div>
+      ) : (
+      <>
       <section style={{ maxWidth: 1300, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 22 }}>
         <div style={kpi} data-testid="kpi-zones-modeled">
           <div style={{ fontSize: 10, color: 'rgba(165,180,252,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zonas modeladas</div>
@@ -334,6 +368,8 @@ export default function SuperadminAvmAccuracy() {
             </div>
           </div>
         </section>
+      )}
+      </>
       )}
     </div>
   );

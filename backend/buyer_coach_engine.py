@@ -281,6 +281,24 @@ async def respond(db, conversation_id: str, user_message: str) -> Dict[str, Any]
     if not assistant_reply:
         assistant_reply = _heuristic_response(stage, user_message)
 
+    # W5.15 P2 Sub-E — Prepend FSD confidence si el contexto incluye property_id
+    try:
+        property_id = (conv.get("context") or {}).get("property_id") or conv.get("property_id")
+        if property_id:
+            pred = await db.avm_predictions.find_one(
+                {"property_id": property_id}, {"_id": 0},
+                sort=[("prediction_date_dt", -1)],
+            )
+            if pred and pred.get("fsd_value"):
+                prepend = (
+                    f"Valor estimado: ${pred['fsd_value']:,.0f} "
+                    f"(+/-{pred.get('fsd_pct', 0):.1f}% · confianza {pred.get('confidence_lvl', 'MEDIA')}). "
+                )
+                if not assistant_reply.startswith("Valor estimado"):
+                    assistant_reply = prepend + assistant_reply
+    except Exception as _exc:
+        log.debug(f"[buyer_coach] fsd prepend skipped: {_exc}")
+
     messages.append({"role": "assistant", "content": assistant_reply, "ts": now.isoformat()})
 
     # Infer DISC and auto-advance stage (every 3 user messages)
