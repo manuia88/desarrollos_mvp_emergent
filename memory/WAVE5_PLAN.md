@@ -54,7 +54,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.12** | Knowledge Graph completo | ✅ | P1 Backend `bb49837` + P2 UI superadmin `babacae` + P3 consumers `aa60f3f` + templates fix `32ceab9` (60h total · 14 templates · 5 consumers integrados · cron daily 02/03/04 UTC · cero crash si KG down) |
 | ~~**W5.13**~~ | Integrations expand | ➡️ W6 | Movido founder 2026-05-16 |
 | ~~**W5.14**~~ | Reviews residentes | ➡️ W6 | Movido founder 2026-05-16 |
-| **W5.15** | FSD + Accuracy dashboard | ⬜ | ~25h · revisar solape W5.1 Sub-B |
+| **W5.15** | FSD per-property + Accuracy (Fitch-style) | 🟡 | Plan C founder approved 26h · spec canónico `memory/W5_15_FSD_SPEC.md` · P1 backend 16h + P2 UI 10h · 7 upgrades incluyen drift detector ML + self-tuning weights · FSD=Forecast Standard Deviation NO "Full-self-deploy" |
 | **W5.16** | Marketing distribution (MCP) | ⬜ | ~10h |
 | **W5.17** | Virtual staging IA | ⬜ | 8h |
 | **W5.18** | Dubai full (Phase 11) | ⏸ | 38h · expansión H2 fase 2 (decisión separada) |
@@ -74,14 +74,14 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 1. **W5.ASR.1** WhatsApp QR STUB (40-50h) ← próximo
 2. W5.11 Entity Resolution + Governance (~30h) ← próximo
 7. W5.11 Entity Resolution + Governance (~30h)
-8. W5.12 Knowledge Graph (~35h)
-9. W5.5 Live Pulse STUB (~25h)
-10. W5.9 Climate Migration STUB (~25h)
-11. W5.15 FSD + Accuracy (~25h)
-12. W5.17 Virtual staging (8h)
-13. W5.19 Probability UX (6h)
-14. W5.23 Dev Battle Card (12h)
-15. W5.16 Marketing distribution MCP (~10h)
+8. W5.12 Knowledge Graph (~60h) ✅
+9. W5.5 Live Pulse STUB (~27h) ✅
+10. **W5.15 FSD + Accuracy (~25h) ← AHORA**
+11. W5.17 Virtual staging (8h)
+12. W5.19 Probability UX (6h)
+13. W5.23 Dev Battle Card (12h)
+14. W5.16 Marketing distribution MCP (~10h)
+15. W5.9 Climate Migration STUB (~25h-33h) **DIFERIDO al final W5 · founder decision 2026-05-17 (revisar fuentes gov MX maduras + decisión upgrade Apify $49)**
 16. W5.10 Social/Ads STUB (233h)
 17. W5.20-21 Insights Layer (41h)
 18. W5.22+ Phase Z Studio Marketing (224h)
