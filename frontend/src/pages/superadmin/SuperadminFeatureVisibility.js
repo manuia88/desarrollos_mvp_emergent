@@ -1,18 +1,20 @@
 // W5.FF3 · SuperadminFeatureVisibility — UI Matrix
 // Ruta: /superadmin/feature-visibility · superadmin only · sección Operación (naranja).
 // Cero hex hardcoded · usa var(--theme*) / var(--cream*) / var(--border).
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import { PageHeader, Card, Toast } from '../../components/advisor/primitives';
-import { RefreshCw, Search, Layers, Filter } from 'lucide-react';
+import { RefreshCw, Search, Layers, Filter, FlaskConical, Upload } from 'lucide-react';
 import FeatureMatrixGrid from '../../components/superadmin/FeatureMatrixGrid';
 import FeatureTemplateModal from '../../components/superadmin/FeatureTemplateModal';
+import ABExperimentsModal from '../../components/superadmin/ABExperimentsModal';
 import {
   fetchCatalog,
   fetchUsersWithFeatures,
   grantFeature,
   applyTemplate,
   fetchUsage,
+  uploadBulkCSV,
 } from '../../api/feature_visibility';
 
 const ROLE_FILTERS = [
@@ -77,6 +79,10 @@ export default function SuperadminFeatureVisibility() {
   const [toast, setToast] = useState(null);
   // W5.FF4 · Mini-widget usage analytics (top features últimos 7d)
   const [usageSummary, setUsageSummary] = useState(null);
+  // W5.FF5 · A/B modal + Bulk CSV
+  const [abOpen, setAbOpen] = useState(false);
+  const [csvErrors, setCsvErrors] = useState(null);
+  const csvInputRef = useRef(null);
 
   // Initial catalog fetch (once)
   useEffect(() => {
@@ -168,6 +174,34 @@ export default function SuperadminFeatureVisibility() {
       text: `Plantilla ${template} aplicada · ${res.granted_count || 0} features`,
     });
     setRefreshKey(k => k + 1);
+  }
+
+  // W5.FF5 · Bulk CSV upload
+  async function handleCsvSelected(ev) {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    // Clear input so same file re-select fires onChange next time
+    if (csvInputRef.current) csvInputRef.current.value = '';
+    setToast({ kind: 'info', text: `Procesando ${file.name}…` });
+    setCsvErrors(null);
+    try {
+      const res = await uploadBulkCSV(file);
+      setToast({
+        kind: 'success',
+        text: `CSV procesado · ${res.rows_succeeded || 0}/${res.rows_processed || 0} filas aplicadas`,
+      });
+      if ((res.errors || []).length > 0) {
+        setCsvErrors(res.errors);
+      }
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      if (e.status === 422 && e.body?.detail?.rows_with_errors) {
+        setCsvErrors(e.body.detail.rows_with_errors);
+        setToast({ kind: 'error', text: `Validación fallida · ${e.body.detail.rows_with_errors.length} errores` });
+      } else {
+        setToast({ kind: 'error', text: e.message || 'Error CSV' });
+      }
+    }
   }
 
   const stats = useMemo(() => {
@@ -311,6 +345,58 @@ export default function SuperadminFeatureVisibility() {
             <Layers size={14} />
             Aplicar plantilla
           </button>
+          {/* W5.FF5 · A/B Tests button */}
+          <button
+            data-testid="open-ab-modal"
+            onClick={() => setAbOpen(true)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 8,
+              background: 'rgba(var(--theme-rgb), 0.10)',
+              border: '1px solid rgba(var(--theme-rgb), 0.30)',
+              color: 'var(--theme-2)',
+              fontFamily: 'DM Sans',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <FlaskConical size={14} />
+            A/B Tests
+          </button>
+          {/* W5.FF5 · Bulk CSV upload button */}
+          <button
+            data-testid="open-csv-upload"
+            onClick={() => csvInputRef.current && csvInputRef.current.click()}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 8,
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              color: 'var(--cream-2)',
+              fontFamily: 'DM Sans',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <Upload size={14} />
+            Importar CSV
+          </button>
+          <input
+            ref={csvInputRef}
+            data-testid="csv-file-input"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleCsvSelected}
+            style={{ display: 'none' }}
+          />
           <button
             data-testid="refresh-btn"
             onClick={() => setRefreshKey(k => k + 1)}
@@ -439,6 +525,105 @@ export default function SuperadminFeatureVisibility() {
         users={users}
         onApply={handleApplyTemplate}
       />
+
+      {/* W5.FF5 · A/B Experiments modal */}
+      <ABExperimentsModal
+        open={abOpen}
+        onClose={() => setAbOpen(false)}
+        catalog={catalog}
+        onToast={setToast}
+      />
+
+      {/* W5.FF5 · CSV errors modal (simple list) */}
+      {csvErrors && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: 16,
+          }}
+        >
+          <div style={{
+            width: '100%', maxWidth: 560, maxHeight: '80vh', overflow: 'auto',
+            background: 'var(--bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 14,
+            padding: 22,
+            fontFamily: 'DM Sans',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{
+                fontFamily: 'Outfit',
+                fontWeight: 800,
+                fontSize: 16,
+                color: 'var(--cream)',
+                margin: 0,
+              }}>
+                Errores en CSV ({csvErrors.length})
+              </h3>
+              <button
+                data-testid="csv-errors-close"
+                onClick={() => setCsvErrors(null)}
+                style={{
+                  background: 'transparent', border: 'none',
+                  color: 'var(--cream-2)', cursor: 'pointer', fontSize: 18, padding: 4,
+                }}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{
+                    padding: '6px 10px',
+                    fontSize: 10,
+                    color: 'var(--cream-3)',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    borderBottom: '1px solid var(--border)',
+                    textAlign: 'left',
+                  }}>Fila</th>
+                  <th style={{
+                    padding: '6px 10px',
+                    fontSize: 10,
+                    color: 'var(--cream-3)',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    borderBottom: '1px solid var(--border)',
+                    textAlign: 'left',
+                  }}>Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {csvErrors.map((e, i) => (
+                  <tr key={`${e.row}-${i}`}>
+                    <td style={{
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      color: 'var(--cream)',
+                      borderBottom: '1px solid var(--border)',
+                      whiteSpace: 'nowrap',
+                    }}>{e.row}</td>
+                    <td style={{
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      color: 'var(--cream-2)',
+                      borderBottom: '1px solid var(--border)',
+                    }}>{e.error}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <Toast

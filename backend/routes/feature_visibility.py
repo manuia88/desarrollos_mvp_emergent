@@ -353,3 +353,276 @@ async def get_feature_usage(request: Request, days: int = Query(7, ge=1, le=90))
         "period_days": days,
         "summary": summary,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# W5.FF5 · A/B Testing endpoints + Bulk CSV import (appended · NO touch above)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from datetime import datetime as _dt, timezone as _tz, timedelta as _td  # noqa: E402
+
+
+class CreateExperimentBody(BaseModel):
+    feature_key: str = Field(..., min_length=1)
+    name: str = Field(..., min_length=1, max_length=200)
+    split_pct: int = Field(50, ge=0, le=100)
+    hypothesis: str = Field("", max_length=500)
+    expires_in_days: Optional[int] = Field(None, ge=1, le=365)
+
+
+@router.post(PREFIX + "/ab-experiments")
+async def ab_create_experiment(request: Request, body: CreateExperimentBody):
+    _rate_limit(request)
+    actor = await require_superadmin(request)
+    db = _db(request)
+    from ab_testing_engine import create_experiment, ensure_indexes
+    await ensure_indexes(db)
+    expires_at = None
+    if body.expires_in_days:
+        expires_at = (_dt.now(_tz.utc) + _td(days=int(body.expires_in_days))).isoformat()
+    doc = await create_experiment(
+        db,
+        feature_key=body.feature_key,
+        name=body.name,
+        split_pct=body.split_pct,
+        hypothesis=body.hypothesis,
+        expires_at=expires_at,
+        actor_user_id=getattr(actor, "user_id", None),
+    )
+    return {"ok": True, "experiment": doc}
+
+
+@router.get(PREFIX + "/ab-experiments")
+async def ab_list_experiments(
+    request: Request,
+    status: Optional[str] = Query(None, pattern=r"^(active|stopped)$"),
+    feature_key: Optional[str] = Query(None),
+):
+    _rate_limit(request)
+    await require_superadmin(request)
+    db = _db(request)
+    from ab_testing_engine import list_experiments
+    items = await list_experiments(db, status=status, feature_key=feature_key)
+    return {"items": items, "count": len(items)}
+
+
+@router.get(PREFIX + "/ab-experiments/{experiment_id}/stats")
+async def ab_get_experiment_stats(request: Request, experiment_id: str):
+    _rate_limit(request)
+    await require_superadmin(request)
+    db = _db(request)
+    from ab_testing_engine import compute_experiment_stats
+    stats = await compute_experiment_stats(db, experiment_id)
+    return stats
+
+
+@router.post(PREFIX + "/ab-experiments/{experiment_id}/stop")
+async def ab_stop_experiment(request: Request, experiment_id: str):
+    _rate_limit(request)
+    actor = await require_superadmin(request)
+    db = _db(request)
+    from ab_testing_engine import stop_experiment
+    res = await stop_experiment(
+        db, experiment_id, actor_user_id=getattr(actor, "user_id", None)
+    )
+    return res
+
+
+# ─── W5.FF5 Sub-B · Bulk CSV import ───────────────────────────────────────────
+# Separate rate-limit bucket for bulk (5 req/hour/IP · expensive op).
+_BULK_RATE_BUCKET: Dict[str, deque] = defaultdict(lambda: deque(maxlen=5))
+_BULK_RATE_WINDOW_S = 3600
+
+
+def _bulk_rate_limit(request: Request, limit: int = 5) -> None:
+    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if not ip and request.client:
+        ip = request.client.host
+    ip = ip or "unknown"
+    bkt = _BULK_RATE_BUCKET[ip]
+    now = time.time()
+    while bkt and (now - bkt[0]) > _BULK_RATE_WINDOW_S:
+        bkt.popleft()
+    if len(bkt) >= limit:
+        raise HTTPException(status_code=429, detail=f"Bulk CSV rate limit · {limit}/hora por IP")
+    bkt.append(now)
+
+
+_MAX_BULK_SIZE_BYTES = 1 * 1024 * 1024  # 1 MB
+_MAX_BULK_ROWS = 200
+_VALID_BOOL = {
+    "1": True, "true": True, "True": True, "TRUE": True, "yes": True, "y": True,
+    "0": False, "false": False, "False": False, "FALSE": False, "no": False, "n": False,
+}
+
+
+@router.post(PREFIX + "/bulk-csv")
+async def ab_bulk_csv_upload(request: Request):
+    """Bulk CSV import · multipart/form-data field `file` · header obligatorio.
+
+    Schema: user_id, feature_key, enabled (header line required, order flexible).
+    Transactional: any invalid row → 422 con detail.rows_with_errors · CERO writes.
+    """
+    _bulk_rate_limit(request)
+    actor = await require_superadmin(request)
+    db = _db(request)
+
+    # Parse multipart (FastAPI Request.form is async)
+    form = await request.form()
+    file_field = form.get("file")
+    if file_field is None or not hasattr(file_field, "read"):
+        raise HTTPException(400, "file field requerido (multipart/form-data)")
+
+    raw = await file_field.read()
+    if not raw:
+        raise HTTPException(400, "file vacío")
+    if len(raw) > _MAX_BULK_SIZE_BYTES:
+        raise HTTPException(413, f"file > {_MAX_BULK_SIZE_BYTES} bytes")
+
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            text = raw.decode("latin-1")
+        except Exception:
+            raise HTTPException(400, "encoding no soportado · usa UTF-8")
+
+    import csv as _csv
+    from io import StringIO
+    reader = _csv.DictReader(StringIO(text))
+    headers = set(h.strip().lower() for h in (reader.fieldnames or []))
+    required = {"user_id", "feature_key", "enabled"}
+    if not required.issubset(headers):
+        raise HTTPException(
+            400,
+            f"header inválido · requeridos: {sorted(required)} · recibidos: {sorted(headers) or 'none'}",
+        )
+
+    # Validate all rows BEFORE any writes (transactional intent)
+    rows: List[Dict[str, Any]] = []
+    errors: List[Dict[str, Any]] = []
+    extended_keys = {f["key"] for f in ff.get_extended_catalog()}
+
+    for idx, raw_row in enumerate(reader, start=2):  # start=2: header is line 1
+        if idx - 1 > _MAX_BULK_ROWS:
+            errors.append({"row": idx, "error": f"max rows {_MAX_BULK_ROWS} excedido"})
+            break
+        row = {(k or "").strip().lower(): (v or "").strip() for k, v in raw_row.items() if k}
+        user_id = row.get("user_id", "")
+        feature_key = row.get("feature_key", "")
+        enabled_raw = row.get("enabled", "")
+        if not user_id:
+            errors.append({"row": idx, "error": "user_id vacío"})
+            continue
+        if not feature_key:
+            errors.append({"row": idx, "error": "feature_key vacío"})
+            continue
+        if feature_key not in extended_keys:
+            errors.append({"row": idx, "error": f"feature_key desconocida: {feature_key}"})
+            continue
+        if enabled_raw not in _VALID_BOOL:
+            errors.append({"row": idx, "error": f"enabled inválido: '{enabled_raw}' (use 0/1/true/false)"})
+            continue
+        rows.append({
+            "row": idx,
+            "user_id": user_id,
+            "feature_key": feature_key,
+            "enabled": _VALID_BOOL[enabled_raw],
+        })
+
+    if errors:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "validation_failed",
+                "rows_with_errors": errors,
+                "valid_rows_skipped": len(rows),
+            },
+        )
+
+    # Resolve tenant_id per user_id (lookup users collection · fallback to user_id)
+    user_ids = list({r["user_id"] for r in rows})
+    tenant_by_user: Dict[str, str] = {}
+    try:
+        cursor = db.users.find({"user_id": {"$in": user_ids}}, {"_id": 0, "user_id": 1, "tenant_id": 1})
+        async for u in cursor:
+            tenant_by_user[u.get("user_id")] = u.get("tenant_id") or u.get("user_id")
+    except Exception as exc:
+        log.warning(f"[bulk_csv] users lookup failed (non-fatal): {exc}")
+
+    actor_id = getattr(actor, "user_id", None)
+    now_iso = _dt.now(_tz.utc).isoformat()
+    import secrets as _secrets
+
+    rows_succeeded = 0
+    row_errors: List[Dict[str, Any]] = []
+
+    for r in rows:
+        uid = r["user_id"]
+        fk = r["feature_key"]
+        enabled = r["enabled"]
+        tid = tenant_by_user.get(uid) or uid
+        try:
+            await db.tenant_features.update_one(
+                {"tenant_id": tid, "feature_key": fk},
+                {
+                    "$set": {
+                        "tenant_id": tid,
+                        "feature_key": fk,
+                        "enabled": enabled,
+                        "enabled_at": now_iso if enabled else None,
+                        "enabled_by": actor_id,
+                        "source": "bulk_csv",
+                        "updated_at": now_iso,
+                    },
+                    "$setOnInsert": {
+                        "id": "tf_" + _secrets.token_urlsafe(8),
+                        "created_at": now_iso,
+                    },
+                },
+                upsert=True,
+            )
+            rows_succeeded += 1
+            # Audit per row (best-effort)
+            try:
+                await audit_log(
+                    db,
+                    actor={"user_id": actor_id or "superadmin", "role": "superadmin"},
+                    action="feature_visibility_change",
+                    entity_type="tenant_feature",
+                    entity_id=f"{tid}:{fk}",
+                    before=None,
+                    after={
+                        "by": actor_id,
+                        "user_id": uid,
+                        "tenant_id": tid,
+                        "feature_key": fk,
+                        "enabled": enabled,
+                        "source": "bulk_csv",
+                    },
+                    request=request,
+                )
+            except Exception:
+                pass
+        except Exception as exc:
+            row_errors.append({"row": r["row"], "error": str(exc)[:160]})
+
+    # Invalidate caches for affected tenants + users
+    affected_tenants = set(tenant_by_user.get(uid, uid) for uid in user_ids)
+    for tid in affected_tenants:
+        try:
+            ff.cache_invalidate(tid)
+        except Exception:
+            pass
+    for uid in user_ids:
+        try:
+            fg.cache_invalidate(user_id=uid)
+        except Exception:
+            pass
+
+    return {
+        "ok": True,
+        "rows_processed": len(rows),
+        "rows_succeeded": rows_succeeded,
+        "errors": row_errors,
+    }

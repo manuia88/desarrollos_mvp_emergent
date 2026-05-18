@@ -74,29 +74,64 @@ async def get_user_features(db, user_id: str, tenant_id: str) -> List[str]:
     if cached is not None:
         return cached
     # W5.FF2 primary path: adapter merge.
+    merged: List[str] = []
     try:
         from feature_legacy_adapter import merge_legacy_with_flags  # lazy circular-safe
         merged = await merge_legacy_with_flags(db, user_id, tenant_id)
-        if merged:
-            _cache_set(user_id, tenant_id, merged)
-            return merged
-        # adapter returned [] → fall through to W5.FF1 backward-compat path.
     except Exception as exc:
         _log.warning(
             f"[feature_gate] legacy adapter failed tenant={tenant_id} err={exc} · fallback W5.FF1 path"
         )
 
-    # W5.FF1 backward-compat path: solo explicit grants.
+    if not merged:
+        # W5.FF1 backward-compat path: solo explicit grants.
+        try:
+            flags = await ff.get_tenant_flags(db, tenant_id)
+            merged = [k for k, d in flags.items() if ff._is_active(d)]
+        except Exception as exc:
+            _log.warning(
+                f"[feature_gate] get_user_features failed tenant={tenant_id} err={exc} · FAIL-OPEN []"
+            )
+            return []
+
+    # W5.FF5 · A/B test filtering: if active experiment exists for a feature
+    # and the user's deterministic variant is "B", hide it from the result.
+    # FAIL-OPEN: any error → keep merged as-is (no filtering applied).
+    final_features = merged
     try:
-        flags = await ff.get_tenant_flags(db, tenant_id)
-        enabled = [k for k, d in flags.items() if ff._is_active(d)]
-        _cache_set(user_id, tenant_id, enabled)
-        return enabled
+        from ab_testing_engine import (
+            get_active_experiments_for_features as _ab_active,
+            assign_variant as _ab_assign,
+            record_assignment as _ab_record,
+        )
+        active_exps = await _ab_active(db, list(merged))
+        if active_exps:
+            filtered: List[str] = []
+            for fk in merged:
+                exp = active_exps.get(fk)
+                if not exp:
+                    filtered.append(fk)
+                    continue
+                variant = _ab_assign(
+                    user_id, exp.get("id") or fk, exp.get("split_pct") or 50
+                )
+                # Fire-and-forget assignment record (no await for response).
+                try:
+                    import asyncio as _asyncio
+                    _asyncio.create_task(_ab_record(db, user_id, exp.get("id"), variant))
+                except Exception:
+                    pass
+                if variant == "A":
+                    filtered.append(fk)
+                # variant "B" → feature hidden (control arm)
+            final_features = filtered
     except Exception as exc:
         _log.warning(
-            f"[feature_gate] get_user_features failed tenant={tenant_id} err={exc} · FAIL-OPEN []"
+            f"[feature_gate] A/B filter failed user={user_id} err={exc} · keep merged"
         )
-        return []
+
+    _cache_set(user_id, tenant_id, final_features)
+    return final_features
 
 
 _TIER_ORDER = {"free": 0, "basic": 0, "pro": 1, "enterprise": 2}

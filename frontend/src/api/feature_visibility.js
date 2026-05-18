@@ -65,3 +65,63 @@ export async function fetchUsage({ days = 7 } = {}) {
   const qs = new URLSearchParams({ days: String(days) });
   return _j(await fetch(`${BASE}/usage?${qs.toString()}`, { headers: _h(), credentials: 'include' }));
 }
+
+// ─── W5.FF5 · A/B Testing wrappers ─────────────────────────────────────────
+export async function createABExperiment(body) {
+  return _j(await fetch(`${BASE}/ab-experiments`, {
+    method: 'POST',
+    headers: _h(),
+    credentials: 'include',
+    body: JSON.stringify(body),
+  }));
+}
+
+export async function listABExperiments({ status = 'active', feature_key } = {}) {
+  const qs = new URLSearchParams();
+  if (status) qs.set('status', status);
+  if (feature_key) qs.set('feature_key', feature_key);
+  return _j(await fetch(`${BASE}/ab-experiments?${qs.toString()}`, {
+    headers: _h(), credentials: 'include',
+  }));
+}
+
+export async function getExperimentStats(experimentId) {
+  return _j(await fetch(`${BASE}/ab-experiments/${encodeURIComponent(experimentId)}/stats`, {
+    headers: _h(), credentials: 'include',
+  }));
+}
+
+export async function stopExperiment(experimentId) {
+  return _j(await fetch(`${BASE}/ab-experiments/${encodeURIComponent(experimentId)}/stop`, {
+    method: 'POST',
+    headers: _h(),
+    credentials: 'include',
+  }));
+}
+
+// ─── W5.FF5 · Bulk CSV upload ──────────────────────────────────────────────
+export async function uploadBulkCSV(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  // Note: NO Content-Type header · browser sets multipart boundary automáticamente.
+  const r = await fetch(`${BASE}/bulk-csv`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('dmx_token') || ''}` },
+    credentials: 'include',
+    body: fd,
+  });
+  if (!r.ok) {
+    let body = null;
+    let msg = `HTTP ${r.status}`;
+    try {
+      body = await r.json();
+      if (typeof body?.detail === 'string') msg = body.detail;
+      else if (body?.detail?.error) msg = body.detail.error;
+    } catch { /* non-JSON */ }
+    const e = new Error(msg);
+    e.status = r.status;
+    e.body = body;
+    throw e;
+  }
+  return r.json();
+}
