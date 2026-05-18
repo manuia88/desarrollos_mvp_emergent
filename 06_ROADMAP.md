@@ -422,7 +422,7 @@ GET /v1/portfolio/exposure                  análisis cartera
 3. Si conflict: "Create Branch & Push" → Claude Code mergea PR via gh CLI
 4. Cada batch ship → Claude Code marca ✅ en PRD.md + verifica gaps
 5. Standards file: `/app/memory/prompt_standards.md`
-6. URL preview: `https://pipeline-flow-10.preview.emergentagent.com`
+6. URL preview: `https://live-pulse-zone.preview.emergentagent.com`
 
 ---
 
