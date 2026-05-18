@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight, Sparkle } from '../icons';
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
 import { ComplianceBadgeOverlay } from './ComplianceBadge';
-import { Z } from '../../styles/zIndex';
+import ProbabilityBadge from '../shared/ProbabilityBadge';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -261,7 +261,7 @@ export default function DevelopmentCard({ dev, index = 0 }) {
           ))}
         </div>
 
-        {/* Footer: developer */}
+        {/* Footer: developer + probability badge */}
         <div style={{
           marginTop: 'auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -285,6 +285,13 @@ export default function DevelopmentCard({ dev, index = 0 }) {
               </span>
             </div>
           </div>
+          {/* W5.19 — Probability Badge compacto: sells_complete */}
+          <ProbabilityBadge
+            type="sells_complete"
+            entity_id={dev.id}
+            params={{ months: 12 }}
+            format="compact"
+          />
         </div>
       </div>
     </Link>

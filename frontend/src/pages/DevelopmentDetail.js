@@ -19,6 +19,7 @@ import NarrativeBlock from '../components/landing/NarrativeBlock';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import AvmConfidenceRange from '../components/shared/AvmConfidenceRange';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
+import ProbabilityBar from '../components/shared/ProbabilityBar';
 import AtlaxBubble from '../components/landing/AtlaxBubble';
 // Phase 4 Batch 27 — Mortgage + Tour + WA CTA
 import MortgageCalculator from '../components/marketplace/MortgageCalculator';
@@ -340,6 +341,14 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
 
             <div>
               <Sidebar dev={dev} selectedUnit={selectedUnit} onLogin={onLogin} user={user} />
+              {/* W5.19 — Probability Bar: sells_complete 12m */}
+              <div style={{ marginTop: 14 }}>
+                <ProbabilityBar
+                  type="sells_complete"
+                  entity_id={dev.id}
+                  params={{ months: 12 }}
+                />
+              </div>
               {isAdvisor && (
                 <button
                   data-testid="briefing-ie-cta"

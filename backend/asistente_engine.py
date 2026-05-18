@@ -202,8 +202,21 @@ TOOLS Y PARAMS:
     devuelve: filas del grafo de conocimiento (relaciones multi-entidad). Si KG no disponible retorna fallback_required=true y debes responder con tools 1-18.
     Usar SOLO cuando la pregunta involucra RELACIONES multi-entidad (compradores cross-project, proyectos similares, asesores con patrones, zonas con compradores comunes, devs dominantes). NO uses para consultas simples de 1 entidad (esas usan tools 1-18).
 
-REGLAS:
-- Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
+20. query_probability
+    params: {{ "type": str ("sells_complete"|"drpi_up"|"closes_below_listed"), "id": str (entity_id), "months": int (1-24, default 3), "listed": float (solo para closes_below_listed) }}
+    devuelve: probability_pct (0-100), confidence_lvl (ALTA|MEDIA|BAJA), sources_breakdown, explanation_es, insufficient_data.
+    Usar cuando: user pregunte probabilidad de eventos inmobiliarios (¿cuánto crecerá X?, ¿venderán todo el proyecto?, ¿cierra debajo del precio?).
+
+══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
+Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
+  - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
+  - ¿Subirá el DRPI/precio en la zona? → type=drpi_up, id=zone_slug, months=3
+  - ¿Puedo cerrar por debajo del precio listado? → type=closes_below_listed, id=property_id, listed=precio_listado
+SIEMPRE incluye sources_breakdown en tu respuesta con formato Robinhood transparency.
+Ejemplo response: "82% (Forecast 65% + WhatIf 25% + AVM 10% · confianza ALTA)".
+NUNCA inventes números. Si insufficient_data=true → di "los datos para esa zona/proyecto están acumulándose, no tengo suficiente historial aún."
+
+REGLAS:- Solo incluye <tool_call> si REALMENTE necesitas los datos para responder
 - Máximo 2 tool_calls por respuesta
 - Si user pregunta zona/precio/comparables → usa tools (1, 2 o 3)
 - Si user pregunta visión general / mercado / panorama / CDMX → usa get_market_overview_cdmx
@@ -294,6 +307,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W5.12 Parte 3 — Tool 19: Knowledge Graph relational queries
         if tool_name == "query_knowledge_graph":
             return await _tool_query_knowledge_graph(db, params)
+        # W5.19 — Tool 20: Probability UX (Kalshi-inspired)
+        if tool_name == "query_probability":
+            return await _tool_query_probability(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1280,3 +1296,80 @@ async def _tool_query_knowledge_graph(db, params: Dict[str, Any]) -> Dict[str, A
     except Exception as exc:
         log.warning(f"[asistente_tool] query_knowledge_graph failed: {exc}")
         return {"error": str(exc), "source": "kg_consumer", "kg_unavailable": True, "fallback_required": True}
+
+
+
+# ─── Tool 20: Probability UX ─────────────────────────────────────────────────
+
+_PROBABILITY_TYPES_WHITELIST = {"sells_complete", "drpi_up", "closes_below_listed"}
+
+
+async def _tool_query_probability(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.19 Tool 20 — Consulta probabilidades de eventos inmobiliarios.
+
+    Tipos soportados:
+      sells_complete: ¿el proyecto venderá todas sus unidades en N meses?
+      drpi_up: ¿el DRPI de la zona subirá en N meses?
+      closes_below_listed: ¿el cierre ocurrirá por debajo del precio listado?
+    """
+    prob_type = (params.get("type") or "").strip()
+    entity_id = (params.get("id") or params.get("entity_id") or "").strip()
+    months = int(params.get("months") or 3)
+    listed = params.get("listed")
+
+    if prob_type not in _PROBABILITY_TYPES_WHITELIST:
+        return {
+            "error": f"type '{prob_type}' no autorizado. Tipos: {sorted(_PROBABILITY_TYPES_WHITELIST)}",
+            "source": "probability_engine",
+        }
+    if not entity_id:
+        return {"error": "id/entity_id requerido", "source": "probability_engine"}
+    if months < 1 or months > 24:
+        months = 3
+
+    try:
+        from probability_engine import (
+            compute_sells_complete,
+            compute_zone_drpi_up,
+            compute_closes_below_listed,
+        )
+        from audit_immutable_engine import log as audit_log
+
+        if prob_type == "sells_complete":
+            result = await compute_sells_complete(db, entity_id, months)
+        elif prob_type == "drpi_up":
+            result = await compute_zone_drpi_up(db, entity_id, months)
+        else:  # closes_below_listed
+            if listed is None:
+                return {
+                    "error": "Param 'listed' requerido para closes_below_listed",
+                    "source": "probability_engine",
+                }
+            result = await compute_closes_below_listed(db, entity_id, float(listed))
+
+        # Audit caller_module
+        try:
+            await audit_log(
+                db,
+                actor={"user_id": "atlax_public", "role": "asistente"},
+                action="probability_query",
+                entity_type=prob_type,
+                entity_id=entity_id,
+                before=None,
+                after={
+                    "probability_pct": result.get("probability_pct"),
+                    "caller_module": "asistente_atlax_probability",
+                },
+            )
+        except Exception:
+            pass
+
+        return {
+            "source": "probability_engine",
+            "type": prob_type,
+            "entity_id": entity_id,
+            **result,
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_probability failed: {exc}")
+        return {"error": str(exc), "source": "probability_engine", "insufficient_data": True}

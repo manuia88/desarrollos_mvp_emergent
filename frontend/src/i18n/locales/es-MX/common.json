@@ -3084,5 +3084,52 @@
       "fetch_failed": "No se pudo cargar la informacion",
       "rate_limited": "Demasiadas peticiones · espera 1 minuto"
     }
+  },
+  "probability": {
+    "title": {
+      "sells_12m": "Probabilidad venta completa 12m",
+      "drpi_3m": "Probabilidad subida DRPI 3m",
+      "closes_below": "Probabilidad cierre bajo precio listado"
+    },
+    "format": {
+      "compact": "compacto",
+      "medium": "medio"
+    },
+    "confidence": {
+      "ALTA": "Confianza ALTA",
+      "MEDIA": "Confianza MEDIA",
+      "BAJA": "Confianza BAJA"
+    },
+    "sources": {
+      "AVM": "AVM",
+      "Forecast": "Forecast",
+      "WhatIf": "WhatIf",
+      "FSD": "FSD",
+      "Comparables": "Comparables"
+    },
+    "breakdown": {
+      "label": "Desglose de fuentes",
+      "contribution_pct": "Contribucion",
+      "value_used": "Valor utilizado",
+      "explanation": "Explicacion del calculo"
+    },
+    "tooltip": {
+      "header": "Probabilidad basada en datos reales",
+      "footer_updated": "Actualizado hace {{time}}",
+      "sources_label": "Fuentes"
+    },
+    "badge": {
+      "sells_complete": "{{pct}}% vende",
+      "drpi_up": "{{pct}}% sube",
+      "closes_below_listed": "{{pct}}% cierre"
+    },
+    "fallback": {
+      "insufficient_data": "Prediccion no disponible",
+      "data_acumulando": "Prediccion no disponible · data acumulandose"
+    },
+    "notification": {
+      "threshold_crossed_title": "Probabilidad de subida DRPI cruzo umbral",
+      "threshold_crossed_body": "La probabilidad de subida en {{zone}} paso de {{prev}}% a {{curr}}% (+{{delta}} pp)"
+    }
   }
 }

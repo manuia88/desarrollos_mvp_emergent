@@ -12,6 +12,7 @@ import ExplainabilityCard from '../../components/avm/ExplainabilityCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
 import NarrativeBlock from '../../components/landing/NarrativeBlock';
 import AvmConfidenceRange from '../../components/shared/AvmConfidenceRange';
+import ProbabilityBar from '../../components/shared/ProbabilityBar';
 import { fetchAvmLanding } from '../../api/avm';
 
 function fmtMXN(n) {
@@ -166,6 +167,16 @@ export default function ValorColonia() {
           {/* W5.15 P2 — AVM Confidence Range widget · property_id sintetico misma logica que en fsd persist */}
           <div style={{ marginTop: 16 }}>
             <AvmConfidenceRange property_id={`${slug}_m2${Math.round(sample.m2 || 80)}_r${sample.recamaras || 2}_b${sample.banos || 2}_a${sample.antiguedad_anos || 8}`} />
+          </div>
+
+          {/* W5.19 — Probability Bar: closes_below_listed */}
+          <div style={{ marginTop: 12 }}>
+            <ProbabilityBar
+              type="closes_below_listed"
+              entity_id={`${slug}_m2${Math.round(sample.m2 || 80)}_r${sample.recamaras || 2}_b${sample.banos || 2}_a${sample.antiguedad_anos || 8}`}
+              params={{ listed: sample.range_high || sample.precio_estimado || 5000000 }}
+              title={undefined}
+            />
           </div>
 
           {/* W5.6 Sub-A — Narrativa AI de la zona */}

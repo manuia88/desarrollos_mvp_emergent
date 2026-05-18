@@ -14,6 +14,7 @@ import ZoneSubscoresCard from '../../components/zones/ZoneSubscoresCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
 import NarrativeBlock from '../../components/landing/NarrativeBlock';
 import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
+import ProbabilityBar from '../../components/shared/ProbabilityBar';
 import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -549,6 +550,15 @@ export default function ZonePage() {
 
         {/* W5.2 Sub-B — Sub-scores desagregados */}
         {subscoresData && <ZoneSubscoresCard data={subscoresData} />}
+
+        {/* W5.19 — Probability Bar: drpi_up 3m · debajo de KPIs zona */}
+        <div style={{ marginBottom: 24 }}>
+          <ProbabilityBar
+            type="drpi_up"
+            entity_id={slug}
+            params={{ months: 3 }}
+          />
+        </div>
 
         {/* W5.6 Sub-A — Narrativa AI para la zona */}
         <div style={{ marginBottom: 32 }}>
