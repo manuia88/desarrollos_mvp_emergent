@@ -1328,3 +1328,71 @@ async def ensure_batch7_indexes(db) -> None:
     except Exception:
         pass
     log.info("[batch7] indexes ensured")
+
+
+
+# ─── W5.12 Parte 3 Sub-F · GET /api/dev/site-selection/similar-zones ──────────
+# Devuelve zonas similares al `zone_slug` provisto. Intenta KG (template
+# zonas_similares_a, alias). Si KG_AVAILABLE=False O alias no implementado →
+# fallback legacy: misma alcaldia + tier similar, ordenado por score_total proximo.
+
+async def _similar_zones_legacy(db, zone_slug: str, limit: int = 5) -> List[Dict[str, Any]]:
+    try:
+        seed = await db.zones.find_one(
+            {"$or": [{"slug": zone_slug}, {"zone_slug": zone_slug}, {"colonia_slug": zone_slug}]},
+            {"_id": 0, "slug": 1, "name": 1, "alcaldia": 1, "tier": 1, "score_total": 1, "score": 1},
+        )
+        if not seed:
+            return []
+        alcaldia = seed.get("alcaldia")
+        tier = seed.get("tier")
+        base_score = float(seed.get("score_total") or seed.get("score") or 0)
+        query: Dict[str, Any] = {"slug": {"$ne": seed.get("slug")}}
+        if alcaldia:
+            query["alcaldia"] = alcaldia
+        cursor = db.zones.find(query, {
+            "_id": 0, "slug": 1, "name": 1, "alcaldia": 1, "tier": 1, "score_total": 1, "score": 1,
+        }).limit(200)
+        rows: List[Dict[str, Any]] = []
+        async for z in cursor:
+            sc = float(z.get("score_total") or z.get("score") or 0)
+            rows.append({
+                "zone_slug": z.get("slug"),
+                "zone_name": z.get("name"),
+                "alcaldia": z.get("alcaldia"),
+                "tier": z.get("tier"),
+                "score": sc,
+                "similarity_delta": abs(base_score - sc),
+                "matches_tier": z.get("tier") == tier,
+            })
+        rows.sort(key=lambda r: (0 if r["matches_tier"] else 1, r["similarity_delta"]))
+        return rows[:limit]
+    except Exception as exc:
+        log.warning(f"[site-selection] _similar_zones_legacy failed: {exc}")
+        return []
+
+
+@router.get("/api/dev/site-selection/similar-zones")
+async def site_selection_similar_zones(zone_slug: str, limit: int = 5, request: Request = None):
+    """Devuelve zonas similares al `zone_slug`. Fuente: KG (preferida) o legacy fallback."""
+    await _auth(request)
+    if not zone_slug:
+        raise HTTPException(422, "zone_slug required")
+    limit = max(1, min(20, limit))
+    db = _db(request)
+    try:
+        from kg_query_helper import kg_query
+        res = await kg_query(
+            "zonas_similares_a",
+            {"zone_slug": zone_slug, "limit": limit},
+            caller_module="site_selection_similar_zones",
+            db=db,
+        )
+        if res.get("kg_unavailable") or res.get("fallback_required"):
+            rows = await _similar_zones_legacy(db, zone_slug, limit=limit)
+            return {"source": "legacy", "rows": rows, "count": len(rows), "kg_unavailable": True, "reason": res.get("reason")}
+        return {"source": "kg", "rows": res.get("rows", []), "count": res.get("count", 0),
+                "kg_unavailable": False, "latency_ms": res.get("latency_ms")}
+    except Exception as exc:
+        rows = await _similar_zones_legacy(db, zone_slug, limit=limit)
+        return {"source": "legacy", "rows": rows, "count": len(rows), "kg_unavailable": True, "reason": str(exc)[:200]}

@@ -149,3 +149,15 @@ async def capture_lead(conversation_id: str, body: CaptureLeadBody, request: Req
     if "error" in result:
         raise HTTPException(422, result["error"])
     return JSONResponse(result)
+
+
+# ─── W5.12 Parte 3 · GET /api/buyer-coach/similar-projects ────────────────────
+
+@router.get("/api/buyer-coach/similar-projects")
+async def similar_projects(project_id: str, limit: int = 5, request: Request = None):
+    if not project_id:
+        raise HTTPException(422, "project_id required")
+    limit = max(1, min(20, limit))
+    db = _db(request)
+    result = await eng.similar_projects_via_kg(db, project_id=project_id, limit=limit)
+    return JSONResponse(result)

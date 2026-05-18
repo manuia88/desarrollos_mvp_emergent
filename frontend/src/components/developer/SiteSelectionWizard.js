@@ -56,6 +56,62 @@ function StepDots({ step }) {
   );
 }
 
+// W5.12 P3 Sub-F · Zonas similares (via KG con fallback legacy)
+function SiteSimilarZones({ seedZoneSlug, onPick }) {
+  const [rows, setRows] = useState([]);
+  const [source, setSource] = useState(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!seedZoneSlug) { setRows([]); return; }
+    let cancel = false;
+    setLoading(true);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dev/site-selection/similar-zones?zone_slug=${encodeURIComponent(seedZoneSlug)}&limit=5`,
+      { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancel && d) { setRows(d.rows || []); setSource(d.source || null); } })
+      .catch(() => {})
+      .finally(() => { if (!cancel) setLoading(false); });
+    return () => { cancel = true; };
+  }, [seedZoneSlug]);
+  if (!seedZoneSlug) return null;
+  return (
+    <Field label="Zonas similares (Knowledge Graph)" hint={`Sugerencias para ${seedZoneSlug}`}>
+      {loading && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.55)' }}>Cargando sugerencias…</div>}
+      {!loading && rows.length === 0 && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>Sin zonas similares.</div>
+      )}
+      <div data-testid="site-similar-zones" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+        {rows.map(z => (
+          <button
+            key={z.zone_slug}
+            type="button"
+            data-testid={`site-similar-zone-${z.zone_slug}`}
+            onClick={() => onPick && onPick(z.zone_slug)}
+            style={{
+              padding: '8px 14px', borderRadius: 9999,
+              background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.32)',
+              color: '#c4b5fd', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>
+            {z.zone_name || z.zone_slug}
+            {z.tier && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>· {z.tier}</span>}
+          </button>
+        ))}
+        {source && (
+          <span style={{
+            padding: '4px 10px', borderRadius: 9999, alignSelf: 'center',
+            fontSize: 9, fontFamily: 'DM Mono, monospace', fontWeight: 700, textTransform: 'uppercase',
+            background: source === 'kg' ? 'rgba(99,102,241,0.18)' : 'rgba(245,158,11,0.10)',
+            border: source === 'kg' ? '1px solid rgba(99,102,241,0.40)' : '1px solid rgba(245,158,11,0.30)',
+            color: source === 'kg' ? '#a5b4fc' : '#fcd34d',
+          }} data-testid="site-similar-zones-source-badge">
+            {source === 'kg' ? 'via KG' : 'legacy'}
+          </span>
+        )}
+      </div>
+    </Field>
+  );
+}
+
 function Field({ label, children, hint }) {
   return (
     <label style={{ display: 'block', marginBottom: 14 }}>
@@ -257,6 +313,12 @@ export default function SiteSelectionWizard({ onClose, onCreated, prefillColonia
                   ))}
                 </div>
               </Field>
+              {/* W5.12 P3 Sub-F · Zonas similares (via KG con fallback legacy) */}
+              <SiteSimilarZones seedZoneSlug={prefillColonia} onPick={(slug) => {
+                if (!inp.preferred_features.includes(`zone_${slug}`)) {
+                  setInp(prev => ({ ...prev, preferred_features: [...prev.preferred_features, `zone_${slug}`] }));
+                }
+              }} />
             </div>
           )}
 

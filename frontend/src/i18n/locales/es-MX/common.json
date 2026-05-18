@@ -2746,6 +2746,15 @@
         "detected_n": "{{n}} anomalias detectadas",
         "rerun_error": "Error al ejecutar deteccion",
         "paused_kg_down": "Deteccion pausada · Neo4j no disponible. Las anomalias del ultimo barrido siguen disponibles."
+      },
+      "consumers": {
+        "also_might_interest": "Tambien te puede interesar",
+        "view_all": "Ver mas",
+        "via_kg": "via KG",
+        "legacy": "legacy",
+        "similar_projects": "Proyectos similares",
+        "similar_zones": "Zonas similares (Knowledge Graph)",
+        "loading_suggestions": "Cargando sugerencias..."
       }
     }
   }

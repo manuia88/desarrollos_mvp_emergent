@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import AsistenteChat from '../../components/asistente/AsistenteChat';
 import AtlaxVoiceButton from '../../components/landing/AtlaxVoiceButton';
+import SimilarProjectsSection from '../../components/asistente/SimilarProjectsSection';
 import * as asistenteApi from '../../api/asistenteApi';
 import { useAuth } from '../../App';
 import { Z } from '../../styles/zIndex';
@@ -29,6 +30,27 @@ export default function AsistentePage() {
   const [error, setError] = useState(null);
   const [disabled, setDisabled] = useState(false);
   const initRef = useRef(false);
+
+  // W5.12 Parte 3 Sub-C · seed para SimilarProjectsSection
+  // Extrae una pista de zona/proyecto del ultimo mensaje del user (heuristico simple).
+  const lastUserMsg = (() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i]?.role === 'user') return messages[i].content || '';
+    }
+    return '';
+  })();
+  const seedZoneSlug = (() => {
+    const text = lastUserMsg.toLowerCase();
+    const KNOWN = [
+      'polanco', 'roma', 'condesa', 'narvarte', 'del-valle', 'coyoacan',
+      'lomas', 'santa-fe', 'satelite', 'pedregal', 'reforma', 'doctores',
+      'tlalpan', 'hipodromo', 'cuauhtemoc', 'tlaquepaque', 'queretaro',
+    ];
+    for (const slug of KNOWN) {
+      if (text.includes(slug.replace(/-/g, ' ')) || text.includes(slug)) return slug;
+    }
+    return null;
+  })();
 
   // Initialize: hydrate from query param session_token, resume from localStorage, or start new
   useEffect(() => {
@@ -209,6 +231,11 @@ export default function AsistentePage() {
           captureSuccess={captureSuccess}
           emptyChips={EMPTY_CHIPS}
         />
+        {seedZoneSlug && messages.length > 0 && (
+          <div style={{ padding: '0 16px' }}>
+            <SimilarProjectsSection seedZoneSlug={seedZoneSlug} />
+          </div>
+        )}
         {/* Voice input row */}
         {sessionToken && (
           <div style={{
