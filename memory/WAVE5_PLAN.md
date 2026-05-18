@@ -54,7 +54,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.12** | Knowledge Graph completo | ✅ | P1 Backend `bb49837` + P2 UI superadmin `babacae` + P3 consumers `aa60f3f` + templates fix `32ceab9` (60h total · 14 templates · 5 consumers integrados · cron daily 02/03/04 UTC · cero crash si KG down) |
 | ~~**W5.13**~~ | Integrations expand | ➡️ W6 | Movido founder 2026-05-16 |
 | ~~**W5.14**~~ | Reviews residentes | ➡️ W6 | Movido founder 2026-05-16 |
-| **W5.15** | FSD per-property + Accuracy (Fitch-style) | 🟡 | Plan C founder approved 26h · spec canónico `memory/W5_15_FSD_SPEC.md` · P1 backend 16h + P2 UI 10h · 7 upgrades incluyen drift detector ML + self-tuning weights · FSD=Forecast Standard Deviation NO "Full-self-deploy" |
+| **W5.15** | FSD per-property + Accuracy (Fitch-style) | 🟡 | P1 Backend FSD+Accuracy+ML loop `7d883e6` (16h shipped · 10h pending P2 UI dashboards + cross-modules + PDF export) · 7 upgrades incluidos: drift detector + self-tuning weights ML loop completo · 3 crons activos |
 | **W5.16** | Marketing distribution (MCP) | ⬜ | ~10h |
 | **W5.17** | Virtual staging IA | ⬜ | 8h |
 | **W5.18** | Dubai full (Phase 11) | ⏸ | 38h · expansión H2 fase 2 (decisión separada) |
