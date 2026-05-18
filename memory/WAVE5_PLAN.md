@@ -58,7 +58,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.16** | Marketing distribution (MCP) | ⬜ | ~10h |
 | ~~**W5.17**~~ | ~~Virtual staging IA standalone~~ | 🔄 **ABSORBIDO en W5.22** | Founder decision 2026-05-18 · coherencia arquitectónica con Phase Z Studio Marketing · va con video bundle 34h + 7 sub-chunks más · scope total Phase Z mantiene 224h |
 | **W5.18** | Dubai full (Phase 11) | ⏸ | 38h · expansión H2 fase 2 (decisión separada) |
-| **W5.19** | Probability UX (Kalshi) | ⬜ | 6h |
+| **W5.19** | Probability UX (Kalshi) | ✅ | Plan B 9h `5fe627b` (origen `688b833`) · 4 sub-chunks · 3 helpers backend + Badge/Bar shared + Atlax tool #20 explainability + cron weekly threshold crossing · 10 inputs + 8 outputs récord cierre cross-module |
 | **W5.20-21** | Insights Layer Wiki + público | ⬜ | 41h |
 | **W5.22+** | Phase Z DMX Studio Marketing | ⬜ | 224h · incluye virtual staging IA 8h (ex-W5.17 absorbido) + video bundle 34h + 7 sub-chunks más · spec canónico `memory/STUDIO_MARKETING_RESEARCH.md` |
 | **W5.23** | Dev Battle Card | ⬜ | 12h |
