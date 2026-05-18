@@ -282,6 +282,10 @@ app.include_router(kg_router)
 from routes.live_pulse import router as live_pulse_router
 app.include_router(live_pulse_router)
 
+# W5.15 Parte 1 — Accuracy / FSD per-property / drift / weights
+from routes.accuracy import router as accuracy_router
+app.include_router(accuracy_router)
+
 # Phase 4 Batch 4.2 — Universal LeadKanban + client_id + Permission Tiers
 from routes.dev_batch4_2 import router as dev_batch4_2_router, ensure_batch4_2_indexes
 app.include_router(dev_batch4_2_router)
@@ -1408,6 +1412,20 @@ async def startup():
             live_pulse_cron.register_live_pulse_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[LivePulse] startup register failed: {e}")
+        # W5.15 Parte 1 — Accuracy indexes + 3 crons (MAPE / drift / weights)
+        try:
+            import fsd_engine
+            import accuracy_engine
+            import drift_detector
+            import weight_optimizer
+            import accuracy_cron
+            await fsd_engine.ensure_fsd_indexes(db)
+            await accuracy_engine.ensure_accuracy_indexes(db)
+            await drift_detector.ensure_drift_indexes(db)
+            await weight_optimizer.ensure_zone_weights_indexes(db)
+            accuracy_cron.register_accuracy_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[Accuracy] startup register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:

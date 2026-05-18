@@ -193,6 +193,59 @@ async def avm_quick_async(
     )
     response["cache_hit"] = False
 
+    # ── W5.15 P1 Sub-A/D — FSD compute + zone_weights short-circuit + persist ─
+    try:
+        prop_features = {
+            "m2": float(m2),
+            "recamaras": int(recamaras),
+            "banos": int(banos),
+            "antiguedad_anos": int(antiguedad_anos),
+            "colonia_score": 60.0,
+        }
+        try:
+            from weight_optimizer import predict_with_zone_weights
+            zw_pred = await predict_with_zone_weights(db, colonia_slug, prop_features)
+        except Exception:
+            zw_pred = None
+        # Si hay zone_weights con r2 mayor que el global y son recientes, sobreescribimos value
+        if zw_pred and zw_pred.get("value") and (zw_pred.get("r2_score") or 0) > (r_squared or 0):
+            response["zone_weights_value"] = zw_pred["value"]
+            response["zone_weights_r2"] = zw_pred["r2_score"]
+            response["pricing_model_used"] = "zone_weights"
+            try:
+                from audit_immutable_engine import log as audit_log
+                await audit_log(
+                    db,
+                    actor={"user_id": "system", "role": "system"},
+                    action="avm_pricing_model_decision",
+                    entity_type="avm",
+                    entity_id=colonia_slug,
+                    before=None,
+                    after={"selected": "zone_weights", "global_r2": r_squared, "zone_r2": zw_pred.get("r2_score")},
+                )
+            except Exception:
+                pass
+        else:
+            response["pricing_model_used"] = pricing_model
+
+        from fsd_engine import compute_fsd, persist_avm_prediction
+        fsd = await compute_fsd(db, prop_features, colonia_slug, model_id=model_id)
+        if fsd.get("available"):
+            response["fsd_value"] = fsd["value"]
+            response["low_estimate"] = fsd["low_estimate"]
+            response["high_estimate"] = fsd["high_estimate"]
+            response["fsd_pct"] = fsd["fsd_pct"]
+            response["confidence_lvl"] = fsd["confidence_lvl"]
+            response["feature_breakdown"] = fsd["feature_breakdown"]
+            # Persistencia best-effort (forward-only)
+            property_id = f"{colonia_slug}_m2{int(m2)}_r{int(recamaras)}_b{int(banos)}_a{int(antiguedad_anos)}"
+            try:
+                await persist_avm_prediction(db, property_id, colonia_slug, fsd, prop_features)
+            except Exception as exc:
+                log.warning(f"[avm] fsd persist warn: {exc}")
+    except Exception as exc:
+        log.warning(f"[avm] fsd compute warn: {exc}")
+
     # ── Cache store (W5.1 Sub-E) ────────────────────────────────────────────
     try:
         import avm_cache

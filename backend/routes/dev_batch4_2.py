@@ -564,6 +564,14 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
     except Exception:
         pass
 
+    # W5.15 P1 Sub-B — hook accuracy match if status crosses to cerrado_ganado
+    try:
+        if payload.target_status == "cerrado_ganado" and lead.get("status") != "cerrado_ganado":
+            import accuracy_engine
+            await accuracy_engine.match_prediction_to_close(db, lead_id)
+    except Exception as exc:
+        log.warning(f"[move-column] accuracy match failed: {exc}")
+
     return {"ok": True, "lead_id": lead_id, "new_status": payload.target_status, "days_in_prev": days_in_prev, "lead": updated}
 
 
