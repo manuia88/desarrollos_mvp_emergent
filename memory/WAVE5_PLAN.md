@@ -44,7 +44,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.2** | Zone Score desagregado | ✅ | `e36fb9f` (17h) |
 | **W5.3** | Forecast multi-horizonte ARIMA | ✅ | P1 `5425023` + P2A `f8834a4` + P2B `e633f73` (44h) |
 | **W5.4** | Buyer Score · motor 7D + asesor + hooks | ✅ STUB | merge `7c02d1f` (origen `6e1bf21`) · 23h · Apify STUB determinista |
-| **W5.5** | Live Pulse | ⬜ STUB | Apify fallback · ~25h |
+| **W5.5** | Live Pulse | 🟡 | P1 Backend engine + readiness + cron configurable `5fed918` (12h shipped · 15h pending P2 UI heatmap + tab Readiness + widgets) · STUB Apify trend_velocity · cron default weekly |
 | **W5.6** | Scenario Storyteller · narrativa multi-módulo | ✅ | merge `fb3caa5` (origen `8cb2ef0`) · ~16h (cierre ciclo · NO aislado) |
 | ~~**W5.7**~~ | SOC franquicia | ➡️ W6 | Movido founder 2026-05-16 |
 | ~~**W5.8**~~ | Construction Quality Index | ➡️ W6 | Movido founder 2026-05-17 · ~25h |
