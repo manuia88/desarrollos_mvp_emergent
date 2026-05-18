@@ -378,8 +378,13 @@ async def my_feature_flags(request: Request):
         raise HTTPException(401, "No autenticado")
     db = _db(request)
     tenant_id = getattr(user, "tenant_id", None) or getattr(user, "user_id", None)
+    # W5.FF1 Sub-C · aditivos: tier + cached_at + expires_in_s (backward compat 100%).
+    now_iso = datetime.now(timezone.utc).isoformat()
     if not tenant_id:
-        return {"tenant_id": None, "enabled": [], "all": [], "is_superadmin": False}
+        return {
+            "tenant_id": None, "enabled": [], "all": [], "is_superadmin": False,
+            "tier": "free", "cached_at": now_iso, "expires_in_s": 60,
+        }
     flags = await ff.get_tenant_flags(db, tenant_id)
     enabled = []
     all_items = []
@@ -389,9 +394,16 @@ async def my_feature_flags(request: Request):
                           "plan_tier": d.get("plan_tier")})
         if ff._is_active(d):
             enabled.append(k)
+    # Tier derivado: más permisivo entre flags activos · default free.
+    from feature_gate_engine import derive_user_tier
+    tier = derive_user_tier(flags)
     return {
         "tenant_id": tenant_id,
         "enabled": enabled,
         "all": all_items,
         "is_superadmin": user.role == "superadmin",
+        # ─── W5.FF1 aditivos ──────────────────────────────────────────────
+        "tier": tier,
+        "cached_at": now_iso,
+        "expires_in_s": 60,
     }
