@@ -62,6 +62,7 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | **W5.20-21** | Insights Layer Wiki + público | ⬜ | 41h |
 | **W5.22+** | Phase Z DMX Studio Marketing | ⬜ | 224h · incluye virtual staging IA 8h (ex-W5.17 absorbido) + video bundle 34h + 7 sub-chunks más · spec canónico `memory/STUDIO_MARKETING_RESEARCH.md` |
 | **W5.23** | Dev Battle Card | ✅ | Plan B 17h merge `408cfdd` (origen `e5f0811`) · 5 sub-chunks · 5 endpoints T3+ · 2 crons · tool Atlax #21 · PDF export · email weekly · spec `memory/W5_23_BATTLE_CARD_SPEC.md` |
+| **W5.FF** | Feature Visibility Matrix (GoHighLevel-style) | ✅ | **CERRADO COMPLETO 28h** · 5 batches Claude Code ULTRA-defensivo · W5.FF1 Foundation `6816d80` + W5.FF2 Catalog+Adapter `89f009d5` + W5.FF3 UI Matrix `be6d2e4b` + W5.FF4 Migration+Analytics+Churn `d0d4c27e` + W5.FF5 A/B+CSV `4775ec37` · sistema visibility per user/feature · 10 endpoints superadmin · Atlax tool #22 · cron churn 04:00 UTC · 36 features registered · spec `memory/W5_FF_FEATURE_VISIBILITY_SPEC.md` · learnings `memory/AURORA_BUGS_LEARNINGS.md` |
 | **W5.ASR.0** | Cleanup pre-batch | ✅ | C1 `f5af028` (z-index 254→tokens) + C2 `ab2cb4f` (advisor→asesor) + C3 `0ad997e` (pipeline guard) — 2026-05-16 |
 | **W5.ASR.1** | WhatsApp QR + Inbox unificado | ⬜ STUB | 40-50h · Baileys local + UI completa · activa OAuth FB cuando approve |
 | **W5.ASR.2** | Pipeline 7+2 etapas hard-rules | ✅ | P1 `701ead1` + P2 `127af26` (38h) |

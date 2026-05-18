@@ -106,6 +106,30 @@ Cada gate check → metric logged (denial · grant · cache_hit). Cierra ciclo c
 
 ---
 
+## 🏆 PLAN W5.FF · CERRADO COMPLETO 2026-05-18
+
+**Total**: 28h / 28h · 5 batches Claude Code ULTRA-defensivo · 0 bugs aurora · 0 reescrituras críticas
+
+| Batch | Horas | SHA | Tag rollback |
+|---|---|---|---|
+| W5.FF1 Foundation defensiva | 6h | `6816d80` | `pre-W5.FF1-foundation-20260518-0930` |
+| W5.FF2 Catalog+Adapter | 4h | `89f009d5` | `pre-W5.FF2-catalog-20260518-1047` |
+| W5.FF3 UI Visibility Matrix | 6h | `be6d2e4b` | `pre-W5.FF3-matrix-20260518-1101` |
+| W5.FF4 Migration+Analytics+Churn | 8h | `d0d4c27e` | `pre-W5.FF4-migration-churn-20260518-1159` |
+| W5.FF5 A/B Testing + Bulk CSV | 4h | `4775ec37` | `pre-W5.FF5-abtest-csv-20260518-1227` |
+
+**Sistema activo**:
+- Feature visibility per user/feature configurable desde superadmin
+- 10 endpoints superadmin (`/api/superadmin/features/*`)
+- Atlax tool #22 `query_my_features` con sources_breakdown
+- Cron churn detection daily 04:00 UTC + sales alerts
+- A/B testing per feature con chi-square stats
+- Bulk CSV import 100 users transactional
+- Audit chain inmutable cada operación
+- Defense in depth: FAIL-OPEN + 3-layer cache + legacy adapter + dependencies cascade
+
+---
+
 ### W5.FF3 · UI Visibility Matrix + Plantillas + Atlax · 6h · **Claude Code ULTRA-defensivo** ✅ SHIPPED 2026-05-18
 
 **SHA**: `be6d2e4b` · post-tag `shipped-W5.FF3-matrix-20260518-1154`
