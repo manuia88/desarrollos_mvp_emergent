@@ -7,6 +7,7 @@ import { MapPin, Bed, Bath, Car, Ruler, Heart, Share, ChevronLeft, ChevronRight,
 import { isFavorite, toggleFavorite } from '../../api/marketplace';
 import { ComplianceBadgeOverlay } from './ComplianceBadge';
 import ProbabilityBadge from '../shared/ProbabilityBadge';
+import { Z } from '../../styles/zIndex';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
