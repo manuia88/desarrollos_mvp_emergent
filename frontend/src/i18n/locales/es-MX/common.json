@@ -3131,5 +3131,65 @@
       "threshold_crossed_title": "Probabilidad de subida DRPI cruzo umbral",
       "threshold_crossed_body": "La probabilidad de subida en {{zone}} paso de {{prev}}% a {{curr}}% (+{{delta}} pp)"
     }
+  },
+  "battle_card": {
+    "title": {
+      "main": "Battle Card",
+      "week_N": "Semana {{n}}",
+      "score_label": "/ 100"
+    },
+    "dimensions": {
+      "precio": "Precio",
+      "ventas": "Ventas",
+      "zona": "Zona",
+      "marketing": "Marketing",
+      "lead_gen": "Lead Gen",
+      "label_section": "Desglose por dimension"
+    },
+    "competitors": {
+      "table_header": "Comparativa competidores",
+      "vs_label": "Total",
+      "your_position": "Tu proyecto",
+      "zone_label": "Zona",
+      "composite_label": "Score compuesto"
+    },
+    "ranking": {
+      "position_label": "Posicion en zona",
+      "delta_label": "de {{n}}",
+      "timeline_title": "Ranking · Ultimas 12 semanas",
+      "subtitle": "Esta semana vs semana anterior"
+    },
+    "action": {
+      "recommended_title": "Accion recomendada",
+      "cta_implement": "Implementar",
+      "cta_dismiss": "Descartar",
+      "weakest_label": "Area de mejora"
+    },
+    "pdf": {
+      "export_cta": "Descargar PDF para comite",
+      "generating_toast": "Generando PDF...",
+      "success_toast": "PDF abierto en nueva pestana",
+      "pages_label": "4 paginas · A4 institucional"
+    },
+    "empty": {
+      "insufficient_competitors_title": "Battle Card en preparacion",
+      "body": "Necesitamos al menos 3 desarrolladores en {{zone}} para generar Battle Card. Actualmente hay {{count}} registrados.",
+      "eta_message": "Proximo update: {{date}}",
+      "zone_minimum": "Minimo 3 desarrolladores requeridos"
+    },
+    "email": {
+      "subject_template": "Tu Battle Card · Semana {{week}}",
+      "body_greeting": "Hola, aqui tu resumen competitivo de la semana.",
+      "view_full_cta": "Ver detalle completo"
+    },
+    "errors": {
+      "tier_required": "Battle Card requiere tier T3+",
+      "project_not_found": "Proyecto no encontrado",
+      "no_data_yet": "Error cargando Battle Card"
+    },
+    "footer": {
+      "updated_label": "Datos actualizados: domingo de cada semana",
+      "audit_chain_link": "Ver cadena de auditoria"
+    }
   }
 }
