@@ -81,21 +81,28 @@ Cada gate check → metric logged (denial · grant · cache_hit). Cierra ciclo c
 
 ---
 
-### W5.FF2 · Self-registering catalog + Legacy adapter · 4h · **Claude Code**
+### W5.FF2 · Self-registering catalog + Legacy adapter · 4h · **Claude Code** ✅ SHIPPED 2026-05-18
 
-| Sub | h | Qué hace |
+| Sub | h | Status |
 |---|---|---|
-| A | 2h | FEATURE_CATALOG auto-discovery · cada feature registra vía decorator self-register pattern · versioning + DB migration auto |
-| B | 2h | Legacy adapter tier→feature_flag transparente · features existentes (Battle Card T3 · FSD T0 · etc) mantienen funcionando vía adapter middleware |
+| A | 2h | ✅ `backend/feature_registry.py` NEW 130L · @register_feature decorator + ensure_catalog_synced startup + SCHEMA_VERSION=1 · get_extended_catalog merge |
+| B | 2h | ✅ `backend/feature_legacy_adapter.py` NEW 102L · TIER_TO_FEATURES inheritance free⊂pro⊂enterprise · resolve_features_from_tier · merge_legacy_with_flags |
 
-**Files NEW**:
-- `backend/feature_registry.py` (auto-discovery + versioning)
-- `backend/feature_legacy_adapter.py` (tier→flag mapping)
+**Decisión arquitectónica**:
+- Legacy FEATURE_CATALOG MANTIENE autoridad (consumers existentes intactos)
+- get_extended_catalog() MERGE aditivo · legacy gana en conflict
+- merge_legacy_with_flags() dual-path: si adapter [] → fallback W5.FF1 (cero regresión)
+- Lazy imports evitan circular · startup FAIL-SOFT
 
-**Files EDIT**:
-- `backend/feature_flags_engine.py` (extend con auto-build catalog)
+**Tags rollback**:
+- pre-W5.FF2-catalog-20260518-1047
+- shipped-W5.FF2-catalog-20260518-1056
+- SHA main + conflict: `89f009d5`
 
-**Validar antes de P3**: features existentes siguen funcionando con tier check + nuevas funcionan con flag.
+**Riesgos residuales NO bloqueantes**:
+1. Concurrent startup index warnings → idempotente, no fatal
+2. _REGISTRY vacío hasta W5.FF4 migration → esperado, ensure_catalog_synced sincroniza 0 si vacío
+3. merge tenant-scoped, no user-scoped → W5.FF3+ extender signature si necesario
 
 ---
 
