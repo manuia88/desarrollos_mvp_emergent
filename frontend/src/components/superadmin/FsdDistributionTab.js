@@ -88,8 +88,8 @@ export default function FsdDistributionTab() {
           style={{
             padding: '8px 16px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
             cursor: 'pointer', color: '#fff',
-            background: 'linear-gradient(90deg, rgba(124,47,255,0.90), rgba(192,38,211,0.90))',
-            border: '1px solid rgba(124,47,255,0.55)',
+            background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.90), rgba(var(--theme-rgb),0.90))',
+            border: '1px solid rgba(var(--theme-rgb),0.55)',
           }}>{t('confianza.fsd_distribution.trigger_drift')}</button>
         <a
           data-testid="fsd-dist-pdf-link"
@@ -98,14 +98,14 @@ export default function FsdDistributionTab() {
           style={{
             padding: '8px 16px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600,
             textDecoration: 'none', color: 'var(--cream, #F0EBE0)',
-            background: 'rgba(124,47,255,0.10)', border: '1px solid rgba(124,47,255,0.40)',
+            background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.40)',
           }}>{t('confianza.cta.download_pdf')}</a>
       </div>
 
       {/* Sec 1: Histogram */}
       <section data-testid="fsd-hist-section" style={{
         background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(124,47,255,0.20)', borderRadius: 14, padding: 18,
+        border: '1px solid rgba(var(--theme-rgb),0.20)', borderRadius: 14, padding: 18,
       }}>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream, #F0EBE0)', margin: '0 0 10px' }}>
           {t('confianza.fsd_distribution.histogram_title')}
@@ -114,9 +114,9 @@ export default function FsdDistributionTab() {
           <BarChart data={hist} margin={{ top: 8, right: 16, left: -8, bottom: 0 }}>
             <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgba(240,235,224,0.55)' }} stroke="rgba(255,255,255,0.10)" />
             <YAxis tick={{ fontSize: 10, fill: 'rgba(240,235,224,0.55)' }} stroke="rgba(255,255,255,0.10)" allowDecimals={false} />
-            <Tooltip contentStyle={{ background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(124,47,255,0.45)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 11 }} />
+            <Tooltip contentStyle={{ background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(var(--theme-rgb),0.45)', borderRadius: 10, fontFamily: 'DM Sans', fontSize: 11 }} />
             <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-              {hist.map((_, i) => <Cell key={i} fill={BUCKET_COLORS[i] || 'rgba(124,47,255,0.85)'} />)}
+              {hist.map((_, i) => <Cell key={i} fill={BUCKET_COLORS[i] || 'rgba(var(--theme-rgb),0.85)'} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -125,7 +125,7 @@ export default function FsdDistributionTab() {
       {/* Sec 2: Zone weights table */}
       <section data-testid="fsd-weights-section" style={{
         background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(124,47,255,0.20)', borderRadius: 14, padding: 18,
+        border: '1px solid rgba(var(--theme-rgb),0.20)', borderRadius: 14, padding: 18,
       }}>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream, #F0EBE0)', margin: '0 0 10px' }}>
           {t('confianza.fsd_distribution.zone_weights_title')}
@@ -135,7 +135,7 @@ export default function FsdDistributionTab() {
         ) : (
           <table data-testid="fsd-weights-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans', fontSize: 12 }}>
             <thead>
-              <tr style={{ background: 'rgba(124,47,255,0.10)' }}>
+              <tr style={{ background: 'rgba(var(--theme-rgb),0.10)' }}>
                 <Th>{t('confianza.fields.zone')}</Th>
                 <Th>{t('confianza.fsd_distribution.fields.r2_score')}</Th>
                 <Th>{t('confianza.fsd_distribution.fields.sample_size')}</Th>
@@ -161,7 +161,7 @@ export default function FsdDistributionTab() {
       {/* Sec 3: Drift alerts */}
       <section data-testid="fsd-drift-section" style={{
         background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(124,47,255,0.20)', borderRadius: 14, padding: 18,
+        border: '1px solid rgba(var(--theme-rgb),0.20)', borderRadius: 14, padding: 18,
       }}>
         <h2 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream, #F0EBE0)', margin: '0 0 10px' }}>
           {t('confianza.fsd_distribution.drift_title')}
@@ -200,7 +200,7 @@ export default function FsdDistributionTab() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 90,
         }} onClick={() => setTriggerOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} style={{
-            background: 'rgba(13,16,23,0.98)', border: '1px solid rgba(124,47,255,0.45)', borderRadius: 16,
+            background: 'rgba(13,16,23,0.98)', border: '1px solid rgba(var(--theme-rgb),0.45)', borderRadius: 16,
             padding: 26, width: 'min(440px, 92vw)', display: 'flex', flexDirection: 'column', gap: 14,
           }}>
             <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 18, color: 'var(--cream, #F0EBE0)', margin: 0 }}>
@@ -217,7 +217,7 @@ export default function FsdDistributionTab() {
               style={{
                 padding: '10px 14px', borderRadius: 14, fontFamily: 'DM Sans', fontSize: 13,
                 background: 'rgba(255,255,255,0.05)', color: 'var(--cream, #F0EBE0)',
-                border: '1px solid rgba(124,47,255,0.30)',
+                border: '1px solid rgba(var(--theme-rgb),0.30)',
               }}
             />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -231,8 +231,8 @@ export default function FsdDistributionTab() {
                 onClick={handleTrigger}
                 style={{
                   padding: '8px 18px', borderRadius: 9999, fontFamily: 'DM Sans', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  background: 'linear-gradient(90deg, rgba(124,47,255,0.95), rgba(192,38,211,0.95))',
-                  color: '#fff', border: '1px solid rgba(124,47,255,0.65)',
+                  background: 'linear-gradient(90deg, rgba(var(--theme-rgb),0.95), rgba(var(--theme-rgb),0.95))',
+                  color: '#fff', border: '1px solid rgba(var(--theme-rgb),0.65)',
                 }}>Confirmar</button>
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function FsdDistributionTab() {
       {flash && (
         <div data-testid="fsd-flash" style={{
           position: 'fixed', bottom: 24, right: 24, padding: '10px 18px', borderRadius: 9999,
-          background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(124,47,255,0.45)',
+          background: 'rgba(13,16,23,0.95)', border: '1px solid rgba(var(--theme-rgb),0.45)',
           fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream, #F0EBE0)', zIndex: 95,
         }}>{flash}</div>
       )}

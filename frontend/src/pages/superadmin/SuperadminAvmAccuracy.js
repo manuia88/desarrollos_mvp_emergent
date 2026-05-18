@@ -166,11 +166,11 @@ export default function SuperadminAvmAccuracy() {
               padding: '9px 18px', borderRadius: 9999, cursor: 'pointer',
               fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700,
               background: activeTab === tab.key
-                ? 'linear-gradient(90deg, rgba(124,47,255,0.30), rgba(192,38,211,0.25))'
+                ? 'linear-gradient(90deg, rgba(var(--theme-rgb),0.30), rgba(var(--theme-rgb),0.25))'
                 : 'rgba(255,255,255,0.04)',
               color: activeTab === tab.key ? '#e0e7ff' : 'rgba(240,235,224,0.65)',
               border: activeTab === tab.key
-                ? '1px solid rgba(124,47,255,0.55)'
+                ? '1px solid rgba(var(--theme-rgb),0.55)'
                 : '1px solid rgba(255,255,255,0.10)',
             }}>
             {tab.label}
