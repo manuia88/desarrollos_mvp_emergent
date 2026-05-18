@@ -47,6 +47,28 @@ def get_feature(key: str) -> Optional[Dict[str, Any]]:
     return _BY_KEY.get(key)
 
 
+# W5.FF2 — Extended catalog: legacy FEATURE_CATALOG + self-registered features.
+# Legacy keys win on conflict (W2.4 SA5 has 10 canonical entries · NO replace).
+def get_extended_catalog() -> List[Dict[str, Any]]:
+    """Returns merge of FEATURE_CATALOG (W2.4 SA5) + feature_registry entries.
+
+    Legacy keys take precedence on conflict. Lazy import to avoid circular deps
+    at module load (feature_registry is independent · this is the only bridge).
+    """
+    merged: Dict[str, Dict[str, Any]] = {f["key"]: dict(f) for f in FEATURE_CATALOG}
+    try:
+        from feature_registry import get_all_features as _reg_all
+        for entry in _reg_all():
+            k = entry.get("key")
+            if not k:
+                continue
+            if k not in merged:
+                merged[k] = dict(entry)
+    except Exception as exc:
+        log.warning(f"[feature_flags_engine] get_extended_catalog registry import failed: {exc}")
+    return list(merged.values())
+
+
 # ─── Cache ────────────────────────────────────────────────────────────────────
 _CACHE_TTL = 60.0
 _cache: Dict[str, Dict[str, Any]] = {}  # tenant_id -> {ts, flags:{key: doc}}

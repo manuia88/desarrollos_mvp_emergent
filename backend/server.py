@@ -971,6 +971,13 @@ async def startup():
         logging.info(f"[startup] commercial seeds: {seed_result}")
     except Exception as e:
         logging.warning(f"[startup] commercial init failed: {e}")
+    # W5.FF2 — Self-registering feature catalog sync
+    try:
+        from feature_registry import ensure_catalog_synced as _ensure_feature_catalog_synced
+        catalog_sync = await _ensure_feature_catalog_synced(db)
+        logging.info(f"[startup] feature_catalog sync: {catalog_sync}")
+    except Exception as e:
+        logging.warning(f"[startup] feature_catalog sync failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)

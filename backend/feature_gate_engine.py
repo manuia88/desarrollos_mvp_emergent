@@ -65,12 +65,28 @@ def cache_invalidate(user_id: Optional[str] = None, tenant_id: Optional[str] = N
 async def get_user_features(db, user_id: str, tenant_id: str) -> List[str]:
     """Returns enabled feature_keys for the user.
 
-    Delegates to feature_flags_engine.get_tenant_flags() (W2.4 SA5). NO duplica lógica.
-    FAIL-OPEN: si query falla → retorna [] (frontend interpreta como 'show all').
+    W5.FF2: UNION explicit grants (W2.4 SA5 tenant_features) + implicit tier
+    features (legacy adapter). Backward compat: si adapter retorna [] (FAIL-OPEN),
+    cae al path original W5.FF1 (solo explicit grants).
+    FAIL-OPEN final: si todo falla → retorna [] (frontend interpreta como 'show all').
     """
     cached = _cache_get(user_id, tenant_id)
     if cached is not None:
         return cached
+    # W5.FF2 primary path: adapter merge.
+    try:
+        from feature_legacy_adapter import merge_legacy_with_flags  # lazy circular-safe
+        merged = await merge_legacy_with_flags(db, user_id, tenant_id)
+        if merged:
+            _cache_set(user_id, tenant_id, merged)
+            return merged
+        # adapter returned [] → fall through to W5.FF1 backward-compat path.
+    except Exception as exc:
+        _log.warning(
+            f"[feature_gate] legacy adapter failed tenant={tenant_id} err={exc} · fallback W5.FF1 path"
+        )
+
+    # W5.FF1 backward-compat path: solo explicit grants.
     try:
         flags = await ff.get_tenant_flags(db, tenant_id)
         enabled = [k for k, d in flags.items() if ff._is_active(d)]
