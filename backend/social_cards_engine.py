@@ -341,6 +341,7 @@ def _entity_subtitle(entity_type: str) -> str:
         "property": "Valuación AVM · DesarrollosMX",
         "development": "Preventa verificada · DesarrollosMX",
         "asesor": "Asesor verificado DesarrollosMX",
+        "insights": "MX vs Mundo · DesarrollosMX Research",
     }.get(entity_type, "DesarrollosMX · Inteligencia inmobiliaria")
 
 
@@ -439,7 +440,8 @@ def cache_clear() -> None:
 
 # ─── Public API ──────────────────────────────────────────────────────────────
 ALLOWED_LAYOUTS = {"og", "feed", "story"}
-ALLOWED_ENTITY_TYPES = {"zone", "property", "development", "asesor"}
+# W5.21 · "insights" entity type added (long-tail SEO landings /insights/compare/:topic)
+ALLOWED_ENTITY_TYPES = {"zone", "property", "development", "asesor", "insights"}
 
 
 def compose_card(layout: str, entity_type: str, entity_data: Dict[str, Any]) -> bytes:

@@ -151,6 +151,26 @@ async def _fetch_entity_data(db, entity_type: str, slug: str) -> Optional[Dict[s
                     "rating": doc.get("rating"),
                     "ventas_anual": doc.get("ventas_anual"),
                 }
+        elif entity_type == "insights":
+            # W5.21 · long-tail topics · static title map (synced w/ InsightsCompare.js TOPICS)
+            insights_titles = {
+                "mortgage-rates": "Tasas hipotecarias MX vs Mundo",
+                "home-prices": "Precios vivienda MX vs Mundo",
+                "rental-yields": "Gross yields · CDMX vs mundo",
+                "construction-cost": "Costo construcción MX vs Mundo",
+                "doing-business": "Doing Business · registrar propiedad",
+                "housing-affordability": "Affordability MX vs OECD",
+                "fibras-vs-reits": "FIBRAs MX vs REITs USA",
+                "us-metros-vs-cdmx": "Top metros USA vs CDMX",
+                "global": "MX vs Mundo · indicadores macro",
+                "insights-global": "MX vs Mundo · indicadores macro",
+            }
+            title = insights_titles.get(slug) or slug.replace("-", " ").title()
+            return {
+                "slug": slug,
+                "title": title,
+                "subtitle": "12 fuentes globales · MX vs Mundo",
+            }
     except Exception as exc:
         log.warning(f"[social_cards] entity fetch failed type={entity_type} slug={slug}: {exc}")
     return None
