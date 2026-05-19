@@ -168,6 +168,10 @@ app.include_router(feature_visibility_router)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
 
+# W5.16 — Social Cards Renderer (3 públicos PNG + 1 superadmin stats)
+from routes.social_cards import router as social_cards_router
+app.include_router(social_cards_router)
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes

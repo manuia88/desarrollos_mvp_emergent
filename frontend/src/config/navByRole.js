@@ -15,6 +15,7 @@ import {
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck, Swords,
+  Share2,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -229,6 +230,8 @@ const SUPERADMIN_NAV = [
       { key: 'onboarding',   to: '/superadmin/onboarding-analytics',  label: 'Onboarding analytics', Icon: BarChart3 },
       { key: 'free-audit',   to: '/superadmin/free-audit-funnel',     label: 'Free Audit funnel',    Icon: ClipboardList },
       { key: 'lead-sources', to: '/superadmin/lead-sources',          label: 'Lead sources',         Icon: Plug },
+      // W5.16 · Social Cards Renderer (viral growth public-facing)
+      { key: 'social-cards', to: '/superadmin/social-cards',          label: 'Social Cards',         Icon: Share2 },
     ],
   },
   // ─── tier 7 · DEV TOOLS morado · 2026-05-18 sidebar fix ───────────────────────────────

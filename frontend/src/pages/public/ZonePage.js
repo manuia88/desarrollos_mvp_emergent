@@ -204,6 +204,25 @@ export default function ZonePage() {
     return () => { cancelled = true; };
   }, [slug]);
 
+  // W5.16 · Social card dinámico og:image (additive · pattern ColoniaLanding)
+  useEffect(() => {
+    if (!slug) return;
+    const og = document.querySelector('meta[property="og:image"]') || (() => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:image');
+      document.head.appendChild(m);
+      return m;
+    })();
+    og.setAttribute('content', `${API}/api/social-cards/og/zone/${slug}.png`);
+    const tw = document.querySelector('meta[name="twitter:card"]') || (() => {
+      const m = document.createElement('meta');
+      m.setAttribute('name', 'twitter:card');
+      document.head.appendChild(m);
+      return m;
+    })();
+    tw.setAttribute('content', 'summary_large_image');
+  }, [slug]);
+
   // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
     return (

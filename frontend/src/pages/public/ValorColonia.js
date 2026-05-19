@@ -67,6 +67,15 @@ export default function ValorColonia() {
     setMetaTag('og:title', meta.title || '', 'property');
     setMetaTag('og:description', meta.description || '', 'property');
     setMetaTag('og:type', 'website', 'property');
+    // W5.16 · Social card dinámico (1200×630 og:image)
+    const API = process.env.REACT_APP_BACKEND_URL;
+    if (API && slug) {
+      setMetaTag('og:image', `${API}/api/social-cards/og/zone/${slug}.png`, 'property');
+      setMetaTag('og:image:width', '1200', 'property');
+      setMetaTag('og:image:height', '630', 'property');
+      setMetaTag('twitter:card', 'summary_large_image', 'name');
+      setMetaTag('twitter:image', `${API}/api/social-cards/og/zone/${slug}.png`, 'name');
+    }
     let cleanup = () => {};
     if (Array.isArray(data.json_ld)) {
       cleanup = setJsonLd(data.json_ld);

@@ -99,6 +99,8 @@ const SuperadminAuditChain    = lazy(() => import('./pages/superadmin/Superadmin
 const SuperadminFeatureVisibility = lazy(() => import('./pages/superadmin/SuperadminFeatureVisibility'));
 // W5.25 — Widget Embed Analytics
 const SuperadminWidgetEmbeds = lazy(() => import('./pages/superadmin/SuperadminWidgetEmbeds'));
+// W5.16 — Social Cards Renderer
+const SuperadminSocialCards = lazy(() => import('./pages/superadmin/SuperadminSocialCards'));
 
 // Developer portal
 const DesarrolladorDashboard         = lazy(() => import('./pages/developer/DesarrolladorDashboard'));
@@ -728,6 +730,8 @@ function AppRouter() {
       <Route path="/superadmin/feature-visibility" element={<AdvisorRoute Page={SuperadminFeatureVisibility} />} />
       {/* W5.25 · Widget Embed Analytics */}
       <Route path="/superadmin/widget-embeds" element={<AdvisorRoute Page={SuperadminWidgetEmbeds} />} />
+      {/* W5.16 · Social Cards Renderer */}
+      <Route path="/superadmin/social-cards" element={<AdvisorRoute Page={SuperadminSocialCards} />} />
       <Route path="/superadmin/knowledge-graph" element={<AdvisorRoute Page={SuperadminKnowledgeGraph} />} />
       <Route path="/superadmin/live-pulse" element={<AdvisorRoute Page={SuperadminLivePulse} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}

@@ -3292,5 +3292,45 @@
     "toast": {
       "error_generic": "Error al cargar estadísticas"
     }
+  },
+  "social_cards": {
+    "eyebrow": "SUPERADMIN · SOCIAL CARDS",
+    "title": "Social Cards Renderer",
+    "sub": "Preview imágenes generadas para compartir · og · feed · story",
+    "kpi": {
+      "memory_entries": "Cache memoria",
+      "disk_files": "Cache disco",
+      "renders_24h": "Renders 24h"
+    },
+    "toolbar": {
+      "entity_type": "Tipo",
+      "slug": "Slug",
+      "slug_placeholder": "polanco · prop_123 · dev_456",
+      "layout": "Layout",
+      "preview": "Preview",
+      "refresh": "Refrescar",
+      "entity_zone": "Zona",
+      "entity_development": "Desarrollo",
+      "entity_property": "Propiedad",
+      "entity_asesor": "Asesor",
+      "layout_og": "OG",
+      "layout_feed": "Feed",
+      "layout_story": "Story"
+    },
+    "preview": {
+      "empty": "Selecciona tipo, slug y layout · luego haz click en Preview",
+      "error": "Error al cargar imagen · revisa slug y tipo"
+    },
+    "stats": {
+      "title_24h": "Renders últimas 24 horas",
+      "loading": "Cargando estadísticas…",
+      "col_layout": "Layout",
+      "col_entity": "Entidad",
+      "col_renders": "Renders"
+    },
+    "toast": {
+      "error_stats": "Error al cargar estadísticas",
+      "empty_slug": "Ingresa un slug para preview"
+    }
   }
 }

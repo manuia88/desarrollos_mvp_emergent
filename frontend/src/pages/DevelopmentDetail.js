@@ -95,6 +95,27 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
     return () => clearTimeout(t);
   }, [dev]);
 
+  // W5.16 · Social card dinámico og:image (additive · pattern ColoniaLanding)
+  useEffect(() => {
+    if (!id) return;
+    const API = process.env.REACT_APP_BACKEND_URL;
+    if (!API) return;
+    const og = document.querySelector('meta[property="og:image"]') || (() => {
+      const m = document.createElement('meta');
+      m.setAttribute('property', 'og:image');
+      document.head.appendChild(m);
+      return m;
+    })();
+    og.setAttribute('content', `${API}/api/social-cards/og/development/${encodeURIComponent(id)}.png`);
+    const tw = document.querySelector('meta[name="twitter:card"]') || (() => {
+      const m = document.createElement('meta');
+      m.setAttribute('name', 'twitter:card');
+      document.head.appendChild(m);
+      return m;
+    })();
+    tw.setAttribute('content', 'summary_large_image');
+  }, [id]);
+
   const openGate = (ctx) => {
     setGateContext(ctx || null);
     setGateOpen(true);
