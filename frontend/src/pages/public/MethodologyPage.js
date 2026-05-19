@@ -330,6 +330,66 @@ export default function MethodologyPage() {
             />
           </div>
         </Section>
+
+        <Section title="9 · Fuentes externas globales (W5.20)">
+          <p>
+            DesarrollosMX agrega 12 fuentes globales para comparativas MX vs mundo. Las
+            consultas se cachean en MongoDB con TTL de 1-90 días según la frecuencia de
+            actualización del proveedor. Cron semanal domingo 03:00 UTC refresca las 12
+            fuentes en paralelo · cron diario 07:00 UTC detecta cambios macro &gt;= 2-5%.
+          </p>
+          <div style={{ overflowX: 'auto', marginTop: 16 }}>
+            <table data-testid="external-sources-table" style={{
+              width: '100%', borderCollapse: 'collapse',
+              fontFamily: 'DM Sans', fontSize: 13,
+            }}>
+              <thead>
+                <tr>
+                  {['Fuente', 'URL oficial', 'Licencia', 'Frecuencia', 'Tier'].map(h => (
+                    <th key={h} style={{
+                      padding: '10px 12px', textAlign: 'left',
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                      color: 'var(--cream-3)', textTransform: 'uppercase',
+                      borderBottom: '1px solid rgba(255,255,255,0.10)',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['BIS Property Price Statistics', 'https://www.bis.org/statistics/pp.htm', 'Free API', 'Trimestral', 'Global macro'],
+                  ['OECD Housing Prices Database', 'https://www.oecd.org/housing/', 'Free API', 'Trimestral', 'Global macro'],
+                  ['IMF Global Housing Watch', 'https://www.imf.org/external/research/housing/', 'Free press', 'Trimestral', 'Global macro'],
+                  ['World Bank Doing Business', 'https://api.worldbank.org/', 'Free API', 'Anual', 'Global macro'],
+                  ['FRED St. Louis Fed (US)', 'https://fred.stlouisfed.org/series/CSUSHPINSA', 'Free API · key', 'Mensual', 'US macro'],
+                  ['INEGI Vivienda (SHF index)', 'https://www.inegi.org.mx/', 'Free API · token', 'Trimestral', 'MX macro'],
+                  ['BMV · FIBRAs cotizaciones', 'https://www.bmv.com.mx/', 'Free', 'Diaria', 'MX macro'],
+                  ['HR Ratings', 'https://www.hrratings.com/', 'Free press', 'Mensual', 'MX press'],
+                  ['Numbeo Property Index', 'https://www.numbeo.com/property-investment/', 'Free API · key', 'Mensual', 'Global aggregator'],
+                  ['Global Property Guide', 'https://www.globalpropertyguide.com/', 'Free press', 'Trimestral', 'Global aggregator'],
+                  ['Zillow Research (ZHVI)', 'https://www.zillow.com/research/data/', 'Free CSV', 'Mensual', 'US aggregator'],
+                  ['Realtor.com Research', 'https://www.realtor.com/research/data/', 'Free CSV', 'Mensual', 'US aggregator'],
+                ].map(([name, url, lic, freq, tier], i) => (
+                  <tr key={i}>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{name}</td>
+                    <td style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#a5b4fc', fontSize: 12 }}>{url.replace(/^https?:\/\//, '')}</a>
+                    </td>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{lic}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{freq}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--cream-3)', fontSize: 12, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{tier}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ marginTop: 14, fontSize: 13, color: 'var(--cream-3)' }}>
+            Ver dashboard interactivo en{' '}
+            <a href="/insights/global" style={{ color: '#a5b4fc' }}>/insights/global</a>
+            {' '}· comparativas long-tail en{' '}
+            <a href="/insights/compare/home-prices" style={{ color: '#a5b4fc' }}>/insights/compare/:topic</a>.
+          </p>
+        </Section>
       </main>
     </div>
   );

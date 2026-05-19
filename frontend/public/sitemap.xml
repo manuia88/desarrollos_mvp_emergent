@@ -184,4 +184,50 @@
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
+  <!-- W5.21 · External Insights UI/SEO · 12 fuentes globales MX vs Mundo -->
+  <url>
+    <loc>https://desarrollosmx.io/insights/global</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/mortgage-rates</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/home-prices</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/rental-yields</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/construction-cost</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/doing-business</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/housing-affordability</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/fibras-vs-reits</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desarrollosmx.io/insights/compare/us-metros-vs-cdmx</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>

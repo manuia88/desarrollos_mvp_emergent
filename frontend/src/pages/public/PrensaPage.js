@@ -350,6 +350,48 @@ export default function PrensaPage() {
             </code>
           </div>
         )}
+
+        {/* W5.21 · Atlax tool #23 query_global_insights pointer */}
+        <section data-testid="prensa-external-insights" style={{
+          marginTop: 32, padding: '22px',
+          background: 'rgba(99,102,241,0.08)',
+          border: '1px solid rgba(99,102,241,0.25)',
+          borderRadius: 14,
+        }}>
+          <h2 style={{
+            fontFamily: 'Outfit', fontWeight: 800, fontSize: 22,
+            color: 'var(--cream)', margin: '0 0 8px',
+          }}>Comparativas MX vs Mundo · 12 fuentes globales</h2>
+          <p style={{
+            fontFamily: 'DM Sans', fontSize: 14, color: 'var(--cream-2)',
+            margin: '0 0 14px', lineHeight: 1.6, maxWidth: 720,
+          }}>
+            Agregamos BIS · OECD · IMF · World Bank · FRED · INEGI · BMV · HR Ratings · Numbeo · Global Property Guide · Zillow · Realtor para análisis comparativos.
+            Para datos crudos contacta press@desarrollosmx.io. Atlax (asistente AI) responde queries
+            de prensa en tiempo real vía tool <code style={{ color: '#a5b4fc' }}>query_global_insights</code>{' '}
+            sobre los 12 datasets cacheados.
+          </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <a href="/insights/global" data-testid="prensa-link-insights-global" style={{
+              fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
+              color: 'var(--cream)', textDecoration: 'none',
+              background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+              padding: '10px 18px', borderRadius: 9999,
+            }}>Ver dashboard global →</a>
+            <a href="/insights/compare/home-prices" data-testid="prensa-link-insights-compare" style={{
+              fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
+              color: 'var(--cream-2)', textDecoration: 'none',
+              border: '1px solid rgba(255,255,255,0.18)',
+              padding: '10px 18px', borderRadius: 9999,
+            }}>8 comparativas long-tail</a>
+            <a href="/methodology#fuentes-externas-globales-w520" data-testid="prensa-link-methodology" style={{
+              fontFamily: 'DM Sans', fontSize: 13, fontWeight: 700,
+              color: 'var(--cream-2)', textDecoration: 'none',
+              border: '1px solid rgba(255,255,255,0.18)',
+              padding: '10px 18px', borderRadius: 9999,
+            }}>Metodología fuentes</a>
+          </div>
+        </section>
       </main>
       <CtaFooter />
     </div>
