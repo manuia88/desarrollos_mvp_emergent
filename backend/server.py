@@ -1000,6 +1000,14 @@ async def startup():
         logging.info(f"[startup] commercial seeds: {seed_result}")
     except Exception as e:
         logging.warning(f"[startup] commercial init failed: {e}")
+    # W5.22 Z.1.1 SUB-FIX-1 · Eager-load all modules calling register_feature
+    # so catalog returns 42+ features instead of ~13 (lazy import problem).
+    try:
+        from feature_registry_eager_loader import eager_load_all_registered_features
+        ok, failed, total_after = eager_load_all_registered_features()
+        logging.info(f"[startup] feature_registry_eager_loader: loaded={ok} failed={failed} total={total_after}")
+    except Exception as e:
+        logging.warning(f"[startup] feature_registry_eager_loader failed: {e}")
     # W5.FF2 — Self-registering feature catalog sync
     try:
         from feature_registry import ensure_catalog_synced as _ensure_feature_catalog_synced
