@@ -7,6 +7,7 @@ import * as z2 from '../../../api/studio_z2';
 import * as studioApi from '../../../api/studio';
 import HookScoreBadge from '../../../components/studio/HookScoreBadge';
 import CarruselPreviewLive from '../../../components/studio/CarruselPreviewLive';
+import CopyGeneratorModal from '../../../components/studio/CopyGeneratorModal';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
@@ -24,6 +25,8 @@ export default function CarruselesPage({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ project_id: '', buyer_angle: '', status: '', ab_group: '' });
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [autoSelectCopyId, setAutoSelectCopyId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(null);
   const [abStats, setAbStats] = useState(null);
   const [toast, setToast] = useState('');
@@ -178,14 +181,47 @@ export default function CarruselesPage({ user, onLogout }) {
           <GenerateModal
             brandKits={brandKits}
             copyJobs={copyJobs}
+            autoSelectCopyId={autoSelectCopyId}
+            onClearAutoSelect={() => setAutoSelectCopyId(null)}
+            onOpenCopyModal={() => setCopyModalOpen(true)}
             onClose={() => setGenerateOpen(false)}
             onCreated={async () => {
               setGenerateOpen(false);
               setToast(t('studio.carrusel.toast_created'));
               await load();
             }}
+            onGateFailed={(detail) => {
+              const score = typeof detail?.hook_score === 'number' ? Math.round(detail.hook_score) : '?';
+              const suggestion = detail?.suggestion || '';
+              setToast(t('studio.copy.gate_failed_body', { score, suggestion })
+                || `${t('studio.copy.gate_failed_title')} · ${score}/100`);
+            }}
             onError={(msg) => setToast(`${t('studio.toast.error')}: ${msg}`)}
             t={t}
+          />
+        )}
+
+        {copyModalOpen && (
+          <CopyGeneratorModal
+            open={copyModalOpen}
+            onClose={() => setCopyModalOpen(false)}
+            onCopyGenerated={async (newCopyId, job) => {
+              // Refresca lista de copies y auto-selecciona el nuevo (si ready)
+              try {
+                const r = await z2.listCopyJobs({ status: 'ready', limit: 30 });
+                const items = r.items || [];
+                setCopyJobs(items);
+                if (job?.status === 'ready' || job?.status === 'completed') {
+                  setAutoSelectCopyId(newCopyId);
+                  setToast(t('studio.copy.generated_toast'));
+                } else {
+                  setToast(t('studio.copy.generated_pending'));
+                }
+              } catch {
+                setToast(t('studio.copy.generated_toast'));
+              }
+            }}
+            onError={(msg) => setToast(`${t('studio.toast.error')}: ${msg}`)}
           />
         )}
 
@@ -266,13 +302,21 @@ function CarruselCard({ carrusel, onClick, t }) {
   );
 }
 
-function GenerateModal({ brandKits, copyJobs, onClose, onCreated, onError, t }) {
+function GenerateModal({ brandKits, copyJobs, autoSelectCopyId, onClearAutoSelect, onOpenCopyModal, onClose, onCreated, onGateFailed, onError, t }) {
   const [copyId, setCopyId] = useState('');
   const [brandKitId, setBrandKitId] = useState(brandKits.find((b) => b.is_active)?.id || '');
   const [ratios, setRatios] = useState(['1:1', '4:5']);
   const [abTest, setAbTest] = useState(false);
   const [hookMin, setHookMin] = useState(60);
   const [submitting, setSubmitting] = useState(false);
+
+  // Auto-select copy generado por CopyGeneratorModal (si llega ready)
+  useEffect(() => {
+    if (autoSelectCopyId && copyJobs.some((j) => j.id === autoSelectCopyId)) {
+      setCopyId(autoSelectCopyId);
+      if (onClearAutoSelect) onClearAutoSelect();
+    }
+  }, [autoSelectCopyId, copyJobs, onClearAutoSelect]);
 
   const toggleRatio = (r) => {
     setRatios((prev) => prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]);
@@ -295,7 +339,13 @@ function GenerateModal({ brandKits, copyJobs, onClose, onCreated, onError, t }) 
       });
       onCreated();
     } catch (e) {
-      onError(e.message);
+      // W5.22 Z.2.1 · 422 hook_score gate handler · feedback UX claro
+      const detail = e?.body?.detail;
+      if (e?.status === 422 && detail && typeof detail.hook_score === 'number') {
+        if (onGateFailed) onGateFailed(detail);
+      } else {
+        onError(e.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -313,16 +363,30 @@ function GenerateModal({ brandKits, copyJobs, onClose, onCreated, onError, t }) 
           </button>
         </header>
         <div style={{ display: 'grid', gap: 14 }}>
-          <label style={labelStyle()}>{t('studio.carrusel.field_copy')}
-            <select value={copyId} onChange={(e) => setCopyId(e.target.value)} style={selectStyle()}>
-              <option value="">{t('studio.carrusel.field_copy_none')}</option>
-              {copyJobs.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {t(`studio.copy.persona.${j.buyer_angle || 'inversor'}`)} · {j.id.slice(0, 8)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <label style={labelStyle()}>{t('studio.carrusel.field_copy')}
+              <select value={copyId} onChange={(e) => setCopyId(e.target.value)} style={selectStyle()}>
+                <option value="">{t('studio.carrusel.field_copy_none')}</option>
+                {copyJobs.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {t(`studio.copy.persona.${j.buyer_angle || 'inversor'}`)} · {j.id.slice(0, 8)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              data-testid="generate-copy-first"
+              onClick={onOpenCopyModal}
+              style={{
+                marginTop: 8, padding: '6px 14px', borderRadius: 9999,
+                background: 'transparent', border: '1px solid rgba(99,102,241,0.45)',
+                color: '#a5b4fc', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+                cursor: 'pointer',
+              }}>
+              {t('studio.copy.generate_first_button')}
+            </button>
+          </div>
           <label style={labelStyle()}>{t('studio.carrusel.field_brand_kit')}
             <select value={brandKitId} onChange={(e) => setBrandKitId(e.target.value)} style={selectStyle()}>
               <option value="">{t('studio.carrusel.field_brand_kit_default')}</option>

@@ -3447,7 +3447,24 @@
         "I": "I · Influyente",
         "S": "S · Estable",
         "C": "C · Concienzudo"
-      }
+      },
+      "modal_title": "Generar copy con IA",
+      "modal_subtitle": "Crea texto orientado a una persona compradora antes de generar el carrusel.",
+      "field_buyer_angle": "Persona compradora",
+      "field_disc": "Perfil DISC (opcional)",
+      "field_language": "Idioma",
+      "field_project_id": "Proyecto (opcional)",
+      "field_context": "Contexto extra (opcional)",
+      "context_placeholder": "Contexto extra: ubicación, amenidades, target zone, ángulos relevantes para la persona...",
+      "cancel": "Cancelar",
+      "generate_button": "Generar copy",
+      "generating": "Generando copy con IA...",
+      "generated_toast": "Copy generado correctamente.",
+      "generated_pending": "Copy en generación · aparecerá en el dropdown cuando esté listo.",
+      "generate_first_button": "+ Generar copy primero",
+      "gate_failed_title": "Hook score muy bajo",
+      "gate_failed_body": "Hook score {{score}}/100 · {{suggestion}} Mejora el copy antes de generar.",
+      "error_generating": "Error al generar el copy."
     },
     "carrusel": {
       "title": "Carruseles",
