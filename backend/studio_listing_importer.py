@@ -344,3 +344,71 @@ async def ensure_indexes(db) -> None:
         await db.listing_imports.create_index("id", unique=True, background=True)
     except Exception as exc:
         log.warning(f"[importer] ensure_indexes warning: {exc}")
+    # W5.22 Z.1.1 SUB-FIX-4 · MongoDB-persistent rate-limit collection
+    try:
+        # TTL index · MongoDB auto-deletes docs after expires_at
+        await db.studio_rate_limits.create_index(
+            "expires_at", expireAfterSeconds=0,
+            name="studio_rate_limits_ttl", background=True,
+        )
+        # Unique compound (user_id, action, window_start) for upsert idempotency
+        await db.studio_rate_limits.create_index(
+            [("user_id", 1), ("action", 1), ("window_start", 1)],
+            unique=True, name="studio_rate_limits_window_unique", background=True,
+        )
+    except Exception as exc:
+        log.warning(f"[importer] studio_rate_limits indexes warning: {exc}")
+
+
+# ─── W5.22 Z.1.1 SUB-FIX-4 · MongoDB-persistent rate-limit ───────────────────
+async def check_rate_limit_persistent(
+    db,
+    user_id: str,
+    action: str = "listing_import",
+    max_per_hour: int = RATE_LIMIT_PER_HOUR,
+) -> bool:
+    """Persistent rate-limit backed by MongoDB collection `studio_rate_limits`.
+
+    Schema per doc:
+      _id (sha256 hash) · user_id · action · window_start (iso hour) ·
+      count (int) · expires_at (datetime · TTL auto-clean 1h)
+
+    Idempotent upsert with $inc: race-safe across multi-worker deployments.
+    FAIL-SOFT: si MongoDB falla → return True (NO bloquea usuarios legítimos).
+    """
+    import hashlib
+    if not user_id:
+        return True
+    try:
+        now = _now()
+        # Window key = current UTC hour (ISO format "YYYY-MM-DDTHH")
+        window_start = now.replace(minute=0, second=0, microsecond=0)
+        window_iso = window_start.isoformat()
+        idem = hashlib.sha256(
+            f"{user_id}:{action}:{window_iso}".encode("utf-8")
+        ).hexdigest()
+        expires_at = window_start + timedelta(hours=1)
+
+        # Atomic upsert + increment · returns new doc
+        result = await db.studio_rate_limits.find_one_and_update(
+            {"_id": idem},
+            {
+                "$inc": {"count": 1},
+                "$set": {
+                    "user_id": user_id,
+                    "action": action,
+                    "window_start": window_start,
+                    "expires_at": expires_at,
+                },
+            },
+            upsert=True,
+            return_document=True,
+        )
+        # Handle both motor return shapes (dict OR ReturnDocument enum response)
+        current_count = (result or {}).get("count", 1) if isinstance(result, dict) else 1
+        if current_count > max_per_hour:
+            return False
+        return True
+    except Exception as exc:
+        log.warning(f"[rate_limit_persistent] FAIL-SOFT default-allow: {exc}")
+        return True

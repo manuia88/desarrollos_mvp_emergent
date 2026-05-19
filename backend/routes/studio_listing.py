@@ -41,7 +41,8 @@ class ListingImportBody(BaseModel):
 async def create_import(body: ListingImportBody, request: Request) -> Dict[str, Any]:
     user = await _require_user(request)
     db = _db(request)
-    if not importer.check_rate_limit(user.user_id):
+    # W5.22 Z.1.1 SUB-FIX-4 · MongoDB-persistent rate-limit (replaces deque · multi-worker safe)
+    if not await importer.check_rate_limit_persistent(db, user.user_id, "listing_import", 10):
         raise HTTPException(
             429, "Limite de 10 imports/hora alcanzado. Intenta en 1 hora.",
         )
