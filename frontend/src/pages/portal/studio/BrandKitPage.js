@@ -132,7 +132,7 @@ function VariantCard({ kit, onEdit, onActivate, onDelete, t }) {
               display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '2px 8px', marginTop: 4,
               borderRadius: 9999,
-              background: 'rgba(34,197,94,0.15)', color: '#22C55E',
+              background: 'rgba(34,197,94,0.15)', color: 'var(--success, #22C55E)',
               fontSize: 10, fontWeight: 700,
             }}>
               <Check size={10} /> {t('studio.brand_kit.active')}
@@ -147,7 +147,7 @@ function VariantCard({ kit, onEdit, onActivate, onDelete, t }) {
         {[kit.color_primary, kit.color_secondary, kit.color_accent].map((c, i) => (
           <div key={i} style={{
             width: 36, height: 36, borderRadius: 9999,
-            background: c || '#000', border: '1px solid rgba(255,255,255,0.10)',
+            background: c || 'var(--bg, #06080F)', border: '1px solid rgba(255,255,255,0.10)',
           }} title={c} />
         ))}
       </div>
@@ -334,7 +334,7 @@ const ctaPreview = (kit) => ({
   marginTop: 10,
   padding: '8px 16px',
   background: `linear-gradient(90deg, ${kit.color_primary || '#6366F1'}, ${kit.color_secondary || '#EC4899'})`,
-  color: '#FFF',
+  color: 'var(--cream, #F0EBE0)',
   border: 'none',
   borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
@@ -343,7 +343,7 @@ const ctaPreview = (kit) => ({
 
 const btnPrimary = () => ({
   padding: '8px 14px',
-  background: GRADIENT, color: '#FFF',
+  background: GRADIENT, color: 'var(--cream, #F0EBE0)',
   border: 'none', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
   cursor: 'pointer',
@@ -357,7 +357,7 @@ const btnGhost = () => ({
 });
 const btnDanger = () => ({
   padding: '8px 10px',
-  background: 'transparent', color: '#EF4444',
+  background: 'transparent', color: 'var(--danger, #EF4444)',
   border: '1px solid rgba(239,68,68,0.30)', borderRadius: 9999,
   cursor: 'pointer',
 });

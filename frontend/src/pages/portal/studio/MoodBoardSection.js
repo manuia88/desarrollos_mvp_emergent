@@ -260,7 +260,7 @@ const tabStyle = (active) => ({
 const addBtn = () => ({
   display: 'inline-flex', alignItems: 'center', gap: 4,
   padding: '6px 14px',
-  background: GRADIENT, color: '#FFF',
+  background: GRADIENT, color: 'var(--cream, #F0EBE0)',
   border: 'none', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
   cursor: 'pointer',
@@ -275,7 +275,7 @@ const ghostBtn = () => ({
 const dangerBtn = () => ({
   display: 'inline-flex', alignItems: 'center', gap: 4,
   padding: '6px 12px',
-  background: 'transparent', color: '#EF4444',
+  background: 'transparent', color: 'var(--danger, #EF4444)',
   border: '1px solid rgba(239,68,68,0.30)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
   cursor: 'pointer',
