@@ -14,7 +14,7 @@ const VARIANT_LABELS = {
 };
 
 export default function BrandKitPage({ user, onLogout }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   const [kits, setKits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);

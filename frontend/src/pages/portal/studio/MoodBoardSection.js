@@ -7,7 +7,7 @@ import { Plus, Trash2, Layers, GripVertical } from 'lucide-react';
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
 export default function MoodBoardSection({ projectId }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   const [boards, setBoards] = useState([]);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);

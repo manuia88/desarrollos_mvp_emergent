@@ -14,7 +14,7 @@ const PORTAL_LABELS = {
 };
 
 export default function ListingImportPage({ user, onLogout }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   const [url, setUrl] = useState('');
   const [portal, setPortal] = useState('easybroker');
   const [busy, setBusy] = useState(false);

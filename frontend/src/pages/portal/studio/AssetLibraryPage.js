@@ -10,7 +10,7 @@ const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const ASSET_ICONS = { photo: ImageIcon, video: Video, pdf: FileText, '3dgs_scan': Box };
 
 export default function AssetLibraryPage({ user, onLogout }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   const [filters, setFilters] = useState({ project_id: '', asset_type: '', tags: '', search: '' });
   const [assets, setAssets] = useState({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);
