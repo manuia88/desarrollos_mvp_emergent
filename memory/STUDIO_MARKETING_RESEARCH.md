@@ -144,11 +144,12 @@ InmoPages crea fichas mini-website sin chiste · DMX hace landing PROFESIONAL pr
 
 - 7 personas LATAM: Inversor · Familia · First-buyer · Exec · Extranjero/Expat · Jubilado · Empty-nester
 - DISC-adapted script per persona
-- Carrusel auto (hero + N stats + CTA · 4 aspect ratios · brand kit)
-- Auto-content diario (modelo Mirino) con datos BANXICO/Zone Score/demand-supply
+- Carrusel auto (hero + N stats + CTA · 5 aspect ratios 16:9+9:16+1:1+4:5+21:9 · brand kit)
+- Auto-content diario (modelo Mirino) con datos BANXICO/Zone Score/demand-supply (consume W4.18 BANXICO + W3.1 Zone Score)
 
 ### Z.3 Multi-channel Publisher + Scheduler (36h · subsumed por W5.10)
 
+- Build directo decisión 2026-05-12 · Zernio evaluado y rechazado · ver `memory/feedback_zernio_decision.md` (+28h architectural learnings absorbidos)
 - OAuth multi-platform (Meta · Google/YouTube · TikTok · WA Business · LinkedIn)
 - Posting engine FB · IG · Stories · Reels · YT · YT Shorts · WA Status · TikTok · LinkedIn
 - Calendar drag-drop scheduler + auto-repost intelligence
