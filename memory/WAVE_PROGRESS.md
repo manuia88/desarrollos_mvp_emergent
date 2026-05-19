@@ -1,6 +1,6 @@
 # DMX Wave Progress Tracker
 
-**Última actualización**: 2026-05-18 (🏆 **W5.FF Feature Visibility Matrix CERRADO COMPLETO 28h/28h** ✅ · 27 batches/partes shipped = 458h · 5 batches Claude Code ULTRA-defensivo · sistema GoHighLevel-style activo en superadmin · próximo W5.20-21 Insights Layer Wiki 41h O resolver W5.16 numbering · W5.17 absorbido en W5.22 · W5.9 diferido al final)
+**Última actualización**: 2026-05-18 (W5.FF CERRADO ✅ 28h/28h + **W5.16 numbering RESUELTO Plan A++ founder approved** · 458h shipped · próximo W5.16 Social Cards Renderer 10h O W5.20-21 Insights Wiki 41h O W5.25 Widget Embed Analytics 5-6h · W5.17 absorbido W5.22 Z.4 · W5.16 v2 Studio video bundle absorbido W5.22 Z.4 · W5.16 v3 MCP NO gap · W5.9 diferido al final)
 **Total H1 restante**: ~146.5h (Wave 4 pending de los 495h totales · W4.18.2 32h ✅ shipped · 8h Private Beta Gate pending)
 **Shipped to date**: Wave 1 ✅ 50h + Wave 2 ✅ 120h + Wave 3 ✅ 197h + Wave 4 🟡 348.5h + Wave 5 🟡 26h (W5.1) = 741.5h shipped
 **H1 nuevos totales**: Wave 2 120h ✅ + Wave 3 197h ✅ + Wave 4 495h (331.5h shipped, 163.5h pending) = 862h plan H1

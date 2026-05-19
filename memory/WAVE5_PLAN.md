@@ -55,7 +55,8 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 | ~~**W5.13**~~ | Integrations expand | ➡️ W6 | Movido founder 2026-05-16 |
 | ~~**W5.14**~~ | Reviews residentes | ➡️ W6 | Movido founder 2026-05-16 |
 | **W5.15** | FSD per-property + Accuracy (Fitch-style) | ✅ | P1 Backend `7d883e6` + P2 UI Fitch-style + cross-modules + PDF `0ae93dc` (26h total · 7 upgrades incluyendo ML loop drift+self-tuning · /confianza público T0 + widget AvmConfidenceRange embebido /valor + /detalle-proyecto · tab FSD Distribution superadmin) |
-| **W5.16** | Marketing distribution (MCP) | ⬜ | ~10h |
+| **W5.16** | Social Cards Multi-platform Renderer (RENOMBRADO 2026-05-18) | ⬜ | 10h · 8 link previews (FB·LinkedIn·WhatsApp·Twitter·Telegram·iMessage·Discord·Slack) + 3 layouts (og:image / feed 1080×1080 / story 1080×1920) · Mapbox Static + Pillow · viral growth público · **Plan A++ founder approved**: 3 identidades W5.16 resueltas: (v1 social cards · este batch propio) + (v2 studio video bundle 34h absorbido W5.22+ Z.4) + (v3 MCP Distribution v2 NO gap · W4.16 ya completo) |
+| **W5.25** | Widget Embed Analytics (NUEVO 2026-05-18 · ex backlog) | ⬜ | 5-6h · endpoint `/api/widgets/{type}/{slug}/track?ref={hostname}` + collection `db.widget_embeds` + dashboard superadmin "Forbes embebe Polanco · El Financiero embebe Condesa" · outreach prensa data-driven · módulo standalone NO confundir con MCP Distribution W4.16 shipped |
 | ~~**W5.17**~~ | ~~Virtual staging IA standalone~~ | 🔄 **ABSORBIDO en W5.22** | Founder decision 2026-05-18 · coherencia arquitectónica con Phase Z Studio Marketing · va con video bundle 34h + 7 sub-chunks más · scope total Phase Z mantiene 224h |
 | **W5.18** | Dubai full (Phase 11) | ⏸ | 38h · expansión H2 fase 2 (decisión separada) |
 | **W5.19** | Probability UX (Kalshi) | ✅ | Plan B 9h `5fe627b` (origen `688b833`) · 4 sub-chunks · 3 helpers backend + Badge/Bar shared + Atlax tool #20 explainability + cron weekly threshold crossing · 10 inputs + 8 outputs récord cierre cross-module |
@@ -81,7 +82,8 @@ Pattern probado en W4.18.1 Apify Trends (STUB MODE shipped · espera upgrade $49
 11. ~~W5.17 Virtual staging~~ **ABSORBIDO en W5.22 Phase Z**
 12. **W5.19 Probability UX (6h) ← AHORA**
 13. W5.23 Dev Battle Card (12h)
-14. W5.16 Marketing distribution MCP (~10h)
+14. W5.16 Social Cards Multi-platform Renderer 10h (RENOMBRADO 2026-05-18)
+14b. W5.25 Widget Embed Analytics 5-6h (NUEVO 2026-05-18 · ex backlog)
 15. W5.9 Climate Migration STUB (~25h-33h) **DIFERIDO al final W5 · founder decision 2026-05-17 (revisar fuentes gov MX maduras + decisión upgrade Apify $49)**
 16. W5.10 Social/Ads STUB (233h)
 17. W5.20-21 Insights Layer (41h)

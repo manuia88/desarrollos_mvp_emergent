@@ -182,9 +182,9 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 - **Total upgrade Phase Y: 102h → 137h (+35h)** · refleja Wave 4 nueva = 496h · H1 nuevo = 813h plan
 - **Por qué:** moat real · diferenciación vs Inmuebles24/Lamudi · justifica tier Pro premium · resilience evita cascada cuando algo falla.
 
-### Embed Analytics · trackear qué sitios embeben widgets DMX
+### Embed Analytics · trackear qué sitios embeben widgets DMX · 🚀 PROMOTED W5.25
 - **Origen:** W4.2.5 emergent suggested 2026-05-09
-- **Destino:** Wave 4 W4.10 (post Phase Y) ó early W4.16 marketing
+- **Destino:** ✅ **PROMOVIDO 2026-05-18 a W5.25 Widget Embed Analytics** (5-6h · módulo standalone · Plan A++ founder approved · NO confundir con MCP Distribution W4.16 shipped)
 - **Qué:** GET endpoint ligero `/api/widgets/{type}/{slug}/track?ref={hostname}` invocado al cargar el widget. Persiste `db.widget_embeds` con `{slug, hostname, count, last_seen_at}`. Dashboard superadmin muestra "Forbes embebe Polanco · El Financiero embebe Condesa" → priorizar outreach prensa data-driven.
 - **Por qué:** cierra el loop "embed widget → SEO equity → press relationships". Sin esto, founder NO sabe quién está usando los widgets organicamente.
 - **Costo:** ~2h (endpoint + dashboard + minimal UI).

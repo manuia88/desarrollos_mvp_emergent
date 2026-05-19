@@ -1,8 +1,31 @@
 # DMX Studio Marketing — Research + Arquitectura Phase Z
 
-**Versión**: 2.0 · 2026-05-10
+**Versión**: 2.1 · 2026-05-18 (actualizado · Plan A++ founder approved · absorciones explícitas Z.4)
 **Destino**: Phase Z Wave 5 H2 (224h · 9 sub-chunks)
 **Origen**: análisis profundo 8 plataformas + 8 preguntas críticas founder + 3 upgrades arquitectónicos
+
+---
+
+## 🔄 ACTUALIZACIÓN 2026-05-18 · Plan A++ founder approved
+
+**Resolución 3 inconsistencias W5.16** (sin pérdida de features · MÁXIMO alcance):
+
+| ex-W5.16 versión | Decisión | Destino |
+|---|---|---|
+| v1 Social Cards Renderer 10h (8 link previews + 3 layouts) | Mantiene W5.16 como batch propio · NO absorbe en Z.2 | W5.16 standalone (viral growth público) |
+| v2 Studio video bundle 34h (TTS multi-ratio + auto-script) | Absorbido en Phase Z **Z.4** | Z.4 amplía documentación explícita |
+| v3 MCP Distribution v2 | Cero gap detectado · W4.16 ya cerró completo | NO batch nuevo |
+
+**Z.4 absorciones explícitas** (2026-05-18 · Plan A++):
+- ex-W5.17 Virtual Staging IA (8h) · absorbido por coherencia arquitectónica
+- ex-W5.16-B Studio video bundle TTS multi-ratio (34h) · absorbido aquí
+- Z.4 sigue 42h · cero suma · features 100% preservadas
+
+**W5.16 clarificado** = Social Cards Multi-platform Renderer 10h (batch propio · NO confundir con MCP Distribution shipped W4.16).
+
+**W5.25 NUEVO** = Widget Embed Analytics 5-6h (rescatado backlog · módulo standalone tracking dominios externos).
+
+---
 
 ---
 
