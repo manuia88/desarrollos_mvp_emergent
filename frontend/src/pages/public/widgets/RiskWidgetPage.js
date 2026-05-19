@@ -3,6 +3,7 @@
 // Foco en risk score letter + tier + sources count.
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { trackWidgetEmbed } from '../../../utils/widgetTracking';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -40,6 +41,11 @@ export default function RiskWidgetPage() {
       document.body.style.background = '';
     };
   }, []);
+
+  // W5.25 · embed analytics tracking (fail-soft)
+  useEffect(() => {
+    if (slug) trackWidgetEmbed('risk', { slug });
+  }, [slug]);
 
   if (error === 'not_found') {
     return (

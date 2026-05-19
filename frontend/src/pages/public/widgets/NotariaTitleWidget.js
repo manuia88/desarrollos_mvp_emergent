@@ -1,6 +1,7 @@
 // W3.6 — Notaría Title Check widget standalone embebible.
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FileSearch } from 'lucide-react';
+import { trackWidgetEmbed } from '../../../utils/widgetTracking';
 import {
   WidgetShell, WidgetCard, WidgetField, ResultRow,
   widgetInputStyle, widgetBtnPrimary,
@@ -21,6 +22,11 @@ export default function NotariaTitleWidget() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // W5.25 · embed analytics tracking (fail-soft) · API-keyed widget
+  useEffect(() => {
+    if (apiKey) trackWidgetEmbed('notaria_title', { apiKey });
+  }, [apiKey]);
 
   const onSubmit = async (e) => {
     e.preventDefault();

@@ -32,6 +32,8 @@ NOTIF_TYPES = {
     "battle_card_weekly_digest", "battle_card_ranking_change",
     # W5.FF4 · churn detection
     "churn_risk_alert", "user_re_engagement",
+    # W5.25 · widget embed analytics
+    "widget_embed_new_domain",
     "generic",
 }
 
@@ -69,6 +71,7 @@ DEFAULT_CATEGORIES = {
     "battle_card_ranking_change":   {"in_app": True, "email": False, "whatsapp": False},
     "churn_risk_alert":      {"in_app": True, "email": True,  "whatsapp": False},
     "user_re_engagement":    {"in_app": True, "email": False, "whatsapp": False},
+    "widget_embed_new_domain": {"in_app": True, "email": True,  "whatsapp": False},
     "generic":               {"in_app": True, "email": False, "whatsapp": False},
 }
 

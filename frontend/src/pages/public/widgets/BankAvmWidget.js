@@ -1,6 +1,7 @@
 // W3.6 — Bank AVM widget standalone embebible.
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Building2 } from 'lucide-react';
+import { trackWidgetEmbed } from '../../../utils/widgetTracking';
 import {
   WidgetShell, WidgetCard, WidgetField, ResultRow,
   widgetInputStyle, widgetBtnPrimary,
@@ -17,6 +18,11 @@ export default function BankAvmWidget() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // W5.25 · embed analytics tracking (fail-soft) · API-keyed widget
+  useEffect(() => {
+    if (apiKey) trackWidgetEmbed('bank_avm', { apiKey });
+  }, [apiKey]);
 
   const onSubmit = async (e) => {
     e.preventDefault();

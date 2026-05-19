@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { fetchAvmQuick, fetchAvmWidgetConfig } from '../../api/avm';
 import NarrativeBlock from '../../components/landing/NarrativeBlock';
+import { trackWidgetEmbed } from '../../utils/widgetTracking';
 
 function fmtMXN(n) {
   if (!n) return '—';
@@ -37,6 +38,11 @@ export default function AvmWidgetPage() {
       document.body.style.background = '';
     };
   }, []);
+
+  // W5.25 · embed analytics tracking (fail-soft)
+  useEffect(() => {
+    if (slug) trackWidgetEmbed('avm', { slug });
+  }, [slug]);
 
   useEffect(() => {
     let cancelled = false;

@@ -1,6 +1,7 @@
 // W3.6 — Investor Yield widget standalone embebible.
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
+import { trackWidgetEmbed } from '../../../utils/widgetTracking';
 import {
   WidgetShell, WidgetCard, WidgetField, ResultRow,
   widgetInputStyle, widgetBtnPrimary,
@@ -16,6 +17,11 @@ export default function InvestorYieldWidget() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // W5.25 · embed analytics tracking (fail-soft) · API-keyed widget
+  useEffect(() => {
+    if (apiKey) trackWidgetEmbed('investor_yield', { apiKey });
+  }, [apiKey]);
 
   const onSubmit = async (e) => {
     e.preventDefault();

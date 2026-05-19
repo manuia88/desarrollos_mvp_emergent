@@ -4,6 +4,7 @@
 // 320px-1200px responsive, branded watermark "Powered by DesarrollosMX".
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { trackWidgetEmbed } from '../../../utils/widgetTracking';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -51,6 +52,11 @@ export default function ScoreWidgetPage() {
       document.body.style.background = '';
     };
   }, []);
+
+  // W5.25 · embed analytics tracking (fail-soft)
+  useEffect(() => {
+    if (slug) trackWidgetEmbed('score', { slug });
+  }, [slug]);
 
   if (error === 'not_found') {
     return (

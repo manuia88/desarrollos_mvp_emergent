@@ -201,6 +201,8 @@ const SUPERADMIN_NAV = [
       { key: 'risk-alerts',            to: '/superadmin/risk-alerts',            label: 'Risk Alerts',            Icon: AlertTriangle },
       // W5.FF3 · Feature Visibility Matrix (GoHighLevel-style snapshot grants)
       { key: 'feature-visibility',     to: '/superadmin/feature-visibility',     label: 'Feature Visibility',     Icon: GitMerge },
+      // W5.25 · Widget Embed Analytics (dominios externos que embeben widgets)
+      { key: 'widget-embeds',          to: '/superadmin/widget-embeds',          label: 'Widget Embeds',          Icon: Link },
     ],
   },
   // ─── tier 5 · MONETIZACIÓN verde · 2026-05-18 sidebar fix ─────────────────────────────

@@ -164,6 +164,10 @@ app.include_router(me_feature_flags_router)
 from routes.feature_visibility import router as feature_visibility_router
 app.include_router(feature_visibility_router)
 
+# W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
+from routes.widget_embed_analytics import router as widget_embed_analytics_router
+app.include_router(widget_embed_analytics_router)
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
@@ -1466,6 +1470,14 @@ async def startup():
             battle_card_cron.register_battle_card_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[BattleCard] startup register failed: {e}")
+        # W5.25 — Widget Embed Analytics: indexes + daily digest cron
+        try:
+            from widget_embed_indexes import ensure_widget_embeds_index
+            from widget_embed_cron import register_widget_embed_jobs
+            await ensure_widget_embeds_index(db)
+            register_widget_embed_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W5.25] widget_embed startup register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:

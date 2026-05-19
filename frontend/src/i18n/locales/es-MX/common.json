@@ -3254,5 +3254,43 @@
       "template_applied": "Plantilla {{template}} aplicada · {{count}} features",
       "error_generic": "Ocurrió un error al actualizar"
     }
+  },
+  "widget_embeds": {
+    "eyebrow": "SUPERADMIN · WIDGET EMBEDS",
+    "title": "Widget Embed Analytics",
+    "sub": "Dominios externos que embeben widgets DMX · tracking en vivo · 7 widgets",
+    "kpi": {
+      "total_domains": "Dominios únicos",
+      "total_embeds": "Embeds totales",
+      "top_widget": "Widget top"
+    },
+    "toolbar": {
+      "widget_type": "Widget",
+      "days": "Periodo",
+      "refresh": "Refrescar",
+      "filter_all": "Todos",
+      "filter_avm": "AVM",
+      "filter_score": "Score",
+      "filter_risk": "Risk",
+      "filter_notaria_title": "Notaría",
+      "filter_investor_yield": "Inv. Yield",
+      "filter_bank_avm": "Bank AVM",
+      "filter_insurance_risk": "Insurance"
+    },
+    "table": {
+      "col_hostname": "Hostname",
+      "col_widget_type": "Widget",
+      "col_total_embeds": "Embeds",
+      "col_slugs_count": "Slugs",
+      "col_last_seen": "Último visto",
+      "col_action": "Acción",
+      "btn_investigate": "Investigar",
+      "loading": "Cargando estadísticas…",
+      "empty": "Sin embeds externos detectados aún. Comparte los widgets con prensa o partners para ver tracking.",
+      "footer_count": "{{count}} filas"
+    },
+    "toast": {
+      "error_generic": "Error al cargar estadísticas"
+    }
   }
 }
