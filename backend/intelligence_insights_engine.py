@@ -673,3 +673,106 @@ def schedule_intelligence_insights_cron(scheduler, db) -> None:
         )
     except Exception as e:
         log.warning(f"[intel] schedule cron failed: {e}")
+
+
+# ─── W5.20 · Cross-source brief (additive · does NOT touch generate_brief) ────
+async def generate_cross_source_brief(db, country_focus: str = "MX") -> Dict[str, Any]:
+    """W5.20 · brief Claude Sonnet que cruza external_insights (12 fuentes globales)
+    con DMX local data (intelligence_briefs latest).
+
+    Output schema (persistido en `db.cross_source_briefs`):
+      { id, country_focus, generated_at, model, sources_used[],
+        key_findings[5], opportunities[3], risks[3],
+        narrative_es, narrative_en, ai_cost_mxn }
+
+    FAIL-SOFT: si LLM falla retorna stub con sources_used vacío.
+    """
+    from external_insights_engine import list_sources_status, fetch_source
+
+    ts_iso = _iso()
+    sources_status = await list_sources_status(db)
+    ok_sources = [s["source_id"] for s in sources_status if s.get("status") == "ok"]
+
+    # Fetch external payloads (cached only · no re-fetch)
+    external_data: Dict[str, Any] = {}
+    for sid in ok_sources:
+        res = await fetch_source(db, sid)
+        if res and res.get("status") == "ok":
+            external_data[sid] = res.get("payload")
+
+    # Pull DMX latest brief snapshot
+    local_brief: Optional[Dict[str, Any]] = None
+    try:
+        local_brief = await db.intelligence_briefs.find_one(
+            {}, {"_id": 0, "key_findings": 1, "top_risks": 1, "opportunities": 1,
+                 "market_state": 1, "period": 1},
+            sort=[("generated_at", -1)],
+        )
+    except Exception:
+        local_brief = None
+
+    # Default stub output (used if LLM unavailable)
+    brief: Dict[str, Any] = {
+        "id": _new_id().replace("brief_", "csbrief_"),
+        "country_focus": country_focus,
+        "generated_at": ts_iso,
+        "generated_at_dt": datetime.now(timezone.utc),
+        "model": DEFAULT_MODEL,
+        "sources_used": ok_sources,
+        "external_sources_count": len(ok_sources),
+        "has_local_brief": local_brief is not None,
+        "key_findings": [],
+        "opportunities": [],
+        "risks": [],
+        "narrative_es": "",
+        "narrative_en": "",
+        "ai_cost_mxn": 0.0,
+    }
+
+    # Best-effort LLM call · reuses ai_budget gating from existing module
+    try:
+        from emergentintegrations.llmchat import LlmChat, UserMessage  # type: ignore
+        prompt = (
+            f"Eres un analista macro inmobiliario senior de DesarrollosMX (MX). "
+            f"Recibes datos macro globales ({len(ok_sources)} fuentes: {', '.join(ok_sources[:8])}) "
+            f"y un brief DMX local ({'disponible' if local_brief else 'ausente'}). "
+            f"Devuelve JSON estricto con keys: key_findings (5), opportunities (3), risks (3), "
+            f"narrative_es (≤120 palabras), narrative_en (≤120 palabras). "
+            f"Foco: {country_focus}. NO inventes números · si dato falta di 'sin dato'. "
+            f"NO uses Markdown."
+        )
+        ctx = {
+            "external_sources_count": len(ok_sources),
+            "external_sources_ids": ok_sources,
+            "local_brief": local_brief or {},
+            "sample_external_keys": [list(p.keys())[:4] if isinstance(p, dict) else type(p).__name__
+                                     for p in list(external_data.values())[:3]],
+        }
+        chat = LlmChat(model=DEFAULT_MODEL)
+        msg = UserMessage(content=prompt + "\n\nCONTEXT:\n" + str(ctx)[:6000])
+        resp = await chat.send_message(msg)
+        text = getattr(resp, "content", "") or ""
+        # Lightweight JSON extraction
+        import json
+        try:
+            start_idx = text.find("{")
+            end_idx = text.rfind("}")
+            parsed = json.loads(text[start_idx:end_idx + 1]) if start_idx >= 0 else {}
+        except Exception:
+            parsed = {}
+        for k in ("key_findings", "opportunities", "risks", "narrative_es", "narrative_en"):
+            if k in parsed:
+                brief[k] = parsed[k]
+    except Exception as exc:
+        log.warning(f"[intel.cross_source] LLM unavailable (non-fatal): {exc}")
+
+    try:
+        await db.cross_source_briefs.update_one(
+            {"id": brief["id"]},
+            {"$set": brief},
+            upsert=True,
+        )
+    except Exception as exc:
+        log.warning(f"[intel.cross_source] persist failed: {exc}")
+
+    return brief

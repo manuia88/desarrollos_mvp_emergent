@@ -172,6 +172,10 @@ app.include_router(widget_embed_analytics_router)
 from routes.social_cards import router as social_cards_router
 app.include_router(social_cards_router)
 
+# W5.20 — External Insights Ingest (12 global sources · 4 endpoints + 2 crons)
+from routes.external_insights import router as external_insights_router
+app.include_router(external_insights_router)
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
@@ -1482,6 +1486,14 @@ async def startup():
             register_widget_embed_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W5.25] widget_embed startup register failed: {e}")
+        # W5.20 — External Insights Ingest: indexes + weekly fetch + daily macro alert
+        try:
+            from external_insights_engine import ensure_external_insights_indexes
+            from external_insights_cron import register_external_insights_jobs
+            await ensure_external_insights_indexes(db)
+            register_external_insights_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W5.20] external_insights startup register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:

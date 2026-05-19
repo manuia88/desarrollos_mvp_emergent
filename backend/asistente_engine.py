@@ -217,6 +217,11 @@ TOOLS Y PARAMS:
     devuelve: {{ features_count, features:[{{key, name, category}}], tier_inferred }}.
     Usar cuando: user pregunta qué features tiene activas, qué incluye su plan, qué puede ver/usar en el portal, qué upgrades existen.
 
+23. query_global_insights
+    params: {{ "source_id": str (opcional · 12 disponibles: bis_property_prices, oecd_housing, imf_global_housing, worldbank_doing_business, fred_us_housing, inegi_vivienda, bmv_fibras, hr_ratings, numbeo_property_index, global_property_guide, zillow_research, realtor_research), "comparison": str (opcional · ej. "polanco_vs_beverly_hills") }}
+    devuelve: {{ payload, sources_breakdown:[{{label, url, frequency, tier, status}}] }}.
+    Usar cuando: user pregunta comparativas globales (México vs USA/Mundo) · macro housing (BIS · OECD · FRED) · yields globales (Numbeo · Global Property Guide) · vivienda MX gov (INEGI · SHF · HR Ratings) · narrativa "Beverly Hills vs Polanco" · referencia prensa MX.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -234,6 +239,19 @@ SIEMPRE incluye ranking actual + recommended_action en respuesta.
 Ejemplo: "Tu proyecto X está rank #2 en Polanco (subiste 1 lugar) · acción recomendada: ajustar precio -3% según comp velocity · score 72/100".
 Si user tier < T3 → responde "Battle Card requiere upgrade a tier T3 para developers Enterprise".
 Si insufficient_competitors → responde "Necesitamos al menos 3 desarrolladores en esa zona · data acumulándose".
+
+══ EXTERNAL INSIGHTS (tool 23 · ser referente prensa MX) ══
+Usa query_global_insights cuando user pregunte sobre:
+  - Comparativas MX vs USA / Mundo (ej. "¿cómo va México vs USA?", "Polanco vs Beverly Hills")
+  - Macro housing global (BIS, OECD, IMF, FRED Case-Shiller)
+  - Yields globales por país/ciudad (Numbeo, Global Property Guide)
+  - Indicadores vivienda MX oficiales (INEGI SHF, HR Ratings, BMV FIBRAs)
+  - Narrativa de referencia para prensa / contenido SEO
+DMX agrega 12 fuentes globales → posicionamiento como autoridad data-driven.
+SIEMPRE incluye sources_breakdown en la respuesta (label · url · frequency · status) — transparency Robinhood-style.
+Ejemplo response: "Según BIS y OECD, México está +4.2% YoY en precios vivienda (cifras Q4 2025). Fuentes: BIS · OECD · INEGI."
+Si status=skipped → ese source requiere API key (FRED, Numbeo) · responde con datos de los demás · NO mientas.
+NUNCA inventes números. Si no hay payload de la fuente → di "esa fuente no está cargada aún, te muestro las que sí tengo".
 
 ══ FEATURE VISIBILITY (tool 22 · qué tiene activo el user) ══
 Usa query_my_features cuando user pregunte qué features tiene activas, qué incluye su plan, qué puede usar en el portal:
@@ -344,6 +362,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W5.FF3 — Tool 22: Feature visibility for the calling user
         if tool_name == "query_my_features":
             return await _tool_query_my_features(db, params)
+        # W5.20 — Tool 23: Global insights (12 external sources · prensa MX referente)
+        if tool_name == "query_global_insights":
+            return await _tool_query_global_insights(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1601,6 +1622,74 @@ async def _tool_query_my_features(db, params: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as exc:
         log.warning(f"[asistente_tool] query_my_features failed: {exc}")
         return {"error": str(exc), "source": "feature_visibility"}
+
+
+# ─── W5.20 · Tool 23 · query_global_insights ─────────────────────────────────
+async def _tool_query_global_insights(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Atlax tool #23 · acceso a 12 fuentes externas globales (BIS · OECD · IMF ·
+    World Bank · FRED · INEGI · BMV · HR Ratings · Numbeo · Global Property Guide
+    · Zillow · Realtor). Retorna data + sources_breakdown estilo Robinhood.
+
+    params:
+      - source_id (opcional): único source · si ausente retorna status de todos
+      - comparison (opcional): pista narrativa para LLM (ej. "polanco_vs_beverly_hills")
+    """
+    try:
+        from external_insights_engine import (
+            fetch_source, list_sources_status, ALL_SOURCES, SOURCE_METADATA,
+        )
+
+        source_id = (params.get("source_id") or "").strip().lower()
+        comparison = (params.get("comparison") or "").strip().lower() or None
+
+        if source_id and source_id in ALL_SOURCES:
+            res = await fetch_source(db, source_id)
+            meta = next((m for m in SOURCE_METADATA if m["source_id"] == source_id), {})
+            return {
+                "source": "external_insights",
+                "source_id": source_id,
+                "source_meta": meta,
+                "status": res.get("status"),
+                "fetched_at": res.get("fetched_at"),
+                "payload": res.get("payload"),
+                "comparison_hint": comparison,
+                "sources_breakdown": [
+                    {"label": meta.get("name") or source_id,
+                     "url": meta.get("url"),
+                     "frequency": meta.get("frequency"),
+                     "tier": meta.get("tier"),
+                     "status": res.get("status")},
+                ],
+            }
+
+        # No specific source → return overview status of all 12
+        items = await list_sources_status(db)
+        meta_map = {m["source_id"]: m for m in SOURCE_METADATA}
+        sources_breakdown = []
+        for it in items:
+            sid = it.get("source_id")
+            m = meta_map.get(sid, {})
+            sources_breakdown.append({
+                "source_id": sid,
+                "label": m.get("name"),
+                "url": m.get("url"),
+                "frequency": m.get("frequency"),
+                "tier": m.get("tier"),
+                "status": it.get("status"),
+                "last_seen": it.get("fetched_at"),
+            })
+        ok = sum(1 for s in items if s.get("status") == "ok")
+        return {
+            "source": "external_insights",
+            "sources_count_total": len(items),
+            "sources_ok": ok,
+            "comparison_hint": comparison,
+            "sources_breakdown": sources_breakdown,
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_global_insights failed: {exc}")
+        return {"error": str(exc), "source": "external_insights"}
+
 
 # W5.FF4 register_feature marker · NO duplicate
 from feature_registry import register_feature as _w5ff4_register_feature
