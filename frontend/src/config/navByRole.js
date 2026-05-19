@@ -90,7 +90,10 @@ const ASESOR_NAV = [
     items: [
       { key: 'comisiones',   to: '/asesor/comisiones',                   label: 'Comisiones',       Icon: DollarSign },
       { key: 'ranking',      to: '/asesor/ranking',                      label: 'Ranking',          Icon: Trophy },
-      { key: 'studio',       to: '/asesor/studio',                       label: 'Studio',           Icon: Sparkles },
+      { key: 'studio',       to: '/asesor/studio',                       label: 'Studio · Director IA', Icon: Sparkles },
+      { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
+      { key: 'studio-assets',    to: '/portal/studio/assets',            label: 'Studio · Assets',  Icon: FolderOpen },
+      { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
       { key: 'briefings',    to: '/asesor/briefings',                    label: 'Briefings',        Icon: FileText },
       { key: 'briefing-traffic', to: '/asesor/briefing',                 label: 'Tráfico+Clima',    Icon: MapPin },
       { key: 'links',        to: '/asesor/links-tracking',               label: 'Links tracking',   Icon: Link },
