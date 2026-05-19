@@ -189,6 +189,19 @@ app.include_router(studio_listing_router)
 app.include_router(studio_assets_router)
 register_z1_features()
 
+# W5.22 Z.2 — Studio: Buyer-angle Copy + Carrusel Auto + Auto-content + Hook Score + A/B
+from routes.studio_buyer_copy import router as studio_buyer_copy_router
+from routes.studio_carrusel import router as studio_carrusel_router
+from routes.studio_auto_content import router as studio_auto_content_router
+from studio_buyer_copy_engine import ensure_indexes as ensure_buyer_copy_indexes
+from studio_carrusel_engine import ensure_indexes as ensure_carrusel_indexes
+from studio_auto_content_cron import ensure_indexes as ensure_auto_content_indexes, register_auto_content_job
+from studio_feature_registry_z2 import register_z2_features
+app.include_router(studio_buyer_copy_router)
+app.include_router(studio_carrusel_router)
+app.include_router(studio_auto_content_router)
+register_z2_features()
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
@@ -1022,6 +1035,13 @@ async def startup():
         await ensure_asset_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] studio Z.1 indexes failed: {e}")
+    # W5.22 Z.2 — Studio Buyer-angle Copy + Carrusel + Auto-content indexes (cron registrado abajo)
+    try:
+        await ensure_buyer_copy_indexes(db)
+        await ensure_carrusel_indexes(db)
+        await ensure_auto_content_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] studio Z.2 indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)
@@ -1447,6 +1467,11 @@ async def startup():
             register_churn_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W5.FF4] churn scheduler register failed: {e}")
+        # W5.22 Z.2 — Studio Auto-content daily cron (06:00 UTC)
+        try:
+            register_auto_content_job(sched, db)
+        except Exception as e:
+            logging.warning(f"[W5.22 Z.2] auto-content scheduler register failed: {e}")
         # Phase 4 Batch 8 — daily 6am cash-flow recalc for active projects
         try:
             from apscheduler.triggers.cron import CronTrigger
