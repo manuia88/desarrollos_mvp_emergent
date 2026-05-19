@@ -34,6 +34,9 @@ const DEV_NAV = [
       { key: 'mini-market',  to: '/desarrollador/mini-market',       label: 'Mini Market',    Icon: Store },
       { key: 'mensajes',     to: '/desarrollador/mensajes',          label: 'Mensajes',       Icon: MessageSquare },
       { key: 'battle-card',  to: '/desarrollador/battle-card',       label: 'Battle Card',    Icon: Swords },
+      { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',     label: 'Studio · Brand Kit', Icon: Package },
+      { key: 'studio-assets',    to: '/portal/studio/assets',        label: 'Studio · Assets',    Icon: FolderOpen },
+      { key: 'studio-import',    to: '/portal/studio/import',        label: 'Studio · Importar Listing', Icon: FolderUp },
     ],
   },
   {
@@ -111,6 +114,9 @@ const INMOBILIARIA_MEMBER_NAV = [
     items: [
       { key: 'dashboard',    to: '/inmobiliaria',                        label: 'Dashboard',        Icon: LayoutDashboard, end: true },
       { key: 'leads',        to: '/inmobiliaria/leads',                  label: 'Leads',            Icon: Users, badge_source: 'crm_unread_leads' },
+      { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
+      { key: 'studio-assets',    to: '/portal/studio/assets',            label: 'Studio · Assets',    Icon: FolderOpen },
+      { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
     ],
   },
 ];
@@ -128,6 +134,9 @@ const INMOBILIARIA_ADMIN_NAV = [
       { key: 'mini-market',  to: '/inmobiliaria/mini-market',            label: 'Mini Market',      Icon: Store },
       { key: 'alianzas',     to: '/inmobiliaria/alianzas',               label: 'Alianzas dev',     Icon: Briefcase },
       { key: 'cross-partnerships', to: '/inmobiliaria/cross-partnerships', label: 'Cross-org',      Icon: HeartHandshake },
+      { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
+      { key: 'studio-assets',    to: '/portal/studio/assets',            label: 'Studio · Assets',    Icon: FolderOpen },
+      { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
     ],
   },
 ];
