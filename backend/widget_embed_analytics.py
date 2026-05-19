@@ -219,3 +219,7 @@ async def get_new_domains_last_24h(db) -> List[Dict[str, Any]]:
     except Exception as exc:
         log.warning(f"[widget_embed] get_new_domains_last_24h failed: {exc}")
         return []
+
+# W5.FF6 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff6_register_feature
+_w5ff6_register_feature("widget_embeds_analytics", plan_tier="enterprise", monthly_price_mxn=0, category="operations", name="Widget Embeds Analytics")

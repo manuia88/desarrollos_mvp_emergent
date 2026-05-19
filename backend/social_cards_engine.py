@@ -468,3 +468,7 @@ def compose_card(layout: str, entity_type: str, entity_data: Dict[str, Any]) -> 
         log.warning(f"[social_cards] compose failed layout={layout} entity={entity_type} slug={slug}: {exc}")
 
     return _fallback_png(layout)
+
+# W5.FF6 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff6_register_feature
+_w5ff6_register_feature("social_cards", plan_tier="free", monthly_price_mxn=0, category="growth", name="Social Cards Renderer")

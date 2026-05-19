@@ -483,3 +483,7 @@ SOURCE_METADATA: List[Dict[str, str]] = [
     {"source_id": SOURCE_REALTOR, "name": "Realtor.com Research",
      "url": "https://www.realtor.com/research/data/", "frequency": "Monthly", "tier": "us_aggregator"},
 ]
+
+# W5.FF6 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff6_register_feature
+_w5ff6_register_feature("external_insights", plan_tier="free", monthly_price_mxn=0, category="intelligence", name="External Insights")

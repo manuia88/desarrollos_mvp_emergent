@@ -184,3 +184,7 @@ async def cache_stats():
 # W5.FF4 register_feature marker · NO duplicate
 from feature_registry import register_feature as _w5ff4_register_feature
 _w5ff4_register_feature("forecast", plan_tier="pro",        monthly_price_mxn=199, category="intelligence", name="Forecast Multi-Horizonte")
+
+# W5.FF6 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff6_register_feature
+_w5ff6_register_feature("forecast_root", plan_tier="pro", monthly_price_mxn=199, category="intelligence", name="Forecast Root (T3 root models)")

@@ -605,3 +605,7 @@ async def ensure_indexes(db) -> None:
         await db.zone_scores.create_index("score_letter", name="zone_score_letter")
     except Exception as e:
         log.warning(f"[score] ensure_indexes failed: {e}")
+
+# W5.FF6 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff6_register_feature
+_w5ff6_register_feature("zone_score", plan_tier="pro", monthly_price_mxn=199, category="intelligence", name="Zone Score")

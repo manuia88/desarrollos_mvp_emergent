@@ -503,3 +503,7 @@ async def get_probability(
 
     _cache_set(cache_key, result)
     return result
+
+# W5.FF6 register_feature marker · NO duplicate
+from feature_registry import register_feature as _w5ff6_register_feature
+_w5ff6_register_feature("probability_ux", plan_tier="pro", monthly_price_mxn=99, category="intelligence", name="Probability UX")
