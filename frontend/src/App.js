@@ -199,6 +199,10 @@ const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/Sup
 const SuperadminAiCost               = lazy(() => import('./pages/superadmin/SuperadminAiCost'));
 // W2.4 SA5 — Commercial Foundation (feature flags + plan templates + GHL snapshots)
 const SuperadminCommercial           = lazy(() => import('./pages/superadmin/SuperadminCommercial'));
+// W5.22 Z.1 — Studio: Brand Kit + Listing Importer + Asset Library
+const StudioBrandKitPage     = lazy(() => import('./pages/portal/studio/BrandKitPage'));
+const StudioListingImportPage = lazy(() => import('./pages/portal/studio/ListingImportPage'));
+const StudioAssetLibraryPage = lazy(() => import('./pages/portal/studio/AssetLibraryPage'));
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 // W2.6 SA8 — Founder Console (root /superadmin)
@@ -542,6 +546,11 @@ function AppRouter() {
       {/* W4.13.A — Lead Journey Outbound */}
       <Route path="/asesor/outbound" element={<AsesorOutboundRoute />} />
       <Route path="/portal/outbound" element={<AsesorOutboundRoute />} />
+
+      {/* W5.22 Z.1 — Studio Portal */}
+      <Route path="/portal/studio/brand-kit" element={<AdvisorRoute Page={StudioBrandKitPage} />} />
+      <Route path="/portal/studio/import" element={<AdvisorRoute Page={StudioListingImportPage} />} />
+      <Route path="/portal/studio/assets" element={<AdvisorRoute Page={StudioAssetLibraryPage} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />

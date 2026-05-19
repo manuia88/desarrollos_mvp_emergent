@@ -176,6 +176,19 @@ app.include_router(social_cards_router)
 from routes.external_insights import router as external_insights_router
 app.include_router(external_insights_router)
 
+# W5.22 Z.1 — Studio: Brand Kit + Listing Importer + Asset Library
+from routes.studio_brand_kit import router as studio_brand_kit_router
+from routes.studio_listing import router as studio_listing_router
+from routes.studio_assets import router as studio_assets_router
+from studio_brand_kit_engine import ensure_indexes as ensure_brand_kit_indexes
+from studio_listing_importer import ensure_indexes as ensure_listing_indexes
+from studio_asset_library import ensure_indexes as ensure_asset_indexes
+from studio_feature_registry_z1 import register_z1_features
+app.include_router(studio_brand_kit_router)
+app.include_router(studio_listing_router)
+app.include_router(studio_assets_router)
+register_z1_features()
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
@@ -994,6 +1007,13 @@ async def startup():
         logging.info(f"[startup] feature_catalog sync: {catalog_sync}")
     except Exception as e:
         logging.warning(f"[startup] feature_catalog sync failed: {e}")
+    # W5.22 Z.1 — Studio Brand Kit + Listing Importer + Asset Library indexes
+    try:
+        await ensure_brand_kit_indexes(db)
+        await ensure_listing_indexes(db)
+        await ensure_asset_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] studio Z.1 indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)
