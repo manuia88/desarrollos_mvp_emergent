@@ -203,6 +203,9 @@ const SuperadminCommercial           = lazy(() => import('./pages/superadmin/Sup
 const StudioBrandKitPage     = lazy(() => import('./pages/portal/studio/BrandKitPage'));
 const StudioListingImportPage = lazy(() => import('./pages/portal/studio/ListingImportPage'));
 const StudioAssetLibraryPage = lazy(() => import('./pages/portal/studio/AssetLibraryPage'));
+// W5.22 Z.2 Sub-D — Studio Z.2: Carruseles + Auto-Content
+const StudioCarruselesPage   = lazy(() => import('./pages/portal/studio/CarruselesPage'));
+const StudioAutoContentPage  = lazy(() => import('./pages/portal/studio/AutoContentPage'));
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 // W2.6 SA8 — Founder Console (root /superadmin)
@@ -551,6 +554,9 @@ function AppRouter() {
       <Route path="/portal/studio/brand-kit" element={<AdvisorRoute Page={StudioBrandKitPage} />} />
       <Route path="/portal/studio/import" element={<AdvisorRoute Page={StudioListingImportPage} />} />
       <Route path="/portal/studio/assets" element={<AdvisorRoute Page={StudioAssetLibraryPage} />} />
+      {/* W5.22 Z.2 Sub-D — Studio Carruseles + Auto-Content */}
+      <Route path="/portal/studio/carruseles" element={<AdvisorRoute Page={StudioCarruselesPage} />} />
+      <Route path="/portal/studio/auto-content" element={<AdvisorRoute Page={StudioAutoContentPage} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />

@@ -37,6 +37,8 @@ const DEV_NAV = [
       { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',     label: 'Studio · Brand Kit', Icon: Package },
       { key: 'studio-assets',    to: '/portal/studio/assets',        label: 'Studio · Assets',    Icon: FolderOpen },
       { key: 'studio-import',    to: '/portal/studio/import',        label: 'Studio · Importar Listing', Icon: FolderUp },
+      { key: 'studio-carruseles', to: '/portal/studio/carruseles',   label: 'Studio · Carruseles', Icon: Sparkles },
+      { key: 'studio-auto-content', to: '/portal/studio/auto-content', label: 'Studio · Auto-Content', Icon: Megaphone },
     ],
   },
   {
@@ -97,6 +99,8 @@ const ASESOR_NAV = [
       { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
       { key: 'studio-assets',    to: '/portal/studio/assets',            label: 'Studio · Assets',  Icon: FolderOpen },
       { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
+      { key: 'studio-carruseles', to: '/portal/studio/carruseles',       label: 'Studio · Carruseles', Icon: Sparkles },
+      { key: 'studio-auto-content', to: '/portal/studio/auto-content',   label: 'Studio · Auto-Content', Icon: Megaphone },
       { key: 'briefings',    to: '/asesor/briefings',                    label: 'Briefings',        Icon: FileText },
       { key: 'briefing-traffic', to: '/asesor/briefing',                 label: 'Tráfico+Clima',    Icon: MapPin },
       { key: 'links',        to: '/asesor/links-tracking',               label: 'Links tracking',   Icon: Link },
@@ -117,6 +121,8 @@ const INMOBILIARIA_MEMBER_NAV = [
       { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
       { key: 'studio-assets',    to: '/portal/studio/assets',            label: 'Studio · Assets',    Icon: FolderOpen },
       { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
+      { key: 'studio-carruseles', to: '/portal/studio/carruseles',       label: 'Studio · Carruseles', Icon: Sparkles },
+      { key: 'studio-auto-content', to: '/portal/studio/auto-content',   label: 'Studio · Auto-Content', Icon: Megaphone },
     ],
   },
 ];
@@ -137,6 +143,8 @@ const INMOBILIARIA_ADMIN_NAV = [
       { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
       { key: 'studio-assets',    to: '/portal/studio/assets',            label: 'Studio · Assets',    Icon: FolderOpen },
       { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
+      { key: 'studio-carruseles', to: '/portal/studio/carruseles',       label: 'Studio · Carruseles', Icon: Sparkles },
+      { key: 'studio-auto-content', to: '/portal/studio/auto-content',   label: 'Studio · Auto-Content', Icon: Megaphone },
     ],
   },
 ];
