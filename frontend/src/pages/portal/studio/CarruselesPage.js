@@ -674,16 +674,18 @@ const stepBadgeStyle = () => ({
   fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
 });
 const overlayStyle = () => ({
-  position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.7)',
+  position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.75)', backdropFilter: 'blur(8px)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  padding: 22, zIndex: 1000,
+  padding: 16, zIndex: 1000, overflow: 'hidden',
 });
 const modalStyle = (maxW = 560) => ({
-  width: '100%', maxWidth: maxW, maxHeight: '88vh', overflow: 'auto',
-  padding: 22, borderRadius: 18,
+  width: '100%', maxWidth: maxW, maxHeight: '92vh', overflow: 'hidden auto',
+  padding: '18px 20px', borderRadius: 18,
   background: 'rgba(13,16,23,0.96)',
   border: '1px solid rgba(255,255,255,0.10)',
   boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
+  display: 'flex', flexDirection: 'column', gap: 14,
+  scrollbarWidth: 'thin', scrollbarColor: 'rgba(99,102,241,0.4) transparent',
 });
 const modalHeader = () => ({
   display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,

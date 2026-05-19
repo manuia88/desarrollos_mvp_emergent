@@ -361,6 +361,19 @@ async def generate_carrusel_job(
     """Crea jobs de carrusel. Si ab_test_bool=True crea 2 variants."""
     from studio_hook_score_engine import compute_hook_score
 
+    # Z.2.3 fix: hidratar pages_data desde copy_id si NO se proveyó pages_data
+    if copy_id and (not pages_data or not pages_data.get("hero")):
+        try:
+            copy_doc = await db.studio_copy_jobs.find_one({"id": copy_id})
+            if copy_doc and copy_doc.get("status") == "ready":
+                output = copy_doc.get("output") or {}
+                hydrated = output.get("pages_data") or {}
+                if hydrated:
+                    pages_data = hydrated
+                    log.info(f"[carrusel] hydrated pages_data from copy_id={copy_id}")
+        except Exception as exc:
+            log.warning(f"[carrusel] hydrate copy_id={copy_id} failed: {exc}")
+
     # Hook score gate
     hero_title = (pages_data.get("hero") or {}).get("title", "")
     copy_text = hero_title + " " + (pages_data.get("cta") or {}).get("text", "")
