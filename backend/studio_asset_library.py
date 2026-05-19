@@ -22,6 +22,16 @@ R2_BUCKET = os.environ.get("CLOUDFLARE_R2_BUCKET", "dmx-studio-assets")
 R2_ACCOUNT = os.environ.get("CLOUDFLARE_R2_ACCOUNT_ID", "")
 R2_KEY = os.environ.get("CLOUDFLARE_R2_ACCESS_KEY", "")
 R2_SECRET = os.environ.get("CLOUDFLARE_R2_SECRET_KEY", "")
+R2_PUBLIC_URL = os.environ.get("CLOUDFLARE_R2_PUBLIC_URL", "").rstrip("/")
+
+
+def _make_public_url(r2_key: str) -> str:
+    """Construye URL pública para visualizar asset.
+    Prioridad: CLOUDFLARE_R2_PUBLIC_URL (R2.dev o custom domain) → fallback S3 API (NO pública · solo signed reads).
+    """
+    if R2_PUBLIC_URL:
+        return f"{R2_PUBLIC_URL}/{r2_key}"
+    return f"https://{R2_BUCKET}.{R2_ACCOUNT}.r2.cloudflarestorage.com/{r2_key}"
 
 MAX_ASSET_SIZE = 200 * 1024 * 1024  # 200MB
 ASSET_TYPES = ("photo", "video", "pdf", "3dgs_scan")
@@ -94,7 +104,7 @@ def issue_asset_upload(*, user_id: str, asset_type: str,
             Params={"Bucket": R2_BUCKET, "Key": r2_key, "ContentType": mime},
             ExpiresIn=300,
         )
-        public_url = f"https://{R2_BUCKET}.{R2_ACCOUNT}.r2.cloudflarestorage.com/{r2_key}"
+        public_url = _make_public_url(r2_key)
         return {"r2_key": r2_key, "presigned_url": url, "public_url": public_url,
                 "mode": "live", "expires_in_s": 300}
     except Exception as exc:
@@ -150,14 +160,21 @@ async def list_assets(db, *, user_id: str,
         q["filename"] = {"$regex": search, "$options": "i"}
     cur = db.studio_assets.find(q, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
     items = [d async for d in cur]
+    # Reconstruir r2_url al vuelo (auto-fix assets viejos con URL S3 API rota)
+    for item in items:
+        if item.get("r2_key"):
+            item["r2_url"] = _make_public_url(item["r2_key"])
     total = await db.studio_assets.count_documents(q)
     return {"items": items, "total": total, "limit": limit, "skip": skip}
 
 
 async def get_asset(db, asset_id: str, user_id: str) -> Optional[Dict[str, Any]]:
-    return await db.studio_assets.find_one(
+    doc = await db.studio_assets.find_one(
         {"id": asset_id, "user_id": user_id, "deleted_at": None}, {"_id": 0},
     )
+    if doc and doc.get("r2_key"):
+        doc["r2_url"] = _make_public_url(doc["r2_key"])
+    return doc
 
 
 async def soft_delete_asset(db, asset_id: str, user_id: str) -> bool:
