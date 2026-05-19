@@ -1,14 +1,18 @@
-// W5.22 Z.2.1 — Copy Generator Modal · genera buyer-angle copy con IA antes
-// del flujo carrusel. Async job · polling hasta status=ready (8 reintentos · 1.5s).
+// W5.22 Z.2.2 — Copy Generator Modal · genera buyer-angle copy con IA antes
+// del flujo carrusel. Async job · polling hasta status=ready (30 reintentos · 2s = 60s).
+// Loading state grande inline (NO toast efímero · modal NO cierra hasta ready/timeout).
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Sparkles } from 'lucide-react';
+import { X, Sparkles, Loader2 } from 'lucide-react';
 import * as z2 from '../../api/studio_z2';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
-const POLL_MAX_ATTEMPTS = 8;
-const POLL_INTERVAL_MS = 1500;
+const POLL_MAX_ATTEMPTS = 30;
+const POLL_INTERVAL_MS = 2000;
 const CONTEXT_MAX = 500;
+const TOTAL_TIMEOUT_S = (POLL_MAX_ATTEMPTS * POLL_INTERVAL_MS) / 1000;
+const READY_STATUSES = new Set(['ready', 'completed', 'done']);
+const FAILED_STATUSES = new Set(['failed', 'error']);
 
 export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onError }) {
   const { t } = useTranslation('common');
@@ -35,6 +39,18 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
         setDiscProfiles(z2.DISC_PROFILES.map((k) => ({ key: k, estilo: k })));
       });
   }, [open]);
+
+  const [elapsedS, setElapsedS] = useState(0);
+
+  // Tick visual de progreso durante generating (1s intervals)
+  useEffect(() => {
+    if (stage !== 'generating') {
+      setElapsedS(0);
+      return undefined;
+    }
+    const id = setInterval(() => setElapsedS((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [stage]);
 
   if (!open) return null;
 
@@ -71,7 +87,7 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
       const jobId = res.job_id;
       if (!jobId) throw new Error('No job_id in response');
 
-      // Poll hasta status=ready · max 8 intentos · 1.5s cada uno (~12s total)
+      // Poll hasta status=ready · max 30 intentos · 2s cada uno (~60s total)
       let attempts = 0;
       let final = null;
       while (attempts < POLL_MAX_ATTEMPTS) {
@@ -83,11 +99,11 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
         } catch (e) {
           continue;
         }
-        if (job?.status === 'ready' || job?.status === 'completed') {
+        if (job?.status && READY_STATUSES.has(job.status)) {
           final = job;
           break;
         }
-        if (job?.status === 'failed' || job?.status === 'error') {
+        if (job?.status && FAILED_STATUSES.has(job.status)) {
           throw new Error(job?.error || t('studio.copy.error_generating'));
         }
       }
@@ -98,11 +114,10 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
         reset();
         onClose();
       } else {
-        // Job aún pendiente · cierra modal y notifica · aparecerá en dropdown cuando termine
-        setStage('pending');
+        // Timeout · NO cerramos modal automáticamente · founder ve mensaje y decide
+        setStage('timeout');
         if (onCopyGenerated) onCopyGenerated(jobId, { status: 'pending' });
-        reset();
-        onClose();
+        setSubmitting(false);
       }
     } catch (e) {
       setSubmitting(false);
@@ -213,26 +228,53 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
 
         {stage === 'generating' && (
           <div data-testid="copy-generating-state" style={{
-            marginTop: 14, padding: '10px 14px', borderRadius: 12,
+            marginTop: 18, padding: '24px 20px', borderRadius: 14,
             background: 'rgba(99,102,241,0.10)',
             border: '1px solid rgba(99,102,241,0.30)',
-            fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
           }}>
-            {t('studio.copy.generating')}
+            <Loader2 size={36} style={{ color: '#a5b4fc', animation: 'spin 1.2s linear infinite' }} />
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', textAlign: 'center' }}>
+              {t('studio.copy.generating_long')}
+            </div>
+            <div style={{ width: '100%', height: 6, borderRadius: 9999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', borderRadius: 9999,
+                width: `${Math.min(100, Math.round((elapsedS / TOTAL_TIMEOUT_S) * 100))}%`,
+                background: GRADIENT, transition: 'width 0.8s ease-out',
+              }} />
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>
+              {elapsedS}s / ~{Math.round(TOTAL_TIMEOUT_S)}s
+            </div>
+            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
+
+        {stage === 'timeout' && (
+          <div data-testid="copy-timeout-state" style={{
+            marginTop: 18, padding: '16px 18px', borderRadius: 14,
+            background: 'rgba(245,158,11,0.12)',
+            border: '1px solid rgba(245,158,11,0.40)',
+            fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)', lineHeight: 1.55,
+          }}>
+            {t('studio.copy.generating_timeout')}
           </div>
         )}
 
         <footer style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18, flexWrap: 'wrap' }}>
           <button onClick={handleClose} disabled={submitting} style={ghostBtn(submitting)}>
-            {t('studio.copy.cancel')}
+            {stage === 'timeout' ? t('studio.copy.close') : t('studio.copy.cancel')}
           </button>
-          <button
-            data-testid="copy-submit"
-            onClick={submit}
-            disabled={submitting}
-            style={primaryBtn(submitting)}>
-            <Sparkles size={13} /> {submitting ? t('studio.copy.generating') : t('studio.copy.generate_button')}
-          </button>
+          {stage !== 'timeout' && (
+            <button
+              data-testid="copy-submit"
+              onClick={submit}
+              disabled={submitting}
+              style={primaryBtn(submitting)}>
+              <Sparkles size={13} /> {submitting ? t('studio.copy.generating') : t('studio.copy.generate_button')}
+            </button>
+          )}
         </footer>
       </div>
     </div>

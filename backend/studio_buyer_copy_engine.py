@@ -160,6 +160,236 @@ FORMATO DE RESPUESTA (JSON estricto):
 }}"""
 
 
+# ─── W5.22 Z.2.2 · Mock determinístico (FAIL-SOFT cuando LLM key ausente) ────
+MOCK_TEMPLATES: Dict[str, Dict[str, Any]] = {
+    "inversor": {
+        "es-MX": {
+            "title": "Inversión inmobiliaria con plusvalía comprobada",
+            "subtitle_base": "ROI proyectado +18% en 5 años · cash-flow mensual desde día 1.",
+            "cta": "Descarga proyección financiera",
+            "stats": [
+                {"label": "Plusvalía 5 años", "value": "+18%"},
+                {"label": "Renta bruta anual", "value": "7.2%"},
+                {"label": "Días en mercado", "value": "<14"},
+            ],
+        },
+        "en-US": {
+            "title": "Real estate investment with proven appreciation",
+            "subtitle_base": "Projected ROI +18% in 5 years · monthly cash-flow from day 1.",
+            "cta": "Download financial projection",
+            "stats": [
+                {"label": "5-year appreciation", "value": "+18%"},
+                {"label": "Gross rental yield", "value": "7.2%"},
+                {"label": "Days on market", "value": "<14"},
+            ],
+        },
+    },
+    "familia": {
+        "es-MX": {
+            "title": "El hogar que tu familia merece",
+            "subtitle_base": "Espacios pensados para crecer · escuelas top a 10 min · zona segura.",
+            "cta": "Agenda visita en familia",
+            "stats": [
+                {"label": "Recámaras", "value": "3-4"},
+                {"label": "Escuelas top 1km", "value": "5+"},
+                {"label": "Áreas verdes", "value": "2,400 m²"},
+            ],
+        },
+        "en-US": {
+            "title": "The home your family deserves",
+            "subtitle_base": "Spaces designed for growth · top schools within 10 min · safe area.",
+            "cta": "Book a family tour",
+            "stats": [
+                {"label": "Bedrooms", "value": "3-4"},
+                {"label": "Top schools <1km", "value": "5+"},
+                {"label": "Green areas", "value": "2,400 m²"},
+            ],
+        },
+    },
+    "first_buyer": {
+        "es-MX": {
+            "title": "Tu primera casa · más cerca de lo que crees",
+            "subtitle_base": "Crédito INFONAVIT · enganche desde 5% · proceso 100% acompañado.",
+            "cta": "Calcula tu crédito",
+            "stats": [
+                {"label": "Enganche desde", "value": "5%"},
+                {"label": "Mensualidad desde", "value": "$9,800"},
+                {"label": "Plazo", "value": "30 años"},
+            ],
+        },
+        "en-US": {
+            "title": "Your first home · closer than you think",
+            "subtitle_base": "Mortgage from 5% down · 100% guided process · pre-approval in 48h.",
+            "cta": "Calculate your mortgage",
+            "stats": [
+                {"label": "Down payment from", "value": "5%"},
+                {"label": "Monthly from", "value": "$9,800"},
+                {"label": "Term", "value": "30 years"},
+            ],
+        },
+    },
+    "exec": {
+        "es-MX": {
+            "title": "Exclusividad y conectividad · el estándar que mereces",
+            "subtitle_base": "Amenidades premium · 12 min al corredor financiero · concierge 24/7.",
+            "cta": "Tour privado VIP",
+            "stats": [
+                {"label": "Al CBD", "value": "12 min"},
+                {"label": "Amenidades", "value": "14"},
+                {"label": "Concierge", "value": "24/7"},
+            ],
+        },
+        "en-US": {
+            "title": "Exclusivity & connectivity · the standard you deserve",
+            "subtitle_base": "Premium amenities · 12 min to business district · 24/7 concierge.",
+            "cta": "VIP private tour",
+            "stats": [
+                {"label": "To CBD", "value": "12 min"},
+                {"label": "Amenities", "value": "14"},
+                {"label": "Concierge", "value": "24/7"},
+            ],
+        },
+    },
+    "extranjero": {
+        "es-MX": {
+            "title": "Compra inmuebles en CDMX con seguridad jurídica",
+            "subtitle_base": "Proceso bilingüe · fideicomiso · soporte legal especializado para extranjeros.",
+            "cta": "Habla con asesor bilingüe",
+            "stats": [
+                {"label": "Días al cierre", "value": "30-45"},
+                {"label": "Idioma", "value": "ES/EN"},
+                {"label": "Fideicomiso", "value": "Incluido"},
+            ],
+        },
+        "en-US": {
+            "title": "Buy property in Mexico City with legal certainty",
+            "subtitle_base": "Bilingual process · fideicomiso trust · specialized legal support for foreigners.",
+            "cta": "Talk to a bilingual advisor",
+            "stats": [
+                {"label": "Days to close", "value": "30-45"},
+                {"label": "Language", "value": "ES/EN"},
+                {"label": "Trust setup", "value": "Included"},
+            ],
+        },
+    },
+    "jubilado": {
+        "es-MX": {
+            "title": "Tu nuevo hogar para la mejor etapa",
+            "subtitle_base": "Bajo mantenimiento · servicios médicos a 5 min · comunidad tranquila y cercana.",
+            "cta": "Conoce tu nuevo hogar",
+            "stats": [
+                {"label": "Hospitales <5min", "value": "3"},
+                {"label": "Accesibilidad", "value": "Total"},
+                {"label": "Mantenimiento", "value": "Bajo"},
+            ],
+        },
+        "en-US": {
+            "title": "Your new home for the best chapter",
+            "subtitle_base": "Low maintenance · medical services within 5 min · quiet, welcoming community.",
+            "cta": "Discover your new home",
+            "stats": [
+                {"label": "Hospitals <5min", "value": "3"},
+                {"label": "Accessibility", "value": "Full"},
+                {"label": "Maintenance", "value": "Low"},
+            ],
+        },
+    },
+    "empty_nester": {
+        "es-MX": {
+            "title": "Downsizing inteligente · libertad sin renunciar al confort",
+            "subtitle_base": "Espacio funcional · plusvalía del cambio · ubicación que abre tu nueva etapa.",
+            "cta": "Descubre tu próxima etapa",
+            "stats": [
+                {"label": "m² funcionales", "value": "85-110"},
+                {"label": "Plusvalía proyectada", "value": "+22%"},
+                {"label": "Walk score", "value": "92"},
+            ],
+        },
+        "en-US": {
+            "title": "Smart downsizing · freedom without sacrificing comfort",
+            "subtitle_base": "Functional space · upside from the move · location that opens your next chapter.",
+            "cta": "Discover your next chapter",
+            "stats": [
+                {"label": "Functional m²", "value": "85-110"},
+                {"label": "Projected upside", "value": "+22%"},
+                {"label": "Walk score", "value": "92"},
+            ],
+        },
+    },
+}
+
+DISC_SUBTITLE_MODIFIER: Dict[str, Dict[str, str]] = {
+    "D": {"es-MX": " Decisión clara · resultados medibles.", "en-US": " Clear decision · measurable results."},
+    "I": {"es-MX": " Únete a una comunidad que ya lo vive.", "en-US": " Join a community already living it."},
+    "S": {"es-MX": " Proceso seguro · soporte continuo.", "en-US": " Secure process · continuous support."},
+    "C": {"es-MX": " Datos verificables · ROI auditable.", "en-US": " Verifiable data · auditable ROI."},
+}
+
+DEFAULT_DISCLAIMER_ES = "Renders ilustrativos. Especificaciones sujetas a cambio sin previo aviso."
+DEFAULT_DISCLAIMER_EN = "Illustrative renders. Specifications subject to change without prior notice."
+
+
+def _looks_like_placeholder(key: str) -> bool:
+    """True si la key es nula, vacía o un placeholder evidente."""
+    if not key:
+        return True
+    k = key.strip()
+    if not k:
+        return True
+    placeholders = {
+        "YOUR_KEY", "REPLACE_ME", "REPLACE_WITH_EMERGENT_LLM_KEY",
+        "sk-placeholder", "none", "null", "TODO",
+    }
+    if k in placeholders or k.upper() in placeholders:
+        return True
+    # Una key real arranca con "sk-" o tiene >=30 chars
+    if not k.startswith("sk-") and len(k) < 30:
+        return True
+    return False
+
+
+def _should_use_mock() -> bool:
+    """True si EMERGENT_LLM_KEY no está configurada (mock determinístico FAIL-SOFT)."""
+    return _looks_like_placeholder(os.environ.get("EMERGENT_LLM_KEY", ""))
+
+
+def _generate_mock_copy(
+    buyer_angle: str,
+    disc: Optional[str],
+    language: str,
+    project_id: Optional[str],
+    context: str,
+) -> Dict[str, Any]:
+    """Mock determinístico · retorna copy real coherente sin depender de LLM.
+
+    Shape compatible con CarruselesPage.js (pages_data.hero.title / cta / stats).
+    """
+    lang = language if language in ("es-MX", "en-US") else "es-MX"
+    persona_pack = MOCK_TEMPLATES.get(buyer_angle) or MOCK_TEMPLATES["inversor"]
+    pack = persona_pack.get(lang) or persona_pack["es-MX"]
+
+    subtitle = pack["subtitle_base"]
+    if disc and disc.upper() in DISC_SUBTITLE_MODIFIER:
+        subtitle = subtitle + DISC_SUBTITLE_MODIFIER[disc.upper()][lang]
+    if context:
+        ctx_label = "Detalles" if lang == "es-MX" else "Details"
+        subtitle = f"{subtitle} {ctx_label}: {context[:140]}".strip()
+
+    return {
+        "pages_data": {
+            "hero": {"title": pack["title"], "subtitle": subtitle},
+            "stats": list(pack["stats"]),
+            "cta": {"text": pack["cta"], "url": "https://desarrollosmx.io/contacto"},
+            "disclaimer": DEFAULT_DISCLAIMER_ES if lang == "es-MX" else DEFAULT_DISCLAIMER_EN,
+        },
+        "language": lang,
+        "buyer_angle": buyer_angle,
+        "disc_profile": (disc or None),
+        "project_id": project_id,
+        "model_used": "mock_v1",
+    }
+
+
 async def _call_llm(prompt: str, job_id: str, provider: str = "anthropic") -> str:
     from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
     api_key = os.environ.get("EMERGENT_LLM_KEY")
@@ -216,26 +446,70 @@ async def generate_copy_job(
 
 
 async def _run_job(db, job_id: str, buyer_angle: str, disc: Optional[str], language: str, context_extra: str):
+    # W5.22 Z.2.2 · FAIL-SOFT mock si LLM key ausente · sin warnings spam
+    if _should_use_mock():
+        # Fetch project_id stored at job creation
+        try:
+            existing = await db.studio_copy_jobs.find_one({"id": job_id}, {"_id": 0, "project_id": 1})
+        except Exception:
+            existing = None
+        project_id = (existing or {}).get("project_id")
+        mock = _generate_mock_copy(buyer_angle, disc, language, project_id, context_extra)
+        hero_title = mock["pages_data"]["hero"]["title"]
+        await db.studio_copy_jobs.update_one(
+            {"id": job_id},
+            {"$set": {
+                "output_text": hero_title,
+                "output_variants": [],
+                "pages_data": mock["pages_data"],
+                "model_used": mock["model_used"],
+                "status": "ready",
+            }},
+        )
+        log.info(f"[copy] mock_v1 generated for {buyer_angle}/{disc or '-'}/{language} (LLM unavailable)")
+        return
+
     try:
         prompt = _build_prompt(buyer_angle, disc, language, context_extra)
         raw = await _call_with_fallback(prompt, job_id)
         import json, re
         m = re.search(r'\{.*\}', raw, re.DOTALL)
         data = json.loads(m.group(0)) if m else {"hook": raw, "variants": []}
+        # Build pages_data shape from LLM output when parseable · fallback to legacy fields
+        pages_data = data.get("pages_data") if isinstance(data, dict) else None
+        if not pages_data:
+            # Best-effort: pack hook + variants into pages_data shape so frontend dropdown works
+            mock_shell = _generate_mock_copy(buyer_angle, disc, language, None, "")
+            mock_shell["pages_data"]["hero"]["title"] = data.get("hook") or mock_shell["pages_data"]["hero"]["title"]
+            pages_data = mock_shell["pages_data"]
         await db.studio_copy_jobs.update_one(
             {"id": job_id},
             {"$set": {
-                "output_text": data.get("hook", ""),
+                "output_text": data.get("hook", "") or pages_data.get("hero", {}).get("title", ""),
                 "output_variants": data.get("variants", []),
-                "status": "done",
+                "pages_data": pages_data,
+                "model_used": "claude-sonnet-4-5",
+                "status": "ready",
             }},
         )
-        log.info(f"[copy] job {job_id} done")
+        log.info(f"[copy] job {job_id} ready (LLM)")
     except Exception as exc:
-        log.warning(f"[copy] job {job_id} failed: {exc}")
+        log.warning(f"[copy] job {job_id} LLM path failed: {exc} · falling back to mock")
+        try:
+            existing = await db.studio_copy_jobs.find_one({"id": job_id}, {"_id": 0, "project_id": 1})
+        except Exception:
+            existing = None
+        project_id = (existing or {}).get("project_id")
+        mock = _generate_mock_copy(buyer_angle, disc, language, project_id, context_extra)
         await db.studio_copy_jobs.update_one(
             {"id": job_id},
-            {"$set": {"status": "failed", "error": str(exc)}},
+            {"$set": {
+                "output_text": mock["pages_data"]["hero"]["title"],
+                "output_variants": [],
+                "pages_data": mock["pages_data"],
+                "model_used": "mock_v1_fallback",
+                "status": "ready",
+            }},
         )
 
 

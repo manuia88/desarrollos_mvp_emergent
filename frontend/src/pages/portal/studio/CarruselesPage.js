@@ -190,12 +190,7 @@ export default function CarruselesPage({ user, onLogout }) {
               setToast(t('studio.carrusel.toast_created'));
               await load();
             }}
-            onGateFailed={(detail) => {
-              const score = typeof detail?.hook_score === 'number' ? Math.round(detail.hook_score) : '?';
-              const suggestion = detail?.suggestion || '';
-              setToast(t('studio.copy.gate_failed_body', { score, suggestion })
-                || `${t('studio.copy.gate_failed_title')} · ${score}/100`);
-            }}
+            onGateFailed={() => { /* Z.2.2 · inline banner en GenerateModal · no toast */ }}
             onError={(msg) => setToast(`${t('studio.toast.error')}: ${msg}`)}
             t={t}
           />
@@ -309,25 +304,42 @@ function GenerateModal({ brandKits, copyJobs, autoSelectCopyId, onClearAutoSelec
   const [abTest, setAbTest] = useState(false);
   const [hookMin, setHookMin] = useState(60);
   const [submitting, setSubmitting] = useState(false);
+  const [pulseFirstCopy, setPulseFirstCopy] = useState(false);
+  const [gateAlert, setGateAlert] = useState(null);
 
   // Auto-select copy generado por CopyGeneratorModal (si llega ready)
   useEffect(() => {
     if (autoSelectCopyId && copyJobs.some((j) => j.id === autoSelectCopyId)) {
       setCopyId(autoSelectCopyId);
+      setGateAlert(null);
       if (onClearAutoSelect) onClearAutoSelect();
     }
   }, [autoSelectCopyId, copyJobs, onClearAutoSelect]);
+
+  // Pulse button animation timeout
+  useEffect(() => {
+    if (!pulseFirstCopy) return undefined;
+    const tm = setTimeout(() => setPulseFirstCopy(false), 2000);
+    return () => clearTimeout(tm);
+  }, [pulseFirstCopy]);
 
   const toggleRatio = (r) => {
     setRatios((prev) => prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]);
   };
 
   const submit = async () => {
+    // W5.22 Z.2.2 · validación preventiva · no enviar request si no hay copy
+    if (!copyId) {
+      onError(t('studio.copy.no_copy_warning_toast'));
+      setPulseFirstCopy(true);
+      return;
+    }
     if (ratios.length === 0) {
       onError(t('studio.carrusel.error_no_ratios'));
       return;
     }
     setSubmitting(true);
+    setGateAlert(null);
     try {
       await z2.generateCarrusel({
         copy_id: copyId || null,
@@ -339,10 +351,14 @@ function GenerateModal({ brandKits, copyJobs, autoSelectCopyId, onClearAutoSelec
       });
       onCreated();
     } catch (e) {
-      // W5.22 Z.2.1 · 422 hook_score gate handler · feedback UX claro
+      // W5.22 Z.2.2 · 422 hook_score gate · alert inline (NO toast duplicado)
       const detail = e?.body?.detail;
       if (e?.status === 422 && detail && typeof detail.hook_score === 'number') {
-        if (onGateFailed) onGateFailed(detail);
+        setGateAlert({
+          score: detail.hook_score,
+          breakdown: detail.breakdown,
+          suggestion: detail.suggestion || '',
+        });
       } else {
         onError(e.message);
       }
@@ -363,30 +379,96 @@ function GenerateModal({ brandKits, copyJobs, autoSelectCopyId, onClearAutoSelec
           </button>
         </header>
         <div style={{ display: 'grid', gap: 14 }}>
-          <div>
-            <label style={labelStyle()}>{t('studio.carrusel.field_copy')}
-              <select value={copyId} onChange={(e) => setCopyId(e.target.value)} style={selectStyle()}>
-                <option value="">{t('studio.carrusel.field_copy_none')}</option>
-                {copyJobs.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {t(`studio.copy.persona.${j.buyer_angle || 'inversor'}`)} · {j.id.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {/* W5.22 Z.2.2 · Paso 1 · Copy */}
+          <section style={{
+            padding: '14px 16px', borderRadius: 14,
+            background: 'rgba(99,102,241,0.08)',
+            border: '1px solid rgba(99,102,241,0.25)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={stepBadgeStyle()}>1</span>
+              <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>
+                {t('studio.copy.step1_title')}
+              </span>
+            </div>
             <button
               type="button"
               data-testid="generate-copy-first"
               onClick={onOpenCopyModal}
               style={{
-                marginTop: 8, padding: '6px 14px', borderRadius: 9999,
-                background: 'transparent', border: '1px solid rgba(99,102,241,0.45)',
-                color: '#a5b4fc', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+                marginBottom: 12, padding: '8px 16px', borderRadius: 9999,
+                background: GRADIENT, border: 'none',
+                color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
                 cursor: 'pointer',
+                animation: pulseFirstCopy ? 'pulse-cta 0.6s ease-in-out 0s 3' : 'none',
               }}>
+              <Plus size={12} style={{ marginRight: 4, verticalAlign: '-2px' }} />
               {t('studio.copy.generate_first_button')}
             </button>
+            <style>{`@keyframes pulse-cta { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(99,102,241,0.18); } }`}</style>
+            <label style={labelStyle()}>{t('studio.carrusel.field_copy')}
+              <select value={copyId} onChange={(e) => { setCopyId(e.target.value); setGateAlert(null); }} style={selectStyle()}>
+                <option value="">
+                  {copyJobs.length === 0
+                    ? t('studio.copy.placeholder_empty')
+                    : t('studio.copy.placeholder_select')}
+                </option>
+                {copyJobs.map((j) => {
+                  const title = j?.pages_data?.hero?.title || j?.output_text || j.id.slice(0, 8);
+                  const personaLabel = t(`studio.copy.persona.${j.buyer_angle || 'inversor'}`);
+                  const trunc = title.length > 50 ? `${title.slice(0, 50)}…` : title;
+                  const mockTag = j.model_used === 'mock_v1' ? ` · ${t('studio.copy.mock_badge')}` : '';
+                  return (
+                    <option key={j.id} value={j.id}>
+                      {personaLabel} · {trunc}{mockTag}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+            {gateAlert && (
+              <div data-testid="gate-alert-inline" style={{
+                marginTop: 12, padding: '12px 14px', borderRadius: 12,
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.45)',
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <HookScoreBadge score={gateAlert.score} breakdown={gateAlert.breakdown} size="md" />
+                  <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>
+                    {t('studio.copy.gate_failed_title')}
+                  </span>
+                </div>
+                {gateAlert.suggestion && (
+                  <p style={{ margin: 0, fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.5 }}>
+                    {gateAlert.suggestion}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  data-testid="gate-regenerate"
+                  onClick={onOpenCopyModal}
+                  style={{
+                    padding: '6px 12px', borderRadius: 9999,
+                    background: 'transparent', border: '1px solid rgba(245,158,11,0.45)',
+                    color: '#F59E0B', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
+                    alignSelf: 'flex-start', cursor: 'pointer',
+                  }}>
+                  {t('studio.copy.regenerate_button')}
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* Separador · Paso 2 · Carrusel */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <span style={stepBadgeStyle()}>2</span>
+            <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>
+              {t('studio.copy.step2_title')}
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
           </div>
+
           <label style={labelStyle()}>{t('studio.carrusel.field_brand_kit')}
             <select value={brandKitId} onChange={(e) => setBrandKitId(e.target.value)} style={selectStyle()}>
               <option value="">{t('studio.carrusel.field_brand_kit_default')}</option>
@@ -583,6 +665,13 @@ const chipStyle = () => ({
 const labelStyle = () => ({
   display: 'block', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
   color: 'var(--cream-3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4,
+});
+const stepBadgeStyle = () => ({
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  width: 22, height: 22, borderRadius: 9999,
+  background: 'linear-gradient(90deg, #6366F1, #EC4899)',
+  color: 'var(--cream, #F0EBE0)',
+  fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
 });
 const overlayStyle = () => ({
   position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.7)',
