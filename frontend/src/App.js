@@ -56,6 +56,8 @@ const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
 const FreeAudit = lazy(() => import('./pages/public/FreeAudit'));
 const StateOfCDMX = lazy(() => import('./pages/public/StateOfCDMX'));
+// W5.21 — External Insights UI/SEO
+const InsightsGlobal = lazy(() => import('./pages/public/InsightsGlobal'));
 const MCPTutorial = lazy(() => import('./pages/public/connect/MCPTutorial'));
 
 const MapaCDMX          = lazy(() => import('./pages/public/MapaCDMX'));
@@ -549,6 +551,8 @@ function AppRouter() {
       {/* W4.16 — Marketing pages públicas */}
       <Route path="/free-audit" element={<FreeAudit />} />
       <Route path="/insights/state-of-cdmx-2026" element={<StateOfCDMX />} />
+      {/* W5.21 · External Insights UI/SEO · Sub-A */}
+      <Route path="/insights/global" element={<InsightsGlobal />} />
       <Route path="/connect/mcp/tutorial" element={<MCPTutorial />} />
 
       {/* B9 differentiated routes */}
