@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import * as Icons from 'lucide-react';
 import PortalLayout from '../../../components/shared/PortalLayout';
 import TemplateDispatcher, { TEMPLATE_KEYS } from '../../../templates/landings/TemplateDispatcher';
-import { createIntake, getIntake, patchIntake, generateCopy } from '../../../api/studio_intake';
+import { createIntake, getIntake, patchIntake, generateCopy, publishIntake } from '../../../api/studio_intake';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const BG_CARD = 'rgba(13,16,23,0.92)';
@@ -497,6 +497,7 @@ export default function PropertyIntakeForm({ user, onLogout }) {
   const [loading, setLoading] = useState(Boolean(id));
   const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
   const [generating, setGenerating] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [toast, setToast] = useState('');
   const [warnings, setWarnings] = useState([]);
   const debouncer = useRef(null);
@@ -579,6 +580,33 @@ export default function PropertyIntakeForm({ user, onLogout }) {
     }
   };
 
+  const onTogglePublish = async () => {
+    if (!intakeId) { setToast('Guarda el intake primero'); return; }
+    const next = !data.published;
+    setPublishing(true);
+    try {
+      const r = await publishIntake(intakeId, next);
+      set('published', r.published);
+      if (r.public_url) {
+        // eslint-disable-next-line no-restricted-globals
+        const origin = (typeof window !== 'undefined' && window.location) ? window.location.origin : '';
+        const fullUrl = `${origin}${r.public_url}`;
+        try {
+          await navigator.clipboard.writeText(fullUrl);
+          setToast(`Publicada · URL copiada: ${fullUrl}`);
+        } catch (_) {
+          setToast(`Publicada · ${fullUrl}`);
+        }
+      } else {
+        setToast('Despublicada · la landing ya no es visible');
+      }
+    } catch (e) {
+      setToast('Error publicar: ' + (e.body?.detail || e.message));
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const Section = SECTION_RENDERERS[active] || SectionIdentity;
   const completedSteps = useMemo(() => {
     const map = {};
@@ -616,6 +644,15 @@ export default function PropertyIntakeForm({ user, onLogout }) {
             <button data-testid="generate-copy-btn" type="button" onClick={onGenerateCopy} disabled={generating || !intakeId} style={btnGradient({ opacity: (!intakeId || generating) ? 0.6 : 1 })}>
               <Icons.Sparkles size={14} /> {generating ? 'Generando...' : 'Generar copy con IA'}
             </button>
+            <button data-testid="publish-btn" type="button" onClick={onTogglePublish} disabled={publishing || !intakeId} style={{ ...btnSecondary({ color: data.published ? '#FBBF24' : '#22C55E', borderColor: data.published ? '#FBBF24aa' : '#22C55Eaa' }), opacity: (!intakeId || publishing) ? 0.6 : 1 }}>
+              {data.published ? <Icons.EyeOff size={14} /> : <Icons.Globe size={14} />}
+              {publishing ? '...' : (data.published ? 'Despublicar' : 'Publicar')}
+            </button>
+            {data.published && data.slug && (
+              <a data-testid="view-public-link" href={`/landing/${data.slug}`} target="_blank" rel="noreferrer" style={{ ...btnSecondary({ color: '#6366F1', borderColor: '#6366F1aa' }) }}>
+                <Icons.ExternalLink size={12} /> Ver landing
+              </a>
+            )}
           </div>
         </div>
 

@@ -28,6 +28,20 @@ export const listIntakes = ({ template_key, property_type, limit = 30, skip = 0 
 export const generateCopy = (intakeId, forceRegenerate = false) =>
   post(`/api/studio/property-intake/${intakeId}/generate-copy`, { intake_id: intakeId, force_regenerate: forceRegenerate });
 
+// Z.8.7 Sub-D · publish toggle
+export const publishIntake = (intakeId, published = true) =>
+  post(`/api/studio/property-intake/${intakeId}/publish`, { published });
+
+// Z.8.7 Sub-E · public lead capture (consumido por templates monolíticos)
+export const submitIntakeLead = (slug, payload) => {
+  return fetch(`${API}/api/studio/property-intake/public/${slug}/lead`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ payload: payload || {} }),
+  }).then((r) => r.ok ? r.json() : Promise.reject(new Error('Lead no aceptado')));
+};
+
 // Attempt public-by-slug fetch · 404 graceful (Z.8.7 backend Sub-B1 sin endpoint publico aun)
 export const getPublicIntakeBySlug = async (slug) => {
   try {

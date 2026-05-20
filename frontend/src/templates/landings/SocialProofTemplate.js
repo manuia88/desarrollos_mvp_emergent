@@ -205,7 +205,7 @@ function SocialProofForm({ slug, advisor, leadForm, isPreview }) {
     if (isPreview) { setSent(true); return; }
     try {
       const API = process.env.REACT_APP_BACKEND_URL;
-      await fetch(`${API}/api/landing/${slug}/lead`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ payload: state }) });
+      await fetch(`${API}/api/studio/property-intake/public/${slug}/lead`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ payload: state }) });
       setSent(true);
     } catch (_) { setSent(true); }
   };

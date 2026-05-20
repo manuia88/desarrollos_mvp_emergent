@@ -184,6 +184,51 @@ async def get_public_intake(slug: str, request: Request) -> Dict[str, Any]:
     }
 
 
+# ─── Public lead capture (Z.8.7 · NO auth · consumido por templates monolíticos) ──
+class IntakeLeadBody(BaseModel):
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/public/{slug}/lead")
+async def submit_intake_lead(slug: str, body: IntakeLeadBody, request: Request) -> Dict[str, Any]:
+    """Captura lead de landing Z.8.7 publicada · NO require auth.
+
+    Pushea payload al array `leads[]` del intake + incrementa `leads_count`.
+    Returns 404 si intake no existe o no está publicado.
+    Declarado ANTES de /{intake_id}/* para no chocar con rutas autenticadas.
+    """
+    db = _db(request)
+    doc = await db.studio_property_intakes.find_one(
+        {"slug": slug, "published": True}, {"_id": 0, "id": 1, "slug": 1}
+    )
+    if not doc:
+        raise HTTPException(404, "Landing no encontrada o no publicada")
+
+    referrer = request.headers.get("referer", "")[:200]
+    try:
+        ua = request.headers.get("user-agent", "")[:200]
+    except Exception:
+        ua = ""
+
+    lead_entry = {
+        "lead_id": _uid("lead"),
+        "payload": body.payload or {},
+        "received_at": _iso(),
+        "referrer": referrer,
+        "user_agent": ua,
+    }
+
+    await db.studio_property_intakes.update_one(
+        {"slug": slug, "published": True},
+        {
+            "$push": {"leads": lead_entry},
+            "$inc": {"leads_count": 1},
+            "$set": {"last_lead_at": _iso()},
+        },
+    )
+    return {"ok": True, "lead_id": lead_entry["lead_id"]}
+
+
 @router.get("/{intake_id}")
 async def get_intake(intake_id: str, request: Request) -> Dict[str, Any]:
     user = await _require_user(request)
