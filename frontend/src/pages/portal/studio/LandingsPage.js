@@ -987,40 +987,58 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
   );
 }
 
-function LandingCard({ item, onOpen, themes }) {
+function LandingCard({ item, onOpen, onDelete, themes }) {
+  const { t } = useTranslation('common');
   const themeMeta = (themes || []).find((tm) => tm.key === item.template_key);
   const pal = themeMeta?.preview_palette || {};
   const cardBg = pal.gradient || `linear-gradient(135deg, ${pal.primary || '#6366F1'}40, ${pal.secondary || '#EC4899'}40)`;
+  const stop = (e) => { e.stopPropagation(); e.preventDefault(); };
+  const handleDeleteClick = (e) => { stop(e); if (onDelete) onDelete(item); };
   return (
-    <button data-testid={`landing-card-${item.id}`} type="button" onClick={onOpen} style={{ textAlign: 'left', background: BG_CARD, border: BORDER, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', padding: 0, color: '#F0EBE0', transition: `transform 320ms ${EASE}` }}>
-      <div style={{ aspectRatio: '16/9', background: cardBg, position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 9999, background: item.published ? 'rgba(34,197,94,0.85)' : 'rgba(99,102,241,0.5)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
-          {item.published ? 'Publicada' : 'Borrador'}
-        </div>
-        {item.landing_type && (
-          <div style={{ position: 'absolute', top: 10, left: 10, padding: '4px 10px', borderRadius: 9999, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11 }}>
-            {item.landing_type}
+    <div data-testid={`landing-card-wrapper-${item.id}`} style={{ position: 'relative' }}>
+      <button data-testid={`landing-card-${item.id}`} type="button" onClick={onOpen} style={{ width: '100%', textAlign: 'left', background: BG_CARD, border: BORDER, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', padding: 0, color: '#F0EBE0', transition: `transform 320ms ${EASE}` }}>
+        <div style={{ aspectRatio: '16/9', background: cardBg, position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 9999, background: item.published ? 'rgba(34,197,94,0.85)' : 'rgba(99,102,241,0.5)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
+            {item.published ? 'Publicada' : 'Borrador'}
           </div>
-        )}
-        <div style={{ position: 'absolute', bottom: 10, left: 10, color: '#fff', fontSize: 11, padding: '2px 8px', background: 'rgba(0,0,0,0.6)', borderRadius: 9999 }}>
-          {(item.sections || []).length} secciones
-        </div>
-        {themeMeta && (
-          <div style={{ position: 'absolute', bottom: 10, right: 10, padding: '4px 8px', borderRadius: 9999, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <PaletteDots palette={pal} />
-            {item.template_key}
+          {item.landing_type && (
+            <div style={{ position: 'absolute', top: 10, left: 10, padding: '4px 10px', borderRadius: 9999, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11 }}>
+              {item.landing_type}
+            </div>
+          )}
+          <div style={{ position: 'absolute', bottom: 10, left: 10, color: '#fff', fontSize: 11, padding: '2px 8px', background: 'rgba(0,0,0,0.6)', borderRadius: 9999 }}>
+            {(item.sections || []).length} secciones
           </div>
-        )}
-      </div>
-      <div style={{ padding: 14 }}>
-        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>{item.content?.hero?.title || item.slug}</div>
-        <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4 }}>/landing/{item.slug}</div>
-        <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>
-          <span>{item.views_count || 0} vistas</span>
-          <span>· {item.leads_count || 0} leads</span>
+          {themeMeta && (
+            <div style={{ position: 'absolute', bottom: 10, right: 10, padding: '4px 8px', borderRadius: 9999, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <PaletteDots palette={pal} />
+              {item.template_key}
+            </div>
+          )}
         </div>
-      </div>
-    </button>
+        <div style={{ padding: '14px 14px 14px 14px' }}>
+          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 38 }}>{item.content?.hero?.title || item.slug}</div>
+          <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>/landing/{item.slug}</div>
+          <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>
+            <span>{item.views_count || 0} vistas</span>
+            <span>· {item.leads_count || 0} leads</span>
+          </div>
+        </div>
+      </button>
+      {onDelete && (
+        <button
+          data-testid={`landing-card-delete-${item.id}`}
+          type="button"
+          onClick={handleDeleteClick}
+          onMouseDown={stop}
+          aria-label={t('studio.landings.delete') || 'Eliminar'}
+          title={t('studio.landings.delete') || 'Eliminar'}
+          style={{ position: 'absolute', bottom: 56, right: 12, zIndex: 5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: 'rgba(248,113,113,0.18)', border: '1px solid rgba(248,113,113,0.45)', color: '#F87171', cursor: 'pointer', padding: 0 }}
+        >
+          <Icons.Trash2 size={14} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -1089,6 +1107,25 @@ export default function LandingsPage({ user, onLogout }) {
     }
   };
 
+  const handleDeleteCard = async (item) => {
+    if (!item?.id) return;
+    const msg = t('studio.landings.confirm_delete') || 'Borrar esta landing? La accion no se puede deshacer.';
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(msg)) return;
+    const prev = items;
+    setItems((arr) => arr.filter((x) => x.id !== item.id)); // optimistic
+    // Si el usuario estaba viendo el editor del landing eliminado · cerrar
+    if (editing && editing.id === item.id) { setEditing(null); setEditingFull(null); }
+    try {
+      await api.deleteLanding(item.id);
+      setToast(t('studio.landings.toast_deleted') || 'Landing eliminada.');
+      await load(); // refetch real para asegurar consistencia
+    } catch (e) {
+      setItems(prev); // revert
+      setToast(e?.message || 'Error al eliminar');
+    }
+  };
+
   return (
     <PortalLayout role={user?.role} user={user} onLogout={onLogout}>
       <div data-testid="landings-page" style={{ padding: '24px 8px', color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif' }}>
@@ -1137,7 +1174,7 @@ export default function LandingsPage({ user, onLogout }) {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
-                {items.map((it) => <LandingCard key={it.id} item={it} onOpen={() => openEdit(it)} themes={themes} />)}
+                {items.map((it) => <LandingCard key={it.id} item={it} onOpen={() => openEdit(it)} onDelete={handleDeleteCard} themes={themes} />)}
               </div>
             )}
           </>
