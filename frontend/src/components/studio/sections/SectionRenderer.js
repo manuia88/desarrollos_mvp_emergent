@@ -1,5 +1,6 @@
-// W5.22 Z.8.3 — Section dispatcher: switch type → render component (theme-aware)
+// W5.22 Z.8.3 / Z.8.6 — Section dispatcher: theme-aware + templateKey signature + themeMode
 import React from 'react';
+import { resolveSignature } from './_templateSignatures';
 import HeroSection from './HeroSection';
 import PropertyShowcaseSection from './PropertyShowcaseSection';
 import GallerySection from './GallerySection';
@@ -105,15 +106,34 @@ export function getUniqueSectionForTemplate(template_key) {
   return TEMPLATE_UNIQUE_SECTION[template_key] || null;
 }
 
-export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme, landingSlug, templateKey }) {
+export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme, landingSlug, templateKey, themeMode }) {
   if (!section || section.visible === false) return null;
   const Comp = REGISTRY[section.type];
   if (!Comp) return null;
   const overrides = section.style_overrides || {};
-  const t = theme || {};
-  const palette = t.palette || {};
-  const layout = t.layout || {};
-  const animation = t.animation || {};
+
+  // Z.8.6 — Resolve signature per template_key + themeMode · merge sobre theme backend
+  const mode = themeMode || (theme && theme.default_mode) || 'dark';
+  const signature = resolveSignature(templateKey || (theme && theme.key) || 'modern', mode);
+  // Build merged theme · signature gana sobre theme backend para consistency cross-section
+  const mergedTheme = {
+    ...theme,
+    palette: { ...(theme?.palette || {}), ...signature.palette },
+    typography: { ...(theme?.typography || {}), ...signature.typography },
+    layout: { ...(theme?.layout || {}), ...signature.layout },
+    section_variants: {
+      ...(theme?.section_variants || {}),
+      // Aplica structural_hint del signature como override del variant del theme
+      // ej: family.gallery=grid-rounded · investor.testimonials=numbers-only · etc
+      ...(signature.structural_hints || {}),
+    },
+    tone: signature.tone,
+    mode,
+  };
+
+  const palette = mergedTheme.palette || {};
+  const layout = mergedTheme.layout || {};
+  const animation = mergedTheme.animation || {};
   const wrapStyle = {
     background: overrides.bg_color || palette.bg || 'transparent',
     color: palette.text || undefined,
@@ -124,16 +144,18 @@ export default function SectionRenderer({ section, brandKit, linkedEntity, onLea
   };
   if (layout.border_radius) wrapStyle.borderRadius = undefined;
   return (
-    <div data-testid={`section-${section.type}`} data-section-id={section.id} data-template-key={templateKey || undefined} data-theme={t.name ? section.type : undefined} style={wrapStyle}>
+    <div data-testid={`section-${section.type}`} data-section-id={section.id} data-template-key={templateKey || undefined} data-theme-mode={mode} data-tone={signature.tone} style={wrapStyle}>
       <Comp
         config={section.config || {}}
         brandKit={brandKit || {}}
         linkedEntity={linkedEntity}
         onLead={onLead}
         isPreview={isPreview}
-        theme={t}
+        theme={mergedTheme}
+        signature={signature}
         landingSlug={landingSlug}
         templateKey={templateKey}
+        themeMode={mode}
       />
     </div>
   );

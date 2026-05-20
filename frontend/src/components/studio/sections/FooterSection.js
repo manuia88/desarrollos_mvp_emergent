@@ -1,11 +1,26 @@
 // W5.22 Z.8.3 — Footer · theme-driven (default / minimal)
 import React from 'react';
 
-export default function FooterSection({ config = {}, brandKit = {}, theme = {} }) {
+// Z.8.6 — tagline + extra footer copy per template signature
+const TEMPLATE_FOOTER_TAGLINES = {
+  luxury: 'Residencias privadas · solo por invitacion',
+  family: 'Tu proximo hogar familiar · zona segura · escuelas top',
+  investor: 'Datos transparentes · DRPI verificado · AMPI compliance',
+  boutique: 'Hecho a mano · edicion limitada · arquitectura firmada',
+  urgent: 'Reserva con 72h · sin compromiso',
+  scrollytelling: 'Una historia que cambia tu lugar en la ciudad',
+  video_first: 'Tour cinematico · video on-demand',
+  social_proof: '200+ familias confiaron · 4.9 estrellas Google',
+  compare: 'Comparativa transparente · vs los proyectos vecinos',
+  modern: 'DesarrollosMX · inteligencia inmobiliaria CDMX',
+};
+
+export default function FooterSection({ config = {}, brandKit = {}, theme = {}, templateKey }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const sectionVariants = theme.section_variants || {};
   const variant = config.variant || sectionVariants.footer || 'default';
+  const tagline = TEMPLATE_FOOTER_TAGLINES[templateKey] || TEMPLATE_FOOTER_TAGLINES.modern;
 
   const showSocial = config.show_social !== false;
   const showContact = config.show_contact !== false;
@@ -25,6 +40,7 @@ export default function FooterSection({ config = {}, brandKit = {}, theme = {} }
     return (
       <footer data-testid="sec-footer-minimal" data-variant={variant} style={{ padding: '60px 24px 32px', borderTop: `1px solid ${themePrimary}33`, color: text, fontFamily: bodyFont, textAlign: 'center' }}>
         {brandKit.logo_url ? <img src={brandKit.logo_url} alt="logo" style={{ maxHeight: 32, marginBottom: 14 }} /> : <strong style={{ fontFamily: headingFont, fontSize: 18, letterSpacing: '0.15em' }}>DESARROLLOSMX</strong>}
+        <div style={{ fontFamily: headingFont, fontStyle: 'italic', fontSize: 14, color: textDim, marginTop: 12 }}>{tagline}</div>
         {showDisclaimer && <p style={{ fontSize: 11, color: textDim, marginTop: 14, lineHeight: 1.6, maxWidth: 640, margin: '14px auto 0' }}>{disclaimer}</p>}
         <div style={{ marginTop: 32, paddingTop: 18, borderTop: `1px solid ${themePrimary}22`, fontSize: 11, color: textDim, letterSpacing: '0.15em' }}>{footerLegal}</div>
       </footer>
@@ -36,6 +52,7 @@ export default function FooterSection({ config = {}, brandKit = {}, theme = {} }
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
         <div>
           {brandKit.logo_url ? <img src={brandKit.logo_url} alt="logo" style={{ maxHeight: 40, marginBottom: 12 }} /> : <strong style={{ fontFamily: headingFont, fontSize: 20 }}>DesarrollosMX</strong>}
+          <div style={{ fontFamily: headingFont, fontStyle: 'italic', fontSize: 13, color: themePrimary, marginTop: 6, marginBottom: 8 }}>{tagline}</div>
           {showDisclaimer && <p style={{ fontSize: 12, color: textDim, marginTop: 8, lineHeight: 1.5 }}>{disclaimer}</p>}
         </div>
         {showContact && (
