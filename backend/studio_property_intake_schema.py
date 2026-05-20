@@ -315,6 +315,10 @@ class PropertyIntake(BaseModel):
     promo_label: Optional[str] = Field(None, max_length=80)
     promo_discount_pct: Optional[float] = Field(None, ge=0, le=100)
 
+    # Publishing state (Z.8.7 Sub-D)
+    published: bool = Field(False, description="Si true, intake visible en endpoint publico /landing/:slug")
+    published_at: Optional[datetime] = None
+
     # 14. Differentiators
     unique_selling_points: List[str] = Field(default_factory=list, max_length=10)
     target_buyer_persona: Optional[str] = Field(None, max_length=80)

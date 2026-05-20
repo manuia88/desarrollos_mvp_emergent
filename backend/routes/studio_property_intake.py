@@ -89,6 +89,10 @@ class IntakePatchBody(BaseModel):
     patch: Dict[str, Any] = Field(default_factory=dict)
 
 
+class PublishBody(BaseModel):
+    published: bool = True
+
+
 # ─── Endpoints ──────────────────────────────────────────────────────────────
 @router.post("")
 async def create_intake(body: Dict[str, Any], request: Request) -> Dict[str, Any]:
@@ -153,6 +157,31 @@ async def list_intakes(
     items = await cursor.to_list(limit)
     total = await db.studio_property_intakes.count_documents(q)
     return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+# ─── Public endpoint (Z.8.7 Sub-D · NO auth · sirve LandingPublic.js) ──────
+@router.get("/public/{slug}")
+async def get_public_intake(slug: str, request: Request) -> Dict[str, Any]:
+    """Endpoint publico · NO require auth · devuelve intake si published=True.
+
+    Consumido por frontend/src/pages/public/LandingPublic.js (Z.8.7 dispatch coexistencia).
+    Importante: declarado ANTES de /{intake_id} para evitar wildcard catch.
+    """
+    db = _db(request)
+    doc = await db.studio_property_intakes.find_one(
+        {"slug": slug, "published": True},
+        {"_id": 0, "tenant_id": 0, "created_by_user_id": 0, "_warnings": 0},
+    )
+    if not doc:
+        raise HTTPException(404, "Landing no encontrada o no publicada")
+    return {
+        "slug": doc.get("slug"),
+        "template_key": doc.get("template_key"),
+        "buyer_intent": doc.get("buyer_intent"),
+        "intake": doc,
+        "generated_copy_cached": doc.get("generated_copy_cached"),
+        "generated_copy_at": doc.get("generated_copy_at"),
+    }
 
 
 @router.get("/{intake_id}")
@@ -243,3 +272,35 @@ async def generate_copy_endpoint(intake_id: str, body: CopyGenerationRequest, re
         fallback=bool(result.get("fallback")),
         error=result.get("error"),
     )
+
+
+
+# ─── Publish toggle (Z.8.7 Sub-D · auth · scoped al dueno del intake) ──────
+@router.post("/{intake_id}/publish")
+async def publish_intake(intake_id: str, body: PublishBody, request: Request) -> Dict[str, Any]:
+    """Marca intake como publicado/despublicado · expone el slug en endpoint publico."""
+    user = await _require_user(request)
+    db = _db(request)
+    doc = await db.studio_property_intakes.find_one(
+        {"id": intake_id, "created_by_user_id": user.user_id}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(404, "Intake no encontrado")
+
+    update_fields: Dict[str, Any] = {
+        "published": body.published,
+        "updated_at": _iso(),
+    }
+    if body.published:
+        update_fields["published_at"] = _iso()
+
+    await db.studio_property_intakes.update_one(
+        {"id": intake_id, "created_by_user_id": user.user_id},
+        {"$set": update_fields},
+    )
+
+    return {
+        "intake_id": intake_id,
+        "published": body.published,
+        "public_url": f"/landing/{doc.get('slug')}" if body.published else None,
+    }
