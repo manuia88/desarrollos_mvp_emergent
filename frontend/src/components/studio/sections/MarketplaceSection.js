@@ -1,6 +1,6 @@
 // W5.22 Z.8.4 — MarketplaceSection · mini-portal inmobiliario completo del asesor
 // Filters sticky · search · price slider · status pills · amenities · sort · map · pagination
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as api from '../../../api/studio_z8';
 

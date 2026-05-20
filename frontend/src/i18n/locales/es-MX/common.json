@@ -3685,7 +3685,39 @@
       "toast_winner_declared": "Ganador declarado.",
       "lead_form_thanks": "Gracias. Te contactamos pronto.",
       "lead_form_error": "No pudimos enviar tu solicitud. Intenta de nuevo.",
-      "lead_form_rate_limited": "Demasiados envios. Espera un minuto."
+      "lead_form_rate_limited": "Demasiados envios. Espera un minuto.",
+      "marketplace": {
+        "title": "Catalogo completo",
+        "filters_title": "Filtros",
+        "search_placeholder": "Buscar nombre, colonia o alcaldia",
+        "search_label": "Buscando",
+        "filter_cities": "Zonas",
+        "filter_colonias": "Colonias",
+        "filter_status": "Estado",
+        "filter_price_range": "Precio",
+        "filter_amenities": "Amenidades",
+        "sort_by": "Ordenar por",
+        "sort_price_asc": "Precio menor a mayor",
+        "sort_price_desc": "Precio mayor a menor",
+        "sort_date_new": "Mas recientes",
+        "sort_name_az": "Nombre A-Z",
+        "sort_zone": "Zona",
+        "enable_map": "Habilitar mapa",
+        "enable_search": "Habilitar busqueda",
+        "pagination_buttons": "Paginacion por botones",
+        "pagination_infinite": "Scroll infinito",
+        "pagination_none": "Mostrar todos",
+        "limit_label": "Limite de propiedades",
+        "limit_all": "Todos",
+        "live_preview_count": "Tu marketplace mostrara {count} propiedades de {total} en tu catalogo",
+        "empty_state": "No se encontraron propiedades · ajusta filtros",
+        "loading": "Cargando catalogo...",
+        "clear_filters": "Limpiar filtros",
+        "show_map": "Ver mapa",
+        "hide_map": "Ocultar mapa",
+        "prev": "Anterior",
+        "next": "Siguiente"
+      }
     }
   }
 }

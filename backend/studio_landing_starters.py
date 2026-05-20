@@ -120,39 +120,39 @@ STARTER_MARKETPLACE: List[Dict[str, Any]] = [
     _section("hero", {
         "variant": "centered",
         "headline": "Mi portafolio completo",
-        "subhead": "Descubre todos mis proyectos en CDMX",
+        "subhead": "Filtra, busca y descubre todos los proyectos que represento en CDMX.",
         "primary_cta": {"text": "Ver inventario", "action": "scroll_to_marketplace"},
     }),
     _section("stats", {
         "items": [
-            {"label": "Proyectos activos", "value": "12"},
-            {"label": "Ciudades", "value": "3"},
-            {"label": "Desde", "value": "$2.8M", "prefix": ""},
+            {"label": "Proyectos activos", "value": "18"},
+            {"label": "Alcaldias", "value": "8"},
+            {"label": "Desde", "value": "$2.4M", "prefix": ""},
         ],
         "columns": 3,
     }),
-    _section("property_showcase", {
-        "show_marketplace_grid": True,
-        "filters_enabled": True,
-        "items_per_page": 12,
-    }),
-    _section("map", {
-        "lat": 19.4326,
-        "lng": -99.1332,
-        "zoom": 12,
-        "show_all_markers": True,
+    # Z.8.4 — Real marketplace section (sustituye property_showcase pseudo-marketplace)
+    _section("marketplace", {
+        "title": "Catalogo completo",
     }),
     _section("lead_form", {
         "headline": "Cuentame que buscas",
+        "subhead": "Te mando opciones a medida en menos de 24h.",
         "fields": [
             {"name": "nombre", "type": "text", "label": "Nombre", "required": True},
             {"name": "email", "type": "email", "label": "Correo", "required": True},
             {"name": "presupuesto", "type": "select", "label": "Presupuesto", "required": False,
              "options": ["< $3M", "$3M - $6M", "$6M - $10M", "> $10M"]},
+            {"name": "zona", "type": "text", "label": "Zona de interes", "required": False},
         ],
         "steps": 2,
         "submit_text": "Enviar",
         "success_message": "Te enviare opciones acorde a tu presupuesto.",
+    }),
+    _section("footer", {
+        "show_social": True,
+        "show_contact": True,
+        "show_disclaimer": True,
     }),
 ]
 
