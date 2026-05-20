@@ -26,6 +26,19 @@ const LANDING_TYPE_META = [
   { key: 'marketplace', icon: 'Grid3x3', label: 'Marketplace', desc: 'Tu portafolio completo' },
 ];
 const TEMPLATE_KEYS_DEFAULT = ['modern', 'luxury', 'family', 'investor', 'boutique', 'urgent', 'scrollytelling', 'video_first', 'social_proof', 'compare'];
+const TEMPLATE_LABELS = {
+  luxury: 'Lujo · serif elegante',
+  investor: 'Inversionista · datos y proyecciones',
+  family: 'Familia · escuelas y parques',
+  first_home: 'Primer departamento · mensualidad',
+  boutique: 'Boutique · historia y materialidad',
+  urgent: 'Urgente · countdown y escasez',
+  social_proof: 'Testimonios · social proof',
+  video_first: 'Video · tour cinematográfico',
+  compare: 'Comparativo · vs competencia',
+  scrollytelling: 'Narrativa · capítulos cinemáticos',
+  modern: 'Moderno · balanceado',
+};
 
 function PaletteDots({ palette = {} }) {
   return (
@@ -1046,7 +1059,16 @@ function LandingCard({ item, onOpen, onDelete, themes }) {
 }
 
 // ─── Z.8.7 Sub-G · CreateAIWizard · 3 orígenes (vacío / inventario / link externo) ───
-function CreateAIWizard({ onClose, developments = [], navigate, setToast }) {
+function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }) {
+  // Helper · asesor mínimo desde el user logueado para pasar validación backend
+  const advisorFromUser = (u) => ({
+    user_id: u?.user_id || u?.id || null,
+    full_name: u?.full_name || u?.name || [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim() || 'Asesor',
+    email: u?.email || '',
+    phone: u?.phone || u?.whatsapp || '',
+    photo_url: u?.photo_url || u?.avatar_url || '',
+    ampi_id: u?.ampi_id || '',
+  });
   const [origin, setOrigin] = useState('choose'); // choose · empty · inventory · external
   const [emptyTpl, setEmptyTpl] = useState('luxury');
   const [invMode, setInvMode] = useState('developments'); // developments · resales
@@ -1074,17 +1096,21 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast }) {
     property_type: 'development',
     listing_intent: 'sell',
     buyer_intent: 'mixed',
-    developer_name: d.developer_name || d.developer || '',
-    colonia: d.colonia || '',
-    alcaldia_municipio: d.alcaldia || '',
+    // Fallback chain · backend requiere developer_name si property_type=development
+    // Si el inventario interno no lo trae, usa fallback editable
+    developer_name: d.developer_name || d.developer || d.developer_company || d.tenant_name || d.name || 'Por definir',
+    developer_track_record: d.description || d.developer_track_record || '',
+    colonia: d.colonia || d.neighborhood || '',
+    alcaldia_municipio: d.alcaldia || d.municipio || '',
     city: d.city || 'Ciudad de México',
     state: d.state || 'CDMX',
-    address: d.address || '',
+    address: d.address || d.location || '',
     lat: typeof d.lat === 'number' ? d.lat : null,
-    lng: typeof d.lng === 'number' ? d.lng : null,
-    price_from_mxn: typeof d.price_from === 'number' ? d.price_from : (typeof d.price === 'number' ? d.price : null),
-    photos: (d.photos || []).slice(0, 20).map((url, i) => ({ url, category: 'exterior', order: i })),
-    unique_selling_points: d.unique_selling_points || [],
+    lng: typeof d.lng === 'number' ? (d.lng) : (typeof d.lon === 'number' ? d.lon : null),
+    price_from_mxn: typeof d.price_from === 'number' ? d.price_from : (typeof d.price === 'number' ? d.price : (typeof d.price_min === 'number' ? d.price_min : null)),
+    photos: (d.photos || d.images || []).slice(0, 20).map((url, i) => ({ url: typeof url === 'string' ? url : url.url, category: 'exterior', order: i })).filter((p) => p.url),
+    unique_selling_points: d.unique_selling_points || d.usps || [],
+    assigned_advisor: advisorFromUser(user),
   });
 
   const prefillFromResale = (r) => {
@@ -1106,6 +1132,7 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast }) {
         code: 'A', name: 'Unidad', bedrooms: p.bedrooms || 0, bathrooms: p.bathrooms || 0,
         area_m2: p.area_m2 || 0, price_mxn: p.price || 0,
       }] : [],
+      assigned_advisor: advisorFromUser(user),
     };
   };
 
@@ -1195,7 +1222,7 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast }) {
             <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Selecciona el estilo visual de la landing:</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
               {Z87_TEMPLATE_KEYS.map((k) => (
-                <button key={k} type="button" onClick={() => setEmptyTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, background: emptyTpl === k ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: emptyTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer' }}>{k}</button>
+                <button key={k} type="button" onClick={() => setEmptyTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600, lineHeight: 1.3, textAlign: 'left', background: emptyTpl === k ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: emptyTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer' }}>{TEMPLATE_LABELS[k] || k}</button>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -1457,6 +1484,7 @@ export default function LandingsPage({ user, onLogout }) {
           developments={developments}
           navigate={navigate}
           setToast={setToast}
+          user={user}
         />
       )}
       {false && (
