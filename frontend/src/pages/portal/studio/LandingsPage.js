@@ -1092,23 +1092,34 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
 
   const prefillFromDevelopment = (d) => ({
     project_name: d.name || 'Proyecto sin nombre',
+    slug: d.slug || (d.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60),
     template_key: 'luxury',
     property_type: 'development',
     listing_intent: 'sell',
     buyer_intent: 'mixed',
-    // Fallback chain · backend requiere developer_name si property_type=development
-    // Si el inventario interno no lo trae, usa fallback editable
-    developer_name: d.developer_name || d.developer || d.developer_company || d.tenant_name || d.name || 'Por definir',
-    developer_track_record: d.description || d.developer_track_record || '',
-    colonia: d.colonia || d.neighborhood || '',
-    alcaldia_municipio: d.alcaldia || d.municipio || '',
+    // Datos del developer (jalados del catalog enriquecido Z.8.7)
+    developer_name: d.developer_name || d.developer || d.name || 'Por definir',
+    developer_track_record: d.developer_description || d.description || '',
+    developer_total_projects: d.developer_total_projects || null,
+    developer_units_delivered: d.developer_units_delivered || null,
+    // Ubicación
+    colonia: d.colonia || '',
+    alcaldia_municipio: d.alcaldia || '',
     city: d.city || 'Ciudad de México',
     state: d.state || 'CDMX',
-    address: d.address || d.location || '',
+    address: d.address || (d.street ? `${d.street}, ${d.colonia || 'CDMX'}` : ''),
     lat: typeof d.lat === 'number' ? d.lat : null,
-    lng: typeof d.lng === 'number' ? (d.lng) : (typeof d.lon === 'number' ? d.lon : null),
-    price_from_mxn: typeof d.price_from === 'number' ? d.price_from : (typeof d.price === 'number' ? d.price : (typeof d.price_min === 'number' ? d.price_min : null)),
+    lng: typeof d.lng === 'number' ? d.lng : (typeof d.lon === 'number' ? d.lon : null),
+    // Precios
+    price_from_mxn: typeof d.price_from === 'number' ? d.price_from : null,
+    price_to_mxn: typeof d.price_to === 'number' ? d.price_to : null,
+    // Tipologías (mapeadas desde prototypes en backend Z.8.7 enriched)
+    typologies: Array.isArray(d.typologies) ? d.typologies : [],
+    // Amenidades (mapeadas a categorías schema)
+    amenities_by_category: d.amenities_by_category || {},
+    // Fotos (si las trae el catálogo · sino vacío)
     photos: (d.photos || d.images || []).slice(0, 20).map((url, i) => ({ url: typeof url === 'string' ? url : url.url, category: 'exterior', order: i })).filter((p) => p.url),
+    // Diferenciadores extraídos de description si existen amenities ricas
     unique_selling_points: d.unique_selling_points || d.usps || [],
     assigned_advisor: advisorFromUser(user),
   });

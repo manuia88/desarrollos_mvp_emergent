@@ -328,32 +328,32 @@ class PropertyIntake(BaseModel):
     @model_validator(mode="after")
     def cross_field_checks(self):
         warnings: List[str] = []
-        # 1. development requires developer_name
+        # 1. development sin developer_name → warning (no rechazar · broker puede completar después)
         if self.property_type == PropertyType.development and not self.developer_name:
-            raise ValueError("developer_name es requerido cuando property_type=development")
-        # 2. resale requires resale_owner_type
+            warnings.append("Falta el nombre del desarrollador. Edítalo en la sección 3 antes de publicar.")
+        # 2. resale requires resale_owner_type → warning (no rechazar)
         if self.property_type == PropertyType.resale and not self.resale_owner_type:
-            raise ValueError("resale_owner_type es requerido cuando property_type=resale")
-        # 3. investor template requires investment_metrics with at least one filled
+            warnings.append("Para una reventa, elige si vendes como dueño o como broker en la sección 3.")
+        # 3. investor template sin métricas → WARNING (no rechazar · permite cambiar template y completar después)
         if self.template_key == "investor":
             m = self.investment_metrics
             if not m or not any(getattr(m, f, None) is not None for f in m.model_dump().keys()):
-                raise ValueError("template_key=investor requiere investment_metrics con al menos 1 metrica (expected_roi_pct, expected_yield_pct, cap_rate_pct, etc.)")
-        # 4. luxury warns if price_visible
+                warnings.append("El template Inversionista necesita al menos una métrica financiera (ROI, yield o cap rate). Llénalo en la sección 7 antes de publicar.")
+        # 4. luxury con precio visible → warning
         if self.template_key == "luxury" and self.price_visible:
-            warnings.append("luxury_template_price_visible_warning: considera price_visible=false para template luxury")
-        # 5. hybrid templates require buyer_intent
+            warnings.append("Para el template Lujo recomendamos ocultar el precio público (en la sección 4). Refuerza el posicionamiento premium.")
+        # 5. hybrid templates require buyer_intent → warning (autofill ya pone default mixed)
         if self.template_key in HYBRID_TEMPLATES and self.buyer_intent is None:
-            raise ValueError(f"template_key={self.template_key} es hybrid · buyer_intent es requerido (live/invest/mixed)")
+            warnings.append(f"El template {self.template_key} requiere que elijas para quién es la landing (vivir, invertir o ambos) en la sección 1.")
         # 6. min 12 photos warning
         if self.template_key not in ("first_home",) and len(self.photos) < 12:
-            warnings.append(f"min_photos_warning: tienes {len(self.photos)} fotos · recomendado >= 12 para conversion")
+            warnings.append(f"Tienes {len(self.photos)} fotos. Recomendamos al menos 12 para mejor conversión. Súbelas en la sección 8.")
         # 7. floor_plans warning if development
         if self.property_type == PropertyType.development and not self.floor_plans:
-            warnings.append("floor_plans_missing_warning: development sin floor_plans · agrega al menos 1 plano")
-        # 8. assigned_advisor required
+            warnings.append("Falta agregar al menos un plano. Los planos son lo #1 que buyers valoran (NAR 2024). Súbelos en la sección 8.")
+        # 8. assigned_advisor warning (autofill ya pone mínimo desde user)
         if not self.assigned_advisor:
-            raise ValueError("assigned_advisor es requerido en todos los intakes")
+            warnings.append("Falta el asesor que va a recibir los leads. Edítalo en la sección 11.")
         # Attach warnings on the instance via __dict__ (no validation impact)
         object.__setattr__(self, "_collected_warnings", warnings)
         return self

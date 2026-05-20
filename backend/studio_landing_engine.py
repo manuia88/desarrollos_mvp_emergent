@@ -649,19 +649,91 @@ async def _live_atlax_data(db, landing: Dict[str, Any]) -> Optional[Dict[str, An
 
 # ─── Catalog helpers ──────────────────────────────────────────────────────────
 async def catalog_developments(db, user_id: str) -> List[Dict[str, Any]]:
+    """Z.8.7 enriched · retorna info completa para que el wizard prefill bien el intake."""
     try:
-        from data_developments import DEVELOPMENTS
-        return [
-            {
+        from data_developments import DEVELOPMENTS, DEVELOPMENTS_RAW, DEVELOPERS
+        devs_by_id = {dev["id"]: dev for dev in DEVELOPERS}
+        raw_by_id = {r["id"]: r for r in DEVELOPMENTS_RAW}
+        out = []
+        for d in DEVELOPMENTS:
+            dev = devs_by_id.get(d.get("developer_id")) or {}
+            raw = raw_by_id.get(d.get("id")) or {}
+            # Mapeo prototypes (raw) → typologies para el form
+            typologies = []
+            for p in raw.get("prototypes", []):
+                typologies.append({
+                    "code": p.get("name") or "T",
+                    "name": p.get("name") or "Unidad",
+                    "bedrooms": p.get("beds") or 0,
+                    "bathrooms": p.get("baths") or 0,
+                    "parking": p.get("parking") or 0,
+                    "area_m2": p.get("m2_priv") or 0,
+                    "price_mxn": p.get("price_base") or 0,
+                })
+            # Mapeo amenities (slugs) → buckets por categoría del schema (best-effort)
+            amenities_by_category = {}
+            am_list = d.get("amenities") or []
+            CATEGORY_MAP = {
+                "gym": ("wellness", "Gym"),
+                "alberca": ("wellness", "Pool"),
+                "spa": ("wellness", "Spa"),
+                "sauna": ("wellness", "Sauna"),
+                "concierge": ("security", "Concierge"),
+                "seguridad": ("security", "24/7 security"),
+                "roof": ("social", "Roof garden"),
+                "sky_lounge": ("social", "Sky lounge"),
+                "salon_eventos": ("social", "BBQ area"),
+                "cava": ("social", "Wine cellar"),
+                "cowork": ("work", "Coworking"),
+                "business_center": ("work", "Business center"),
+                "pet": ("pet", "Pet park"),
+                "area_pets": ("pet", "Pet park"),
+                "bicicletas": ("parking", "Bicycle storage"),
+                "jardines": ("social", "Roof garden"),
+            }
+            for slug in am_list:
+                cat_label = CATEGORY_MAP.get(slug)
+                if not cat_label:
+                    continue
+                cat, lbl = cat_label
+                amenities_by_category.setdefault(cat, [])
+                if lbl not in amenities_by_category[cat]:
+                    amenities_by_category[cat].append(lbl)
+            out.append({
                 "id": d.get("id"),
                 "name": d.get("name"),
-                "colonia": d.get("colonia"),
+                "slug": d.get("slug"),
+                "colonia": d.get("colonia") or "",
+                "colonia_id": d.get("colonia_id"),
+                "alcaldia": d.get("alcaldia") or "",
+                "street": d.get("street"),
+                "postal_code": d.get("postal_code"),
+                "address": d.get("address_full") or f"{d.get('street','')}, {d.get('colonia','')}",
+                "lat": d.get("center", [None, None])[1] if isinstance(d.get("center"), (list, tuple)) and len(d.get("center")) >= 2 else None,
+                "lng": d.get("center", [None, None])[0] if isinstance(d.get("center"), (list, tuple)) and len(d.get("center")) >= 2 else None,
+                "photos": d.get("photos") or [],
+                "city": "Ciudad de México",
+                "state": "CDMX",
                 "stage": d.get("stage"),
+                "delivery_estimate": d.get("delivery_estimate"),
                 "price_from": d.get("price_from"),
-            }
-            for d in DEVELOPMENTS
-        ]
-    except Exception:
+                "price_to": d.get("price_to"),
+                "developer_id": d.get("developer_id"),
+                "developer_name": dev.get("name") or "",
+                "developer_description": dev.get("description") or "",
+                "developer_founded_year": dev.get("founded_year"),
+                "developer_total_projects": dev.get("projects_delivered"),
+                "developer_units_delivered": dev.get("units_sold"),
+                "description": d.get("description") or "",
+                "amenities_raw": am_list,
+                "amenities_by_category": amenities_by_category,
+                "typologies": typologies,
+                "progress_pct": d.get("progress"),
+                "levels": list(d.get("levels") or []),
+            })
+        return out
+    except Exception as exc:
+        log.warning(f"[catalog_developments] enriched lookup failed: {exc}")
         return []
 
 
