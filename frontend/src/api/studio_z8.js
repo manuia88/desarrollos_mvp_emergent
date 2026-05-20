@@ -58,6 +58,10 @@ export const sendAnalyticsBatch = (slug, events) => post(`/api/landing/${slug}/a
 export const getAnalyticsSummary = (id, days = 30) => j(`/api/studio/landing/${id}/analytics-summary?days=${days}`);
 export const declareWinnerByQuality = (gid) => post(`/api/studio/landing/ab/${gid}/winner-quality`, {});
 
+// Z.8.5.1 — Property templates spec endpoints
+export const getTemplateSpec = (template_key) => j(`/api/studio/landing/templates/${template_key}`);
+export const listTemplates = () => j('/api/studio/landing/templates');
+
 // ─── Z.8.4 · Marketplace ──────────────────────────────────────────────────
 export const queryMarketplace = (slug, params = {}) => {
   const qs = new URLSearchParams();

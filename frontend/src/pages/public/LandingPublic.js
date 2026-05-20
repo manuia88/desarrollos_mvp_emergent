@@ -197,6 +197,7 @@ export default function LandingPublic() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
+  const [templateSpec, setTemplateSpec] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -208,6 +209,10 @@ export default function LandingPublic() {
         if (r?.landing) {
           injectMeta(r.landing);
           injectPixels(r.landing.tracking_pixels);
+          // Z.8.5.1 — Fetch template spec for sections_order reorder
+          if (r.landing.template_key) {
+            api.getTemplateSpec(r.landing.template_key).then((spec) => { if (alive) setTemplateSpec(spec); }).catch(() => {});
+          }
         }
       } catch (e) {
         if (alive) setError(e.status === 404 ? '404' : 'error');
@@ -300,10 +305,35 @@ export default function LandingPublic() {
   const brandKit = data.brand_kit || {};
   const linkedEntity = landing.linked_entity || null;
   const theme = landing.theme || null;
-  const hasSections = (landing.sections || []).length > 0;
+  // Z.8.5.1 — Reorder sections per template_spec.sections_order
+  const rawSections = landing.sections || [];
+  const orderedSections = (() => {
+    const order = templateSpec?.sections_order || [];
+    if (!order.length || !rawSections.length) return rawSections;
+    const byType = new Map();
+    rawSections.forEach((s, i) => {
+      const arr = byType.get(s.type) || [];
+      arr.push({ ...s, _origIdx: i });
+      byType.set(s.type, arr);
+    });
+    const ordered = [];
+    order.forEach((t) => {
+      const arr = byType.get(t);
+      if (arr && arr.length) {
+        ordered.push(arr.shift());
+        if (arr.length === 0) byType.delete(t); else byType.set(t, arr);
+      }
+    });
+    // Sections que no estan en order → al final preservando orden original
+    const leftover = [];
+    byType.forEach((arr) => arr.forEach((s) => leftover.push(s)));
+    leftover.sort((a, b) => a._origIdx - b._origIdx);
+    return [...ordered, ...leftover];
+  })();
+  const hasSections = orderedSections.length > 0;
   const atlaxEnabled = landing.content?.atlax_widget_enabled;
   const TplComp = !hasSections ? (TEMPLATES[landing.template_key] || TEMPLATES.modern) : null;
-  const heroSec = (landing.sections || []).find((s) => s.type === 'hero');
+  const heroSec = orderedSections.find((s) => s.type === 'hero');
   const heroTitle = heroSec?.config?.headline || landing.content?.hero?.title;
   const waPhone = brandKit?.contact_whatsapp || brandKit?.phone;
   const themeBg = theme?.palette?.bg || '#06080F';
@@ -318,7 +348,7 @@ export default function LandingPublic() {
         </div>
       )}
       {hasSections ? (
-        landing.sections.map((sec) => {
+        orderedSections.map((sec) => {
           // Z.8.4 — marketplace section receives content.marketplace_config inside its config (via content)
           const sectionConfig = sec.type === 'marketplace'
             ? { ...(sec.config || {}), marketplace_config: landing.content?.marketplace_config }
