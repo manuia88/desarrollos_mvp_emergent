@@ -564,6 +564,7 @@ async def get_public_landing(slug: str, request: Request, preview: int = 0) -> D
         "theme": landing.get("theme"),
         "property_source": landing.get("property_source"),
         "template_content": landing.get("template_content") or {},
+        "atlax_data": landing.get("atlax_data") or {},
     }
     return {"landing": safe_landing, "brand_kit": brand_kit}
 

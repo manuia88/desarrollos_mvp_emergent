@@ -162,6 +162,9 @@ async def ensure_indexes(db) -> None:
         await db.studio_landing_views.create_index("expires_at", expireAfterSeconds=0)
         await db.studio_landing_leads.create_index([("slug", 1), ("created_at", -1)])
         await db.studio_landing_leads.create_index("ip_hash")
+        # Z.8.5 — data cache index
+        await db.studio_landing_data_cache.create_index("key", unique=True)
+        await db.studio_landing_data_cache.create_index("landing_id")
         log.info("[studio_landing] indexes ok")
     except Exception as exc:
         log.warning(f"[studio_landing] indexes failed (soft): {exc}")
@@ -450,7 +453,98 @@ async def hydrate_landing_for_public(db, landing: Dict[str, Any]) -> Dict[str, A
             enriched["theme"] = theme
     except Exception as exc:
         log.warning(f"[hydrate_landing theme] failed (soft): {exc}")
+    # Z.8.5 — merge atlax_data live con cache TTL per template
+    try:
+        if lt == "property":
+            atlax = await _live_atlax_data(db, enriched)
+            if atlax:
+                enriched["atlax_data"] = atlax
+    except Exception as exc:
+        log.warning(f"[hydrate_landing atlax] failed (soft): {exc}")
     return enriched
+
+
+# Z.8.5 — Live data cache per template
+TEMPLATE_CACHE_TTL_SECONDS = {
+    "urgent": 0,            # No cache · units_left real-time
+    "investor": 3600,       # 1h · ROI/forecast
+    "luxury": 21600,        # 6h · waitlist
+    "family": 86400,        # 24h · schools/parks
+    "boutique": 86400,
+    "compare": 7200,        # 2h · Battle Card weekly
+    "social_proof": 21600,
+    "modern": 86400,
+    "scrollytelling": 86400,
+    "video_first": 86400,
+}
+
+
+async def _live_atlax_data(db, landing: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Z.8.5 — Fetch atlax data per template_key con cache TTL.
+
+    Cache key: f"{landing_id}:{template_key}". Stored in studio_landing_data_cache TTL.
+    Si TTL=0 (urgent) siempre re-fetch · si miss cache → fetch + persist + return.
+    """
+    from studio_landing_atlax_adapter import auto_fill_template_data
+    tk = (landing.get("template_key") or "modern").lower()
+    ttl = TEMPLATE_CACHE_TTL_SECONDS.get(tk, 86400)
+    landing_id = landing.get("id")
+    cache_key = f"{landing_id}:{tk}"
+
+    # Try cache hit (skip si ttl=0)
+    if ttl > 0:
+        try:
+            from datetime import timedelta
+            cutoff = _now() - timedelta(seconds=ttl)
+            cached = await db.studio_landing_data_cache.find_one(
+                {"key": cache_key, "cached_at": {"$gte": cutoff.isoformat()}},
+                {"_id": 0},
+            )
+            if cached:
+                return cached.get("data")
+        except Exception:
+            pass
+
+    # Build property_data from linked_entity already in landing
+    le = landing.get("linked_entity") or {}
+    if not le:
+        return None
+    property_data = {
+        "id": le.get("id"),
+        "name": le.get("name"),
+        "colonia": le.get("colonia"),
+        "alcaldia": le.get("alcaldia"),
+        "price_from": le.get("price_from"),
+        "amenities": le.get("amenities", []),
+        "stage": le.get("stage"),
+        "delivery_estimate": le.get("delivery_estimate"),
+        "units_total": le.get("units_total"),
+        "units_available": le.get("units_available"),
+        "lat": le.get("lat"),
+        "lng": le.get("lng"),
+    }
+    atlax = await auto_fill_template_data(db, tk, property_data, landing)
+
+    # Persist cache (skip si ttl=0)
+    if atlax and ttl > 0:
+        try:
+            from datetime import timedelta
+            await db.studio_landing_data_cache.update_one(
+                {"key": cache_key},
+                {"$set": {
+                    "key": cache_key,
+                    "landing_id": landing_id,
+                    "template_key": tk,
+                    "data": atlax,
+                    "cached_at": _iso(),
+                    "expires_at": (_now() + timedelta(seconds=ttl)).isoformat(),
+                }},
+                upsert=True,
+            )
+        except Exception:
+            pass
+
+    return atlax
 
 
 # ─── Catalog helpers ──────────────────────────────────────────────────────────
