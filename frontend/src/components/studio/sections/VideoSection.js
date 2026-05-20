@@ -10,7 +10,7 @@ function parseVimeo(url) {
   return m ? m[1] : null;
 }
 
-export default function VideoSection({ config = {}, theme = {} }) {
+export default function VideoSection({ config = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const layout = theme.layout || {};
   const sectionVariants = theme.section_variants || {};

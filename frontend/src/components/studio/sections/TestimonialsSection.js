@@ -13,7 +13,7 @@ function Stars({ n = 5, color = '#F59E0B' }) {
   );
 }
 
-export default function TestimonialsSection({ config = {}, theme = {} }) {
+export default function TestimonialsSection({ config = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const layout = theme.layout || {};

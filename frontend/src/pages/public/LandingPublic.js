@@ -364,6 +364,7 @@ export default function LandingPublic() {
               theme={theme}
               landingSlug={landing.slug}
               templateKey={landing.template_key}
+              themeMode={landing.theme_mode || (templateSpec && templateSpec.default_mode) || 'dark'}
             />
           );
         })

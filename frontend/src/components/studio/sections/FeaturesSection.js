@@ -2,7 +2,7 @@
 import React from 'react';
 import * as Icons from 'lucide-react';
 
-export default function FeaturesSection({ config = {}, brandKit = {}, theme = {} }) {
+export default function FeaturesSection({ config = {}, brandKit = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const layout = theme.layout || {};

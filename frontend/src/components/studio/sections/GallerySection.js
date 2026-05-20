@@ -1,7 +1,7 @@
 // W5.22 Z.8.3 — Gallery · 5 theme-driven variants + lightbox
 import React, { useState } from 'react';
 
-export default function GallerySection({ config = {}, linkedEntity, theme = {} }) {
+export default function GallerySection({ config = {}, linkedEntity, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const layout = theme.layout || {};
   const sectionVariants = theme.section_variants || {};

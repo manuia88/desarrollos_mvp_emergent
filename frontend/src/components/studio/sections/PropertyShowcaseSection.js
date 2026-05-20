@@ -1,7 +1,7 @@
 // W5.22 Z.8.3 — PropertyShowcase · theme-aware
 import React from 'react';
 
-export default function PropertyShowcaseSection({ config = {}, brandKit = {}, linkedEntity, theme = {} }) {
+export default function PropertyShowcaseSection({ config = {}, brandKit = {}, linkedEntity, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const layout = theme.layout || {};

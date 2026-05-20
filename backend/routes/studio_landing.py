@@ -74,6 +74,10 @@ class LandingCreateBody(BaseModel):
     property_source: Optional[str] = Field("development", pattern="^(development|resale)$")
 
 
+class ThemeModeBody(BaseModel):
+    theme_mode: str = Field(..., pattern="^(dark|light)$")
+
+
 class RoutingConfigBody(BaseModel):
     strategy: Optional[str] = Field(None, pattern="^(asesor_directo|hybrid|round_robin|by_zone|by_load|by_disc|manual_queue)$")
     priority_order: Optional[List[str]] = None
@@ -492,6 +496,17 @@ async def auto_fill_template(landing_id: str, request: Request) -> Dict[str, Any
         raise HTTPException(500, f"Auto-fill fallo: {exc}")
 
 
+@router.patch("/{landing_id}/theme-mode")
+async def patch_theme_mode(landing_id: str, body: ThemeModeBody, request: Request) -> Dict[str, Any]:
+    """Z.8.6 — Toggle dark/light mode per landing."""
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.update_landing(db, landing_id, user.user_id, {"theme_mode": body.theme_mode})
+    if not res.get("ok"):
+        raise HTTPException(404, res.get("error", "No se pudo actualizar theme-mode"))
+    return {"ok": True, "theme_mode": body.theme_mode}
+
+
 @router.patch("/{landing_id}/routing-config")
 async def patch_routing_config(landing_id: str, body: RoutingConfigBody, request: Request) -> Dict[str, Any]:
     """Z.8.5 — Update lead_routing_config (recomendado inmobiliaria_admin)."""
@@ -595,6 +610,7 @@ async def get_public_landing(slug: str, request: Request, preview: int = 0) -> D
         "property_source": landing.get("property_source"),
         "template_content": landing.get("template_content") or {},
         "atlax_data": landing.get("atlax_data") or {},
+        "theme_mode": landing.get("theme_mode") or "dark",
     }
     return {"landing": safe_landing, "brand_kit": brand_kit}
 

@@ -21,10 +21,25 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 
+DEFAULT_MODE_PER_TEMPLATE: Dict[str, str] = {
+    "luxury": "dark",
+    "family": "light",
+    "investor": "dark",
+    "boutique": "light",
+    "urgent": "dark",
+    "modern": "dark",
+    "scrollytelling": "dark",
+    "video_first": "dark",
+    "social_proof": "light",
+    "compare": "light",
+}
+
+
 LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "luxury": {
         "name": "Luxury · Premium hospitality",
         "use_case_fit": ["property"],
+        "default_mode": "dark",
         "palette": {
             "primary": "#D4AF37",
             "secondary": "#1A1A1A",
@@ -69,6 +84,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "modern": {
         "name": "Modern · Linear/Stripe minimalist",
         "use_case_fit": ["property", "personal_brand", "marketplace"],
+        "default_mode": "dark",
         "palette": {
             "primary": "#6366F1",
             "secondary": "#EC4899",
@@ -113,6 +129,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "family": {
         "name": "Family · Warm home vibes",
         "use_case_fit": ["property"],
+        "default_mode": "light",
         "palette": {
             "primary": "#F97316",
             "secondary": "#10B981",
@@ -157,6 +174,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "investor": {
         "name": "Investor · Data-heavy Wall Street",
         "use_case_fit": ["marketplace", "property"],
+        "default_mode": "dark",
         "palette": {
             "primary": "#3B82F6",
             "secondary": "#22C55E",
@@ -202,6 +220,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "boutique": {
         "name": "Boutique · Artisan craft curated",
         "use_case_fit": ["property", "personal_brand"],
+        "default_mode": "light",
         "palette": {
             "primary": "#92400E",
             "secondary": "#D97706",
@@ -246,6 +265,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "urgent": {
         "name": "Urgent · Scarcity countdown",
         "use_case_fit": ["property", "marketplace"],
+        "default_mode": "dark",
         "palette": {
             "primary": "#EF4444",
             "secondary": "#F97316",
@@ -290,6 +310,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "scrollytelling": {
         "name": "Scrollytelling · Long cinematic story",
         "use_case_fit": ["personal_brand", "property"],
+        "default_mode": "dark",
         "palette": {
             "primary": "#7C3AED",
             "secondary": "#EC4899",
@@ -334,6 +355,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "video_first": {
         "name": "Video-first · Movie trailer feel",
         "use_case_fit": ["property"],
+        "default_mode": "dark",
         "palette": {
             "primary": "#FFFFFF",
             "secondary": "#EC4899",
@@ -378,6 +400,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "social_proof": {
         "name": "Social proof · Testimonials prominent",
         "use_case_fit": ["personal_brand", "property"],
+        "default_mode": "light",
         "palette": {
             "primary": "#22C55E",
             "secondary": "#3B82F6",
@@ -422,6 +445,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
     "compare": {
         "name": "Compare · Stripe-style comparison",
         "use_case_fit": ["marketplace", "property"],
+        "default_mode": "light",
         "palette": {
             "primary": "#6366F1",
             "secondary": "#22C55E",
@@ -479,6 +503,7 @@ def list_themes_metadata() -> List[Dict[str, Any]]:
             "key": k,
             "name": v["name"],
             "use_case_fit": v["use_case_fit"],
+            "default_mode": v.get("default_mode") or DEFAULT_MODE_PER_TEMPLATE.get(k, "dark"),
             "preview_palette": {
                 "primary": v["palette"]["primary"],
                 "secondary": v["palette"]["secondary"],
@@ -489,3 +514,8 @@ def list_themes_metadata() -> List[Dict[str, Any]]:
             "spacing_scale": v["layout"]["spacing_scale"],
         })
     return out
+
+
+def default_mode_for(template_key: str) -> str:
+    """Z.8.6 — Returns 'dark' | 'light' segun template spirit."""
+    return DEFAULT_MODE_PER_TEMPLATE.get(template_key, "dark")

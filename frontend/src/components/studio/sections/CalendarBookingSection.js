@@ -12,7 +12,7 @@ function nextDays(n = 7) {
   });
 }
 
-export default function CalendarBookingSection({ config = {}, brandKit = {}, theme = {} }) {
+export default function CalendarBookingSection({ config = {}, brandKit = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const layout = theme.layout || {};

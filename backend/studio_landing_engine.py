@@ -263,6 +263,12 @@ async def create_landing(
         if sec.get("type") not in SECTION_TYPES:
             return {"ok": False, "error": f"section type invalido: {sec.get('type')}"}
 
+    # Z.8.6 — Resolve default theme_mode segun template spirit
+    try:
+        from studio_landing_themes import default_mode_for
+        default_mode = default_mode_for(template_key)
+    except Exception:
+        default_mode = "dark"
     doc = {
         "id": _uid(),
         "tenant_id": tenant_id,
@@ -276,6 +282,7 @@ async def create_landing(
         "linked_entity_id": linked_entity_id,
         "property_source": property_source if landing_type == "property" else None,
         "template_content": {},
+        "theme_mode": default_mode,
         "lead_routing_config": lead_routing_defaults(user_role) if landing_type == "property" else None,
         "sections": sections,
         "tracking_pixels": {"ga4_id": "", "meta_pixel_id": "", "custom_head": "", "custom_body": ""},
@@ -308,7 +315,19 @@ async def migrate_existing_landings(db) -> Dict[str, Any]:
             {"landing_type": "property", "property_source": {"$exists": False}},
             {"$set": {"property_source": "development", "template_content": {}, "lead_routing_config": lead_routing_defaults()}},
         )
-        return {"ok": True, "migrated_v1": res1.modified_count, "migrated_z85": res2.modified_count}
+        # Z.8.6 — backfill theme_mode default segun template_key
+        try:
+            from studio_landing_themes import default_mode_for, DEFAULT_MODE_PER_TEMPLATE
+        except Exception:
+            DEFAULT_MODE_PER_TEMPLATE = {}
+            default_mode_for = lambda k: "dark"  # noqa: E731
+        cur = db.studio_landings.find({"theme_mode": {"$exists": False}}, {"_id": 0, "id": 1, "template_key": 1})
+        z86_migrated = 0
+        async for doc in cur:
+            mode = default_mode_for(doc.get("template_key") or "modern")
+            await db.studio_landings.update_one({"id": doc["id"]}, {"$set": {"theme_mode": mode}})
+            z86_migrated += 1
+        return {"ok": True, "migrated_v1": res1.modified_count, "migrated_z85": res2.modified_count, "migrated_z86": z86_migrated}
     except Exception as exc:
         log.warning(f"[migrate_existing] failed (soft): {exc}")
         return {"ok": False, "error": str(exc)}
@@ -1076,13 +1095,15 @@ async def list_landings(
 
 
 async def update_landing(db, landing_id: str, user_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
-    allowed = {"content", "template_key", "brand_kit_id", "project_id", "template_content", "property_source", "linked_entity_id"}
+    allowed = {"content", "template_key", "brand_kit_id", "project_id", "template_content", "property_source", "linked_entity_id", "theme_mode"}
     update_doc: Dict[str, Any] = {"updated_at": _iso()}
     for k, v in patch.items():
         if k in allowed and v is not None:
             update_doc[k] = v
     if "template_key" in update_doc and update_doc["template_key"] not in TEMPLATE_KEYS:
         return {"ok": False, "error": "template_key invalido"}
+    if "theme_mode" in update_doc and update_doc["theme_mode"] not in ("dark", "light"):
+        return {"ok": False, "error": "theme_mode invalido (dark|light)"}
     res = await db.studio_landings.update_one(
         {"id": landing_id, "user_id": user_id, "deleted": {"$ne": True}},
         {"$set": update_doc},

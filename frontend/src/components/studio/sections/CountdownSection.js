@@ -18,7 +18,7 @@ function useTime(target) {
   };
 }
 
-export default function CountdownSection({ config = {}, brandKit = {}, theme = {} }) {
+export default function CountdownSection({ config = {}, brandKit = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const sectionVariants = theme.section_variants || {};

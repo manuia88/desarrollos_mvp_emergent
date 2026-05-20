@@ -1,7 +1,7 @@
 // W5.22 Z.8.3 — FAQ · theme-aware accordion
 import React from 'react';
 
-export default function FAQSection({ config = {}, theme = {} }) {
+export default function FAQSection({ config = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const layout = theme.layout || {};

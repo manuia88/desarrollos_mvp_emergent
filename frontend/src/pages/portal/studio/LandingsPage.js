@@ -752,8 +752,22 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
   const [saveStatus, setSaveStatus] = useState('saved'); // saving | saved | error
   const [templateKey, setTemplateKey] = useState(landing.template_key);
   const [theme, setTheme] = useState(landing.theme || null);
+  // Z.8.6 · theme_mode dark/light · default per template signature
+  const [themeMode, setThemeMode] = useState(landing.theme_mode || 'dark');
   const dragIdx = useRef(null);
   const debounce = useRef(null);
+
+  const toggleThemeMode = async () => {
+    const next = themeMode === 'dark' ? 'light' : 'dark';
+    setThemeMode(next);
+    try {
+      await api.updateThemeMode(landing.id, next);
+      onToast(`Modo ${next === 'dark' ? 'oscuro' : 'claro'} activo`);
+    } catch (e) {
+      onToast(e.body?.detail || 'No se pudo cambiar modo');
+      setThemeMode(themeMode); // revert
+    }
+  };
 
   const persist = (next) => {
     setSections(next);
@@ -889,6 +903,9 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
           <button data-testid="editor-switch-template" type="button" onClick={() => setShowThemeSwitcher(!showThemeSwitcher)} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
             <Icons.Palette size={12} /> {showThemeSwitcher ? 'Cerrar' : 'Cambiar template'}
           </button>
+          <button data-testid="editor-theme-mode" type="button" onClick={toggleThemeMode} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
+            {themeMode === 'dark' ? <Icons.Sun size={12} /> : <Icons.Moon size={12} />} Modo {themeMode === 'dark' ? 'claro' : 'oscuro'}
+          </button>
           {landing.landing_type === 'property' && (
             <>
               <button data-testid="editor-apply-structure" type="button" onClick={async () => { try { const r = await api.applyTemplateStructure(landing.id); onToast(`Template aplicado · ${r.sections_count} secciones`); onChanged?.(); } catch (e) { onToast(e.body?.detail || 'No se pudo aplicar'); } }} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
@@ -958,7 +975,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
                 ? { ...(sec.config || {}), marketplace_config: landing.content?.marketplace_config }
                 : sec.config;
               return (
-                <SectionRenderer key={sec.id} section={{ ...sec, config: sectionConfig }} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} landingSlug={landing.slug} templateKey={landing.template_key} />
+                <SectionRenderer key={sec.id} section={{ ...sec, config: sectionConfig }} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} landingSlug={landing.slug} templateKey={landing.template_key} themeMode={themeMode} />
               );
             }) : (
               <div style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.4)' }}>Preview vacio · anade secciones</div>

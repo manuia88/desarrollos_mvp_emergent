@@ -22,7 +22,7 @@ function AnimatedNumber({ value, duration = 1200 }) {
   return <>{Number.isInteger(target) ? Math.round(n) : n.toFixed(1)}</>;
 }
 
-export default function StatsSection({ config = {}, brandKit = {}, theme = {} }) {
+export default function StatsSection({ config = {}, brandKit = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const layout = theme.layout || {};

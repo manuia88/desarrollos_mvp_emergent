@@ -1,7 +1,7 @@
 // W5.22 Z.8.3 — PriceTable · theme-driven (default / highlighted-comparison / highlighted-cols)
 import React from 'react';
 
-export default function PriceTableSection({ config = {}, brandKit = {}, theme = {} }) {
+export default function PriceTableSection({ config = {}, brandKit = {}, theme = {}, templateKey, themeMode }) {
   const palette = theme.palette || {};
   const typography = theme.typography || {};
   const layout = theme.layout || {};
