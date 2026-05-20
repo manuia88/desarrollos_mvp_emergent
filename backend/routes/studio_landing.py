@@ -625,6 +625,49 @@ async def submit_lead(slug: str, body: LeadSubmitBody, request: Request) -> Dict
     return res
 
 
+@public_router.get("/{slug}/cross-links")
+async def cross_links(slug: str, request: Request) -> Dict[str, Any]:
+    """Z.8.5 — Devuelve cross-links del asesor (marketplace + carrusel) para footer landing."""
+    db = _db(request)
+    landing = await eng.get_landing_by_slug(db, slug, include_unpublished=False)
+    if not landing:
+        raise HTTPException(404, "Landing no disponible")
+    user_id = landing.get("user_id")
+    out: Dict[str, Any] = {"marketplace_slug": None, "carrusel_id": None, "asesor_name": None}
+    # Marketplace landing del mismo asesor (si existe)
+    try:
+        mp = await db.studio_landings.find_one(
+            {"user_id": user_id, "landing_type": "marketplace", "published": True, "deleted": {"$ne": True}},
+            {"_id": 0, "slug": 1},
+            sort=[("created_at", -1)],
+        )
+        if mp:
+            out["marketplace_slug"] = mp.get("slug")
+    except Exception:
+        pass
+    # Carrusel Z.2 del development (si linked)
+    try:
+        dev_id = landing.get("linked_entity_id")
+        if dev_id and landing.get("property_source") == "development":
+            car = await db.studio_carruseles.find_one(
+                {"user_id": user_id, "project_id": dev_id, "status": {"$in": ["ready", "published"]}},
+                {"_id": 0, "id": 1, "slug": 1},
+                sort=[("created_at", -1)],
+            )
+            if car:
+                out["carrusel_id"] = car.get("slug") or car.get("id")
+    except Exception:
+        pass
+    # Asesor profile name
+    try:
+        prof = await db.asesor_profiles.find_one({"user_id": user_id}, {"_id": 0, "full_name": 1})
+        if prof:
+            out["asesor_name"] = prof.get("full_name")
+    except Exception:
+        pass
+    return out
+
+
 @public_router.get("/{slug}/track")
 async def track_view(slug: str, request: Request, ts: Optional[str] = None):
     """Tracking pixel 1x1 PNG · fire-and-forget view counter."""

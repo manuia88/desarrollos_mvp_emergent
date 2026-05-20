@@ -153,6 +153,33 @@ function ShareModal({ open, onClose, slug, templateKey, title }) {
   );
 }
 
+function CrossLinksBanner({ slug, primaryColor, gradient }) {
+  const [links, setLinks] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api.getCrossLinks(slug).then((r) => { if (alive) setLinks(r); }).catch(() => {});
+    return () => { alive = false; };
+  }, [slug]);
+  if (!links || (!links.marketplace_slug && !links.carrusel_id)) return null;
+  return (
+    <div data-testid="cross-links-banner" style={{ padding: '24px', borderTop: '1px solid rgba(255,255,255,0.08)', textAlign: 'center', fontFamily: 'DM Sans, sans-serif' }}>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 14 }}>Tambien podria interesarte</div>
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {links.marketplace_slug && (
+          <a data-testid="cross-marketplace" href={`/landing/${links.marketplace_slug}`} style={{ padding: '10px 18px', borderRadius: 9999, background: gradient || 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+            Ver mas propiedades{links.asesor_name ? ` de ${links.asesor_name}` : ''} →
+          </a>
+        )}
+        {links.carrusel_id && (
+          <a data-testid="cross-carrusel" href={`/embed/carrusel/${links.carrusel_id}`} target="_blank" rel="noreferrer" style={{ padding: '10px 18px', borderRadius: 9999, background: 'rgba(255,255,255,0.08)', color: '#F0EBE0', textDecoration: 'none', fontSize: 13, fontWeight: 600, border: `1px solid ${primaryColor || '#6366F1'}55` }}>
+            Ver carrusel del proyecto ↗
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ShareFloat({ onOpen }) {
   return (
     <button data-testid="share-float" type="button" onClick={onOpen} aria-label="Compartir" style={{ position: 'fixed', left: 24, bottom: 24, width: 54, height: 54, borderRadius: 9999, background: 'linear-gradient(135deg, #6366F1, #EC4899)', color: '#fff', display: 'grid', placeItems: 'center', boxShadow: '0 10px 30px rgba(99,102,241,0.4)', zIndex: 8998, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 18 }}>
@@ -262,6 +289,7 @@ export default function LandingPublic() {
           <TplComp landing={{ ...landing, brand_kit: brandKit }} onLead={onLead} isPreview={isPreview} />
         </Suspense>
       ) : null}
+      {hasSections && <CrossLinksBanner slug={slug} primaryColor={theme?.palette?.primary} gradient={theme?.palette?.gradient} />}
       {atlaxEnabled && <LandingAtlaxWidget landing={{ ...landing, brand_kit: brandKit }} />}
       {waPhone && <WhatsAppFloat phone={waPhone} message={`Hola, vi tu landing "${heroTitle || slug}"`} />}
       <ShareFloat onOpen={() => setShareOpen(true)} />

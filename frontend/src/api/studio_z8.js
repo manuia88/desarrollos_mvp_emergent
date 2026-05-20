@@ -53,6 +53,7 @@ export const getPublicLanding = (slug, preview = false) =>
 export const submitPublicLead = (slug, payload) =>
   post(`/api/landing/${slug}/lead`, { payload });
 export const trackPixelUrl = (slug) => `${API}/api/landing/${slug}/track?ts=${Date.now()}`;
+export const getCrossLinks = (slug) => j(`/api/landing/${slug}/cross-links`);
 
 // ─── Z.8.4 · Marketplace ──────────────────────────────────────────────────
 export const queryMarketplace = (slug, params = {}) => {
