@@ -185,6 +185,83 @@ async def get_starters_root(request: Request) -> Dict[str, Any]:
     }
 
 
+@router.get("/property-templates")
+async def get_property_templates(request: Request) -> Dict[str, Any]:
+    """Z.8.5 — Lista metadata de los 10 property templates unicos."""
+    await _require_user(request)
+    try:
+        from studio_landing_property_templates import list_templates_metadata
+        items = list_templates_metadata()
+        return {"templates": items, "total": len(items)}
+    except Exception as exc:
+        log.warning(f"[property-templates] failed: {exc}")
+        return {"templates": [], "total": 0}
+
+
+@router.post("/{landing_id}/apply-template-structure")
+async def apply_template_structure(landing_id: str, request: Request) -> Dict[str, Any]:
+    """Z.8.5 — Reemplaza sections con structure del template + auto-fill data."""
+    user = await _require_user(request)
+    db = _db(request)
+    landing = await eng.get_landing(db, landing_id, user.user_id)
+    if not landing:
+        raise HTTPException(404, "Landing no encontrada")
+    try:
+        from studio_landing_property_templates import get_property_template_spec, merge_template_with_data
+        from studio_landing_atlax_adapter import auto_fill_template_data
+        tk = landing.get("template_key", "modern")
+        spec = get_property_template_spec(tk)
+        # Property data
+        property_data: Dict[str, Any] = {}
+        if landing.get("linked_entity_id"):
+            if landing.get("property_source") == "resale":
+                imp = await db.listing_imports.find_one({"id": landing["linked_entity_id"]}, {"_id": 0, "raw_html_truncated": 0})
+                if imp and imp.get("parsed_data"):
+                    pd = imp["parsed_data"]
+                    property_data = {
+                        "name": pd.get("title") or "Propiedad",
+                        "colonia": pd.get("colonia"),
+                        "alcaldia": pd.get("alcaldia"),
+                        "price_from": pd.get("price"),
+                        "amenities": pd.get("amenities") or [],
+                        "lat": pd.get("lat"),
+                        "lng": pd.get("lng"),
+                        "images": pd.get("images") or [],
+                        "stage": "reventa",
+                    }
+            else:
+                try:
+                    from data_developments import DEVELOPMENTS_BY_ID
+                    dev = DEVELOPMENTS_BY_ID.get(landing["linked_entity_id"])
+                    if dev:
+                        property_data = {
+                            "name": dev.get("name"),
+                            "colonia": dev.get("colonia"),
+                            "alcaldia": dev.get("alcaldia"),
+                            "price_from": dev.get("price_from"),
+                            "amenities": dev.get("amenities") or [],
+                            "stage": dev.get("stage"),
+                            "delivery_estimate": dev.get("delivery_estimate"),
+                            "units_total": dev.get("units_total"),
+                            "units_available": dev.get("units_available"),
+                            "lat": (dev.get("center") or {}).get("lat") if isinstance(dev.get("center"), dict) else dev.get("lat"),
+                            "lng": (dev.get("center") or {}).get("lng") if isinstance(dev.get("center"), dict) else dev.get("lng"),
+                            "images": dev.get("photos") or [],
+                            "id": dev.get("id"),
+                        }
+                except Exception:
+                    pass
+        atlax_data = await auto_fill_template_data(db, tk, property_data, landing)
+        sections = merge_template_with_data(spec, property_data, atlax_data)
+        await eng.update_sections(db, landing_id, user.user_id, sections)
+        return {"ok": True, "template_key": tk, "sections_count": len(sections), "atlax_data_keys": list(atlax_data.keys())}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.warning(f"[apply-template-structure] failed: {exc}")
+        raise HTTPException(500, f"Apply template fallo: {exc}")
+
+
 @router.get("/themes")
 async def get_themes(request: Request) -> Dict[str, Any]:
     """Z.8.3 — Static-prefix · BEFORE /{landing_id} · lista metadata de los 10 themes."""

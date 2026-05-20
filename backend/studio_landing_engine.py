@@ -67,6 +67,17 @@ SECTION_TYPES = (
     "hero", "property_showcase", "gallery", "video", "map", "stats",
     "features", "testimonials", "lead_form", "calendar_booking",
     "price_table", "faq", "countdown", "footer", "marketplace",
+    # Z.8.5 — Unique sections per property template (9 + 1 generic capitulo)
+    "servicios_privados",        # Luxury
+    "vida_familiar",             # Family
+    "proyeccion_financiera",     # Investor
+    "curaduria",                 # Boutique
+    "scarcity_alert",            # Urgent
+    "capitulo",                  # Scrollytelling (4 sub-variants via config.num/key)
+    "galeria_video",             # Video-first
+    "social_stats",              # Social proof
+    "testimonios_grande",        # Social proof
+    "comparison_table_grande",   # Compare
 )
 
 # Z.8.4 — Marketplace config defaults
