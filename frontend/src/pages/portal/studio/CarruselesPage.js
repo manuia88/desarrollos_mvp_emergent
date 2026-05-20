@@ -539,25 +539,24 @@ function DetailModal({ carrusel, abStats, brandKits, onClose, onExportPDF, onDec
   return (
     <div role="dialog" aria-modal="true" style={overlayStyle()}>
       <div style={modalStyle(880)} data-testid="detail-modal">
-        <header style={modalHeader()}>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--cream-3)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              {t(`studio.copy.persona.${carrusel.buyer_angle || 'inversor'}`)} · {t(`studio.carrusel.status_${carrusel.status || 'pending'}`)}
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 9, color: 'var(--cream-3)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {t(`studio.copy.persona.${carrusel.buyer_angle || 'inversor'}`)} · {t(`studio.carrusel.status_${carrusel.status || 'pending'}`)}
+              </div>
+              <h2 style={{ margin: '2px 0 0', fontFamily: 'Outfit', fontWeight: 800, fontSize: 16, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {carrusel.title || carrusel.id}
+              </h2>
             </div>
-            <h2 style={{ margin: '4px 0 0', fontFamily: 'Outfit', fontWeight: 800, fontSize: 22, color: 'var(--cream)' }}>
-              {carrusel.title || carrusel.id}
-            </h2>
+            {typeof carrusel.hook_score === 'number' && (
+              <HookScoreBadge score={carrusel.hook_score} breakdown={carrusel.hook_score_breakdown} size="md" />
+            )}
           </div>
           <button onClick={onClose} style={iconCloseBtn()} aria-label={t('studio.carrusel.close')}>
             <X size={16} />
           </button>
         </header>
-
-        {typeof carrusel.hook_score === 'number' && (
-          <div style={{ marginBottom: 12 }}>
-            <HookScoreBadge score={carrusel.hook_score} breakdown={carrusel.hook_score_breakdown} size="lg" />
-          </div>
-        )}
 
         {carrusel.r2_urls && Object.keys(carrusel.r2_urls).length > 0 ? (
           <CarruselR2Gallery r2Urls={carrusel.r2_urls} initialRatio={(carrusel.aspect_ratios || Object.keys(carrusel.r2_urls))[0]} />
@@ -597,7 +596,7 @@ function DetailModal({ carrusel, abStats, brandKits, onClose, onExportPDF, onDec
           </section>
         )}
 
-        <footer style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18, flexWrap: 'wrap' }}>
+        <footer style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4, flexWrap: 'wrap' }}>
           <button onClick={() => onExportPDF(carrusel.id)} data-testid="export-pdf" style={ghostBtn()}>
             <Download size={13} /> {t('studio.carrusel.export_pdf')}
           </button>
@@ -613,24 +612,24 @@ function CarruselR2Gallery({ r2Urls, initialRatio }) {
   const [active, setActive] = useState(ratios.includes(initialRatio) ? initialRatio : ratios[0]);
   const url = r2Urls[active];
   return (
-    <div style={{ background: 'rgba(6,8,15,0.5)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', padding: 14 }}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-        {ratios.map((r) => (
-          <button key={r} onClick={() => setActive(r)}
-            style={{
-              padding: '6px 14px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
-              border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
-              background: active === r ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
-              color: active === r ? '#FFF' : 'var(--cream-2)',
-            }}>{r}</button>
-        ))}
+    <div style={{ background: 'rgba(6,8,15,0.5)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 10, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {ratios.map((r) => (
+            <button key={r} onClick={() => setActive(r)}
+              style={{
+                padding: '4px 12px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
+                border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
+                background: active === r ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
+                color: active === r ? '#FFF' : 'var(--cream-2)',
+              }}>{r}</button>
+          ))}
+        </div>
+        <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--indigo)', textDecoration: 'none', fontSize: 11, fontFamily: 'DM Sans', fontWeight: 600 }}>Abrir ↗</a>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 6, minHeight: 0, flex: '1 1 auto' }}>
         <img src={url} alt={`Preview ${active}`}
-          style={{ maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', borderRadius: 6, display: 'block' }} />
-      </div>
-      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--cream-3)', textAlign: 'center', fontFamily: 'DM Sans' }}>
-        <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--indigo)', textDecoration: 'none' }}>Abrir en nueva pestaña ↗</a>
+          style={{ maxWidth: '100%', maxHeight: '38vh', objectFit: 'contain', borderRadius: 4, display: 'block' }} />
       </div>
     </div>
   );
@@ -711,12 +710,12 @@ const overlayStyle = () => ({
   padding: 16, zIndex: 1000, overflow: 'hidden',
 });
 const modalStyle = (maxW = 560) => ({
-  width: '100%', maxWidth: maxW, maxHeight: '92vh', overflow: 'hidden auto',
-  padding: '18px 20px', borderRadius: 18,
+  width: '100%', maxWidth: maxW, maxHeight: '94vh', overflow: 'hidden',
+  padding: '14px 16px', borderRadius: 16,
   background: 'rgba(13,16,23,0.96)',
   border: '1px solid rgba(255,255,255,0.10)',
   boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
-  display: 'flex', flexDirection: 'column', gap: 14,
+  display: 'flex', flexDirection: 'column', gap: 10,
   scrollbarWidth: 'thin', scrollbarColor: 'rgba(99,102,241,0.4) transparent',
 });
 const modalHeader = () => ({
