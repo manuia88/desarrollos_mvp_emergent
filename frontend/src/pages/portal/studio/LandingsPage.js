@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PortalLayout from '../../../components/shared/PortalLayout';
 import * as api from '../../../api/studio_z8';
-import { listIntakes } from '../../../api/studio_intake';
+import { listIntakes, createIntake } from '../../../api/studio_intake';
 import * as Icons from 'lucide-react';
 import { SECTION_TYPES, SECTION_META } from '../../../components/studio/sections/SectionRenderer';
 import SectionRenderer from '../../../components/studio/sections/SectionRenderer';
@@ -1045,6 +1045,224 @@ function LandingCard({ item, onOpen, onDelete, themes }) {
   );
 }
 
+// ─── Z.8.7 Sub-G · CreateAIWizard · 3 orígenes (vacío / inventario / link externo) ───
+function CreateAIWizard({ onClose, developments = [], navigate, setToast }) {
+  const [origin, setOrigin] = useState('choose'); // choose · empty · inventory · external
+  const [emptyTpl, setEmptyTpl] = useState('luxury');
+  const [invMode, setInvMode] = useState('developments'); // developments · resales
+  const [resales, setResales] = useState([]);
+  const [resalesLoading, setResalesLoading] = useState(false);
+  const [extUrl, setExtUrl] = useState('');
+  const [extPortal, setExtPortal] = useState('easybroker.com');
+  const [importing, setImporting] = useState(false);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+
+  // Carga resales solo al primer switch a inventory+resales
+  useEffect(() => {
+    if (origin !== 'inventory' || invMode !== 'resales' || resales.length > 0) return;
+    let alive = true;
+    setResalesLoading(true);
+    api.catalogResales(50, 0).then((r) => { if (alive) setResales(r.items || []); }).catch(() => {})
+      .finally(() => { if (alive) setResalesLoading(false); });
+    return () => { alive = false; };
+  }, [origin, invMode, resales.length]);
+
+  const prefillFromDevelopment = (d) => ({
+    project_name: d.name || 'Proyecto sin nombre',
+    template_key: 'luxury',
+    property_type: 'development',
+    listing_intent: 'sell',
+    buyer_intent: 'mixed',
+    developer_name: d.developer_name || d.developer || '',
+    colonia: d.colonia || '',
+    alcaldia_municipio: d.alcaldia || '',
+    city: d.city || 'Ciudad de México',
+    state: d.state || 'CDMX',
+    address: d.address || '',
+    lat: typeof d.lat === 'number' ? d.lat : null,
+    lng: typeof d.lng === 'number' ? d.lng : null,
+    price_from_mxn: typeof d.price_from === 'number' ? d.price_from : (typeof d.price === 'number' ? d.price : null),
+    photos: (d.photos || []).slice(0, 20).map((url, i) => ({ url, category: 'exterior', order: i })),
+    unique_selling_points: d.unique_selling_points || [],
+  });
+
+  const prefillFromResale = (r) => {
+    const p = r.parsed_data || r;
+    return {
+      project_name: p.title || p.name || 'Reventa importada',
+      template_key: 'modern',
+      property_type: 'resale',
+      listing_intent: 'sell',
+      buyer_intent: 'mixed',
+      resale_owner_type: 'broker',
+      colonia: p.colonia || '',
+      alcaldia_municipio: p.alcaldia || '',
+      city: p.city || 'Ciudad de México',
+      address: p.address || '',
+      price_from_mxn: typeof p.price === 'number' ? p.price : null,
+      photos: (p.photos || []).slice(0, 20).map((url, i) => ({ url, category: 'exterior', order: i })),
+      typologies: p.area_m2 || p.bedrooms ? [{
+        code: 'A', name: 'Unidad', bedrooms: p.bedrooms || 0, bathrooms: p.bathrooms || 0,
+        area_m2: p.area_m2 || 0, price_mxn: p.price || 0,
+      }] : [],
+    };
+  };
+
+  const createFromPrefill = async (prefill) => {
+    try {
+      const r = await createIntake(prefill);
+      onClose();
+      setToast('Landing creada · completa las secciones faltantes');
+      navigate(`/portal/studio/property-intake/${r.intake_id}`);
+    } catch (e) {
+      setError(e.body?.detail ? JSON.stringify(e.body.detail).slice(0, 200) : (e.message || 'Error al crear'));
+    }
+  };
+
+  const handleDevelopmentClick = (d) => createFromPrefill(prefillFromDevelopment(d));
+  const handleResaleClick = (r) => createFromPrefill(prefillFromResale(r));
+
+  const handleExternalImport = async () => {
+    if (!extUrl || !extUrl.startsWith('http')) { setError('Pega un link válido del portal'); return; }
+    setError(''); setImporting(true);
+    try {
+      const r = await api.importListingInline(extUrl);
+      const imp = r?.import || r;
+      if (imp.status === 'parsed' && imp.parsed_data) {
+        await createFromPrefill(prefillFromResale(imp));
+      } else {
+        setError(imp.error_msg || 'No se pudo extraer info del link');
+      }
+    } catch (e) {
+      setError(e.body?.detail || e.message || 'Error al importar');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleEmptyStart = () => {
+    onClose();
+    navigate(`/portal/studio/property-intake/new?template=${emptyTpl}`);
+  };
+
+  const filteredDev = (developments || []).filter((d) => !search || (d.name || '').toLowerCase().includes(search.toLowerCase()) || (d.colonia || '').toLowerCase().includes(search.toLowerCase()));
+  const filteredRes = (resales || []).filter((r) => {
+    const t = (r.parsed_data?.title || r.title || '').toLowerCase();
+    return !search || t.includes(search.toLowerCase());
+  });
+
+  return (
+    <div data-testid="ai-wizard" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20 }}>
+      <div style={{ width: 'min(820px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 22, color: '#F0EBE0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ letterSpacing: '0.25em', fontSize: 11, color: '#EC4899', textTransform: 'uppercase' }}>Crear landing con IA</div>
+            <h2 style={{ margin: '6px 0 0', fontFamily: 'Outfit, sans-serif', fontSize: 22 }}>¿De dónde sale la propiedad?</h2>
+            <p style={{ marginTop: 4, fontSize: 13, color: 'rgba(240,235,224,0.6)' }}>Elige el origen para no escribir 2 veces lo mismo.</p>
+          </div>
+          <button type="button" data-testid="ai-wizard-close" onClick={onClose} style={btnGhost()}><Icons.X size={16} /></button>
+        </div>
+
+        {origin === 'choose' && (
+          <div data-testid="origin-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, padding: '4px 0 8px' }}>
+            <button type="button" data-testid="origin-inventory" onClick={() => setOrigin('inventory')} style={originCardStyle('#22C55E')}>
+              <Icons.Package size={28} color="#22C55E" />
+              <div style={{ marginTop: 12, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>De mi inventario</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>Elige un desarrollo o reventa ya cargada · auto-llena la mayoría de los campos</div>
+            </button>
+            <button type="button" data-testid="origin-external" onClick={() => setOrigin('external')} style={originCardStyle('#6366F1')}>
+              <Icons.Link2 size={28} color="#6366F1" />
+              <div style={{ marginTop: 12, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>Link de portal externo</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>EasyBroker · Inmuebles24 · Propiedades.com · extrae info automática</div>
+            </button>
+            <button type="button" data-testid="origin-empty" onClick={() => setOrigin('empty')} style={originCardStyle('#EC4899')}>
+              <Icons.FileEdit size={28} color="#EC4899" />
+              <div style={{ marginTop: 12, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>Desde cero</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>Empezar el form vacío · 14 secciones manuales</div>
+            </button>
+          </div>
+        )}
+
+        {origin !== 'choose' && (
+          <button type="button" onClick={() => { setOrigin('choose'); setError(''); }} style={{ background: 'transparent', border: 'none', color: '#a0a4b0', cursor: 'pointer', fontSize: 12, alignSelf: 'flex-start', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Icons.ChevronLeft size={12} /> Cambiar origen
+          </button>
+        )}
+
+        {origin === 'empty' && (
+          <div data-testid="origin-empty-panel" style={{ display: 'grid', gap: 12 }}>
+            <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Selecciona el estilo visual de la landing:</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
+              {Z87_TEMPLATE_KEYS.map((k) => (
+                <button key={k} type="button" onClick={() => setEmptyTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, background: emptyTpl === k ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: emptyTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer' }}>{k}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={onClose} style={btnSecondary()}>Cancelar</button>
+              <button type="button" data-testid="start-empty" onClick={handleEmptyStart} style={btnGradient()}><Icons.Sparkles size={14} /> Empezar form vacío</button>
+            </div>
+          </div>
+        )}
+
+        {origin === 'inventory' && (
+          <div data-testid="origin-inventory-panel" style={{ display: 'grid', gap: 10, minHeight: 0, flex: 1 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" data-testid="inv-mode-dev" onClick={() => setInvMode('developments')} style={tabStyle(invMode === 'developments')}>Desarrollos ({developments.length})</button>
+              <button type="button" data-testid="inv-mode-resales" onClick={() => setInvMode('resales')} style={tabStyle(invMode === 'resales')}>Reventas ({resales.length})</button>
+            </div>
+            <input data-testid="inv-search" placeholder="Buscar por nombre o colonia..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13 }} />
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8, padding: 2 }}>
+              {invMode === 'developments' && filteredDev.map((d) => (
+                <button key={d.id} type="button" data-testid={`inv-dev-${d.id}`} onClick={() => handleDevelopmentClick(d)} style={invCardStyle()}>
+                  <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>{d.name || 'Sin nombre'}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{d.colonia || ''} {d.alcaldia ? '· ' + d.alcaldia : ''}</div>
+                </button>
+              ))}
+              {invMode === 'developments' && filteredDev.length === 0 && (
+                <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.55)', fontSize: 13 }}>{developments.length === 0 ? 'No tienes desarrollos cargados todavía' : 'Ningún resultado con tu búsqueda'}</div>
+              )}
+              {invMode === 'resales' && resalesLoading && <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.5)' }}>Cargando reventas...</div>}
+              {invMode === 'resales' && !resalesLoading && filteredRes.map((r) => (
+                <button key={r.id} type="button" data-testid={`inv-resale-${r.id}`} onClick={() => handleResaleClick(r)} style={invCardStyle()}>
+                  <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>{r.parsed_data?.title || r.title || 'Reventa'}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{r.parsed_data?.colonia || ''} {r.parsed_data?.price ? '· $' + r.parsed_data.price.toLocaleString('es-MX') : ''}</div>
+                </button>
+              ))}
+              {invMode === 'resales' && !resalesLoading && filteredRes.length === 0 && (
+                <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.55)', fontSize: 13 }}>{resales.length === 0 ? 'No tienes reventas importadas · usa "Link de portal externo"' : 'Ningún resultado con tu búsqueda'}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {origin === 'external' && (
+          <div data-testid="origin-external-panel" style={{ display: 'grid', gap: 10 }}>
+            <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Pega el link completo de la propiedad:</div>
+            <select value={extPortal} onChange={(e) => setExtPortal(e.target.value)} style={{ padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13 }}>
+              <option value="easybroker.com">EasyBroker</option>
+              <option value="propiedades.com">Propiedades.com</option>
+              <option value="casasyterrenos.com">Casas y Terrenos</option>
+            </select>
+            <input data-testid="ext-url" type="url" placeholder={extPortal === 'easybroker.com' ? 'https://propiedades.easybroker.com/property/EB-XXXXX' : 'https://...'} value={extUrl} onChange={(e) => setExtUrl(e.target.value)} style={{ width: '100%', padding: '11px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13 }} />
+            <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)' }}>Vamos a extraer fotos, precio, ubicación y descripción · puedes editar todo después.</div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={onClose} style={btnSecondary()}>Cancelar</button>
+              <button type="button" data-testid="ext-import" disabled={importing || !extUrl} onClick={handleExternalImport} style={btnGradient({ opacity: (importing || !extUrl) ? 0.6 : 1 })}>{importing ? 'Importando...' : (<><Icons.Download size={14} /> Importar y crear</>)}</button>
+            </div>
+          </div>
+        )}
+
+        {error && <div data-testid="wizard-error" style={{ padding: 10, borderRadius: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)', color: '#FCA5A5', fontSize: 12 }}>{error}</div>}
+      </div>
+    </div>
+  );
+}
+
+const originCardStyle = (color) => ({ padding: 18, borderRadius: 14, background: 'rgba(13,16,23,0.6)', border: `1px solid ${color}55`, cursor: 'pointer', textAlign: 'left', color: '#F0EBE0', transition: `transform 320ms ${EASE}` });
+const tabStyle = (active) => ({ padding: '8px 16px', borderRadius: 9999, background: active ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: active ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer', fontSize: 12, fontWeight: 600 });
+const invCardStyle = () => ({ padding: 12, borderRadius: 10, background: 'rgba(13,16,23,0.7)', border: '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' });
+
 export default function LandingsPage({ user, onLogout }) {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
@@ -1166,11 +1384,8 @@ export default function LandingsPage({ user, onLogout }) {
                 <p style={{ color: 'rgba(240,235,224,0.62)', marginTop: 6, maxWidth: 640 }}>{t('studio.landings.subtitle')}</p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button data-testid="new-ai-landing-btn" type="button" onClick={() => setShowAIWizard(true)} style={btnSecondary({ padding: '12px 20px', fontSize: 14, borderColor: '#EC4899', color: '#F0EBE0' })}>
-                  <Icons.Sparkles size={16} color="#EC4899" /> Crear con IA
-                </button>
-                <button data-testid="new-landing-btn" type="button" onClick={() => setShowCreate(true)} style={btnGradient({ padding: '12px 22px', fontSize: 14 })}>
-                  <Icons.Plus size={16} /> Nueva landing
+                <button data-testid="new-ai-landing-btn" type="button" onClick={() => setShowAIWizard(true)} style={btnGradient({ padding: '12px 22px', fontSize: 14 })}>
+                  <Icons.Sparkles size={16} /> Crear landing
                 </button>
               </div>
             </div>
@@ -1226,7 +1441,7 @@ export default function LandingsPage({ user, onLogout }) {
         )}
       </div>
 
-      <CreateModal
+      {false && <CreateModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreated={(landing) => { setShowCreate(false); openEdit(landing); load(); setToast('Landing creada'); }}
@@ -1235,8 +1450,16 @@ export default function LandingsPage({ user, onLogout }) {
         asesor={asesor}
         themes={themes}
         marketplaceFacets={marketplaceFacets}
-      />
+      />}
       {showAIWizard && (
+        <CreateAIWizard
+          onClose={() => setShowAIWizard(false)}
+          developments={developments}
+          navigate={navigate}
+          setToast={setToast}
+        />
+      )}
+      {false && (
         <div data-testid="ai-wizard" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20 }}>
           <div style={{ width: 'min(640px, 100%)', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 26, color: '#F0EBE0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
