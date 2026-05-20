@@ -77,7 +77,16 @@ function Toast({ msg, onClose }) {
   );
 }
 
-function CreateModal({ open, onClose, onCreated, starters, developments, asesor, themes }) {
+const MARKETPLACE_CONFIG_DEFAULTS = {
+  limit: 100,
+  sort_by: 'date_new',
+  default_filters: { cities: [], colonias: [], status: [], price_min: null, price_max: null, amenities_required: [] },
+  enable_map: true,
+  enable_search: true,
+  pagination_mode: 'buttons',
+};
+
+function CreateModal({ open, onClose, onCreated, starters, developments, asesor, themes, marketplaceFacets }) {
   const { t } = useTranslation('common');
   const [step, setStep] = useState(1);
   const [landingType, setLandingType] = useState('property');
@@ -89,13 +98,32 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchDev, setSearchDev] = useState('');
+  const [mpCfg, setMpCfg] = useState(MARKETPLACE_CONFIG_DEFAULTS);
+  const [mpPreviewCount, setMpPreviewCount] = useState(null);
+  const [mpPreviewTotal, setMpPreviewTotal] = useState(null);
 
   useEffect(() => {
     if (!open) {
       setStep(1); setLandingType('property'); setLinkedEntityId(''); setTitle(''); setSlug('');
       setTpl('modern'); setStarterKey('property'); setError(''); setSearchDev('');
+      setMpCfg(MARKETPLACE_CONFIG_DEFAULTS); setMpPreviewCount(null); setMpPreviewTotal(null);
     }
   }, [open]);
+
+  // Live preview count for marketplace builder
+  useEffect(() => {
+    if (!open || landingType !== 'marketplace') return undefined;
+    let alive = true;
+    const id = setTimeout(async () => {
+      try {
+        const r = await api.previewMarketplace('_new', mpCfg);
+        if (!alive) return;
+        setMpPreviewCount(r.total);
+        setMpPreviewTotal(r.total_unfiltered);
+      } catch (e) { /* silent */ }
+    }, 350);
+    return () => { alive = false; clearTimeout(id); };
+  }, [open, landingType, mpCfg]);
 
   useEffect(() => {
     if (landingType === 'personal_brand' && asesor?.user_id) setLinkedEntityId(asesor.user_id);
@@ -119,12 +147,24 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
         linked_entity_id: linkedEntityId || null,
         starter_key: starterKey,
       });
+      // Z.8.4 — Si marketplace · persistir config inicial despues de crear
+      if (landingType === 'marketplace' && r?.landing?.id) {
+        try { await api.updateMarketplaceConfig(r.landing.id, mpCfg); } catch (e) { /* soft-fail · usa defaults */ }
+      }
       onCreated(r.landing);
     } catch (e) {
       setError(e.body?.detail || e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const mpToggleArr = (key, val) => {
+    setMpCfg((c) => {
+      const arr = c.default_filters?.[key] || [];
+      const has = arr.includes(val);
+      return { ...c, default_filters: { ...c.default_filters, [key]: has ? arr.filter((x) => x !== val) : [...arr, val] } };
+    });
   };
 
   if (!open) return null;
@@ -183,8 +223,98 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
         )}
 
         {step === 2 && landingType === 'marketplace' && (
-          <div data-testid="step-marketplace" style={{ padding: 18, borderRadius: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.2)' }}>
-            <p style={{ color: 'rgba(240,235,224,0.7)', margin: 0, fontSize: 14 }}>Tu marketplace mostrara hasta 12 proyectos publicos del catalogo. Podras filtrar por zona y precio en el editor.</p>
+          <div data-testid="step-marketplace-builder" style={{ display: 'grid', gap: 14 }}>
+            <div style={{ padding: 14, borderRadius: 12, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)' }}>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#F0EBE0', fontSize: 14 }}>
+                {mpPreviewCount != null ? (
+                  <>Tu marketplace mostrara <span style={{ color: '#6366F1' }}>{mpPreviewCount}</span> propiedades{mpPreviewTotal != null ? ` de ${mpPreviewTotal} en tu catalogo` : ''}.</>
+                ) : 'Calculando preview...'}
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>Ajusta filtros default · podras cambiarlos despues en el editor.</div>
+            </div>
+
+            {/* Filtros default */}
+            <div style={{ padding: 14, borderRadius: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.18)' }}>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: '#a0a4b0', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Filtros default</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Estado (multi)</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {['preventa', 'venta', 'cerrado'].map((s) => {
+                      const on = mpCfg.default_filters.status.includes(s);
+                      return <button key={s} data-testid={`mp-cfg-status-${s}`} type="button" onClick={() => mpToggleArr('status', s)} style={{ padding: '6px 14px', borderRadius: 9999, background: on ? GRADIENT : 'rgba(99,102,241,0.12)', color: on ? '#fff' : '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 12, textTransform: 'capitalize' }}>{s}</button>;
+                    })}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Precio min
+                    <input data-testid="mp-cfg-price-min" type="number" value={mpCfg.default_filters.price_min ?? ''} onChange={(e) => setMpCfg((c) => ({ ...c, default_filters: { ...c.default_filters, price_min: e.target.value ? Number(e.target.value) : null } }))} placeholder="ej. 3000000" style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 13 }} />
+                  </label>
+                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Precio max
+                    <input data-testid="mp-cfg-price-max" type="number" value={mpCfg.default_filters.price_max ?? ''} onChange={(e) => setMpCfg((c) => ({ ...c, default_filters: { ...c.default_filters, price_max: e.target.value ? Number(e.target.value) : null } }))} placeholder="ej. 10000000" style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 13 }} />
+                  </label>
+                </div>
+                {(marketplaceFacets?.cities || []).length > 0 && (
+                  <div>
+                    <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Zonas (alcaldias)</label>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, maxHeight: 120, overflowY: 'auto' }}>
+                      {(marketplaceFacets.cities || []).map((c) => {
+                        const on = mpCfg.default_filters.cities.includes(c);
+                        return <button key={c} type="button" onClick={() => mpToggleArr('cities', c)} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{c}</button>;
+                      })}
+                    </div>
+                  </div>
+                )}
+                {(marketplaceFacets?.amenities || []).length > 0 && (
+                  <details>
+                    <summary style={{ cursor: 'pointer', fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Amenidades requeridas ({mpCfg.default_filters.amenities_required.length})</summary>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, maxHeight: 140, overflowY: 'auto' }}>
+                      {(marketplaceFacets.amenities || []).slice(0, 30).map((a) => {
+                        const on = mpCfg.default_filters.amenities_required.includes(a);
+                        return <button key={a} type="button" onClick={() => mpToggleArr('amenities_required', a)} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? 'rgba(236,72,153,0.5)' : 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{a}</button>;
+                      })}
+                    </div>
+                  </details>
+                )}
+              </div>
+            </div>
+
+            {/* Visualizacion */}
+            <div style={{ padding: 14, borderRadius: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.18)' }}>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: '#a0a4b0', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Visualizacion</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Orden default
+                    <select data-testid="mp-cfg-sort" value={mpCfg.sort_by} onChange={(e) => setMpCfg((c) => ({ ...c, sort_by: e.target.value }))} style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 13 }}>
+                      <option value="date_new">Mas recientes</option>
+                      <option value="price_asc">Precio asc</option>
+                      <option value="price_desc">Precio desc</option>
+                      <option value="name_az">Nombre A-Z</option>
+                      <option value="zone">Zona</option>
+                    </select>
+                  </label>
+                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Limite ({mpCfg.limit === 500 ? 'Todos' : mpCfg.limit})
+                    <input data-testid="mp-cfg-limit" type="range" min="12" max="500" step="12" value={mpCfg.limit} onChange={(e) => setMpCfg((c) => ({ ...c, limit: Number(e.target.value) }))} style={{ marginTop: 4, width: '100%' }} />
+                  </label>
+                </div>
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#F0EBE0', cursor: 'pointer' }}>
+                    <input data-testid="mp-cfg-map" type="checkbox" checked={mpCfg.enable_map} onChange={(e) => setMpCfg((c) => ({ ...c, enable_map: e.target.checked }))} /> Habilitar mapa
+                  </label>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#F0EBE0', cursor: 'pointer' }}>
+                    <input data-testid="mp-cfg-search" type="checkbox" checked={mpCfg.enable_search} onChange={(e) => setMpCfg((c) => ({ ...c, enable_search: e.target.checked }))} /> Habilitar busqueda
+                  </label>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Paginacion</label>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                    {[['buttons', 'Botones'], ['infinite', 'Infinito'], ['none', 'Mostrar todos']].map(([k, label]) => (
+                      <button key={k} data-testid={`mp-cfg-pag-${k}`} type="button" onClick={() => setMpCfg((c) => ({ ...c, pagination_mode: k }))} style={{ padding: '6px 14px', borderRadius: 9999, background: mpCfg.pagination_mode === k ? GRADIENT : 'rgba(99,102,241,0.12)', color: mpCfg.pagination_mode === k ? '#fff' : '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 12 }}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -644,6 +774,7 @@ export default function LandingsPage({ user, onLogout }) {
   const [developments, setDevelopments] = useState([]);
   const [asesor, setAsesor] = useState(null);
   const [themes, setThemes] = useState([]);
+  const [marketplaceFacets, setMarketplaceFacets] = useState(null);
   const [editingFull, setEditingFull] = useState(null); // landing + brand_kit + linked_entity
 
   const load = async () => {
@@ -659,16 +790,18 @@ export default function LandingsPage({ user, onLogout }) {
   useEffect(() => {
     (async () => {
       try {
-        const [s, d, a, th] = await Promise.all([
+        const [s, d, a, th, mf] = await Promise.all([
           api.getStarters().catch(() => null),
           api.catalogDevelopments().catch(() => null),
           api.catalogAsesor().catch(() => null),
           api.listThemes().catch(() => null),
+          api.previewMarketplace('_new', {}).catch(() => null),
         ]);
         if (s) setStarters(s);
         if (d) setDevelopments(d.items || []);
         if (a) setAsesor(a);
         if (th && th.themes) setThemes(th.themes);
+        if (mf && mf.facets) setMarketplaceFacets(mf.facets);
       } catch (e) { /* fail-soft */ }
     })();
   }, []);
@@ -756,6 +889,7 @@ export default function LandingsPage({ user, onLogout }) {
         developments={developments}
         asesor={asesor}
         themes={themes}
+        marketplaceFacets={marketplaceFacets}
       />
       <Toast msg={toast} onClose={() => setToast('')} />
     </PortalLayout>
