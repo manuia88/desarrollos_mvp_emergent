@@ -6,17 +6,21 @@ import * as api from '../../api/studio_z8';
 import LandingLeadForm from '../../components/studio/LandingLeadForm';
 import LandingAtlaxWidget from '../../components/studio/LandingAtlaxWidget';
 
+// Z.8.2 rework en curso · templates v1 deprecated · placeholder mientras
+const PlaceholderTemplate = () => (
+  <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#06080F', color: '#F0EBE0', fontFamily: 'Outfit', padding: 24, textAlign: 'center' }}>
+    <div>
+      <div style={{ fontSize: 14, letterSpacing: '0.1em', opacity: 0.6, marginBottom: 16, textTransform: 'uppercase' }}>DMX Studio</div>
+      <h1 style={{ fontWeight: 800, fontSize: 32, marginBottom: 12 }}>Landing en construcción</h1>
+      <p style={{ fontSize: 15, opacity: 0.7, maxWidth: 480, lineHeight: 1.5 }}>El builder profesional Z.8.2 está en desarrollo. Esta landing se reactivará pronto con el nuevo editor.</p>
+    </div>
+  </div>
+);
 const TEMPLATES = {
-  luxury: lazy(() => import('./landings/templates/Luxury')),
-  modern: lazy(() => import('./landings/templates/Modern')),
-  family: lazy(() => import('./landings/templates/Family')),
-  investor: lazy(() => import('./landings/templates/Investor')),
-  boutique: lazy(() => import('./landings/templates/Boutique')),
-  urgent: lazy(() => import('./landings/templates/Urgent')),
-  scrollytelling: lazy(() => import('./landings/templates/Scrollytelling')),
-  video_first: lazy(() => import('./landings/templates/VideoFirst')),
-  social_proof: lazy(() => import('./landings/templates/SocialProof')),
-  compare: lazy(() => import('./landings/templates/Compare')),
+  luxury: PlaceholderTemplate, modern: PlaceholderTemplate, family: PlaceholderTemplate,
+  investor: PlaceholderTemplate, boutique: PlaceholderTemplate, urgent: PlaceholderTemplate,
+  scrollytelling: PlaceholderTemplate, video_first: PlaceholderTemplate,
+  social_proof: PlaceholderTemplate, compare: PlaceholderTemplate,
 };
 
 const DEFAULT_DOMAIN = process.env.REACT_APP_LANDING_DOMAIN || 'desarrollosmx.io';
