@@ -25,8 +25,8 @@ TEMPLATE_REGISTRY: Dict[str, str] = {
     "boutique":       "Z8_PROMPT_05_BOUTIQUE.md",
     "urgent":         "Z8_PROMPT_06_URGENT.md",
     "social_proof":   "Z8_PROMPT_07_SOCIAL_PROOF.md",
-    "compare":        "Z8_PROMPT_08_COMPARE.md",
-    "video_first":    "Z8_PROMPT_09_VIDEO_FIRST.md",
+    "video_first":    "Z8_PROMPT_08_VIDEO_FIRST.md",
+    "compare":        "Z8_PROMPT_09_COMPARE.md",
     "scrollytelling": "Z8_PROMPT_10_SCROLLYTELLING.md",
     # legacy alias
     "modern":         "Z8_PROMPT_03_FAMILY.md",

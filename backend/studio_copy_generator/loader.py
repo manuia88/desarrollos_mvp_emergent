@@ -12,7 +12,20 @@ from typing import Dict, Tuple
 
 log = logging.getLogger("dmx.studio_copy_loader")
 
-MEMORY_DIR = "/app/memory"
+def _resolve_memory_dir() -> str:
+    """Resolve memory dir · env override > pod path > repo path."""
+    env = os.environ.get("DMX_MEMORY_DIR")
+    if env and os.path.isdir(env):
+        return env
+    if os.path.isdir("/app/memory"):
+        return "/app/memory"
+    # repo-relative fallback (Mac dev / pre-deploy)
+    here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    candidate = os.path.join(here, "memory")
+    return candidate if os.path.isdir(candidate) else "/app/memory"
+
+
+MEMORY_DIR = _resolve_memory_dir()
 _cache: Dict[str, Tuple[float, str]] = {}
 _lock = Lock()
 

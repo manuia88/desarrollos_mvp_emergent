@@ -34,7 +34,7 @@ class ListingIntent(str, Enum):
 class BuyerIntent(str, Enum):
     live = "live"
     invest = "invest"
-    hybrid = "hybrid"
+    mixed = "mixed"
 
 
 class PhotoCategory(str, Enum):
@@ -340,7 +340,7 @@ class PropertyIntake(BaseModel):
             warnings.append("luxury_template_price_visible_warning: considera price_visible=false para template luxury")
         # 5. hybrid templates require buyer_intent
         if self.template_key in HYBRID_TEMPLATES and self.buyer_intent is None:
-            raise ValueError(f"template_key={self.template_key} es hybrid · buyer_intent es requerido (live/invest/hybrid)")
+            raise ValueError(f"template_key={self.template_key} es hybrid · buyer_intent es requerido (live/invest/mixed)")
         # 6. min 12 photos warning
         if self.template_key not in ("first_home",) and len(self.photos) < 12:
             warnings.append(f"min_photos_warning: tienes {len(self.photos)} fotos · recomendado >= 12 para conversion")
@@ -383,5 +383,5 @@ def autofill_defaults(intake_data: dict) -> dict:
         elif tk in LIVE_ONLY_TEMPLATES:
             data["buyer_intent"] = "live"
         elif tk in HYBRID_TEMPLATES:
-            data["buyer_intent"] = "hybrid"
+            data["buyer_intent"] = "mixed"
     return data
