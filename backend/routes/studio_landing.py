@@ -91,6 +91,15 @@ class TrackingPixelsBody(BaseModel):
     custom_body: Optional[str] = Field("", max_length=4000)
 
 
+class MarketplaceConfigBody(BaseModel):
+    limit: Optional[int] = Field(None, ge=1, le=500)
+    sort_by: Optional[str] = Field(None, pattern="^(price_asc|price_desc|date_new|name_az|zone)$")
+    default_filters: Optional[Dict[str, Any]] = None
+    enable_map: Optional[bool] = None
+    enable_search: Optional[bool] = None
+    pagination_mode: Optional[str] = Field(None, pattern="^(buttons|infinite|none)$")
+
+
 class PublishBody(BaseModel):
     published: bool = True
 
@@ -343,6 +352,30 @@ async def patch_pixels(landing_id: str, body: TrackingPixelsBody, request: Reque
     return res
 
 
+@router.patch("/{landing_id}/marketplace-config")
+async def patch_marketplace_config(landing_id: str, body: MarketplaceConfigBody, request: Request) -> Dict[str, Any]:
+    """Z.8.4 — Update marketplace_config nested en content (sin tocar sections)."""
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.update_marketplace_config(db, landing_id, user.user_id, body.model_dump(exclude_none=True))
+    if not res.get("ok"):
+        raise HTTPException(404, res.get("error", "No se pudo actualizar marketplace"))
+    return res
+
+
+@router.post("/{landing_id}/marketplace-preview")
+async def preview_marketplace(landing_id: str, body: MarketplaceConfigBody, request: Request) -> Dict[str, Any]:
+    """Z.8.4 — Live preview count para CreateModal builder (no persiste)."""
+    user = await _require_user(request)
+    db = _db(request)
+    landing = await eng.get_landing(db, landing_id, user.user_id) if landing_id and landing_id != "_new" else None
+    cfg = body.model_dump(exclude_none=True)
+    if landing:
+        cfg = {**(landing.get("content", {}).get("marketplace_config") or {}), **cfg}
+    res = eng.query_marketplace_developments(db, user.user_id, cfg, page=1, page_size=1)
+    return {"total": res["total"], "total_unfiltered": res["total_unfiltered"], "facets": res["facets"], "applied_filters": res["applied_filters"]}
+
+
 # ─── Public routes (no auth) ─────────────────────────────────────────────────
 # 1x1 transparent PNG pixel (43 bytes)
 _PIXEL_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
@@ -374,6 +407,49 @@ async def get_public_landing(slug: str, request: Request, preview: int = 0) -> D
         "theme": landing.get("theme"),
     }
     return {"landing": safe_landing, "brand_kit": brand_kit}
+
+
+@public_router.get("/{slug}/marketplace")
+async def public_marketplace_query(
+    slug: str,
+    request: Request,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(12, ge=1, le=48),
+    q: str = Query("", max_length=120),
+    cities: str = Query(""),
+    colonias: str = Query(""),
+    status: str = Query(""),
+    price_min: Optional[int] = Query(None, ge=0),
+    price_max: Optional[int] = Query(None, ge=0),
+    amenities: str = Query(""),
+    sort_by: Optional[str] = Query(None, pattern="^(price_asc|price_desc|date_new|name_az|zone)$"),
+) -> Dict[str, Any]:
+    """Z.8.4 — Public paginated marketplace query · respeta config + permite override."""
+    db = _db(request)
+    landing = await eng.get_landing_by_slug(db, slug, include_unpublished=False)
+    if not landing or landing.get("landing_type") != "marketplace":
+        raise HTTPException(404, "Marketplace no disponible")
+    cfg = (landing.get("content") or {}).get("marketplace_config") or eng.marketplace_config_defaults()
+    if sort_by:
+        cfg = {**cfg, "sort_by": sort_by}
+    override = {}
+    if cities:
+        override["cities"] = [c.strip() for c in cities.split(",") if c.strip()]
+    if colonias:
+        override["colonias"] = [c.strip() for c in colonias.split(",") if c.strip()]
+    if status:
+        override["status"] = [s.strip() for s in status.split(",") if s.strip() in eng.MARKETPLACE_STATUS_FILTERS]
+    if price_min is not None:
+        override["price_min"] = price_min
+    if price_max is not None:
+        override["price_max"] = price_max
+    if amenities:
+        override["amenities_required"] = [a.strip() for a in amenities.split(",") if a.strip()]
+    res = eng.query_marketplace_developments(
+        db, landing.get("user_id", ""), cfg,
+        override_filters=override or None, q=q, page=page, page_size=page_size,
+    )
+    return res
 
 
 @public_router.post("/{slug}/lead")

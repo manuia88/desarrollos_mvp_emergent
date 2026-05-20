@@ -41,8 +41,42 @@ LANDING_TYPES = ("property", "personal_brand", "marketplace")
 SECTION_TYPES = (
     "hero", "property_showcase", "gallery", "video", "map", "stats",
     "features", "testimonials", "lead_form", "calendar_booking",
-    "price_table", "faq", "countdown", "footer",
+    "price_table", "faq", "countdown", "footer", "marketplace",
 )
+
+# Z.8.4 — Marketplace config defaults
+MARKETPLACE_SORTS = ("price_asc", "price_desc", "date_new", "name_az", "zone")
+MARKETPLACE_PAGINATION = ("buttons", "infinite", "none")
+MARKETPLACE_MAX_LIMIT = 500
+MARKETPLACE_DEFAULT_LIMIT = 100
+# Stage user-friendly mapping (backend uses raw stage labels)
+MARKETPLACE_STATUS_FILTERS = ("preventa", "venta", "cerrado")
+STAGE_TO_STATUS_FILTER = {
+    "preventa": "preventa",
+    "en_construccion": "venta",
+    "entrega_inmediata": "venta",
+    "exclusiva": "venta",
+    "entregado": "cerrado",
+    "cerrado": "cerrado",
+}
+
+
+def marketplace_config_defaults() -> Dict[str, Any]:
+    return {
+        "limit": MARKETPLACE_DEFAULT_LIMIT,
+        "sort_by": "date_new",
+        "default_filters": {
+            "cities": [],
+            "colonias": [],
+            "status": [],
+            "price_min": None,
+            "price_max": None,
+            "amenities_required": [],
+        },
+        "enable_map": True,
+        "enable_search": True,
+        "pagination_mode": "buttons",
+    }
 
 MAX_UNDO_HISTORY = 10
 
@@ -311,18 +345,18 @@ async def hydrate_landing_for_public(db, landing: Dict[str, Any]) -> Dict[str, A
             if prof:
                 enriched["linked_entity"] = {"type": "asesor_profile", **prof}
         elif lt == "marketplace":
-            from data_developments import DEVELOPMENTS
-            user_developments = DEVELOPMENTS[:12]
+            # Z.8.4 — server-hydrate respetando marketplace_config (limit + sort + default_filters)
+            mp_cfg = (enriched.get("content") or {}).get("marketplace_config") or marketplace_config_defaults()
+            res = query_marketplace_developments(db, enriched.get("user_id", ""), mp_cfg, override_filters=None, page=1)
             enriched["linked_entity"] = {
                 "type": "marketplace",
-                "developments": [
-                    {
-                        "id": d.get("id"), "name": d.get("name"),
-                        "colonia": d.get("colonia"), "price_from": d.get("price_from"),
-                        "stage": d.get("stage"),
-                        "image": (d.get("images") or [None])[0],
-                    } for d in user_developments
-                ],
+                "developments": res["items"],
+                "total": res["total"],
+                "page": res["page"],
+                "page_size": res["page_size"],
+                "pages": res["pages"],
+                "applied_filters": res["applied_filters"],
+                "facets": res["facets"],
             }
     except Exception as exc:
         log.warning(f"[hydrate_landing] failed (soft): {exc}")
@@ -356,6 +390,195 @@ async def catalog_developments(db, user_id: str) -> List[Dict[str, Any]]:
 
 async def catalog_asesor(db, user_id: str) -> Optional[Dict[str, Any]]:
     return await db.asesor_profiles.find_one({"user_id": user_id}, {"_id": 0})
+
+
+# Z.8.4 — Marketplace runtime query (applies filters + sort + paginate)
+def _dev_card(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Lightweight dict for marketplace cards · no embedded units list."""
+    photos = d.get("photos") or d.get("images") or []
+    price_from = d.get("price_from")
+    return {
+        "id": d.get("id"),
+        "name": d.get("name"),
+        "slug": d.get("slug"),
+        "colonia": d.get("colonia"),
+        "alcaldia": d.get("alcaldia"),
+        "city": d.get("city") or "Ciudad de México",
+        "stage": d.get("stage"),
+        "status_filter": STAGE_TO_STATUS_FILTER.get(d.get("stage", ""), "venta"),
+        "price_from": price_from,
+        "price_to": d.get("price_to"),
+        "delivery_estimate": d.get("delivery_estimate"),
+        "m2_range": d.get("m2_range"),
+        "bedrooms_range": d.get("bedrooms_range"),
+        "amenities": (d.get("amenities") or [])[:12],
+        "image": photos[0] if photos else None,
+        "photos": photos[:4],
+        "units_total": d.get("units_total"),
+        "units_available": d.get("units_available"),
+        "lat": (d.get("center") or {}).get("lat") if isinstance(d.get("center"), dict) else d.get("lat"),
+        "lng": (d.get("center") or {}).get("lng") if isinstance(d.get("center"), dict) else d.get("lng"),
+        "featured": d.get("featured", False),
+    }
+
+
+def _matches_filters(card: Dict[str, Any], filters: Dict[str, Any], q: str) -> bool:
+    cities = filters.get("cities") or []
+    if cities and (card.get("city") or "") not in cities and (card.get("alcaldia") or "") not in cities:
+        return False
+    colonias = filters.get("colonias") or []
+    if colonias and (card.get("colonia") or "") not in colonias:
+        return False
+    statuses = filters.get("status") or []
+    if statuses and card.get("status_filter") not in statuses:
+        return False
+    p_min = filters.get("price_min")
+    p_max = filters.get("price_max")
+    if p_min is not None and (card.get("price_from") or 0) < p_min:
+        return False
+    if p_max is not None and (card.get("price_from") or 0) > p_max:
+        return False
+    req_amenities = filters.get("amenities_required") or []
+    if req_amenities:
+        card_amenities = set(a.lower() for a in (card.get("amenities") or []))
+        for a in req_amenities:
+            if a.lower() not in card_amenities:
+                return False
+    if q:
+        ql = q.lower().strip()
+        haystack = " ".join([
+            str(card.get("name", "")),
+            str(card.get("colonia", "")),
+            str(card.get("alcaldia", "")),
+            str(card.get("city", "")),
+        ]).lower()
+        if ql not in haystack:
+            return False
+    return True
+
+
+def _sort_cards(cards: List[Dict[str, Any]], sort_by: str) -> List[Dict[str, Any]]:
+    if sort_by == "price_asc":
+        return sorted(cards, key=lambda c: (c.get("price_from") or 0))
+    if sort_by == "price_desc":
+        return sorted(cards, key=lambda c: -(c.get("price_from") or 0))
+    if sort_by == "name_az":
+        return sorted(cards, key=lambda c: (c.get("name") or "").lower())
+    if sort_by == "zone":
+        return sorted(cards, key=lambda c: ((c.get("alcaldia") or ""), (c.get("colonia") or "")))
+    # default date_new · featured first then id desc as proxy
+    return sorted(cards, key=lambda c: (not c.get("featured"), c.get("id") or ""), reverse=False)
+
+
+def query_marketplace_developments(
+    db,
+    user_id: str,
+    config: Dict[str, Any],
+    *,
+    override_filters: Optional[Dict[str, Any]] = None,
+    q: str = "",
+    page: int = 1,
+    page_size: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Apply marketplace_config + optional override filters + sort + paginate.
+
+    Returns: {items, total, page, page_size, pages, applied_filters, facets}.
+    """
+    try:
+        from data_developments import DEVELOPMENTS
+    except Exception:
+        DEVELOPMENTS = []
+
+    cfg = {**marketplace_config_defaults(), **(config or {})}
+    filters = dict((cfg.get("default_filters") or {}))
+    if override_filters:
+        for k, v in override_filters.items():
+            if v is not None:
+                filters[k] = v
+    sort_by = cfg.get("sort_by") or "date_new"
+    limit_cap = min(int(cfg.get("limit") or MARKETPLACE_DEFAULT_LIMIT), MARKETPLACE_MAX_LIMIT)
+    pagination = cfg.get("pagination_mode") or "buttons"
+    page = max(1, int(page or 1))
+    if pagination == "none":
+        per_page = limit_cap
+    else:
+        per_page = int(page_size or 12)
+        per_page = max(1, min(per_page, 48))
+
+    cards = [_dev_card(d) for d in DEVELOPMENTS]
+    filtered = [c for c in cards if _matches_filters(c, filters, q or "")]
+    sorted_cards = _sort_cards(filtered, sort_by)
+    capped = sorted_cards[:limit_cap]
+    total = len(capped)
+
+    if pagination == "none":
+        page_items = capped
+        pages = 1
+        page = 1
+    else:
+        pages = max(1, (total + per_page - 1) // per_page)
+        page = min(page, pages)
+        start = (page - 1) * per_page
+        page_items = capped[start:start + per_page]
+
+    # Facets for filter sidebars (from full capped pool, not paginated slice)
+    cities_set = sorted({c.get("alcaldia") for c in cards if c.get("alcaldia")})
+    colonias_set = sorted({c.get("colonia") for c in cards if c.get("colonia")})
+    amenities_set = sorted({a for c in cards for a in (c.get("amenities") or [])})
+    prices = [c.get("price_from") for c in cards if c.get("price_from")]
+
+    return {
+        "items": page_items,
+        "total": total,
+        "total_unfiltered": len(cards),
+        "page": page,
+        "page_size": per_page,
+        "pages": pages,
+        "applied_filters": filters,
+        "applied_sort": sort_by,
+        "applied_query": q,
+        "facets": {
+            "cities": cities_set,
+            "colonias": colonias_set,
+            "amenities": amenities_set[:40],
+            "status": list(MARKETPLACE_STATUS_FILTERS),
+            "price_min": min(prices) if prices else 0,
+            "price_max": max(prices) if prices else 0,
+        },
+    }
+
+
+async def update_marketplace_config(db, landing_id: str, user_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    landing = await get_landing(db, landing_id, user_id)
+    if not landing:
+        return {"ok": False, "error": "Landing no encontrada"}
+    safe = {**marketplace_config_defaults(), **(config or {})}
+    # Clamps
+    safe["limit"] = max(1, min(int(safe.get("limit") or MARKETPLACE_DEFAULT_LIMIT), MARKETPLACE_MAX_LIMIT))
+    if safe.get("sort_by") not in MARKETPLACE_SORTS:
+        safe["sort_by"] = "date_new"
+    if safe.get("pagination_mode") not in MARKETPLACE_PAGINATION:
+        safe["pagination_mode"] = "buttons"
+    safe["enable_map"] = bool(safe.get("enable_map", True))
+    safe["enable_search"] = bool(safe.get("enable_search", True))
+    df = safe.get("default_filters") or {}
+    safe["default_filters"] = {
+        "cities": [str(x)[:60] for x in (df.get("cities") or [])][:30],
+        "colonias": [str(x)[:60] for x in (df.get("colonias") or [])][:60],
+        "status": [s for s in (df.get("status") or []) if s in MARKETPLACE_STATUS_FILTERS],
+        "price_min": int(df["price_min"]) if df.get("price_min") not in (None, "") else None,
+        "price_max": int(df["price_max"]) if df.get("price_max") not in (None, "") else None,
+        "amenities_required": [str(x)[:40] for x in (df.get("amenities_required") or [])][:20],
+    }
+    content = dict(landing.get("content") or {})
+    content["marketplace_config"] = safe
+    res = await db.studio_landings.update_one(
+        {"id": landing_id, "user_id": user_id, "deleted": {"$ne": True}},
+        {"$set": {"content": content, "updated_at": _iso()}},
+    )
+    if res.matched_count == 0:
+        return {"ok": False, "error": "Landing no encontrada"}
+    return {"ok": True, "marketplace_config": safe}
 
 
 async def catalog_marketplace_filters(db, user_id: str) -> Dict[str, Any]:
