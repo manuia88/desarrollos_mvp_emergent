@@ -202,6 +202,32 @@ async def get_property_templates(request: Request) -> Dict[str, Any]:
         return {"templates": [], "total": 0}
 
 
+@router.get("/templates")
+async def get_templates_metadata(request: Request) -> Dict[str, Any]:
+    """Z.8.5.1 — Alias publico-amigo · lista 10 templates con metadata minima."""
+    try:
+        from studio_landing_property_templates import list_templates_metadata
+        items = list_templates_metadata()
+        return {"templates": items, "total": len(items)}
+    except Exception:
+        return {"templates": [], "total": 0}
+
+
+@router.get("/templates/{template_key}")
+async def get_template_spec(template_key: str, request: Request) -> Dict[str, Any]:
+    """Z.8.5.1 — Spec completo del template (sections_order + unique_section_type + cta + disc)."""
+    try:
+        from studio_landing_property_templates import get_property_template_spec, PROPERTY_TEMPLATES
+        if template_key not in PROPERTY_TEMPLATES:
+            raise HTTPException(404, f"Template {template_key} no existe")
+        return get_property_template_spec(template_key)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.warning(f"[get_template_spec] failed: {exc}")
+        raise HTTPException(500, str(exc))
+
+
 @router.post("/{landing_id}/apply-template-structure")
 async def apply_template_structure(landing_id: str, request: Request) -> Dict[str, Any]:
     """Z.8.5 — Reemplaza sections con structure del template + auto-fill data."""

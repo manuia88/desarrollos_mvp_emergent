@@ -252,6 +252,12 @@ async def create_landing(
         content["cta"]["primary"]["text"] = cta_text[:40]
 
     sections = initial_sections or []
+    # Z.8.5.1 — Property landings · auto-apply template spec (inyecta unique_section_type)
+    if landing_type == "property":
+        try:
+            sections = apply_template_spec_to_sections(template_key, sections)
+        except Exception as exc:
+            log.warning(f"[create_landing apply_template_spec] failed (soft): {exc}")
     # Validate section types
     for sec in sections:
         if sec.get("type") not in SECTION_TYPES:
@@ -309,6 +315,78 @@ async def migrate_existing_landings(db) -> Dict[str, Any]:
 
 
 # ─── Sections CRUD ────────────────────────────────────────────────────────────
+def apply_template_spec_to_sections(template_key: str, existing_sections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Z.8.5.1 — Inyecta unique_section_type al sections array si NO existe.
+
+    Lee PROPERTY_TEMPLATES[template_key] · si tiene unique_section_type · y existing_sections
+    NO tiene esa section type · la inserta en la posicion correcta segun sections_order.
+
+    Preserva existing_sections existentes (NO duplica).
+    Si template_key invalido o sin unique_section_type · devuelve existing_sections sin cambio.
+    """
+    try:
+        from studio_landing_property_templates import get_property_template_spec
+        from studio_landing_property_templates import merge_template_with_data as _merge
+    except Exception:
+        return existing_sections
+    spec = get_property_template_spec(template_key)
+    unique_type = spec.get("unique_section_type")
+    order = spec.get("sections_order") or []
+    existing = list(existing_sections or [])
+    existing_types = [s.get("type") for s in existing]
+    if not unique_type:
+        # Modern · no inyectar nada · solo reordenar si aplica
+        return _reorder_by_template(existing, order)
+    # Multi-capitulo special case (scrollytelling tiene 4 capitulos)
+    unique_type = _normalize_section_type(unique_type)
+    existing_norm_types = {_normalize_section_type(t) for t in existing_types}
+    if unique_type in existing_norm_types:
+        # Ya existe · solo reordenar
+        return _reorder_by_template(existing, order)
+    # Build the unique section via merge helper · sin property data ahora (solo placeholder copy)
+    placeholder = _merge(spec, {}, {})
+    # Pick las sections del template que NO estan en existing
+    missing = [ps for ps in placeholder if ps.get("type") and ps.get("type") not in existing_types]
+    if not missing:
+        return _reorder_by_template(existing, order)
+    # Inyectar al inicio · reordenamiento posterior lo coloca correcto
+    combined = existing + missing
+    return _reorder_by_template(combined, order)
+
+
+def _normalize_section_type(t: str) -> str:
+    """Z.8.5.1 — Normaliza variants compatibles (capitulo_xxx → capitulo)."""
+    if t and t.startswith("capitulo_"):
+        return "capitulo"
+    return t
+
+
+def _reorder_by_template(sections: List[Dict[str, Any]], order: List[str]) -> List[Dict[str, Any]]:
+    """Reordena sections segun order · sections fuera de order van al final.
+    Normaliza variants (capitulo_origen/diseno/vida/inversion → capitulo) para matching.
+    """
+    if not order:
+        return sections
+    by_type: Dict[str, List[Dict[str, Any]]] = {}
+    for s in sections:
+        t = _normalize_section_type(s.get("type"))
+        by_type.setdefault(t, []).append(s)
+    ordered: List[Dict[str, Any]] = []
+    for t in order:
+        norm_t = _normalize_section_type(t)
+        arr = by_type.get(norm_t)
+        if arr:
+            ordered.append(arr.pop(0))
+            if not arr:
+                by_type.pop(norm_t, None)
+            else:
+                by_type[norm_t] = arr
+    leftover: List[Dict[str, Any]] = []
+    for arr in by_type.values():
+        leftover.extend(arr)
+    return ordered + leftover
+
+
 async def update_sections(db, landing_id: str, user_id: str, sections: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Replace sections array · push current to undo_history."""
     landing = await get_landing(db, landing_id, user_id)
