@@ -333,6 +333,7 @@ export default function LandingPublic() {
               isPreview={isPreview}
               theme={theme}
               landingSlug={landing.slug}
+              templateKey={landing.template_key}
             />
           );
         })

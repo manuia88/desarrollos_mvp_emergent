@@ -87,7 +87,25 @@ export const SECTION_META = {
   comparison_table_grande: { label: 'Comparison table', icon: 'Columns', desc: 'Compare · vs competidores · Battle Card data' },
 };
 
-export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme, landingSlug }) {
+// Z.8.5.1 — template_key → unique section map (cuando spec quiere inyectar la unica del template)
+const TEMPLATE_UNIQUE_SECTION = {
+  luxury: 'servicios_privados',
+  family: 'vida_familiar',
+  investor: 'proyeccion_financiera',
+  boutique: 'curaduria',
+  urgent: 'scarcity_alert',
+  scrollytelling: 'capitulo',
+  video_first: 'galeria_video',
+  social_proof: 'social_stats',
+  compare: 'comparison_table_grande',
+  modern: null,
+};
+
+export function getUniqueSectionForTemplate(template_key) {
+  return TEMPLATE_UNIQUE_SECTION[template_key] || null;
+}
+
+export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme, landingSlug, templateKey }) {
   if (!section || section.visible === false) return null;
   const Comp = REGISTRY[section.type];
   if (!Comp) return null;
@@ -106,7 +124,7 @@ export default function SectionRenderer({ section, brandKit, linkedEntity, onLea
   };
   if (layout.border_radius) wrapStyle.borderRadius = undefined;
   return (
-    <div data-testid={`section-${section.type}`} data-section-id={section.id} data-theme={t.name ? section.type : undefined} style={wrapStyle}>
+    <div data-testid={`section-${section.type}`} data-section-id={section.id} data-template-key={templateKey || undefined} data-theme={t.name ? section.type : undefined} style={wrapStyle}>
       <Comp
         config={section.config || {}}
         brandKit={brandKit || {}}
@@ -115,6 +133,7 @@ export default function SectionRenderer({ section, brandKit, linkedEntity, onLea
         isPreview={isPreview}
         theme={t}
         landingSlug={landingSlug}
+        templateKey={templateKey}
       />
     </div>
   );

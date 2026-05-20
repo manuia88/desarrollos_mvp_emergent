@@ -859,7 +859,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
                 ? { ...(sec.config || {}), marketplace_config: landing.content?.marketplace_config }
                 : sec.config;
               return (
-                <SectionRenderer key={sec.id} section={{ ...sec, config: sectionConfig }} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} landingSlug={landing.slug} />
+                <SectionRenderer key={sec.id} section={{ ...sec, config: sectionConfig }} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} landingSlug={landing.slug} templateKey={landing.template_key} />
               );
             }) : (
               <div style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.4)' }}>Preview vacio · anade secciones</div>
