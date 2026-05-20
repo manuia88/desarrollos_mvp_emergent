@@ -292,12 +292,12 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
 
   if (!open) return null;
   return (
-    <div data-testid="create-modal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div style={{ width: 'min(900px, 100%)', maxHeight: '90vh', overflow: 'auto', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 28, color: '#F0EBE0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+    <div data-testid="create-modal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 16 }}>
+      <div style={{ width: 'min(960px, 100%)', maxHeight: '90vh', overflow: 'hidden', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 16, color: '#F0EBE0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <div style={{ letterSpacing: '0.25em', fontSize: 11, color: '#6366F1', textTransform: 'uppercase' }}>Paso {step}/3</div>
-            <h2 style={{ margin: '4px 0 0', fontFamily: 'Outfit, sans-serif' }}>
+            <h2 style={{ margin: '4px 0 0', fontFamily: 'Outfit, sans-serif', fontSize: 18 }}>
               {step === 1 && 'Que landing quieres crear?'}
               {step === 2 && (landingType === 'property' ? 'Selecciona la propiedad' : landingType === 'personal_brand' ? 'Confirma tu marca' : 'Define el alcance')}
               {step === 3 && 'Detalles finales'}
@@ -305,6 +305,9 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
           </div>
           <button data-testid="modal-close" type="button" onClick={onClose} style={btnGhost()} aria-label="Close"><Icons.X size={18} /></button>
         </div>
+
+        {/* Z.8.6 SUB-B · Body scroll container · solo contenido scrollea · header+footer sticky */}
+        <div data-testid="modal-body" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, paddingRight: 4 }}>
 
         {step === 1 && (
           <div data-testid="step-type" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
@@ -352,7 +355,7 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
             {propertySource === 'development' ? (
               <>
                 <input data-testid="search-dev" placeholder="Buscar proyecto..." value={searchDev} onChange={(e) => setSearchDev(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', marginBottom: 14 }} />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, maxHeight: 360, overflow: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, maxHeight: 280, overflowY: 'auto', padding: 4 }}>
                   {filteredDevs.map((d) => (
                     <button key={d.id} type="button" data-testid={`dev-${d.id}`} onClick={() => { setLinkedEntityId(d.id); if (!title) setTitle(d.name); }} style={{ padding: 14, borderRadius: 10, background: linkedEntityId === d.id ? 'rgba(99,102,241,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === d.id ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
                       <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{d.name}</div>
@@ -490,7 +493,7 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
             </label>
             <div>
               <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)', marginBottom: 8 }}>Template visual · cada uno aplica paleta y layout unicos</div>
-              <div data-testid="detail-tpl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
+              <div data-testid="detail-tpl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
                 {(themes && themes.length ? themes : TEMPLATE_KEYS_DEFAULT.map((k) => ({ key: k, name: k, use_case_fit: [], preview_palette: {} }))).map((tm) => (
                   <ThemeCard key={tm.key} themeMeta={tm} active={tpl === tm.key} onSelect={() => setTpl(tm.key)} />
                 ))}
@@ -506,9 +509,11 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
           </div>
         )}
 
-        {error && <div data-testid="modal-error" style={{ color: '#F87171', marginTop: 14, fontSize: 13 }}>{error}</div>}
+        {error && <div data-testid="modal-error" style={{ color: '#F87171', marginTop: 10, fontSize: 13 }}>{error}</div>}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 22 }}>
+        </div>
+        {/* /modal-body · Footer sticky */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexShrink: 0, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           {step > 1 ? <button data-testid="modal-back" type="button" onClick={() => setStep(step - 1)} style={btnSecondary()}>Atras</button> : <span />}
           {step < 3 ? (
             <button data-testid="modal-next" type="button" onClick={() => setStep(step + 1)} disabled={step === 2 && landingType === 'property' && !linkedEntityId} style={btnGradient({ opacity: (step === 2 && landingType === 'property' && !linkedEntityId) ? 0.5 : 1 })}>Siguiente</button>
