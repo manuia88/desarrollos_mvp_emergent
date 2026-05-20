@@ -1,10 +1,13 @@
 // W5.22 Z.8.2 — LandingPublic REWORK: render sections dynamically + tracking pixels + WA cta
+// W5.22 Z.8.7 Sub-B2 — Coexistencia: intenta nuevo intake (studio_property_intakes) primero, fallback legacy
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import * as api from '../../api/studio_z8';
+import { getPublicIntakeBySlug } from '../../api/studio_intake';
 import SectionRenderer from '../../components/studio/sections/SectionRenderer';
 import LandingAtlaxWidget from '../../components/studio/LandingAtlaxWidget';
+import TemplateDispatcher from '../../templates/landings/TemplateDispatcher';
 
 // Z.8.2 rework · templates v1 deprecated · placeholder para landings sin sections
 const PlaceholderTemplate = () => (
@@ -194,6 +197,7 @@ export default function LandingPublic() {
   const isPreview = searchParams.get('preview') === '1';
   const { t } = useTranslation('common');
   const [data, setData] = useState(null);
+  const [intake, setIntake] = useState(null); // Z.8.7 nuevo flow · si existe, renderiza TemplateDispatcher
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
@@ -202,6 +206,21 @@ export default function LandingPublic() {
   useEffect(() => {
     let alive = true;
     (async () => {
+      // Z.8.7 Sub-B2: dispatch coexistente · 1) intenta studio_property_intakes 2) fallback studio_landings
+      try {
+        const ip = await getPublicIntakeBySlug(slug);
+        if (!alive) return;
+        if (ip && (ip.intake || ip.slug || ip.template_key)) {
+          const i = ip.intake || ip;
+          setIntake(i);
+          // Inject meta basic
+          document.title = `${i.project_name || slug} · DesarrollosMX`;
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // fail-soft · cae al legacy
+      }
       try {
         const r = await api.getPublicLanding(slug, isPreview);
         if (!alive) return;
@@ -290,6 +309,21 @@ export default function LandingPublic() {
       </div>
     );
   }
+
+  // Z.8.7 path: nueva landing AI-driven · monolithic template
+  if (intake) {
+    return (
+      <div data-testid="landing-public-z87" style={{ minHeight: '100vh' }}>
+        {isPreview && (
+          <div data-testid="preview-banner" style={{ background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', textAlign: 'center', padding: 10, fontSize: 13, fontWeight: 600 }}>
+            {t('studio.landings.preview_banner', 'Vista previa')}
+          </div>
+        )}
+        <TemplateDispatcher templateKey={intake.template_key} intake={intake} copy={intake.generated_copy_cached || null} isPreview={isPreview} />
+      </div>
+    );
+  }
+
   if (error === '404' || !data?.landing) {
     return (
       <div data-testid="landing-not-found" style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', background: '#06080F', color: '#F0EBE0', padding: '2rem' }}>

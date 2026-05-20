@@ -3,9 +3,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PortalLayout from '../../../components/shared/PortalLayout';
 import * as api from '../../../api/studio_z8';
+import { listIntakes } from '../../../api/studio_intake';
 import * as Icons from 'lucide-react';
 import { SECTION_TYPES, SECTION_META } from '../../../components/studio/sections/SectionRenderer';
 import SectionRenderer from '../../../components/studio/sections/SectionRenderer';
+import { TEMPLATE_KEYS as Z87_TEMPLATE_KEYS } from '../../../templates/landings/TemplateDispatcher';
+import { useNavigate } from 'react-router-dom';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const BG_CARD = 'rgba(13,16,23,0.92)';
@@ -1044,9 +1047,13 @@ function LandingCard({ item, onOpen, onDelete, themes }) {
 
 export default function LandingsPage({ user, onLogout }) {
   const { t } = useTranslation('common');
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [showAIWizard, setShowAIWizard] = useState(false);
+  const [aiTpl, setAiTpl] = useState('luxury');
+  const [intakes, setIntakes] = useState([]);
   const [editing, setEditing] = useState(null);
   const [filters, setFilters] = useState({ status: '', template_key: '', project_id: '' });
   const [toast, setToast] = useState('');
@@ -1083,6 +1090,16 @@ export default function LandingsPage({ user, onLogout }) {
         if (th && th.themes) setThemes(th.themes);
         if (mf && mf.facets) setMarketplaceFacets(mf.facets);
       } catch (e) { /* fail-soft */ }
+    })();
+  }, []);
+
+  // Z.8.7 Sub-B2 · Carga intakes para mostrar landings con IA del usuario
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await listIntakes({ limit: 30 });
+        setIntakes(r.items || []);
+      } catch (e) { /* fail-soft · puede no estar disponible aun */ }
     })();
   }, []);
 
@@ -1148,10 +1165,38 @@ export default function LandingsPage({ user, onLogout }) {
                 <h1 style={{ margin: '8px 0 0', fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.6rem, 3vw, 2.25rem)', fontWeight: 800 }}>{t('studio.landings.title')}</h1>
                 <p style={{ color: 'rgba(240,235,224,0.62)', marginTop: 6, maxWidth: 640 }}>{t('studio.landings.subtitle')}</p>
               </div>
-              <button data-testid="new-landing-btn" type="button" onClick={() => setShowCreate(true)} style={btnGradient({ padding: '12px 22px', fontSize: 14 })}>
-                <Icons.Plus size={16} /> Nueva landing
-              </button>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button data-testid="new-ai-landing-btn" type="button" onClick={() => setShowAIWizard(true)} style={btnSecondary({ padding: '12px 20px', fontSize: 14, borderColor: '#EC4899', color: '#F0EBE0' })}>
+                  <Icons.Sparkles size={16} color="#EC4899" /> Crear con IA
+                </button>
+                <button data-testid="new-landing-btn" type="button" onClick={() => setShowCreate(true)} style={btnGradient({ padding: '12px 22px', fontSize: 14 })}>
+                  <Icons.Plus size={16} /> Nueva landing
+                </button>
+              </div>
             </div>
+
+            {intakes.length > 0 && (
+              <div data-testid="ai-intakes-list" style={{ marginBottom: 28, padding: 16, background: BG_CARD, border: BORDER, borderRadius: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Icons.Sparkles size={14} color="#EC4899" />
+                  <strong style={{ fontFamily: 'Outfit, sans-serif', fontSize: 14 }}>Landings con IA ({intakes.length})</strong>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+                  {intakes.map((it) => (
+                    <button key={it.id} type="button" data-testid={`intake-card-${it.id}`} onClick={() => navigate(`/portal/studio/property-intake/${it.id}`)} style={{ textAlign: 'left', padding: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 12, cursor: 'pointer', color: '#F0EBE0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>{it.project_name}</span>
+                        <span style={{ fontSize: 10, padding: '2px 8px', background: 'rgba(236,72,153,0.18)', borderRadius: 9999, color: '#F472B6' }}>{it.template_key}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', marginTop: 4 }}>/landing/{it.slug}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 4 }}>
+                        {it.generated_copy_cached ? 'copy IA ok' : 'sin copy IA'} · {it.property_type}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 22 }}>
               <select data-testid="filter-status" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} style={{ padding: '8px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)' }}>
@@ -1191,6 +1236,30 @@ export default function LandingsPage({ user, onLogout }) {
         themes={themes}
         marketplaceFacets={marketplaceFacets}
       />
+      {showAIWizard && (
+        <div data-testid="ai-wizard" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20 }}>
+          <div style={{ width: 'min(640px, 100%)', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 26, color: '#F0EBE0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+              <div>
+                <div style={{ letterSpacing: '0.25em', fontSize: 11, color: '#EC4899', textTransform: 'uppercase' }}>Studio Z.8.7</div>
+                <h2 style={{ margin: '6px 0 0', fontFamily: 'Outfit, sans-serif' }}>Crear landing con IA</h2>
+                <p style={{ marginTop: 6, fontSize: 13, color: 'rgba(240,235,224,0.62)' }}>Selecciona un template y completa las 14 secciones · la IA generara el copy automaticamente.</p>
+              </div>
+              <button type="button" data-testid="ai-wizard-close" onClick={() => setShowAIWizard(false)} style={btnGhost()}><Icons.X size={16} /></button>
+            </div>
+            <label style={{ display: 'block', fontSize: 12, color: 'rgba(240,235,224,0.7)', marginBottom: 6, fontWeight: 600 }}>Template visual</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6, marginBottom: 20 }}>
+              {Z87_TEMPLATE_KEYS.map((k) => (
+                <button key={k} type="button" data-testid={`ai-tpl-${k}`} onClick={() => setAiTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, background: aiTpl === k ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: aiTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer' }}>{k}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setShowAIWizard(false)} style={btnSecondary()}>Cancelar</button>
+              <button type="button" data-testid="ai-wizard-start" onClick={() => { setShowAIWizard(false); navigate(`/portal/studio/property-intake/new?template=${aiTpl}`); }} style={btnGradient()}><Icons.Sparkles size={14} /> Empezar</button>
+            </div>
+          </div>
+        </div>
+      )}
       <Toast msg={toast} onClose={() => setToast('')} />
     </PortalLayout>
   );

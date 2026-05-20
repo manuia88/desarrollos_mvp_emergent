@@ -209,6 +209,8 @@ const StudioAutoContentPage  = lazy(() => import('./pages/portal/studio/AutoCont
 // W5.22 Z.8 — Studio Landings Profesionales (10 templates + A/B + PDF brochure)
 const StudioLandingsPage = lazy(() => import('./pages/portal/studio/LandingsPage'));
 const LandingPublicPage  = lazy(() => import('./pages/public/LandingPublic'));
+// W5.22 Z.8.7 Sub-B2 — Studio PropertyIntakeForm (AI landing builder)
+const StudioPropertyIntakeForm = lazy(() => import('./pages/portal/studio/PropertyIntakeForm'));
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 // W2.6 SA8 — Founder Console (root /superadmin)
@@ -562,6 +564,9 @@ function AppRouter() {
       <Route path="/portal/studio/auto-content" element={<AdvisorRoute Page={StudioAutoContentPage} />} />
       {/* W5.22 Z.8 — Studio Landings Profesionales */}
       <Route path="/portal/studio/landings" element={<AdvisorRoute Page={StudioLandingsPage} />} />
+      {/* W5.22 Z.8.7 Sub-B2 — AI landing builder · new + edit por id */}
+      <Route path="/portal/studio/property-intake/new" element={<AdvisorRoute Page={StudioPropertyIntakeForm} />} />
+      <Route path="/portal/studio/property-intake/:id" element={<AdvisorRoute Page={StudioPropertyIntakeForm} />} />
       <Route path="/landing/:slug" element={<Suspense fallback={null}><LandingPublicPage /></Suspense>} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
