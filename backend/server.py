@@ -1056,6 +1056,9 @@ async def startup():
     # W5.22 Z.8 — Studio Landing Pages indexes
     try:
         await ensure_studio_landing_indexes(db)
+        # Z.8.2 migration: existing landings → landing_type=property default
+        from studio_landing_engine import migrate_existing_landings
+        await migrate_existing_landings(db)
     except Exception as e:
         logging.warning(f"[startup] studio Z.8 indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes

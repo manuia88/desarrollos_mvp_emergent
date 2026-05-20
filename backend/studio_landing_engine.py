@@ -28,6 +28,17 @@ TEMPLATE_KEYS = (
     "urgent", "scrollytelling", "video_first", "social_proof", "compare",
 )
 
+# W5.22 Z.8.2 — Landing types + section types (14 catalog)
+LANDING_TYPES = ("property", "personal_brand", "marketplace")
+
+SECTION_TYPES = (
+    "hero", "property_showcase", "gallery", "video", "map", "stats",
+    "features", "testimonials", "lead_form", "calendar_booking",
+    "price_table", "faq", "countdown", "footer",
+)
+
+MAX_UNDO_HISTORY = 10
+
 SLUG_RE = re.compile(r"^[a-z0-9-]{3,60}$")
 LEAD_RATE_LIMIT_SECONDS = 60  # 5/min/IP per slug → window check minimal
 
@@ -132,9 +143,14 @@ async def create_landing(
     brand_kit_id: Optional[str] = None,
     project_id: Optional[str] = None,
     cta_text: str = "",
+    landing_type: str = "property",
+    linked_entity_id: Optional[str] = None,
+    initial_sections: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     if template_key not in TEMPLATE_KEYS:
         return {"ok": False, "error": f"template_key invalido. Validos: {list(TEMPLATE_KEYS)}"}
+    if landing_type not in LANDING_TYPES:
+        return {"ok": False, "error": f"landing_type invalido. Validos: {list(LANDING_TYPES)}"}
 
     raw_slug = (slug or slugify(title) or secrets.token_hex(4)).lower().strip()
     if not SLUG_RE.match(raw_slug):
@@ -148,6 +164,12 @@ async def create_landing(
     if cta_text:
         content["cta"]["primary"]["text"] = cta_text[:40]
 
+    sections = initial_sections or []
+    # Validate section types
+    for sec in sections:
+        if sec.get("type") not in SECTION_TYPES:
+            return {"ok": False, "error": f"section type invalido: {sec.get('type')}"}
+
     doc = {
         "id": _uid(),
         "tenant_id": tenant_id,
@@ -157,6 +179,12 @@ async def create_landing(
         "template_key": template_key,
         "brand_kit_id": brand_kit_id,
         "content": content,
+        "landing_type": landing_type,
+        "linked_entity_id": linked_entity_id,
+        "sections": sections,
+        "tracking_pixels": {"ga4_id": "", "meta_pixel_id": "", "custom_head": "", "custom_body": ""},
+        "custom_domain": None,
+        "undo_history": [],
         "ab_group_id": None,
         "variant_label": "single",
         "views_count": 0,
@@ -170,6 +198,167 @@ async def create_landing(
     await db.studio_landings.insert_one(dict(doc))
     doc.pop("_id", None)
     return {"ok": True, "landing": doc}
+
+
+async def migrate_existing_landings(db) -> Dict[str, Any]:
+    """Idempotent: existing landings sin landing_type → property default."""
+    try:
+        res = await db.studio_landings.update_many(
+            {"landing_type": {"$exists": False}},
+            {"$set": {"landing_type": "property", "sections": [], "tracking_pixels": {"ga4_id": "", "meta_pixel_id": "", "custom_head": "", "custom_body": ""}, "linked_entity_id": None, "undo_history": []}},
+        )
+        return {"ok": True, "migrated": res.modified_count}
+    except Exception as exc:
+        log.warning(f"[migrate_existing] failed (soft): {exc}")
+        return {"ok": False, "error": str(exc)}
+
+
+# ─── Sections CRUD ────────────────────────────────────────────────────────────
+async def update_sections(db, landing_id: str, user_id: str, sections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Replace sections array · push current to undo_history."""
+    landing = await get_landing(db, landing_id, user_id)
+    if not landing:
+        return {"ok": False, "error": "Landing no encontrada"}
+    # Validate types
+    for sec in sections:
+        if sec.get("type") not in SECTION_TYPES:
+            return {"ok": False, "error": f"section type invalido: {sec.get('type')}"}
+    # Push current snapshot
+    history = (landing.get("undo_history") or [])[:MAX_UNDO_HISTORY - 1]
+    history.insert(0, {"sections": landing.get("sections", []), "ts": _iso()})
+    await db.studio_landings.update_one(
+        {"id": landing_id, "user_id": user_id},
+        {"$set": {"sections": sections, "undo_history": history, "updated_at": _iso()}},
+    )
+    return {"ok": True}
+
+
+async def update_tracking_pixels(db, landing_id: str, user_id: str, pixels: Dict[str, Any]) -> Dict[str, Any]:
+    safe = {
+        "ga4_id": str(pixels.get("ga4_id") or "")[:64],
+        "meta_pixel_id": str(pixels.get("meta_pixel_id") or "")[:64],
+        "custom_head": str(pixels.get("custom_head") or "")[:4000],
+        "custom_body": str(pixels.get("custom_body") or "")[:4000],
+    }
+    # Sanitize via studio_landing_pixels
+    try:
+        from studio_landing_pixels import sanitize_pixel_html
+        safe["custom_head"] = sanitize_pixel_html(safe["custom_head"])
+        safe["custom_body"] = sanitize_pixel_html(safe["custom_body"])
+    except Exception:
+        pass
+    res = await db.studio_landings.update_one(
+        {"id": landing_id, "user_id": user_id, "deleted": {"$ne": True}},
+        {"$set": {"tracking_pixels": safe, "updated_at": _iso()}},
+    )
+    if res.matched_count == 0:
+        return {"ok": False, "error": "Landing no encontrada"}
+    return {"ok": True, "tracking_pixels": safe}
+
+
+async def undo_sections(db, landing_id: str, user_id: str) -> Dict[str, Any]:
+    landing = await get_landing(db, landing_id, user_id)
+    if not landing:
+        return {"ok": False, "error": "Landing no encontrada"}
+    history = landing.get("undo_history") or []
+    if not history:
+        return {"ok": False, "error": "Nada que deshacer"}
+    snap = history[0]
+    rest = history[1:]
+    await db.studio_landings.update_one(
+        {"id": landing_id, "user_id": user_id},
+        {"$set": {"sections": snap.get("sections", []), "undo_history": rest, "updated_at": _iso()}},
+    )
+    return {"ok": True, "sections": snap.get("sections", [])}
+
+
+# ─── Hydration por landing_type ───────────────────────────────────────────────
+async def hydrate_landing_for_public(db, landing: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge linked entity data dentro de la landing (property/personal/marketplace)."""
+    lt = landing.get("landing_type", "property")
+    enriched = dict(landing)
+    try:
+        if lt == "property" and landing.get("linked_entity_id"):
+            from data_developments import DEVELOPMENTS_BY_ID
+            dev = DEVELOPMENTS_BY_ID.get(landing["linked_entity_id"])
+            if dev:
+                enriched["linked_entity"] = {
+                    "type": "development",
+                    "id": dev.get("id"),
+                    "name": dev.get("name"),
+                    "colonia": dev.get("colonia"),
+                    "alcaldia": dev.get("alcaldia"),
+                    "price_from": dev.get("price_from"),
+                    "stage": dev.get("stage"),
+                    "delivery_estimate": dev.get("delivery_estimate"),
+                    "m2_range": dev.get("m2_range"),
+                    "amenities": dev.get("amenities", [])[:8],
+                    "lat": dev.get("lat"),
+                    "lng": dev.get("lng"),
+                    "images": dev.get("images", [])[:12],
+                }
+        elif lt == "personal_brand" and landing.get("linked_entity_id"):
+            prof = await db.asesor_profiles.find_one(
+                {"user_id": landing["linked_entity_id"]}, {"_id": 0}
+            )
+            if prof:
+                enriched["linked_entity"] = {"type": "asesor_profile", **prof}
+        elif lt == "marketplace":
+            from data_developments import DEVELOPMENTS
+            user_developments = DEVELOPMENTS[:12]
+            enriched["linked_entity"] = {
+                "type": "marketplace",
+                "developments": [
+                    {
+                        "id": d.get("id"), "name": d.get("name"),
+                        "colonia": d.get("colonia"), "price_from": d.get("price_from"),
+                        "stage": d.get("stage"),
+                        "image": (d.get("images") or [None])[0],
+                    } for d in user_developments
+                ],
+            }
+    except Exception as exc:
+        log.warning(f"[hydrate_landing] failed (soft): {exc}")
+    return enriched
+
+
+# ─── Catalog helpers ──────────────────────────────────────────────────────────
+async def catalog_developments(db, user_id: str) -> List[Dict[str, Any]]:
+    try:
+        from data_developments import DEVELOPMENTS
+        return [
+            {
+                "id": d.get("id"),
+                "name": d.get("name"),
+                "colonia": d.get("colonia"),
+                "stage": d.get("stage"),
+                "price_from": d.get("price_from"),
+            }
+            for d in DEVELOPMENTS
+        ]
+    except Exception:
+        return []
+
+
+async def catalog_asesor(db, user_id: str) -> Optional[Dict[str, Any]]:
+    return await db.asesor_profiles.find_one({"user_id": user_id}, {"_id": 0})
+
+
+async def catalog_marketplace_filters(db, user_id: str) -> Dict[str, Any]:
+    try:
+        from data_developments import DEVELOPMENTS
+        cities = sorted(set(d.get("alcaldia", "") for d in DEVELOPMENTS if d.get("alcaldia")))
+        colonias = sorted(set(d.get("colonia", "") for d in DEVELOPMENTS if d.get("colonia")))
+        prices = [d.get("price_from", 0) for d in DEVELOPMENTS if d.get("price_from")]
+        return {
+            "cities": cities[:50],
+            "colonias": colonias[:80],
+            "price_min": min(prices) if prices else 0,
+            "price_max": max(prices) if prices else 0,
+            "statuses": ["pre-venta", "construccion", "ultimas-unidades", "entrega"],
+        }
+    except Exception:
+        return {"cities": [], "colonias": [], "price_min": 0, "price_max": 0, "statuses": []}
 
 
 async def get_landing(db, landing_id: str, user_id: str) -> Optional[Dict[str, Any]]:

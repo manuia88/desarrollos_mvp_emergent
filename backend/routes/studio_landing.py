@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 
 import studio_landing_engine as eng
 import studio_landing_pdf as pdf_eng
+import studio_landing_starters as starters_eng
 
 log = logging.getLogger("dmx.routes_studio_landing")
 
@@ -62,6 +63,9 @@ class LandingCreateBody(BaseModel):
     brand_kit_id: Optional[str] = None
     project_id: Optional[str] = None
     cta_text: Optional[str] = Field("", max_length=40)
+    landing_type: Optional[str] = Field("property", pattern="^(property|personal_brand|marketplace)$")
+    linked_entity_id: Optional[str] = None
+    starter_key: Optional[str] = Field(None, pattern="^(property|personal_brand|marketplace)$")
 
 
 class LandingPatchBody(BaseModel):
@@ -69,6 +73,17 @@ class LandingPatchBody(BaseModel):
     template_key: Optional[str] = None
     brand_kit_id: Optional[str] = None
     project_id: Optional[str] = None
+
+
+class SectionsUpdateBody(BaseModel):
+    sections: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class TrackingPixelsBody(BaseModel):
+    ga4_id: Optional[str] = Field("", max_length=64)
+    meta_pixel_id: Optional[str] = Field("", max_length=64)
+    custom_head: Optional[str] = Field("", max_length=4000)
+    custom_body: Optional[str] = Field("", max_length=4000)
 
 
 class PublishBody(BaseModel):
@@ -92,6 +107,9 @@ class LeadSubmitBody(BaseModel):
 async def create_landing(body: LandingCreateBody, request: Request) -> Dict[str, Any]:
     user = await _require_user(request)
     db = _db(request)
+    initial_sections = None
+    if body.starter_key:
+        initial_sections = starters_eng.get_starter(body.starter_key)
     res = await eng.create_landing(
         db,
         tenant_id=user.tenant_id or "default",
@@ -103,6 +121,9 @@ async def create_landing(body: LandingCreateBody, request: Request) -> Dict[str,
         brand_kit_id=body.brand_kit_id,
         project_id=body.project_id,
         cta_text=body.cta_text or "",
+        landing_type=body.landing_type or "property",
+        linked_entity_id=body.linked_entity_id,
+        initial_sections=initial_sections,
     )
     if not res.get("ok"):
         raise HTTPException(422, res.get("error", "No se pudo crear la landing"))
@@ -125,6 +146,19 @@ async def list_landings(
         project_id=project_id, status=status, template_key=template_key,
         limit=limit, skip=skip,
     )
+
+
+@router.get("/starters")
+async def get_starters_root(request: Request) -> Dict[str, Any]:
+    """Static-prefix · MUST be defined BEFORE /{landing_id} para evitar wildcard catch."""
+    await _require_user(request)
+    return {
+        "property": starters_eng.STARTER_PROPERTY,
+        "personal_brand": starters_eng.STARTER_PERSONAL_BRAND,
+        "marketplace": starters_eng.STARTER_MARKETPLACE,
+        "section_types": list(eng.SECTION_TYPES),
+        "landing_types": list(eng.LANDING_TYPES),
+    }
 
 
 @router.get("/{landing_id}")
@@ -232,6 +266,68 @@ async def export_pdf_get(landing_id: str, request: Request):
     )
 
 
+# ─── Sub-A · Sections + catalog + pixels + undo (Z.8.2) ──────────────────────
+# NOTE: These specific routes MUST be defined BEFORE @router.get("/{landing_id}")
+# para evitar que el wildcard atrape /catalog y /starters.
+@router.get("/catalog/developments")
+async def catalog_developments_ep(request: Request) -> Dict[str, Any]:
+    user = await _require_user(request)
+    db = _db(request)
+    items = await eng.catalog_developments(db, user.user_id)
+    return {"items": items, "total": len(items)}
+
+
+@router.get("/catalog/asesor")
+async def catalog_asesor_ep(request: Request) -> Dict[str, Any]:
+    user = await _require_user(request)
+    db = _db(request)
+    profile = await eng.catalog_asesor(db, user.user_id)
+    return {"profile": profile, "user_id": user.user_id}
+
+
+@router.get("/catalog/marketplace-filters")
+async def catalog_marketplace_ep(request: Request) -> Dict[str, Any]:
+    user = await _require_user(request)
+    db = _db(request)
+    return await eng.catalog_marketplace_filters(db, user.user_id)
+
+
+@router.get("/starters")
+async def get_starters(request: Request) -> Dict[str, Any]:
+    """Kept for backward compat with explicit path · returns same payload."""
+    return await get_starters_root(request)
+
+
+@router.patch("/{landing_id}/sections")
+async def patch_sections(landing_id: str, body: SectionsUpdateBody, request: Request) -> Dict[str, Any]:
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.update_sections(db, landing_id, user.user_id, body.sections)
+    if not res.get("ok"):
+        raise HTTPException(422, res.get("error", "No se pudo actualizar sections"))
+    return res
+
+
+@router.post("/{landing_id}/undo")
+async def undo(landing_id: str, request: Request) -> Dict[str, Any]:
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.undo_sections(db, landing_id, user.user_id)
+    if not res.get("ok"):
+        raise HTTPException(422, res.get("error", "Nada que deshacer"))
+    return res
+
+
+@router.patch("/{landing_id}/tracking-pixels")
+async def patch_pixels(landing_id: str, body: TrackingPixelsBody, request: Request) -> Dict[str, Any]:
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.update_tracking_pixels(db, landing_id, user.user_id, body.model_dump())
+    if not res.get("ok"):
+        raise HTTPException(404, res.get("error", "No se pudo actualizar pixels"))
+    return res
+
+
 # ─── Public routes (no auth) ─────────────────────────────────────────────────
 # 1x1 transparent PNG pixel (43 bytes)
 _PIXEL_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
@@ -245,14 +341,18 @@ async def get_public_landing(slug: str, request: Request, preview: int = 0) -> D
     landing = await eng.get_landing_by_slug(db, slug, include_unpublished=include_unpublished)
     if not landing:
         raise HTTPException(404, "Landing no disponible")
-    # Fetch brand kit for theming
+    # Hydrate per landing_type (property/personal_brand/marketplace)
+    landing = await eng.hydrate_landing_for_public(db, landing)
     brand_kit = await eng.fetch_brand_kit(db, landing.get("brand_kit_id"), landing.get("user_id"))
-    # Don't expose tenant_id/user_id to public
     safe_landing = {
         "id": landing["id"],
         "slug": landing["slug"],
         "template_key": landing["template_key"],
         "content": landing.get("content", {}),
+        "sections": landing.get("sections", []),
+        "landing_type": landing.get("landing_type", "property"),
+        "linked_entity": landing.get("linked_entity"),
+        "tracking_pixels": landing.get("tracking_pixels", {}),
         "variant_label": landing.get("variant_label", "single"),
         "ab_group_id": landing.get("ab_group_id"),
         "published": landing.get("published", False),

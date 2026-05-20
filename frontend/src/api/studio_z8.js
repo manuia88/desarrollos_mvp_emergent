@@ -1,4 +1,4 @@
-// W5.22 Z.8 — Studio Landings API helpers
+// W5.22 Z.8 — Studio Landings API helpers (extended Z.8.2)
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const j = async (url, opts = {}) => {
@@ -36,6 +36,15 @@ export const getABStats = (gid) => j(`/api/studio/landing/ab/${gid}/stats`);
 export const declareWinner = (gid, winner_variant = null) =>
   post(`/api/studio/landing/ab/${gid}/declare-winner`, { winner_variant });
 export const exportPdfUrl = (id) => `${API}/api/studio/landing/${id}/export-pdf`;
+
+// ─── Z.8.2 · sections + tracking + catalog + starters + undo ──────────────
+export const patchSections = (id, sections) => patch(`/api/studio/landing/${id}/sections`, { sections });
+export const undoSections = (id) => post(`/api/studio/landing/${id}/undo`, {});
+export const patchTrackingPixels = (id, pixels) => patch(`/api/studio/landing/${id}/tracking-pixels`, pixels);
+export const getStarters = () => j('/api/studio/landing/starters');
+export const catalogDevelopments = () => j('/api/studio/landing/catalog/developments');
+export const catalogAsesor = () => j('/api/studio/landing/catalog/asesor');
+export const catalogMarketplaceFilters = () => j('/api/studio/landing/catalog/marketplace-filters');
 
 // ─── Public ───────────────────────────────────────────────────────────────
 export const getPublicLanding = (slug, preview = false) =>
