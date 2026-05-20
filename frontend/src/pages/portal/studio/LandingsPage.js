@@ -90,6 +90,8 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
   const { t } = useTranslation('common');
   const [step, setStep] = useState(1);
   const [landingType, setLandingType] = useState('property');
+  const [propertySource, setPropertySource] = useState('development');
+  const [resales, setResales] = useState([]);
   const [linkedEntityId, setLinkedEntityId] = useState('');
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
@@ -102,13 +104,27 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
   const [mpPreviewCount, setMpPreviewCount] = useState(null);
   const [mpPreviewTotal, setMpPreviewTotal] = useState(null);
 
+  // Z.8.5.1 — Load resales on switch to resale source
+  useEffect(() => {
+    if (!open || landingType !== 'property' || propertySource !== 'resale') return undefined;
+    let alive = true;
+    api.catalogResales(30, 0).then((r) => { if (alive) setResales(r.items || []); }).catch(() => { if (alive) setResales([]); });
+    return () => { alive = false; };
+  }, [open, landingType, propertySource]);
+
   useEffect(() => {
     if (!open) {
       setStep(1); setLandingType('property'); setLinkedEntityId(''); setTitle(''); setSlug('');
       setTpl('modern'); setStarterKey('property'); setError(''); setSearchDev('');
       setMpCfg(MARKETPLACE_CONFIG_DEFAULTS); setMpPreviewCount(null); setMpPreviewTotal(null);
+      setPropertySource('development'); setResales([]);
     }
   }, [open]);
+
+  // Reset linked entity when source changes
+  useEffect(() => {
+    setLinkedEntityId('');
+  }, [propertySource]);
 
   // Live preview count for marketplace builder
   useEffect(() => {
@@ -146,6 +162,7 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
         landing_type: landingType,
         linked_entity_id: linkedEntityId || null,
         starter_key: starterKey,
+        property_source: landingType === 'property' ? propertySource : undefined,
       });
       // Z.8.4 — Si marketplace · persistir config inicial despues de crear
       if (landingType === 'marketplace' && r?.landing?.id) {
@@ -201,15 +218,66 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
 
         {step === 2 && landingType === 'property' && (
           <div data-testid="step-property">
-            <input data-testid="search-dev" placeholder="Buscar proyecto..." value={searchDev} onChange={(e) => setSearchDev(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', marginBottom: 14 }} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, maxHeight: 360, overflow: 'auto' }}>
-              {filteredDevs.map((d) => (
-                <button key={d.id} type="button" data-testid={`dev-${d.id}`} onClick={() => { setLinkedEntityId(d.id); if (!title) setTitle(d.name); }} style={{ padding: 14, borderRadius: 10, background: linkedEntityId === d.id ? 'rgba(99,102,241,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === d.id ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
-                  <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{d.name}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>{d.colonia} · {d.stage}</div>
+            {/* Z.8.5.1 — Radio Desarrollo / Reventa */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('studio.landings.property_source_label') || 'Origen de la propiedad'}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  data-testid="src-development"
+                  type="button"
+                  onClick={() => setPropertySource('development')}
+                  style={{ flex: 1, padding: '14px 18px', borderRadius: 12, background: propertySource === 'development' ? 'rgba(99,102,241,0.18)' : 'rgba(13,16,23,0.6)', border: propertySource === 'development' ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', color: '#F0EBE0', textAlign: 'left' }}
+                >
+                  <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>🏗️ {t('studio.landings.property_source_dev') || 'Desarrollo nuevo'}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4 }}>Pre-venta · construccion · obra avanzada</div>
                 </button>
-              ))}
+                <button
+                  data-testid="src-resale"
+                  type="button"
+                  onClick={() => setPropertySource('resale')}
+                  style={{ flex: 1, padding: '14px 18px', borderRadius: 12, background: propertySource === 'resale' ? 'rgba(236,72,153,0.18)' : 'rgba(13,16,23,0.6)', border: propertySource === 'resale' ? '2px solid #EC4899' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', color: '#F0EBE0', textAlign: 'left' }}
+                >
+                  <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>🔁 {t('studio.landings.property_source_resale') || 'Reventa'}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4 }}>Listing importado · Z.1 EasyBroker etc</div>
+                </button>
+              </div>
             </div>
+
+            {propertySource === 'development' ? (
+              <>
+                <input data-testid="search-dev" placeholder="Buscar proyecto..." value={searchDev} onChange={(e) => setSearchDev(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', marginBottom: 14 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, maxHeight: 360, overflow: 'auto' }}>
+                  {filteredDevs.map((d) => (
+                    <button key={d.id} type="button" data-testid={`dev-${d.id}`} onClick={() => { setLinkedEntityId(d.id); if (!title) setTitle(d.name); }} style={{ padding: 14, borderRadius: 10, background: linkedEntityId === d.id ? 'rgba(99,102,241,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === d.id ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
+                      <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{d.name}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>{d.colonia} · {d.stage}</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {resales.length === 0 ? (
+                  <div data-testid="no-resales" style={{ padding: 28, borderRadius: 12, background: 'rgba(236,72,153,0.06)', border: '1px dashed rgba(236,72,153,0.4)', textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#F0EBE0', marginBottom: 8 }}>{t('studio.landings.no_resales_yet') || 'Aun no tienes reventas importadas'}</div>
+                    <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.65)', marginBottom: 14 }}>Importa propiedades de EasyBroker · Propiedades.com · Casas y Terrenos con el Listing Importer Z.1</div>
+                    <a href="/portal/studio/import" target="_blank" rel="noreferrer" data-testid="import-link" style={{ display: 'inline-block', padding: '10px 18px', borderRadius: 9999, background: GRADIENT, color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13 }}>
+                      {t('studio.landings.import_first') || 'Importar una propiedad →'}
+                    </a>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, maxHeight: 360, overflow: 'auto' }}>
+                    {resales.map((r) => (
+                      <button key={r.id} type="button" data-testid={`resale-${r.id}`} onClick={() => { setLinkedEntityId(r.id); if (!title) setTitle(r.title); }} style={{ padding: 14, borderRadius: 10, background: linkedEntityId === r.id ? 'rgba(236,72,153,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === r.id ? '2px solid #EC4899' : '1px solid rgba(236,72,153,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
+                        <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif', fontSize: 13 }}>{r.title}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4 }}>{r.colonia || '—'} · {r.source_portal}</div>
+                        {r.price && <div style={{ fontSize: 11, color: '#EC4899', marginTop: 4, fontWeight: 700 }}>${r.price.toLocaleString()}</div>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 

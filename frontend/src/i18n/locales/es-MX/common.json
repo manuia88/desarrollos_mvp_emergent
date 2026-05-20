@@ -3686,6 +3686,11 @@
       "lead_form_thanks": "Gracias. Te contactamos pronto.",
       "lead_form_error": "No pudimos enviar tu solicitud. Intenta de nuevo.",
       "lead_form_rate_limited": "Demasiados envios. Espera un minuto.",
+      "property_source_label": "Origen de la propiedad",
+      "property_source_dev": "Desarrollo nuevo",
+      "property_source_resale": "Reventa",
+      "no_resales_yet": "Aun no tienes reventas importadas",
+      "import_first": "Importar una propiedad →",
       "marketplace": {
         "title": "Catalogo completo",
         "filters_title": "Filtros",
