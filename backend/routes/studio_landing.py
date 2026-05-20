@@ -71,6 +71,14 @@ class LandingCreateBody(BaseModel):
     landing_type: Optional[str] = Field("property", pattern="^(property|personal_brand|marketplace)$")
     linked_entity_id: Optional[str] = None
     starter_key: Optional[str] = Field(None, pattern="^(property|personal_brand|marketplace)$")
+    property_source: Optional[str] = Field("development", pattern="^(development|resale)$")
+
+
+class RoutingConfigBody(BaseModel):
+    strategy: Optional[str] = Field(None, pattern="^(asesor_directo|hybrid|round_robin|by_zone|by_load|by_disc|manual_queue)$")
+    priority_order: Optional[List[str]] = None
+    override_score_threshold: Optional[int] = Field(None, ge=0, le=100)
+    override_pin_asesor_id: Optional[str] = Field(None, max_length=80)
 
 
 class LandingPatchBody(BaseModel):
@@ -138,6 +146,8 @@ async def create_landing(body: LandingCreateBody, request: Request) -> Dict[str,
         landing_type=body.landing_type or "property",
         linked_entity_id=body.linked_entity_id,
         initial_sections=initial_sections,
+        property_source=body.property_source or "development",
+        user_role=getattr(user, "role", "asesor"),
     )
     if not res.get("ok"):
         raise HTTPException(422, res.get("error", "No se pudo crear la landing"))
@@ -316,6 +326,25 @@ async def catalog_marketplace_ep(request: Request) -> Dict[str, Any]:
     return await eng.catalog_marketplace_filters(db, user.user_id)
 
 
+@router.get("/catalog/resales")
+async def catalog_resales_ep(request: Request, limit: int = Query(30, ge=1, le=100), skip: int = Query(0, ge=0)) -> Dict[str, Any]:
+    """Z.8.5 — Lista listing_imports parsed del user (reventas Z.1)."""
+    user = await _require_user(request)
+    db = _db(request)
+    return await eng.catalog_resales(db, user.user_id, limit=limit, skip=skip)
+
+
+@router.patch("/{landing_id}/routing-config")
+async def patch_routing_config(landing_id: str, body: RoutingConfigBody, request: Request) -> Dict[str, Any]:
+    """Z.8.5 — Update lead_routing_config (recomendado inmobiliaria_admin)."""
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.update_routing_config(db, landing_id, user.user_id, body.model_dump(exclude_none=True))
+    if not res.get("ok"):
+        raise HTTPException(404, res.get("error", "No se pudo actualizar routing"))
+    return res
+
+
 @router.get("/starters")
 async def get_starters(request: Request) -> Dict[str, Any]:
     """Kept for backward compat with explicit path · returns same payload."""
@@ -405,6 +434,8 @@ async def get_public_landing(slug: str, request: Request, preview: int = 0) -> D
         "ab_group_id": landing.get("ab_group_id"),
         "published": landing.get("published", False),
         "theme": landing.get("theme"),
+        "property_source": landing.get("property_source"),
+        "template_content": landing.get("template_content") or {},
     }
     return {"landing": safe_landing, "brand_kit": brand_kit}
 

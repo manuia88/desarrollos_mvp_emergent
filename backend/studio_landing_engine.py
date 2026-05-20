@@ -38,6 +38,31 @@ TEMPLATE_KEYS = (
 # W5.22 Z.8.2 — Landing types + section types (14 catalog)
 LANDING_TYPES = ("property", "personal_brand", "marketplace")
 
+# Z.8.5 — Property source (development O reventa Z.1 import)
+PROPERTY_SOURCES = ("development", "resale")
+
+# Z.8.5 — Lead routing strategies
+LEAD_ROUTING_STRATEGIES = (
+    "asesor_directo",
+    "hybrid",
+    "round_robin",
+    "by_zone",
+    "by_load",
+    "by_disc",
+    "manual_queue",
+)
+
+
+def lead_routing_defaults(user_role: str = "asesor") -> Dict[str, Any]:
+    """Defaults segun rol: asesor → asesor_directo · inmobiliaria_admin → hybrid."""
+    is_admin = user_role in ("inmobiliaria_admin", "tenant_admin", "superadmin")
+    return {
+        "strategy": "hybrid" if is_admin else "asesor_directo",
+        "priority_order": ["by_zone", "by_load", "round_robin"],
+        "override_score_threshold": 80,
+        "override_pin_asesor_id": None,
+    }
+
 SECTION_TYPES = (
     "hero", "property_showcase", "gallery", "video", "map", "stats",
     "features", "testimonials", "lead_form", "calendar_booking",
@@ -187,11 +212,15 @@ async def create_landing(
     landing_type: str = "property",
     linked_entity_id: Optional[str] = None,
     initial_sections: Optional[List[Dict[str, Any]]] = None,
+    property_source: str = "development",
+    user_role: str = "asesor",
 ) -> Dict[str, Any]:
     if template_key not in TEMPLATE_KEYS:
         return {"ok": False, "error": f"template_key invalido. Validos: {list(TEMPLATE_KEYS)}"}
     if landing_type not in LANDING_TYPES:
         return {"ok": False, "error": f"landing_type invalido. Validos: {list(LANDING_TYPES)}"}
+    if property_source not in PROPERTY_SOURCES:
+        return {"ok": False, "error": f"property_source invalido. Validos: {list(PROPERTY_SOURCES)}"}
 
     raw_slug = (slug or slugify(title) or secrets.token_hex(4)).lower().strip()
     if not SLUG_RE.match(raw_slug):
@@ -222,6 +251,9 @@ async def create_landing(
         "content": content,
         "landing_type": landing_type,
         "linked_entity_id": linked_entity_id,
+        "property_source": property_source if landing_type == "property" else None,
+        "template_content": {},
+        "lead_routing_config": lead_routing_defaults(user_role) if landing_type == "property" else None,
         "sections": sections,
         "tracking_pixels": {"ga4_id": "", "meta_pixel_id": "", "custom_head": "", "custom_body": ""},
         "custom_domain": None,
@@ -242,13 +274,18 @@ async def create_landing(
 
 
 async def migrate_existing_landings(db) -> Dict[str, Any]:
-    """Idempotent: existing landings sin landing_type → property default."""
+    """Idempotent: backfill schemas Z.8.2/Z.8.5."""
     try:
-        res = await db.studio_landings.update_many(
+        res1 = await db.studio_landings.update_many(
             {"landing_type": {"$exists": False}},
             {"$set": {"landing_type": "property", "sections": [], "tracking_pixels": {"ga4_id": "", "meta_pixel_id": "", "custom_head": "", "custom_body": ""}, "linked_entity_id": None, "undo_history": []}},
         )
-        return {"ok": True, "migrated": res.modified_count}
+        # Z.8.5 — backfill property_source + template_content + lead_routing_config
+        res2 = await db.studio_landings.update_many(
+            {"landing_type": "property", "property_source": {"$exists": False}},
+            {"$set": {"property_source": "development", "template_content": {}, "lead_routing_config": lead_routing_defaults()}},
+        )
+        return {"ok": True, "migrated_v1": res1.modified_count, "migrated_z85": res2.modified_count}
     except Exception as exc:
         log.warning(f"[migrate_existing] failed (soft): {exc}")
         return {"ok": False, "error": str(exc)}
@@ -320,24 +357,59 @@ async def hydrate_landing_for_public(db, landing: Dict[str, Any]) -> Dict[str, A
     enriched = dict(landing)
     try:
         if lt == "property" and landing.get("linked_entity_id"):
-            from data_developments import DEVELOPMENTS_BY_ID
-            dev = DEVELOPMENTS_BY_ID.get(landing["linked_entity_id"])
-            if dev:
-                enriched["linked_entity"] = {
-                    "type": "development",
-                    "id": dev.get("id"),
-                    "name": dev.get("name"),
-                    "colonia": dev.get("colonia"),
-                    "alcaldia": dev.get("alcaldia"),
-                    "price_from": dev.get("price_from"),
-                    "stage": dev.get("stage"),
-                    "delivery_estimate": dev.get("delivery_estimate"),
-                    "m2_range": dev.get("m2_range"),
-                    "amenities": dev.get("amenities", [])[:8],
-                    "lat": dev.get("lat"),
-                    "lng": dev.get("lng"),
-                    "images": dev.get("images", [])[:12],
-                }
+            source = landing.get("property_source") or "development"
+            if source == "resale":
+                # Z.8.5 — Reventa: lookup en listing_imports
+                imp = await db.listing_imports.find_one(
+                    {"id": landing["linked_entity_id"], "user_id": landing.get("user_id")},
+                    {"_id": 0, "raw_html_truncated": 0},
+                )
+                if imp and (imp.get("parsed_data") or {}):
+                    pd = imp["parsed_data"]
+                    enriched["linked_entity"] = {
+                        "type": "resale",
+                        "id": imp.get("id"),
+                        "name": pd.get("title") or pd.get("name") or "Propiedad de reventa",
+                        "colonia": pd.get("colonia") or pd.get("neighborhood"),
+                        "alcaldia": pd.get("alcaldia") or pd.get("borough"),
+                        "price_from": pd.get("price"),
+                        "price_to": pd.get("price"),
+                        "stage": "reventa",
+                        "m2_range": [pd.get("m2"), pd.get("m2")] if pd.get("m2") else None,
+                        "bedrooms_range": [pd.get("bedrooms"), pd.get("bedrooms")] if pd.get("bedrooms") else None,
+                        "bathrooms_range": [pd.get("bathrooms"), pd.get("bathrooms")] if pd.get("bathrooms") else None,
+                        "amenities": (pd.get("amenities") or [])[:8],
+                        "lat": pd.get("lat"),
+                        "lng": pd.get("lng"),
+                        "images": (pd.get("images") or [])[:12],
+                        "description": pd.get("description"),
+                        "source_portal": imp.get("source_portal"),
+                        "source_url": imp.get("source_url"),
+                    }
+            else:
+                from data_developments import DEVELOPMENTS_BY_ID
+                dev = DEVELOPMENTS_BY_ID.get(landing["linked_entity_id"])
+                if dev:
+                    enriched["linked_entity"] = {
+                        "type": "development",
+                        "id": dev.get("id"),
+                        "name": dev.get("name"),
+                        "colonia": dev.get("colonia"),
+                        "alcaldia": dev.get("alcaldia"),
+                        "price_from": dev.get("price_from"),
+                        "price_to": dev.get("price_to"),
+                        "stage": dev.get("stage"),
+                        "delivery_estimate": dev.get("delivery_estimate"),
+                        "m2_range": dev.get("m2_range"),
+                        "bedrooms_range": dev.get("bedrooms_range"),
+                        "amenities": dev.get("amenities", [])[:12],
+                        "lat": (dev.get("center") or {}).get("lat") if isinstance(dev.get("center"), dict) else dev.get("lat"),
+                        "lng": (dev.get("center") or {}).get("lng") if isinstance(dev.get("center"), dict) else dev.get("lng"),
+                        "images": dev.get("photos") or dev.get("images", [])[:12],
+                        "units_total": dev.get("units_total"),
+                        "units_available": dev.get("units_available"),
+                        "developer_id": dev.get("developer_id"),
+                    }
         elif lt == "personal_brand" and landing.get("linked_entity_id"):
             prof = await db.asesor_profiles.find_one(
                 {"user_id": landing["linked_entity_id"]}, {"_id": 0}
@@ -390,6 +462,179 @@ async def catalog_developments(db, user_id: str) -> List[Dict[str, Any]]:
 
 async def catalog_asesor(db, user_id: str) -> Optional[Dict[str, Any]]:
     return await db.asesor_profiles.find_one({"user_id": user_id}, {"_id": 0})
+
+
+async def catalog_resales(db, user_id: str, limit: int = 30, skip: int = 0) -> Dict[str, Any]:
+    """Z.8.5 — Lista listing_imports del user (Z.1 importer · solo parsed exitosos)."""
+    try:
+        cur = db.listing_imports.find(
+            {"user_id": user_id, "status": "parsed"},
+            {"_id": 0, "raw_html_truncated": 0},
+        ).sort("created_at", -1).skip(skip).limit(limit)
+        items_raw = await cur.to_list(limit)
+        items: List[Dict[str, Any]] = []
+        for r in items_raw:
+            pd = r.get("parsed_data") or {}
+            items.append({
+                "id": r.get("id"),
+                "title": pd.get("title") or pd.get("name") or "Reventa sin titulo",
+                "price": pd.get("price"),
+                "colonia": pd.get("colonia"),
+                "alcaldia": pd.get("alcaldia"),
+                "source_portal": r.get("source_portal"),
+                "source_url": r.get("source_url"),
+                "image": (pd.get("images") or [None])[0],
+                "created_at": r.get("created_at"),
+            })
+        total = await db.listing_imports.count_documents({"user_id": user_id, "status": "parsed"})
+        return {"items": items, "total": total}
+    except Exception as exc:
+        log.warning(f"[catalog_resales] failed (soft): {exc}")
+        return {"items": [], "total": 0}
+
+
+async def update_routing_config(db, landing_id: str, user_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Z.8.5 — Update lead_routing_config (inmobiliaria_admin recomendado)."""
+    strategy = config.get("strategy")
+    if strategy and strategy not in LEAD_ROUTING_STRATEGIES:
+        return {"ok": False, "error": f"strategy invalido. Validos: {list(LEAD_ROUTING_STRATEGIES)}"}
+    landing = await get_landing(db, landing_id, user_id)
+    if not landing:
+        return {"ok": False, "error": "Landing no encontrada"}
+    current = landing.get("lead_routing_config") or lead_routing_defaults()
+    safe = {**current, **{k: v for k, v in config.items() if v is not None}}
+    # Clamp + sanitize
+    if not isinstance(safe.get("priority_order"), list):
+        safe["priority_order"] = current.get("priority_order") or ["by_zone", "by_load", "round_robin"]
+    safe["override_score_threshold"] = max(0, min(int(safe.get("override_score_threshold") or 80), 100))
+    pin = safe.get("override_pin_asesor_id")
+    safe["override_pin_asesor_id"] = str(pin)[:80] if pin else None
+    res = await db.studio_landings.update_one(
+        {"id": landing_id, "user_id": user_id, "deleted": {"$ne": True}},
+        {"$set": {"lead_routing_config": safe, "updated_at": _iso()}},
+    )
+    if res.matched_count == 0:
+        return {"ok": False, "error": "Landing no encontrada"}
+    return {"ok": True, "lead_routing_config": safe}
+
+
+async def route_lead(db, landing: Dict[str, Any], lead_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Z.8.5 — Aplica lead_routing_config para asignar lead a asesor especifico.
+
+    Returns {"assigned_to": user_id, "strategy": str, "reason": str, "pending": bool}.
+    Defaults to landing.user_id si todo falla.
+    """
+    owner_id = landing.get("user_id")
+    cfg = landing.get("lead_routing_config") or lead_routing_defaults()
+    strategy = cfg.get("strategy") or "asesor_directo"
+    tenant_id = landing.get("tenant_id")
+
+    # Pin override · prioridad maxima
+    pin = cfg.get("override_pin_asesor_id")
+    if pin:
+        return {"assigned_to": pin, "strategy": "manual_pin", "reason": "Pin manual landing", "pending": False}
+
+    if strategy == "manual_queue":
+        return {"assigned_to": None, "strategy": strategy, "reason": "Queue pending assignment", "pending": True}
+
+    if strategy == "asesor_directo":
+        return {"assigned_to": owner_id, "strategy": strategy, "reason": "Landing owner", "pending": False}
+
+    # Strategies que requieren team: fetch asesores del tenant
+    try:
+        team = await db.asesor_profiles.find(
+            {"tenant_id": tenant_id, "active": {"$ne": False}}, {"_id": 0}
+        ).to_list(100)
+    except Exception:
+        team = []
+    if not team:
+        return {"assigned_to": owner_id, "strategy": "fallback_owner", "reason": "Sin team", "pending": False}
+
+    def _by_zone(t):
+        zone = (lead_data.get("zone_interest") or lead_data.get("zona") or "").lower()
+        if not zone:
+            return None
+        for asesor in t:
+            cols = [c.lower() for c in (asesor.get("colonias") or [])]
+            if zone in cols or any(zone in c for c in cols):
+                return asesor.get("user_id")
+        return None
+
+    async def _by_load(t):
+        from datetime import timedelta
+        cutoff = (_now() - timedelta(days=7)).isoformat()
+        scores = []
+        for asesor in t:
+            uid = asesor.get("user_id")
+            try:
+                load = await db.leads.count_documents({"assigned_to": uid, "created_at": {"$gte": cutoff}})
+            except Exception:
+                load = 0
+            scores.append((uid, load))
+        scores.sort(key=lambda x: x[1])
+        return scores[0][0] if scores else None
+
+    async def _round_robin(t):
+        try:
+            cnt = await db.inmobiliaria_round_robin.find_one_and_update(
+                {"tenant_id": tenant_id},
+                {"$inc": {"counter": 1}, "$setOnInsert": {"tenant_id": tenant_id}},
+                upsert=True,
+                return_document=True,
+            )
+            idx = (cnt.get("counter", 0) - 1) % len(t)
+        except Exception:
+            idx = 0
+        return t[idx].get("user_id")
+
+    def _by_disc(t):
+        wanted = (lead_data.get("disc") or "").upper()[:1]
+        if not wanted:
+            return None
+        for asesor in t:
+            if (asesor.get("disc_primary") or "").upper()[:1] == wanted:
+                return asesor.get("user_id")
+        return None
+
+    if strategy == "by_zone":
+        uid = _by_zone(team)
+        if uid:
+            return {"assigned_to": uid, "strategy": strategy, "reason": "Zone match", "pending": False}
+    if strategy == "by_load":
+        uid = await _by_load(team)
+        if uid:
+            return {"assigned_to": uid, "strategy": strategy, "reason": "Load balance", "pending": False}
+    if strategy == "by_disc":
+        uid = _by_disc(team)
+        if uid:
+            return {"assigned_to": uid, "strategy": strategy, "reason": "DISC match", "pending": False}
+    if strategy == "round_robin":
+        uid = await _round_robin(team)
+        if uid:
+            return {"assigned_to": uid, "strategy": strategy, "reason": "Round robin", "pending": False}
+
+    # hybrid: priority_order
+    if strategy == "hybrid":
+        for step in (cfg.get("priority_order") or []):
+            if step == "by_zone":
+                uid = _by_zone(team)
+                if uid:
+                    return {"assigned_to": uid, "strategy": "hybrid:by_zone", "reason": "Hybrid zone", "pending": False}
+            elif step == "by_load":
+                uid = await _by_load(team)
+                if uid:
+                    return {"assigned_to": uid, "strategy": "hybrid:by_load", "reason": "Hybrid load", "pending": False}
+            elif step == "by_disc":
+                uid = _by_disc(team)
+                if uid:
+                    return {"assigned_to": uid, "strategy": "hybrid:by_disc", "reason": "Hybrid disc", "pending": False}
+            elif step == "round_robin":
+                uid = await _round_robin(team)
+                if uid:
+                    return {"assigned_to": uid, "strategy": "hybrid:round_robin", "reason": "Hybrid rr", "pending": False}
+
+    # Fallback owner
+    return {"assigned_to": owner_id, "strategy": "fallback_owner", "reason": "Sin match estrategia", "pending": False}
 
 
 # Z.8.4 — Marketplace runtime query (applies filters + sort + paginate)
@@ -645,7 +890,7 @@ async def list_landings(
 
 
 async def update_landing(db, landing_id: str, user_id: str, patch: Dict[str, Any]) -> Dict[str, Any]:
-    allowed = {"content", "template_key", "brand_kit_id", "project_id"}
+    allowed = {"content", "template_key", "brand_kit_id", "project_id", "template_content", "property_source", "linked_entity_id"}
     update_doc: Dict[str, Any] = {"updated_at": _iso()}
     for k, v in patch.items():
         if k in allowed and v is not None:
@@ -824,6 +1069,9 @@ async def submit_landing_lead(
     }
     await db.studio_landing_leads.insert_one(dict(lead_doc))
 
+    # Z.8.5 — Apply routing config para asignar a asesor especifico
+    routing_decision = await route_lead(db, landing, payload)
+
     # Mirror al pipeline central `leads` (fire-and-forget · sin romper si falla)
     try:
         from datetime import datetime as _dt
@@ -833,10 +1081,12 @@ async def submit_landing_lead(
             "last_name": " ".join((payload.get("nombre") or "").split(" ")[1:])[:80],
             "email": email or None,
             "phone": (payload.get("telefono") or payload.get("phone") or "")[:40],
-            "status_v2": "nuevo",
+            "status_v2": "nuevo" if not routing_decision.get("pending") else "pending_assignment",
             "source": f"landing_{slug}",
             "origin": "landing_z8",
-            "assigned_to": landing.get("user_id"),
+            "assigned_to": routing_decision.get("assigned_to") or landing.get("user_id"),
+            "routing_strategy": routing_decision.get("strategy"),
+            "routing_reason": routing_decision.get("reason"),
             "notes": (payload.get("mensaje") or payload.get("message") or "")[:500],
             "nurture_active": True,
             "created_at": _iso(),
