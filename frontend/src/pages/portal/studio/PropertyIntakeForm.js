@@ -688,9 +688,22 @@ export default function PropertyIntakeForm({ user, onLogout }) {
     if (!intakeId) { setToast('Guarda el intake primero'); return; }
     const next = !data.published;
     setPublishing(true);
+    // Cancelar cualquier auto-save pendiente para evitar race con PATCH posterior
+    if (debouncer.current) { clearTimeout(debouncer.current); debouncer.current = null; }
+    dirty.current = false;
     try {
       const r = await publishIntake(intakeId, next);
-      set('published', r.published);
+      // Re-fetch del intake completo para sincronizar state con backend (incluye published_at server-set)
+      try {
+        const fresh = await getIntake(intakeId);
+        if (fresh?.intake) {
+          setData((d) => ({ ...d, ...fresh.intake }));
+          setWarnings(fresh.intake._warnings || []);
+        }
+      } catch (_) {
+        // si falla refetch, igual asume el published del response
+        setData((d) => ({ ...d, published: r.published, published_at: r.published ? new Date().toISOString() : null }));
+      }
       if (r.public_url) {
         // eslint-disable-next-line no-restricted-globals
         const origin = (typeof window !== 'undefined' && window.location) ? window.location.origin : '';
@@ -793,13 +806,16 @@ export default function PropertyIntakeForm({ user, onLogout }) {
             </section>
 
             {/* Split-pane preview */}
-            <section data-testid="intake-preview" style={{ background: BG_CARD, border: BORDER, borderRadius: 14, padding: 8, maxHeight: '85vh', overflow: 'hidden' }}>
-              <div style={{ padding: '6px 10px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <section data-testid="intake-preview" style={{ background: BG_CARD, border: BORDER, borderRadius: 14, padding: 8, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '6px 10px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <span style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Preview · {data.template_key}</span>
-                {copy && <span style={{ fontSize: 11, color: '#22C55E' }}>copy IA activo</span>}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {copy && <span style={{ fontSize: 11, color: '#22C55E' }}>copy IA activo</span>}
+                  {data.slug && <a href={`/landing/${data.slug}${data.published ? '' : '?preview=1'}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#6366F1', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.ExternalLink size={10} /> Abrir en nueva pestaña</a>}
+                </div>
               </div>
-              <div style={{ background: '#fff', borderRadius: 10, overflow: 'auto', maxHeight: 'calc(85vh - 40px)' }}>
-                <div style={{ transform: 'scale(0.62)', transformOrigin: 'top left', width: '161%', height: '161%' }}>
+              <div style={{ flex: 1, minHeight: 0, background: '#fff', borderRadius: 10, overflow: 'auto', position: 'relative' }}>
+                <div style={{ transformOrigin: 'top left', transform: 'scale(0.5)', width: '200%', position: 'absolute', top: 0, left: 0 }}>
                   <TemplateDispatcher templateKey={data.template_key} intake={data} copy={copy} isPreview />
                 </div>
               </div>

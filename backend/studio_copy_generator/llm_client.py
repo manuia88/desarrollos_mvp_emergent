@@ -18,10 +18,16 @@ from typing import Any, Dict, Optional, Tuple
 log = logging.getLogger("dmx.studio_copy_llm")
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 MODEL_NAME = os.environ.get("STUDIO_COPY_MODEL", "claude-opus-4-7")
+ANTHROPIC_MODEL = os.environ.get("STUDIO_COPY_ANTHROPIC_MODEL", "claude-sonnet-4-5-20250929")
 MAX_TOKENS = 8000
 TEMPERATURE = 0.7
 CACHE_TTL = 86400  # 24h
+
+
+def _has_real_key(k: str) -> bool:
+    return bool(k) and not k.startswith("REPLACE_") and len(k) > 20
 
 _cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 _lock = Lock()
@@ -65,32 +71,52 @@ def _extract_json(text: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-async def _invoke_llm(prompt: str) -> str:
-    """Invoca el LLM via emergentintegrations + EMERGENT_LLM_KEY.
+async def _invoke_via_anthropic_direct(prompt: str) -> str:
+    """Fallback path · usa ANTHROPIC_API_KEY si está configurada."""
+    from anthropic import AsyncAnthropic  # importa lazy · solo si tiene key
+    client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+    resp = await client.messages.create(
+        model=ANTHROPIC_MODEL,
+        max_tokens=MAX_TOKENS,
+        temperature=TEMPERATURE,
+        system="Eres un copywriter inmobiliario experto que retorna SOLO JSON válido (sin markdown wrapping, sin explicaciones, JSON puro).",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    if resp.content and len(resp.content) > 0:
+        return resp.content[0].text
+    return ""
 
-    Raises:
-        RuntimeError si la llamada falla.
-    """
-    if not EMERGENT_LLM_KEY:
-        raise RuntimeError("EMERGENT_LLM_KEY missing in env")
+
+async def _invoke_via_emergent(prompt: str) -> str:
+    """Path principal · usa EMERGENT_LLM_KEY via emergentintegrations."""
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage  # type: ignore
     except ImportError as exc:
         raise RuntimeError(f"emergentintegrations not installed: {exc}") from exc
-
-    # Reuse pattern de asistente_engine.py / ai_suggestions.py
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
         session_id=f"studio_copy_{int(time.time())}",
         system_message="Eres un copywriter inmobiliario experto que retorna SOLO JSON valido.",
     ).with_model("anthropic", MODEL_NAME)
-    # with_max_tokens es opcional · algunas versiones del SDK no la exponen
     try:
         chat = chat.with_max_tokens(MAX_TOKENS)
     except AttributeError:
         pass
     msg = UserMessage(text=prompt)
     return await chat.send_message(msg)
+
+
+async def _invoke_llm(prompt: str) -> str:
+    """Invoca el LLM. Prioridad: EMERGENT_LLM_KEY > ANTHROPIC_API_KEY > error.
+
+    Raises:
+        RuntimeError si ninguna key está configurada o si la llamada falla.
+    """
+    if _has_real_key(EMERGENT_LLM_KEY):
+        return await _invoke_via_emergent(prompt)
+    if _has_real_key(ANTHROPIC_API_KEY):
+        return await _invoke_via_anthropic_direct(prompt)
+    raise RuntimeError("No hay LLM key configurada · agrega EMERGENT_LLM_KEY o ANTHROPIC_API_KEY al backend/.env")
 
 
 async def call_llm(prompt: str, cache_key: str, force_regenerate: bool = False) -> Dict[str, Any]:
