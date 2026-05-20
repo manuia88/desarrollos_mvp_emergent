@@ -3497,6 +3497,7 @@
       "status_pending": "Pendiente",
       "status_generating": "Generando",
       "status_ready": "Listo",
+      "status_done": "Listo",
       "status_failed": "Fallido",
       "status_winner": "Ganador",
       "modal_new_title": "Generar nuevo carrusel",

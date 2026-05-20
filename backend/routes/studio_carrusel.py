@@ -156,6 +156,12 @@ async def list_carruseles(
         q["status"] = status
     cursor = db.studio_carruseles.find(q, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
     items = await cursor.to_list(limit)
+    # Z.2.3 fix: hidratar r2_urls públicos desde r2_keys + CLOUDFLARE_R2_PUBLIC_URL
+    from studio_asset_library import _make_public_url as _r2_url
+    for item in items:
+        r2_keys = item.get("r2_keys") or {}
+        if r2_keys:
+            item["r2_urls"] = {ratio: _r2_url(key) for ratio, key in r2_keys.items()}
     total = await db.studio_carruseles.count_documents(q)
     return {"items": items, "total": total}
 
@@ -169,6 +175,11 @@ async def get_carrusel(carrusel_id: str, request: Request) -> Dict[str, Any]:
     )
     if not car:
         raise HTTPException(404, "Carrusel no encontrado")
+    # Z.2.3 fix: hidratar r2_urls públicos
+    r2_keys = car.get("r2_keys") or {}
+    if r2_keys:
+        from studio_asset_library import _make_public_url as _r2_url
+        car["r2_urls"] = {ratio: _r2_url(key) for ratio, key in r2_keys.items()}
     return {"carrusel": car}
 
 

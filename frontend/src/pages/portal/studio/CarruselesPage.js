@@ -559,7 +559,11 @@ function DetailModal({ carrusel, abStats, brandKits, onClose, onExportPDF, onDec
           </div>
         )}
 
-        <CarruselPreviewLive pages={pages} brandKit={brandKit} initialRatio={(carrusel.aspect_ratios || ['1:1'])[0]} />
+        {carrusel.r2_urls && Object.keys(carrusel.r2_urls).length > 0 ? (
+          <CarruselR2Gallery r2Urls={carrusel.r2_urls} initialRatio={(carrusel.aspect_ratios || Object.keys(carrusel.r2_urls))[0]} />
+        ) : (
+          <CarruselPreviewLive pages={pages} brandKit={brandKit} initialRatio={(carrusel.aspect_ratios || ['1:1'])[0]} />
+        )}
 
         {abStats && (
           <section data-testid="ab-stats" style={{ marginTop: 18, padding: 16, borderRadius: 12, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.20)' }}>
@@ -599,6 +603,34 @@ function DetailModal({ carrusel, abStats, brandKits, onClose, onExportPDF, onDec
           </button>
           <button onClick={onClose} style={primaryBtn()}>{t('studio.carrusel.close')}</button>
         </footer>
+      </div>
+    </div>
+  );
+}
+
+function CarruselR2Gallery({ r2Urls, initialRatio }) {
+  const ratios = Object.keys(r2Urls);
+  const [active, setActive] = useState(ratios.includes(initialRatio) ? initialRatio : ratios[0]);
+  const url = r2Urls[active];
+  return (
+    <div style={{ background: 'rgba(6,8,15,0.5)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', padding: 14 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {ratios.map((r) => (
+          <button key={r} onClick={() => setActive(r)}
+            style={{
+              padding: '6px 14px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
+              border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
+              background: active === r ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
+              color: active === r ? '#FFF' : 'var(--cream-2)',
+            }}>{r}</button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 8 }}>
+        <img src={url} alt={`Preview ${active}`}
+          style={{ maxWidth: '100%', maxHeight: '50vh', objectFit: 'contain', borderRadius: 6, display: 'block' }} />
+      </div>
+      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--cream-3)', textAlign: 'center', fontFamily: 'DM Sans' }}>
+        <a href={url} target="_blank" rel="noreferrer" style={{ color: 'var(--indigo)', textDecoration: 'none' }}>Abrir en nueva pestaña ↗</a>
       </div>
     </div>
   );
