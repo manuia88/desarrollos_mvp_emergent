@@ -225,7 +225,7 @@ def _render_carrusel_pdf(car: Dict[str, Any]) -> bytes:
     GRAY = HexColor("#6B7280")
 
     def rl_gradient(cx, x, y, w, h):
-        step = max(1, w // 40)
+        step = max(1, int(w // 40))
         for i in range(0, int(w), step):
             t = i / max(w - 1, 1)
             r = (99 + t * (236 - 99)) / 255
