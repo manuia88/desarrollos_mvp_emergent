@@ -62,6 +62,13 @@ export const declareWinnerByQuality = (gid) => post(`/api/studio/landing/ab/${gi
 export const getTemplateSpec = (template_key) => j(`/api/studio/landing/templates/${template_key}`);
 export const listTemplates = () => j('/api/studio/landing/templates');
 
+// Z.8.6 · Reusa Z.1 listing-import inline desde modal step 2
+export const importListingInline = (source_url, target_project_id = null) =>
+  post('/api/studio/listing-import', { source_url, target_project_id });
+
+// Z.8.6 · Dark/Light mode toggle
+export const updateThemeMode = (id, theme_mode) => patch(`/api/studio/landing/${id}/theme-mode`, { theme_mode });
+
 // ─── Z.8.4 · Marketplace ──────────────────────────────────────────────────
 export const queryMarketplace = (slug, params = {}) => {
   const qs = new URLSearchParams();

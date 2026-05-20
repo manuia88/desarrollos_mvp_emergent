@@ -77,6 +77,112 @@ function Toast({ msg, onClose }) {
   );
 }
 
+const PORTALS = [
+  { value: 'easybroker.com', label: 'EasyBroker', sample: 'https://propiedades.easybroker.com/property/EB-XXXXX' },
+  { value: 'propiedades.com', label: 'Propiedades.com', sample: 'https://propiedades.com/inmuebles/...' },
+  { value: 'casasyterrenos.com', label: 'Casas y Terrenos', sample: 'https://www.casasyterrenos.com/...' },
+];
+
+function ResaleInlineImporter({ resales, setResales, linkedEntityId, setLinkedEntityId, title, setTitle, t }) {
+  const [formOpen, setFormOpen] = useState(resales.length === 0);
+  const [portalHint, setPortalHint] = useState(PORTALS[0].value);
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const trySubmit = async () => {
+    setError(''); setSuccessMsg('');
+    if (!url || !url.startsWith('http')) {
+      setError('Pega un link valido del portal');
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await api.importListingInline(url);
+      if (r?.ok && r.import?.id) {
+        const imp = r.import;
+        if (imp.status === 'parsed') {
+          // Refresh list + auto-select new one
+          const fresh = await api.catalogResales(30, 0).catch(() => ({ items: [] }));
+          setResales(fresh.items || []);
+          setLinkedEntityId(imp.id);
+          if (!title && imp.parsed_data?.title) setTitle(imp.parsed_data.title);
+          setSuccessMsg('Propiedad importada ✓');
+          setUrl('');
+          setFormOpen(false);
+        } else {
+          setError(imp.error_msg || 'Import falló · revisa el link');
+        }
+      } else {
+        setError('Respuesta inesperada · reintenta');
+      }
+    } catch (e) {
+      const detail = e?.body?.detail || e?.message || 'Error al importar';
+      setError(detail.length > 120 ? detail.slice(0, 120) + '…' : detail);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div data-testid="resale-inline-importer">
+      {/* Form inline */}
+      {formOpen ? (
+        <div style={{ padding: 14, borderRadius: 12, background: 'rgba(236,72,153,0.06)', border: '1px solid rgba(236,72,153,0.3)', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#F0EBE0', fontSize: 13 }}>Importar propiedad</div>
+            {resales.length > 0 && <button type="button" onClick={() => { setFormOpen(false); setError(''); setSuccessMsg(''); }} style={{ background: 'transparent', border: 'none', color: '#a0a4b0', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>}
+          </div>
+          <select data-testid="import-portal" value={portalHint} onChange={(e) => setPortalHint(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 12, marginBottom: 8 }}>
+            {PORTALS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+          <input
+            data-testid="import-url"
+            type="url"
+            placeholder={PORTALS.find((p) => p.value === portalHint)?.sample || 'https://...'}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(236,72,153,0.3)', color: '#F0EBE0', fontSize: 13, marginBottom: 8 }}
+          />
+          <button
+            data-testid="import-submit"
+            type="button"
+            disabled={busy}
+            onClick={trySubmit}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 9999, background: busy ? 'rgba(236,72,153,0.4)' : GRADIENT, color: '#fff', border: 'none', cursor: busy ? 'wait' : 'pointer', fontWeight: 700, fontSize: 13 }}
+          >
+            {busy ? 'Importando…' : `Importar de ${PORTALS.find((p) => p.value === portalHint)?.label}`}
+          </button>
+          {error && <div data-testid="import-error" style={{ marginTop: 8, padding: 8, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.4)', borderRadius: 6, color: '#FCA5A5', fontSize: 12 }}>{error}</div>}
+          {successMsg && <div data-testid="import-success" style={{ marginTop: 8, padding: 8, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.4)', borderRadius: 6, color: '#86EFAC', fontSize: 12 }}>{successMsg}</div>}
+        </div>
+      ) : (
+        <button data-testid="import-toggle" type="button" onClick={() => setFormOpen(true)} style={{ width: '100%', padding: '8px 14px', borderRadius: 9999, background: 'rgba(236,72,153,0.12)', color: '#F0EBE0', border: '1px solid rgba(236,72,153,0.3)', cursor: 'pointer', fontSize: 12, marginBottom: 10 }}>
+          + Importar nueva propiedad
+        </button>
+      )}
+
+      {/* Lista existing resales (compact · scroll dentro) */}
+      {resales.length > 0 ? (
+        <div data-testid="resales-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, maxHeight: 280, overflowY: 'auto', padding: 4 }}>
+          {resales.map((r) => (
+            <button key={r.id} type="button" data-testid={`resale-${r.id}`} onClick={() => { setLinkedEntityId(r.id); if (!title) setTitle(r.title); }} style={{ padding: 12, borderRadius: 10, background: linkedEntityId === r.id ? 'rgba(236,72,153,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === r.id ? '2px solid #EC4899' : '1px solid rgba(236,72,153,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
+              <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif', fontSize: 12, lineHeight: 1.3 }}>{r.title}</div>
+              <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)', marginTop: 2 }}>{r.colonia || '—'} · {r.source_portal}</div>
+              {r.price && <div style={{ fontSize: 11, color: '#EC4899', marginTop: 2, fontWeight: 700 }}>${r.price.toLocaleString()}</div>}
+            </button>
+          ))}
+        </div>
+      ) : !formOpen && (
+        <div data-testid="no-resales-hint" style={{ padding: 18, textAlign: 'center', color: 'rgba(240,235,224,0.5)', fontSize: 12 }}>
+          {t('studio.landings.no_resales_yet') || 'Aún no tienes reventas · usa el form arriba para importar la primera'}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const MARKETPLACE_CONFIG_DEFAULTS = {
   limit: 100,
   sort_by: 'date_new',
@@ -256,27 +362,15 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
                 </div>
               </>
             ) : (
-              <>
-                {resales.length === 0 ? (
-                  <div data-testid="no-resales" style={{ padding: 28, borderRadius: 12, background: 'rgba(236,72,153,0.06)', border: '1px dashed rgba(236,72,153,0.4)', textAlign: 'center' }}>
-                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#F0EBE0', marginBottom: 8 }}>{t('studio.landings.no_resales_yet') || 'Aun no tienes reventas importadas'}</div>
-                    <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.65)', marginBottom: 14 }}>Importa propiedades de EasyBroker · Propiedades.com · Casas y Terrenos con el Listing Importer Z.1</div>
-                    <a href="/portal/studio/import" target="_blank" rel="noreferrer" data-testid="import-link" style={{ display: 'inline-block', padding: '10px 18px', borderRadius: 9999, background: GRADIENT, color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 13 }}>
-                      {t('studio.landings.import_first') || 'Importar una propiedad →'}
-                    </a>
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, maxHeight: 360, overflow: 'auto' }}>
-                    {resales.map((r) => (
-                      <button key={r.id} type="button" data-testid={`resale-${r.id}`} onClick={() => { setLinkedEntityId(r.id); if (!title) setTitle(r.title); }} style={{ padding: 14, borderRadius: 10, background: linkedEntityId === r.id ? 'rgba(236,72,153,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === r.id ? '2px solid #EC4899' : '1px solid rgba(236,72,153,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
-                        <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif', fontSize: 13 }}>{r.title}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4 }}>{r.colonia || '—'} · {r.source_portal}</div>
-                        {r.price && <div style={{ fontSize: 11, color: '#EC4899', marginTop: 4, fontWeight: 700 }}>${r.price.toLocaleString()}</div>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
+              <ResaleInlineImporter
+                resales={resales}
+                setResales={setResales}
+                linkedEntityId={linkedEntityId}
+                setLinkedEntityId={setLinkedEntityId}
+                title={title}
+                setTitle={setTitle}
+                t={t}
+              />
             )}
           </div>
         )}
