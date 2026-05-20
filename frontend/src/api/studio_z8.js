@@ -71,3 +71,10 @@ export const queryMarketplace = (slug, params = {}) => {
 };
 export const updateMarketplaceConfig = (id, cfg) => patch(`/api/studio/landing/${id}/marketplace-config`, cfg);
 export const previewMarketplace = (id, cfg) => post(`/api/studio/landing/${id || '_new'}/marketplace-preview`, cfg);
+
+// ─── Z.8.5 · Property templates · Routing · Auto-fill ─────────────────────
+export const listPropertyTemplates = () => j('/api/studio/landing/property-templates');
+export const applyTemplateStructure = (id) => post(`/api/studio/landing/${id}/apply-template-structure`, {});
+export const autoFillLanding = (id) => post(`/api/studio/landing/${id}/auto-fill`, {});
+export const updateRoutingConfig = (id, cfg) => patch(`/api/studio/landing/${id}/routing-config`, cfg);
+export const catalogResales = (limit = 30, skip = 0) => j(`/api/studio/landing/catalog/resales?limit=${limit}&skip=${skip}`);

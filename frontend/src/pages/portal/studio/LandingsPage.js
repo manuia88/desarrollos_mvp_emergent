@@ -510,7 +510,72 @@ function ABStatsPanel({ groupId, onClose, onWinner }) {
   );
 }
 
-function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChanged, onToast }) {
+const ROUTING_STRATEGIES = [
+  { key: 'asesor_directo', label: 'Asesor directo · owner landing' },
+  { key: 'hybrid', label: 'Hibrido · zone → load → round robin' },
+  { key: 'round_robin', label: 'Round robin · turno equipo' },
+  { key: 'by_zone', label: 'Por zona · match colonias asesor' },
+  { key: 'by_load', label: 'Por carga · asesor con menos leads' },
+  { key: 'by_disc', label: 'Por DISC · match perfil asesor' },
+  { key: 'manual_queue', label: 'Cola manual · asignacion human' },
+];
+
+function RoutingConfigPanel({ landing, userRole, onToast, onChanged }) {
+  const isAdmin = ['inmobiliaria_admin', 'tenant_admin', 'superadmin'].includes(userRole);
+  const [cfg, setCfg] = useState(landing.lead_routing_config || { strategy: isAdmin ? 'hybrid' : 'asesor_directo', priority_order: ['by_zone', 'by_load', 'round_robin'], override_score_threshold: 80, override_pin_asesor_id: null });
+  const [saving, setSaving] = useState(false);
+
+  const persist = async (next) => {
+    setCfg(next);
+    setSaving(true);
+    try {
+      await api.updateRoutingConfig(landing.id, next);
+      onToast('Routing actualizado');
+      onChanged?.();
+    } catch (e) {
+      onToast(e.body?.detail || 'No se pudo actualizar routing');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div data-testid="routing-panel" style={{ marginTop: 12, padding: 12, background: BG_CARD, border: BORDER, borderRadius: 12 }}>
+      <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        Routing de Leads {saving ? '· guardando...' : ''}
+      </div>
+      <select data-testid="routing-strategy" value={cfg.strategy} onChange={(e) => persist({ ...cfg, strategy: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 12 }}>
+        {ROUTING_STRATEGIES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+      </select>
+      {cfg.strategy === 'hybrid' && (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 6 }}>Priority order ({(cfg.priority_order || []).join(' → ')})</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {['by_zone', 'by_load', 'by_disc', 'round_robin'].map((s) => {
+              const on = (cfg.priority_order || []).includes(s);
+              return (
+                <button key={s} type="button" onClick={() => { const cur = cfg.priority_order || []; const next = on ? cur.filter((x) => x !== s) : [...cur, s]; persist({ ...cfg, priority_order: next }); }} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? GRADIENT : 'rgba(99,102,241,0.12)', color: on ? '#fff' : '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{s}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <div style={{ marginTop: 10 }}>
+        <label style={{ fontSize: 11, color: '#a0a4b0' }}>Override score threshold ({cfg.override_score_threshold || 80})
+          <input data-testid="routing-threshold" type="range" min="0" max="100" step="5" value={cfg.override_score_threshold || 80} onChange={(e) => setCfg({ ...cfg, override_score_threshold: Number(e.target.value) })} onMouseUp={() => persist(cfg)} onTouchEnd={() => persist(cfg)} style={{ width: '100%', marginTop: 4 }} />
+        </label>
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <label style={{ fontSize: 11, color: '#a0a4b0' }}>Pin manual asesor (user_id)
+          <input data-testid="routing-pin" value={cfg.override_pin_asesor_id || ''} onChange={(e) => setCfg({ ...cfg, override_pin_asesor_id: e.target.value || null })} onBlur={() => persist(cfg)} placeholder="vacio = sin pin" style={{ width: '100%', marginTop: 4, padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 12 }} />
+        </label>
+      </div>
+      <div style={{ marginTop: 8, fontSize: 11, color: '#a0a4b0' }}>{isAdmin ? '✓ Eres admin · cambios aplican al equipo' : 'Modo asesor · sin team routing'}</div>
+    </div>
+  );
+}
+
+function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChanged, onToast, userRole }) {
   const [sections, setSections] = useState(landing.sections || []);
   const [activeIdx, setActiveIdx] = useState(0);
   const [showPicker, setShowPicker] = useState(false);
@@ -657,10 +722,23 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
           <button data-testid="editor-switch-template" type="button" onClick={() => setShowThemeSwitcher(!showThemeSwitcher)} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
             <Icons.Palette size={12} /> {showThemeSwitcher ? 'Cerrar' : 'Cambiar template'}
           </button>
+          {landing.landing_type === 'property' && (
+            <>
+              <button data-testid="editor-apply-structure" type="button" onClick={async () => { try { const r = await api.applyTemplateStructure(landing.id); onToast(`Template aplicado · ${r.sections_count} secciones`); onChanged?.(); } catch (e) { onToast(e.body?.detail || 'No se pudo aplicar'); } }} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
+                <Icons.LayoutTemplate size={12} /> Aplicar estructura
+              </button>
+              <button data-testid="editor-auto-fill" type="button" onClick={async () => { try { await api.autoFillLanding(landing.id); onToast('Auto-fill DMX completo · copy + data Atlax'); onChanged?.(); } catch (e) { onToast(e.body?.detail || 'No se pudo auto-fill'); } }} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
+                <Icons.Sparkles size={12} /> Auto-fill Atlax
+              </button>
+            </>
+          )}
           {!landing.ab_group_id ? null : (
             <button data-testid="editor-ab" type="button" onClick={() => setShowAB(!showAB)} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}><Icons.GitBranch size={12} /> A/B</button>
           )}
         </div>
+        {landing.landing_type === 'property' && (
+          <RoutingConfigPanel landing={landing} userRole={userRole} onToast={onToast} onChanged={onChanged} />
+        )}
         {showThemeSwitcher && (
           <div data-testid="theme-switcher-panel" style={{ marginTop: 12, padding: 12, background: BG_CARD, border: BORDER, borderRadius: 12 }}>
             <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Template activo · sections se preservan</div>
@@ -839,6 +917,7 @@ export default function LandingsPage({ user, onLogout }) {
             onBack={() => { setEditing(null); setEditingFull(null); }}
             onChanged={refreshEdit}
             onToast={setToast}
+            userRole={user?.role}
           />
         ) : (
           <>

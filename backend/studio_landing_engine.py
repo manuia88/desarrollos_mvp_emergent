@@ -1080,7 +1080,14 @@ async def submit_landing_lead(
     }
     await db.studio_landing_leads.insert_one(dict(lead_doc))
 
-    # Z.8.5 — Apply routing config para asignar a asesor especifico
+    # Z.8.5 — Infer DISC profile + apply routing config
+    try:
+        from disc_inferencer_landing import infer_disc_from_lead
+        inferred_disc = infer_disc_from_lead(payload)
+        if inferred_disc:
+            payload["disc"] = inferred_disc
+    except Exception:
+        pass
     routing_decision = await route_lead(db, landing, payload)
 
     # Mirror al pipeline central `leads` (fire-and-forget · sin romper si falla)
@@ -1098,6 +1105,7 @@ async def submit_landing_lead(
             "assigned_to": routing_decision.get("assigned_to") or landing.get("user_id"),
             "routing_strategy": routing_decision.get("strategy"),
             "routing_reason": routing_decision.get("reason"),
+            "disc_inferred": payload.get("disc"),
             "notes": (payload.get("mensaje") or payload.get("message") or "")[:500],
             "nurture_active": True,
             "created_at": _iso(),
