@@ -1,4 +1,4 @@
-// W5.22 Z.8.2 — Section dispatcher: switch type → render component
+// W5.22 Z.8.3 — Section dispatcher: switch type → render component (theme-aware)
 import React from 'react';
 import HeroSection from './HeroSection';
 import PropertyShowcaseSection from './PropertyShowcaseSection';
@@ -51,20 +51,34 @@ export const SECTION_META = {
   footer: { label: 'Footer', icon: 'Anchor', desc: 'Logo + contacto + social' },
 };
 
-export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview }) {
+export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme }) {
   if (!section || section.visible === false) return null;
   const Comp = REGISTRY[section.type];
   if (!Comp) return null;
   const overrides = section.style_overrides || {};
+  const t = theme || {};
+  const palette = t.palette || {};
+  const layout = t.layout || {};
+  const animation = t.animation || {};
   const wrapStyle = {
-    background: overrides.bg_color || 'transparent',
+    background: overrides.bg_color || palette.bg || 'transparent',
+    color: palette.text || undefined,
     paddingTop: overrides.padding_top ?? undefined,
     paddingBottom: overrides.padding_bottom ?? undefined,
     textAlign: overrides.text_align || undefined,
+    transition: `background ${animation.duration || '320ms'} ${animation.transition_curve || 'cubic-bezier(0.22, 1, 0.36, 1)'}`,
   };
+  if (layout.border_radius) wrapStyle.borderRadius = undefined;
   return (
-    <div data-testid={`section-${section.type}`} data-section-id={section.id} style={wrapStyle}>
-      <Comp config={section.config || {}} brandKit={brandKit || {}} linkedEntity={linkedEntity} onLead={onLead} isPreview={isPreview} />
+    <div data-testid={`section-${section.type}`} data-section-id={section.id} data-theme={t.name ? section.type : undefined} style={wrapStyle}>
+      <Comp
+        config={section.config || {}}
+        brandKit={brandKit || {}}
+        linkedEntity={linkedEntity}
+        onLead={onLead}
+        isPreview={isPreview}
+        theme={t}
+      />
     </div>
   );
 }

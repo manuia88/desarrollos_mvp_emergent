@@ -1,4 +1,4 @@
-// W5.22 Z.8.2 — CalendarBooking: slots placeholder
+// W5.22 Z.8.3 — CalendarBooking · theme-aware slots placeholder
 import React, { useState } from 'react';
 
 const today = new Date();
@@ -12,20 +12,30 @@ function nextDays(n = 7) {
   });
 }
 
-export default function CalendarBookingSection({ config = {}, brandKit = {} }) {
+export default function CalendarBookingSection({ config = {}, brandKit = {}, theme = {} }) {
+  const palette = theme.palette || {};
+  const typography = theme.typography || {};
+  const layout = theme.layout || {};
+
   const [day, setDay] = useState(null);
   const [slot, setSlot] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
-  const primary = brandKit.color_primary || '#6366F1';
-  const secondary = brandKit.color_secondary || '#EC4899';
-  const grad = `linear-gradient(90deg, ${primary}, ${secondary})`;
+
+  const themePrimary = palette.primary || brandKit.color_primary || '#6366F1';
+  const themeSecondary = palette.secondary || brandKit.color_secondary || '#EC4899';
+  const grad = palette.gradient || `linear-gradient(90deg, ${themePrimary}, ${themeSecondary})`;
+  const text = palette.text || '#F0EBE0';
+  const radius = parseInt(layout.border_radius || '12', 10) || 0;
+  const sectionPadding = layout.section_padding || '4rem 1.5rem';
+  const headingFont = typography.heading_font || "'Outfit', sans-serif";
+  const bodyFont = typography.body_font || "'DM Sans', sans-serif";
 
   return (
-    <section data-testid="sec-calendar" style={{ padding: '4rem 1.5rem', maxWidth: 900, margin: '0 auto' }}>
-      <h2 style={{ fontFamily: 'Outfit, sans-serif', textAlign: 'center', margin: '0 0 24px', fontSize: 'clamp(1.5rem, 2.5vw, 2rem)' }}>Agenda visita</h2>
+    <section data-testid="sec-calendar" style={{ padding: sectionPadding, maxWidth: 900, margin: '0 auto', fontFamily: bodyFont, color: text }}>
+      <h2 style={{ fontFamily: headingFont, textAlign: 'center', margin: '0 0 24px', fontSize: 'clamp(1.5rem, 2.5vw, 2rem)' }}>Agenda visita</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 24 }}>
         {nextDays(7).map((d, i) => (
-          <button key={i} type="button" data-testid={`cal-day-${i}`} onClick={() => setDay(d)} style={{ padding: 14, borderRadius: 12, background: day && d.toDateString() === day.toDateString() ? grad : 'rgba(13,16,23,0.6)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'center', fontWeight: 600 }}>
+          <button key={i} type="button" data-testid={`cal-day-${i}`} onClick={() => setDay(d)} style={{ padding: 14, borderRadius: radius, background: day && d.toDateString() === day.toDateString() ? grad : 'rgba(13,16,23,0.6)', color: text, border: `1px solid ${themePrimary}33`, cursor: 'pointer', textAlign: 'center', fontWeight: 600, fontFamily: bodyFont }}>
             <div style={{ fontSize: 11, opacity: 0.7 }}>{d.toLocaleDateString('es-MX', { weekday: 'short' })}</div>
             <div style={{ fontSize: 22 }}>{d.getDate()}</div>
             <div style={{ fontSize: 11, opacity: 0.7 }}>{d.toLocaleDateString('es-MX', { month: 'short' })}</div>
@@ -35,7 +45,7 @@ export default function CalendarBookingSection({ config = {}, brandKit = {} }) {
       {day && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
           {SLOTS.map((s) => (
-            <button key={s} type="button" data-testid={`cal-slot-${s}`} onClick={() => { setSlot(s); setConfirmed(true); }} style={{ padding: '12px 8px', borderRadius: 10, background: slot === s ? grad : 'rgba(99,102,241,0.08)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.2)', cursor: 'pointer', fontWeight: 600 }}>{s}</button>
+            <button key={s} type="button" data-testid={`cal-slot-${s}`} onClick={() => { setSlot(s); setConfirmed(true); }} style={{ padding: '12px 8px', borderRadius: Math.max(radius / 1.5, 8), background: slot === s ? grad : `${themePrimary}14`, color: text, border: `1px solid ${themePrimary}33`, cursor: 'pointer', fontWeight: 600 }}>{s}</button>
           ))}
         </div>
       )}
