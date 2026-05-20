@@ -202,6 +202,17 @@ app.include_router(studio_carrusel_router)
 app.include_router(studio_auto_content_router)
 register_z2_features()
 
+# W5.22 Z.8 — Studio: Landing Pages Profesionales (10 templates + A/B + PDF brochure)
+from routes.studio_landing import (
+    router as studio_landing_router,
+    public_router as studio_landing_public_router,
+)
+from studio_landing_engine import ensure_indexes as ensure_studio_landing_indexes
+from studio_feature_registry_z8 import register_z8_features
+app.include_router(studio_landing_router)
+app.include_router(studio_landing_public_router)
+register_z8_features()
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
@@ -1042,6 +1053,11 @@ async def startup():
         await ensure_auto_content_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] studio Z.2 indexes failed: {e}")
+    # W5.22 Z.8 — Studio Landing Pages indexes
+    try:
+        await ensure_studio_landing_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] studio Z.8 indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)

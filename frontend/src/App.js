@@ -206,6 +206,9 @@ const StudioAssetLibraryPage = lazy(() => import('./pages/portal/studio/AssetLib
 // W5.22 Z.2 Sub-D — Studio Z.2: Carruseles + Auto-Content
 const StudioCarruselesPage   = lazy(() => import('./pages/portal/studio/CarruselesPage'));
 const StudioAutoContentPage  = lazy(() => import('./pages/portal/studio/AutoContentPage'));
+// W5.22 Z.8 — Studio Landings Profesionales (10 templates + A/B + PDF brochure)
+const StudioLandingsPage = lazy(() => import('./pages/portal/studio/LandingsPage'));
+const LandingPublicPage  = lazy(() => import('./pages/public/LandingPublic'));
 // W2.5 SA6 — Granular Metrics Cube
 const SuperadminMetricsCube          = lazy(() => import('./pages/superadmin/SuperadminMetricsCube'));
 // W2.6 SA8 — Founder Console (root /superadmin)
@@ -557,6 +560,9 @@ function AppRouter() {
       {/* W5.22 Z.2 Sub-D — Studio Carruseles + Auto-Content */}
       <Route path="/portal/studio/carruseles" element={<AdvisorRoute Page={StudioCarruselesPage} />} />
       <Route path="/portal/studio/auto-content" element={<AdvisorRoute Page={StudioAutoContentPage} />} />
+      {/* W5.22 Z.8 — Studio Landings Profesionales */}
+      <Route path="/portal/studio/landings" element={<AdvisorRoute Page={StudioLandingsPage} />} />
+      <Route path="/landing/:slug" element={<Suspense fallback={null}><LandingPublicPage /></Suspense>} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />

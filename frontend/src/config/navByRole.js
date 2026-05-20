@@ -39,6 +39,7 @@ const DEV_NAV = [
       { key: 'studio-import',    to: '/portal/studio/import',        label: 'Studio · Importar Listing', Icon: FolderUp },
       { key: 'studio-carruseles', to: '/portal/studio/carruseles',   label: 'Studio · Carruseles', Icon: Sparkles },
       { key: 'studio-auto-content', to: '/portal/studio/auto-content', label: 'Studio · Auto-Content', Icon: Megaphone },
+      { key: 'studio-landings', to: '/portal/studio/landings',       label: 'Studio · Landings', Icon: Layers },
     ],
   },
   {
@@ -101,6 +102,7 @@ const ASESOR_NAV = [
       { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
       { key: 'studio-carruseles', to: '/portal/studio/carruseles',       label: 'Studio · Carruseles', Icon: Sparkles },
       { key: 'studio-auto-content', to: '/portal/studio/auto-content',   label: 'Studio · Auto-Content', Icon: Megaphone },
+      { key: 'studio-landings', to: '/portal/studio/landings',           label: 'Studio · Landings', Icon: Layers },
       { key: 'briefings',    to: '/asesor/briefings',                    label: 'Briefings',        Icon: FileText },
       { key: 'briefing-traffic', to: '/asesor/briefing',                 label: 'Tráfico+Clima',    Icon: MapPin },
       { key: 'links',        to: '/asesor/links-tracking',               label: 'Links tracking',   Icon: Link },
@@ -123,6 +125,7 @@ const INMOBILIARIA_MEMBER_NAV = [
       { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
       { key: 'studio-carruseles', to: '/portal/studio/carruseles',       label: 'Studio · Carruseles', Icon: Sparkles },
       { key: 'studio-auto-content', to: '/portal/studio/auto-content',   label: 'Studio · Auto-Content', Icon: Megaphone },
+      { key: 'studio-landings', to: '/portal/studio/landings',           label: 'Studio · Landings', Icon: Layers },
     ],
   },
 ];
@@ -145,6 +148,7 @@ const INMOBILIARIA_ADMIN_NAV = [
       { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },
       { key: 'studio-carruseles', to: '/portal/studio/carruseles',       label: 'Studio · Carruseles', Icon: Sparkles },
       { key: 'studio-auto-content', to: '/portal/studio/auto-content',   label: 'Studio · Auto-Content', Icon: Megaphone },
+      { key: 'studio-landings', to: '/portal/studio/landings',           label: 'Studio · Landings', Icon: Layers },
     ],
   },
 ];
