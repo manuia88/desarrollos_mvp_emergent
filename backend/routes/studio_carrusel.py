@@ -183,9 +183,12 @@ async def get_carrusel(carrusel_id: str, request: Request) -> Dict[str, Any]:
     return {"carrusel": car}
 
 
+@router.get("/{carrusel_id}/export-pdf")
 @router.post("/{carrusel_id}/export-pdf")
 async def export_pdf(carrusel_id: str, request: Request):
-    """Exporta carrusel a PDF A4 con ReportLab."""
+    """Exporta carrusel a PDF A4 con ReportLab.
+    Soporta GET (download directo browser via window.open) y POST (fetch legacy).
+    """
     user = await _require_user(request)
     db = _db(request)
     car = await db.studio_carruseles.find_one(

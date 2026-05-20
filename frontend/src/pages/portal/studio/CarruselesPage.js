@@ -74,15 +74,10 @@ export default function CarruselesPage({ user, onLogout }) {
     }
   };
 
-  const handleExportPDF = async (carruselId) => {
+  const handleExportPDF = (carruselId) => {
+    // Z.2.3 fix: usar GET + window.open · browser maneja download nativo con cookie session
     try {
-      const blob = await z2.exportCarruselPDF(carruselId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `carrusel-${carruselId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      z2.exportCarruselPDF(carruselId);
       setToast(t('studio.carrusel.toast_pdf_exported'));
     } catch (e) {
       setToast(`${t('studio.toast.error')}: ${e.message}`);

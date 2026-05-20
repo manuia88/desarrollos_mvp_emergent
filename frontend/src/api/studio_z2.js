@@ -35,15 +35,11 @@ export const listCarruseles = (params = {}) => {
   return j(`/api/studio/carrusel/list${qs ? `?${qs}` : ''}`);
 };
 export const getCarrusel = (id) => j(`/api/studio/carrusel/${id}`);
-export const exportCarruselPDF = async (carruselId) => {
-  const r = await fetch(`${API}/api/studio/carrusel/${carruselId}/export-pdf`, {
-    method: 'POST', credentials: 'include',
-  });
-  if (!r.ok) {
-    const body = await r.json().catch(() => ({}));
-    throw Object.assign(new Error(body.detail || r.statusText), { status: r.status, body });
-  }
-  return r.blob();
+export const exportCarruselPDF = (carruselId) => {
+  // Z.2.3 fix: usar GET + window.open · browser maneja download nativo con Content-Disposition
+  // Evita CORS preflight de POST + credentials:include
+  const url = `${API}/api/studio/carrusel/${carruselId}/export-pdf`;
+  window.open(url, '_blank');
 };
 
 // ─── Auto-Content (Sub-C) ───────────────────────────────────────────────────
