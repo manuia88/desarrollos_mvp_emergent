@@ -32,6 +32,11 @@ import studio_landing_engine as eng
 import studio_landing_pdf as pdf_eng
 import studio_landing_starters as starters_eng
 
+try:
+    import studio_landing_themes as themes_eng
+except Exception:  # pragma: no cover
+    themes_eng = None  # type: ignore
+
 log = logging.getLogger("dmx.routes_studio_landing")
 
 router = APIRouter(prefix="/api/studio/landing", tags=["studio_landing"])
@@ -159,6 +164,16 @@ async def get_starters_root(request: Request) -> Dict[str, Any]:
         "section_types": list(eng.SECTION_TYPES),
         "landing_types": list(eng.LANDING_TYPES),
     }
+
+
+@router.get("/themes")
+async def get_themes(request: Request) -> Dict[str, Any]:
+    """Z.8.3 — Static-prefix · BEFORE /{landing_id} · lista metadata de los 10 themes."""
+    await _require_user(request)
+    if themes_eng is None:
+        return {"themes": [], "total": 0}
+    items = themes_eng.list_themes_metadata()
+    return {"themes": items, "total": len(items)}
 
 
 @router.get("/{landing_id}")
@@ -356,6 +371,7 @@ async def get_public_landing(slug: str, request: Request, preview: int = 0) -> D
         "variant_label": landing.get("variant_label", "single"),
         "ab_group_id": landing.get("ab_group_id"),
         "published": landing.get("published", False),
+        "theme": landing.get("theme"),
     }
     return {"landing": safe_landing, "brand_kit": brand_kit}
 

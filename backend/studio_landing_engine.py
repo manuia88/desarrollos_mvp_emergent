@@ -23,6 +23,13 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("dmx.studio_landing_engine")
 
+# Z.8.3 — Themes import (soft · fallback si modulo no disponible)
+try:
+    from studio_landing_themes import get_theme as _get_theme
+except Exception:  # pragma: no cover
+    def _get_theme(_k):  # type: ignore
+        return None
+
 TEMPLATE_KEYS = (
     "luxury", "modern", "family", "investor", "boutique",
     "urgent", "scrollytelling", "video_first", "social_proof", "compare",
@@ -319,6 +326,13 @@ async def hydrate_landing_for_public(db, landing: Dict[str, Any]) -> Dict[str, A
             }
     except Exception as exc:
         log.warning(f"[hydrate_landing] failed (soft): {exc}")
+    # Z.8.3 — merge theme tokens segun template_key (fallback "modern")
+    try:
+        theme = _get_theme(enriched.get("template_key", "modern"))
+        if theme:
+            enriched["theme"] = theme
+    except Exception as exc:
+        log.warning(f"[hydrate_landing theme] failed (soft): {exc}")
     return enriched
 
 
@@ -362,9 +376,17 @@ async def catalog_marketplace_filters(db, user_id: str) -> Dict[str, Any]:
 
 
 async def get_landing(db, landing_id: str, user_id: str) -> Optional[Dict[str, Any]]:
-    return await db.studio_landings.find_one(
+    doc = await db.studio_landings.find_one(
         {"id": landing_id, "user_id": user_id, "deleted": {"$ne": True}}, {"_id": 0}
     )
+    if doc:
+        try:
+            theme = _get_theme(doc.get("template_key", "modern"))
+            if theme:
+                doc["theme"] = theme
+        except Exception:
+            pass
+    return doc
 
 
 async def get_landing_by_slug(db, slug: str, include_unpublished: bool = False) -> Optional[Dict[str, Any]]:
