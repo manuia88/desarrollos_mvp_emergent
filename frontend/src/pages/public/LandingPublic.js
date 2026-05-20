@@ -162,17 +162,21 @@ export default function LandingPublic() {
   const landing = data.landing;
   const brandKit = data.brand_kit || {};
   const linkedEntity = landing.linked_entity || null;
+  const theme = landing.theme || null;
   const hasSections = (landing.sections || []).length > 0;
   const atlaxEnabled = landing.content?.atlax_widget_enabled;
   const TplComp = !hasSections ? (TEMPLATES[landing.template_key] || TEMPLATES.modern) : null;
   const heroSec = (landing.sections || []).find((s) => s.type === 'hero');
   const heroTitle = heroSec?.config?.headline || landing.content?.hero?.title;
   const waPhone = brandKit?.contact_whatsapp || brandKit?.phone;
+  const themeBg = theme?.palette?.bg || '#06080F';
+  const themeText = theme?.palette?.text || '#F0EBE0';
+  const themeBodyFont = theme?.typography?.body_font || 'DM Sans, sans-serif';
 
   return (
-    <div data-testid="landing-public" style={{ background: '#06080F', color: '#F0EBE0', minHeight: '100vh', fontFamily: 'DM Sans, sans-serif' }}>
+    <div data-testid="landing-public" data-theme-key={landing.template_key} style={{ background: themeBg, color: themeText, minHeight: '100vh', fontFamily: themeBodyFont, transition: 'background 320ms cubic-bezier(0.22, 1, 0.36, 1)' }}>
       {isPreview && (
-        <div data-testid="preview-banner" style={{ background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', textAlign: 'center', padding: 10, fontSize: 13, fontWeight: 600 }}>
+        <div data-testid="preview-banner" style={{ background: theme?.palette?.gradient || 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', textAlign: 'center', padding: 10, fontSize: 13, fontWeight: 600 }}>
           {t('studio.landings.preview_banner')}
         </div>
       )}
@@ -185,6 +189,7 @@ export default function LandingPublic() {
             linkedEntity={linkedEntity}
             onLead={onLead}
             isPreview={isPreview}
+            theme={theme}
           />
         ))
       ) : TplComp ? (

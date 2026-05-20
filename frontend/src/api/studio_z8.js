@@ -42,6 +42,7 @@ export const patchSections = (id, sections) => patch(`/api/studio/landing/${id}/
 export const undoSections = (id) => post(`/api/studio/landing/${id}/undo`, {});
 export const patchTrackingPixels = (id, pixels) => patch(`/api/studio/landing/${id}/tracking-pixels`, pixels);
 export const getStarters = () => j('/api/studio/landing/starters');
+export const listThemes = () => j('/api/studio/landing/themes');
 export const catalogDevelopments = () => j('/api/studio/landing/catalog/developments');
 export const catalogAsesor = () => j('/api/studio/landing/catalog/asesor');
 export const catalogMarketplaceFilters = () => j('/api/studio/landing/catalog/marketplace-filters');

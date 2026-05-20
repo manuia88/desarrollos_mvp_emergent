@@ -22,6 +22,50 @@ const LANDING_TYPE_META = [
   { key: 'personal_brand', icon: 'UserCircle', label: 'Personal Brand', desc: 'Tu marca como asesor' },
   { key: 'marketplace', icon: 'Grid3x3', label: 'Marketplace', desc: 'Tu portafolio completo' },
 ];
+const TEMPLATE_KEYS_DEFAULT = ['modern', 'luxury', 'family', 'investor', 'boutique', 'urgent', 'scrollytelling', 'video_first', 'social_proof', 'compare'];
+
+function PaletteDots({ palette = {} }) {
+  return (
+    <div style={{ display: 'inline-flex', gap: 4, marginRight: 8 }}>
+      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.primary || '#6366F1', border: '1px solid rgba(255,255,255,0.1)' }} />
+      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.secondary || '#EC4899', border: '1px solid rgba(255,255,255,0.1)' }} />
+      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.bg || '#06080F', border: '1px solid rgba(255,255,255,0.15)' }} />
+    </div>
+  );
+}
+
+function ThemeCard({ themeMeta, active, onSelect, compact = false }) {
+  const palette = themeMeta?.preview_palette || {};
+  const fits = (themeMeta?.use_case_fit || []).join(' · ');
+  return (
+    <button
+      type="button"
+      data-testid={`theme-card-${themeMeta.key}`}
+      onClick={onSelect}
+      title={`${themeMeta.name} · ${fits}`}
+      style={{
+        padding: compact ? 10 : 14,
+        borderRadius: 12,
+        background: active ? `${palette.primary || '#6366F1'}22` : 'rgba(13,16,23,0.6)',
+        border: active ? `2px solid ${palette.primary || '#6366F1'}` : '1px solid rgba(99,102,241,0.18)',
+        cursor: 'pointer',
+        textAlign: 'left',
+        color: '#F0EBE0',
+        transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-color 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        width: '100%',
+      }}
+    >
+      <PaletteDots palette={palette} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: compact ? 12 : 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{themeMeta.name}</div>
+        {!compact && <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fits}</div>}
+      </div>
+    </button>
+  );
+}
 
 function Toast({ msg, onClose }) {
   useEffect(() => { if (msg) { const id = setTimeout(onClose, 3200); return () => clearTimeout(id); } return undefined; }, [msg, onClose]);
@@ -33,7 +77,7 @@ function Toast({ msg, onClose }) {
   );
 }
 
-function CreateModal({ open, onClose, onCreated, starters, developments, asesor }) {
+function CreateModal({ open, onClose, onCreated, starters, developments, asesor, themes }) {
   const { t } = useTranslation('common');
   const [step, setStep] = useState(1);
   const [landingType, setLandingType] = useState('property');
@@ -152,11 +196,14 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor 
             <label style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>Slug (URL)
               <input data-testid="detail-slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} placeholder="auto-generado" style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0' }} />
             </label>
-            <label style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>Template visual
-              <select data-testid="detail-tpl" value={tpl} onChange={(e) => setTpl(e.target.value)} style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0' }}>
-                {['modern', 'luxury', 'family', 'investor', 'boutique', 'urgent', 'scrollytelling', 'video_first', 'social_proof', 'compare'].map((k) => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </label>
+            <div>
+              <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)', marginBottom: 8 }}>Template visual · cada uno aplica paleta y layout unicos</div>
+              <div data-testid="detail-tpl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
+                {(themes && themes.length ? themes : TEMPLATE_KEYS_DEFAULT.map((k) => ({ key: k, name: k, use_case_fit: [], preview_palette: {} }))).map((tm) => (
+                  <ThemeCard key={tm.key} themeMeta={tm} active={tpl === tm.key} onSelect={() => setTpl(tm.key)} />
+                ))}
+              </div>
+            </div>
             <label style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>Starter (sections precargadas)
               <select data-testid="detail-starter" value={starterKey} onChange={(e) => setStarterKey(e.target.value)} style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0' }}>
                 <option value="property">Property starter ({(starters?.property || []).length} secciones)</option>
@@ -333,13 +380,16 @@ function ABStatsPanel({ groupId, onClose, onWinner }) {
   );
 }
 
-function EditorLayout({ landing, brandKit, linkedEntity, starters, onBack, onChanged, onToast }) {
+function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChanged, onToast }) {
   const [sections, setSections] = useState(landing.sections || []);
   const [activeIdx, setActiveIdx] = useState(0);
   const [showPicker, setShowPicker] = useState(false);
+  const [showThemeSwitcher, setShowThemeSwitcher] = useState(false);
   const [viewport, setViewport] = useState('desktop');
   const [showAB, setShowAB] = useState(false);
   const [saveStatus, setSaveStatus] = useState('saved'); // saving | saved | error
+  const [templateKey, setTemplateKey] = useState(landing.template_key);
+  const [theme, setTheme] = useState(landing.theme || null);
   const dragIdx = useRef(null);
   const debounce = useRef(null);
 
@@ -400,6 +450,22 @@ function EditorLayout({ landing, brandKit, linkedEntity, starters, onBack, onCha
     } catch (e) { onToast(e.body?.detail || 'Nada que deshacer'); }
   };
 
+  const switchTemplate = async (newKey) => {
+    if (!newKey || newKey === templateKey) return;
+    setSaveStatus('saving');
+    try {
+      await api.patchLanding(landing.id, { template_key: newKey });
+      setTemplateKey(newKey);
+      const fresh = await api.getLanding(landing.id);
+      setTheme(fresh?.landing?.theme || null);
+      setSaveStatus('saved');
+      onToast('Template aplicado');
+    } catch (e) {
+      setSaveStatus('error');
+      onToast(e.body?.detail || 'No se pudo cambiar template');
+    }
+  };
+
   const togglePublish = async () => {
     try {
       await api.publishLanding(landing.id, !landing.published);
@@ -413,8 +479,8 @@ function EditorLayout({ landing, brandKit, linkedEntity, starters, onBack, onCha
     try { await api.deleteLanding(landing.id); onToast('Eliminada'); onBack(); } catch (e) { onToast(e.message); }
   };
 
-  const previewLanding = { ...landing, sections, brand_kit: brandKit };
   const maxW = VIEWPORTS[viewport];
+  const activeThemeMeta = (themes || []).find((tm) => tm.key === templateKey);
 
   return (
     <div data-testid="editor-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 30%) 1fr', gap: 16, minHeight: '70vh' }}>
@@ -458,10 +524,28 @@ function EditorLayout({ landing, brandKit, linkedEntity, starters, onBack, onCha
         <SectionPickerModal open={showPicker} onClose={() => setShowPicker(false)} onAdd={handleAdd} />
         <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
           <button data-testid="editor-undo" type="button" onClick={undo} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}><Icons.Undo size={12} /> Undo</button>
+          <button data-testid="editor-switch-template" type="button" onClick={() => setShowThemeSwitcher(!showThemeSwitcher)} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
+            <Icons.Palette size={12} /> {showThemeSwitcher ? 'Cerrar' : 'Cambiar template'}
+          </button>
           {!landing.ab_group_id ? null : (
             <button data-testid="editor-ab" type="button" onClick={() => setShowAB(!showAB)} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}><Icons.GitBranch size={12} /> A/B</button>
           )}
         </div>
+        {showThemeSwitcher && (
+          <div data-testid="theme-switcher-panel" style={{ marginTop: 12, padding: 12, background: BG_CARD, border: BORDER, borderRadius: 12 }}>
+            <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Template activo · sections se preservan</div>
+            <div style={{ display: 'grid', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
+              {(themes || []).map((tm) => (
+                <ThemeCard key={tm.key} themeMeta={tm} active={templateKey === tm.key} onSelect={() => switchTemplate(tm.key)} compact />
+              ))}
+            </div>
+            {activeThemeMeta && (
+              <div style={{ marginTop: 10, fontSize: 11, color: '#a0a4b0' }}>
+                Hero variant: <strong style={{ color: '#F0EBE0' }}>{activeThemeMeta.hero_variant}</strong> · spacing {activeThemeMeta.spacing_scale}
+              </div>
+            )}
+          </div>
+        )}
         {showAB && landing.ab_group_id && (
           <ABStatsPanel groupId={landing.ab_group_id} onClose={() => setShowAB(false)} onWinner={onChanged} />
         )}
@@ -492,10 +576,10 @@ function EditorLayout({ landing, brandKit, linkedEntity, starters, onBack, onCha
           </div>
         </div>
 
-        <div style={{ flex: 1, overflow: 'auto', borderRadius: 14, background: '#06080F', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'center', padding: 12 }}>
-          <div style={{ width: '100%', maxWidth: maxW, transition: `max-width 320ms ${EASE}`, background: '#06080F', borderRadius: 10, overflow: 'auto', maxHeight: '70vh' }}>
+        <div style={{ flex: 1, overflow: 'auto', borderRadius: 14, background: theme?.palette?.bg || '#06080F', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'center', padding: 12, transition: `background 320ms ${EASE}` }}>
+          <div style={{ width: '100%', maxWidth: maxW, transition: `max-width 320ms ${EASE}, background 320ms ${EASE}`, background: theme?.palette?.bg || '#06080F', borderRadius: 10, overflow: 'auto', maxHeight: '70vh' }}>
             {sections.length ? sections.map((sec) => (
-              <SectionRenderer key={sec.id} section={sec} brandKit={brandKit} linkedEntity={linkedEntity} isPreview onLead={() => Promise.resolve({ ok: true })} />
+              <SectionRenderer key={sec.id} section={sec} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} />
             )) : (
               <div style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.4)' }}>Preview vacio · anade secciones</div>
             )}
@@ -506,10 +590,13 @@ function EditorLayout({ landing, brandKit, linkedEntity, starters, onBack, onCha
   );
 }
 
-function LandingCard({ item, onOpen }) {
+function LandingCard({ item, onOpen, themes }) {
+  const themeMeta = (themes || []).find((tm) => tm.key === item.template_key);
+  const pal = themeMeta?.preview_palette || {};
+  const cardBg = pal.gradient || `linear-gradient(135deg, ${pal.primary || '#6366F1'}40, ${pal.secondary || '#EC4899'}40)`;
   return (
     <button data-testid={`landing-card-${item.id}`} type="button" onClick={onOpen} style={{ textAlign: 'left', background: BG_CARD, border: BORDER, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', padding: 0, color: '#F0EBE0', transition: `transform 320ms ${EASE}` }}>
-      <div style={{ aspectRatio: '16/9', background: `linear-gradient(135deg, rgba(99,102,241,0.25), rgba(236,72,153,0.25))`, position: 'relative' }}>
+      <div style={{ aspectRatio: '16/9', background: cardBg, position: 'relative' }}>
         <div style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 9999, background: item.published ? 'rgba(34,197,94,0.85)' : 'rgba(99,102,241,0.5)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
           {item.published ? 'Publicada' : 'Borrador'}
         </div>
@@ -521,6 +608,12 @@ function LandingCard({ item, onOpen }) {
         <div style={{ position: 'absolute', bottom: 10, left: 10, color: '#fff', fontSize: 11, padding: '2px 8px', background: 'rgba(0,0,0,0.6)', borderRadius: 9999 }}>
           {(item.sections || []).length} secciones
         </div>
+        {themeMeta && (
+          <div style={{ position: 'absolute', bottom: 10, right: 10, padding: '4px 8px', borderRadius: 9999, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <PaletteDots palette={pal} />
+            {item.template_key}
+          </div>
+        )}
       </div>
       <div style={{ padding: 14 }}>
         <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>{item.content?.hero?.title || item.slug}</div>
@@ -545,6 +638,7 @@ export default function LandingsPage({ user, onLogout }) {
   const [starters, setStarters] = useState({ property: [], personal_brand: [], marketplace: [] });
   const [developments, setDevelopments] = useState([]);
   const [asesor, setAsesor] = useState(null);
+  const [themes, setThemes] = useState([]);
   const [editingFull, setEditingFull] = useState(null); // landing + brand_kit + linked_entity
 
   const load = async () => {
@@ -560,14 +654,16 @@ export default function LandingsPage({ user, onLogout }) {
   useEffect(() => {
     (async () => {
       try {
-        const [s, d, a] = await Promise.all([
+        const [s, d, a, th] = await Promise.all([
           api.getStarters().catch(() => null),
           api.catalogDevelopments().catch(() => null),
           api.catalogAsesor().catch(() => null),
+          api.listThemes().catch(() => null),
         ]);
         if (s) setStarters(s);
         if (d) setDevelopments(d.items || []);
         if (a) setAsesor(a);
+        if (th && th.themes) setThemes(th.themes);
       } catch (e) { /* fail-soft */ }
     })();
   }, []);
@@ -601,7 +697,7 @@ export default function LandingsPage({ user, onLogout }) {
             landing={editing}
             brandKit={editingFull.brand_kit}
             linkedEntity={editingFull.linked_entity}
-            starters={starters}
+            themes={themes}
             onBack={() => { setEditing(null); setEditingFull(null); }}
             onChanged={refreshEdit}
             onToast={setToast}
@@ -627,7 +723,7 @@ export default function LandingsPage({ user, onLogout }) {
               </select>
               <select data-testid="filter-template" value={filters.template_key} onChange={(e) => setFilters({ ...filters, template_key: e.target.value })} style={{ padding: '8px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)' }}>
                 <option value="">Cualquier template</option>
-                {['modern', 'luxury', 'family', 'investor', 'boutique', 'urgent', 'scrollytelling', 'video_first', 'social_proof', 'compare'].map((k) => <option key={k} value={k}>{k}</option>)}
+                {(themes && themes.length ? themes.map((tm) => ({ k: tm.key, label: tm.name })) : TEMPLATE_KEYS_DEFAULT.map((k) => ({ k, label: k }))).map((it) => <option key={it.k} value={it.k}>{it.label}</option>)}
               </select>
             </div>
 
@@ -640,7 +736,7 @@ export default function LandingsPage({ user, onLogout }) {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
-                {items.map((it) => <LandingCard key={it.id} item={it} onOpen={() => openEdit(it)} />)}
+                {items.map((it) => <LandingCard key={it.id} item={it} onOpen={() => openEdit(it)} themes={themes} />)}
               </div>
             )}
           </>
@@ -654,6 +750,7 @@ export default function LandingsPage({ user, onLogout }) {
         starters={starters}
         developments={developments}
         asesor={asesor}
+        themes={themes}
       />
       <Toast msg={toast} onClose={() => setToast('')} />
     </PortalLayout>
