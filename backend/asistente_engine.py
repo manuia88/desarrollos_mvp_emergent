@@ -365,6 +365,12 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W5.20 — Tool 23: Global insights (12 external sources · prensa MX referente)
         if tool_name == "query_global_insights":
             return await _tool_query_global_insights(db, params)
+        # W5.22 Z.8.5 — Tool 24: landing_optimizer (heuristic suggestions)
+        if tool_name == "landing_optimizer":
+            return await _tool_landing_optimizer(db, params)
+        # W5.22 Z.8.5 — Tool 25: landing_adaptive_copy_generate
+        if tool_name == "landing_adaptive_copy_generate":
+            return await _tool_landing_adaptive_copy(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1689,6 +1695,94 @@ async def _tool_query_global_insights(db, params: Dict[str, Any]) -> Dict[str, A
     except Exception as exc:
         log.warning(f"[asistente_tool] query_global_insights failed: {exc}")
         return {"error": str(exc), "source": "external_insights"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# W5.22 Z.8.5 — Tools 24/25: landing_optimizer + landing_adaptive_copy_generate
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def _tool_landing_optimizer(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool 24: heuristic suggestions sobre landing existente."""
+    try:
+        from studio_landing_atlax_adapter import optimize_landing_suggestions
+        landing_id = params.get("landing_id")
+        focus = params.get("focus") or "all"
+        if not landing_id:
+            return {"error": "landing_id requerido", "source": "landing_optimizer"}
+        landing = await db.studio_landings.find_one({"id": landing_id, "deleted": {"$ne": True}}, {"_id": 0})
+        if not landing:
+            return {"error": "Landing no encontrada", "source": "landing_optimizer"}
+        suggestions = await optimize_landing_suggestions(db, landing, focus=focus)
+        return {
+            "source": "landing_optimizer",
+            "landing_id": landing_id,
+            "focus": focus,
+            "suggestions": suggestions,
+            "views_count": landing.get("views_count", 0),
+            "leads_count": landing.get("leads_count", 0),
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] landing_optimizer failed: {exc}")
+        return {"error": str(exc), "source": "landing_optimizer"}
+
+
+async def _tool_landing_adaptive_copy(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool 25: copy + data adaptive per template + persona + property data."""
+    try:
+        from studio_landing_atlax_adapter import generate_adaptive_copy
+        template_key = (params.get("template_key") or "modern").lower()
+        property_source = params.get("property_source") or "development"
+        linked_entity_id = params.get("linked_entity_id")
+        persona_target = params.get("persona_target")
+        property_data: Dict[str, Any] = {}
+        if linked_entity_id:
+            if property_source == "resale":
+                imp = await db.listing_imports.find_one(
+                    {"id": linked_entity_id}, {"_id": 0, "raw_html_truncated": 0}
+                )
+                if imp and imp.get("parsed_data"):
+                    pd = imp["parsed_data"]
+                    property_data = {
+                        "name": pd.get("title") or pd.get("name") or "Propiedad",
+                        "colonia": pd.get("colonia"),
+                        "alcaldia": pd.get("alcaldia"),
+                        "price_from": pd.get("price"),
+                        "amenities": pd.get("amenities") or [],
+                        "lat": pd.get("lat"),
+                        "lng": pd.get("lng"),
+                        "stage": "reventa",
+                    }
+            else:
+                try:
+                    from data_developments import DEVELOPMENTS_BY_ID
+                    dev = DEVELOPMENTS_BY_ID.get(linked_entity_id)
+                    if dev:
+                        property_data = {
+                            "name": dev.get("name"),
+                            "colonia": dev.get("colonia"),
+                            "alcaldia": dev.get("alcaldia"),
+                            "price_from": dev.get("price_from"),
+                            "amenities": dev.get("amenities", []),
+                            "stage": dev.get("stage"),
+                            "delivery_estimate": dev.get("delivery_estimate"),
+                            "units_total": dev.get("units_total"),
+                            "units_available": dev.get("units_available"),
+                            "lat": (dev.get("center") or {}).get("lat") if isinstance(dev.get("center"), dict) else dev.get("lat"),
+                            "lng": (dev.get("center") or {}).get("lng") if isinstance(dev.get("center"), dict) else dev.get("lng"),
+                            "id": dev.get("id"),
+                        }
+                except Exception:
+                    pass
+        bundle = await generate_adaptive_copy(db, template_key, property_data, persona_target=persona_target)
+        return {
+            "source": "landing_adaptive_copy",
+            "template_key": template_key,
+            "property_source": property_source,
+            **bundle,
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] landing_adaptive_copy failed: {exc}")
+        return {"error": str(exc), "source": "landing_adaptive_copy"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

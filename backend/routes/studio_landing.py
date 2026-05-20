@@ -334,6 +334,47 @@ async def catalog_resales_ep(request: Request, limit: int = Query(30, ge=1, le=1
     return await eng.catalog_resales(db, user.user_id, limit=limit, skip=skip)
 
 
+@router.post("/{landing_id}/auto-fill")
+async def auto_fill_template(landing_id: str, request: Request) -> Dict[str, Any]:
+    """Z.8.5 — Auto-fill template_content invocando Atlax tool #25 adaptive copy."""
+    user = await _require_user(request)
+    db = _db(request)
+    landing = await eng.get_landing(db, landing_id, user.user_id)
+    if not landing:
+        raise HTTPException(404, "Landing no encontrada")
+    try:
+        from asistente_engine import _tool_landing_adaptive_copy
+        bundle = await _tool_landing_adaptive_copy(db, {
+            "template_key": landing.get("template_key", "modern"),
+            "property_source": landing.get("property_source", "development"),
+            "linked_entity_id": landing.get("linked_entity_id"),
+        })
+        if bundle.get("error"):
+            raise HTTPException(422, bundle["error"])
+        # Persist template_content[template_key]
+        tk = landing.get("template_key", "modern")
+        existing_tc = landing.get("template_content") or {}
+        existing_tc[tk] = {
+            "hero_headline": bundle.get("hero_headline"),
+            "hero_subtitle": bundle.get("hero_subtitle"),
+            "cta_primary": bundle.get("cta_primary"),
+            "cta_secondary": bundle.get("cta_secondary"),
+            "badges_list": bundle.get("badges_list"),
+            "template_data": bundle.get("template_data"),
+            "auto_filled_at": eng._iso(),
+        }
+        await db.studio_landings.update_one(
+            {"id": landing_id, "user_id": user.user_id},
+            {"$set": {"template_content": existing_tc, "updated_at": eng._iso()}},
+        )
+        return {"ok": True, "template_content": existing_tc, "bundle": bundle}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.warning(f"[auto-fill] failed: {exc}")
+        raise HTTPException(500, f"Auto-fill fallo: {exc}")
+
+
 @router.patch("/{landing_id}/routing-config")
 async def patch_routing_config(landing_id: str, body: RoutingConfigBody, request: Request) -> Dict[str, Any]:
     """Z.8.5 — Update lead_routing_config (recomendado inmobiliaria_admin)."""
