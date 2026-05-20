@@ -362,13 +362,13 @@ async def generate_carrusel_job(
     from studio_hook_score_engine import compute_hook_score
 
     # Z.2.3 fix: hidratar pages_data desde copy_id si NO se proveyó pages_data
+    # Schema real: pages_data está en TOP-LEVEL del documento (no anidado en output)
     if copy_id and (not pages_data or not pages_data.get("hero")):
         try:
             copy_doc = await db.studio_copy_jobs.find_one({"id": copy_id})
             if copy_doc and copy_doc.get("status") == "ready":
-                output = copy_doc.get("output") or {}
-                hydrated = output.get("pages_data") or {}
-                if hydrated:
+                hydrated = copy_doc.get("pages_data") or {}
+                if hydrated.get("hero"):
                     pages_data = hydrated
                     log.info(f"[carrusel] hydrated pages_data from copy_id={copy_id}")
         except Exception as exc:
