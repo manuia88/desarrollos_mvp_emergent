@@ -441,7 +441,13 @@ def cache_clear() -> None:
 # ─── Public API ──────────────────────────────────────────────────────────────
 ALLOWED_LAYOUTS = {"og", "feed", "story"}
 # W5.21 · "insights" entity type added (long-tail SEO landings /insights/compare/:topic)
-ALLOWED_ENTITY_TYPES = {"zone", "property", "development", "asesor", "insights"}
+ALLOWED_ENTITY_TYPES = {
+    "zone", "property", "development", "asesor", "insights",
+    # W5.22 Z.8.5 — Landing social cards per property template
+    "landing", "landing-modern", "landing-luxury", "landing-family", "landing-investor",
+    "landing-boutique", "landing-urgent", "landing-scrollytelling", "landing-video_first",
+    "landing-social_proof", "landing-compare",
+}
 
 
 def compose_card(layout: str, entity_type: str, entity_data: Dict[str, Any]) -> bytes:

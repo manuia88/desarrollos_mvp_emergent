@@ -350,7 +350,17 @@ async def _build_pdf(db, landing_id: str, user_id: str) -> bytes:
     if not landing:
         raise HTTPException(404, "Landing no encontrada")
     brand_kit = await eng.fetch_brand_kit(db, landing.get("brand_kit_id"), user_id)
-    return pdf_eng.render_landing_brochure(landing, brand_kit)
+    # Z.8.5 — Hydrate linked_entity para brochure
+    try:
+        landing = await eng.hydrate_landing_for_public(db, landing)
+    except Exception:
+        pass
+    # Try Z.8.5 rich brochure first · fallback al Z.8.2 simple si falla
+    try:
+        from studio_landing_brochure_pdf import render_landing_brochure as render_rich
+        return render_rich(landing, brand_kit)
+    except Exception:
+        return pdf_eng.render_landing_brochure(landing, brand_kit)
 
 
 @router.post("/{landing_id}/export-pdf")

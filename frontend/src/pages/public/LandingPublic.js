@@ -104,6 +104,63 @@ function WhatsAppFloat({ phone, message }) {
   );
 }
 
+function ShareModal({ open, onClose, slug, templateKey, title }) {
+  if (!open) return null;
+  const API = process.env.REACT_APP_BACKEND_URL;
+  const landingUrl = `${window.location.origin}/landing/${slug}`;
+  const ogUrl = `${API}/api/social-cards/og/landing-${templateKey}/${slug}.png`;
+  const feedUrl = `${API}/api/social-cards/feed/landing-${templateKey}/${slug}.png`;
+  const storyUrl = `${API}/api/social-cards/story/landing-${templateKey}/${slug}.png`;
+  const shareText = `Mira ${title || 'esta propiedad'} en DMX`;
+
+  const links = [
+    { label: 'WhatsApp', url: `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + landingUrl)}` },
+    { label: 'Twitter / X', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(landingUrl)}` },
+    { label: 'LinkedIn', url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(landingUrl)}` },
+    { label: 'Facebook', url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(landingUrl)}` },
+    { label: 'Email', url: `mailto:?subject=${encodeURIComponent(shareText)}&body=${encodeURIComponent(shareText + ' ' + landingUrl)}` },
+  ];
+
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(landingUrl); alert('Link copiado'); } catch (e) { /* silent */ }
+  };
+
+  return (
+    <div data-testid="share-modal" role="dialog" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 9100, display: 'grid', placeItems: 'center', padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px, 100%)', maxHeight: '90vh', overflow: 'auto', background: '#0d1017', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 20, padding: 24, color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: 18 }}>Compartir landing</h3>
+          <button type="button" onClick={onClose} aria-label="Cerrar" style={{ padding: '6px 10px', background: 'transparent', color: '#a0a4b0', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+          {[['Twitter/IG', ogUrl, '1200×630'], ['Feed', feedUrl, '1080×1080'], ['Story', storyUrl, '1080×1920']].map(([label, url, dim]) => (
+            <div key={label} style={{ padding: 10, border: '1px solid rgba(99,102,241,0.2)', borderRadius: 12, background: 'rgba(255,255,255,0.04)' }}>
+              <img src={url} alt={label} style={{ width: '100%', borderRadius: 6, marginBottom: 6 }} onError={(e) => { e.target.style.display = 'none'; }} />
+              <div style={{ fontSize: 11, color: '#F0EBE0', fontWeight: 600 }}>{label}</div>
+              <div style={{ fontSize: 10, color: '#a0a4b0' }}>{dim}</div>
+              <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 10, color: '#6366F1' }}>Abrir PNG ↗</a>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          {links.map((l) => (
+            <a key={l.label} href={l.url} target="_blank" rel="noreferrer" style={{ padding: '8px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.15)', color: '#F0EBE0', textDecoration: 'none', border: '1px solid rgba(99,102,241,0.3)', fontSize: 12 }}>{l.label}</a>
+          ))}
+        </div>
+        <button data-testid="copy-link" type="button" onClick={copyLink} style={{ width: '100%', padding: '10px 14px', borderRadius: 9999, background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Copiar link</button>
+      </div>
+    </div>
+  );
+}
+
+function ShareFloat({ onOpen }) {
+  return (
+    <button data-testid="share-float" type="button" onClick={onOpen} aria-label="Compartir" style={{ position: 'fixed', left: 24, bottom: 24, width: 54, height: 54, borderRadius: 9999, background: 'linear-gradient(135deg, #6366F1, #EC4899)', color: '#fff', display: 'grid', placeItems: 'center', boxShadow: '0 10px 30px rgba(99,102,241,0.4)', zIndex: 8998, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 18 }}>
+      ⇪
+    </button>
+  );
+}
+
 export default function LandingPublic() {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
@@ -112,6 +169,7 @@ export default function LandingPublic() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -206,6 +264,8 @@ export default function LandingPublic() {
       ) : null}
       {atlaxEnabled && <LandingAtlaxWidget landing={{ ...landing, brand_kit: brandKit }} />}
       {waPhone && <WhatsAppFloat phone={waPhone} message={`Hola, vi tu landing "${heroTitle || slug}"`} />}
+      <ShareFloat onOpen={() => setShareOpen(true)} />
+      <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} slug={slug} templateKey={landing.template_key} title={heroTitle} />
       <img src={api.trackPixelUrl(slug)} alt="" width="1" height="1" style={{ position: 'absolute', left: -9999, top: -9999 }} aria-hidden="true" />
     </div>
   );
