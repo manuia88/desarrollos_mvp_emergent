@@ -6,6 +6,7 @@ import * as Icons from 'lucide-react';
 import PortalLayout from '../../../components/shared/PortalLayout';
 import TemplateDispatcher, { TEMPLATE_KEYS } from '../../../templates/landings/TemplateDispatcher';
 import { createIntake, getIntake, patchIntake, generateCopy, publishIntake } from '../../../api/studio_intake';
+import { useAuth } from '../../../App';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const BG_CARD = 'rgba(13,16,23,0.92)';
@@ -17,28 +18,73 @@ const btnSecondary = (x = {}) => ({ padding: '10px 16px', background: 'rgba(99,1
 const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13, fontFamily: 'DM Sans, sans-serif' };
 const labelStyle = { fontSize: 12, color: 'rgba(240,235,224,0.7)', display: 'block', marginBottom: 6, fontWeight: 600 };
 
-const PROPERTY_TYPES = ['development', 'resale', 'rental', 'commercial', 'industrial', 'land'];
-const LISTING_INTENTS = ['sell', 'rent', 'invest', 'promote'];
-const BUYER_INTENTS = ['live', 'invest', 'hybrid'];
-const PHOTO_CATS = ['exterior', 'interior', 'amenity', 'render', 'drone', 'night', 'floor', 'location'];
-const VIDEO_TYPES = ['walkthrough', 'drone', 'testimonial', 'teaser', 'interview'];
+// Mappings value → label español natural (UX-friendly · el value se sigue mandando al backend)
+const PROPERTY_TYPES = [
+  { value: 'development', label: 'Desarrollo nuevo (pre-venta)' },
+  { value: 'resale', label: 'Reventa (propiedad existente)' },
+  { value: 'rental', label: 'Renta' },
+  { value: 'commercial', label: 'Local comercial' },
+  { value: 'industrial', label: 'Industrial / nave' },
+  { value: 'land', label: 'Terreno' },
+];
+const LISTING_INTENTS = [
+  { value: 'sell', label: 'Vender' },
+  { value: 'rent', label: 'Rentar' },
+  { value: 'invest', label: 'Atraer inversionistas' },
+  { value: 'promote', label: 'Promocionar (sin venta directa)' },
+];
+const BUYER_INTENTS = [
+  { value: 'live', label: 'Para vivir' },
+  { value: 'invest', label: 'Para invertir' },
+  { value: 'mixed', label: 'Ambos (vivir o invertir)' },
+];
+const TEMPLATE_LABELS = {
+  luxury: 'Lujo · serif elegante · sin precio público',
+  investor: 'Inversionista · datos y proyecciones',
+  family: 'Familia · escuelas, parques, calidez',
+  first_home: 'Primer departamento · mensualidad accesible',
+  boutique: 'Boutique · historia y materialidad',
+  urgent: 'Urgente · escasez y countdown',
+  social_proof: 'Testimonios · familias e inversionistas',
+  video_first: 'Video · tour cinematográfico',
+  compare: 'Comparativo · vs competencia',
+  scrollytelling: 'Narrativa · capítulos cinemáticos',
+  modern: 'Moderno · balanceado',
+};
+const PHOTO_CATS = [
+  { value: 'exterior', label: 'Fachada / exterior' },
+  { value: 'interior', label: 'Interior unidad' },
+  { value: 'amenity', label: 'Amenidad' },
+  { value: 'render', label: 'Render arquitectónico' },
+  { value: 'drone', label: 'Drone aéreo' },
+  { value: 'night', label: 'Foto nocturna' },
+  { value: 'floor', label: 'Plano de planta' },
+  { value: 'location', label: 'Contexto / barrio' },
+];
+const VIDEO_TYPES = [
+  { value: 'walkthrough', label: 'Recorrido' },
+  { value: 'drone', label: 'Drone' },
+  { value: 'testimonial', label: 'Testimonial' },
+  { value: 'teaser', label: 'Teaser corto' },
+  { value: 'interview', label: 'Entrevista' },
+];
 
-// 14 secciones canonicas · siguiendo el schema del backend
+// 14 secciones · labels español natural con tildes
 const SECTIONS = [
-  { key: 'identity', label: '1. Identificacion', icon: 'BadgeInfo' },
-  { key: 'location', label: '2. Ubicacion', icon: 'MapPin' },
-  { key: 'developer', label: '3. Desarrollador/Vendedor', icon: 'Building2' },
-  { key: 'typologies', label: '4. Tipologias y unidades', icon: 'Layers' },
+  { key: 'identity', label: '1. Identificación', icon: 'BadgeInfo' },
+  { key: 'location', label: '2. Ubicación', icon: 'MapPin' },
+  { key: 'developer', label: '3. Desarrollador o vendedor', icon: 'Building2' },
+  { key: 'typologies', label: '4. Tipos de unidad y precios', icon: 'Layers' },
   { key: 'amenities', label: '5. Amenidades', icon: 'Sparkles' },
   { key: 'premium', label: '6. Servicios premium', icon: 'Crown' },
-  { key: 'investment', label: '7. Metricas inversion', icon: 'TrendingUp' },
-  { key: 'media', label: '8. Multimedia', icon: 'Image' },
+  { key: 'investment', label: '7. Métricas de inversión', icon: 'TrendingUp' },
+  { key: 'media', label: '8. Fotos y videos', icon: 'Image' },
   { key: 'financing', label: '9. Financiamiento', icon: 'Banknote' },
-  { key: 'trust', label: '10. Trust signals', icon: 'ShieldCheck' },
-  { key: 'advisor', label: '11. Asesor asignado', icon: 'UserCircle' },
+  { key: 'trust', label: '10. Reputación y confianza', icon: 'ShieldCheck' },
+  { key: 'advisor', label: '11. Asesor que recibe los leads', icon: 'UserCircle' },
   { key: 'legal', label: '12. Legal', icon: 'Scale' },
-  { key: 'urgency', label: '13. Urgencia/Promo', icon: 'Timer' },
-  { key: 'differentiators', label: '14. Diferenciadores', icon: 'Star' },
+  { key: 'urgency', label: '13. Urgencia o promociones', icon: 'Timer' },
+  { key: 'differentiators', label: '14. Lo que hace único al proyecto', icon: 'Star' },
 ];
 
 function emptyIntake() {
@@ -47,7 +93,7 @@ function emptyIntake() {
     template_key: 'luxury',
     property_type: 'development',
     listing_intent: 'sell',
-    buyer_intent: 'hybrid',
+    buyer_intent: 'mixed',
     language: 'es-MX',
     country: 'MX',
     typologies: [],
@@ -111,12 +157,32 @@ function ArrayChips({ list, onChange, placeholder, max = 10, testid }) {
 function SectionIdentity({ data, set }) {
   return (
     <div data-testid="sec-identity">
-      <Field label="Nombre del proyecto"><input data-testid="f-project-name" value={data.project_name || ''} onChange={(e) => set({ project_name: e.target.value })} style={inputStyle} placeholder="Residencial Roma Norte" /></Field>
-      <Field label="Slug (URL publica · opcional, se genera automaticamente)" hint="a-z 0-9 guiones · 3-80 chars"><input data-testid="f-slug" value={data.slug || ''} onChange={(e) => set({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} style={inputStyle} placeholder="residencial-roma" /></Field>
-      <Field label="Template visual"><select data-testid="f-template" value={data.template_key || 'luxury'} onChange={(e) => set({ template_key: e.target.value })} style={inputStyle}>{TEMPLATE_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}</select></Field>
-      <Field label="Tipo de propiedad"><select data-testid="f-prop-type" value={data.property_type} onChange={(e) => set({ property_type: e.target.value })} style={inputStyle}>{PROPERTY_TYPES.map((k) => <option key={k} value={k}>{k}</option>)}</select></Field>
-      <Field label="Intencion del listing"><select value={data.listing_intent} onChange={(e) => set({ listing_intent: e.target.value })} style={inputStyle}>{LISTING_INTENTS.map((k) => <option key={k} value={k}>{k}</option>)}</select></Field>
-      <Field label="Buyer intent"><select data-testid="f-buyer-intent" value={data.buyer_intent || ''} onChange={(e) => set({ buyer_intent: e.target.value || null })} style={inputStyle}><option value="">(automatico)</option>{BUYER_INTENTS.map((k) => <option key={k} value={k}>{k}</option>)}</select></Field>
+      <Field label="Nombre del proyecto" hint="Como quieres que aparezca en la landing">
+        <input data-testid="f-project-name" value={data.project_name || ''} onChange={(e) => set({ project_name: e.target.value })} style={inputStyle} placeholder="Residencial Roma Norte" />
+      </Field>
+      <Field label="URL pública (opcional · se genera automática)" hint="a-z, 0-9, guiones · 3 a 80 caracteres">
+        <input data-testid="f-slug" value={data.slug || ''} onChange={(e) => set({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} style={inputStyle} placeholder="residencial-roma" />
+      </Field>
+      <Field label="Estilo visual de la landing" hint="Define paleta, tipografía y secciones únicas">
+        <select data-testid="f-template" value={data.template_key || 'luxury'} onChange={(e) => set({ template_key: e.target.value })} style={inputStyle}>
+          {TEMPLATE_KEYS.map((k) => <option key={k} value={k}>{TEMPLATE_LABELS[k] || k}</option>)}
+        </select>
+      </Field>
+      <Field label="¿Qué tipo de propiedad es?">
+        <select data-testid="f-prop-type" value={data.property_type} onChange={(e) => set({ property_type: e.target.value })} style={inputStyle}>
+          {PROPERTY_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+        </select>
+      </Field>
+      <Field label="¿Qué quieres lograr con esta landing?">
+        <select value={data.listing_intent} onChange={(e) => set({ listing_intent: e.target.value })} style={inputStyle}>
+          {LISTING_INTENTS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+        </select>
+      </Field>
+      <Field label="¿Para qué tipo de comprador?" hint="El copy se adapta automáticamente a este perfil">
+        <select data-testid="f-buyer-intent" value={data.buyer_intent || 'mixed'} onChange={(e) => set({ buyer_intent: e.target.value })} style={inputStyle}>
+          {BUYER_INTENTS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+        </select>
+      </Field>
     </div>
   );
 }
@@ -175,7 +241,9 @@ function SectionDeveloper({ data, set }) {
         </>
       )}
       {!isDev && !isResale && (
-        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.08)', color: 'rgba(240,235,224,0.7)', fontSize: 13 }}>Esta seccion no es requerida para property_type={data.property_type}.</div>
+        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.08)', color: 'rgba(240,235,224,0.7)', fontSize: 13 }}>
+          Esta sección solo aplica si elegiste <strong>Desarrollo nuevo</strong> o <strong>Reventa</strong> en la sección anterior. Como tu propiedad es <strong>{(PROPERTY_TYPES.find((p) => p.value === data.property_type)?.label || data.property_type).toLowerCase()}</strong>, puedes saltarla.
+        </div>
       )}
     </div>
   );
@@ -405,14 +473,21 @@ function SectionTrust({ data, set }) {
 function SectionAdvisor({ data, set }) {
   const a = data.assigned_advisor || {};
   const upd = (k, v) => set({ assigned_advisor: { ...a, [k]: v } });
+  const prefilled = Boolean(a.user_id);
   return (
     <div data-testid="sec-advisor">
-      <Field label="Nombre completo (requerido)"><input data-testid="f-advisor-name" value={a.full_name || ''} onChange={(e) => upd('full_name', e.target.value)} style={inputStyle} /></Field>
+      {prefilled && (
+        <div style={{ padding: 10, marginBottom: 14, borderRadius: 10, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#86EFAC', fontSize: 12 }}>
+          <Icons.UserCheck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+          Datos precargados desde tu perfil · puedes editar cualquier campo
+        </div>
+      )}
+      <Field label="Nombre completo (aparece en la landing y firma)"><input data-testid="f-advisor-name" value={a.full_name || ''} onChange={(e) => upd('full_name', e.target.value)} style={inputStyle} /></Field>
       <Field label="Email"><input type="email" value={a.email || ''} onChange={(e) => upd('email', e.target.value)} style={inputStyle} /></Field>
-      <Field label="Telefono"><input value={a.phone || ''} onChange={(e) => upd('phone', e.target.value)} style={inputStyle} /></Field>
-      <Field label="Foto URL"><input value={a.photo_url || ''} onChange={(e) => upd('photo_url', e.target.value)} style={inputStyle} /></Field>
-      <Field label="AMPI ID"><input value={a.ampi_id || ''} onChange={(e) => upd('ampi_id', e.target.value)} style={inputStyle} /></Field>
-      <Field label="Bio (max 1000 chars)"><textarea value={a.bio || ''} onChange={(e) => upd('bio', e.target.value)} style={{ ...inputStyle, minHeight: 90 }} /></Field>
+      <Field label="WhatsApp / teléfono" hint="Aparece en el botón sticky de los templates Video-first y Urgent"><input value={a.phone || ''} onChange={(e) => upd('phone', e.target.value)} style={inputStyle} placeholder="+52 55 1234 5678" /></Field>
+      <Field label="Foto (URL pública)" hint="Aparece junto a los testimonios y firma"><input value={a.photo_url || ''} onChange={(e) => upd('photo_url', e.target.value)} style={inputStyle} /></Field>
+      <Field label="Cédula AMPI (opcional · refuerza credibilidad)"><input value={a.ampi_id || ''} onChange={(e) => upd('ampi_id', e.target.value)} style={inputStyle} /></Field>
+      <Field label="Bio corta (cómo te presentas en la landing · máx 1000 caracteres)"><textarea value={a.bio || ''} onChange={(e) => upd('bio', e.target.value)} style={{ ...inputStyle, minHeight: 90 }} /></Field>
     </div>
   );
 }
@@ -446,14 +521,18 @@ function SectionUrgency({ data, set }) {
 function SectionDifferentiators({ data, set }) {
   return (
     <div data-testid="sec-diff" style={{ display: 'grid', gap: 14 }}>
-      <Field label="Target buyer persona"><input value={data.target_buyer_persona || ''} onChange={(e) => set({ target_buyer_persona: e.target.value })} placeholder="Familia joven · Inversionista institucional" style={inputStyle} /></Field>
+      <Field label="¿Para quién es el proyecto ideal?" hint="Describe en una línea al comprador objetivo">
+        <input value={data.target_buyer_persona || ''} onChange={(e) => set({ target_buyer_persona: e.target.value })} placeholder="Ej: familia con 2 hijos · pareja joven · inversionista patrimonial" style={inputStyle} />
+      </Field>
       <div>
-        <span style={labelStyle}>Unique selling points (USPs · max 10)</span>
-        <ArrayChips list={data.unique_selling_points} onChange={(v) => set({ unique_selling_points: v })} placeholder="Ej. Roof garden de 800m2 con vista" testid="usp-input" max={10} />
+        <span style={labelStyle}>¿Qué hace único a este proyecto? (3 a 10 puntos)</span>
+        <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 8 }}>Escribe cada característica única en un chip · enter para agregar</div>
+        <ArrayChips list={data.unique_selling_points} onChange={(v) => set({ unique_selling_points: v })} placeholder="Ej: Roof garden 800m² · arquitecto reconocido · vista al Bosque de Chapultepec" testid="usp-input" max={10} />
       </div>
       <div>
-        <span style={labelStyle}>Ventajas competitivas (max 10)</span>
-        <ArrayChips list={data.competitive_advantages} onChange={(v) => set({ competitive_advantages: v })} placeholder="Ej. Unico con licencia AMPI" max={10} />
+        <span style={labelStyle}>Ventajas frente a la competencia de la zona</span>
+        <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 8 }}>Lo que SÍ tienes que los desarrollos cercanos NO ofrecen</div>
+        <ArrayChips list={data.competitive_advantages} onChange={(v) => set({ competitive_advantages: v })} placeholder="Ej: bodega incluida · cero comisión reventa · concierge 24/7" max={10} />
       </div>
     </div>
   );
@@ -528,6 +607,31 @@ export default function PropertyIntakeForm({ user, onLogout }) {
     const qTpl = search.get('template');
     if (qTpl && !id) setData((d) => ({ ...d, template_key: qTpl }));
   }, [search, id]);
+
+  // Auto-fill asesor desde el user logueado · solo si intake nuevo (sin id) y advisor vacío
+  const auth = useAuth();
+  useEffect(() => {
+    if (id) return; // intake existente · respeta lo que ya tenga guardado
+    const u = auth?.user;
+    if (!u) return;
+    setData((d) => {
+      if (d.assigned_advisor?.full_name) return d; // ya está rellenado · no sobreescribir
+      const fullName = u.full_name || u.name || [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+      return {
+        ...d,
+        assigned_advisor: {
+          user_id: u.user_id || u.id || null,
+          full_name: fullName || '',
+          email: u.email || '',
+          phone: u.phone || u.whatsapp || '',
+          photo_url: u.photo_url || u.avatar_url || '',
+          ampi_id: u.ampi_id || '',
+          bio: u.bio || '',
+        },
+      };
+    });
+    dirty.current = true;
+  }, [id, auth?.user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (patch) => {
     setData((d) => ({ ...d, ...patch }));
