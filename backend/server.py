@@ -213,6 +213,10 @@ app.include_router(studio_landing_router)
 app.include_router(studio_landing_public_router)
 register_z8_features()
 
+# W5.22 Z.8.7 Sub-B1 — Studio Property Intake (PropertyIntake schema + copy generator LLM)
+from routes.studio_property_intake import router as studio_property_intake_router
+app.include_router(studio_property_intake_router)
+
 # W2.5 SA6 — Granular Metrics Cube UI (city → alcaldia → colonia → development → unit)
 from routes.superadmin_metrics_cube import router as superadmin_metrics_cube_router
 from metrics_cube_aggregations import ensure_indexes as ensure_metrics_cube_indexes
@@ -1061,6 +1065,16 @@ async def startup():
         await migrate_existing_landings(db)
     except Exception as e:
         logging.warning(f"[startup] studio Z.8 indexes failed: {e}")
+    # W5.22 Z.8.7 Sub-B1 — Studio Property Intake indexes
+    try:
+        await db.studio_property_intakes.create_index("created_by_user_id")
+        await db.studio_property_intakes.create_index("template_key")
+        await db.studio_property_intakes.create_index("property_type")
+        await db.studio_property_intakes.create_index("slug", unique=True)
+        await db.studio_property_intakes.create_index("landing_id", sparse=True)
+        await db.studio_property_intakes.create_index([("created_at", -1)])
+    except Exception as e:
+        logging.warning(f"[startup] studio Z.8.7 property_intake indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)
