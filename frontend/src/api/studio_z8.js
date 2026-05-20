@@ -53,3 +53,21 @@ export const getPublicLanding = (slug, preview = false) =>
 export const submitPublicLead = (slug, payload) =>
   post(`/api/landing/${slug}/lead`, { payload });
 export const trackPixelUrl = (slug) => `${API}/api/landing/${slug}/track?ts=${Date.now()}`;
+
+// ─── Z.8.4 · Marketplace ──────────────────────────────────────────────────
+export const queryMarketplace = (slug, params = {}) => {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set('page', String(params.page));
+  if (params.page_size) qs.set('page_size', String(params.page_size));
+  if (params.q) qs.set('q', params.q);
+  if (params.cities?.length) qs.set('cities', params.cities.join(','));
+  if (params.colonias?.length) qs.set('colonias', params.colonias.join(','));
+  if (params.status?.length) qs.set('status', params.status.join(','));
+  if (params.price_min != null) qs.set('price_min', String(params.price_min));
+  if (params.price_max != null) qs.set('price_max', String(params.price_max));
+  if (params.amenities?.length) qs.set('amenities', params.amenities.join(','));
+  if (params.sort_by) qs.set('sort_by', params.sort_by);
+  return j(`/api/landing/${slug}/marketplace?${qs.toString()}`);
+};
+export const updateMarketplaceConfig = (id, cfg) => patch(`/api/studio/landing/${id}/marketplace-config`, cfg);
+export const previewMarketplace = (id, cfg) => post(`/api/studio/landing/${id || '_new'}/marketplace-preview`, cfg);
