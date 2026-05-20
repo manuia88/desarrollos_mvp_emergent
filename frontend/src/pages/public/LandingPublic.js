@@ -181,17 +181,24 @@ export default function LandingPublic() {
         </div>
       )}
       {hasSections ? (
-        landing.sections.map((sec) => (
-          <SectionRenderer
-            key={sec.id || sec.type}
-            section={sec}
-            brandKit={brandKit}
-            linkedEntity={linkedEntity}
-            onLead={onLead}
-            isPreview={isPreview}
-            theme={theme}
-          />
-        ))
+        landing.sections.map((sec) => {
+          // Z.8.4 — marketplace section receives content.marketplace_config inside its config (via content)
+          const sectionConfig = sec.type === 'marketplace'
+            ? { ...(sec.config || {}), marketplace_config: landing.content?.marketplace_config }
+            : sec.config;
+          return (
+            <SectionRenderer
+              key={sec.id || sec.type}
+              section={{ ...sec, config: sectionConfig }}
+              brandKit={brandKit}
+              linkedEntity={linkedEntity}
+              onLead={onLead}
+              isPreview={isPreview}
+              theme={theme}
+              landingSlug={landing.slug}
+            />
+          );
+        })
       ) : TplComp ? (
         <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
           <TplComp landing={{ ...landing, brand_kit: brandKit }} onLead={onLead} isPreview={isPreview} />

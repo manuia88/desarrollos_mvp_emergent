@@ -63,6 +63,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "inline",
             "footer": "minimal",
+            "marketplace": "grid-tight-elegant",
         },
     },
     "modern": {
@@ -106,6 +107,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "masonry-clean",
         },
     },
     "family": {
@@ -149,6 +151,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "grid-rounded-warm",
         },
     },
     "investor": {
@@ -193,6 +196,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "highlighted-comparison",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "data-table",
         },
     },
     "boutique": {
@@ -236,6 +240,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "polaroid-stack",
         },
     },
     "urgent": {
@@ -279,6 +284,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "banner",
             "footer": "default",
+            "marketplace": "scarcity-cards",
         },
     },
     "scrollytelling": {
@@ -322,6 +328,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "fade-grid",
         },
     },
     "video_first": {
@@ -365,6 +372,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "video-thumbs",
         },
     },
     "social_proof": {
@@ -408,6 +416,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "default",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "with-reviews-grid",
         },
     },
     "compare": {
@@ -451,6 +460,7 @@ LANDING_THEMES: Dict[str, Dict[str, Any]] = {
             "price_table": "highlighted-cols",
             "countdown": "inline",
             "footer": "default",
+            "marketplace": "comparison-table",
         },
     },
 }

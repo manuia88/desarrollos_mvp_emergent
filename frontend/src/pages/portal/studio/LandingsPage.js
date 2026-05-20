@@ -578,9 +578,14 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
 
         <div style={{ flex: 1, overflow: 'auto', borderRadius: 14, background: theme?.palette?.bg || '#06080F', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'center', padding: 12, transition: `background 320ms ${EASE}` }}>
           <div style={{ width: '100%', maxWidth: maxW, transition: `max-width 320ms ${EASE}, background 320ms ${EASE}`, background: theme?.palette?.bg || '#06080F', borderRadius: 10, overflow: 'auto', maxHeight: '70vh' }}>
-            {sections.length ? sections.map((sec) => (
-              <SectionRenderer key={sec.id} section={sec} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} />
-            )) : (
+            {sections.length ? sections.map((sec) => {
+              const sectionConfig = sec.type === 'marketplace'
+                ? { ...(sec.config || {}), marketplace_config: landing.content?.marketplace_config }
+                : sec.config;
+              return (
+                <SectionRenderer key={sec.id} section={{ ...sec, config: sectionConfig }} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} landingSlug={landing.slug} />
+              );
+            }) : (
               <div style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.4)' }}>Preview vacio · anade secciones</div>
             )}
           </div>

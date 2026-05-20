@@ -14,6 +14,7 @@ import PriceTableSection from './PriceTableSection';
 import FAQSection from './FAQSection';
 import CountdownSection from './CountdownSection';
 import FooterSection from './FooterSection';
+import MarketplaceSection from './MarketplaceSection';
 
 const REGISTRY = {
   hero: HeroSection,
@@ -30,6 +31,7 @@ const REGISTRY = {
   faq: FAQSection,
   countdown: CountdownSection,
   footer: FooterSection,
+  marketplace: MarketplaceSection,
 };
 
 export const SECTION_TYPES = Object.keys(REGISTRY);
@@ -49,9 +51,10 @@ export const SECTION_META = {
   faq: { label: 'FAQ', icon: 'HelpCircle', desc: 'Preguntas frecuentes accordion' },
   countdown: { label: 'Countdown', icon: 'Timer', desc: 'Urgencia / scarcity' },
   footer: { label: 'Footer', icon: 'Anchor', desc: 'Logo + contacto + social' },
+  marketplace: { label: 'Marketplace', icon: 'Grid3x3', desc: 'Mini-portal completo · filtros · search · map · paginated' },
 };
 
-export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme }) {
+export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme, landingSlug }) {
   if (!section || section.visible === false) return null;
   const Comp = REGISTRY[section.type];
   if (!Comp) return null;
@@ -78,6 +81,7 @@ export default function SectionRenderer({ section, brandKit, linkedEntity, onLea
         onLead={onLead}
         isPreview={isPreview}
         theme={t}
+        landingSlug={landingSlug}
       />
     </div>
   );
