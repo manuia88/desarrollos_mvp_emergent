@@ -226,6 +226,58 @@ export default function LandingPublic() {
     }
   };
 
+  // Z.8.5 — Analytics tracking (batch every 5s)
+  useEffect(() => {
+    if (!data?.landing || isPreview) return undefined;
+    const buffer = [];
+    const flush = () => {
+      if (!buffer.length) return;
+      const batch = buffer.splice(0, buffer.length);
+      api.sendAnalyticsBatch(slug, batch).catch(() => { /* silent */ });
+    };
+    const flushIv = setInterval(flush, 5000);
+    let maxDepth = 0;
+    const onScroll = () => {
+      const h = document.documentElement;
+      const depth = Math.min(100, Math.round(((window.scrollY + window.innerHeight) / Math.max(1, h.scrollHeight)) * 100));
+      if (depth > maxDepth + 10) {
+        maxDepth = depth;
+        buffer.push({ type: 'scroll_depth', depth_pct: depth });
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    // Section visibility tracking via IntersectionObserver
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          const sid = e.target.getAttribute('data-section-id') || '';
+          const stype = (e.target.getAttribute('data-testid') || '').replace('section-', '');
+          buffer.push({ type: 'section_visible', section_id: sid, section_type: stype });
+        }
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('[data-testid^="section-"]').forEach((el) => observer.observe(el));
+    // CTA click tracking via delegated listener
+    const onClick = (ev) => {
+      const t = ev.target.closest('[data-testid$="-cta"], [data-testid^="hero-"], [data-testid="lead-form-submit"]');
+      if (t) {
+        buffer.push({ type: 'cta_click', section_id: (t.getAttribute('data-testid') || '').slice(0, 80) });
+      }
+    };
+    document.addEventListener('click', onClick);
+    // Flush on unmount + visibility change
+    const onVis = () => { if (document.visibilityState === 'hidden') flush(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(flushIv);
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('click', onClick);
+      document.removeEventListener('visibilitychange', onVis);
+      observer.disconnect();
+      flush();
+    };
+  }, [data?.landing, slug, isPreview]);
+
   if (loading) {
     return (
       <div data-testid="landing-loading" style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', background: '#06080F', color: 'rgba(240,235,224,0.62)' }}>

@@ -165,6 +165,9 @@ async def ensure_indexes(db) -> None:
         # Z.8.5 — data cache index
         await db.studio_landing_data_cache.create_index("key", unique=True)
         await db.studio_landing_data_cache.create_index("landing_id")
+        # Z.8.5 — analytics events (TTL 365d)
+        await db.studio_landing_analytics.create_index([("slug", 1), ("created_at", -1)])
+        await db.studio_landing_analytics.create_index("expires_at", expireAfterSeconds=0)
         log.info("[studio_landing] indexes ok")
     except Exception as exc:
         log.warning(f"[studio_landing] indexes failed (soft): {exc}")
@@ -1277,6 +1280,162 @@ def _chi_square(a_conv: int, a_total: int, b_conv: int, b_total: int) -> Dict[st
         rb = b_conv / b_total if b_total else 0
         winner = "A" if ra >= rb else "B"
     return {"stat": round(chi2, 4), "significant": sig, "winner": winner}
+
+
+# ─── Z.8.5 · Analytics events (scroll · section_visible · click) ─────────────
+ANALYTICS_EVENT_TYPES = ("scroll_depth", "section_visible", "click", "cta_click", "time_on_section", "lead_form_focus")
+
+
+async def record_landing_analytics(db, slug: str, events: List[Dict[str, Any]], ip: str = "") -> Dict[str, Any]:
+    """Z.8.5 — Batch insert analytics events (TTL 365d auto-expire)."""
+    if not events or not slug:
+        return {"ok": True, "inserted": 0}
+    from datetime import timedelta
+    expires_at = _now() + timedelta(days=365)
+    docs: List[Dict[str, Any]] = []
+    for ev in events[:50]:  # cap 50 events/batch
+        etype = (ev.get("type") or "").strip()
+        if etype not in ANALYTICS_EVENT_TYPES:
+            continue
+        docs.append({
+            "id": f"ana_{uuid.uuid4().hex[:12]}",
+            "slug": slug,
+            "type": etype,
+            "section_id": (ev.get("section_id") or "")[:80],
+            "section_type": (ev.get("section_type") or "")[:40],
+            "value": ev.get("value"),
+            "depth_pct": ev.get("depth_pct"),
+            "duration_ms": ev.get("duration_ms"),
+            "ip_hash": _hash_ip(ip),
+            "created_at": _iso(),
+            "expires_at": expires_at,
+        })
+    if not docs:
+        return {"ok": True, "inserted": 0}
+    try:
+        await db.studio_landing_analytics.insert_many(docs, ordered=False)
+        return {"ok": True, "inserted": len(docs)}
+    except Exception as exc:
+        log.warning(f"[record_landing_analytics] failed (soft): {exc}")
+        return {"ok": False, "error": str(exc)}
+
+
+async def get_landing_analytics_summary(db, landing_id: str, user_id: str, days: int = 30) -> Dict[str, Any]:
+    """Z.8.5 — Summary stats: scroll depth avg · sections heat · CTAs."""
+    landing = await get_landing(db, landing_id, user_id)
+    if not landing:
+        return {"ok": False, "error": "Landing no encontrada"}
+    slug = landing.get("slug")
+    from datetime import timedelta
+    cutoff = (_now() - timedelta(days=days)).isoformat()
+    try:
+        # Aggregate by type
+        cur = db.studio_landing_analytics.aggregate([
+            {"$match": {"slug": slug, "created_at": {"$gte": cutoff}}},
+            {"$group": {"_id": {"type": "$type", "section_type": "$section_type"}, "count": {"$sum": 1}, "avg_value": {"$avg": "$value"}, "avg_depth": {"$avg": "$depth_pct"}, "avg_duration": {"$avg": "$duration_ms"}}},
+        ])
+        rows = await cur.to_list(200)
+    except Exception as exc:
+        log.warning(f"[get_landing_analytics_summary] failed (soft): {exc}")
+        rows = []
+
+    section_views: Dict[str, int] = {}
+    cta_clicks = 0
+    scroll_samples: List[float] = []
+    section_time: Dict[str, float] = {}
+    for r in rows:
+        key = r["_id"]
+        if key["type"] == "section_visible" and key.get("section_type"):
+            section_views[key["section_type"]] = section_views.get(key["section_type"], 0) + r["count"]
+        elif key["type"] == "cta_click":
+            cta_clicks += r["count"]
+        elif key["type"] == "scroll_depth" and r.get("avg_depth"):
+            scroll_samples.append(r["avg_depth"])
+        elif key["type"] == "time_on_section" and key.get("section_type") and r.get("avg_duration"):
+            section_time[key["section_type"]] = r["avg_duration"]
+
+    avg_scroll = (sum(scroll_samples) / len(scroll_samples)) if scroll_samples else 0
+    return {
+        "ok": True,
+        "slug": slug,
+        "days": days,
+        "section_views_heat": section_views,
+        "section_avg_time_ms": section_time,
+        "cta_clicks": cta_clicks,
+        "avg_scroll_depth_pct": round(avg_scroll, 1),
+        "views_total": landing.get("views_count", 0),
+        "leads_total": landing.get("leads_count", 0),
+        "conversion_rate_pct": round((landing.get("leads_count", 0) / max(1, landing.get("views_count", 0)) * 100), 2),
+    }
+
+
+# ─── Z.8.5 · A/B winner pick basado en lead quality (no solo clicks) ─────────
+async def ab_winner_by_lead_quality(db, group_id: str, user_id: str) -> Dict[str, Any]:
+    """Pick winner usando weighted score:
+        rate * 0.6 + completeness_score * 0.3 + disc_alignment * 0.1
+    completeness_score: leads con campos completos (email + telefono + mensaje)
+    disc_alignment: leads con disc_inferred = template.disc_target
+    """
+    group = await db.studio_landing_ab_groups.find_one(
+        {"id": group_id, "user_id": user_id}, {"_id": 0}
+    )
+    if not group:
+        return {"ok": False, "error": "Grupo A/B no encontrado"}
+    a_id = group.get("variant_a_landing_id")
+    b_id = group.get("variant_b_landing_id")
+    stats = group.get("stats") or {}
+    a_views = stats.get("a_views", 0)
+    b_views = stats.get("b_views", 0)
+    a_leads = stats.get("a_leads", 0)
+    b_leads = stats.get("b_leads", 0)
+    if a_views < MIN_EVENTS_PER_ARM or b_views < MIN_EVENTS_PER_ARM:
+        return {"ok": False, "error": f"Insuficientes vistas (min {MIN_EVENTS_PER_ARM} por arm)"}
+
+    a_rate = a_leads / max(1, a_views)
+    b_rate = b_leads / max(1, b_views)
+
+    async def _quality_score(lid: str) -> Dict[str, float]:
+        try:
+            leads = await db.leads.find({"assigned_to": {"$exists": True}, "source": {"$regex": f"^landing_"}}, {"_id": 0, "email": 1, "phone": 1, "notes": 1, "disc_inferred": 1, "source": 1}).to_list(1000)
+        except Exception:
+            leads = []
+        ll = [l for l in leads if l.get("source") == f"landing_{lid}" or l.get("source", "").endswith(lid)]
+        if not ll:
+            return {"completeness": 0, "disc_alignment": 0, "count": 0}
+        complete = sum(1 for l in ll if l.get("email") and l.get("phone") and (l.get("notes") or "").strip())
+        completeness = complete / len(ll)
+        # disc_alignment: por template disc_target
+        target_disc = None
+        try:
+            la = await db.studio_landings.find_one({"id": lid}, {"_id": 0, "template_key": 1})
+            if la:
+                from studio_landing_property_templates import get_property_template_spec
+                spec = get_property_template_spec(la.get("template_key", "modern"))
+                target_disc = (spec.get("disc_target") or "")[:1]
+        except Exception:
+            pass
+        aligned = sum(1 for l in ll if (l.get("disc_inferred") or "") == target_disc) if target_disc else 0
+        disc_alignment = aligned / len(ll) if ll else 0
+        return {"completeness": completeness, "disc_alignment": disc_alignment, "count": len(ll)}
+
+    qa = await _quality_score(a_id)
+    qb = await _quality_score(b_id)
+    a_score = a_rate * 0.6 + qa["completeness"] * 0.3 + qa["disc_alignment"] * 0.1
+    b_score = b_rate * 0.6 + qb["completeness"] * 0.3 + qb["disc_alignment"] * 0.1
+    winner = "A" if a_score >= b_score else "B"
+    winner_id = a_id if winner == "A" else b_id
+    delta_pct = abs(a_score - b_score) * 100
+    return {
+        "ok": True,
+        "winner": winner,
+        "winner_landing_id": winner_id,
+        "a_score": round(a_score, 4),
+        "b_score": round(b_score, 4),
+        "a_quality": qa,
+        "b_quality": qb,
+        "delta_pct": round(delta_pct, 2),
+        "method": "lead_quality_weighted",
+    }
 
 
 async def get_ab_stats(db, group_id: str, user_id: str) -> Optional[Dict[str, Any]]:

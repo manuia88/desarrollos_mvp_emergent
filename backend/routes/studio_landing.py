@@ -124,6 +124,10 @@ class LeadSubmitBody(BaseModel):
     payload: Dict[str, Any] = Field(default_factory=dict)
 
 
+class AnalyticsBatchBody(BaseModel):
+    events: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 # ─── Portal routes (T2+) ─────────────────────────────────────────────────────
 @router.post("")
 async def create_landing(body: LandingCreateBody, request: Request) -> Dict[str, Any]:
@@ -622,6 +626,36 @@ async def submit_lead(slug: str, body: LeadSubmitBody, request: Request) -> Dict
         if res.get("error") == "rate_limited":
             raise HTTPException(429, res.get("message", "Rate limit"))
         raise HTTPException(404, res.get("error", "Lead no aceptado"))
+    return res
+
+
+@public_router.post("/{slug}/analytics")
+async def public_analytics(slug: str, body: AnalyticsBatchBody, request: Request) -> Dict[str, Any]:
+    """Z.8.5 — Batch tracking events publico (scroll · section_visible · clicks)."""
+    db = _db(request)
+    ip = _client_ip(request)
+    return await eng.record_landing_analytics(db, slug, body.events or [], ip=ip)
+
+
+@router.get("/{landing_id}/analytics-summary")
+async def analytics_summary(landing_id: str, request: Request, days: int = Query(30, ge=1, le=90)) -> Dict[str, Any]:
+    """Z.8.5 — Summary heat map + funnel + scroll depth · T2+ only."""
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.get_landing_analytics_summary(db, landing_id, user.user_id, days=days)
+    if not res.get("ok"):
+        raise HTTPException(404, res.get("error", "Analytics no disponible"))
+    return res
+
+
+@router.post("/ab/{group_id}/winner-quality")
+async def ab_winner_quality(group_id: str, request: Request) -> Dict[str, Any]:
+    """Z.8.5 — A/B winner pick por lead quality (weighted rate + completeness + DISC)."""
+    user = await _require_user(request)
+    db = _db(request)
+    res = await eng.ab_winner_by_lead_quality(db, group_id, user.user_id)
+    if not res.get("ok"):
+        raise HTTPException(422, res.get("error", "No se pudo decidir"))
     return res
 
 

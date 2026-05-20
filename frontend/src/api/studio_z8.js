@@ -54,6 +54,9 @@ export const submitPublicLead = (slug, payload) =>
   post(`/api/landing/${slug}/lead`, { payload });
 export const trackPixelUrl = (slug) => `${API}/api/landing/${slug}/track?ts=${Date.now()}`;
 export const getCrossLinks = (slug) => j(`/api/landing/${slug}/cross-links`);
+export const sendAnalyticsBatch = (slug, events) => post(`/api/landing/${slug}/analytics`, { events });
+export const getAnalyticsSummary = (id, days = 30) => j(`/api/studio/landing/${id}/analytics-summary?days=${days}`);
+export const declareWinnerByQuality = (gid) => post(`/api/studio/landing/ab/${gid}/winner-quality`, {});
 
 // ─── Z.8.4 · Marketplace ──────────────────────────────────────────────────
 export const queryMarketplace = (slug, params = {}) => {
