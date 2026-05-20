@@ -15,6 +15,17 @@ import FAQSection from './FAQSection';
 import CountdownSection from './CountdownSection';
 import FooterSection from './FooterSection';
 import MarketplaceSection from './MarketplaceSection';
+// Z.8.5 — Template-specific unique sections
+import LuxuryServiciosPrivadosSection from './templates/LuxuryServiciosPrivadosSection';
+import FamilyVidaFamiliarSection from './templates/FamilyVidaFamiliarSection';
+import InvestorProyeccionFinancieraSection from './templates/InvestorProyeccionFinancieraSection';
+import BoutiqueCuraduriaSection from './templates/BoutiqueCuraduriaSection';
+import UrgentScarcityAlertSection from './templates/UrgentScarcityAlertSection';
+import ScrollytellingCapituloSection from './templates/ScrollytellingCapituloSection';
+import VideoFirstGaleriaVideoSection from './templates/VideoFirstGaleriaVideoSection';
+import SocialProofSocialStatsSection from './templates/SocialProofSocialStatsSection';
+import SocialProofTestimoniosGrandeSection from './templates/SocialProofTestimoniosGrandeSection';
+import CompareTablaSection from './templates/CompareTablaSection';
 
 const REGISTRY = {
   hero: HeroSection,
@@ -32,6 +43,17 @@ const REGISTRY = {
   countdown: CountdownSection,
   footer: FooterSection,
   marketplace: MarketplaceSection,
+  // Z.8.5 — Property template unique sections
+  servicios_privados: LuxuryServiciosPrivadosSection,
+  vida_familiar: FamilyVidaFamiliarSection,
+  proyeccion_financiera: InvestorProyeccionFinancieraSection,
+  curaduria: BoutiqueCuraduriaSection,
+  scarcity_alert: UrgentScarcityAlertSection,
+  capitulo: ScrollytellingCapituloSection,
+  galeria_video: VideoFirstGaleriaVideoSection,
+  social_stats: SocialProofSocialStatsSection,
+  testimonios_grande: SocialProofTestimoniosGrandeSection,
+  comparison_table_grande: CompareTablaSection,
 };
 
 export const SECTION_TYPES = Object.keys(REGISTRY);
@@ -52,6 +74,17 @@ export const SECTION_META = {
   countdown: { label: 'Countdown', icon: 'Timer', desc: 'Urgencia / scarcity' },
   footer: { label: 'Footer', icon: 'Anchor', desc: 'Logo + contacto + social' },
   marketplace: { label: 'Marketplace', icon: 'Grid3x3', desc: 'Mini-portal completo · filtros · search · map · paginated' },
+  // Z.8.5 — Template-specific section meta
+  servicios_privados: { label: 'Servicios privados', icon: 'Crown', desc: 'Luxury · chef · spa · valet · concierge · helipad · driver' },
+  vida_familiar: { label: 'Vida familiar', icon: 'Heart', desc: 'Family · colegios · parques · hospitales · transporte' },
+  proyeccion_financiera: { label: 'Proyeccion financiera', icon: 'TrendingUp', desc: 'Investor · ROI/cap rate/yield/cash flow' },
+  curaduria: { label: 'Curaduria', icon: 'Award', desc: 'Boutique · piedras · carpinteria · arte · arquitecto' },
+  scarcity_alert: { label: 'Scarcity alert', icon: 'AlertTriangle', desc: 'Urgent · unidades restantes + descuento + obra' },
+  capitulo: { label: 'Capitulo', icon: 'BookOpen', desc: 'Scrollytelling · capitulo narrative long-form' },
+  galeria_video: { label: 'Galeria video', icon: 'Film', desc: 'Video-first · 5 clips amanecer/amenidades/rooftop/drone/atardecer' },
+  social_stats: { label: 'Social stats', icon: 'Users', desc: 'Social proof · families/satisfaction/rating prominent' },
+  testimonios_grande: { label: 'Testimonios grande', icon: 'Quote', desc: 'Social proof · testimonios hero-size carousel' },
+  comparison_table_grande: { label: 'Comparison table', icon: 'Columns', desc: 'Compare · vs competidores · Battle Card data' },
 };
 
 export default function SectionRenderer({ section, brandKit, linkedEntity, onLead, isPreview, theme, landingSlug }) {
