@@ -170,6 +170,13 @@ app.include_router(me_feature_flags_router)
 from routes.feature_visibility import router as feature_visibility_router
 app.include_router(feature_visibility_router)
 
+# W5.x F6 — Tax/Legal Projector CDMX (publico T0 · open calculator)
+try:
+    from routes.tax_projector import router as tax_projector_router
+    app.include_router(tax_projector_router)
+except Exception as _exc:
+    logging.warning(f"[F6] tax_projector_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
