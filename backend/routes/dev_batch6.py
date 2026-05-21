@@ -222,27 +222,51 @@ async def demand_heatmap(
 # ═════════════════════════════════════════════════════════════════════════════
 # 4.20 · ENGAGEMENT ANALYTICS PER UNIT
 # ═════════════════════════════════════════════════════════════════════════════
-async def _claude_recommendations(units_summary: List[Dict], project_name: str) -> Optional[List[str]]:
+async def _claude_recommendations(units_summary: List[Dict], project_name: str, db=None, tenant_id: Optional[str] = None) -> Optional[List[str]]:
     """Claude haiku recommendation prompt. Returns list of strings or None."""
     key = os.environ.get("EMERGENT_LLM_KEY", "")
     if not key:
         return None
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
+        system_message = (
+            "Eres analista senior de marketing inmobiliario en México. Recibes datos de engagement "
+            "por unidad de un proyecto. Genera 2 a 3 recomendaciones accionables específicas "
+            "(tono directo, sin tecnicismos). Responde JSON válido SIN markdown: "
+            '{"recommendations": ["str1", "str2", ...]}'
+        )
         chat = LlmChat(
             api_key=key, session_id=f"unit_reco_{project_name}",
-            system_message=(
-                "Eres analista senior de marketing inmobiliario en México. Recibes datos de engagement "
-                "por unidad de un proyecto. Genera 2 a 3 recomendaciones accionables específicas "
-                "(tono directo, sin tecnicismos). Responde JSON válido SIN markdown: "
-                '{"recommendations": ["str1", "str2", ...]}'
-            ),
+            system_message=system_message,
         ).with_model("anthropic", "claude-haiku-4-5-20251001")
-        msg = UserMessage(text=f"Proyecto: {project_name}. Top 5 unidades por engagement: "
-                                f"{json.dumps(units_summary[:5], ensure_ascii=False)}. "
-                                f"Genera recomendaciones.")
+        user_text = (
+            f"Proyecto: {project_name}. Top 5 unidades por engagement: "
+            f"{json.dumps(units_summary[:5], ensure_ascii=False)}. "
+            f"Genera recomendaciones."
+        )
+        msg = UserMessage(text=user_text)
         raw = await chat.send_message(msg)
         text = (raw or "").strip()
+
+        # ── AI cost tracking (best-effort, fire-and-forget) ────────────
+        if db is not None:
+            try:
+                from ai_budget import track_ai_call
+                _in_tokens = max(1, (len(system_message) + len(user_text)) // 4)
+                _out_tokens = max(1, len(text) // 4)
+                await track_ai_call(
+                    db=db,
+                    dev_org_id=tenant_id or "default",
+                    model="claude-haiku-4-5-20251001",
+                    tokens=_in_tokens + _out_tokens,
+                    tokens_in=_in_tokens,
+                    tokens_out=_out_tokens,
+                    call_type="dev_batch6_llm_call",
+                    feature_key="dev_batch6_llm_call",
+                )
+            except Exception as _exc:
+                log.warning(f"[track_ai_call] failed silent: {_exc}")
+
         if text.startswith("```"):
             import re
             text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S).strip()
@@ -361,7 +385,10 @@ async def engagement_units(
     if cached and (_now() - cached[0]).total_seconds() < RECO_TTL_HOURS * 3600:
         recommendations = cached[1].get("recs", [])
     else:
-        recs = await _claude_recommendations(out, project.get("name", project_id))
+        recs = await _claude_recommendations(
+            out, project.get("name", project_id),
+            db=db, tenant_id=getattr(user, "tenant_id", None) or getattr(user, "user_id", None) or "default",
+        )
         if recs:
             recommendations = recs
         else:

@@ -1201,6 +1201,24 @@ class DirectorAgent:
             }
         )
 
+        # ── AI cost tracking (best-effort, fire-and-forget) ────────────────
+        # Captures both the multi-round agentic_loop calls (lines ~923) and the
+        # fallback last_resp call (~956) since tok_in/tok_out aggregate them all.
+        try:
+            from ai_budget import track_ai_call
+            await track_ai_call(
+                db=db,
+                dev_org_id=self.org_id or "default",
+                model=DIRECTOR_MODEL,
+                tokens=int(tok_in) + int(tok_out),
+                tokens_in=int(tok_in),
+                tokens_out=int(tok_out),
+                call_type="director_agent",
+                feature_key="director_agent",
+            )
+        except Exception as _exc:
+            log.warning(f"[track_ai_call] failed silent: {_exc}")
+
         return {
             "message_id": msg_id_asst,
             "assistant_message": assistant_text,

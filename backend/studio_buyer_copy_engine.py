@@ -472,6 +472,29 @@ async def _run_job(db, job_id: str, buyer_angle: str, disc: Optional[str], langu
     try:
         prompt = _build_prompt(buyer_angle, disc, language, context_extra)
         raw = await _call_with_fallback(prompt, job_id)
+
+        # ── AI cost tracking (best-effort, fire-and-forget) ────────────
+        # NOTE: _call_with_fallback may run claude OR openai fallback; we cannot
+        # distinguish here, so we attribute to CLAUDE_MODEL (primary path).
+        try:
+            from ai_budget import track_ai_call
+            _job_doc = await db.studio_copy_jobs.find_one({"id": job_id}, {"_id": 0, "tenant_id": 1}) or {}
+            _tenant = _job_doc.get("tenant_id") or "default"
+            _in_tokens = max(1, len(prompt) // 4)
+            _out_tokens = max(1, len(raw or "") // 4)
+            await track_ai_call(
+                db=db,
+                dev_org_id=_tenant,
+                model=CLAUDE_MODEL,
+                tokens=_in_tokens + _out_tokens,
+                tokens_in=_in_tokens,
+                tokens_out=_out_tokens,
+                call_type="studio_buyer_copy",
+                feature_key="studio_buyer_copy",
+            )
+        except Exception as _exc:
+            log.warning(f"[track_ai_call] failed silent: {_exc}")
+
         import json, re
         m = re.search(r'\{.*\}', raw, re.DOTALL)
         data = json.loads(m.group(0)) if m else {"hook": raw, "variants": []}

@@ -347,6 +347,23 @@ async def reindex_all(db) -> Dict[str, Any]:
 
     cost = (total_tokens / 1_000_000.0) * EMBED_COST_PER_1M
 
+    # ── AI cost tracking (best-effort, fire-and-forget) ────────────────
+    if total_tokens > 0:
+        try:
+            from ai_budget import track_ai_call
+            await track_ai_call(
+                db=db,
+                dev_org_id="dmx",  # platform-level reindex (no tenant scope)
+                model=EMBED_MODEL,
+                tokens=int(total_tokens),
+                tokens_in=int(total_tokens),
+                tokens_out=0,
+                call_type="rag_embedding",
+                feature_key="rag_embedding",
+            )
+        except Exception as _exc:
+            log.warning(f"[track_ai_call] failed silent: {_exc}")
+
     # Refresh in-memory cache
     await load_corpus_cache(db)
 
@@ -391,6 +408,23 @@ async def semantic_search(
     if not _CORPUS:
         await load_corpus_cache(db)
     qvec = await embed_one(query.strip())
+
+    # ── AI cost tracking (best-effort, fire-and-forget) ────────────────
+    try:
+        from ai_budget import track_ai_call
+        _q_tokens = max(1, len(query) // 4)
+        await track_ai_call(
+            db=db,
+            dev_org_id="dmx",  # search is platform-level; no per-tenant scope here
+            model=EMBED_MODEL,
+            tokens=_q_tokens,
+            tokens_in=_q_tokens,
+            tokens_out=0,
+            call_type="rag_embedding",
+            feature_key="rag_embedding",
+        )
+    except Exception as _exc:
+        log.warning(f"[track_ai_call] failed silent: {_exc}")
     # Filter
     pool = _CORPUS
     if scope:

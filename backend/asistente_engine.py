@@ -913,6 +913,22 @@ class AsistenteEngine:
         )
         await self._bump_session(session_token)
 
+        # ── AI cost tracking (best-effort, fire-and-forget) ────────────────
+        try:
+            from ai_budget import track_ai_call
+            await track_ai_call(
+                db=self.db,
+                dev_org_id=org_id or "default",
+                model=ASISTENTE_MODEL,
+                tokens=int(tokens_in) + int(tokens_out),
+                tokens_in=int(tokens_in),
+                tokens_out=int(tokens_out),
+                call_type="asistente_chat",
+                feature_key="asistente_chat",
+            )
+        except Exception as _exc:
+            log.warning(f"[track_ai_call] failed silent: {_exc}")
+
         return {
             "assistant_message": assistant_text,
             "tool_calls": [tc.get("tool_name") for tc in tool_calls_log],

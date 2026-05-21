@@ -252,6 +252,7 @@ async def _llm_narrative(
     cma_id: str, colonia_name: str, value: float, low: float, high: float,
     n_comp: int, avg_comp_price: float, subscores: Dict[str, float],
     drpi_label: str, forecast_12m_pct: Optional[float],
+    db=None, asesor_id: Optional[str] = None,
 ) -> str:
     """Genera narrativa con Claude · fallback a template si falla.
 
@@ -294,6 +295,26 @@ async def _llm_narrative(
         text = (resp or "").strip()
         if len(text) > 600:
             text = text[:597].rstrip() + "…"
+
+        # ── AI cost tracking (best-effort, fire-and-forget) ────────────
+        if db is not None:
+            try:
+                from ai_budget import track_ai_call
+                _in_tokens = max(1, (len(user_prompt) + len(sys_prompt)) // 4)
+                _out_tokens = max(1, len(text) // 4)
+                await track_ai_call(
+                    db=db,
+                    dev_org_id=asesor_id or "default",
+                    model=COACH_MODEL,
+                    tokens=_in_tokens + _out_tokens,
+                    tokens_in=_in_tokens,
+                    tokens_out=_out_tokens,
+                    call_type="cma",
+                    feature_key="cma",
+                )
+            except Exception as _exc:
+                log.warning(f"[track_ai_call] failed silent: {_exc}")
+
         return text or template_fallback
     except Exception as exc:
         log.warning(f"[cma] LLM narrative failed · fallback template · {exc}")
@@ -387,6 +408,7 @@ async def generate_cma(db, asesor_id: str, subject: Dict[str, Any]) -> Dict[str,
         cma_id, colonia_name, estimated_value, range_low, range_high,
         n_comp, avg_comp_price, subscores_full,
         drpi_trend.get("label", "flat"), forecast_12m_pct,
+        db=db, asesor_id=asesor_id,
     )
 
     now = _now()

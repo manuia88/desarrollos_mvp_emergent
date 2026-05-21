@@ -133,8 +133,12 @@ async def declare_winner(group_id: str, body: DeclareWinnerBody, request: Reques
 
 @router.post("/hook-score")
 async def compute_hook_score(body: HookScoreBody, request: Request) -> Dict[str, Any]:
-    await _require_user(request)
-    result = await hook_engine.compute_hook_score(body.text, body.language)
+    user = await _require_user(request)
+    db = _db(request)
+    result = await hook_engine.compute_hook_score(
+        body.text, body.language,
+        db=db, tenant_id=getattr(user, "tenant_id", None) or "default",
+    )
     return result
 
 

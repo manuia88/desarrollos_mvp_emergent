@@ -134,6 +134,24 @@ class VoiceAtlaxEngine:
                 "created_at": _now(),
             })
 
+            # ── AI cost tracking (best-effort, fire-and-forget) ────────────
+            try:
+                from ai_budget import track_ai_call
+                # Whisper has no token concept — use duration as proxy for call visibility.
+                _proxy_tokens = max(1, int(duration_est * 100))  # ~1 min audio → 6000 "tokens"
+                await track_ai_call(
+                    db=self.db,
+                    dev_org_id=session_token or "default",
+                    model="whisper-1",
+                    tokens=_proxy_tokens,
+                    tokens_in=_proxy_tokens,
+                    tokens_out=max(1, len(transcript) // 4),
+                    call_type="voice_atlax",
+                    feature_key="voice_atlax",
+                )
+            except Exception as _exc:
+                log.warning(f"[track_ai_call] failed silent: {_exc}")
+
             return {
                 "ok": True,
                 "transcript": transcript,

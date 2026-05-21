@@ -275,6 +275,25 @@ async def get_or_generate_briefing(
     session_key = f"briefing_{advisor_user_id}_{development_id}_{lead_id or contact_id or 'none'}_{int(now.timestamp())}"
     out = await _generate_briefing(SYSTEM_PROMPT, user_prompt, session_key)
 
+    # ── AI cost tracking (best-effort, fire-and-forget) ────────────────
+    try:
+        from ai_budget import track_ai_call
+        _in_tokens = int(out.get("input_tokens") or 0)
+        _out_tokens = int(out.get("output_tokens") or 0)
+        await track_ai_call(
+            db=db,
+            dev_org_id=advisor_user_id or "default",
+            model=out.get("model") or "claude-sonnet-4-5-20250929",
+            tokens=_in_tokens + _out_tokens,
+            tokens_in=_in_tokens,
+            tokens_out=_out_tokens,
+            call_type="briefing",
+            feature_key="briefing",
+        )
+    except Exception as _exc:
+        import logging as _logging
+        _logging.getLogger("dmx.briefing").warning(f"[track_ai_call] failed silent: {_exc}")
+
     # Enrich headline_pros and caveats with label_es if missing (defensive)
     for bucket in ("headline_pros", "honest_caveats"):
         for item in out["parsed"].get(bucket, []) or []:

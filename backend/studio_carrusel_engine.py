@@ -377,7 +377,7 @@ async def generate_carrusel_job(
     # Hook score gate
     hero_title = (pages_data.get("hero") or {}).get("title", "")
     copy_text = hero_title + " " + (pages_data.get("cta") or {}).get("text", "")
-    hook_data = await compute_hook_score(copy_text.strip())
+    hook_data = await compute_hook_score(copy_text.strip(), db=db, tenant_id=tenant_id)
     hook_score = hook_data["total"]
 
     if hook_score < hook_score_pre_gate_min:

@@ -324,6 +324,29 @@ class NewsletterPulseEngine:
             content = tasks[seg].result() if not isinstance(tasks[seg].exception(), Exception) else _stub_segment_content(seg)
             total_cost += content.get("cost_usd", 0)
 
+            # ── AI cost tracking (best-effort, fire-and-forget) ────────
+            # Only track when the LLM actually ran (layer="llm"); stubs are free.
+            if content.get("layer") == "llm":
+                try:
+                    from ai_budget import track_ai_call
+                    import json as _json
+                    _content_str = _json.dumps(content, ensure_ascii=False)
+                    # Prompt size is roughly constant (~500 chars from _generate_segment_content)
+                    _in_tokens = max(1, 500 // 4)
+                    _out_tokens = max(1, len(_content_str) // 4)
+                    await track_ai_call(
+                        db=self.db,
+                        dev_org_id="dmx",  # platform-level newsletter (no per-tenant scope)
+                        model="claude-haiku-4-5",
+                        tokens=_in_tokens + _out_tokens,
+                        tokens_in=_in_tokens,
+                        tokens_out=_out_tokens,
+                        call_type="newsletter_pulse",
+                        feature_key="newsletter_pulse",
+                    )
+                except Exception as _exc:
+                    log.warning(f"[track_ai_call] failed silent: {_exc}")
+
             # Idempotente: un run por (período, segmento)
             period_key = period_start.strftime("%Y-W%W")
             existing = await self.db.newsletter_pulse_runs.find_one(

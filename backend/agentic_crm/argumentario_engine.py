@@ -632,6 +632,23 @@ OUTPUT JSON REQUERIDO:
         tok_out = max(1, len(raw) // 4)
         cost = round((tok_in * 3.0 + tok_out * 15.0) / 1_000_000, 8)
 
+        # ── AI cost tracking (best-effort, fire-and-forget) ────────────────
+        try:
+            from ai_budget import track_ai_call
+            await track_ai_call(
+                db=self.db,
+                dev_org_id=self.org_id or "default",
+                model=model,
+                tokens=tok_in + tok_out,
+                tokens_in=tok_in,
+                tokens_out=tok_out,
+                call_type="argumentario",
+                feature_key="argumentario",
+            )
+        except Exception as _exc:
+            import logging as _logging
+            _logging.getLogger("dmx.argumentario").warning(f"[track_ai_call] failed silent: {_exc}")
+
         return content, tok_in + tok_out, cost
 
     # ── Layer 2 — cached similar ───────────────────────────────────────────────

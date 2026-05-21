@@ -212,6 +212,24 @@ async def run_extraction(db, doc_id: str, *, force: bool = False) -> Dict[str, A
         try:
             call = await _call_claude(doc_id, doc_type, ocr_text, temperature)
             last_call = call
+            # ── AI cost tracking (best-effort, fire-and-forget) ────────
+            try:
+                from ai_budget import track_ai_call
+                _in = int(call.get("input_tokens") or 0)
+                _out = int(call.get("output_tokens") or 0)
+                _tenant = doc.get("tenant_id") or doc.get("dev_org_id") or doc.get("development_id") or "default"
+                await track_ai_call(
+                    db=db,
+                    dev_org_id=str(_tenant),
+                    model=call.get("model") or EXTRACTION_MODEL,
+                    tokens=_in + _out,
+                    tokens_in=_in,
+                    tokens_out=_out,
+                    call_type="doc_extraction",
+                    feature_key="doc_extraction",
+                )
+            except Exception as _exc:
+                log.warning(f"[track_ai_call] failed silent: {_exc}")
         except Exception as e:
             last_err = f"claude_call_failed: {type(e).__name__}: {e}"
             log.exception(f"di.extract claude failed doc={doc_id} attempt={attempt}")

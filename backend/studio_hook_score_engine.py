@@ -63,8 +63,12 @@ async def _call_llm(prompt: str, provider: str = "anthropic") -> str:
     return await chat.send_message(LlmUserMsg(text=prompt))
 
 
-async def compute_hook_score(text: str, language: str = "es-MX") -> Dict[str, Any]:
-    """Computa hook score 0-100 + breakdown. Usado por gate en carrusel/generate."""
+async def compute_hook_score(text: str, language: str = "es-MX", db=None, tenant_id: Optional[str] = None) -> Dict[str, Any]:
+    """Computa hook score 0-100 + breakdown. Usado por gate en carrusel/generate.
+
+    Optional `db` + `tenant_id` enable AI cost tracking. Backwards-compatible:
+    existing call sites without these args skip tracking gracefully.
+    """
     if not text or not text.strip():
         return {
             "total": 0,
@@ -72,15 +76,37 @@ async def compute_hook_score(text: str, language: str = "es-MX") -> Dict[str, An
             "suggestion": "El texto no puede estar vacio.",
         }
     prompt = _score_prompt(text.strip(), language)
+    _model_used = CLAUDE_MODEL
     try:
         raw = await asyncio.wait_for(_call_llm(prompt, "anthropic"), timeout=25.0)
     except (asyncio.TimeoutError, Exception) as e:
         log.warning(f"[hook_score] Claude failed ({e}), fallback OpenAI")
         try:
             raw = await asyncio.wait_for(_call_llm(prompt, "openai"), timeout=25.0)
+            _model_used = OPENAI_MODEL
         except Exception as e2:
             log.warning(f"[hook_score] OpenAI fallback failed: {e2}")
             return _heuristic_score(text)
+
+    # ── AI cost tracking (best-effort, fire-and-forget) ────────────────
+    # Tracks the path that actually succeeded (claude OR openai fallback).
+    if db is not None:
+        try:
+            from ai_budget import track_ai_call
+            _in_tokens = max(1, len(prompt) // 4)
+            _out_tokens = max(1, len(raw or "") // 4)
+            await track_ai_call(
+                db=db,
+                dev_org_id=tenant_id or "default",
+                model=_model_used,
+                tokens=_in_tokens + _out_tokens,
+                tokens_in=_in_tokens,
+                tokens_out=_out_tokens,
+                call_type="studio_hook_score",
+                feature_key="studio_hook_score",
+            )
+        except Exception as _exc:
+            log.warning(f"[track_ai_call] failed silent: {_exc}")
 
     try:
         m = re.search(r'\{.*\}', raw, re.DOTALL)
