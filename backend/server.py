@@ -1533,6 +1533,12 @@ async def startup():
             register_kg_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[KG cron] register failed: {e}")
+        # W5.x F2 — RAG reindex daily + director_memory cleanup
+        try:
+            from rag_reindex_cron import register_rag_reindex_jobs
+            register_rag_reindex_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[F2 cron] register failed: {e}")
         # W5.5 Parte 1 — Live Pulse compute + readiness snapshot cron
         try:
             import live_pulse_engine
