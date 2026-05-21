@@ -154,6 +154,40 @@ function FormFields({ values, onChange, t }) {
             {t('taxProjector.predial_anual_actual_hint')}
           </div>
         </label>
+        <div style={{ ...labelStyle, marginTop: 18 }}>{t('taxProjector.descuentos_section')}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+          {[
+            { value: 'enero', label: t('taxProjector.mes_enero') },
+            { value: 'febrero', label: t('taxProjector.mes_febrero') },
+            { value: 'marzo_o_despues', label: t('taxProjector.mes_marzo_despues') },
+          ].map((opt) => (
+            <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', color: CREAM, fontSize: 13, fontFamily: 'DM Sans, sans-serif' }}>
+              <input
+                type="radio"
+                name="mes_pago"
+                value={opt.value}
+                checked={values.mes_pago_anticipado === opt.value}
+                onChange={(e) => onChange('mes_pago_anticipado', e.target.value)}
+                style={{ accentColor: INDIGO, cursor: 'pointer' }}
+                data-testid={`radio-mes-${opt.value}`}
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 14, cursor: 'pointer', color: CREAM, fontSize: 13, fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5 }}>
+          <input
+            type="checkbox"
+            checked={!!values.grupo_vulnerable}
+            onChange={(e) => onChange('grupo_vulnerable', e.target.checked)}
+            style={{ accentColor: INDIGO, cursor: 'pointer', marginTop: 2 }}
+            data-testid="checkbox-vulnerable"
+          />
+          <span>{t('taxProjector.grupo_vulnerable')}</span>
+        </label>
+        <div style={{ fontSize: 11, color: MUTED, marginTop: 6, lineHeight: 1.5, textTransform: 'none', letterSpacing: 0 }}>
+          {t('taxProjector.grupo_vulnerable_hint')}
+        </div>
       </Section>
       <Section title={t('taxProjector.seller_section')}>
         <label style={labelStyle}>{t('taxProjector.precio_compra')}
@@ -229,6 +263,10 @@ function BreakdownTable({ isr, t }) {
 function PredialChart({ predial, t }) {
   const data = useMemo(() => (predial?.items || []).map((it) => ({ year: it.year, predial: it.predial_estimado })), [predial]);
   if (!data.length) return null;
+  const totalBruto = predial?.total_bruto_10y || 0;
+  const totalNeto = predial?.total_10y || 0;
+  const ahorro = predial?.ahorro_10y || 0;
+  const showSavings = ahorro > 0;
   return (
     <div style={{ background: CARD_BG, border: BORDER, borderRadius: 24, padding: 26, backdropFilter: 'blur(24px)' }}>
       <div style={{ ...sectionTitleStyle, color: CREAM }}>{t('taxProjector.predial_chart_title')}</div>
@@ -247,6 +285,24 @@ function PredialChart({ predial, t }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: showSavings ? 'repeat(3, 1fr)' : '1fr', gap: 14, marginTop: 18, paddingTop: 18, borderTop: '1px solid rgba(240,235,224,0.10)' }}>
+        {showSavings && (
+          <div>
+            <div style={{ fontSize: 11, color: MUTED, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{t('taxProjector.predial_total_bruto')}</div>
+            <div style={{ fontSize: 18, color: CREAM, fontFamily: 'Outfit, sans-serif', fontWeight: 700, marginTop: 4 }}>{fmtMXN(totalBruto)}</div>
+          </div>
+        )}
+        <div>
+          <div style={{ fontSize: 11, color: MUTED, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{t('taxProjector.predial_total_neto')}</div>
+          <div style={{ fontSize: 18, color: CREAM, fontFamily: 'Outfit, sans-serif', fontWeight: 700, marginTop: 4 }}>{fmtMXN(totalNeto)}</div>
+        </div>
+        {showSavings && (
+          <div>
+            <div style={{ fontSize: 11, color: MUTED, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{t('taxProjector.predial_ahorro')}</div>
+            <div style={{ fontSize: 18, color: ROSE, fontFamily: 'Outfit, sans-serif', fontWeight: 700, marginTop: 4 }}>−{fmtMXN(ahorro)}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -255,6 +311,8 @@ export default function TaxProjectorPage() {
   const { t } = useTranslation('common');
   const [values, setValues] = useState({
     predial_anual_actual: '',
+    mes_pago_anticipado: '',
+    grupo_vulnerable: false,
     precio_compra: '',
     fecha_compra: '',
     precio_venta: '',
@@ -292,6 +350,12 @@ export default function TaxProjectorPage() {
       };
       if (Number(values.predial_anual_actual) > 0) {
         params.predial_anual_actual = Number(values.predial_anual_actual);
+      }
+      if (values.mes_pago_anticipado) {
+        params.mes_pago_anticipado = values.mes_pago_anticipado;
+      }
+      if (values.grupo_vulnerable) {
+        params.grupo_vulnerable = true;
       }
       const r = await getFullScenario(params);
       setScenario(r);

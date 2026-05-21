@@ -100,6 +100,17 @@ INPC_ANCHORS: List[Tuple[str, float]] = [
     ("2026-04", 145.8310),
 ]
 
+# Descuentos predial CDMX 2026 (Tesorería · Programas)
+DESCUENTO_MES_PAGO = {
+    "enero": 0.08,           # 8% por pago anual anticipado en enero
+    "febrero": 0.05,         # 5% por pago anual anticipado en febrero
+    "marzo_o_despues": 0.0,  # sin descuento desde marzo
+}
+# Grupos vulnerables: adultos 60+, jubilados, pensionados, viudas, madres solteras, personas con discapacidad
+VULNERABLE_VALOR_CATASTRAL_LIMITE = 2_808_466.00  # 2026
+VULNERABLE_CUOTA_FIJA_BIMESTRAL = 68.00           # $68 × 6 = $408 anual fijo
+VULNERABLE_DESCUENTO_EXCEDE_PCT = 0.30            # 30% off si excede el límite
+
 # Closing cost percentages (sobre precio_venta · servicios sujetos a IVA 16%)
 NOTARIO_FEE_PCT = 1.0
 AVALUO_FEE_PCT = 0.25
@@ -307,17 +318,23 @@ def project_predial_10y(
     year_base: int = 2026,
     tipo: str = "habitacional",
     predial_anual_actual: Optional[float] = None,
+    mes_pago_anticipado: Optional[str] = None,
+    grupo_vulnerable: bool = False,
 ) -> Dict[str, Any]:
-    """Proyección 10 años predial · 2 modos:
+    """Proyección 10 años predial · 2 modos + descuentos opcionales.
 
-    MODO 1 (preferido · más preciso): si user pasa `predial_anual_actual` (lo conoce de su recibo),
-    proyectamos hacia adelante con factor 1.06/año. Captura automáticamente todos los descuentos
-    aplicables al caso real del usuario (vulnerable, pago anticipado, etc.).
+    MODOS BASE:
+    - user_actual: user provee predial_anual_actual (más preciso · captura su realidad)
+    - tabla_oficial: cálculo desde valor_catastral con ART 130 CFCDMX 2026 (bruto catálogo)
 
-    MODO 2 (fallback · cálculo teórico): si no pasa predial_anual_actual, usamos tabla oficial
-    ART 130 CFCDMX 2026 sobre valor_catastral. Resultado es el catálogo BRUTO sin descuentos.
+    DESCUENTOS APLICABLES (Tesorería CDMX 2026):
+    - mes_pago_anticipado: "enero" (8% off), "febrero" (5% off), "marzo_o_despues" (0%)
+    - grupo_vulnerable: adultos 60+, jubilados, pensionados, viudas, madres solteras,
+      personas con discapacidad. Si valor catastral ≤ $2,808,466 → cuota fija $408/año.
+      Si excede → 30% descuento sobre el bruto.
 
-    FUENTE tabla: Gaceta Oficial CDMX 19-dic-2025 No. 1762 Tomo II.
+    Si user_actual + descuentos: asumimos que su input es BRUTO y aplicamos descuentos
+    encima (para simulaciones what-if). Si quiere mantener su input intacto, no aplicar.
     """
     try:
         if valor_catastral <= 0 and not predial_anual_actual:
@@ -325,53 +342,72 @@ def project_predial_10y(
 
         items: List[Dict[str, Any]] = []
         modo = "user_actual" if predial_anual_actual and predial_anual_actual > 0 else "tabla_oficial"
+        descuento_mes_pct = DESCUENTO_MES_PAGO.get(mes_pago_anticipado, 0.0)
+        tipo_multiplier = 1.5 if tipo == "no_habitacional" else 1.0
 
-        if modo == "user_actual":
-            # MODO 1: proyectar el predial actual con factor anual
-            for i in range(10):
-                year = year_base + i
-                predial = round(predial_anual_actual * (PREDIAL_FACTOR_ANUAL ** i), 2)
-                valor_proy = round(valor_catastral * (PREDIAL_FACTOR_ANUAL ** i), 2) if valor_catastral > 0 else 0
-                items.append({
-                    "year": year,
-                    "valor_catastral_proyectado": valor_proy,
-                    "predial_estimado": predial,
-                    "modo": "user_actual",
-                })
-        else:
-            # MODO 2: calcular desde valor catastral con tabla oficial
-            tipo_multiplier = 1.5 if tipo == "no_habitacional" else 1.0
-            for i in range(10):
-                year = year_base + i
-                valor_year = valor_catastral * (PREDIAL_FACTOR_ANUAL ** i)
-                tarifa = _aplicar_tarifa(valor_year, PREDIAL_CDMX_BRACKETS_2026)
-                predial_bimestral = tarifa["impuesto"]
-                predial_anual = round(predial_bimestral * 6 * tipo_multiplier, 2)
-                items.append({
-                    "year": year,
-                    "valor_catastral_proyectado": round(valor_year, 2),
-                    "predial_estimado": predial_anual,
-                    "bracket_idx": tarifa["bracket_idx"],
-                    "modo": "tabla_oficial",
-                })
+        for i in range(10):
+            year = year_base + i
+            valor_proy = round(valor_catastral * (PREDIAL_FACTOR_ANUAL ** i), 2) if valor_catastral > 0 else 0
+
+            # 1. Calcular predial BRUTO (sin descuentos)
+            if modo == "user_actual":
+                predial_bruto = predial_anual_actual * (PREDIAL_FACTOR_ANUAL ** i)
+            else:
+                tarifa = _aplicar_tarifa(valor_proy, PREDIAL_CDMX_BRACKETS_2026)
+                predial_bruto = tarifa["impuesto"] * 6 * tipo_multiplier
+
+            # 2. Aplicar beneficio grupo vulnerable (si aplica)
+            descuento_vulnerable = 0.0
+            predial_post_vulnerable = predial_bruto
+            if grupo_vulnerable and valor_proy > 0:
+                if valor_proy <= VULNERABLE_VALOR_CATASTRAL_LIMITE:
+                    # Cuota fija $68 bimestral × 6 = $408 anual
+                    predial_post_vulnerable = VULNERABLE_CUOTA_FIJA_BIMESTRAL * 6
+                    descuento_vulnerable = max(predial_bruto - predial_post_vulnerable, 0)
+                else:
+                    # 30% descuento si excede límite
+                    descuento_vulnerable = predial_bruto * VULNERABLE_DESCUENTO_EXCEDE_PCT
+                    predial_post_vulnerable = predial_bruto - descuento_vulnerable
+
+            # 3. Aplicar descuento pago anticipado (sobre el post-vulnerable)
+            descuento_mes = predial_post_vulnerable * descuento_mes_pct
+            predial_neto = predial_post_vulnerable - descuento_mes
+
+            items.append({
+                "year": year,
+                "valor_catastral_proyectado": valor_proy,
+                "predial_bruto": round(predial_bruto, 2),
+                "descuento_vulnerable": round(descuento_vulnerable, 2),
+                "descuento_mes": round(descuento_mes, 2),
+                "predial_estimado": round(predial_neto, 2),
+                "modo": modo,
+            })
+
         total_10y = round(sum(it["predial_estimado"] for it in items), 2)
+        total_bruto_10y = round(sum(it["predial_bruto"] for it in items), 2)
+        ahorro_10y = round(total_bruto_10y - total_10y, 2)
         return {
             "ok": True,
             "items": items,
             "total_10y": total_10y,
+            "total_bruto_10y": total_bruto_10y,
+            "ahorro_10y": ahorro_10y,
             "breakdown": {
                 "modo": modo,
                 "tipo": tipo,
-                "predial_y1": items[0]["predial_estimado"] if items else 0,
+                "predial_y1_bruto": items[0]["predial_bruto"] if items else 0,
+                "predial_y1_neto": items[0]["predial_estimado"] if items else 0,
+                "ahorro_y1": round(items[0]["predial_bruto"] - items[0]["predial_estimado"], 2) if items else 0,
                 "factor_anual_reajuste": PREDIAL_FACTOR_ANUAL,
                 "valor_catastral_base": round(valor_catastral, 2) if valor_catastral > 0 else None,
                 "predial_anual_actual_input": round(predial_anual_actual, 2) if predial_anual_actual else None,
-                "tabla_oficial": "ART 130 CFCDMX 2026 (Gaceta 19-dic-2025)" if modo == "tabla_oficial" else None,
-                "nota": (
-                    "Proyección basada en tu predial actual ajustado por inflación catastral 6%/año. Captura los descuentos aplicables a tu caso."
-                    if modo == "user_actual"
-                    else "Cálculo bruto del catálogo Art 130. CDMX otorga descuentos: 8% pago anual enero, 5% febrero, hasta 30% para grupos vulnerables. Tu predial real puede ser menor."
-                ),
+                "descuentos_aplicados": {
+                    "mes_pago_anticipado": mes_pago_anticipado,
+                    "descuento_mes_pct": round(descuento_mes_pct * 100, 1),
+                    "grupo_vulnerable": grupo_vulnerable,
+                },
+                "tabla_oficial": "ART 130 CFCDMX 2026 (Gaceta 19-dic-2025)",
+                "fuente_descuentos": "Tesorería CDMX · Programa de beneficios fiscales 2026",
             },
         }
     except Exception as e:  # noqa: BLE001
