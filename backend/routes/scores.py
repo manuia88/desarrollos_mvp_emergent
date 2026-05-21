@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from score_engine import ScoreEngine, all_recipes, get_recipe
 from uploads_ie import detect_encoding, detect_csv_separator
@@ -39,6 +39,8 @@ class RecomputeRequest(BaseModel):
 
 
 class ScoreOut(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     zone_id: str
     code: str
     value: Optional[float]
@@ -220,6 +222,8 @@ async def public_unit_scores(unit_id: str, request: Request):
 
 
 class ScoreExplainOut(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     code: str
     zone_id: str
     value: Optional[float]
