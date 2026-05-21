@@ -286,6 +286,45 @@ async def _llm_narrative(
             f"DRPI: {drpi_label}. Forecast 12m: "
             f"{f'{forecast_12m_pct:+.1f}%' if forecast_12m_pct is not None else 'no disponible'}."
         )
+        # ── F2 Sub-D · RAG context helper + cross-feature memory ──────────
+        _rag_context_text = ""
+        try:
+            from rag_context_helper import get_external_context, get_rag_context
+            _rag_blocks = []
+            _ec = await get_external_context(db, zone=colonia_name) if db is not None else ""
+            if _ec:
+                _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+            if db is not None:
+                _gc = await get_rag_context(
+                    db, f"CMA {colonia_name} comparables precio m2",
+                    scope="all", top_k=3, max_chars=1200,
+                )
+                if _gc:
+                    _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+            if asesor_id and db is not None:
+                try:
+                    from director_memory_engine import DirectorMemoryEngine
+                    _dme = DirectorMemoryEngine(db, "default")
+                    _mems = await _dme.retrieve_for_user(
+                        asesor_id, query=f"CMA {colonia_name}", top_k=3,
+                    )
+                    if _mems:
+                        _mem_block = "\n".join([
+                            f"- {m.get('content_summary') or m.get('content_text') or ''}"
+                            for m in _mems
+                        ])
+                        _rag_blocks.append("## MEMORIA RECIENTE DEL ASESOR\n" + _mem_block)
+                except Exception:
+                    pass
+            _rag_context_text = "\n\n".join(_rag_blocks)
+        except Exception as _rag_exc:
+            import logging as _logging
+            _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring cma] failed silent: {_rag_exc}")
+            _rag_context_text = ""
+
+        if _rag_context_text:
+            user_prompt = f"{user_prompt}\n\n{_rag_context_text}"
+
         chat = LlmChat(
             api_key=api_key,
             session_id=f"cma_{cma_id}",

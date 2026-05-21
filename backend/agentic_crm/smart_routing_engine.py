@@ -311,6 +311,35 @@ NO inventes asesor_id; usa SOLO IDs de la lista."""
         "Usa las tools y retorna el JSON."
     )
 
+    # ── F2 Sub-D · RAG context helper (best-effort, fail-soft) ──────────────
+    _rag_context_text = ""
+    try:
+        from rag_context_helper import (
+            get_lead_context, get_external_context, get_rag_context,
+        )
+        _rag_blocks = []
+        if lead_id:
+            _lc = await get_lead_context(db, lead_id, tenant_id=org_id)
+            if _lc:
+                _rag_blocks.append("## CONTEXTO DEL LEAD\n" + _lc)
+        _ec = await get_external_context(db, zone=zone if zone and zone != "—" else None)
+        if _ec:
+            _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+        _gc = await get_rag_context(
+            db, f"smart routing {segment} {zone}",
+            scope="all", tenant_id=org_id, top_k=3, max_chars=1000,
+        )
+        if _gc:
+            _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+        _rag_context_text = "\n\n".join(_rag_blocks)
+    except Exception as _rag_exc:
+        import logging as _logging
+        _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring smart_routing] failed silent: {_rag_exc}")
+        _rag_context_text = ""
+
+    if _rag_context_text:
+        system_prompt = f"{system_prompt}\n\n{_rag_context_text}"
+
     session_id = f"sr_{uuid.uuid4().hex[:12]}"
     chat = LlmChat(
         api_key=api_key, session_id=session_id, system_message=system_prompt,

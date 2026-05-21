@@ -379,7 +379,22 @@ async def compute_pulse(db, zone_slug: str) -> Dict[str, Any]:
         "accuracy_drift": _safe(ad),
     }
     score = compose_score(signals)
-    return {
+
+    # ── F2 Sub-D · RAG context (external macro) for downstream LLM consumers ──
+    # Live Pulse itself has no LLM call, but its snapshot is consumed by W5.6
+    # Storyteller and W5.5 dashboards which render LLM-enriched copy. Surfacing
+    # external macro context here lets those consumers cite without re-fetching.
+    _rag_context_text = ""
+    try:
+        from rag_context_helper import get_external_context
+        _ec = await get_external_context(db, zone=zone_slug)
+        if _ec:
+            _rag_context_text = _ec
+    except Exception as _rag_exc:
+        log.warning(f"[rag_wiring live_pulse] failed silent: {_rag_exc}")
+        _rag_context_text = ""
+
+    out = {
         "zone_slug": zone_slug,
         "score": score,
         "bucket": score_bucket(score),
@@ -387,6 +402,9 @@ async def compute_pulse(db, zone_slug: str) -> Dict[str, Any]:
         "computed_at": _iso(_now()),
         "stub_flags": _stub_flags(signals),
     }
+    if _rag_context_text:
+        out["rag_context"] = _rag_context_text
+    return out
 
 
 async def persist_snapshot(db, pulse: Dict[str, Any]) -> Optional[str]:

@@ -64,7 +64,7 @@ async def _check_phase_y(db, org_id: str) -> bool:
 
 # ─── Claude Haiku content generation ──────────────────────────────────────────
 
-async def _generate_segment_content(segment: str, zone_data: Dict) -> Dict[str, Any]:
+async def _generate_segment_content(segment: str, zone_data: Dict, db=None) -> Dict[str, Any]:
     """Genera contenido para un segmento usando Claude Haiku."""
     if not EMERGENT_LLM_KEY:
         return _stub_segment_content(segment)
@@ -90,6 +90,30 @@ async def _generate_segment_content(segment: str, zone_data: Dict) -> Dict[str, 
         f"segment_highlight (1-2 oraciones específicas para este segmento). "
         f"REGLAS: sin emojis, español mexicano formal, datos concretos, tono ejecutivo."
     )
+
+    # ── F2 Sub-D · RAG context helper (best-effort, fail-soft) ──────────────
+    _rag_context_text = ""
+    if db is not None:
+        try:
+            from rag_context_helper import get_external_context, get_rag_context
+            _rag_blocks = []
+            _ec = await get_external_context(db)
+            if _ec:
+                _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+            _gc = await get_rag_context(
+                db, f"newsletter pulse {segment} CDMX",
+                scope="all", top_k=3, max_chars=1000,
+            )
+            if _gc:
+                _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+            _rag_context_text = "\n\n".join(_rag_blocks)
+        except Exception as _rag_exc:
+            import logging as _logging
+            _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring newsletter] failed silent: {_rag_exc}")
+            _rag_context_text = ""
+
+    if _rag_context_text:
+        prompt = f"{prompt}\n\n{_rag_context_text}"
 
     try:
         chat = LlmChat(
@@ -314,7 +338,7 @@ class NewsletterPulseEngine:
         zone_data = await self._get_zone_data()
 
         # Generar contenido por segmento en paralelo
-        tasks = {seg: asyncio.create_task(_generate_segment_content(seg, zone_data)) for seg in segs}
+        tasks = {seg: asyncio.create_task(_generate_segment_content(seg, zone_data, db=self.db)) for seg in segs}
         await asyncio.gather(*tasks.values(), return_exceptions=True)
 
         total_cost = 0.0

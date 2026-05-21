@@ -287,9 +287,56 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
     except Exception as exc:
         log.warning(f"[caya] RAG search failed: {exc}")
 
+    # ─── 5b. F2 Sub-D · RAG context helper + cross-feature memory (best-effort)
+    rag_context_text = ""
+    try:
+        from rag_context_helper import get_external_context, get_rag_context
+        _user_id_atx = getattr(payload, "user_id", None)
+        _tenant_atx = payload.org_id or "default"
+        _rag_blocks = []
+        # General RAG over query (FAQ/uses/docs/external)
+        _gc = await get_rag_context(db, payload.query, scope="all",
+                                    tenant_id=_tenant_atx, top_k=3, max_chars=1500)
+        if _gc:
+            _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+        # External macro context
+        _ec = await get_external_context(db)
+        if _ec:
+            _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+        # Cross-feature memory (if user_id present)
+        if _user_id_atx:
+            try:
+                from director_memory_engine import DirectorMemoryEngine
+                _dme = DirectorMemoryEngine(db, _tenant_atx)
+                _mems = await _dme.retrieve_for_user(_user_id_atx, query=payload.query, top_k=3)
+                if _mems:
+                    _mem_block = "\n".join([
+                        f"- {m.get('content_summary') or m.get('content_text') or ''}"
+                        for m in _mems
+                    ])
+                    _rag_blocks.append("## MEMORIA RECIENTE DEL ASESOR\n" + _mem_block)
+            except Exception:
+                pass
+        rag_context_text = "\n\n".join(_rag_blocks)
+    except Exception as _rag_exc:
+        import logging as _logging
+        _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring atlax] failed silent: {_rag_exc}")
+        rag_context_text = ""
+
+    # Augment map_context (passed to engine.chat) with RAG content so the prompt
+    # downstream picks it up via the system_prompt builder. NEVER replace existing
+    # context — append only.
+    _augmented_map_context = ""
+    if rag_context_text:
+        _augmented_map_context = rag_context_text
+
     # ─── 6. Llama AsistenteEngine.chat (LLM + 3 tools públicas + persiste asistente_messages)
     try:
-        chat_res = await engine.chat(asistente_token, payload.query, org_id=payload.org_id or "dmx")
+        chat_res = await engine.chat(
+            asistente_token, payload.query,
+            org_id=payload.org_id or "dmx",
+            map_context=_augmented_map_context,
+        )
     except AsistenteSessionCapError as e:
         return _error_response(payload, legacy_session_id, asistente_token, str(e), "session_cap_exceeded")
     except AsistenteRateLimitError as e:
@@ -356,6 +403,20 @@ async def atlax_query(payload: AtlaxQueryIn, request: Request):
         )
     except Exception:
         pass
+
+    # ─── 10b. F2 Sub-D · Cross-feature memory ingest (best-effort)
+    try:
+        from director_memory_engine import DirectorMemoryEngine
+        _user_id_ing = getattr(payload, "user_id", None)
+        _tenant_ing = payload.org_id or "default"
+        if _user_id_ing:
+            _dme_ing = DirectorMemoryEngine(db, _tenant_ing)
+            await _dme_ing.ingest_atlax_conversation(
+                legacy_session_id, _user_id_ing, (answer or "")[:200],
+            )
+    except Exception as _ing_exc:
+        import logging as _logging
+        _logging.getLogger("dmx.f2_rag_wiring").warning(f"[ingest atlax] failed silent: {_ing_exc}")
 
     # ─── 11. Response shape backwards-compatible + nuevos campos opcionales
     return {

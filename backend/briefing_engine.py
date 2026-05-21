@@ -272,6 +272,51 @@ async def get_or_generate_briefing(
         narrative_proj=narrative_proj, lead=lead, contact=contact,
         rag_chunks=rag_chunks,
     )
+
+    # ── F2 Sub-D · RAG context helper + cross-feature memory (best-effort) ──
+    _rag_context_text = ""
+    try:
+        from rag_context_helper import (
+            get_lead_context, get_property_context, get_external_context,
+        )
+        _rag_blocks = []
+        if lead_id:
+            _lc = await get_lead_context(db, lead_id)
+            if _lc:
+                _rag_blocks.append("## CONTEXTO DEL LEAD\n" + _lc)
+        if development_id:
+            _pc = await get_property_context(db, development_id)
+            if _pc:
+                _rag_blocks.append("## CONTEXTO DE LA PROPIEDAD\n" + _pc)
+        _ec = await get_external_context(db, zone=dev.get("colonia"))
+        if _ec:
+            _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+        if advisor_user_id:
+            try:
+                from director_memory_engine import DirectorMemoryEngine
+                _dme = DirectorMemoryEngine(db, "default")
+                _mems = await _dme.retrieve_for_user(
+                    advisor_user_id,
+                    query=f"briefing {dev.get('name','')} {dev.get('colonia','')}",
+                    top_k=3,
+                )
+                if _mems:
+                    _mem_block = "\n".join([
+                        f"- {m.get('content_summary') or m.get('content_text') or ''}"
+                        for m in _mems
+                    ])
+                    _rag_blocks.append("## MEMORIA RECIENTE DEL ASESOR\n" + _mem_block)
+            except Exception:
+                pass
+        _rag_context_text = "\n\n".join(_rag_blocks)
+    except Exception as _rag_exc:
+        import logging as _logging
+        _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring briefing] failed silent: {_rag_exc}")
+        _rag_context_text = ""
+
+    if _rag_context_text:
+        user_prompt = f"{user_prompt}\n\n{_rag_context_text}"
+
     session_key = f"briefing_{advisor_user_id}_{development_id}_{lead_id or contact_id or 'none'}_{int(now.timestamp())}"
     out = await _generate_briefing(SYSTEM_PROMPT, user_prompt, session_key)
 

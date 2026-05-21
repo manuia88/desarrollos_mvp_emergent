@@ -637,6 +637,36 @@ REGLAS:
         "Invoca las 5 tools, analiza, retorna SOLO el JSON."
     )
 
+    # ── F2 Sub-D · RAG context helper + cross-feature memory (best-effort) ──
+    _rag_context_text = ""
+    try:
+        from rag_context_helper import (
+            get_lead_context, get_external_context, get_rag_context,
+        )
+        _rag_blocks = []
+        if lead_id:
+            _lc = await get_lead_context(db, lead_id, tenant_id=org_id)
+            if _lc:
+                _rag_blocks.append("## CONTEXTO DEL LEAD\n" + _lc)
+        _zone_hint = lead.get("zone_interest") or lead.get("zone_id") or lead.get("zone")
+        _ec = await get_external_context(db, zone=_zone_hint)
+        if _ec:
+            _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+        _gc = await get_rag_context(
+            db, f"nurture lead {lead_name} {_zone_hint or 'CDMX'}",
+            scope="all", tenant_id=org_id, top_k=3, max_chars=1200,
+        )
+        if _gc:
+            _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+        _rag_context_text = "\n\n".join(_rag_blocks)
+    except Exception as _rag_exc:
+        import logging as _logging
+        _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring lead_nurture] failed silent: {_rag_exc}")
+        _rag_context_text = ""
+
+    if _rag_context_text:
+        system_prompt = f"{system_prompt}\n\n{_rag_context_text}"
+
     session_id = f"nrt_{uuid.uuid4().hex[:12]}"
     chat = LlmChat(
         api_key=api_key, session_id=session_id, system_message=system_prompt,

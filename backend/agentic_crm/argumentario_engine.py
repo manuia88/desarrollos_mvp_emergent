@@ -603,6 +603,52 @@ OUTPUT JSON REQUERIDO:
   }}
 }}"""
 
+        # ── F2 Sub-D · RAG context helper + cross-feature memory ──────────
+        _rag_context_text = ""
+        try:
+            from rag_context_helper import (
+                get_lead_context, get_external_context, get_rag_context,
+            )
+            _rag_blocks = []
+            _lc = await get_lead_context(self.db, lead_id, tenant_id=self.org_id)
+            if _lc:
+                _rag_blocks.append("## CONTEXTO DEL LEAD\n" + _lc)
+            _ec = await get_external_context(self.db, zone=zone if zone and zone != "CDMX" else None)
+            if _ec:
+                _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+            # Argumentario-relevant RAG (objection handling, scripts)
+            _gc = await get_rag_context(
+                self.db, f"argumentario objeciones venta {segment} {zone}",
+                scope="all", tenant_id=self.org_id, top_k=3, max_chars=1200,
+            )
+            if _gc:
+                _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+            # Cross-feature memory of asesor
+            if asesor_id:
+                try:
+                    from director_memory_engine import DirectorMemoryEngine
+                    _dme = DirectorMemoryEngine(self.db, self.org_id or "default")
+                    _mems = await _dme.retrieve_for_user(
+                        asesor_id, query=f"objeciones {segment} {zone}", top_k=3,
+                    )
+                    if _mems:
+                        _mem_block = "\n".join([
+                            f"- {m.get('content_summary') or m.get('content_text') or ''}"
+                            for m in _mems
+                        ])
+                        _rag_blocks.append("## MEMORIA RECIENTE DEL ASESOR\n" + _mem_block)
+                except Exception:
+                    pass
+            _rag_context_text = "\n\n".join(_rag_blocks)
+        except Exception as _rag_exc:
+            import logging as _logging
+            _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring argumentario] failed silent: {_rag_exc}")
+            _rag_context_text = ""
+
+        # Augment user_prompt (append RAG block; never replace)
+        if _rag_context_text:
+            user_prompt = f"{user_prompt}\n\n{_rag_context_text}"
+
         from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
         session_id = f"arg_{uuid.uuid4().hex[:10]}"
         chat = LlmChat(
@@ -648,6 +694,28 @@ OUTPUT JSON REQUERIDO:
         except Exception as _exc:
             import logging as _logging
             _logging.getLogger("dmx.argumentario").warning(f"[track_ai_call] failed silent: {_exc}")
+
+        # ── F2 Sub-D · Cross-feature memory ingest (best-effort) ──────────
+        try:
+            from director_memory_engine import DirectorMemoryEngine
+            _dme_ing = DirectorMemoryEngine(self.db, self.org_id or "default")
+            # Use the first objection_response as representative text (precio_alto is canonical)
+            _obj_text = "objeciones argumentario generado"
+            _resp_text = ""
+            try:
+                _or_dict = (content or {}).get("objection_responses") or {}
+                if isinstance(_or_dict, dict) and _or_dict:
+                    _first_key = next(iter(_or_dict.keys()))
+                    _obj_text = _first_key
+                    _resp_text = str(_or_dict.get(_first_key) or "")[:280]
+            except Exception:
+                pass
+            await _dme_ing.ingest_argumentario_query(
+                lead_id, asesor_id, _obj_text, _resp_text,
+            )
+        except Exception as _ing_exc:
+            import logging as _logging
+            _logging.getLogger("dmx.f2_rag_wiring").warning(f"[ingest argumentario] failed silent: {_ing_exc}")
 
         return content, tok_in + tok_out, cost
 

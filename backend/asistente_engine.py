@@ -878,7 +878,32 @@ class AsistenteEngine:
         except Exception as _pe:
             log.warning(f"[asistente] persona injection failed: {_pe}")
 
-        sys_prompt = _system_prompt(sim_mode, intent_history, persona_prefix=persona_prefix, map_context=map_context)
+        # ── F2 Sub-D · RAG context helper (best-effort, fail-soft) ─────────
+        _rag_text = ""
+        try:
+            from rag_context_helper import get_rag_context, get_external_context
+            _rag_blocks = []
+            _gc = await get_rag_context(
+                self.db, user_message, scope="all",
+                tenant_id=org_id, top_k=3, max_chars=1500,
+            )
+            if _gc:
+                _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+            _ec = await get_external_context(self.db)
+            if _ec:
+                _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+            _rag_text = "\n\n".join(_rag_blocks)
+        except Exception as _rag_exc:
+            import logging as _logging
+            _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring asistente] failed silent: {_rag_exc}")
+            _rag_text = ""
+
+        # Augment map_context with RAG content (do NOT replace caller-provided context)
+        _augmented_map_context = map_context
+        if _rag_text:
+            _augmented_map_context = (map_context + "\n\n" if map_context else "") + _rag_text
+
+        sys_prompt = _system_prompt(sim_mode, intent_history, persona_prefix=persona_prefix, map_context=_augmented_map_context)
         chat = LlmChat(
             api_key=api_key,
             session_id=session_token,

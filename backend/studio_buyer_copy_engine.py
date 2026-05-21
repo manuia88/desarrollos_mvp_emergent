@@ -471,6 +471,62 @@ async def _run_job(db, job_id: str, buyer_angle: str, disc: Optional[str], langu
 
     try:
         prompt = _build_prompt(buyer_angle, disc, language, context_extra)
+
+        # ── F2 Sub-D · RAG context helper + cross-feature memory ──────────
+        _rag_context_text = ""
+        _job_meta = {}
+        try:
+            _job_meta = await db.studio_copy_jobs.find_one(
+                {"id": job_id},
+                {"_id": 0, "tenant_id": 1, "user_id": 1, "project_id": 1},
+            ) or {}
+        except Exception:
+            _job_meta = {}
+        _tenant_id_sb = _job_meta.get("tenant_id") or "default"
+        _user_id_sb = _job_meta.get("user_id")
+        _project_id_sb = _job_meta.get("project_id")
+        try:
+            from rag_context_helper import (
+                get_property_context, get_external_context, get_rag_context,
+            )
+            _rag_blocks = []
+            if _project_id_sb:
+                _pc = await get_property_context(db, _project_id_sb, tenant_id=_tenant_id_sb)
+                if _pc:
+                    _rag_blocks.append("## CONTEXTO DE LA PROPIEDAD\n" + _pc)
+            _ec = await get_external_context(db)
+            if _ec:
+                _rag_blocks.append("## CONTEXTO MACRO\n" + _ec)
+            _gc = await get_rag_context(
+                db, f"copy marketing {buyer_angle} {language}",
+                scope="all", tenant_id=_tenant_id_sb, top_k=3, max_chars=1200,
+            )
+            if _gc:
+                _rag_blocks.append("## CONTEXTO RAG\n" + _gc)
+            if _user_id_sb:
+                try:
+                    from director_memory_engine import DirectorMemoryEngine
+                    _dme = DirectorMemoryEngine(db, _tenant_id_sb)
+                    _mems = await _dme.retrieve_for_user(
+                        _user_id_sb, query=f"copy {buyer_angle}", top_k=3,
+                    )
+                    if _mems:
+                        _mem_block = "\n".join([
+                            f"- {m.get('content_summary') or m.get('content_text') or ''}"
+                            for m in _mems
+                        ])
+                        _rag_blocks.append("## MEMORIA RECIENTE DEL ASESOR\n" + _mem_block)
+                except Exception:
+                    pass
+            _rag_context_text = "\n\n".join(_rag_blocks)
+        except Exception as _rag_exc:
+            import logging as _logging
+            _logging.getLogger("dmx.f2_rag_wiring").warning(f"[rag_wiring studio_copy] failed silent: {_rag_exc}")
+            _rag_context_text = ""
+
+        if _rag_context_text:
+            prompt = f"{prompt}\n\n{_rag_context_text}"
+
         raw = await _call_with_fallback(prompt, job_id)
 
         # ── AI cost tracking (best-effort, fire-and-forget) ────────────
@@ -516,6 +572,22 @@ async def _run_job(db, job_id: str, buyer_angle: str, disc: Optional[str], langu
             }},
         )
         log.info(f"[copy] job {job_id} ready (LLM)")
+
+        # ── F2 Sub-D · Cross-feature memory ingest (best-effort) ──────────
+        try:
+            from director_memory_engine import DirectorMemoryEngine
+            if _user_id_sb:
+                _dme_ing = DirectorMemoryEngine(db, _tenant_id_sb)
+                # hook_score not computed at this point in Studio copy pipeline · pass 0
+                # template_key uses buyer_angle (with optional disc suffix) as canonical key
+                _tpl_key = f"{buyer_angle}_{disc or 'X'}_{language}"
+                _intake_id_ing = _project_id_sb or job_id
+                await _dme_ing.ingest_studio_copy_generated(
+                    _intake_id_ing, _user_id_sb, _tpl_key, 0,
+                )
+        except Exception as _ing_exc:
+            import logging as _logging
+            _logging.getLogger("dmx.f2_rag_wiring").warning(f"[ingest studio_copy] failed silent: {_ing_exc}")
     except Exception as exc:
         log.warning(f"[copy] job {job_id} LLM path failed: {exc} · falling back to mock")
         try:
