@@ -1,5 +1,5 @@
 // W5.x F6 Sub-C · TaxProjectorPage · calculadora fiscal CDMX T0 publica
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { getFullScenario } from '../../../api/tax_projector';
@@ -78,20 +78,63 @@ function Section({ title, children }) {
   );
 }
 
+// CurrencyInput · formato $X,XXX,XXX.00 · acepta solo dígitos · raw number en state
+function CurrencyInput({ value, onChange, ...props }) {
+  const [display, setDisplay] = useState('');
+
+  useEffect(() => {
+    if (value === '' || value == null) { setDisplay(''); return; }
+    const n = Number(value);
+    if (!isNaN(n) && n > 0) {
+      setDisplay('$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    }
+  }, [value]);
+
+  const handleChange = (e) => {
+    const raw = e.target.value.replace(/[^\d]/g, '');
+    onChange(raw);
+    setDisplay(raw ? '$' + Number(raw).toLocaleString('en-US') : '');
+  };
+  const handleBlur = () => {
+    const n = Number(value);
+    if (!isNaN(n) && n > 0) {
+      setDisplay('$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    }
+  };
+  const handleFocus = () => {
+    const n = Number(value);
+    if (!isNaN(n) && n > 0) {
+      setDisplay('$' + n.toLocaleString('en-US'));
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={display}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onFocus={handleFocus}
+      {...props}
+    />
+  );
+}
+
 function FormFields({ values, onChange, t }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
       <Section title={t('taxProjector.buyer_section')}>
         <label style={labelStyle}>{t('taxProjector.precio_venta')}
-          <input type="number" min="0" step="1" value={values.precio_venta} onChange={(e) => onChange('precio_venta', e.target.value)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-precio-venta" />
+          <CurrencyInput value={values.precio_venta} onChange={(v) => onChange('precio_venta', v)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-precio-venta" placeholder="$0.00" />
         </label>
         <label style={{ ...labelStyle, marginTop: 18 }}>{t('taxProjector.valor_catastral')}
-          <input type="number" min="0" step="1" value={values.valor_catastral} onChange={(e) => onChange('valor_catastral', e.target.value)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-valor-catastral" />
+          <CurrencyInput value={values.valor_catastral} onChange={(v) => onChange('valor_catastral', v)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-valor-catastral" placeholder="$0.00" />
         </label>
       </Section>
       <Section title={t('taxProjector.seller_section')}>
         <label style={labelStyle}>{t('taxProjector.precio_compra')}
-          <input type="number" min="0" step="1" value={values.precio_compra} onChange={(e) => onChange('precio_compra', e.target.value)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-precio-compra" />
+          <CurrencyInput value={values.precio_compra} onChange={(v) => onChange('precio_compra', v)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-precio-compra" placeholder="$0.00" />
         </label>
         <label style={{ ...labelStyle, marginTop: 18 }}>{t('taxProjector.fecha_compra')}
           <input type="date" value={values.fecha_compra} onChange={(e) => onChange('fecha_compra', e.target.value)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-fecha-compra" />
