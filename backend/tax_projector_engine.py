@@ -60,25 +60,28 @@ ISAI_CDMX_BRACKETS_2026: List[Dict[str, float]] = [
 ]
 
 # Tarifa ART 130 CFCDMX · IMPUESTO PREDIAL 2026 · bimestral
-# FUENTE: Gaceta Oficial CDMX · No. 1762 Tomo II · publicada 19-diciembre-2025 (misma gaceta que ISAI)
+# FUENTE: Gaceta Oficial CDMX · No. 1762 Tomo II · publicada 19-diciembre-2025
 # Bimestral · multiplicar × 6 para anual · base = valor catastral
+# NOTA CRÍTICA: la Gaceta muestra "PORCENTAJE" con valores tipo 0.02080 → significa 0.02080% (no 2.08%)
+# Para usar en _aplicar_tarifa (que divide / 100), guardamos el valor TAL CUAL aparece en la Gaceta
+# Ejemplo: marginal_pct=0.02080 → calc final = excedente × 0.02080 / 100 = excedente × 0.000208
 PREDIAL_CDMX_BRACKETS_2026: List[Dict[str, float]] = [
-    {"limite_inferior": 0.12,           "limite_superior": 235095.02,    "cuota_fija": 231.00,        "marginal_pct": 2.080},
-    {"limite_inferior": 235095.03,      "limite_superior": 470189.36,    "cuota_fija": 279.91,        "marginal_pct": 3.889},
-    {"limite_inferior": 470189.37,      "limite_superior": 940380.47,    "cuota_fija": 371.35,        "marginal_pct": 12.149},
-    {"limite_inferior": 940380.48,      "limite_superior": 1410569.80,   "cuota_fija": 942.60,        "marginal_pct": 14.625},
-    {"limite_inferior": 1410569.81,     "limite_superior": 1880760.95,   "cuota_fija": 1630.26,       "marginal_pct": 14.723},
-    {"limite_inferior": 1880760.96,     "limite_superior": 2350950.27,   "cuota_fija": 2322.53,       "marginal_pct": 16.801},
-    {"limite_inferior": 2350950.28,     "limite_superior": 2821139.60,   "cuota_fija": 3112.51,       "marginal_pct": 17.052},
-    {"limite_inferior": 2821139.61,     "limite_superior": 3291330.76,   "cuota_fija": 3914.29,       "marginal_pct": 18.305},
-    {"limite_inferior": 3291330.77,     "limite_superior": 3761520.09,   "cuota_fija": 4774.98,       "marginal_pct": 18.814},
-    {"limite_inferior": 3761520.10,     "limite_superior": 4231711.25,   "cuota_fija": 5659.60,       "marginal_pct": 19.034},
-    {"limite_inferior": 4231711.26,     "limite_superior": 4701900.56,   "cuota_fija": 6554.57,       "marginal_pct": 19.292},
-    {"limite_inferior": 4701900.57,     "limite_superior": 5172089.90,   "cuota_fija": 7461.67,       "marginal_pct": 19.490},
-    {"limite_inferior": 5172089.91,     "limite_superior": 5642728.83,   "cuota_fija": 8378.08,       "marginal_pct": 20.261},
-    {"limite_inferior": 5642728.84,     "limite_superior": 16928184.61,  "cuota_fija": 9331.65,       "marginal_pct": 26.334},
-    {"limite_inferior": 16928184.62,    "limite_superior": 35629332.11,  "cuota_fija": 39050.78,      "marginal_pct": 26.142},
-    {"limite_inferior": 35629332.12,    "limite_superior": 1e18,         "cuota_fija": 87939.33,      "marginal_pct": 30.909},
+    {"limite_inferior": 0.12,           "limite_superior": 235095.02,    "cuota_fija": 231.00,        "marginal_pct": 0.02080},
+    {"limite_inferior": 235095.03,      "limite_superior": 470189.36,    "cuota_fija": 279.91,        "marginal_pct": 0.03889},
+    {"limite_inferior": 470189.37,      "limite_superior": 940380.47,    "cuota_fija": 371.35,        "marginal_pct": 0.12149},
+    {"limite_inferior": 940380.48,      "limite_superior": 1410569.80,   "cuota_fija": 942.60,        "marginal_pct": 0.14625},
+    {"limite_inferior": 1410569.81,     "limite_superior": 1880760.95,   "cuota_fija": 1630.26,       "marginal_pct": 0.14723},
+    {"limite_inferior": 1880760.96,     "limite_superior": 2350950.27,   "cuota_fija": 2322.53,       "marginal_pct": 0.16801},
+    {"limite_inferior": 2350950.28,     "limite_superior": 2821139.60,   "cuota_fija": 3112.51,       "marginal_pct": 0.17052},
+    {"limite_inferior": 2821139.61,     "limite_superior": 3291330.76,   "cuota_fija": 3914.29,       "marginal_pct": 0.18305},
+    {"limite_inferior": 3291330.77,     "limite_superior": 3761520.09,   "cuota_fija": 4774.98,       "marginal_pct": 0.18814},
+    {"limite_inferior": 3761520.10,     "limite_superior": 4231711.25,   "cuota_fija": 5659.60,       "marginal_pct": 0.19034},
+    {"limite_inferior": 4231711.26,     "limite_superior": 4701900.56,   "cuota_fija": 6554.57,       "marginal_pct": 0.19292},
+    {"limite_inferior": 4701900.57,     "limite_superior": 5172089.90,   "cuota_fija": 7461.67,       "marginal_pct": 0.19490},
+    {"limite_inferior": 5172089.91,     "limite_superior": 5642728.83,   "cuota_fija": 8378.08,       "marginal_pct": 0.20261},
+    {"limite_inferior": 5642728.84,     "limite_superior": 16928184.61,  "cuota_fija": 9331.65,       "marginal_pct": 0.26334},
+    {"limite_inferior": 16928184.62,    "limite_superior": 35629332.11,  "cuota_fija": 39050.78,      "marginal_pct": 0.26142},
+    {"limite_inferior": 35629332.12,    "limite_superior": 1e18,         "cuota_fija": 87939.33,      "marginal_pct": 0.30909},
 ]
 
 # INPC mensual histórico · FUENTE: INEGI/BANXICO · valores oficiales con 4 decimales
