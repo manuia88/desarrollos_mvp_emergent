@@ -137,6 +137,49 @@ async def track_ai_call(
         log.warning(f"[ai_budget] track_ai_call failed: {e}")
 
 
+async def track_ai_call_with_user(
+    db,
+    user_id: Optional[str],
+    dev_org_id: str,
+    model: str,
+    tokens: int,
+    call_type: str,
+    tokens_in: Optional[int] = None,
+    tokens_out: Optional[int] = None,
+    feature_key: Optional[str] = None,
+) -> None:
+    """W5.x F1 · Wrapper que extiende track_ai_call con incremento de user_quota_usage.
+
+    Mantiene compatibilidad total con track_ai_call (tenant-level monthly intact).
+    Solo agrega incremento per-user si user_id está presente. Fire-and-forget.
+    """
+    # Tenant-level tracking (legacy, intact)
+    await track_ai_call(db, dev_org_id, model, tokens, call_type, tokens_in, tokens_out, feature_key)
+    # User-level tracking (nuevo · solo si user_id provided)
+    if not user_id:
+        return
+    try:
+        from ai_quota_engine import increment_user_usage
+        t_in = tokens_in if tokens_in is not None else int(tokens * 0.70)
+        t_out = tokens_out if tokens_out is not None else int(tokens * 0.30)
+        cost_usd = _cost_usd(model, t_in, t_out)
+        await increment_user_usage(db, user_id, tokens, cost_usd)
+    except Exception as exc:
+        log.warning(f"[track_ai_call_with_user] user quota increment failed: {exc}")
+
+
+async def check_quota_or_raise(db, user_id: Optional[str], estimated_tokens: int = 1000):
+    """W5.x F1 · Helper para llamar ANTES de invocar LLM.
+
+    Si user_id es None → no-op (fail-open, mantiene compat con paths sin user).
+    Si user excede quota → raise QuotaExceededError (caller debe atrapar y devolver 429).
+    """
+    if not user_id:
+        return None
+    from ai_quota_engine import check_user_quota
+    return await check_user_quota(db, user_id, estimated_tokens)
+
+
 async def _maybe_send_budget_alert(db, dev_org_id: str, month: str) -> None:
     """Send Resend email alert once per day when usage > threshold of cap.
 
