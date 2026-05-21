@@ -4,6 +4,7 @@ import SuperadminLayout from '../../components/superadmin/SuperadminLayout';
 import CostBreakdownTable from '../../components/superadmin/CostBreakdownTable';
 import ModelMixChart from '../../components/superadmin/ModelMixChart';
 import CapModal from '../../components/superadmin/CapModal';
+import UserQuotaPanel from '../../components/superadmin/UserQuotaPanel';
 import {
   DollarSign, Activity, Zap, TrendingUp, TrendingDown, AlertTriangle, X, RefreshCw,
 } from 'lucide-react';
@@ -269,6 +270,9 @@ export default function SuperadminAiCost({ user, onLogout }) {
         {overview && (
           <ModelMixChart split={overview.haiku_vs_sonnet_split} total={overview.total_mxn} items={models} />
         )}
+
+        {/* W5.x F1 — User-tier quotas */}
+        <UserQuotaPanel />
       </div>
 
       {capModal && (

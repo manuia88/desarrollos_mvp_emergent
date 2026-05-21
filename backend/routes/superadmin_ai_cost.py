@@ -174,6 +174,88 @@ async def patch_cap_route(tenant_id: str, body: CapPatchBody, request: Request):
     return {"ok": True, "cap": after}
 
 
+# ─── W5.x F1 · User-tier quotas ───────────────────────────────────────────────
+
+@router.get(PREFIX + "/users/usage")
+async def per_user_usage(
+    request: Request,
+    limit: int = Query(50, ge=1, le=200),
+    skip: int = Query(0, ge=0),
+    tier: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Lista de users con su usage mensual · paginable · filterable por tier."""
+    await _require_superadmin(request)
+    db = _db(request)
+    q: Dict[str, Any] = {}
+    if tier:
+        q["tier"] = tier
+    cursor = (
+        db.user_quota_usage.find(q, {"_id": 0})
+        .sort("cost_usd_monthly", -1)
+        .skip(skip)
+        .limit(limit)
+    )
+    items = await cursor.to_list(limit)
+    total = await db.user_quota_usage.count_documents(q)
+    return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+@router.get(PREFIX + "/users/{user_id}/quota")
+async def user_quota_detail(user_id: str, request: Request) -> Dict[str, Any]:
+    """Detalle de cuota de un user (tier · usage · quotas · remaining)."""
+    await _require_superadmin(request)
+    db = _db(request)
+    from ai_quota_engine import get_user_tier, get_user_usage, TIER_QUOTAS
+
+    tier = await get_user_tier(db, user_id)
+    usage = await get_user_usage(db, user_id)
+    quotas = TIER_QUOTAS.get(tier) or TIER_QUOTAS["free"]
+    return {"user_id": user_id, "tier": tier, "usage": usage, "quotas": quotas}
+
+
+class UserTierBody(BaseModel):
+    tier: str = Field(..., description="free | pro | premium | enterprise")
+
+
+@router.patch(PREFIX + "/users/{user_id}/tier")
+async def update_user_tier(
+    user_id: str, body: UserTierBody, request: Request
+) -> Dict[str, Any]:
+    """Override manual del tier de un user (solo superadmin)."""
+    user = await _require_superadmin(request)
+    db = _db(request)
+    from ai_quota_engine import TIER_QUOTAS
+
+    new_tier = (body.tier or "free").lower().strip()
+    if new_tier not in TIER_QUOTAS:
+        raise HTTPException(
+            422,
+            f"Tier invalido. Validos: {list(TIER_QUOTAS.keys())}",
+        )
+    before = await db.users.find_one({"user_id": user_id}, {"_id": 0, "tier": 1})
+    result = await db.users.update_one(
+        {"user_id": user_id}, {"$set": {"tier": new_tier}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, f"User {user_id} no encontrado")
+    try:
+        from audit_log import log_mutation
+
+        await log_mutation(
+            db,
+            user,
+            "update",
+            "user_tier",
+            user_id,
+            before=before,
+            after={"tier": new_tier},
+            request=request,
+        )
+    except Exception:
+        pass
+    return {"ok": True, "user_id": user_id, "tier": new_tier}
+
+
 # ─── Cron registration ────────────────────────────────────────────────────────
 
 def schedule_ai_cost_daily_aggregation(scheduler, db) -> None:

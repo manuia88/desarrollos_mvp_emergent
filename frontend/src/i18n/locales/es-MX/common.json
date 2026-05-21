@@ -3747,5 +3747,26 @@
         "next": "Siguiente"
       }
     }
+  },
+  "superadmin": {
+    "ai_cost": {
+      "user_quotas": {
+        "title": "Cuotas por usuario",
+        "subtitle": "Usuarios ordenados por gasto mensual. Cambia el tier para ajustar sus cuotas (Free → Pro → Premium → Enterprise).",
+        "col_user": "Usuario",
+        "col_tier": "Tier",
+        "col_calls": "Llamadas mes",
+        "col_cost": "Gasto USD",
+        "col_usage_pct": "% cuota mensual",
+        "btn_change_tier": "Cambiar tier",
+        "modal_change_tier": "Cambiar tier de usuario",
+        "filter_all": "Todos los tiers",
+        "option_free": "Free",
+        "option_pro": "Pro",
+        "option_premium": "Premium",
+        "option_enterprise": "Enterprise",
+        "empty": "Sin datos · ningún usuario ha consumido IA este mes"
+      }
+    }
   }
 }

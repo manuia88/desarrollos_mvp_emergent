@@ -57,3 +57,21 @@ export async function patchCap(tenantId, body) {
     body: JSON.stringify(body),
   }));
 }
+
+// W5.x F1 — User-tier quotas
+export async function listUserUsage(params = {}) {
+  return _j(await fetch(`${BASE}/users/usage?${_qs(params)}`, {
+    headers: h(), credentials: 'include',
+  }));
+}
+export async function getUserQuotaDetail(userId) {
+  return _j(await fetch(`${BASE}/users/${encodeURIComponent(userId)}/quota`, {
+    headers: h(), credentials: 'include',
+  }));
+}
+export async function updateUserTier(userId, tier) {
+  return _j(await fetch(`${BASE}/users/${encodeURIComponent(userId)}/tier`, {
+    method: 'PATCH', headers: h(), credentials: 'include',
+    body: JSON.stringify({ tier }),
+  }));
+}
