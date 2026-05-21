@@ -306,44 +306,72 @@ def project_predial_10y(
     valor_catastral: float,
     year_base: int = 2026,
     tipo: str = "habitacional",
+    predial_anual_actual: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Proyección 10 años predial usando tabla oficial ART 130 CFCDMX 2026 (bimestral × 6 = anual).
+    """Proyección 10 años predial · 2 modos:
 
-    FUENTE: Gaceta Oficial CDMX 19-dic-2025 No. 1762 Tomo II.
-    Reajuste catastral anual con factor INPC conservador (1.06).
-    Tipo habitacional: cuota fija + marginal_pct sobre excedente (decimales).
-    Tipo no_habitacional: factor de incremento 1.5x sobre la tarifa habitacional.
+    MODO 1 (preferido · más preciso): si user pasa `predial_anual_actual` (lo conoce de su recibo),
+    proyectamos hacia adelante con factor 1.06/año. Captura automáticamente todos los descuentos
+    aplicables al caso real del usuario (vulnerable, pago anticipado, etc.).
+
+    MODO 2 (fallback · cálculo teórico): si no pasa predial_anual_actual, usamos tabla oficial
+    ART 130 CFCDMX 2026 sobre valor_catastral. Resultado es el catálogo BRUTO sin descuentos.
+
+    FUENTE tabla: Gaceta Oficial CDMX 19-dic-2025 No. 1762 Tomo II.
     """
     try:
-        if valor_catastral <= 0:
-            return {"ok": False, "reason": "valor_catastral debe ser positivo"}
-        # Factor incremento no habitacional vs habitacional (aproximación CDMX)
-        tipo_multiplier = 1.5 if tipo == "no_habitacional" else 1.0
+        if valor_catastral <= 0 and not predial_anual_actual:
+            return {"ok": False, "reason": "valor_catastral o predial_anual_actual requeridos"}
+
         items: List[Dict[str, Any]] = []
-        for i in range(10):
-            year = year_base + i
-            valor_year = valor_catastral * (PREDIAL_FACTOR_ANUAL ** i)
-            # Aplicar tabla ART 130 (bimestral) × 6 = anual
-            tarifa = _aplicar_tarifa(valor_year, PREDIAL_CDMX_BRACKETS_2026)
-            predial_bimestral = tarifa["impuesto"]
-            predial_anual = round(predial_bimestral * 6 * tipo_multiplier, 2)
-            items.append({
-                "year": year,
-                "valor_catastral_proyectado": round(valor_year, 2),
-                "predial_estimado": predial_anual,
-                "bracket_idx": tarifa["bracket_idx"],
-            })
+        modo = "user_actual" if predial_anual_actual and predial_anual_actual > 0 else "tabla_oficial"
+
+        if modo == "user_actual":
+            # MODO 1: proyectar el predial actual con factor anual
+            for i in range(10):
+                year = year_base + i
+                predial = round(predial_anual_actual * (PREDIAL_FACTOR_ANUAL ** i), 2)
+                valor_proy = round(valor_catastral * (PREDIAL_FACTOR_ANUAL ** i), 2) if valor_catastral > 0 else 0
+                items.append({
+                    "year": year,
+                    "valor_catastral_proyectado": valor_proy,
+                    "predial_estimado": predial,
+                    "modo": "user_actual",
+                })
+        else:
+            # MODO 2: calcular desde valor catastral con tabla oficial
+            tipo_multiplier = 1.5 if tipo == "no_habitacional" else 1.0
+            for i in range(10):
+                year = year_base + i
+                valor_year = valor_catastral * (PREDIAL_FACTOR_ANUAL ** i)
+                tarifa = _aplicar_tarifa(valor_year, PREDIAL_CDMX_BRACKETS_2026)
+                predial_bimestral = tarifa["impuesto"]
+                predial_anual = round(predial_bimestral * 6 * tipo_multiplier, 2)
+                items.append({
+                    "year": year,
+                    "valor_catastral_proyectado": round(valor_year, 2),
+                    "predial_estimado": predial_anual,
+                    "bracket_idx": tarifa["bracket_idx"],
+                    "modo": "tabla_oficial",
+                })
         total_10y = round(sum(it["predial_estimado"] for it in items), 2)
         return {
             "ok": True,
             "items": items,
             "total_10y": total_10y,
             "breakdown": {
+                "modo": modo,
                 "tipo": tipo,
-                "tipo_multiplier": tipo_multiplier,
+                "predial_y1": items[0]["predial_estimado"] if items else 0,
                 "factor_anual_reajuste": PREDIAL_FACTOR_ANUAL,
-                "valor_catastral_base": round(valor_catastral, 2),
-                "tabla_oficial": "ART 130 CFCDMX 2026 (Gaceta 19-dic-2025)",
+                "valor_catastral_base": round(valor_catastral, 2) if valor_catastral > 0 else None,
+                "predial_anual_actual_input": round(predial_anual_actual, 2) if predial_anual_actual else None,
+                "tabla_oficial": "ART 130 CFCDMX 2026 (Gaceta 19-dic-2025)" if modo == "tabla_oficial" else None,
+                "nota": (
+                    "Proyección basada en tu predial actual ajustado por inflación catastral 6%/año. Captura los descuentos aplicables a tu caso."
+                    if modo == "user_actual"
+                    else "Cálculo bruto del catálogo Art 130. CDMX otorga descuentos: 8% pago anual enero, 5% febrero, hasta 30% para grupos vulnerables. Tu predial real puede ser menor."
+                ),
             },
         }
     except Exception as e:  # noqa: BLE001

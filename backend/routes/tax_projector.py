@@ -41,9 +41,10 @@ class IsaiComprBody(BaseModel):
 
 
 class PredialBody(BaseModel):
-    valor_catastral: float = Field(..., gt=0)
+    valor_catastral: float = Field(0, ge=0)
     year_base: int = Field(2026, ge=2000, le=2100)
     tipo: str = Field("habitacional", pattern=r"^(habitacional|no_habitacional)$")
+    predial_anual_actual: Optional[float] = Field(None, ge=0)
 
 
 class ClosingBody(BaseModel):
@@ -122,6 +123,7 @@ async def full_scenario(
     participacion_pct: float = Query(1.0, gt=0.0, le=1.0),
     year: int = Query(2026, ge=2000, le=2100),
     tipo_predial: str = Query("habitacional", pattern=r"^(habitacional|no_habitacional)$"),
+    predial_anual_actual: Optional[float] = Query(None, ge=0),
 ) -> Dict[str, Any]:
     """Escenario completo · 4 sub-resultados en un solo round-trip."""
     isr_payload = {
@@ -130,7 +132,7 @@ async def full_scenario(
         "terreno_pct": terreno_pct, "participacion_pct": participacion_pct,
     }
     isai_payload = {"precio_venta": precio_venta, "valor_catastral": valor_catastral, "year": year}
-    predial_payload = {"valor_catastral": valor_catastral, "year_base": year, "tipo": tipo_predial}
+    predial_payload = {"valor_catastral": valor_catastral, "year_base": year, "tipo": tipo_predial, "predial_anual_actual": predial_anual_actual}
     closing_payload = {"precio_venta": precio_venta, "valor_catastral": valor_catastral, "year": year}
 
     isr = await _cached(request, "isr_vendedor", isr_payload, lambda: calculate_isr_vendedor(**isr_payload))

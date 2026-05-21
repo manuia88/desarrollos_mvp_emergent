@@ -3775,6 +3775,8 @@
     "seller_section": "Vendedor",
     "precio_venta": "Precio de venta (MXN)",
     "valor_catastral": "Valor catastral (MXN)",
+    "predial_anual_actual": "Predial anual actual (MXN)",
+    "predial_anual_actual_hint": "Opcional. Si lo conoces de tu boleta de predial, mejora la precisión de la proyección a 10 años (captura descuentos como pago anticipado y beneficios para grupos vulnerables).",
     "precio_compra": "Precio de compra original (MXN)",
     "fecha_compra": "Fecha de compra",
     "fecha_venta": "Fecha de venta",

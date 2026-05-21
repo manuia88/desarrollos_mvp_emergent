@@ -148,6 +148,12 @@ function FormFields({ values, onChange, t }) {
         <label style={{ ...labelStyle, marginTop: 18 }}>{t('taxProjector.valor_catastral')}
           <CurrencyInput value={values.valor_catastral} onChange={(v) => onChange('valor_catastral', v)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-valor-catastral" placeholder="$0.00" />
         </label>
+        <label style={{ ...labelStyle, marginTop: 18 }}>{t('taxProjector.predial_anual_actual')}
+          <CurrencyInput value={values.predial_anual_actual} onChange={(v) => onChange('predial_anual_actual', v)} style={{ ...inputStyle, marginTop: 8 }} data-testid="input-predial-actual" placeholder="$0.00 (opcional)" />
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 6, lineHeight: 1.5, textTransform: 'none', letterSpacing: 0 }}>
+            {t('taxProjector.predial_anual_actual_hint')}
+          </div>
+        </label>
       </Section>
       <Section title={t('taxProjector.seller_section')}>
         <label style={labelStyle}>{t('taxProjector.precio_compra')}
@@ -248,6 +254,7 @@ function PredialChart({ predial, t }) {
 export default function TaxProjectorPage() {
   const { t } = useTranslation('common');
   const [values, setValues] = useState({
+    predial_anual_actual: '',
     precio_compra: '',
     fecha_compra: '',
     precio_venta: '',
@@ -283,6 +290,9 @@ export default function TaxProjectorPage() {
         fecha_venta: values.fecha_venta,
         valor_catastral: Number(values.valor_catastral || 0),
       };
+      if (Number(values.predial_anual_actual) > 0) {
+        params.predial_anual_actual = Number(values.predial_anual_actual);
+      }
       const r = await getFullScenario(params);
       setScenario(r);
     } catch (e) {
