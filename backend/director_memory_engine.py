@@ -19,8 +19,16 @@ ST_DIAGNOSTIC   = "diagnostic"
 ST_IE_SCORE     = "ie_score"
 ST_BEHAVIORAL   = "behavioral"
 ST_SUMMARY      = "director_summary"
+# F2 · cross-feature memory types (scoped per-user dentro de metadata.user_id)
+ST_ATLAX_CONV   = "atlax_conversation"
+ST_ARG_OBJ      = "argumentario_objection"
+ST_STUDIO_COPY  = "studio_copy_event"
+ST_LEAD_INTER   = "lead_interaction"
 
-VALID_SOURCE_TYPES = {ST_DIAGNOSTIC, ST_IE_SCORE, ST_BEHAVIORAL, ST_SUMMARY}
+VALID_SOURCE_TYPES = {
+    ST_DIAGNOSTIC, ST_IE_SCORE, ST_BEHAVIORAL, ST_SUMMARY,
+    ST_ATLAX_CONV, ST_ARG_OBJ, ST_STUDIO_COPY, ST_LEAD_INTER,
+}
 
 # Significancia de cambio IE score para indexar
 IE_SCORE_DELTA_THRESHOLD = 5.0
@@ -335,6 +343,131 @@ class DirectorMemoryEngine:
 
         return ranked
 
+    # ── F2 · Cross-feature memory ─────────────────────────────────────────
+    async def _store_cross_feature(
+        self,
+        source_type: str,
+        ref_id: str,
+        user_id: Optional[str],
+        summary: str,
+        extra_metadata: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
+        """Store helper interno para los 4 ingest cross-feature.
+
+        Schema reutilizado de director_memory_index (no se inventan campos).
+        user_id se guarda en metadata.user_id para retrieve_for_user.
+        """
+        try:
+            mid = _memory_id()
+            content = _truncate(summary, max_chars=500)
+            doc = {
+                "_id": mid,
+                "org_id": self.org_id,
+                "source_type": source_type,
+                "source_id": ref_id,
+                "source_collection": "cross_feature",
+                "content_text": content,
+                "content_summary": _truncate(summary, max_chars=200),
+                "embedding_provider": "none",
+                "created_at": _now(),
+                "last_accessed_at": None,
+                "access_count": 0,
+                "metadata": {
+                    "user_id": user_id,
+                    **(extra_metadata or {}),
+                },
+            }
+            await self._col.insert_one(doc)
+            return mid
+        except Exception as exc:
+            log.warning(f"[memory] _store_cross_feature failed: {exc}")
+            return None
+
+    async def ingest_atlax_conversation(
+        self, session_id: str, user_id: str, summary: str
+    ) -> Optional[str]:
+        """Ingest resumen de sesión Atlax/Asistente al cierre."""
+        if not session_id or not summary:
+            return None
+        return await self._store_cross_feature(
+            source_type=ST_ATLAX_CONV,
+            ref_id=session_id,
+            user_id=user_id,
+            summary=summary,
+        )
+
+    async def ingest_argumentario_query(
+        self, lead_id: str, user_id: str, objection: str, response_used: str
+    ) -> Optional[str]:
+        """Ingest objection + respuesta usada · para que Atlax sepa qué funcionó."""
+        if not (objection or response_used):
+            return None
+        text = f"Objeción: {(objection or '')[:60]} · Respuesta: {(response_used or '')[:120]}"
+        return await self._store_cross_feature(
+            source_type=ST_ARG_OBJ,
+            ref_id=lead_id or "unknown",
+            user_id=user_id,
+            summary=text,
+            extra_metadata={"lead_id": lead_id},
+        )
+
+    async def ingest_studio_copy_generated(
+        self, intake_id: str, user_id: str, template_key: str, hook_score: int
+    ) -> Optional[str]:
+        """Ingest evento studio copy · para retrain prompts (F7)."""
+        if not intake_id:
+            return None
+        text = f"Studio copy · template {template_key} · hook score {hook_score}"
+        return await self._store_cross_feature(
+            source_type=ST_STUDIO_COPY,
+            ref_id=intake_id,
+            user_id=user_id,
+            summary=text,
+            extra_metadata={"template_key": template_key, "hook_score": hook_score},
+        )
+
+    async def ingest_lead_interaction(
+        self, lead_id: str, user_id: str, interaction_type: str, outcome: str
+    ) -> Optional[str]:
+        """Ingest interacción asesor-lead (call · whatsapp · visita)."""
+        if not lead_id or not interaction_type:
+            return None
+        text = f"{interaction_type}: {(outcome or '')[:140]}"
+        return await self._store_cross_feature(
+            source_type=ST_LEAD_INTER,
+            ref_id=lead_id,
+            user_id=user_id,
+            summary=text,
+            extra_metadata={"lead_id": lead_id, "interaction_type": interaction_type},
+        )
+
+    async def retrieve_for_user(
+        self, user_id: str, query: str, top_k: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Retrieve memorias scoped a un user específico (cross-feature, recency-weighted).
+
+        No depende de $text index · simple recency ranking sobre las últimas N.
+        Suficiente para MVP cross-feature; F7 podría agregar embeddings si hace falta.
+        """
+        if not user_id:
+            return []
+        try:
+            cursor = (
+                self._col.find(
+                    {"org_id": self.org_id, "metadata.user_id": user_id},
+                    {"_id": 1, "source_type": 1, "content_summary": 1, "content_text": 1,
+                     "created_at": 1, "metadata": 1},
+                )
+                .sort("created_at", -1)
+                .limit(max(1, top_k * 3))
+            )
+            items = await cursor.to_list(length=max(1, top_k * 3))
+            ranked = sorted(items, key=lambda x: _recency_score(x.get("created_at")), reverse=True)
+            return ranked[:top_k]
+        except Exception as exc:
+            log.warning(f"[memory] retrieve_for_user failed: {exc}")
+            return []
+
     async def expire_old(self, days: int = 180) -> int:
         """Elimina entradas no accedidas en >N días. Retorna count eliminados."""
         cutoff = _now() - timedelta(days=days)
@@ -459,6 +592,12 @@ async def ensure_indexes(db) -> None:
         await col.create_index("source_id", name="idx_mem_source_id")
         await col.create_index("last_accessed_at", name="idx_mem_last_accessed")
         await col.create_index([("org_id", 1), ("created_at", -1)], name="idx_mem_org_time")
+        # F2 · cross-feature memory scoped per-user
+        await col.create_index(
+            [("org_id", 1), ("metadata.user_id", 1), ("created_at", -1)],
+            name="idx_mem_org_user_time",
+            background=True,
+        )
         log.info("[memory] indexes OK")
     except Exception as exc:
         log.warning(f"[memory] ensure_indexes failed: {exc}")
