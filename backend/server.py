@@ -409,6 +409,7 @@ app.include_router(search_prefs_router)
 
 # Phase 4 Batch 0 — AI Budget tracking
 from ai_budget import router as ai_budget_router, ensure_ai_budget_indexes
+from ai_quota_engine import ensure_user_quota_indexes
 app.include_router(ai_budget_router)
 
 # Phase 4 Batch 0 Sub-chunk C — Badge counters
@@ -1218,6 +1219,11 @@ async def startup():
     # Phase 4 Batch 0 — AI Budget + Preferences indexes
     await ensure_ai_budget_indexes(db)
     await ensure_preferences_indexes(db)
+    # W5.x F1 — User-tier quotas
+    try:
+        await ensure_user_quota_indexes(db)
+    except Exception as _exc:
+        logging.warning(f"[startup] F1 user quota indexes failed: {_exc}")
     # Phase 4 Batch 0.5 — Diagnostic Engine indexes
     await ensure_diagnostic_indexes(db)
     # W4.1D — Comparable anomaly alert indexes
