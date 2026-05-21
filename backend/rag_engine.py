@@ -292,14 +292,289 @@ async def _build_extraction_chunks(db) -> List[Dict[str, Any]]:
     return chunks
 
 
+# ─── F2 · Extended corpus builders ────────────────────────────────────────────
+# Convención: usar scope= como discriminador (4 scopes existentes: development,
+# colonia, doc, extraction). F2 agrega: lead, activity, property_intake, resale,
+# external, conversation. tenant_id/user_id_owner viven en metadata para no
+# romper schema existente y permitir filtros opcionales en semantic_search.
+
+async def _build_lead_chunks(db) -> List[Dict[str, Any]]:
+    """Index leads del CRM · scope='lead' · PII no se inserta plain."""
+    chunks: List[Dict[str, Any]] = []
+    try:
+        cursor = db.leads.find({}, {"_id": 0}).limit(10000)
+        async for lead in cursor:
+            lead_id = lead.get("id") or lead.get("lead_id")
+            if not lead_id:
+                continue
+            name = (lead.get("full_name") or lead.get("name") or "lead")[:30]
+            stage = lead.get("pipeline_stage") or lead.get("stage") or "n/a"
+            interested = lead.get("interested_property") or lead.get("development_id") or "n/a"
+            score = lead.get("lead_score") or lead.get("score") or 0
+            notes = (lead.get("notes") or lead.get("description") or "")[:200]
+            text = (
+                f"Lead {name} · etapa {stage} · interés {interested} · "
+                f"score {score} · notas: {notes}"
+            )
+            chunks.append({
+                "chunk_id": f"lead::{lead_id}",
+                "scope": "lead",
+                "entity_id": lead_id,
+                "source_type": "crm_lead",
+                "title": name,
+                "text": _truncate(text),
+                "metadata": {
+                    "tenant_id": lead.get("tenant_id"),
+                    "user_id_owner": lead.get("assigned_advisor_id") or lead.get("user_id"),
+                    "stage": stage,
+                },
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_lead_chunks] failed silent: {exc}")
+    return chunks
+
+
+async def _build_activity_chunks(db) -> List[Dict[str, Any]]:
+    """Index activities (interactions asesor-lead) · últimos 90 días."""
+    chunks: List[Dict[str, Any]] = []
+    try:
+        from datetime import timedelta
+        since = _now() - timedelta(days=90)
+        cursor = db.activities.find({"created_at": {"$gte": since}}, {"_id": 0}).limit(5000)
+        async for act in cursor:
+            aid = act.get("id") or act.get("activity_id") or _hash_text(str(act))[:16]
+            action = act.get("action") or act.get("type") or "na"
+            user_id = (act.get("user_id") or "")[:24]
+            target = (act.get("target_id") or act.get("lead_id") or "na")[:40]
+            notes = (act.get("notes") or act.get("description") or "")[:150]
+            text = f"Actividad {action} · asesor {user_id} · target {target} · notas {notes}"
+            chunks.append({
+                "chunk_id": f"activity::{aid}",
+                "scope": "activity",
+                "entity_id": target,
+                "source_type": "crm_activity",
+                "title": action,
+                "text": _truncate(text),
+                "metadata": {
+                    "tenant_id": act.get("tenant_id"),
+                    "user_id_owner": act.get("user_id"),
+                    "action": action,
+                },
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_activity_chunks] failed silent: {exc}")
+    return chunks
+
+
+async def _build_property_intake_chunks(db) -> List[Dict[str, Any]]:
+    """Index Z.8.7 property intakes (asesor crea landings)."""
+    chunks: List[Dict[str, Any]] = []
+    try:
+        cursor = db.studio_property_intakes.find(
+            {}, {"_id": 0, "encrypted_api_key": 0, "api_key_encrypted": 0}
+        ).limit(5000)
+        async for intake in cursor:
+            iid = intake.get("id") or intake.get("intake_id")
+            if not iid:
+                continue
+            usps = (intake.get("unique_selling_points") or [])[:3]
+            text = (
+                f"Proyecto {intake.get('project_name', 'na')} · "
+                f"template {intake.get('template_key', 'na')} · "
+                f"buyer_intent {intake.get('buyer_intent', 'na')} · "
+                f"tipo {intake.get('property_type', 'na')} · "
+                f"colonia {intake.get('colonia', 'na')} · "
+                f"developer {intake.get('developer_name', 'na')} · "
+                f"USPs {', '.join(str(u) for u in usps)}"
+            )
+            chunks.append({
+                "chunk_id": f"intake::{iid}",
+                "scope": "property_intake",
+                "entity_id": iid,
+                "source_type": "studio_intake",
+                "title": intake.get("project_name", "intake"),
+                "text": _truncate(text),
+                "metadata": {
+                    "tenant_id": intake.get("tenant_id"),
+                    "user_id_owner": intake.get("created_by_user_id") or intake.get("user_id"),
+                    "template_key": intake.get("template_key"),
+                    "buyer_intent": intake.get("buyer_intent"),
+                },
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_property_intake_chunks] failed silent: {exc}")
+    return chunks
+
+
+async def _build_resale_chunks(db) -> List[Dict[str, Any]]:
+    """Index Z.8.5 listing imports (reventas parseadas)."""
+    chunks: List[Dict[str, Any]] = []
+    try:
+        cursor = db.listing_imports.find(
+            {"status": "parsed"}, {"_id": 0, "raw_html_truncated": 0, "raw_html": 0}
+        ).limit(5000)
+        async for imp in cursor:
+            iid = imp.get("id") or imp.get("import_id")
+            if not iid:
+                continue
+            pd = imp.get("parsed_data") or {}
+            try:
+                price_fmt = f"${int(pd.get('price') or 0):,}"
+            except Exception:
+                price_fmt = "$na"
+            text = (
+                f"Reventa {(pd.get('title') or 'na')[:50]} · "
+                f"colonia {pd.get('colonia', 'na')} · "
+                f"precio {price_fmt} · "
+                f"m² {pd.get('area_m2', 0)} · "
+                f"rec {pd.get('bedrooms', 0)}"
+            )
+            chunks.append({
+                "chunk_id": f"resale::{iid}",
+                "scope": "resale",
+                "entity_id": iid,
+                "source_type": "listing_import",
+                "title": (pd.get("title") or "reventa")[:50],
+                "text": _truncate(text),
+                "metadata": {
+                    "tenant_id": imp.get("tenant_id"),
+                    "user_id_owner": imp.get("user_id"),
+                    "colonia": pd.get("colonia"),
+                    "price": pd.get("price"),
+                },
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_resale_chunks] failed silent: {exc}")
+    return chunks
+
+
+async def _build_external_insights_chunks(db) -> List[Dict[str, Any]]:
+    """Index data de connectors externos.
+
+    NOTA: las collections external_data_* aún no existen en este entorno (los
+    connectors materializan a otros nombres). Cada loop es try/except aislado
+    para que la ausencia de una collection NO rompa reindex completo.
+    """
+    chunks: List[Dict[str, Any]] = []
+
+    async def _safe_collect(coll_name: str, scope: str, source_type: str,
+                            text_fn, key_fn, limit: int = 200, sort_key=None):
+        try:
+            coll = getattr(db, coll_name, None)
+            if coll is None:
+                return
+            cursor = coll.find({}, {"_id": 0})
+            if sort_key:
+                cursor = cursor.sort(sort_key, -1)
+            cursor = cursor.limit(limit)
+            async for doc in cursor:
+                try:
+                    text = text_fn(doc)
+                    key = key_fn(doc)
+                    if not text or not key:
+                        continue
+                    chunks.append({
+                        "chunk_id": f"{scope}::{key}",
+                        "scope": scope,
+                        "entity_id": key,
+                        "source_type": source_type,
+                        "title": text[:48],
+                        "text": _truncate(text),
+                        "metadata": {"tenant_id": None, "user_id_owner": None},
+                        "hash": _hash_text(text),
+                    })
+                except Exception:
+                    continue
+        except Exception as exc:
+            log.warning(f"[_build_external · {coll_name}] failed silent: {exc}")
+
+    await _safe_collect(
+        "external_data_banxico", "external_banxico", "banxico",
+        lambda b: f"Banxico {b.get('series_id', 'na')} · {b.get('date', '')} · valor {b.get('value', 'na')}",
+        lambda b: f"banxico_{b.get('series_id', 'na')}_{b.get('date', '')}",
+        limit=60, sort_key="date",
+    )
+    await _safe_collect(
+        "external_data_inegi", "external_inegi", "inegi",
+        lambda i: f"INEGI {i.get('indicator', 'na')} · zona {i.get('zone', 'na')} · {i.get('value', 'na')}",
+        lambda i: f"inegi_{i.get('indicator', 'na')}_{i.get('zone', 'na')}",
+        limit=200,
+    )
+    await _safe_collect(
+        "external_data_atlas", "external_atlas", "atlas_riesgos",
+        lambda a: f"Atlas riesgos {a.get('zone', 'na')} · {a.get('risk_type', 'na')} nivel {a.get('level', 'na')}",
+        lambda a: f"atlas_{a.get('zone', 'na')}_{a.get('risk_type', 'na')}",
+        limit=200,
+    )
+    await _safe_collect(
+        "external_data_osm", "external_osm", "osm",
+        lambda o: f"OSM {o.get('amenity_type', 'na')} · zona {o.get('zone', 'na')} · count {o.get('count', 0)}",
+        lambda o: f"osm_{o.get('zone', 'na')}_{o.get('amenity_type', 'na')}",
+        limit=200,
+    )
+    await _safe_collect(
+        "external_data_gtfs", "external_gtfs", "gtfs",
+        lambda g: f"GTFS zona {g.get('zone', 'na')} · accessibility {g.get('accessibility_score', 'na')} · routes {g.get('routes_count', 0)}",
+        lambda g: f"gtfs_{g.get('zone', 'na')}",
+        limit=200,
+    )
+    return chunks
+
+
+async def _build_conversation_chunks(db) -> List[Dict[str, Any]]:
+    """Index conversaciones previas Atlax/Asistente (collection real: asistente_sessions)."""
+    chunks: List[Dict[str, Any]] = []
+    try:
+        from datetime import timedelta
+        since = _now() - timedelta(days=60)
+        cursor = db.asistente_sessions.find(
+            {"created_at": {"$gte": since}}, {"_id": 0}
+        ).limit(2000)
+        async for sess in cursor:
+            sid = sess.get("session_token") or sess.get("session_id") or sess.get("_id")
+            if not sid:
+                continue
+            last_msgs = (sess.get("messages") or [])[-5:]
+            summary = " | ".join([(m.get("content") or "")[:60] for m in last_msgs])
+            user_id = (sess.get("user_id") or "")[:24]
+            text = f"Conversación asistente · user {user_id} · resumen: {summary}"
+            chunks.append({
+                "chunk_id": f"conversation::{sid}",
+                "scope": "conversation",
+                "entity_id": str(sid),
+                "source_type": "asistente_session",
+                "title": f"conv {user_id}",
+                "text": _truncate(text),
+                "metadata": {
+                    "tenant_id": sess.get("tenant_id"),
+                    "user_id_owner": sess.get("user_id"),
+                },
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_conversation_chunks] failed silent: {exc}")
+    return chunks
+
+
 # ─── Reindex ──────────────────────────────────────────────────────────────────
-async def reindex_all(db) -> Dict[str, Any]:
+async def reindex_all(db, incremental: bool = True) -> Dict[str, Any]:
     """Compute all chunks, embed those whose hash changed, persist."""
     builders = [
         _build_dev_chunks(db),
         _build_colonia_chunks(db),
         _build_doc_chunks(db),
         _build_extraction_chunks(db),
+        # F2 · extended corpus
+        _build_lead_chunks(db),
+        _build_activity_chunks(db),
+        _build_property_intake_chunks(db),
+        _build_resale_chunks(db),
+        _build_external_insights_chunks(db),
+        _build_conversation_chunks(db),
     ]
     chunks_lists = await asyncio.gather(*builders)
     all_chunks: List[Dict[str, Any]] = [c for cl in chunks_lists for c in cl]
@@ -402,6 +677,8 @@ async def semantic_search(
     scope: Optional[str] = None,
     entity_id: Optional[str] = None,
     source_types: Optional[List[str]] = None,
+    filters: Optional[Dict[str, Any]] = None,
+    scopes_in: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     if not query or not query.strip():
         raise HTTPException(400, "query vacía")
@@ -429,11 +706,32 @@ async def semantic_search(
     pool = _CORPUS
     if scope:
         pool = [c for c in pool if c.get("scope") == scope]
+    if scopes_in:
+        sset = set(scopes_in)
+        pool = [c for c in pool if c.get("scope") in sset]
     if entity_id:
         pool = [c for c in pool if c.get("entity_id") == entity_id]
     if source_types:
         st = set(source_types)
         pool = [c for c in pool if c.get("source_type") in st]
+    # F2 · optional metadata filters (tenant_id, user_id_owner, etc.)
+    if filters:
+        for fkey, fval in (filters or {}).items():
+            if fval is None:
+                continue
+            # match either top-level or inside metadata; supports None as "either matches"
+            if isinstance(fval, dict) and "$in" in fval:
+                fset = set(fval["$in"])
+                pool = [c for c in pool if (c.get(fkey) in fset) or ((c.get("metadata") or {}).get(fkey) in fset)]
+            elif isinstance(fval, list):
+                fset = set(fval)
+                pool = [c for c in pool if (c.get(fkey) in fset) or ((c.get("metadata") or {}).get(fkey) in fset)]
+            else:
+                pool = [
+                    c for c in pool
+                    if c.get(fkey) == fval
+                    or (c.get("metadata") or {}).get(fkey) == fval
+                ]
     # Cosine
     scored: List[Tuple[float, Dict[str, Any]]] = []
     for c in pool:
