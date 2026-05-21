@@ -133,18 +133,18 @@ async def _build_dev_chunks(db) -> List[Dict[str, Any]]:
         amenities = dev.get("amenities", []) or []
         description = dev.get("description", "")
         keywords = dev.get("search_keywords", []) or []
-        # Scores
+        # Scores · F3.A fix: ie_scores tiene zone_id + code (no scope/entity_id)
         scores = [s async for s in db.ie_scores.find(
-            {"scope": "proyecto", "entity_id": dev_id},
-            {"_id": 0, "score_code": 1, "value": 1, "tier": 1},
+            {"zone_id": dev_id},
+            {"_id": 0, "code": 1, "value": 1, "tier": 1},
         ).limit(40)]
-        # Narrative AI
+        # Narrative AI · F3.A fix: campo correcto es narrative_text
         nar = await db.ie_narratives.find_one(
             {"scope": "proyecto", "entity_id": dev_id},
-            {"_id": 0, "narrative": 1, "model": 1},
+            {"_id": 0, "narrative_text": 1, "model": 1},
             sort=[("generated_at", -1)],
         )
-        nar_text = (nar or {}).get("narrative", "")
+        nar_text = (nar or {}).get("narrative_text", "")
         text = (
             f"Desarrollo: {name}. Dirección: {addr}. Colonia: {colonia_id}. "
             f"Desarrollador: {developer_name}. Etapa: {stage}. "
@@ -178,16 +178,18 @@ async def _build_colonia_chunks(db) -> List[Dict[str, Any]]:
         cid = col["id"]
         name = col.get("name", "")
         alcaldia = col.get("alcaldia", "")
+        # F3.A fix: ie_scores tiene zone_id + code (no scope/entity_id)
         scores = [s async for s in db.ie_scores.find(
-            {"scope": "colonia", "entity_id": cid},
-            {"_id": 0, "score_code": 1, "value": 1, "tier": 1},
+            {"zone_id": cid},
+            {"_id": 0, "code": 1, "value": 1, "tier": 1},
         ).limit(40)]
+        # F3.A fix: campo correcto narrative_text
         nar = await db.ie_narratives.find_one(
             {"scope": "colonia", "entity_id": cid},
-            {"_id": 0, "narrative": 1},
+            {"_id": 0, "narrative_text": 1},
             sort=[("generated_at", -1)],
         )
-        nar_text = (nar or {}).get("narrative", "")
+        nar_text = (nar or {}).get("narrative_text", "")
         text = (
             f"Colonia: {name}. Alcaldía: {alcaldia}. "
             f"Scores IE: {_scores_to_lines(scores)}. "
@@ -453,75 +455,154 @@ async def _build_resale_chunks(db) -> List[Dict[str, Any]]:
 
 
 async def _build_external_insights_chunks(db) -> List[Dict[str, Any]]:
-    """Index data de connectors externos.
+    """F3.A · Index data externa/derivada desde collections IE+INEGI realmente pobladas.
 
-    NOTA: las collections external_data_* aún no existen en este entorno (los
-    connectors materializan a otros nombres). Cada loop es try/except aislado
-    para que la ausencia de una collection NO rompa reindex completo.
+    Reemplaza las 5 collections candidate external_data_* que NUNCA existieron por
+    las 4 collections REALES del pipeline IE que sí tienen documentos:
+      - ie_scores                · scores por zona/código (3,422+ docs)
+      - ie_narratives            · narrativas pre-redactadas AI (59+ docs)
+      - inegi_demographics_cache · perfiles demográficos INEGI Phase 7.2 (18+ docs)
+      - ie_raw_observations      · observaciones brutas IE (214+ docs)
+
+    Cada loop try/except aislado · fail-soft total · si una collection no existe o
+    está vacía simplemente devuelve cero chunks de ese scope sin romper el resto.
     """
+    import json as _json
     chunks: List[Dict[str, Any]] = []
 
-    async def _safe_collect(coll_name: str, scope: str, source_type: str,
-                            text_fn, key_fn, limit: int = 200, sort_key=None):
-        try:
-            coll = getattr(db, coll_name, None)
-            if coll is None:
-                return
-            cursor = coll.find({}, {"_id": 0})
-            if sort_key:
-                cursor = cursor.sort(sort_key, -1)
-            cursor = cursor.limit(limit)
-            async for doc in cursor:
-                try:
-                    text = text_fn(doc)
-                    key = key_fn(doc)
-                    if not text or not key:
-                        continue
-                    chunks.append({
-                        "chunk_id": f"{scope}::{key}",
-                        "scope": scope,
-                        "entity_id": key,
-                        "source_type": source_type,
-                        "title": text[:48],
-                        "text": _truncate(text),
-                        "metadata": {"tenant_id": None, "user_id_owner": None},
-                        "hash": _hash_text(text),
-                    })
-                except Exception:
-                    continue
-        except Exception as exc:
-            log.warning(f"[_build_external · {coll_name}] failed silent: {exc}")
+    # ── 1) ie_scores · agrupado por zone_id ───────────────────────────────────
+    try:
+        cursor = db.ie_scores.find(
+            {"value": {"$ne": None}},
+            {"_id": 0, "zone_id": 1, "code": 1, "value": 1, "tier": 1,
+             "confidence": 1, "computed_at": 1},
+        ).limit(2000)
+        by_zone: Dict[str, List[Dict[str, Any]]] = {}
+        async for doc in cursor:
+            zid = doc.get("zone_id")
+            if not zid:
+                continue
+            by_zone.setdefault(zid, []).append(doc)
+        for zid, scores in by_zone.items():
+            scores_text = "; ".join(
+                f"{s.get('code')}={s.get('value')} ({s.get('tier','')})"
+                for s in scores[:15] if s.get("code")
+            )
+            if not scores_text:
+                continue
+            text = f"IE scores zona {zid} · {scores_text}"
+            chunks.append({
+                "chunk_id": f"ie_score::{zid}",
+                "scope": "ie_score",
+                "entity_id": str(zid),
+                "source_type": "ie_score",
+                "title": f"scores zona {zid}"[:48],
+                "text": _truncate(text),
+                "metadata": {"score_count": len(scores)},
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_external · ie_scores] failed silent: {exc}")
 
-    await _safe_collect(
-        "external_data_banxico", "external_banxico", "banxico",
-        lambda b: f"Banxico {b.get('series_id', 'na')} · {b.get('date', '')} · valor {b.get('value', 'na')}",
-        lambda b: f"banxico_{b.get('series_id', 'na')}_{b.get('date', '')}",
-        limit=60, sort_key="date",
-    )
-    await _safe_collect(
-        "external_data_inegi", "external_inegi", "inegi",
-        lambda i: f"INEGI {i.get('indicator', 'na')} · zona {i.get('zone', 'na')} · {i.get('value', 'na')}",
-        lambda i: f"inegi_{i.get('indicator', 'na')}_{i.get('zone', 'na')}",
-        limit=200,
-    )
-    await _safe_collect(
-        "external_data_atlas", "external_atlas", "atlas_riesgos",
-        lambda a: f"Atlas riesgos {a.get('zone', 'na')} · {a.get('risk_type', 'na')} nivel {a.get('level', 'na')}",
-        lambda a: f"atlas_{a.get('zone', 'na')}_{a.get('risk_type', 'na')}",
-        limit=200,
-    )
-    await _safe_collect(
-        "external_data_osm", "external_osm", "osm",
-        lambda o: f"OSM {o.get('amenity_type', 'na')} · zona {o.get('zone', 'na')} · count {o.get('count', 0)}",
-        lambda o: f"osm_{o.get('zone', 'na')}_{o.get('amenity_type', 'na')}",
-        limit=200,
-    )
-    await _safe_collect(
-        "external_data_gtfs", "external_gtfs", "gtfs",
-        lambda g: f"GTFS zona {g.get('zone', 'na')} · accessibility {g.get('accessibility_score', 'na')} · routes {g.get('routes_count', 0)}",
-        lambda g: f"gtfs_{g.get('zone', 'na')}",
-        limit=200,
-    )
+    # ── 2) ie_narratives · narrativas pre-redactadas AI ───────────────────────
+    try:
+        cursor = db.ie_narratives.find(
+            {},
+            {"_id": 0, "scope": 1, "entity_id": 1, "narrative_text": 1,
+             "generated_at": 1, "model": 1},
+        ).limit(300)
+        async for doc in cursor:
+            txt = doc.get("narrative_text") or ""
+            if not txt:
+                continue
+            entity_id = doc.get("entity_id") or ""
+            doc_scope = doc.get("scope") or "unknown"
+            text = f"Narrativa IE ({doc_scope} {entity_id}): {txt}"
+            chunks.append({
+                "chunk_id": f"ie_narrative::{doc_scope}::{entity_id}",
+                "scope": "ie_narrative",
+                "entity_id": str(entity_id),
+                "source_type": "ie_narrative",
+                "title": f"narrativa {doc_scope}"[:48],
+                "text": _truncate(text),
+                "metadata": {"scope_inner": doc_scope, "model": doc.get("model")},
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_external · ie_narratives] failed silent: {exc}")
+
+    # ── 3) inegi_demographics_cache · perfiles demográficos INEGI ─────────────
+    try:
+        cursor = db.inegi_demographics_cache.find(
+            {},
+            {"_id": 0, "cache_key": 1, "state_code": 1, "colonia": 1, "scope": 1,
+             "source_year": 1, "population": 1, "income": 1,
+             "age_avg": 1, "education_avg_years": 1},
+        ).limit(300)
+        async for doc in cursor:
+            cache_key = doc.get("cache_key", "")
+            if not cache_key:
+                continue
+            colonia = doc.get("colonia", "")
+            state = doc.get("state_code", "")
+            year = doc.get("source_year", "")
+            pop = doc.get("population") or {}
+            pop_total = pop.get("total") or pop.get("pop_total") or 0
+            age = doc.get("age_avg", 0)
+            edu = doc.get("education_avg_years", 0)
+            income = doc.get("income") or {}
+            income_avg = income.get("average") or income.get("mean") or "n/a"
+            text = (
+                f"Demografía INEGI · {colonia} ({state}) · año {year} · "
+                f"población {pop_total} · edad promedio {age} · "
+                f"educación {edu} años · ingreso {income_avg}"
+            )
+            chunks.append({
+                "chunk_id": f"inegi_demo::{cache_key}",
+                "scope": "inegi_demographics",
+                "entity_id": str(cache_key),
+                "source_type": "inegi_demographics",
+                "title": f"demografía {colonia}"[:48],
+                "text": _truncate(text),
+                "metadata": {"state": state, "colonia": colonia, "year": year},
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_external · inegi_demographics] failed silent: {exc}")
+
+    # ── 4) ie_raw_observations · observaciones brutas (dedup source+zone) ─────
+    try:
+        cursor = db.ie_raw_observations.find(
+            {"is_stub": {"$ne": True}},
+            {"_id": 0, "source_id": 1, "zone_id": 1, "payload": 1, "fetched_at": 1},
+        ).limit(400)
+        seen_pairs: set = set()
+        async for doc in cursor:
+            sid = doc.get("source_id") or "unknown"
+            zid = doc.get("zone_id") or "global"
+            pair = f"{sid}::{zid}"
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+            payload = doc.get("payload") or {}
+            try:
+                payload_str = _json.dumps(payload, ensure_ascii=False, default=str)[:400]
+            except Exception:
+                payload_str = str(payload)[:400]
+            text = f"Observación IE · fuente {sid} · zona {zid} · {payload_str}"
+            chunks.append({
+                "chunk_id": f"ie_obs::{pair}",
+                "scope": "ie_observation",
+                "entity_id": pair,
+                "source_type": "ie_observation",
+                "title": f"obs {sid}"[:48],
+                "text": _truncate(text),
+                "metadata": {"source_id": sid, "zone_id": zid},
+                "hash": _hash_text(text),
+            })
+    except Exception as exc:
+        log.warning(f"[_build_external · ie_observations] failed silent: {exc}")
+
     return chunks
 
 
