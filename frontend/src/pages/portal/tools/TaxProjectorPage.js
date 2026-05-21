@@ -1,5 +1,5 @@
 // W5.x F6 Sub-C · TaxProjectorPage · calculadora fiscal CDMX T0 publica
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { getFullScenario } from '../../../api/tax_projector';
@@ -78,33 +78,50 @@ function Section({ title, children }) {
   );
 }
 
-// CurrencyInput · formato $X,XXX,XXX.00 · acepta solo dígitos · raw number en state
+// CurrencyInput · enteros con coma mientras edita · $X,XXX,XXX.00 al perder foco
+// FIX bug: el .00 NO debe estar en el input mientras tipea (los dígitos 00 confunden backspace)
 function CurrencyInput({ value, onChange, ...props }) {
   const [display, setDisplay] = useState('');
+  const focusedRef = useRef(false);
 
+  const fmtInt = (n) => '$' + n.toLocaleString('en-US');
+  const fmtFull = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Sync display desde el prop value SOLO cuando NO está enfocado (no pisa typing)
   useEffect(() => {
+    if (focusedRef.current) return;
     if (value === '' || value == null) { setDisplay(''); return; }
     const n = Number(value);
     if (!isNaN(n) && n > 0) {
-      setDisplay('$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      setDisplay(fmtFull(n));
+    } else {
+      setDisplay('');
     }
   }, [value]);
 
   const handleChange = (e) => {
     const raw = e.target.value.replace(/[^\d]/g, '');
     onChange(raw);
-    setDisplay(raw ? '$' + Number(raw).toLocaleString('en-US') : '');
+    setDisplay(raw ? fmtInt(Number(raw)) : '');
   };
-  const handleBlur = () => {
+
+  const handleFocus = () => {
+    focusedRef.current = true;
     const n = Number(value);
     if (!isNaN(n) && n > 0) {
-      setDisplay('$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      setDisplay(fmtInt(n));  // sin .00 mientras edita
+    } else {
+      setDisplay('');
     }
   };
-  const handleFocus = () => {
+
+  const handleBlur = () => {
+    focusedRef.current = false;
     const n = Number(value);
     if (!isNaN(n) && n > 0) {
-      setDisplay('$' + n.toLocaleString('en-US'));
+      setDisplay(fmtFull(n));  // con .00 al perder foco
+    } else {
+      setDisplay('');
     }
   };
 
