@@ -197,6 +197,8 @@ const SuperadminDataSourcesHub       = lazy(() => import('./pages/superadmin/Sup
 const SuperadminAuditLog             = lazy(() => import('./pages/superadmin/SuperadminAuditLog'));
 // W2.3 SA4 — AI Cost Observatory
 const SuperadminAiCost               = lazy(() => import('./pages/superadmin/SuperadminAiCost'));
+// W5.x F2 — RAG Inspector
+const SuperadminRagInspector         = lazy(() => import('./pages/superadmin/SuperadminRagInspector'));
 // W2.4 SA5 — Commercial Foundation (feature flags + plan templates + GHL snapshots)
 const SuperadminCommercial           = lazy(() => import('./pages/superadmin/SuperadminCommercial'));
 // W5.22 Z.1 — Studio: Brand Kit + Listing Importer + Asset Library
@@ -717,6 +719,7 @@ function AppRouter() {
       <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={SuperadminAuditLog} />} />
       <Route path="/superadmin/audit-log-legacy" element={<AdvisorRoute Page={AuditLogPage} />} />
       <Route path="/superadmin/ai-cost" element={<AdvisorRoute Page={SuperadminAiCost} />} />
+      <Route path="/superadmin/rag-inspector" element={<AdvisorRoute Page={SuperadminRagInspector} />} />
       <Route path="/superadmin/commercial" element={<AdvisorRoute Page={SuperadminCommercial} />} />
       <Route path="/superadmin/metrics-cube" element={<AdvisorRoute Page={SuperadminMetricsCube} />} />
       <Route path="/superadmin/data-lake" element={<AdvisorRoute Page={SuperadminDataLake} />} />

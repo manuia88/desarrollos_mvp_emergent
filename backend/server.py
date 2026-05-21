@@ -92,6 +92,12 @@ from rag_engine import (
 )
 app.include_router(rag_public_router)
 app.include_router(rag_admin_router)
+# W5.x F2 Sub-F · RAG inspector superadmin
+try:
+    from routes.rag_admin import router as rag_superadmin_router
+    app.include_router(rag_superadmin_router)
+except Exception as _exc:
+    logging.warning(f"[F2] rag_superadmin_router include failed: {_exc}")
 
 # Phase D2 — Caya prep stub
 from atlax_engine import router as atlax_router
