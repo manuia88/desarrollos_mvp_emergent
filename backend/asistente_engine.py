@@ -247,6 +247,11 @@ TOOLS Y PARAMS:
     devuelve: {{ total_active, by_tier:{{alta,media,baja}}, by_signal_type, top_5_recent }}
     Usar cuando: asesor o admin pregunta cuántas alertas predictivas hay activas, qué tipo de signal aparece más (enamorado/decision/enfriando/presupuesto_bajo/re_engaged/abandono_modal/indeciso), qué leads están en momento crítico, top alertas urgentes.
 
+31. query_fit_recommendations
+    params: {{ "mode": "lead_to_properties"|"property_to_leads"|"single", "lead_id": str?, "property_id": str?, "limit": int? (default 5, max 20) }}
+    devuelve: depende de mode — "lead_to_properties": {{properties:[...]}} · "property_to_leads": {{leads:[...]}} · "single": {{score, confidence, breakdown, explanation_short, reasons_top_3}}
+    Usar cuando: asesor pregunta "qué propiedad le va a Juan", "quién compraría Polanco Moderno", "compatibilidad entre este lead y esta propiedad", "top matches para X". Score 0-100 sobre 6 dimensiones (presupuesto/audience/búsquedas/comportamiento/ubicación/específicas). Si confidence="tentativa" advertir al usuario que faltan interacciones del lead.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -432,6 +437,15 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 db,
                 advisor_id=params.get("advisor_id"),
                 days=int(params.get("days") or 7),
+            )
+        # W5.x F11 — Tool 31: query_fit_recommendations
+        if tool_name == "query_fit_recommendations":
+            return await _tool_query_fit_recommendations(
+                db,
+                mode=params.get("mode") or "lead_to_properties",
+                lead_id=params.get("lead_id"),
+                property_id=params.get("property_id"),
+                limit=int(params.get("limit") or 5),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -2126,6 +2140,65 @@ async def _tool_query_alerts_summary(db, advisor_id: Optional[str] = None,
     except Exception as e:
         log.warning(f"[asistente_tool] query_alerts_summary failed: {e}")
         return {**empty, "error": str(e)}
+
+
+# W5.x F11 — Tool 31: query_fit_recommendations
+async def _tool_query_fit_recommendations(
+    db,
+    mode: str = "lead_to_properties",
+    lead_id: Optional[str] = None,
+    property_id: Optional[str] = None,
+    limit: int = 5,
+) -> Dict[str, Any]:
+    """Wrapper sobre fit_engine.
+
+    mode="lead_to_properties" → top_properties_for_lead(lead_id, limit)
+    mode="property_to_leads"  → top_leads_for_property(property_id, limit)
+    mode="single"             → compute_fit_score(lead_id, property_id)
+    """
+    mode = (mode or "lead_to_properties").lower()
+    limit = max(1, min(int(limit or 5), 20))
+    if mode not in {"lead_to_properties", "property_to_leads", "single"}:
+        return {"error": f"mode inválido: {mode}",
+                 "valid_modes": ["lead_to_properties", "property_to_leads", "single"]}
+    if db is None:
+        return {"error": "no_db"}
+    try:
+        from fit_engine import (
+            compute_fit_score,
+            top_leads_for_property,
+            top_properties_for_lead,
+        )
+        if mode == "lead_to_properties":
+            if not lead_id:
+                return {"error": "lead_id requerido para mode=lead_to_properties"}
+            res = await top_properties_for_lead(db, lead_id, limit=limit)
+            return {"mode": mode, **res}
+        if mode == "property_to_leads":
+            if not property_id:
+                return {"error": "property_id requerido para mode=property_to_leads"}
+            res = await top_leads_for_property(db, property_id, limit=limit)
+            return {"mode": mode, **res}
+        # single
+        if not lead_id or not property_id:
+            return {"error": "lead_id y property_id requeridos para mode=single"}
+        res = await compute_fit_score(db, lead_id, property_id)
+        if not res.get("ok"):
+            return {"mode": mode, "error": res.get("reason") or "no_ok"}
+        return {
+            "mode": mode,
+            "lead_id": lead_id,
+            "property_id": property_id,
+            "property_title": res.get("property_title"),
+            "score": res.get("score"),
+            "confidence": res.get("confidence"),
+            "breakdown": res.get("breakdown"),
+            "explanation_short": res.get("explanation_short"),
+            "reasons_top_3": res.get("reasons_top_3"),
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_fit_recommendations failed: {e}")
+        return {"error": str(e), "mode": mode}
 
 
 # W5.FF4 register_feature marker · NO duplicate

@@ -212,6 +212,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[F8] predictive_alerts_router include failed: {_exc}")
 
+# W5.x F11 — Fit Engine (compatibility lead ↔ property · 6 dimensiones)
+try:
+    from routes.fit import router as fit_router
+    app.include_router(fit_router)
+except Exception as _exc:
+    logging.warning(f"[F11] fit_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1154,6 +1161,12 @@ async def startup():
         await _pa_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] predictive_alerts indexes failed: {e}")
+    # W5.x F11 — Fit Engine indexes
+    try:
+        from fit_engine import ensure_indexes as _fit_indexes
+        await _fit_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] fit indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)
