@@ -226,6 +226,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[F10] mood_router include failed: {_exc}")
 
+# W5.9 — Climate Migration (heatmap + patterns + zone detail)
+try:
+    from routes.climate_migration import router as climate_migration_router
+    app.include_router(climate_migration_router)
+except Exception as _exc:
+    logging.warning(f"[W5.9] climate_migration_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1708,6 +1715,14 @@ async def startup():
             register_predictive_alerts_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[F8] predictive_alerts scheduler register failed: {e}")
+        # W5.9 — Climate Migration: indexes + 2 crons (detect lun 03:00 + heatmap diario 04:00 UTC)
+        try:
+            from climate_migration_engine import ensure_indexes as climate_migration_ensure_indexes
+            from climate_migration_cron import register_climate_migration_jobs
+            await climate_migration_ensure_indexes(db)
+            register_climate_migration_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W5.9] climate_migration startup register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:

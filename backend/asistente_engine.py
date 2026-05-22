@@ -287,6 +287,11 @@ TOOLS Y PARAMS:
     devuelve: {{ isr_total, isai, closing_total, predial_y1, breakdown, sources: "SAT DOF 2026 · Gaceta CDMX 2026" }}
     Usar cuando user pregunta "¿cuánto pago de ISR si vendo?", "¿cuánto sale el cierre?", "¿predial 2026?". ISR vendedor · ISAI comprador · predial proyectado.
 
+35. query_climate_migration
+    params: {{ "mode": "heatmap_summary"|"zone"|"patterns" (default "heatmap_summary"), "zone_slug": str? (req si mode=zone), "days": int? (default 90, max 365) }}
+    devuelve: heatmap_summary → {{top_outflow_zones, top_inflow_zones}} · zone → {{detalle completo zona}} · patterns → {{patterns}}
+    Usar cuando: user pregunta sobre tendencias climáticas + migración por zona ("¿qué zonas pierden gente por contaminación?", "¿dónde se está mudando la gente en CDMX?", "tendencia migration Roma vs Polanco"). T3 inversionista feature.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -503,6 +508,8 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_query_live_pulse(db, params)
         if tool_name == "query_tax_projection":
             return await _tool_query_tax_projection(db, params)
+        if tool_name == "query_climate_migration":
+            return await _tool_query_climate_migration(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -2807,6 +2814,167 @@ async def _tool_query_tax_projection(db, params: Dict[str, Any]) -> Dict[str, An
         pass
 
     return out
+
+
+async def _tool_query_climate_migration(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.9 — Climate Migration tool.
+
+    Modes:
+      - "heatmap_summary" (default): top 3 outflow + top 3 inflow zones.
+      - "zone": detalle de una zona (heatmap entry + last pattern + narrative).
+      - "patterns": top N patterns recientes resumidos.
+    FAIL-SOFT: error → {error: str}.
+    """
+    mode = (params.get("mode") or "heatmap_summary").lower()
+    if mode not in {"heatmap_summary", "zone", "patterns"}:
+        mode = "heatmap_summary"
+
+    try:
+        from climate_migration_engine import (
+            COLLECTION_HEATMAP,
+            COLLECTION_PATTERNS,
+        )
+
+        if mode == "zone":
+            zone_slug = (params.get("zone_slug") or "").strip()
+            if not zone_slug:
+                return {"error": "zone_slug required for mode=zone"}
+            entry = await db[COLLECTION_HEATMAP].find_one(
+                {"zone_slug": zone_slug}, {"_id": 0},
+            )
+            last_pattern = await db[COLLECTION_PATTERNS].find_one(
+                {
+                    "$or": [
+                        {"origin_zone": zone_slug},
+                        {"destination_zone": zone_slug},
+                    ],
+                },
+                {"_id": 0},
+                sort=[("detected_at", -1)],
+            )
+            narrative = ""
+            if last_pattern:
+                narrative = (
+                    last_pattern.get("narrative_long")
+                    or last_pattern.get("narrative_short")
+                    or ""
+                )
+                v = last_pattern.get("detected_at")
+                if hasattr(v, "isoformat"):
+                    last_pattern["detected_at"] = v.isoformat()
+                v = last_pattern.get("ttl_until")
+                if hasattr(v, "isoformat"):
+                    last_pattern["ttl_until"] = v.isoformat()
+
+            if entry:
+                for k in ("last_updated", "ttl_until"):
+                    v = entry.get(k)
+                    if hasattr(v, "isoformat"):
+                        entry[k] = v.isoformat()
+
+            result = {
+                "mode": "zone",
+                "zone_slug": zone_slug,
+                "heatmap_entry": entry or {"note": "no_heatmap_data"},
+                "last_pattern": last_pattern,
+                "narrative": narrative,
+                "source": "climate_migration_engine",
+            }
+        elif mode == "patterns":
+            from datetime import datetime, timedelta, timezone
+            days = int(params.get("days") or 90)
+            days = max(1, min(days, 365))
+            cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+            patterns: List[Dict[str, Any]] = []
+            cursor = db[COLLECTION_PATTERNS].find(
+                {"detected_at": {"$gte": cutoff}},
+                {"_id": 0, "pattern_id": 1, "origin_zone": 1, "destination_zone": 1,
+                 "magnitude": 1, "climate_driver": 1, "confidence": 1,
+                 "narrative_short": 1, "detected_at": 1},
+            ).sort("detected_at", -1).limit(5)
+            async for p in cursor:
+                v = p.get("detected_at")
+                if hasattr(v, "isoformat"):
+                    p["detected_at"] = v.isoformat()
+                patterns.append(p)
+            result = {
+                "mode": "patterns",
+                "patterns": patterns,
+                "total": len(patterns),
+                "lookback_days": days,
+                "source": "climate_migration_engine",
+            }
+        else:  # heatmap_summary
+            zones: List[Dict[str, Any]] = []
+            cursor = db[COLLECTION_HEATMAP].find({}, {"_id": 0}).limit(100)
+            async for d in cursor:
+                zones.append(d)
+            top_outflow = sorted(
+                zones, key=lambda z: int(z.get("outflow_score") or 0), reverse=True
+            )[:3]
+            top_inflow = sorted(
+                zones, key=lambda z: int(z.get("inflow_score") or 0), reverse=True
+            )[:3]
+            for lst in (top_outflow, top_inflow):
+                for z in lst:
+                    for k in ("last_updated", "ttl_until"):
+                        v = z.get(k)
+                        if hasattr(v, "isoformat"):
+                            z[k] = v.isoformat()
+            result = {
+                "mode": "heatmap_summary",
+                "top_outflow_zones": [
+                    {
+                        "zone_slug": z.get("zone_slug"),
+                        "zone_name": z.get("zone_name"),
+                        "outflow_score": int(z.get("outflow_score") or 0),
+                        "climate_drivers": z.get("climate_drivers") or [],
+                    }
+                    for z in top_outflow
+                ],
+                "top_inflow_zones": [
+                    {
+                        "zone_slug": z.get("zone_slug"),
+                        "zone_name": z.get("zone_name"),
+                        "inflow_score": int(z.get("inflow_score") or 0),
+                        "climate_drivers": z.get("climate_drivers") or [],
+                    }
+                    for z in top_inflow
+                ],
+                "total_zones_cached": len(zones),
+                "source": "climate_migration_engine",
+            }
+
+        # Audit best-effort
+        try:
+            from audit_immutable_engine import log as audit_log
+            await audit_log(
+                db,
+                actor={"user_id": "atlax_public", "role": "asistente"},
+                action="climate_migration_query",
+                entity_type="climate_migration",
+                entity_id=str(params.get("zone_slug") or mode),
+                before=None,
+                after={"mode": mode, "caller_module": "asistente_query_climate_migration"},
+            )
+        except Exception:
+            pass
+
+        # ai_budget tracking (no LLM tokens; analytics)
+        try:
+            from ai_budget import track_ai_call
+            await track_ai_call(
+                db, dev_org_id="atlax", model="none", tokens=0,
+                call_type="climate_migration_query",
+                feature_key="climate_migration_query",
+            )
+        except Exception:
+            pass
+
+        return result
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_climate_migration: {e}")
+        return {"error": str(e), "source": "climate_migration_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
