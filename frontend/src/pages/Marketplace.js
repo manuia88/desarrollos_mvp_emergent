@@ -418,6 +418,37 @@ export default function Marketplace({ user, onLogin, onLogout }) {
           </section>
         )}
 
+        {/* W5.x F5 — Banner Búsqueda inteligente IA · solo en vista Lista */}
+        {viewMode === 'lista' && (
+          <section data-testid="rs-banner" style={{
+            position: 'relative', maxWidth: 1440, margin: '16px auto 0', padding: '14px 20px',
+            borderRadius: 18, background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
+            border: '1px solid transparent', backgroundClip: 'padding-box',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 12,
+          }}>
+            <div style={{ position: 'absolute', inset: 0, padding: 1, borderRadius: 18, background: 'linear-gradient(90deg, #6366F1, #EC4899)', WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif', fontSize: 13, letterSpacing: '0.02em' }}>
+              <strong style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', fontSize: 11, color: '#6366F1', marginRight: 8 }}>Busqueda inteligente IA</strong>
+              Describe lo que quieres en tus palabras y deja que la IA encuentre los matches.
+            </div>
+            <a
+              data-testid="rs-banner-cta"
+              href="/portal/buscar"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                position: 'relative',
+                padding: '8px 18px', borderRadius: 9999,
+                background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#FFF',
+                fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 12,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                textDecoration: 'none', whiteSpace: 'nowrap',
+              }}
+            >Probar</a>
+          </section>
+        )}
+
         {/* ── Vista Lista ── */}
         {viewMode === 'lista' && (
           <section style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 32px 64px' }}>

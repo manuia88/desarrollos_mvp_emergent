@@ -3768,6 +3768,32 @@
       }
     }
   },
+  "reverseSearch": {
+    "title": "Busqueda inteligente",
+    "subtitle": "Describe lo que buscas en tus palabras · IA encuentra los matches.",
+    "placeholder": "Describe la propiedad que buscas... ej: depto familia 3 recamaras Polanco hasta 8M",
+    "btn_search": "Buscar",
+    "loading": "Buscando...",
+    "char_counter": "{{count}}/500",
+    "error_too_long": "Maximo 500 caracteres",
+    "error_generic": "No fue posible realizar la busqueda. Intenta de nuevo.",
+    "examples_title": "Como describir tu propiedad ideal?",
+    "example_1": "Depto familia 3 recamaras Polanco hasta 8M con escuelas cerca",
+    "example_2": "Loft inversionista Roma Norte con yield alto · max 4M",
+    "example_3": "Departamento luxury San Angel 4+ recamaras vista panoramica",
+    "empty_results": "No hay propiedades que coincidan · prueba con otros terminos.",
+    "parsed_hard_filters": "Filtros duros",
+    "parsed_soft_criteria": "Criterios deseados",
+    "parsed_negative_criteria": "Exclusiones",
+    "parsed_audience": "Perfil detectado",
+    "audience_investor": "Inversionista",
+    "audience_family": "Familia",
+    "audience_first_home": "Primera vivienda",
+    "audience_luxury": "Lujo",
+    "audience_boutique": "Boutique",
+    "audience_neutral": "Neutral",
+    "disclaimer_text": "Esta busqueda usa IA para entender lo que quieres. Si los resultados no son lo que esperabas, intenta con mas detalle o usa los filtros del marketplace tradicional."
+  },
   "comparator": {
     "title": "Comparador de propiedades",
     "subtitle": "Compara 2 o 3 propiedades lado a lado · datos, fiscal, riesgo y veredicto.",
