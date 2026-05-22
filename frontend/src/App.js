@@ -57,6 +57,8 @@ const TaxProjectorPage = lazy(() => import('./pages/portal/tools/TaxProjectorPag
 const ComparatorPage = lazy(() => import('./pages/portal/tools/ComparatorPage'));
 // W5.x F5 — Reverse Search (NLP-driven property search)
 const ReverseSearchPage = lazy(() => import('./pages/portal/tools/ReverseSearchPage'));
+// W5.x F8 — Predictive Alerts dashboard (asesor)
+const AlertasPage = lazy(() => import('./pages/portal/asesor/AlertasPage'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -582,6 +584,8 @@ function AppRouter() {
       <Route path="/portal/comparador" element={<Suspense fallback={null}><ComparatorPage /></Suspense>} />
       {/* W5.x F5 — Reverse Search (publico T0 · NLP property search) */}
       <Route path="/portal/buscar" element={<Suspense fallback={null}><ReverseSearchPage /></Suspense>} />
+      {/* W5.x F8 — Predictive Alerts dashboard (asesor · protegido) */}
+      <Route path="/portal/asesor/alertas" element={<AdvisorRoute Page={AlertasPage} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
