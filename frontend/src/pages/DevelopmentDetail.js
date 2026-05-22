@@ -18,6 +18,9 @@ import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
 // W5.x F4 — Narrative Layer LLM (cross-feature storyteller)
 import NarrativeBlockLLM from '../components/NarrativeBlock';
+// W5.x F7 — Lead Capture (behavioral tracker + modal)
+import useBehavioralTracker from '../hooks/useBehavioralTracker';
+import LeadCaptureModal from '../components/leadCapture/LeadCaptureModal';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import AvmConfidenceRange from '../components/shared/AvmConfidenceRange';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
@@ -63,6 +66,9 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const leadId = searchParams.get('lead');
   const contactoId = searchParams.get('contacto');
   const isAdvisor = user?.role && ADVISOR_ROLES.has(user.role);
+
+  // W5.x F7 — Behavioral tracker (escucha scroll/time/exit-intent · dispara modal vía CustomEvent)
+  useBehavioralTracker({ enabled: !!dev?.id, pageType: 'development', entityId: dev?.id });
 
   useEffect(() => {
     let alive = true;
@@ -461,6 +467,13 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
       <WhatsAppAsesorCTA
         asesorPhone={dev.asesor_phone}
         propiedadNombre={dev.name}
+      />
+      {/* W5.x F7 — Lead Capture Modal · self-mounted via lead_capture_trigger event */}
+      <LeadCaptureModal
+        entityId={dev?.id}
+        propertyScope="project"
+        propertyTitle={dev?.name}
+        sourcePage={typeof window !== 'undefined' ? window.location.pathname : '/desarrollo'}
       />
     </div>
   );

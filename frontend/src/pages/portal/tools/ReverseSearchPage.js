@@ -1,10 +1,13 @@
 // W5.x F5 · ReverseSearchPage · /portal/buscar · public T0
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SearchBar from '../../../components/reverseSearch/SearchBar';
 import ParsedFilters from '../../../components/reverseSearch/ParsedFilters';
 import SearchResultsList from '../../../components/reverseSearch/SearchResultsList';
 import { postReverseSearch } from '../../../api/reverse_search';
+// W5.x F7 — Lead Capture
+import useBehavioralTracker from '../../../hooks/useBehavioralTracker';
+import LeadCaptureModal from '../../../components/leadCapture/LeadCaptureModal';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -20,6 +23,18 @@ export default function ReverseSearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+
+  // W5.x F7 — Behavioral tracker (page-level)
+  useBehavioralTracker({ enabled: true, pageType: 'reverse_search', entityId: null });
+
+  // W5.x F7 — Cada resultado renderizado incrementa properties_viewed_count en localStorage
+  useEffect(() => {
+    if (!result?.results?.length) return;
+    try {
+      const current = parseInt(localStorage.getItem('properties_viewed_count') || '0', 10) || 0;
+      localStorage.setItem('properties_viewed_count', String(current + result.results.length));
+    } catch { /* ignore */ }
+  }, [result]);
 
   const runSearch = async (text) => {
     setLoading(true);
@@ -121,6 +136,13 @@ export default function ReverseSearchPage() {
           {t('reverseSearch.disclaimer_text')}
         </aside>
       </main>
+      {/* W5.x F7 — Lead Capture Modal */}
+      <LeadCaptureModal
+        entityId={null}
+        propertyScope="project"
+        propertyTitle={t('reverseSearch.title')}
+        sourcePage="/portal/buscar"
+      />
     </div>
   );
 }

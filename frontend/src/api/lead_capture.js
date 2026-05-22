@@ -32,3 +32,36 @@ export const createFBConfig = ({ fb_page_id, form_id, stub_mode = true }) =>
 /** Superadmin — estadísticas de captura */
 export const getSourcesStats = (days = 30) =>
   _get(`/api/superadmin/lead-capture/stats?days=${days}`);
+
+
+/** W5.x F7 — Behavioral score · cada 15s · fail-silent (404 retorna null) */
+export const postLeadCaptureScore = async (body) => {
+  try {
+    const r = await fetch(`${BASE}/api/lead-capture/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body || {}),
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+};
+
+/** W5.x F7 — Submit lead capture · enriquece error con body.detail */
+export const postLeadCapture = async (body) => {
+  const r = await fetch(`${BASE}/api/lead-capture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(body || {}),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(data.detail || r.statusText), { status: r.status, body: data });
+  }
+  return r.json();
+};
+
