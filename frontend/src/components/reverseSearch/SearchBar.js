@@ -1,6 +1,7 @@
 // W5.x F5 · SearchBar · Brunson hero · autosize textarea + gradient submit
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import VoiceSearchButton from '../voice/VoiceSearchButton';
 
 const CREAM = '#F0EBE0';
 const INDIGO = '#6366F1';
@@ -60,6 +61,15 @@ export default function SearchBar({ value, onChange, onSubmit, loading, placehol
             paddingTop: 6, paddingBottom: 6,
             minHeight: 28, maxHeight: 124,
             overflow: 'auto',
+          }}
+        />
+        <VoiceSearchButton
+          size="md"
+          onTranscript={(text) => {
+            if (typeof onChange === 'function') onChange(text);
+            setTimeout(() => {
+              if (typeof onSubmit === 'function') onSubmit();
+            }, 100);
           }}
         />
         <button

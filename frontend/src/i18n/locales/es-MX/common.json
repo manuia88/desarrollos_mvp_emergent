@@ -1679,7 +1679,28 @@
       "read": "Leido",
       "failed": "Fallido",
       "received": "Recibido"
-    }
+    },
+    "cta_default": "Chatear por WhatsApp",
+    "cta_lead_welcome": "Recibir mi analisis por WhatsApp",
+    "cta_asesor_alert": "Notificar al asesor por WhatsApp",
+    "cta_property_inquiry": "Pedir info de esta propiedad",
+    "cta_followup": "Retomar conversacion",
+    "loading": "Abriendo...",
+    "error": "No fue posible abrir WhatsApp. Intenta de nuevo.",
+    "no_contact": "Sin contacto WhatsApp"
+  },
+  "voice": {
+    "start_listening": "Buscar por voz",
+    "stop_listening": "Detener escucha",
+    "tooltip_idle": "Habla tu busqueda",
+    "tooltip_listening": "Escuchando · clic para detener",
+    "error_no_speech": "No detectamos tu voz · intenta de nuevo",
+    "error_not_supported": "Tu navegador no soporta busqueda por voz",
+    "error_permission_denied": "Permite el acceso al microfono para usar voz",
+    "error_network": "Error de red en el reconocimiento · reintenta",
+    "error_unknown": "Error de microfono · intenta de nuevo",
+    "placeholder_listening": "Escuchando...",
+    "placeholder_idle": "Presiona el microfono y habla"
   },
   "newsletter": {
     "title": "Newsletter Pulse",
