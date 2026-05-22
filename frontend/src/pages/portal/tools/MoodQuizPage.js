@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useMoodQuiz from '../../../hooks/useMoodQuiz';
-import { submitMoodQuiz } from '../../../api/mood';
+import { submitMoodQuiz, getUserLatestMood } from '../../../api/mood';
 import MoodQuizCard from '../../../components/mood/MoodQuizCard';
 import MoodResultSummary from '../../../components/mood/MoodResultSummary';
 import MoodMatchCard from '../../../components/mood/MoodMatchCard';
@@ -32,6 +32,28 @@ export default function MoodQuizPage() {
   const [step, setStep] = useState(STEPS.INTRO);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [hasPrevious, setHasPrevious] = useState(false);
+
+  // Check si visitor ya hizo el quiz · permite mostrar atajo "ver resultado anterior"
+  useEffect(() => {
+    if (!quiz.visitor_session_id || step !== STEPS.INTRO) return;
+    let mounted = true;
+    (async () => {
+      const previous = await getUserLatestMood(quiz.visitor_session_id);
+      if (mounted && previous && previous.mood_vector) {
+        setHasPrevious(true);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [quiz.visitor_session_id, step]);
+
+  const handleSeePrevious = async () => {
+    const previous = await getUserLatestMood(quiz.visitor_session_id);
+    if (previous && previous.mood_vector) {
+      setResult(previous);
+      setStep(STEPS.RESULTS);
+    }
+  };
 
   // Submit cuando complete
   useEffect(() => {
@@ -124,6 +146,24 @@ export default function MoodQuizPage() {
                 onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
               >{t('mood.btn_start', 'Empezar quiz')}</button>
+              {hasPrevious && (
+                <button
+                  type="button"
+                  data-testid="mood-see-previous-btn"
+                  onClick={handleSeePrevious}
+                  style={{
+                    marginTop: 14, padding: '12px 28px', borderRadius: 9999,
+                    border: '1px solid rgba(240,235,224,0.32)', background: 'transparent',
+                    color: 'rgba(240,235,224,0.85)',
+                    fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+                    fontSize: 13, letterSpacing: '0.06em',
+                    cursor: 'pointer', display: 'block', marginLeft: 'auto', marginRight: 'auto',
+                    transition: `border-color 320ms ${EASE}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(240,235,224,0.6)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(240,235,224,0.32)'; }}
+                >{t('mood.btn_see_previous', 'Ver mi resultado anterior')}</button>
+              )}
             </div>
           </section>
         )}

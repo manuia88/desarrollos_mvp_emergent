@@ -252,6 +252,11 @@ TOOLS Y PARAMS:
     devuelve: depende de mode — "lead_to_properties": {{properties:[...]}} · "property_to_leads": {{leads:[...]}} · "single": {{score, confidence, breakdown, explanation_short, reasons_top_3}}
     Usar cuando: asesor pregunta "qué propiedad le va a Juan", "quién compraría Polanco Moderno", "compatibilidad entre este lead y esta propiedad", "top matches para X". Score 0-100 sobre 6 dimensiones (presupuesto/audience/búsquedas/comportamiento/ubicación/específicas). Si confidence="tentativa" advertir al usuario que faltan interacciones del lead.
 
+32. query_whatsapp_templates
+    params: {{}} (sin params)
+    devuelve: {{ templates:[{{template_name, language, status, body_preview}}], providers_status:{{stub|twilio|business}}, meta_api_enabled:bool }}
+    Usar cuando: user/asesor pregunta qué mensajes automáticos hay disponibles · qué templates WhatsApp podemos usar · si WhatsApp Business está activo · qué proveedor responde. Templates dinámicos están en collection whatsapp_templates (W4.10). Si meta_api_enabled=false advertir que estamos en modo stub esperando Meta App Review.
+
 33. query_mood_recommendations
     params: {{ "visitor_session_id": str (de sessionStorage del visitor · requerido) }}
     devuelve: {{ mood_vector:{{calm,social,eclectic,modern,connected}}, mood_label, top_matches:[property_ids] }} o {{error}} si el visitor no completó el quiz
@@ -452,6 +457,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 property_id=params.get("property_id"),
                 limit=int(params.get("limit") or 5),
             )
+        # W5.x F9 — Tool 32: query_whatsapp_templates (reusa W4.10 whatsapp_engine)
+        if tool_name == "query_whatsapp_templates":
+            return await _tool_query_whatsapp_templates(db)
         # W5.x F10 — Tool 33: query_mood_recommendations
         if tool_name == "query_mood_recommendations":
             return await _tool_query_mood_recommendations(
@@ -2211,6 +2219,45 @@ async def _tool_query_fit_recommendations(
     except Exception as e:
         log.warning(f"[asistente_tool] query_fit_recommendations failed: {e}")
         return {"error": str(e), "mode": mode}
+
+
+# W5.x F9 — Tool 32: query_whatsapp_templates (reusa W4.10 whatsapp_engine + collection whatsapp_templates)
+async def _tool_query_whatsapp_templates(db) -> Dict[str, Any]:
+    """Lista templates WhatsApp dinámicos disponibles + status del provider (W4.10)."""
+    try:
+        import os as _os
+        provider = _os.environ.get("WHATSAPP_PROVIDER", "stub").lower()
+        meta_api_enabled = bool(_os.environ.get("META_WA_TOKEN") and _os.environ.get("META_WA_PHONE_ID"))
+        twilio_enabled = bool(_os.environ.get("TWILIO_ACCOUNT_SID") and _os.environ.get("TWILIO_AUTH_TOKEN"))
+
+        templates_list = []
+        try:
+            cursor = db.whatsapp_templates.find({}, {"_id": 0, "template_name": 1, "language": 1, "status": 1, "body": 1}).limit(20)
+            async for t in cursor:
+                body = (t.get("body") or "")[:100]
+                templates_list.append({
+                    "template_name": t.get("template_name"),
+                    "language": t.get("language", "es-MX"),
+                    "status": t.get("status", "unknown"),
+                    "body_preview": body + ("..." if len(t.get("body") or "") > 100 else ""),
+                })
+        except Exception as _exc:
+            log.warning(f"[asistente_tool] whatsapp_templates query failed: {_exc}")
+
+        return {
+            "templates": templates_list,
+            "templates_count": len(templates_list),
+            "providers_status": {
+                "active_provider": provider,
+                "twilio_enabled": twilio_enabled,
+                "business_enabled": meta_api_enabled,
+            },
+            "meta_api_enabled": meta_api_enabled,
+            "source": "whatsapp_engine_W4.10",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_whatsapp_templates failed: {e}")
+        return {"error": str(e), "source": "whatsapp_engine_W4.10"}
 
 
 # W5.x F10 — Tool 33: query_mood_recommendations

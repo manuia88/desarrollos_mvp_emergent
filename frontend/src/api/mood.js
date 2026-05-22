@@ -36,3 +36,21 @@ export const getPropertyMoodProfile = async (propertyId) => {
     return null;
   }
 };
+
+/**
+ * GET /api/mood/user/{visitor_session_id}/latest · fail-silent en 404
+ * Permite recuperar el quiz anterior del visitor para mostrar "ya hiciste el quiz · ¿ver resultado?"
+ */
+export const getUserLatestMood = async (visitorSessionId) => {
+  if (!visitorSessionId) return null;
+  try {
+    const r = await fetch(
+      `${BASE}/api/mood/user/${encodeURIComponent(visitorSessionId)}/latest`,
+      { credentials: 'include' },
+    );
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+};

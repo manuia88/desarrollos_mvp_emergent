@@ -1138,6 +1138,12 @@ async def startup():
         await db.studio_property_intakes.create_index([("created_at", -1)])
     except Exception as e:
         logging.warning(f"[startup] studio Z.8.7 property_intake indexes failed: {e}")
+    # W5.x F6 — Tax Projector cache indexes
+    try:
+        from tax_projector_cache import ensure_indexes as _tax_cache_indexes
+        await _tax_cache_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] tax_projector_cache indexes failed: {e}")
     # W5.x F4 — Narrative Layer indexes
     try:
         from narrative_layer_engine import ensure_indexes as _nl_indexes
