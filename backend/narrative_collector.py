@@ -18,6 +18,21 @@ log = logging.getLogger("dmx.narrative_collector")
 _CACHE: Dict[str, Dict[str, Any]] = {}
 _CACHE_TTL_S = 300  # 5 minutos
 
+# ── W5 Cleanup · Cross-batch fail-soft imports ───────────────────────────────
+try:
+    from forecast_engine import get_zone_forecast as _fc_get_zone_forecast
+    FORECAST_AVAILABLE = True
+except Exception:
+    FORECAST_AVAILABLE = False
+    _fc_get_zone_forecast = None  # type: ignore
+
+try:
+    from zone_score_engine import get_zone_with_subscores as _zs_get_zone_with_subscores
+    ZONE_SUBSCORES_AVAILABLE = True
+except Exception:
+    ZONE_SUBSCORES_AVAILABLE = False
+    _zs_get_zone_with_subscores = None  # type: ignore
+
 
 def _cache_get(key: str) -> Optional[Dict[str, Any]]:
     item = _CACHE.get(key)
@@ -121,6 +136,21 @@ async def collect_for_unit(db, unit_id: str) -> Dict[str, Any]:
         "fecha_alta": unit.get("created_at") or unit.get("fecha_alta"),
     }
 
+    # W5 Cleanup · cross-batch additive (fail-soft inside helpers)
+    if colonia:
+        try:
+            fc = await collect_forecast_block(db, colonia)
+            if fc:
+                out.update(fc)
+        except Exception:
+            pass
+        try:
+            zs = await collect_zone_subscores_block(db, colonia)
+            if zs:
+                out.update(zs)
+        except Exception:
+            pass
+
     _cache_set(cache_key, out)
     return out
 
@@ -183,6 +213,21 @@ async def collect_for_project(db, project_id: str) -> Dict[str, Any]:
         "delivery": proj.get("delivery_estimate"),
     }
 
+    # W5 Cleanup · cross-batch additive (fail-soft)
+    if colonia:
+        try:
+            fc = await collect_forecast_block(db, colonia)
+            if fc:
+                out.update(fc)
+        except Exception:
+            pass
+        try:
+            zs = await collect_zone_subscores_block(db, colonia)
+            if zs:
+                out.update(zs)
+        except Exception:
+            pass
+
     _cache_set(cache_key, out)
     return out
 
@@ -226,6 +271,20 @@ async def collect_for_colonia(db, colonia: str) -> Dict[str, Any]:
     except Exception:
         pass
 
+    # W5 Cleanup · cross-batch additive (fail-soft)
+    try:
+        fc = await collect_forecast_block(db, colonia)
+        if fc:
+            out.update(fc)
+    except Exception:
+        pass
+    try:
+        zs = await collect_zone_subscores_block(db, colonia)
+        if zs:
+            out.update(zs)
+    except Exception:
+        pass
+
     _cache_set(cache_key, out)
     return out
 
@@ -251,6 +310,72 @@ async def collect_for_lead_property(db, lead_id: str, property_id: str) -> Dict[
                 except Exception:
                     pass
     return out
+
+
+# ─── W5 Cleanup · Forecast + Zone Subscores collectors (fail-soft) ──────────
+async def collect_forecast_block(db, zone_id: str, horizon_months: int = 12) -> Dict[str, Any]:
+    """Hechos forecast multi-horizonte para una zona. FAIL-SOFT retorna {} si falla."""
+    if not zone_id or not FORECAST_AVAILABLE or _fc_get_zone_forecast is None:
+        return {}
+    try:
+        doc = await _fc_get_zone_forecast(db, zone_id)
+        if not doc:
+            return {}
+        horizons = doc.get("horizons") or {}
+        # Pick best matching horizon
+        key = f"{horizon_months}m"
+        band = horizons.get(key)
+        if not band:
+            # fallback: first available
+            for k, v in horizons.items():
+                band = v
+                key = k
+                break
+        if not band:
+            return {}
+        delta = band.get("delta_pct")
+        out: Dict[str, Any] = {
+            "forecast_horizon": _wrap(key, "Forecast Engine W5.3"),
+        }
+        if delta is not None:
+            out["forecast_delta_pct"] = _wrap(round(float(delta), 2), "Forecast Engine W5.3")
+        if band.get("value") is not None:
+            out["forecast_value"] = _wrap(round(float(band["value"]), 2), "Forecast Engine W5.3")
+        if doc.get("narrative"):
+            out["forecast_narrative"] = _wrap(doc["narrative"], "Forecast Engine W5.3")
+        return out
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"[collector] collect_forecast_block failed: {exc}")
+        return {}
+
+
+async def collect_zone_subscores_block(db, colonia_slug: str) -> Dict[str, Any]:
+    """Top 3 subscores de una colonia. FAIL-SOFT retorna {} si falla."""
+    if not colonia_slug or not ZONE_SUBSCORES_AVAILABLE or _zs_get_zone_with_subscores is None:
+        return {}
+    try:
+        result = await _zs_get_zone_with_subscores(db, colonia_slug)
+        if not isinstance(result, dict):
+            return {}
+        raw = result.get("subscores") or {}
+        flat: Dict[str, float] = {}
+        for k, v in raw.items():
+            try:
+                val = v.get("value") if isinstance(v, dict) else v
+                if val is not None:
+                    flat[k] = float(val)
+            except (TypeError, ValueError):
+                pass
+        if not flat:
+            return {}
+        sorted_dims = sorted(flat.items(), key=lambda kv: kv[1], reverse=True)
+        out: Dict[str, Any] = {}
+        for k, v in sorted_dims[:3]:
+            out[f"zone_subscore_{k}"] = _wrap(round(float(v), 1), "Zone Subscores W5.2")
+        return out
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"[collector] collect_zone_subscores_block failed: {exc}")
+        return {}
 
 
 # ─── Sub-D · Tax block integration ──────────────────────────────────────────

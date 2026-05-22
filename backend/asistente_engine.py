@@ -197,72 +197,97 @@ TOOLS Y PARAMS:
     devuelve: proyección de precio multi-horizonte (6m / 12m / 24m) para una colonia con CI95 + narrative + delta_pct. Modelo ARIMA propio.
     Usar cuando: user pregunta "cuánto crecerá X", "tendencia zona Y a futuro", "proyección 12/24 meses", "vale la pena esperar a comprar".
 
-19. query_knowledge_graph
+17. query_knowledge_graph
     params: {{ "template": str (uno de: proyectos_similares, compradores_cross_project, zonas_similares_a, devs_dominantes_zona, proyectos_huerfanos_zona), "params": dict }}
-    devuelve: filas del grafo de conocimiento (relaciones multi-entidad). Si KG no disponible retorna fallback_required=true y debes responder con tools 1-18.
-    Usar SOLO cuando la pregunta involucra RELACIONES multi-entidad (compradores cross-project, proyectos similares, asesores con patrones, zonas con compradores comunes, devs dominantes). NO uses para consultas simples de 1 entidad (esas usan tools 1-18).
+    devuelve: filas del grafo de conocimiento (relaciones multi-entidad). Si KG no disponible retorna fallback_required=true y debes responder con tools 1-16.
+    Usar SOLO cuando la pregunta involucra RELACIONES multi-entidad (compradores cross-project, proyectos similares, asesores con patrones, zonas con compradores comunes, devs dominantes). NO uses para consultas simples de 1 entidad (esas usan tools 1-16).
 
-20. query_probability
+18. query_probability
     params: {{ "type": str ("sells_complete"|"drpi_up"|"closes_below_listed"), "id": str (entity_id), "months": int (1-24, default 3), "listed": float (solo para closes_below_listed) }}
     devuelve: probability_pct (0-100), confidence_lvl (ALTA|MEDIA|BAJA), sources_breakdown, explanation_es, insufficient_data.
     Usar cuando: user pregunte probabilidad de eventos inmobiliarios (¿cuánto crecerá X?, ¿venderán todo el proyecto?, ¿cierra debajo del precio?).
 
-21. query_battle_card
+19. query_battle_card
     params: {{ "project_id": str (requerido), "dimension": str? (opcional · solo retorna ese score si pasado · uno de: precio/ventas/zona/marketing/lead_gen), "user_tier": str (pasar "T3" si usuario es T3+ developer) }}
     devuelve: composite_score, ranking, dim_scores, recommended_action, sources_breakdown, explanation_es.
     Usar cuando: dev user T3 pregunte sobre posicion competitiva, ranking, score vs competidores, que mejorar, como va su proyecto.
 
-22. query_my_features
+20. query_my_features
     params: {{ "user_id": str (requerido), "tenant_id": str (requerido · usar user_id si no se conoce) }}
     devuelve: {{ features_count, features:[{{key, name, category}}], tier_inferred }}.
     Usar cuando: user pregunta qué features tiene activas, qué incluye su plan, qué puede ver/usar en el portal, qué upgrades existen.
 
-23. query_global_insights
+21. query_global_insights
     params: {{ "source_id": str (opcional · 12 disponibles: bis_property_prices, oecd_housing, imf_global_housing, worldbank_doing_business, fred_us_housing, inegi_vivienda, bmv_fibras, hr_ratings, numbeo_property_index, global_property_guide, zillow_research, realtor_research), "comparison": str (opcional · ej. "polanco_vs_beverly_hills") }}
     devuelve: {{ payload, sources_breakdown:[{{label, url, frequency, tier, status}}] }}.
     Usar cuando: user pregunta comparativas globales (México vs USA/Mundo) · macro housing (BIS · OECD · FRED) · yields globales (Numbeo · Global Property Guide) · vivienda MX gov (INEGI · SHF · HR Ratings) · narrativa "Beverly Hills vs Polanco" · referencia prensa MX.
 
-26. generate_narrative
+22. generate_narrative
     params: {{ "scope": str ("project"|"unit"|"colonia"|"lead_property"), "entity_id": str (requerido), "audience": str ("investor"|"family"|"first_home"|"luxury"|"boutique"|"urgent"|"neutral"), "disc": str? ("D"|"I"|"S"|"C") }}
     devuelve: {{ narrative_long, narrative_medium, narrative_short, citations, confidence }}
     Usar cuando: user pide "redacta un copy", "narrativa persuasiva", "describe la propiedad para mi cliente", o quiere texto adaptado a perfil del lead. Cada output incluye 3 versiones (largo web, medio email, corto WhatsApp).
 
-27. compare_properties
-    params: {{ "scope": str ("project"|"unit"), "entity_ids": list[str] (1-3), "audience": str (same options as 26) }}
+23. compare_properties
+    params: {{ "scope": str ("project"|"unit"), "entity_ids": list[str] (1-3), "audience": str (same options as 22) }}
     devuelve: {{ ai_verdict, deltas_summary, items_count }}
     Usar cuando: user pregunta "comparar X vs Y", "cuál es mejor entre estos proyectos", o quiere un veredicto rápido entre 2-3 propiedades. Devuelve un resumen ejecutivo con la mejor opción por audiencia.
 
-28. reverse_search
+24. reverse_search
     params: {{ "text": str (query lenguaje natural, max 500 chars), "audience": str? (investor|family|first_home|luxury|boutique|neutral), "limit": int? (default 5, max 20) }}
     devuelve: {{ results: [{{entity_id, title, match_score, explanation, sources}}], parsed: {{hard_filters, soft_criteria, negative_criteria, buyer_intent}} }}
     Usar cuando: user describe propiedad en lenguaje natural ("busco depto", "quiero algo en Polanco", "para mi familia con escuelas"). Parser LLM extrae filtros duros + blandos + negativos. NO uses tools 1-10 si query es descriptivo · usa reverse_search.
 
-29. query_lead_capture_stats
+25. query_lead_capture_stats
     params: {{ "days": int? (default 7, max 90) }}
     devuelve: {{ total_count, by_audience_breakdown, top_advisors_3, conversion_rate }}
     Usar cuando: user (developer T3+) pregunte cuántos leads se han capturado, qué audience convierte más, qué asesor está performing mejor, tasa de conversión del marketplace lead capture.
 
-30. query_alerts_summary
+26. query_alerts_summary
     params: {{ "advisor_id": str? (opcional · si vacío retorna global), "days": int? (default 7, max 90) }}
     devuelve: {{ total_active, by_tier:{{alta,media,baja}}, by_signal_type, top_5_recent }}
     Usar cuando: asesor o admin pregunta cuántas alertas predictivas hay activas, qué tipo de signal aparece más (enamorado/decision/enfriando/presupuesto_bajo/re_engaged/abandono_modal/indeciso), qué leads están en momento crítico, top alertas urgentes.
 
-31. query_fit_recommendations
+27. query_fit_recommendations
     params: {{ "mode": "lead_to_properties"|"property_to_leads"|"single", "lead_id": str?, "property_id": str?, "limit": int? (default 5, max 20) }}
     devuelve: depende de mode — "lead_to_properties": {{properties:[...]}} · "property_to_leads": {{leads:[...]}} · "single": {{score, confidence, breakdown, explanation_short, reasons_top_3}}
     Usar cuando: asesor pregunta "qué propiedad le va a Juan", "quién compraría Polanco Moderno", "compatibilidad entre este lead y esta propiedad", "top matches para X". Score 0-100 sobre 6 dimensiones (presupuesto/audience/búsquedas/comportamiento/ubicación/específicas). Si confidence="tentativa" advertir al usuario que faltan interacciones del lead.
 
-32. query_whatsapp_templates
+28. query_whatsapp_templates
     params: {{}} (sin params)
     devuelve: {{ templates:[{{template_name, language, status, body_preview}}], providers_status:{{stub|twilio|business}}, meta_api_enabled:bool }}
     Usar cuando: user/asesor pregunta qué mensajes automáticos hay disponibles · qué templates WhatsApp podemos usar · si WhatsApp Business está activo · qué proveedor responde. Templates dinámicos están en collection whatsapp_templates (W4.10). Si meta_api_enabled=false advertir que estamos en modo stub esperando Meta App Review.
 
-33. query_mood_recommendations
+29. query_mood_recommendations
     params: {{ "visitor_session_id": str (de sessionStorage del visitor · requerido) }}
     devuelve: {{ mood_vector:{{calm,social,eclectic,modern,connected}}, mood_label, top_matches:[property_ids] }} o {{error}} si el visitor no completó el quiz
-    Usar cuando: user pregunta "qué propiedades me gustan", "match emocional", "vibe", o el contexto sugiere afinidad emocional sobre cuantitativa. Es complementario a tool 31 query_fit_recommendations (que es cuantitativo). Si el visitor no hizo quiz, sugerir que lo complete antes.
+    Usar cuando: user pregunta "qué propiedades me gustan", "match emocional", "vibe", o el contexto sugiere afinidad emocional sobre cuantitativa. Es complementario a tool 27 query_fit_recommendations (que es cuantitativo). Si el visitor no hizo quiz, sugerir que lo complete antes.
 
-══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
+30. query_avm_estimate
+    params: {{ "property_id": str (requerido), "scope": "unit"|"project" (default "unit") }}
+    devuelve: {{ avm_estimate, avm_low, avm_high, confidence, sources_breakdown, model_version }}
+    Usar cuando user pregunta "¿cuánto vale esta propiedad?", "¿cuál es el AVM?", valoración objetiva. Incluye confidence interval y sources.
+
+31. query_zone_subscores
+    params: {{ "zone_id": str (requerido, slug colonia) }}
+    devuelve: {{ zone_id, subscores: {{walkability, quiet, vibrant, schools, safety, dining, transit, parks, cultural, family_friendly}}, top_3_strengths, top_3_gaps }}
+    Usar cuando user pregunta "¿cómo es esta zona?", "¿es tranquila?", "¿buena para familias?", "¿caminable?". Devuelve 8-12 dimensiones del zone_score_engine W5.2.
+
+32. query_buyer_score
+    params: {{ "lead_id": str (requerido) }}
+    devuelve: {{ score, tier (hot|warm|cold), components, last_updated, recommendation_action }}
+    Usar cuando asesor pregunta "¿qué tan caliente está este lead?", "¿debería llamar a Juan ahora?". Si persisted → lookup; si no → compute on-the-fly. Tier hot=80+, warm=50-79, cold<50.
+
+33. query_live_pulse
+    params: {{ "zone_slug": str (opcional · si vacío scope=all), "scope": "all"|"zone" (default "all"), "hours": int (default 24) }}
+    devuelve: {{ signals, heatmap_summary, top_3_hot_zones, last_updated }}
+    Usar cuando user pregunta "¿qué zonas están calientes ahora?", "¿hay tendencia real-time?", heatmap behavioral CDMX. Si scope=zone retorna 6 signals (search_velocity, view_volume, trend_velocity, lead_intent_velocity, price_movement, accuracy_drift).
+
+34. query_tax_projection
+    params: {{ "property_id": str? (opcional · resuelve precios desde DB), "precio_compra": float?, "fecha_compra": str?, "precio_venta": float?, "fecha_venta": str?, "mode": "isr"|"isai"|"closing"|"full" (default "full") }}
+    devuelve: {{ isr_total, isai, closing_total, predial_y1, breakdown, sources: "SAT DOF 2026 · Gaceta CDMX 2026" }}
+    Usar cuando user pregunta "¿cuánto pago de ISR si vendo?", "¿cuánto sale el cierre?", "¿predial 2026?". ISR vendedor · ISAI comprador · predial proyectado.
+
+══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
   - ¿Subirá el DRPI/precio en la zona? → type=drpi_up, id=zone_slug, months=3
@@ -271,7 +296,7 @@ SIEMPRE incluye sources_breakdown en tu respuesta con formato Robinhood transpar
 Ejemplo response: "82% (Forecast 65% + WhatIf 25% + AVM 10% · confianza ALTA)".
 NUNCA inventes números. Si insufficient_data=true → di "los datos para esa zona/proyecto están acumulándose, no tengo suficiente historial aún."
 
-══ BATTLE CARD (tool 21 · T3 dev premium) ══
+══ BATTLE CARD (tool 19 · T3 dev premium) ══
 Usa query_battle_card cuando developer T3 pregunte sobre posición competitiva:
   - ¿Cómo voy vs competidores? / ¿Cuál es mi ranking? / ¿Qué debo mejorar?
   - Pasar user_tier="T3" en params si el usuario es developer T3+
@@ -280,7 +305,7 @@ Ejemplo: "Tu proyecto X está rank #2 en Polanco (subiste 1 lugar) · acción re
 Si user tier < T3 → responde "Battle Card requiere upgrade a tier T3 para developers Enterprise".
 Si insufficient_competitors → responde "Necesitamos al menos 3 desarrolladores en esa zona · data acumulándose".
 
-══ EXTERNAL INSIGHTS (tool 23 · ser referente prensa MX) ══
+══ EXTERNAL INSIGHTS (tool 21 · ser referente prensa MX) ══
 Usa query_global_insights cuando user pregunte sobre:
   - Comparativas MX vs USA / Mundo (ej. "¿cómo va México vs USA?", "Polanco vs Beverly Hills")
   - Macro housing global (BIS, OECD, IMF, FRED Case-Shiller)
@@ -293,7 +318,7 @@ Ejemplo response: "Según BIS y OECD, México está +4.2% YoY en precios viviend
 Si status=skipped → ese source requiere API key (FRED, Numbeo) · responde con datos de los demás · NO mientas.
 NUNCA inventes números. Si no hay payload de la fuente → di "esa fuente no está cargada aún, te muestro las que sí tengo".
 
-══ FEATURE VISIBILITY (tool 22 · qué tiene activo el user) ══
+══ FEATURE VISIBILITY (tool 20 · qué tiene activo el user) ══
 Usa query_my_features cuando user pregunte qué features tiene activas, qué incluye su plan, qué puede usar en el portal:
   - ¿Qué features tengo activas? / ¿Qué incluye mi plan? / ¿Qué puedo usar?
   - ¿Tengo Battle Card / Live Pulse / Knowledge Graph?
@@ -467,6 +492,17 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 visitor_session_id=params.get("visitor_session_id"),
                 audience=params.get("audience"),
             )
+        # W5 Cleanup · 5 new cross-batch tools
+        if tool_name == "query_avm_estimate":
+            return await _tool_query_avm_estimate(db, params)
+        if tool_name == "query_zone_subscores":
+            return await _tool_query_zone_subscores(db, params)
+        if tool_name == "query_buyer_score":
+            return await _tool_query_buyer_score(db, params)
+        if tool_name == "query_live_pulse":
+            return await _tool_query_live_pulse(db, params)
+        if tool_name == "query_tax_projection":
+            return await _tool_query_tax_projection(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -2299,6 +2335,478 @@ async def _tool_query_mood_recommendations(
     except Exception as e:
         log.warning(f"[asistente_tool] query_mood_recommendations failed: {e}")
         return {"error": str(e), "source": "mood_engine"}
+
+
+# ─── W5 Cleanup · 5 new cross-batch tools ────────────────────────────────────
+
+async def _tool_query_avm_estimate(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.1 — AVM valuation for a property. Resolves property → colonia + features,
+    then calls avm_quick_async. Fail-soft."""
+    property_id = (params.get("property_id") or "").strip()
+    scope = (params.get("scope") or "unit").lower()
+    if not property_id:
+        return {"error": "property_id requerido", "source": "avm_public_engine"}
+    try:
+        from avm_public_engine import avm_quick_async
+    except Exception as exc:
+        return {"error": f"avm_engine_unavailable: {exc}", "source": "avm_public_engine"}
+
+    # Resolve property → features
+    colonia = None
+    m2 = 80.0
+    recamaras = 2
+    banos = 2
+    antiguedad = 5
+    try:
+        if db is not None:
+            unit = None
+            if scope == "unit":
+                unit = await db.developments_units.find_one({"id": property_id}, {"_id": 0})
+                if not unit:
+                    unit = await db.units.find_one({"id": property_id}, {"_id": 0})
+            dev = None
+            if not unit:
+                dev = await db.developments.find_one({"id": property_id}, {"_id": 0})
+            src = unit or dev or {}
+            colonia = src.get("colonia") or src.get("colonia_id") or src.get("zone_id")
+            m2 = float(src.get("area_m2") or src.get("m2") or src.get("avg_m2") or m2)
+            recamaras = int(src.get("recamaras") or src.get("recamaras_min") or recamaras)
+            banos = int(src.get("banos") or src.get("banos_min") or banos)
+            antiguedad = int(src.get("antiguedad_anos") or antiguedad)
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_avm_estimate lookup failed: {exc}")
+
+    if not colonia:
+        return {"error": "property_not_found_or_no_colonia", "property_id": property_id,
+                "source": "avm_public_engine"}
+
+    try:
+        avm = await avm_quick_async(
+            db, colonia, m2, recamaras, banos, antiguedad,
+            with_explain=True,
+        )
+        if "error" in avm:
+            return {"error": avm.get("error"), "source": "avm_public_engine"}
+
+        # Audit fail-soft
+        try:
+            from audit_immutable_engine import log as audit_log
+            await audit_log(
+                db,
+                actor={"user_id": "atlax_public", "role": "asistente"},
+                action="avm_query",
+                entity_type="property",
+                entity_id=property_id,
+                before=None,
+                after={"colonia": colonia, "estimate": avm.get("precio_estimado"),
+                       "caller_module": "asistente_query_avm_estimate"},
+            )
+        except Exception:
+            pass
+
+        explain = avm.get("explain") or {}
+        sources_breakdown = explain.get("drivers") or explain.get("breakdown") or []
+
+        return {
+            "source": "avm_public_engine",
+            "property_id": property_id,
+            "colonia": colonia,
+            "avm_estimate": avm.get("precio_estimado"),
+            "avm_low": avm.get("range_low"),
+            "avm_high": avm.get("range_high"),
+            "confidence": avm.get("confidence"),
+            "pricing_model": avm.get("pricing_model"),
+            "model_version": avm.get("model_id"),
+            "sources_breakdown": sources_breakdown,
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_avm_estimate failed: {exc}")
+        return {"error": str(exc), "source": "avm_public_engine"}
+
+
+async def _tool_query_zone_subscores(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.2 — Sub-scores 6+ dimensiones de una zona. Usa zone_score_engine.get_zone_with_subscores."""
+    zone_id = (params.get("zone_id") or params.get("zone_slug") or "").strip()
+    if not zone_id:
+        return {"error": "zone_id requerido", "source": "zone_subscores"}
+    try:
+        from zone_score_engine import get_zone_with_subscores
+    except Exception as exc:
+        return {"error": f"zone_score_unavailable: {exc}", "source": "zone_subscores"}
+
+    try:
+        result = await get_zone_with_subscores(db, zone_id)
+        if not result:
+            return {"error": "zone_not_found", "zone_id": zone_id, "source": "zone_subscores"}
+
+        # Build subscores dict and top_3 strengths/gaps
+        subs = result.get("subscores") or {}
+        # subscores may be a dict of key→value or key→dict; normalize
+        flat: Dict[str, float] = {}
+        for k, v in subs.items():
+            if isinstance(v, dict):
+                val = v.get("value")
+            else:
+                val = v
+            try:
+                if val is not None:
+                    flat[k] = float(val)
+            except (TypeError, ValueError):
+                pass
+
+        sorted_dims = sorted(flat.items(), key=lambda kv: kv[1], reverse=True)
+        top_3_strengths = [{"dim": k, "score": v} for k, v in sorted_dims[:3]]
+        top_3_gaps = [{"dim": k, "score": v} for k, v in sorted_dims[-3:][::-1]]
+
+        # Audit fail-soft
+        try:
+            from audit_immutable_engine import log as audit_log
+            await audit_log(
+                db,
+                actor={"user_id": "atlax_public", "role": "asistente"},
+                action="zone_subscores_query",
+                entity_type="zone",
+                entity_id=zone_id,
+                before=None,
+                after={"caller_module": "asistente_query_zone_subscores"},
+            )
+        except Exception:
+            pass
+
+        return {
+            "source": "zone_score_engine_w52",
+            "zone_id": zone_id,
+            "zone_name": result.get("name") or result.get("zone_name"),
+            "score_total": result.get("score_total") or result.get("score_numeric"),
+            "score_letter": result.get("score_letter"),
+            "subscores": flat,
+            "top_3_strengths": top_3_strengths,
+            "top_3_gaps": top_3_gaps,
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_zone_subscores failed: {exc}")
+        return {"error": str(exc), "source": "zone_subscores"}
+
+
+async def _tool_query_buyer_score(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.4 — Buyer score 0-100 + tier hot/warm/cold. Lookup persisted, else compute on the fly."""
+    lead_id = (params.get("lead_id") or params.get("user_id") or "").strip()
+    if not lead_id:
+        return {"error": "lead_id requerido", "source": "buyer_score_engine"}
+    try:
+        from buyer_score_engine import compute_user_score
+    except Exception as exc:
+        return {"error": f"buyer_score_unavailable: {exc}", "source": "buyer_score_engine"}
+
+    try:
+        # 1) Try persisted buyer_scores first (lookup by user_id, fallback try lead → user mapping)
+        persisted = None
+        user_id_for_compute = lead_id
+        if db is not None:
+            try:
+                persisted = await db.buyer_scores.find_one(
+                    {"$or": [{"user_id": lead_id}, {"lead_id": lead_id}]},
+                    {"_id": 0},
+                )
+            except Exception:
+                persisted = None
+            # If lead has an associated user_id, prefer that for compute
+            try:
+                lead_doc = await db.leads.find_one({"id": lead_id}, {"_id": 0, "user_id": 1, "email": 1})
+                if lead_doc and lead_doc.get("user_id"):
+                    user_id_for_compute = lead_doc["user_id"]
+            except Exception:
+                pass
+
+        if persisted:
+            score = persisted.get("score")
+            tier = persisted.get("tier")
+            components = persisted.get("components") or {}
+            ts = persisted.get("computed_at")
+            if hasattr(ts, "isoformat"):
+                ts = ts.isoformat()
+            last_updated = ts
+        else:
+            # Compute on the fly (fail-soft inside engine)
+            try:
+                computed = await compute_user_score(db, user_id_for_compute)
+            except Exception as exc:
+                return {"error": f"compute_failed: {exc}", "lead_id": lead_id,
+                        "source": "buyer_score_engine"}
+            score = computed.get("score")
+            tier = computed.get("tier")
+            components = computed.get("components") or {}
+            last_updated = None
+
+        # Recommendation action by tier
+        action_map = {
+            "hot": "Llamar AHORA · WhatsApp prioritario · agendar visita 24h",
+            "warm": "Nurture activo · enviar comparativa + invitar a tour virtual",
+            "cold": "Email educativo · seguimiento mensual · re-engagement campaign",
+        }
+        recommendation_action = action_map.get(tier or "", "Sin recomendación · revisar manualmente")
+
+        # Audit fail-soft
+        try:
+            from audit_immutable_engine import log as audit_log
+            await audit_log(
+                db,
+                actor={"user_id": "atlax_public", "role": "asistente"},
+                action="buyer_score_query",
+                entity_type="lead",
+                entity_id=lead_id,
+                before=None,
+                after={"score": score, "tier": tier,
+                       "caller_module": "asistente_query_buyer_score"},
+            )
+        except Exception:
+            pass
+
+        return {
+            "source": "buyer_score_engine_w54",
+            "lead_id": lead_id,
+            "score": score,
+            "tier": tier,
+            "components": components,
+            "last_updated": last_updated,
+            "recommendation_action": recommendation_action,
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_buyer_score failed: {exc}")
+        return {"error": str(exc), "source": "buyer_score_engine"}
+
+
+async def _tool_query_live_pulse(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.5 — Live Pulse signals. Si zone_slug → compute_pulse de esa zona.
+    Si scope=all → top 3 hot zonas desde live_pulse_snapshots."""
+    zone_slug = (params.get("zone_slug") or "").strip()
+    scope = (params.get("scope") or ("zone" if zone_slug else "all")).lower()
+    hours = int(params.get("hours") or 24)
+
+    try:
+        from live_pulse_engine import compute_pulse, summarize_signals
+    except Exception as exc:
+        return {"error": f"live_pulse_unavailable: {exc}", "source": "live_pulse_engine"}
+
+    try:
+        # Single zone path
+        if scope == "zone" or zone_slug:
+            if not zone_slug:
+                return {"error": "zone_slug requerido para scope=zone",
+                        "source": "live_pulse_engine"}
+            pulse = await compute_pulse(db, zone_slug)
+            signals = pulse.get("signals") or {}
+            heatmap_summary = summarize_signals(signals) if signals else {}
+
+            # Audit fail-soft
+            try:
+                from audit_immutable_engine import log as audit_log
+                await audit_log(
+                    db,
+                    actor={"user_id": "atlax_public", "role": "asistente"},
+                    action="live_pulse_query",
+                    entity_type="zone",
+                    entity_id=zone_slug,
+                    before=None,
+                    after={"score": pulse.get("score"),
+                           "caller_module": "asistente_query_live_pulse"},
+                )
+            except Exception:
+                pass
+
+            return {
+                "source": "live_pulse_engine_w55",
+                "scope": "zone",
+                "zone_slug": zone_slug,
+                "score": pulse.get("score"),
+                "bucket": pulse.get("bucket"),
+                "signals": signals,
+                "heatmap_summary": heatmap_summary,
+                "top_3_hot_zones": [],
+                "last_updated": pulse.get("computed_at"),
+            }
+
+        # All scope: top hot zones from recent snapshots
+        top_3 = []
+        last_updated = None
+        if db is not None:
+            try:
+                cursor = db.live_pulse_snapshots.find(
+                    {},
+                    {"_id": 0, "zone_slug": 1, "score": 1, "bucket": 1, "computed_at": 1},
+                    sort=[("score", -1)],
+                ).limit(3)
+                async for doc in cursor:
+                    ts = doc.get("computed_at")
+                    if hasattr(ts, "isoformat"):
+                        ts = ts.isoformat()
+                    top_3.append({
+                        "zone_slug": doc.get("zone_slug"),
+                        "score": doc.get("score"),
+                        "bucket": doc.get("bucket"),
+                        "computed_at": ts,
+                    })
+                    if not last_updated:
+                        last_updated = ts
+            except Exception as exc:
+                log.warning(f"[asistente_tool] live_pulse snapshots query failed: {exc}")
+
+        # Audit fail-soft
+        try:
+            from audit_immutable_engine import log as audit_log
+            await audit_log(
+                db,
+                actor={"user_id": "atlax_public", "role": "asistente"},
+                action="live_pulse_query",
+                entity_type="global",
+                entity_id="all",
+                before=None,
+                after={"top_zones_count": len(top_3),
+                       "caller_module": "asistente_query_live_pulse"},
+            )
+        except Exception:
+            pass
+
+        return {
+            "source": "live_pulse_engine_w55",
+            "scope": "all",
+            "hours": hours,
+            "signals": {},
+            "heatmap_summary": {},
+            "top_3_hot_zones": top_3,
+            "last_updated": last_updated,
+        }
+    except Exception as exc:
+        log.warning(f"[asistente_tool] query_live_pulse failed: {exc}")
+        return {"error": str(exc), "source": "live_pulse_engine"}
+
+
+async def _tool_query_tax_projection(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """F6 — Tax projection: ISR vendedor · ISAI comprador · closing total · predial 10y.
+    mode=full|isr|isai|closing. Si property_id provisto y faltan precios, se resuelve desde DB."""
+    mode = (params.get("mode") or "full").lower()
+    property_id = (params.get("property_id") or "").strip() or None
+    precio_compra = params.get("precio_compra")
+    fecha_compra = params.get("fecha_compra")
+    precio_venta = params.get("precio_venta")
+    fecha_venta = params.get("fecha_venta")
+
+    try:
+        from tax_projector_engine import (
+            calculate_isr_vendedor,
+            calculate_isai_comprador,
+            calculate_closing_cost_total,
+            project_predial_10y,
+        )
+    except Exception as exc:
+        return {"error": f"tax_engine_unavailable: {exc}", "source": "tax_projector_engine"}
+
+    # Resolve missing data from property_id
+    valor_catastral = None
+    if property_id and db is not None and (precio_venta is None):
+        try:
+            unit = await db.developments_units.find_one({"id": property_id}, {"_id": 0})
+            if not unit:
+                unit = await db.units.find_one({"id": property_id}, {"_id": 0})
+            dev = None
+            if not unit:
+                dev = await db.developments.find_one({"id": property_id}, {"_id": 0})
+            src = unit or dev or {}
+            precio_venta = precio_venta or src.get("price_mxn") or src.get("price") or src.get("price_from_mxn")
+            valor_catastral = src.get("valor_catastral")
+        except Exception as exc:
+            log.warning(f"[asistente_tool] query_tax_projection lookup failed: {exc}")
+
+    # Conservative fallback for valor_catastral
+    if valor_catastral is None and precio_venta:
+        try:
+            valor_catastral = float(precio_venta) * 0.46
+        except Exception:
+            valor_catastral = 0
+
+    out: Dict[str, Any] = {
+        "source": "tax_projector_engine",
+        "sources": "SAT DOF 2026 · Gaceta CDMX 2026",
+        "mode": mode,
+        "property_id": property_id,
+        "breakdown": {},
+    }
+
+    # ISR vendedor
+    if mode in ("full", "isr"):
+        try:
+            if precio_compra and precio_venta and fecha_compra and fecha_venta:
+                isr = calculate_isr_vendedor(
+                    float(precio_compra), str(fecha_compra),
+                    float(precio_venta), str(fecha_venta),
+                )
+                if isr.get("ok"):
+                    out["isr_total"] = isr.get("isr_total")
+                    out["breakdown"]["isr"] = isr.get("breakdown")
+            else:
+                out["breakdown"]["isr_skipped_reason"] = "missing_purchase_or_sale_data"
+        except Exception as exc:
+            log.warning(f"[asistente_tool] isr failed: {exc}")
+            out["breakdown"]["isr_error"] = str(exc)
+
+    # ISAI comprador
+    if mode in ("full", "isai"):
+        try:
+            if precio_venta:
+                isai = calculate_isai_comprador(float(precio_venta), float(valor_catastral or 0))
+                if isai.get("ok"):
+                    out["isai"] = isai.get("isai")
+                    out["breakdown"]["isai"] = isai.get("breakdown")
+            else:
+                out["breakdown"]["isai_skipped_reason"] = "missing_precio_venta"
+        except Exception as exc:
+            log.warning(f"[asistente_tool] isai failed: {exc}")
+            out["breakdown"]["isai_error"] = str(exc)
+
+    # Closing total
+    if mode in ("full", "closing"):
+        try:
+            if precio_venta:
+                closing = calculate_closing_cost_total(float(precio_venta), float(valor_catastral or 0))
+                if closing.get("ok"):
+                    out["closing_total"] = closing.get("total")
+                    out["breakdown"]["closing"] = closing.get("breakdown")
+            else:
+                out["breakdown"]["closing_skipped_reason"] = "missing_precio_venta"
+        except Exception as exc:
+            log.warning(f"[asistente_tool] closing failed: {exc}")
+            out["breakdown"]["closing_error"] = str(exc)
+
+    # Predial y1
+    if mode == "full":
+        try:
+            base_vc = float(valor_catastral or precio_venta or 0)
+            if base_vc > 0:
+                predial = project_predial_10y(base_vc)
+                if predial.get("ok") and predial.get("items"):
+                    out["predial_y1"] = predial["items"][0].get("predial_estimado")
+                    out["breakdown"]["predial_anios"] = len(predial.get("items") or [])
+        except Exception as exc:
+            log.warning(f"[asistente_tool] predial failed: {exc}")
+            out["breakdown"]["predial_error"] = str(exc)
+
+    # Audit fail-soft
+    try:
+        from audit_immutable_engine import log as audit_log
+        await audit_log(
+            db,
+            actor={"user_id": "atlax_public", "role": "asistente"},
+            action="tax_projection_query",
+            entity_type="property" if property_id else "anon",
+            entity_id=property_id or "ad-hoc",
+            before=None,
+            after={"mode": mode,
+                   "caller_module": "asistente_query_tax_projection"},
+        )
+    except Exception:
+        pass
+
+    return out
 
 
 # W5.FF4 register_feature marker · NO duplicate

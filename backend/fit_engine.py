@@ -24,6 +24,21 @@ log = logging.getLogger("dmx.fit")
 COLLECTION = "fit_cache"
 CACHE_TTL_SECONDS = 30 * 60  # 30 min
 
+# ── W5 Cleanup · Cross-batch fail-soft imports ───────────────────────────────
+try:
+    from buyer_score_engine import compute_user_score as _bs_compute_user_score
+    BUYER_SCORE_AVAILABLE = True
+except Exception:
+    BUYER_SCORE_AVAILABLE = False
+    _bs_compute_user_score = None  # type: ignore
+
+try:
+    from zone_score_engine import get_zone_with_subscores as _zs_get_zone_with_subscores
+    ZONE_SUBSCORES_AVAILABLE = True
+except Exception:
+    ZONE_SUBSCORES_AVAILABLE = False
+    _zs_get_zone_with_subscores = None  # type: ignore
+
 VALID_AUDIENCES = {"family", "investor", "first_home", "luxury", "boutique", "neutral"}
 
 # Audience match matrix · matriz simétrica · diagonal 100 · vecinos lógicos altos
@@ -528,6 +543,73 @@ async def compute_fit_score(
     # Lead signals
     lead_signals = await _aggregate_lead_signals(db, lead_id)
 
+    # ── W5 Cleanup · Cross-batch enrichment (fail-soft) ──────────────────────
+    buyer_tier: Optional[str] = None
+    buyer_score_value: Optional[float] = None
+    buyer_score_adjustment = 0
+    if BUYER_SCORE_AVAILABLE and lead_id:
+        try:
+            # Prefer persisted; else compute
+            persisted = None
+            if db is not None:
+                try:
+                    persisted = await db.buyer_scores.find_one(
+                        {"$or": [{"user_id": lead_id}, {"lead_id": lead_id}]},
+                        {"_id": 0, "score": 1, "tier": 1},
+                    )
+                except Exception:
+                    persisted = None
+            if persisted and persisted.get("tier"):
+                buyer_tier = persisted.get("tier")
+                buyer_score_value = persisted.get("score")
+            else:
+                bs = await _bs_compute_user_score(db, lead_id)  # type: ignore
+                if isinstance(bs, dict):
+                    buyer_tier = bs.get("tier")
+                    buyer_score_value = bs.get("score")
+            if buyer_tier == "hot":
+                buyer_score_adjustment = 10
+            elif buyer_tier == "cold":
+                buyer_score_adjustment = -10
+        except Exception as exc:
+            log.debug(f"[fit] buyer_score enrichment failed: {exc}")
+
+    zone_subscores: Dict[str, float] = {}
+    subscores_boost = 0
+    if ZONE_SUBSCORES_AVAILABLE:
+        try:
+            zone_slug = (prop.get("colonia_id") or prop.get("colonia") or "").lower()
+            if zone_slug:
+                zs = await _zs_get_zone_with_subscores(db, zone_slug)  # type: ignore
+                if isinstance(zs, dict):
+                    raw_subs = zs.get("subscores") or {}
+                    for k, v in raw_subs.items():
+                        try:
+                            val = v.get("value") if isinstance(v, dict) else v
+                            if val is not None:
+                                zone_subscores[k] = float(val)
+                        except (TypeError, ValueError):
+                            pass
+            # High subscore bonus
+            high_dims = ("walkability", "safety", "dining", "lifestyle", "seguridad", "amenidades")
+            for dim in high_dims:
+                if zone_subscores.get(dim, 0) >= 80:
+                    subscores_boost = max(subscores_boost, 8)
+                    break
+
+            # Audience weighting hints
+            lead_aud = (lead_signals.get("audience") or "").lower()
+            if lead_aud == "family":
+                family_dims = ("schools", "safety", "seguridad", "family_friendly")
+                if any(zone_subscores.get(d, 0) >= 75 for d in family_dims):
+                    subscores_boost = min(10, subscores_boost + 3)
+            elif lead_aud == "investor":
+                investor_dims = ("vibrant", "dining", "lifestyle", "precio")
+                if any(zone_subscores.get(d, 0) >= 75 for d in investor_dims):
+                    subscores_boost = min(10, subscores_boost + 3)
+        except Exception as exc:
+            log.debug(f"[fit] zone_subscores enrichment failed: {exc}")
+
     scores = {
         "presupuesto": _score_presupuesto(lead_signals, prop),
         "audience": _score_audience(lead_signals, prop),
@@ -538,15 +620,32 @@ async def compute_fit_score(
     }
 
     # Si lead_signals vacío → score 0 confidence tentativa
+    scores_breakdown_aux: Dict[str, Any] = {
+        "buyer_score_adjustment": buyer_score_adjustment,
+        "buyer_tier": buyer_tier,
+        "buyer_score_value": buyer_score_value,
+        "subscores_boost": subscores_boost,
+        "zone_subscores_used": bool(zone_subscores),
+    }
     if (lead_signals.get("interactions_count") or 0) == 0:
         overall = 0
         confidence = "tentativa"
         explanation = f"Sin datos suficientes del lead para evaluar fit con {prop.get('name')}"
         reasons: List[str] = ["No hay interacciones registradas del lead"]
     else:
-        overall = _compute_overall(scores)
+        overall_base = _compute_overall(scores)
+        # Apply cross-batch adjustments with clamp
+        overall = max(0, min(100, overall_base + buyer_score_adjustment + subscores_boost))
         confidence = _determine_confidence(lead_signals.get("interactions_count") or 0)
         explanation, reasons = _build_explanation_and_reasons(scores, overall, prop)
+
+        # Enrich reasons with cross-batch signals
+        if buyer_tier:
+            reasons.append(f"Buyer score lead: {buyer_tier}")
+        if zone_subscores:
+            top_zone = max(zone_subscores.items(), key=lambda kv: kv[1])
+            if top_zone[1] >= 80:
+                reasons.append(f"Zona destaca en {top_zone[0]} {int(top_zone[1])}/100")
 
     out = {
         "fit_key": fit_key,
@@ -557,6 +656,7 @@ async def compute_fit_score(
         "score": int(overall),
         "confidence": confidence,
         "breakdown": scores,
+        "cross_batch_aux": scores_breakdown_aux,
         "explanation_short": explanation,
         "reasons_top_3": reasons[:3],
         "generated_at": now,
