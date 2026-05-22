@@ -3768,6 +3768,28 @@
       }
     }
   },
+  "fit": {
+    "score_label": "Fit Score",
+    "confidence_alta": "Confianza alta",
+    "confidence_media": "Confianza media",
+    "confidence_baja": "Confianza baja",
+    "confidence_tentativa": "Tentativa",
+    "dim_presupuesto": "Presupuesto",
+    "dim_audience": "Audiencia",
+    "dim_busquedas": "Busquedas",
+    "dim_comportamiento": "Comportamiento",
+    "dim_ubicacion": "Ubicacion",
+    "dim_especificas": "Especificas",
+    "top_properties_title": "Top propiedades para este lead",
+    "top_leads_title": "Top leads cualificados para esta propiedad",
+    "empty_properties": "Sin matches suficientes aun",
+    "empty_leads": "Aun no hay leads suficientemente cualificados",
+    "btn_ver": "Ver",
+    "btn_whatsapp": "WhatsApp",
+    "btn_ver_lead": "Ver lead",
+    "view_all": "Ver todos",
+    "loading": "Cargando..."
+  },
   "alerts": {
     "title": "Alertas predictivas",
     "subtitle": "Leads listos para accion ahora. Prioriza por urgencia y actua en un clic.",
