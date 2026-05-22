@@ -237,6 +237,11 @@ TOOLS Y PARAMS:
     devuelve: {{ results: [{{entity_id, title, match_score, explanation, sources}}], parsed: {{hard_filters, soft_criteria, negative_criteria, buyer_intent}} }}
     Usar cuando: user describe propiedad en lenguaje natural ("busco depto", "quiero algo en Polanco", "para mi familia con escuelas"). Parser LLM extrae filtros duros + blandos + negativos. NO uses tools 1-10 si query es descriptivo · usa reverse_search.
 
+29. query_lead_capture_stats
+    params: {{ "days": int? (default 7, max 90) }}
+    devuelve: {{ total_count, by_audience_breakdown, top_advisors_3, conversion_rate }}
+    Usar cuando: user (developer T3+) pregunte cuántos leads se han capturado, qué audience convierte más, qué asesor está performing mejor, tasa de conversión del marketplace lead capture.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -410,6 +415,11 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 text=params.get("text") or "",
                 audience=params.get("audience"),
                 limit=int(params.get("limit") or 5),
+            )
+        # W5.x F7 — Tool 29: query_lead_capture_stats
+        if tool_name == "query_lead_capture_stats":
+            return await _tool_query_lead_capture_stats(
+                db, days=int(params.get("days") or 7),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -1960,6 +1970,71 @@ async def _tool_reverse_search(
     except Exception as e:
         log.warning(f"[asistente_tool] reverse_search failed: {e}")
         return {"error": str(e), "source": "reverse_search_engine"}
+
+
+# W5.x F7 — Tool 29: query_lead_capture_stats (marketplace lead capture analytics)
+async def _tool_query_lead_capture_stats(db, days: int = 7) -> Dict[str, Any]:
+    """Aggregate lead_captures collection últimos N days. Devuelve shape compacto."""
+    days = max(1, min(int(days or 7), 90))
+    empty = {
+        "total_count": 0,
+        "by_audience_breakdown": {},
+        "top_advisors_3": [],
+        "conversion_rate": 0.0,
+        "days": days,
+        "source": "lead_capture_marketplace_engine",
+    }
+    if db is None:
+        return empty
+    try:
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+        cutoff = _dt.now(_tz.utc) - _td(days=days)
+        total = await db.lead_captures.count_documents({"created_at": {"$gte": cutoff}})
+        if total == 0:
+            return empty
+
+        # by_audience
+        by_audience: Dict[str, int] = {}
+        pipe_aud = [
+            {"$match": {"created_at": {"$gte": cutoff}}},
+            {"$group": {"_id": "$audience", "n": {"$sum": 1}}},
+        ]
+        async for row in db.lead_captures.aggregate(pipe_aud):
+            by_audience[row.get("_id") or "neutral"] = int(row.get("n") or 0)
+
+        # top advisors
+        top_advisors: list = []
+        pipe_adv = [
+            {"$match": {"created_at": {"$gte": cutoff}, "advisor_id": {"$ne": None}}},
+            {"$group": {"_id": "$advisor_id", "n": {"$sum": 1},
+                         "name": {"$first": "$advisor_name"}}},
+            {"$sort": {"n": -1}},
+            {"$limit": 3},
+        ]
+        async for row in db.lead_captures.aggregate(pipe_adv):
+            top_advisors.append({
+                "advisor_id": row.get("_id"),
+                "advisor_name": row.get("name") or "—",
+                "leads_count": int(row.get("n") or 0),
+            })
+
+        # conversion rate
+        converted = await db.lead_captures.count_documents({
+            "created_at": {"$gte": cutoff}, "status": "converted",
+        })
+        rate = round(converted / total, 4) if total else 0.0
+
+        return {
+            "total_count": int(total),
+            "by_audience_breakdown": by_audience,
+            "top_advisors_3": top_advisors,
+            "conversion_rate": rate,
+            "days": days,
+            "source": "lead_capture_marketplace_engine",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_lead_capture_stats failed: {e}")
+        return {**empty, "error": str(e)}
 
 
 # W5.FF4 register_feature marker · NO duplicate
