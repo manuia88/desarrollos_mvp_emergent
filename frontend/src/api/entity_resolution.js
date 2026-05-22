@@ -78,3 +78,33 @@ export const exportAuditLog = async () => {
   }
   return all;
 };
+
+
+// ── W5 cleanup · compat wrappers ─────────────────────────────────────────────
+// Adapter que normaliza el output de listPendingDuplicates al shape
+// { items, total } pedido por SuperadminEntityResolution. Fail-silent.
+export const getEntityResolutionQueue = async (status = 'pending') => {
+  try {
+    const r = await listPendingDuplicates({ entity_type: 'dev_org', limit: 100 });
+    const items = Array.isArray(r?.items) ? r.items : (Array.isArray(r) ? r : []);
+    const total = typeof r?.total === 'number' ? r.total : items.length;
+    return { items, total, status };
+  } catch {
+    return { items: [], total: 0, status, _silent: true };
+  }
+};
+
+// Adapter unificado · decision: 'merge' | 'reject' | 'skip'
+// Maneja fail-silent · NO throws.
+export const decidePair = async (pairId, decision) => {
+  if (!pairId || !decision) return { success: false };
+  try {
+    const fn = decision === 'merge' ? mergePending
+      : decision === 'reject' ? rejectPending
+      : ignorePending;
+    const r = await fn(pairId);
+    return { success: true, ...r };
+  } catch {
+    return { success: false };
+  }
+};

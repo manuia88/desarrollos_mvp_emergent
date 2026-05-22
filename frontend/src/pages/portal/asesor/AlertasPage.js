@@ -1,9 +1,13 @@
 // W5.x F8 · AlertasPage · /portal/asesor/alertas
 // Dashboard de alertas predictivas con grid responsivo, filtros y auto-refresh
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useAlertsPolling from '../../../hooks/useAlertsPolling';
 import AlertCard from '../../../components/alerts/AlertCard';
+// W5 cleanup · Fit + BuyerScore integrations (additive)
+import BuyerScoreBadge from '../../../components/asesor/BuyerScoreBadge';
+import FitTopPropertiesList from '../../../components/fit/FitTopPropertiesList';
+import { getBuyerScore } from '../../../api/buyer_score';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -46,6 +50,48 @@ function chipStyle(active) {
   };
 }
 
+// W5 cleanup · Wrapper additive: fetch buyer_score + selección de lead para Fit panel
+function AlertCardWithBuyerScore({ alert, onRefresh, onSelect, selected }) {
+  const [scoreData, setScoreData] = useState(null);
+  const leadId = alert?.lead_id || alert?.lead?.id || alert?.lead?.lead_id;
+
+  useEffect(() => {
+    let mounted = true;
+    if (!leadId) return undefined;
+    (async () => {
+      const r = await getBuyerScore(leadId);
+      if (mounted) setScoreData(r);
+    })();
+    return () => { mounted = false; };
+  }, [leadId]);
+
+  return (
+    <div
+      data-testid={`alert-card-wrap-${alert?.alert_id || alert?.id}`}
+      data-selected={selected ? 'true' : 'false'}
+      style={{
+        position: 'relative',
+        borderRadius: 20,
+        outline: selected ? '2px solid rgba(99,102,241,0.55)' : 'none',
+        outlineOffset: selected ? 2 : 0,
+        transition: `outline-color 280ms ${EASE}`,
+      }}
+      onClick={() => onSelect && onSelect(leadId)}
+    >
+      <AlertCard alert={alert} onActionDone={onRefresh} />
+
+      {scoreData && (
+        <div
+          data-testid={`alert-card-buyer-score-${leadId}`}
+          style={{ position: 'absolute', top: 18, right: 22, pointerEvents: 'none' }}
+        >
+          <BuyerScoreBadge score={scoreData.score} tier={scoreData.tier} size="sm" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AlertasPage() {
   const { t } = useTranslation('common');
   const [status, setStatus] = useState('active');
@@ -54,6 +100,9 @@ export default function AlertasPage() {
   const { alertas, total, loading, lastUpdated, silentFailure, refresh } = useAlertsPolling({
     status, limit: 20, enabled: true,
   });
+
+  // W5 cleanup · selected lead para Fit recommendations panel (additive)
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
 
   const filtered = useMemo(() => {
     if (tier === 'all') return alertas;
@@ -210,13 +259,25 @@ export default function AlertasPage() {
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             }}
           >
-            {filtered.map((a) => (
-              <AlertCard
-                key={a.alert_id || a.id}
-                alert={a}
-                onActionDone={() => refresh()}
-              />
-            ))}
+            {filtered.map((a) => {
+              const lid = a.lead_id || a.lead?.id || a.lead?.lead_id;
+              return (
+                <AlertCardWithBuyerScore
+                  key={a.alert_id || a.id}
+                  alert={a}
+                  onRefresh={() => refresh()}
+                  onSelect={(id) => setSelectedLeadId((prev) => (prev === id ? null : id))}
+                  selected={!!lid && selectedLeadId === lid}
+                />
+              );
+            })}
+          </section>
+        )}
+
+        {/* W5 cleanup · Panel inferior · Top propiedades para el lead seleccionado */}
+        {selectedLeadId && (
+          <section data-testid="alerts-fit-panel" style={{ marginTop: 4 }}>
+            <FitTopPropertiesList leadId={selectedLeadId} limit={5} />
           </section>
         )}
 

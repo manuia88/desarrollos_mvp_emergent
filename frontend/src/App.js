@@ -61,6 +61,8 @@ const ReverseSearchPage = lazy(() => import('./pages/portal/tools/ReverseSearchP
 const AlertasPage = lazy(() => import('./pages/portal/asesor/AlertasPage'));
 // W5.x F10 — Mood/Vibe Quiz (publico T0)
 const MoodQuizPage = lazy(() => import('./pages/portal/tools/MoodQuizPage'));
+// W5 cleanup — Superadmin Entity Resolution (dedup queue)
+const SuperadminEntityResolution = lazy(() => import('./pages/superadmin/SuperadminEntityResolution'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -590,6 +592,8 @@ function AppRouter() {
       <Route path="/portal/asesor/alertas" element={<AdvisorRoute Page={AlertasPage} />} />
       {/* W5.x F10 — Mood/Vibe Quiz (publico T0) */}
       <Route path="/portal/vibe" element={<Suspense fallback={null}><MoodQuizPage /></Suspense>} />
+      {/* W5 cleanup — Superadmin Entity Resolution queue */}
+      <Route path="/superadmin/entity-resolution" element={<AdvisorRoute Page={SuperadminEntityResolution} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />

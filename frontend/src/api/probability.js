@@ -50,3 +50,17 @@ export async function getDrpiUp(zoneSlug, months = 3) {
 export async function getCloseBelowListed(propertyId, listedPrice) {
   return getProbability('closes_below_listed', propertyId, { listed: listedPrice });
 }
+
+
+/**
+ * W5 cleanup · fail-silent wrapper para ProbabilityCard
+ * Acepta { type, id, months, listed } · retorna null si error · NO throws.
+ */
+export async function fetchProbabilityCardData({ type, id, months, listed } = {}) {
+  if (!type || !id) return null;
+  try {
+    return await getProbability(type, id, { months, listed });
+  } catch {
+    return null;
+  }
+}

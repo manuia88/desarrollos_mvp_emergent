@@ -15,6 +15,8 @@ import ForecastChart from '../../components/forecast/ForecastChart';
 import NarrativeBlock from '../../components/landing/NarrativeBlock';
 import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
 import ProbabilityBar from '../../components/shared/ProbabilityBar';
+// W5 cleanup · ProbabilityCard Kalshi-style
+import ProbabilityCard from '../../components/probability/ProbabilityCard';
 import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -587,6 +589,10 @@ export default function ZonePage() {
         {/* W5.3 Parte 1 — Forecast multi-horizonte para la zona */}
         <ForecastChart mode="zone" slug={slug} />
 
+        {/* W5 cleanup — Probability Card (Kalshi-style) sobre el forecast */}
+        <div style={{ marginTop: 32, marginBottom: 32 }}>
+          <ProbabilityCard type="drpi_up" id={slug} months={12} />
+        </div>
 
         {/* Section 2 — Top 3 IE Scores */}
         {top3.length > 0 && (
