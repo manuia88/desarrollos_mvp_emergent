@@ -116,6 +116,93 @@ async def post_virtual_staging(request: Request, body: StagingBody):
         raise HTTPException(500, f"Error interno · {str(e)[:200]}")
 
 
+# ─── GET /api/virtual-staging/admin/stats (superadmin) ──────────────────────
+
+@router.get("/api/virtual-staging/admin/stats")
+async def get_virtual_staging_admin_stats(request: Request):
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = _db(request)
+
+    from datetime import datetime, timezone, timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+
+    by_style: Dict[str, Dict[str, Any]] = {}
+    by_room: Dict[str, int] = {}
+    by_user: Dict[str, int] = {}
+    total = 0
+    cache_hits = 0
+    sum_cost_usd = 0.0
+    sum_ms = 0
+    style_ms: Dict[str, list] = defaultdict(list)
+
+    cursor = db.virtual_staging_cache.find(
+        {"generated_at": {"$gte": cutoff}},
+        {"_id": 0},
+    )
+    async for d in cursor:
+        total += 1
+        # cache hit detection: if a doc exists for same image_hash+room+styles earlier than this one
+        # Heuristic: count entries where 'ai_budget_used' is 0 (no LLM call → was cache hit replay)
+        budget = d.get("ai_budget_used") or 0
+        try:
+            cost_val = float(budget) if budget else 0.0
+        except (TypeError, ValueError):
+            cost_val = 0.0
+        if cost_val == 0:
+            cache_hits += 1
+        sum_cost_usd += cost_val
+
+        ms = int(d.get("processing_ms_total") or 0)
+        sum_ms += ms
+
+        room = d.get("room_type") or "?"
+        by_room[room] = by_room.get(room, 0) + 1
+
+        uid = d.get("user_id") or "anon"
+        by_user[uid] = by_user.get(uid, 0) + 1
+
+        styles_joined = d.get("styles_joined") or ""
+        for s in [x for x in styles_joined.split(",") if x]:
+            stat = by_style.setdefault(s, {"count": 0, "ms_samples": 0, "ms_total": 0})
+            stat["count"] += 1
+            stat["ms_samples"] += 1
+            stat["ms_total"] += ms
+            style_ms[s].append(ms)
+
+    cache_rate = round((cache_hits / total) * 100, 1) if total else 0.0
+
+    style_rows = []
+    for s, st in by_style.items():
+        avg_ms = round(st["ms_total"] / st["ms_samples"], 0) if st["ms_samples"] else 0
+        style_rows.append({"style": s, "count": st["count"], "avg_processing_ms": avg_ms})
+    style_rows.sort(key=lambda r: r["count"], reverse=True)
+    top_style = style_rows[0]["style"] if style_rows else None
+
+    room_rows = sorted(
+        [{"room": r, "count": c} for r, c in by_room.items()],
+        key=lambda x: x["count"],
+        reverse=True,
+    )
+
+    top_users = sorted(
+        [{"user_id": u, "count": c} for u, c in by_user.items()],
+        key=lambda x: x["count"],
+        reverse=True,
+    )[:5]
+
+    return {
+        "days_window": 30,
+        "total_stagings": total,
+        "cache_hit_rate_pct": cache_rate,
+        "total_replicate_cost_usd_30d": round(sum_cost_usd, 2),
+        "top_style": top_style,
+        "by_style": style_rows,
+        "by_room": room_rows,
+        "top_users_5": top_users,
+    }
+
+
 # ─── GET /api/virtual-staging/cache/{image_hash} ────────────────────────────
 
 @router.get("/api/virtual-staging/cache/{image_hash}")

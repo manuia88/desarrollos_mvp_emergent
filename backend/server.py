@@ -778,6 +778,14 @@ from routes.forecast_accuracy import router as forecast_accuracy_router
 app.include_router(forecast_accuracy_router)
 logging.info("[w5.3.p2a] forecast-accuracy router mounted")
 
+# W5.15 wire — FSD per-property accuracy (superadmin)
+try:
+    from routes.fsd import router as fsd_router
+    app.include_router(fsd_router)
+    logging.info("[w5.15] fsd accuracy router mounted")
+except Exception as e:
+    logging.warning(f"[w5.15] fsd router mount failed: {e}")
+
 # W4.18.3 — Private Beta Gate (invite codes + waitlist)
 from routes.private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
@@ -1736,6 +1744,12 @@ async def startup():
             register_climate_migration_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W5.9] climate_migration startup register failed: {e}")
+        # W2.4 SA5 — Trial expiry email cron (daily 08:00 MX)
+        try:
+            from trial_expiry_cron import schedule_trial_expiry_cron
+            schedule_trial_expiry_cron(sched, db)
+        except Exception as e:
+            logging.warning(f"[trial_expiry] scheduler register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:

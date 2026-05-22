@@ -297,6 +297,16 @@ TOOLS Y PARAMS:
     devuelve: stats → {{ total, by_style, cache_hit_rate }} · user → {{ user_total, last_used, recent_styles }}
     Usar cuando: dev pregunta cuántos stagings se han generado · qué estilo es más popular · stats del feature W5.17.
 
+37. landing_optimizer
+    params: {{ "landing_id": str, "metric": "conversion"|"cta_click"|"scroll_depth" (default "conversion") }}
+    devuelve: {{ recommendations: [str], current_score, suggested_actions }}
+    Usar cuando: dev pregunta cómo mejorar conversion de landing · cuáles son los pain points · qué cambiar en copy/CTA/estructura para subir métricas.
+
+38. landing_adaptive_copy_generate
+    params: {{ "landing_id": str, "audience": "investor"|"family"|"first_home"|"luxury"|"boutique"|"urgent"|"neutral", "tone": "brunson"|"hormozi"|"vogue"? }}
+    devuelve: {{ generated_copy: {{hero, sections, ctas}}, model_used, token_count }}
+    Usar cuando: dev pide copy adaptado a un perfil específico para landing · variantes A/B por audience · usa F4 narrative_layer como base.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id

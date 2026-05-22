@@ -61,6 +61,14 @@ const ReverseSearchPage = lazy(() => import('./pages/portal/tools/ReverseSearchP
 const AlertasPage = lazy(() => import('./pages/portal/asesor/AlertasPage'));
 // W5.x F10 — Mood/Vibe Quiz (publico T0)
 const MoodQuizPage = lazy(() => import('./pages/portal/tools/MoodQuizPage'));
+// W5.19 wire — Probability page (publico T0 · consume ProbabilityCard)
+const ProbabilityPage = lazy(() => import('./pages/portal/tools/ProbabilityPage'));
+// W5.15 wire — Superadmin FSD accuracy dashboard
+const SuperadminFSDAccuracy = lazy(() => import('./pages/superadmin/SuperadminFSDAccuracy'));
+// W5.17 wire — Superadmin Virtual Staging stats/debug
+const SuperadminVirtualStaging = lazy(() => import('./pages/superadmin/SuperadminVirtualStaging'));
+// W5.x F11 wire — AsesorMarketplace (advisor view with per-card fit-score)
+const AsesorMarketplace = lazy(() => import('./pages/asesor/AsesorMarketplace'));
 // W5 cleanup — Superadmin Entity Resolution (dedup queue)
 const SuperadminEntityResolution = lazy(() => import('./pages/superadmin/SuperadminEntityResolution'));
 // W5.9 — Climate Migration (T0 publico + superadmin debug)
@@ -597,13 +605,21 @@ function AppRouter() {
       <Route path="/portal/asesor/alertas" element={<AdvisorRoute Page={AlertasPage} />} />
       {/* W5.x F10 — Mood/Vibe Quiz (publico T0) */}
       <Route path="/portal/vibe" element={<Suspense fallback={null}><MoodQuizPage /></Suspense>} />
+      {/* W5.19 wire — Probability page standalone (publico T0) */}
+      <Route path="/portal/probability" element={<Suspense fallback={null}><ProbabilityPage /></Suspense>} />
       {/* W5 cleanup — Superadmin Entity Resolution queue */}
-      <Route path="/superadmin/entity-resolution" element={<AdvisorRoute Page={SuperadminEntityResolution} />} />
+      <Route path="/superadmin/entity-resolution" element={<SuperadminRoute Page={SuperadminEntityResolution} />} />
       {/* W5.9 — Climate Migration (publico T0 + superadmin debug) */}
       <Route path="/portal/climate-migration" element={<Suspense fallback={null}><ClimateMigrationPage /></Suspense>} />
-      <Route path="/superadmin/climate-migration" element={<AdvisorRoute Page={SuperadminClimateMigration} />} />
+      <Route path="/superadmin/climate-migration" element={<SuperadminRoute Page={SuperadminClimateMigration} />} />
       {/* W5.17 — Virtual Staging IA (Studio · protegido dev T1+) */}
       <Route path="/portal/studio/staging" element={<AdvisorRoute Page={VirtualStagingPage} />} />
+      {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
+      <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
+      {/* W5.17 wire — Superadmin Virtual Staging stats */}
+      <Route path="/superadmin/virtual-staging" element={<SuperadminRoute Page={SuperadminVirtualStaging} />} />
+      {/* W5.x F11 wire — Asesor Marketplace (fit-score per card) */}
+      <Route path="/portal/asesor/marketplace" element={<AdvisorRoute Page={AsesorMarketplace} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
@@ -727,58 +743,58 @@ function AppRouter() {
       <Route path="/inmobiliaria/red-comercial" element={<AdvisorRoute Page={InmobiliariaRedComercial} />} />
 
       {/* W1.2 SA1.1 — Superadmin Tenants */}
-      <Route path="/superadmin/tenants" element={<AdvisorRoute Page={SuperadminTenants} />} />
+      <Route path="/superadmin/tenants" element={<SuperadminRoute Page={SuperadminTenants} />} />
       {/* W1.3 SA1.2 — Superadmin System Health */}
-      <Route path="/superadmin/health" element={<AdvisorRoute Page={SuperadminHealth} />} />
+      <Route path="/superadmin/health" element={<SuperadminRoute Page={SuperadminHealth} />} />
       {/* W1.4 ZZ.1 — Bulk Drive Ingestion */}
-      <Route path="/superadmin/bulk-ingest" element={<AdvisorRoute Page={SuperadminBulkIngest} />} />
+      <Route path="/superadmin/bulk-ingest" element={<SuperadminRoute Page={SuperadminBulkIngest} />} />
 
       {/* Superadmin — IE Engine Phase A */}
       {/* W2.6 SA8 — Founder Console replaces legacy dashboard at /superadmin */}
       <Route path="/superadmin" element={<AdvisorRoute Page={SuperadminFounderConsole} />} />
-      <Route path="/superadmin/dashboard-legacy" element={<AdvisorRoute Page={SuperadminDashboard} />} />
+      <Route path="/superadmin/dashboard-legacy" element={<SuperadminRoute Page={SuperadminDashboard} />} />
       {/* W2.1 SA2 — Data Sources Hub (replaces legacy /data-sources nav item) */}
-      <Route path="/superadmin/data-sources" element={<AdvisorRoute Page={SuperadminDataSourcesHub} />} />
+      <Route path="/superadmin/data-sources" element={<SuperadminRoute Page={SuperadminDataSourcesHub} />} />
       {/* Legacy IE Engine sources page (kept accessible) */}
-      <Route path="/superadmin/ie-engine-sources" element={<AdvisorRoute Page={DataSourcesPage} />} />
-      <Route path="/superadmin/ie-engine-sources/:id" element={<AdvisorRoute Page={DataSourceDetailPage} />} />
+      <Route path="/superadmin/ie-engine-sources" element={<SuperadminRoute Page={DataSourcesPage} />} />
+      <Route path="/superadmin/ie-engine-sources/:id" element={<SuperadminRoute Page={DataSourceDetailPage} />} />
       {/* Legacy detail still reachable via old path */}
-      <Route path="/superadmin/data-sources/:id" element={<AdvisorRoute Page={DataSourceDetailPage} />} />
-      <Route path="/superadmin/scores" element={<AdvisorRoute Page={ScoresPage} />} />
-      <Route path="/superadmin/documents" element={<AdvisorRoute Page={DocumentsPage} />} />
-      <Route path="/superadmin/drive" element={<AdvisorRoute Page={SuperadminDrivePage} />} />
-      <Route path="/superadmin/observability" element={<AdvisorRoute Page={SuperadminObservabilityPage} />} />
-      <Route path="/superadmin/phase-y-observability" element={<AdvisorRoute Page={SuperadminPhaseYObservability} />} />
-      <Route path="/superadmin/data-sources" element={<AdvisorRoute Page={SuperadminDataSourcesPage} />} />
-      <Route path="/superadmin/audit-log" element={<AdvisorRoute Page={SuperadminAuditLog} />} />
-      <Route path="/superadmin/audit-log-legacy" element={<AdvisorRoute Page={AuditLogPage} />} />
-      <Route path="/superadmin/ai-cost" element={<AdvisorRoute Page={SuperadminAiCost} />} />
-      <Route path="/superadmin/rag-inspector" element={<AdvisorRoute Page={SuperadminRagInspector} />} />
-      <Route path="/superadmin/commercial" element={<AdvisorRoute Page={SuperadminCommercial} />} />
-      <Route path="/superadmin/metrics-cube" element={<AdvisorRoute Page={SuperadminMetricsCube} />} />
-      <Route path="/superadmin/data-lake" element={<AdvisorRoute Page={SuperadminDataLake} />} />
-      <Route path="/superadmin/intelligence-hub" element={<AdvisorRoute Page={SuperadminIntelligenceHub} />} />
-      <Route path="/superadmin/trends" element={<AdvisorRoute Page={SuperadminTrends} />} />
-      <Route path="/superadmin/phase5-foundation" element={<AdvisorRoute Page={SuperadminPhase5Foundation} />} />
-      <Route path="/superadmin/transactions" element={<AdvisorRoute Page={SuperadminTransactionNetwork} />} />
+      <Route path="/superadmin/data-sources/:id" element={<SuperadminRoute Page={DataSourceDetailPage} />} />
+      <Route path="/superadmin/scores" element={<SuperadminRoute Page={ScoresPage} />} />
+      <Route path="/superadmin/documents" element={<SuperadminRoute Page={DocumentsPage} />} />
+      <Route path="/superadmin/drive" element={<SuperadminRoute Page={SuperadminDrivePage} />} />
+      <Route path="/superadmin/observability" element={<SuperadminRoute Page={SuperadminObservabilityPage} />} />
+      <Route path="/superadmin/phase-y-observability" element={<SuperadminRoute Page={SuperadminPhaseYObservability} />} />
+      <Route path="/superadmin/data-sources" element={<SuperadminRoute Page={SuperadminDataSourcesPage} />} />
+      <Route path="/superadmin/audit-log" element={<SuperadminRoute Page={SuperadminAuditLog} />} />
+      <Route path="/superadmin/audit-log-legacy" element={<SuperadminRoute Page={AuditLogPage} />} />
+      <Route path="/superadmin/ai-cost" element={<SuperadminRoute Page={SuperadminAiCost} />} />
+      <Route path="/superadmin/rag-inspector" element={<SuperadminRoute Page={SuperadminRagInspector} />} />
+      <Route path="/superadmin/commercial" element={<SuperadminRoute Page={SuperadminCommercial} />} />
+      <Route path="/superadmin/metrics-cube" element={<SuperadminRoute Page={SuperadminMetricsCube} />} />
+      <Route path="/superadmin/data-lake" element={<SuperadminRoute Page={SuperadminDataLake} />} />
+      <Route path="/superadmin/intelligence-hub" element={<SuperadminRoute Page={SuperadminIntelligenceHub} />} />
+      <Route path="/superadmin/trends" element={<SuperadminRoute Page={SuperadminTrends} />} />
+      <Route path="/superadmin/phase5-foundation" element={<SuperadminRoute Page={SuperadminPhase5Foundation} />} />
+      <Route path="/superadmin/transactions" element={<SuperadminRoute Page={SuperadminTransactionNetwork} />} />
       {/* W3.3 ZZ.3 — DRPI / Bulletins / Investment Explorer */}
-      <Route path="/superadmin/drpi" element={<AdvisorRoute Page={SuperadminDRPI} />} />
-      <Route path="/superadmin/bulletins" element={<AdvisorRoute Page={SuperadminBulletins} />} />
-      <Route path="/superadmin/investment-explorer" element={<AdvisorRoute Page={SuperadminInvestmentExplorer} />} />
+      <Route path="/superadmin/drpi" element={<SuperadminRoute Page={SuperadminDRPI} />} />
+      <Route path="/superadmin/bulletins" element={<SuperadminRoute Page={SuperadminBulletins} />} />
+      <Route path="/superadmin/investment-explorer" element={<SuperadminRoute Page={SuperadminInvestmentExplorer} />} />
       {/* W3.4A ZZ.4 — Fraud Detection + Risk Score */}
-      <Route path="/superadmin/fraud-alerts" element={<AdvisorRoute Page={SuperadminFraudAlerts} />} />
-      <Route path="/superadmin/risk-score" element={<AdvisorRoute Page={SuperadminRiskScore} />} />
-      <Route path="/superadmin/risk-alerts" element={<AdvisorRoute Page={SuperadminRiskAlerts} />} />
+      <Route path="/superadmin/fraud-alerts" element={<SuperadminRoute Page={SuperadminFraudAlerts} />} />
+      <Route path="/superadmin/risk-score" element={<SuperadminRoute Page={SuperadminRiskScore} />} />
+      <Route path="/superadmin/risk-alerts" element={<SuperadminRoute Page={SuperadminRiskAlerts} />} />
       <Route path="/methodology" element={<MethodologyPage />} />
       <Route path="/boletin/:slug/:period" element={<BulletinPage />} />
       {/* W3.5 — Public API + Stripe routes */}
-      <Route path="/superadmin/api-keys" element={<AdvisorRoute Page={SuperadminApiKeys} />} />
+      <Route path="/superadmin/api-keys" element={<SuperadminRoute Page={SuperadminApiKeys} />} />
       <Route path="/docs/api" element={<ApiDocsPage />} />
       {/* W3.6 — Vertical Data Products + Data Licensing */}
-      <Route path="/superadmin/vertical-products" element={<AdvisorRoute Page={SuperadminVerticalProducts} />} />
-      <Route path="/superadmin/data-licensing" element={<AdvisorRoute Page={SuperadminDataLicensing} />} />
+      <Route path="/superadmin/vertical-products" element={<SuperadminRoute Page={SuperadminVerticalProducts} />} />
+      <Route path="/superadmin/data-licensing" element={<SuperadminRoute Page={SuperadminDataLicensing} />} />
       {/* W3.7 — Phase Z.5 Compliance */}
-      <Route path="/superadmin/compliance" element={<AdvisorRoute Page={SuperadminCompliance} />} />
+      <Route path="/superadmin/compliance" element={<SuperadminRoute Page={SuperadminCompliance} />} />
       <Route path="/privacy/dsr" element={<PrivacyDsrPage />} />
       {/* W4.2B — MCP connect page */}
       <Route path="/connect/mcp" element={<ConnectMcpPage />} />
@@ -789,45 +805,45 @@ function AppRouter() {
       <Route path="/alcaldia/:slug" element={<AlcaldiaPage />} />
       <Route path="/cdmx/:intent" element={<CdmxSlugDispatcher />} />
       {/* W4.2D3.5 — Superadmin Landing Leads dashboard */}
-      <Route path="/superadmin/landing-leads" element={<AdvisorRoute Page={SuperadminLandingLeads} />} />
-      <Route path="/superadmin/lead-sources" element={<AdvisorRoute Page={SuperadminLeadSources} />} />
+      <Route path="/superadmin/landing-leads" element={<SuperadminRoute Page={SuperadminLandingLeads} />} />
+      <Route path="/superadmin/lead-sources" element={<SuperadminRoute Page={SuperadminLeadSources} />} />
       {/* W5.11 Parte 2 — Entity resolution + audit chain */}
-      <Route path="/superadmin/duplicates" element={<AdvisorRoute Page={SuperadminDuplicates} />} />
-      <Route path="/superadmin/fraud-patterns" element={<AdvisorRoute Page={SuperadminFraudPatterns} />} />
-      <Route path="/superadmin/audit-chain" element={<AdvisorRoute Page={SuperadminAuditChain} />} />
+      <Route path="/superadmin/duplicates" element={<SuperadminRoute Page={SuperadminDuplicates} />} />
+      <Route path="/superadmin/fraud-patterns" element={<SuperadminRoute Page={SuperadminFraudPatterns} />} />
+      <Route path="/superadmin/audit-chain" element={<SuperadminRoute Page={SuperadminAuditChain} />} />
       {/* W5.FF3 · UI Feature Visibility Matrix */}
-      <Route path="/superadmin/feature-visibility" element={<AdvisorRoute Page={SuperadminFeatureVisibility} />} />
+      <Route path="/superadmin/feature-visibility" element={<SuperadminRoute Page={SuperadminFeatureVisibility} />} />
       {/* W5.25 · Widget Embed Analytics */}
-      <Route path="/superadmin/widget-embeds" element={<AdvisorRoute Page={SuperadminWidgetEmbeds} />} />
+      <Route path="/superadmin/widget-embeds" element={<SuperadminRoute Page={SuperadminWidgetEmbeds} />} />
       {/* W5.16 · Social Cards Renderer */}
-      <Route path="/superadmin/social-cards" element={<AdvisorRoute Page={SuperadminSocialCards} />} />
-      <Route path="/superadmin/knowledge-graph" element={<AdvisorRoute Page={SuperadminKnowledgeGraph} />} />
-      <Route path="/superadmin/live-pulse" element={<AdvisorRoute Page={SuperadminLivePulse} />} />
+      <Route path="/superadmin/social-cards" element={<SuperadminRoute Page={SuperadminSocialCards} />} />
+      <Route path="/superadmin/knowledge-graph" element={<SuperadminRoute Page={SuperadminKnowledgeGraph} />} />
+      <Route path="/superadmin/live-pulse" element={<SuperadminRoute Page={SuperadminLivePulse} />} />
       {/* F0.2·Sub-E — Superadmin Free Audit funnel */}
-      <Route path="/superadmin/free-audit-funnel" element={<AdvisorRoute Page={SuperadminFreeAuditFunnel} />} />
+      <Route path="/superadmin/free-audit-funnel" element={<SuperadminRoute Page={SuperadminFreeAuditFunnel} />} />
       {/* W4.2.5 — Embeddable widgets (standalone, sin Navbar) + Press kit */}
       <Route path="/widgets/score/:slug" element={<ScoreWidgetPage />} />
       <Route path="/widgets/risk/:slug" element={<RiskWidgetPage />} />
       {/* W5.1 — AVM widget embeddable + landing SEO + accuracy dashboard */}
       <Route path="/widgets/avm/:slug" element={<AvmWidgetPage />} />
       <Route path="/valor/:slug" element={<ValorColonia />} />
-      <Route path="/superadmin/avm-accuracy" element={<AdvisorRoute Page={SuperadminAvmAccuracy} />} />
-      <Route path="/superadmin/forecast-accuracy" element={<AdvisorRoute Page={SuperadminForecastAccuracy} />} />
+      <Route path="/superadmin/avm-accuracy" element={<SuperadminRoute Page={SuperadminAvmAccuracy} />} />
+      <Route path="/superadmin/forecast-accuracy" element={<SuperadminRoute Page={SuperadminForecastAccuracy} />} />
       <Route path="/prensa" element={<PrensaPage />} />
       {/* W3.8 — Cross-sell Intelligence */}
-      <Route path="/superadmin/partners" element={<AdvisorRoute Page={SuperadminPartners} />} />
-      <Route path="/superadmin/cross-sell-analytics" element={<AdvisorRoute Page={SuperadminCrossSellAnalytics} />} />
+      <Route path="/superadmin/partners" element={<SuperadminRoute Page={SuperadminPartners} />} />
+      <Route path="/superadmin/cross-sell-analytics" element={<SuperadminRoute Page={SuperadminCrossSellAnalytics} />} />
       <Route path="/widget/bank-avm" element={<BankAvmWidget />} />
       <Route path="/widget/insurance-risk" element={<InsuranceRiskWidget />} />
       <Route path="/widget/notaria-title-check" element={<NotariaTitleWidget />} />
       <Route path="/widget/investor-yield" element={<InvestorYieldWidget />} />
-      <Route path="/superadmin/primitives-demo" element={<AdvisorRoute Page={PrimitivesDemo} />} />
-      <Route path="/superadmin/system-map" element={<AdvisorRoute Page={SystemMapPage} />} />
+      <Route path="/superadmin/primitives-demo" element={<SuperadminRoute Page={PrimitivesDemo} />} />
+      <Route path="/superadmin/system-map" element={<SuperadminRoute Page={SystemMapPage} />} />
       {/* W4.10 — WhatsApp Business + Newsletter Pulse */}
-      <Route path="/superadmin/whatsapp" element={<AdvisorRoute Page={SuperadminWhatsApp} />} />
-      <Route path="/superadmin/newsletter" element={<AdvisorRoute Page={SuperadminNewsletter} />} />
-      <Route path="/superadmin/user-diagnostics" element={<AdvisorRoute Page={UserDiagnosticsPage} />} />
-      <Route path="/superadmin/onboarding-analytics" element={<AdvisorRoute Page={SuperadminOnboardingAnalytics} />} />
+      <Route path="/superadmin/whatsapp" element={<SuperadminRoute Page={SuperadminWhatsApp} />} />
+      <Route path="/superadmin/newsletter" element={<SuperadminRoute Page={SuperadminNewsletter} />} />
+      <Route path="/superadmin/user-diagnostics" element={<SuperadminRoute Page={UserDiagnosticsPage} />} />
+      <Route path="/superadmin/onboarding-analytics" element={<SuperadminRoute Page={SuperadminOnboardingAnalytics} />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
       <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksTrackingPage} />} />
 
@@ -916,6 +932,29 @@ function AdvisorRoute({ Page }) {
   if (!user) {
     // Redirect home (modal will auto-open above on next render)
     return <Navigate to={`/?login=1&next=${encodeURIComponent(location.pathname)}`} replace />;
+  }
+  return <Page user={user} onLogout={logout} />;
+}
+
+// Strict gate: only role=superadmin can render. Defense in depth — pages may
+// also do their own role check; both layers are intentional.
+function SuperadminRoute({ Page }) {
+  const { user, logout, loading, openAuth } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) openAuth('login');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user]);
+
+  if (loading) {
+    return <div style={{ padding: 60, color: '#807e78', textAlign: 'center', fontFamily: 'DM Sans' }}>Cargando…</div>;
+  }
+  if (!user) {
+    return <Navigate to={`/?login=1&next=${encodeURIComponent(location.pathname)}`} replace />;
+  }
+  if (user.role !== 'superadmin') {
+    return <Navigate to="/?reason=admin_only" replace />;
   }
   return <Page user={user} onLogout={logout} />;
 }
