@@ -292,6 +292,11 @@ TOOLS Y PARAMS:
     devuelve: heatmap_summary → {{top_outflow_zones, top_inflow_zones}} · zone → {{detalle completo zona}} · patterns → {{patterns}}
     Usar cuando: user pregunta sobre tendencias climáticas + migración por zona ("¿qué zonas pierden gente por contaminación?", "¿dónde se está mudando la gente en CDMX?", "tendencia migration Roma vs Polanco"). T3 inversionista feature.
 
+36. query_virtual_staging
+    params: {{ "mode": "stats"|"user" (default "stats"), "user_id": str? (req si mode=user) }}
+    devuelve: stats → {{ total, by_style, cache_hit_rate }} · user → {{ user_total, last_used, recent_styles }}
+    Usar cuando: dev pregunta cuántos stagings se han generado · qué estilo es más popular · stats del feature W5.17.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -510,6 +515,8 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_query_tax_projection(db, params)
         if tool_name == "query_climate_migration":
             return await _tool_query_climate_migration(db, params)
+        if tool_name == "query_virtual_staging":
+            return await _tool_query_virtual_staging(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -2975,6 +2982,68 @@ async def _tool_query_climate_migration(db, params: Dict[str, Any]) -> Dict[str,
     except Exception as e:
         log.warning(f"[asistente_tool] query_climate_migration: {e}")
         return {"error": str(e), "source": "climate_migration_engine"}
+
+
+async def _tool_query_virtual_staging(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.17 — Virtual Staging stats tool.
+
+    Modes:
+      - "stats" (default): {total, by_style, cache_hit_rate}
+      - "user": {user_total, last_used, recent_styles} · requires user_id
+    """
+    mode = (params.get("mode") or "stats").strip().lower()
+    try:
+        if mode == "user":
+            user_id = params.get("user_id")
+            if not user_id:
+                return {"error": "user_id required for mode=user"}
+            cursor = db.virtual_staging_cache.find(
+                {"user_id": user_id}
+            ).sort("generated_at", -1).limit(20)
+            docs = await cursor.to_list(length=20)
+            recent_styles: List[str] = []
+            for d in docs:
+                for img in d.get("staged_images", []) or []:
+                    s = img.get("style")
+                    if s:
+                        recent_styles.append(s)
+                if len(recent_styles) >= 10:
+                    break
+            last_used = None
+            if docs:
+                gen = docs[0].get("generated_at")
+                try:
+                    last_used = gen.isoformat() if hasattr(gen, "isoformat") else str(gen)
+                except Exception:
+                    last_used = None
+            return {
+                "user_total": len(docs),
+                "last_used": last_used,
+                "recent_styles": recent_styles[:10],
+            }
+        else:  # stats
+            total = await db.virtual_staging_cache.count_documents({})
+            pipeline = [
+                {"$unwind": "$staged_images"},
+                {"$group": {"_id": "$staged_images.style", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}},
+            ]
+            by_style: Dict[str, int] = {}
+            try:
+                async for d in db.virtual_staging_cache.aggregate(pipeline):
+                    k = d.get("_id")
+                    if k:
+                        by_style[k] = d.get("count", 0)
+            except Exception as agg_e:
+                log.debug(f"[virtual_staging] by_style agg failed: {agg_e}")
+            return {
+                "total": total,
+                "by_style": by_style,
+                "cache_hit_rate": None,  # not tracked yet
+            }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_virtual_staging: {e}")
+        return {"error": str(e), "source": "virtual_staging_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
