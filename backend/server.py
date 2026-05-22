@@ -205,6 +205,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[F7] lead_capture_marketplace_router include failed: {_exc}")
 
+# W5.x F8 — Predictive Alerts (cross-feature signals → asesor feed + email digest)
+try:
+    from routes.predictive_alerts import router as predictive_alerts_router
+    app.include_router(predictive_alerts_router)
+except Exception as _exc:
+    logging.warning(f"[F8] predictive_alerts_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1141,6 +1148,12 @@ async def startup():
         await _lcm_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] lead_capture_marketplace indexes failed: {e}")
+    # W5.x F8 — Predictive Alerts indexes
+    try:
+        from predictive_alerts_engine import ensure_indexes as _pa_indexes
+        await _pa_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] predictive_alerts indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)
@@ -1657,6 +1670,12 @@ async def startup():
             register_external_insights_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W5.20] external_insights startup register failed: {e}")
+        # W5.x F8 — Predictive Alerts: signal_detection (30min) + email_digest (08:00 UTC)
+        try:
+            from predictive_alerts_cron import register_predictive_alerts_jobs
+            register_predictive_alerts_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[F8] predictive_alerts scheduler register failed: {e}")
 
     # Phase 4 Batch 14 — Health Score + Activity + Weekly Brief indexes
     try:

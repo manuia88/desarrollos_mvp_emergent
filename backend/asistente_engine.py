@@ -242,6 +242,11 @@ TOOLS Y PARAMS:
     devuelve: {{ total_count, by_audience_breakdown, top_advisors_3, conversion_rate }}
     Usar cuando: user (developer T3+) pregunte cuántos leads se han capturado, qué audience convierte más, qué asesor está performing mejor, tasa de conversión del marketplace lead capture.
 
+30. query_alerts_summary
+    params: {{ "advisor_id": str? (opcional · si vacío retorna global), "days": int? (default 7, max 90) }}
+    devuelve: {{ total_active, by_tier:{{alta,media,baja}}, by_signal_type, top_5_recent }}
+    Usar cuando: asesor o admin pregunta cuántas alertas predictivas hay activas, qué tipo de signal aparece más (enamorado/decision/enfriando/presupuesto_bajo/re_engaged/abandono_modal/indeciso), qué leads están en momento crítico, top alertas urgentes.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -420,6 +425,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         if tool_name == "query_lead_capture_stats":
             return await _tool_query_lead_capture_stats(
                 db, days=int(params.get("days") or 7),
+            )
+        # W5.x F8 — Tool 30: query_alerts_summary
+        if tool_name == "query_alerts_summary":
+            return await _tool_query_alerts_summary(
+                db,
+                advisor_id=params.get("advisor_id"),
+                days=int(params.get("days") or 7),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -2034,6 +2046,85 @@ async def _tool_query_lead_capture_stats(db, days: int = 7) -> Dict[str, Any]:
         }
     except Exception as e:
         log.warning(f"[asistente_tool] query_lead_capture_stats failed: {e}")
+        return {**empty, "error": str(e)}
+
+
+# W5.x F8 — Tool 30: query_alerts_summary
+async def _tool_query_alerts_summary(db, advisor_id: Optional[str] = None,
+                                       days: int = 7) -> Dict[str, Any]:
+    """Aggregate predictive_alerts últimos N días · global o por advisor.
+
+    Devuelve: {total_active, by_tier:{alta,media,baja}, by_signal_type, top_5_recent}.
+    """
+    days = max(1, min(int(days or 7), 90))
+    empty = {
+        "total_active": 0,
+        "by_tier": {"alta": 0, "media": 0, "baja": 0},
+        "by_signal_type": {},
+        "top_5_recent": [],
+        "days": days,
+        "advisor_id": advisor_id,
+        "source": "predictive_alerts_engine",
+    }
+    if db is None:
+        return empty
+    try:
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+        cutoff = _dt.now(_tz.utc) - _td(days=days)
+        base_filter: Dict[str, Any] = {
+            "status": "active",
+            "created_at": {"$gte": cutoff},
+        }
+        if advisor_id:
+            base_filter["advisor_id"] = advisor_id
+
+        total_active = await db.predictive_alerts.count_documents(base_filter)
+        if total_active == 0:
+            return empty
+
+        by_tier: Dict[str, int] = {"alta": 0, "media": 0, "baja": 0}
+        pipe_tier = [
+            {"$match": base_filter},
+            {"$group": {"_id": "$urgency_tier", "n": {"$sum": 1}}},
+        ]
+        async for row in db.predictive_alerts.aggregate(pipe_tier):
+            tier = row.get("_id") or "baja"
+            if tier in by_tier:
+                by_tier[tier] = int(row.get("n") or 0)
+
+        by_signal: Dict[str, int] = {}
+        pipe_sig = [
+            {"$match": base_filter},
+            {"$group": {"_id": "$signal_type", "n": {"$sum": 1}}},
+        ]
+        async for row in db.predictive_alerts.aggregate(pipe_sig):
+            key = row.get("_id") or "unknown"
+            by_signal[key] = int(row.get("n") or 0)
+
+        top_5: list = []
+        async for a in db.predictive_alerts.find(
+            base_filter,
+            {"_id": 0, "alert_id": 1, "signal_type": 1, "urgency_score": 1,
+             "urgency_tier": 1, "property_id": 1, "property_title": 1,
+             "message": 1, "created_at": 1, "advisor_id": 1, "lead_id": 1},
+            sort=[("urgency_score", -1), ("created_at", -1)],
+        ).limit(5):
+            ts = a.get("created_at")
+            if hasattr(ts, "isoformat"):
+                a["created_at"] = ts.isoformat()
+            top_5.append(a)
+
+        return {
+            "total_active": int(total_active),
+            "by_tier": by_tier,
+            "by_signal_type": by_signal,
+            "top_5_recent": top_5,
+            "days": days,
+            "advisor_id": advisor_id,
+            "source": "predictive_alerts_engine",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_alerts_summary failed: {e}")
         return {**empty, "error": str(e)}
 
 
