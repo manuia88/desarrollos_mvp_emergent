@@ -16,6 +16,8 @@ import RegistrationModal from '../components/dev/RegistrationModal';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
+// W5.x F4 — Narrative Layer LLM (cross-feature storyteller)
+import NarrativeBlockLLM from '../components/NarrativeBlock';
 import { ComplianceBadgeInline } from '../components/marketplace/ComplianceBadge';
 import AvmConfidenceRange from '../components/shared/AvmConfidenceRange';
 import BriefingIEModal from '../components/advisor/BriefingIEModal';
@@ -256,6 +258,11 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           {/* Narrativa AI — N5 (Phase C2) */}
           <section data-testid="dev-narrative-section" style={{ marginTop: 20 }}>
             <NarrativeBlock scope="development" entityId={dev.id} />
+          </section>
+
+          {/* W5.x F4 — Narrative Layer LLM cross-feature (project audience) */}
+          <section data-testid="dev-narrative-layer-section" style={{ marginTop: 20 }}>
+            <NarrativeBlockLLM scope="project" entityId={dev.id} audience="neutral" />
           </section>
 
           {/* Layout */}

@@ -177,6 +177,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[F6] tax_projector_router include failed: {_exc}")
 
+# W5.x F4 — Narrative Layer (LLM cross-feature storyteller)
+try:
+    from routes.narrative import router as narrative_layer_router
+    app.include_router(narrative_layer_router)
+except Exception as _exc:
+    logging.warning(f"[F4] narrative_layer_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1089,6 +1096,12 @@ async def startup():
         await db.studio_property_intakes.create_index([("created_at", -1)])
     except Exception as e:
         logging.warning(f"[startup] studio Z.8.7 property_intake indexes failed: {e}")
+    # W5.x F4 — Narrative Layer indexes
+    try:
+        from narrative_layer_engine import ensure_indexes as _nl_indexes
+        await _nl_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] narrative_layer indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)

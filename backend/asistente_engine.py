@@ -371,6 +371,15 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W5.22 Z.8.5 — Tool 25: landing_adaptive_copy_generate
         if tool_name == "landing_adaptive_copy_generate":
             return await _tool_landing_adaptive_copy(db, params)
+        # W5.x F4 — Tool 26: generate_narrative (Narrative Layer LLM cross-feature)
+        if tool_name == "generate_narrative":
+            return await _tool_generate_narrative(
+                db,
+                scope=params.get("scope") or "project",
+                entity_id=params.get("entity_id") or "",
+                audience=params.get("audience") or "neutral",
+                disc=params.get("disc"),
+            )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1824,6 +1833,41 @@ async def _tool_landing_adaptive_copy(db, params: Dict[str, Any]) -> Dict[str, A
     except Exception as exc:
         log.warning(f"[asistente_tool] landing_adaptive_copy failed: {exc}")
         return {"error": str(exc), "source": "landing_adaptive_copy"}
+
+
+# W5.x F4 — Tool 26: generate_narrative (Narrative Layer LLM cross-feature)
+async def _tool_generate_narrative(
+    db,
+    *,
+    scope: str = "project",
+    entity_id: str = "",
+    audience: str = "neutral",
+    disc: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Invoca narrative_layer_engine.generate y retorna narrative_long + medium + short + citations."""
+    if not entity_id:
+        return {"error": "entity_id requerido"}
+    try:
+        from narrative_layer_engine import generate as nl_generate
+        result = await nl_generate(
+            db,
+            scope=scope,
+            entity_id=entity_id,
+            audience=audience,
+            disc=disc,
+        )
+        return {
+            "narrative_long": result.get("narrative_long", ""),
+            "narrative_medium": result.get("narrative_medium", ""),
+            "narrative_short": result.get("narrative_short", ""),
+            "citations": result.get("citations", []),
+            "confidence": result.get("confidence", 0.0),
+            "fallback": result.get("fallback", False),
+            "source": "narrative_layer_engine",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] generate_narrative failed: {e}")
+        return {"error": str(e), "source": "narrative_layer_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

@@ -3768,6 +3768,27 @@
       }
     }
   },
+  "narrativeLayer": {
+    "title": "Narrativa generada",
+    "loading": "Cargando...",
+    "error_generic": "No fue posible generar la narrativa. Intenta de nuevo.",
+    "refresh": "Regenerar",
+    "copy_long": "Copiar largo",
+    "copy_medium": "Copiar email",
+    "copy_short": "Copiar WhatsApp",
+    "copied": "Copiado",
+    "sources": "Fuentes",
+    "mode_long": "Largo",
+    "mode_medium": "Email",
+    "mode_short": "WhatsApp",
+    "audience_investor": "Inversionista",
+    "audience_family": "Familia",
+    "audience_first_home": "Primera vivienda",
+    "audience_luxury": "Lujo",
+    "audience_boutique": "Boutique",
+    "audience_urgent": "Urgente",
+    "audience_neutral": "Neutral"
+  },
   "taxProjector": {
     "title": "Calculadora Fiscal Inmobiliaria CDMX",
     "subtitle": "ISR vendedor · ISAI comprador · Predial proyectado · costos de cierre · todo en un solo escenario.",
