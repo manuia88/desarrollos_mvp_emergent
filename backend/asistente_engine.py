@@ -380,6 +380,14 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 audience=params.get("audience") or "neutral",
                 disc=params.get("disc"),
             )
+        # W5.x F4.2 — Tool 27: compare_properties (Comparator side-by-side)
+        if tool_name == "compare_properties":
+            return await _tool_compare_properties(
+                db,
+                scope=params.get("scope") or "project",
+                entity_ids=params.get("entity_ids") or [],
+                audience=params.get("audience") or "neutral",
+            )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -1868,6 +1876,34 @@ async def _tool_generate_narrative(
     except Exception as e:
         log.warning(f"[asistente_tool] generate_narrative failed: {e}")
         return {"error": str(e), "source": "narrative_layer_engine"}
+
+
+# W5.x F4.2 — Tool 27: compare_properties (Comparator side-by-side)
+async def _tool_compare_properties(
+    db,
+    *,
+    scope: str = "project",
+    entity_ids: Optional[List[str]] = None,
+    audience: str = "neutral",
+) -> Dict[str, Any]:
+    """Llama comparator_engine.compare y retorna ai_verdict + summary deltas."""
+    ids = entity_ids or []
+    if not (1 <= len(ids) <= 3):
+        return {"error": "entity_ids debe tener entre 1 y 3 elementos"}
+    try:
+        from comparator_engine import compare as cmp_compare
+        result = await cmp_compare(db, scope=scope, entity_ids=ids, audience=audience)
+        if isinstance(result, dict) and result.get("ok") is False:
+            return {"error": result.get("reason", "compare failed")}
+        return {
+            "ai_verdict": result.get("ai_verdict", ""),
+            "deltas_summary": {k: {"best": v.get("best_entity_id"), "pct": v.get("percent_diff_best_vs_worst")} for k, v in (result.get("deltas") or {}).items()},
+            "items_count": len(result.get("items") or []),
+            "source": "comparator_engine",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] compare_properties failed: {e}")
+        return {"error": str(e), "source": "comparator_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

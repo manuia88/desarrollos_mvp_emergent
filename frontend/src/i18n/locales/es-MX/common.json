@@ -3768,6 +3768,33 @@
       }
     }
   },
+  "comparator": {
+    "title": "Comparador de propiedades",
+    "subtitle": "Compara 2 o 3 propiedades lado a lado · datos, fiscal, riesgo y veredicto.",
+    "empty_state": "Aun no agregas propiedades.",
+    "add_property": "Agregar primera propiedad",
+    "search_placeholder": "Busca por nombre o colonia...",
+    "btn_compare": "Comparar",
+    "btn_remove": "Quitar",
+    "audience_label": "Perfil",
+    "audience_investor": "Inversionista",
+    "audience_family": "Familia",
+    "audience_first_home": "Primera vivienda",
+    "audience_luxury": "Lujo",
+    "audience_neutral": "Neutral",
+    "section_specs": "Specs",
+    "section_location": "Ubicacion",
+    "section_finance": "Finanzas",
+    "section_tax": "Cierre fiscal",
+    "section_invest": "Inversion",
+    "section_predial": "Predial",
+    "section_scores": "Scores",
+    "winner_badge": "Mejor",
+    "loading": "Comparando...",
+    "error_generic": "No fue posible generar la comparacion.",
+    "verdict_title": "Veredicto",
+    "max_items_warning": "Maximo 3 propiedades por comparacion."
+  },
   "narrativeLayer": {
     "title": "Narrativa generada",
     "loading": "Cargando...",

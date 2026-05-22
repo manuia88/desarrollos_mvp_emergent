@@ -454,8 +454,36 @@ export default function Marketplace({ user, onLogin, onLogout }) {
                     gap: 20,
                   }}>
                     {developments.map((d, i) => (
-                      <div key={d.id} data-testid="development-card">
+                      <div key={d.id} data-testid="development-card" style={{ position: 'relative' }}>
                         <DevelopmentCard dev={d} index={i} />
+                        {/* W5.x F4.2 — botón "+ Comparar" outline · localStorage basket */}
+                        <button
+                          type="button"
+                          data-testid={`btn-add-compare-${d.id}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              const raw = localStorage.getItem('comparator_basket');
+                              const arr = raw ? JSON.parse(raw) : [];
+                              if (!Array.isArray(arr) || arr.length >= 3) return;
+                              if (arr.some((x) => x.entity_id === d.id)) return;
+                              const next = [...arr, { entity_id: d.id, title: d.name || d.title || d.id }];
+                              localStorage.setItem('comparator_basket', JSON.stringify(next));
+                              window.dispatchEvent(new CustomEvent('comparator_basket_updated', { detail: { count: next.length } }));
+                            } catch { /* ignore */ }
+                          }}
+                          style={{
+                            position: 'absolute', top: 12, right: 12, zIndex: 5,
+                            padding: '6px 14px', borderRadius: 9999,
+                            background: 'rgba(13,16,23,0.85)', border: '1px solid rgba(99,102,241,0.5)',
+                            color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif',
+                            fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
+                            cursor: 'pointer', backdropFilter: 'blur(24px)',
+                          }}
+                        >
+                          + Comparar
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -518,6 +546,9 @@ export default function Marketplace({ user, onLogin, onLogout }) {
         )}
       </main>
 
+      {/* W5.x F4.2 — Comparator basket FAB badge */}
+      <ComparatorBasketFAB />
+
       {/* Image Search Modal */}
       <ImageSearchModal
         open={imgSearchOpen}
@@ -553,5 +584,56 @@ export default function Marketplace({ user, onLogin, onLogout }) {
       <AtlaxBubble />
       <BuyerCoachWidget />
     </div>
+  );
+}
+
+
+// W5.x F4.2 — Comparator basket FAB · muestra count y abre /portal/comparador
+function ComparatorBasketFAB() {
+  const [count, setCount] = React.useState(0);
+  React.useEffect(() => {
+    const read = () => {
+      try {
+        const raw = localStorage.getItem('comparator_basket');
+        const arr = raw ? JSON.parse(raw) : [];
+        setCount(Array.isArray(arr) ? arr.length : 0);
+      } catch { setCount(0); }
+    };
+    read();
+    const onEvt = () => read();
+    window.addEventListener('comparator_basket_updated', onEvt);
+    window.addEventListener('storage', onEvt);
+    return () => {
+      window.removeEventListener('comparator_basket_updated', onEvt);
+      window.removeEventListener('storage', onEvt);
+    };
+  }, []);
+  if (!count) return null;
+  const goCompare = () => {
+    try {
+      const raw = localStorage.getItem('comparator_basket');
+      const arr = raw ? JSON.parse(raw) : [];
+      const ids = (arr || []).map((x) => x.entity_id).join(',');
+      window.location.href = `/portal/comparador?ids=${encodeURIComponent(ids)}`;
+    } catch {
+      window.location.href = '/portal/comparador';
+    }
+  };
+  return (
+    <button
+      type="button"
+      data-testid="comparator-basket-fab"
+      onClick={goCompare}
+      style={{
+        position: 'fixed', bottom: 24, right: 24, zIndex: 50,
+        padding: '12px 22px', borderRadius: 9999, border: 'none',
+        background: 'linear-gradient(90deg, #6366F1, #EC4899)', color: '#FFFFFF',
+        fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 12,
+        letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer',
+        backdropFilter: 'blur(24px)',
+      }}
+    >
+      Comparador ({count})
+    </button>
   );
 }

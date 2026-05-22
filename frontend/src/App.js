@@ -53,6 +53,8 @@ const Simulador = lazy(() => import('./pages/public/Simulador'));
 const NotificationsSettings = lazy(() => import('./pages/portal/NotificationsSettings'));
 // W5.x F6 — Tax/Legal Projector CDMX (publico T0)
 const TaxProjectorPage = lazy(() => import('./pages/portal/tools/TaxProjectorPage'));
+// W5.x F4.2 — Comparator (side-by-side intelligence + tax + verdict)
+const ComparatorPage = lazy(() => import('./pages/portal/tools/ComparatorPage'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -574,6 +576,8 @@ function AppRouter() {
       <Route path="/landing/:slug" element={<Suspense fallback={null}><LandingPublicPage /></Suspense>} />
       {/* W5.x F6 — Tax/Legal Projector CDMX (publico T0 · open calculator) */}
       <Route path="/tools/tax-projector" element={<Suspense fallback={null}><TaxProjectorPage /></Suspense>} />
+      {/* W5.x F4.2 — Comparator side-by-side */}
+      <Route path="/portal/comparador" element={<Suspense fallback={null}><ComparatorPage /></Suspense>} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
