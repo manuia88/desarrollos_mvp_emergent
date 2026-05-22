@@ -63,6 +63,9 @@ const AlertasPage = lazy(() => import('./pages/portal/asesor/AlertasPage'));
 const MoodQuizPage = lazy(() => import('./pages/portal/tools/MoodQuizPage'));
 // W5 cleanup — Superadmin Entity Resolution (dedup queue)
 const SuperadminEntityResolution = lazy(() => import('./pages/superadmin/SuperadminEntityResolution'));
+// W5.9 — Climate Migration (T0 publico + superadmin debug)
+const ClimateMigrationPage = lazy(() => import('./pages/public/ClimateMigrationPage'));
+const SuperadminClimateMigration = lazy(() => import('./pages/superadmin/SuperadminClimateMigration'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -594,6 +597,9 @@ function AppRouter() {
       <Route path="/portal/vibe" element={<Suspense fallback={null}><MoodQuizPage /></Suspense>} />
       {/* W5 cleanup — Superadmin Entity Resolution queue */}
       <Route path="/superadmin/entity-resolution" element={<AdvisorRoute Page={SuperadminEntityResolution} />} />
+      {/* W5.9 — Climate Migration (publico T0 + superadmin debug) */}
+      <Route path="/portal/climate-migration" element={<Suspense fallback={null}><ClimateMigrationPage /></Suspense>} />
+      <Route path="/superadmin/climate-migration" element={<AdvisorRoute Page={SuperadminClimateMigration} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
