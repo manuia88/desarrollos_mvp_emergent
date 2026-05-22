@@ -219,6 +219,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[F11] fit_router include failed: {_exc}")
 
+# W5.x F10 — Mood Engine (quiz 6 preguntas → vector 5D + property mood profiler)
+try:
+    from routes.mood import router as mood_router
+    app.include_router(mood_router)
+except Exception as _exc:
+    logging.warning(f"[F10] mood_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1167,6 +1174,12 @@ async def startup():
         await _fit_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] fit indexes failed: {e}")
+    # W5.x F10 — Mood Engine indexes
+    try:
+        from mood_engine import ensure_indexes as _mood_indexes
+        await _mood_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] mood indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)

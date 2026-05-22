@@ -252,6 +252,11 @@ TOOLS Y PARAMS:
     devuelve: depende de mode — "lead_to_properties": {{properties:[...]}} · "property_to_leads": {{leads:[...]}} · "single": {{score, confidence, breakdown, explanation_short, reasons_top_3}}
     Usar cuando: asesor pregunta "qué propiedad le va a Juan", "quién compraría Polanco Moderno", "compatibilidad entre este lead y esta propiedad", "top matches para X". Score 0-100 sobre 6 dimensiones (presupuesto/audience/búsquedas/comportamiento/ubicación/específicas). Si confidence="tentativa" advertir al usuario que faltan interacciones del lead.
 
+33. query_mood_recommendations
+    params: {{ "visitor_session_id": str (de sessionStorage del visitor · requerido) }}
+    devuelve: {{ mood_vector:{{calm,social,eclectic,modern,connected}}, mood_label, top_matches:[property_ids] }} o {{error}} si el visitor no completó el quiz
+    Usar cuando: user pregunta "qué propiedades me gustan", "match emocional", "vibe", o el contexto sugiere afinidad emocional sobre cuantitativa. Es complementario a tool 31 query_fit_recommendations (que es cuantitativo). Si el visitor no hizo quiz, sugerir que lo complete antes.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -446,6 +451,13 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 lead_id=params.get("lead_id"),
                 property_id=params.get("property_id"),
                 limit=int(params.get("limit") or 5),
+            )
+        # W5.x F10 — Tool 33: query_mood_recommendations
+        if tool_name == "query_mood_recommendations":
+            return await _tool_query_mood_recommendations(
+                db,
+                visitor_session_id=params.get("visitor_session_id"),
+                audience=params.get("audience"),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -2199,6 +2211,47 @@ async def _tool_query_fit_recommendations(
     except Exception as e:
         log.warning(f"[asistente_tool] query_fit_recommendations failed: {e}")
         return {"error": str(e), "mode": mode}
+
+
+# W5.x F10 — Tool 33: query_mood_recommendations
+async def _tool_query_mood_recommendations(
+    db,
+    visitor_session_id: Optional[str] = None,
+    audience: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Lookup último mood_quiz_results del visitor · retorna vector + top matches."""
+    if not visitor_session_id:
+        return {"error": "visitor_session_id requerido",
+                 "source": "mood_engine"}
+    if db is None:
+        return {"error": "no_db", "source": "mood_engine"}
+    try:
+        doc = await db.mood_quiz_results.find_one(
+            {"visitor_session_id": visitor_session_id},
+            {"_id": 0},
+            sort=[("created_at", -1)],
+        )
+        if not doc:
+            return {
+                "error": "user has not completed mood quiz",
+                "visitor_session_id": visitor_session_id,
+                "source": "mood_engine",
+            }
+        ts = doc.get("created_at")
+        if hasattr(ts, "isoformat"):
+            doc["created_at"] = ts.isoformat()
+        return {
+            "visitor_session_id": visitor_session_id,
+            "mood_vector": doc.get("mood_vector"),
+            "mood_label": doc.get("mood_label"),
+            "top_matches": doc.get("top_matches") or [],
+            "created_at": doc.get("created_at"),
+            "audience": audience,
+            "source": "mood_engine",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_mood_recommendations failed: {e}")
+        return {"error": str(e), "source": "mood_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
