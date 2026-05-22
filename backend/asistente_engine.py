@@ -222,6 +222,16 @@ TOOLS Y PARAMS:
     devuelve: {{ payload, sources_breakdown:[{{label, url, frequency, tier, status}}] }}.
     Usar cuando: user pregunta comparativas globales (México vs USA/Mundo) · macro housing (BIS · OECD · FRED) · yields globales (Numbeo · Global Property Guide) · vivienda MX gov (INEGI · SHF · HR Ratings) · narrativa "Beverly Hills vs Polanco" · referencia prensa MX.
 
+26. generate_narrative
+    params: {{ "scope": str ("project"|"unit"|"colonia"|"lead_property"), "entity_id": str (requerido), "audience": str ("investor"|"family"|"first_home"|"luxury"|"boutique"|"urgent"|"neutral"), "disc": str? ("D"|"I"|"S"|"C") }}
+    devuelve: {{ narrative_long, narrative_medium, narrative_short, citations, confidence }}
+    Usar cuando: user pide "redacta un copy", "narrativa persuasiva", "describe la propiedad para mi cliente", o quiere texto adaptado a perfil del lead. Cada output incluye 3 versiones (largo web, medio email, corto WhatsApp).
+
+27. compare_properties
+    params: {{ "scope": str ("project"|"unit"), "entity_ids": list[str] (1-3), "audience": str (same options as 26) }}
+    devuelve: {{ ai_verdict, deltas_summary, items_count }}
+    Usar cuando: user pregunta "comparar X vs Y", "cuál es mejor entre estos proyectos", o quiere un veredicto rápido entre 2-3 propiedades. Devuelve un resumen ejecutivo con la mejor opción por audiencia.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id

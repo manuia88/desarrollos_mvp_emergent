@@ -253,22 +253,69 @@ def _audience_advice(audience: str) -> str:
 
 
 async def generate_ai_verdict(db, items: List[Dict[str, Any]], deltas: Dict[str, Any], audience: str, comparison_key: str) -> str:
-    """Verdict templated · cita top deltas y adapta cierre a audiencia.
+    """Verdict via narrative_layer LLM con custom_facts · fallback templated si LLM falla.
 
-    NOTA: La integracion LLM via narrative_layer requiere scope='comparison' nativo
-    en narrative_layer_engine (TODO Sub-F). Hasta entonces, verdict templated profesional.
+    Estrategia limpia (no contamina collections):
+      - Construye facts dict con summary de items + deltas
+      - Llama narrative_layer.generate con custom_facts=facts · NO consulta Mongo
+      - Si LLM ok → devuelve narrative_long truncado a 150 palabras
+      - Si LLM falla o fallback → devuelve _templated_verdict
     """
     if not items or len(items) < 2 or not deltas:
         return _templated_verdict(items, deltas)
-    parts = []
-    for metric, d in list(deltas.items())[:3]:
+
+    # Construir custom_facts wrapper {value, source} para que el LLM tenga estructura uniforme
+    custom_facts: Dict[str, Any] = {
+        "items_compared": {
+            "value": len(items),
+            "source": "Comparator Engine",
+        },
+    }
+    # Inyectar resumen de cada item
+    for idx, it in enumerate(items):
+        prefix = f"item_{idx + 1}"
+        title = it.get("title") or it.get("entity_id")
+        custom_facts[f"{prefix}_title"] = {"value": title, "source": "Catalog W3"}
+        if it.get("price"):
+            custom_facts[f"{prefix}_price"] = {"value": it["price"], "source": "Catalog W3"}
+        if it.get("score_ie"):
+            custom_facts[f"{prefix}_score_ie"] = {"value": it["score_ie"], "source": "IE Engine W3"}
+        if it.get("closing_total") and not isinstance(it["closing_total"], dict):
+            custom_facts[f"{prefix}_closing"] = {"value": it["closing_total"], "source": "Tax Projector F6"}
+        if it.get("labels"):
+            custom_facts[f"{prefix}_winner_labels"] = {"value": ", ".join(it["labels"]), "source": "Comparator Engine"}
+
+    # Inyectar deltas top-3
+    for idx, (metric, d) in enumerate(list(deltas.items())[:3]):
         best = next((i for i in items if i.get("entity_id") == d["best_entity_id"]), None)
         title = best.get("title") if best else d["best_entity_id"]
-        label_es = LABEL_MAP.get(metric, metric)
-        parts.append(f"{title} destaca en [{label_es}] (+{d['percent_diff_best_vs_worst']}% vs peor opcion)")
-    body = " · ".join(parts)
-    closing = _audience_advice(audience)
-    return f"{body}. {closing}"
+        custom_facts[f"delta_{idx + 1}_{metric}"] = {
+            "value": f"{title} mejor por {d['percent_diff_best_vs_worst']}%",
+            "source": "Comparator Engine",
+        }
+
+    try:
+        from narrative_layer_engine import generate as nl_generate
+        res = await nl_generate(
+            db,
+            scope="comparison",
+            entity_id=f"cmp_{comparison_key}",
+            audience=audience,
+            force_refresh=True,
+            custom_facts=custom_facts,
+            custom_tax_block={},
+        )
+        text = (res or {}).get("narrative_long") or ""
+        if not text or res.get("fallback"):
+            return _templated_verdict(items, deltas)
+        # Trunca a 150 palabras
+        words = text.split()
+        if len(words) > 150:
+            text = " ".join(words[:150]) + "..."
+        return text
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"[compare] ai_verdict via narrative_layer failed: {e}")
+        return _templated_verdict(items, deltas)
 
 
 # ─── Main entry ─────────────────────────────────────────────────────────────

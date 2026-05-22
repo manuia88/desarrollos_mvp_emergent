@@ -11,7 +11,7 @@ import hashlib
 import logging
 import time
 from collections import defaultdict, deque
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
@@ -132,6 +132,53 @@ async def search_by_image(
         "processing_ms": processing_ms,
         "total_found": len(matches),
     }
+
+
+# W5.x F4.2 — Search developments por texto · usado por ComparatorPicker
+import re as _re
+
+_DEV_SEARCH_PROJ = {
+    "_id": 0, "id": 1, "name": 1, "title": 1, "project_name": 1,
+    "colonia": 1, "alcaldia": 1, "price_from": 1, "price_raw": 1,
+    "photo_url": 1, "hero_image": 1, "cover_url": 1,
+}
+
+
+@router.get("/api/marketplace/developments")
+async def search_developments(request: Request, q: str = "", limit: int = 8):
+    """Busca developments por nombre/colonia/alcaldía · retorna shape minimal para picker."""
+    db = request.app.state.db
+    lim = max(1, min(int(limit or 8), 25))
+
+    query: Dict[str, Any] = {}
+    if q and q.strip():
+        safe = _re.escape(q.strip())
+        query = {
+            "$or": [
+                {"name": {"$regex": safe, "$options": "i"}},
+                {"title": {"$regex": safe, "$options": "i"}},
+                {"project_name": {"$regex": safe, "$options": "i"}},
+                {"colonia": {"$regex": safe, "$options": "i"}},
+                {"alcaldia": {"$regex": safe, "$options": "i"}},
+            ]
+        }
+
+    try:
+        cursor = db.developments.find(query, _DEV_SEARCH_PROJ).limit(lim)
+        items: list = []
+        async for d in cursor:
+            items.append({
+                "entity_id": d.get("id"),
+                "title": d.get("name") or d.get("title") or d.get("project_name") or d.get("id"),
+                "colonia": d.get("colonia") or d.get("alcaldia") or "",
+                "price": d.get("price_from") or d.get("price_raw"),
+                "photo_url": d.get("photo_url") or d.get("hero_image") or d.get("cover_url"),
+            })
+        return items
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"[marketplace_search] developments failed: {exc}")
+        return []
+
 
 # W5.FF4 register_feature marker · NO duplicate
 from feature_registry import register_feature as _w5ff4_register_feature

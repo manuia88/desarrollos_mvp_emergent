@@ -177,19 +177,29 @@ async def generate(
     disc: Optional[str] = None,
     force_refresh: bool = False,
     user_id: Optional[str] = None,
+    custom_facts: Optional[Dict[str, Any]] = None,
+    custom_tax_block: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Genera narrative (long/medium/short) para una entidad y audiencia."""
+    """Genera narrative (long/medium/short) para una entidad y audiencia.
+
+    Args:
+        custom_facts: si se pasa, NO consulta collections · usa directamente estos facts.
+                      Útil para scope="comparison" u otros callers que ya tienen los facts pre-collected.
+        custom_tax_block: igual que custom_facts pero para el bloque fiscal.
+    """
     audience = audience if audience in AUDIENCE_PROFILES else "neutral"
 
-    # 1) Cache
-    if not force_refresh:
+    # 1) Cache (skip si custom_facts · estas narrativas son siempre on-demand)
+    if not force_refresh and custom_facts is None:
         hit = await _cache_get(db, scope, entity_id, audience, language, disc)
         if hit:
             hit["cached"] = True
             return hit
 
-    # 2) Facts
-    if scope == "unit":
+    # 2) Facts (custom override > collections reales)
+    if custom_facts is not None:
+        facts = custom_facts
+    elif scope == "unit":
         facts = await collect_for_unit(db, entity_id)
     elif scope == "project":
         facts = await collect_for_project(db, entity_id)
@@ -206,11 +216,14 @@ async def generate(
         facts = {}
 
     # 3) Tax block (Sub-D)
-    try:
-        tax_block = await collect_tax_block(db, scope, entity_id, audience)
-    except Exception as e:  # noqa: BLE001
-        log.warning(f"[narrative_layer] tax_block failed: {e}")
-        tax_block = {}
+    if custom_tax_block is not None:
+        tax_block = custom_tax_block
+    else:
+        try:
+            tax_block = await collect_tax_block(db, scope, entity_id, audience)
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"[narrative_layer] tax_block failed: {e}")
+            tax_block = {}
 
     # 4) Prompt
     prompts = build_prompt(audience, disc, facts, tax_block, language)
@@ -306,7 +319,9 @@ async def generate(
         "tax_block_used": bool(tax_block),
     }
 
-    await _cache_set(db, payload)
+    # Skip cache si custom_facts (narrativas on-demand · no contaminamos cache)
+    if custom_facts is None:
+        await _cache_set(db, payload)
     payload["cached"] = False
     return payload
 
