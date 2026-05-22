@@ -66,6 +66,8 @@ const SuperadminEntityResolution = lazy(() => import('./pages/superadmin/Superad
 // W5.9 — Climate Migration (T0 publico + superadmin debug)
 const ClimateMigrationPage = lazy(() => import('./pages/public/ClimateMigrationPage'));
 const SuperadminClimateMigration = lazy(() => import('./pages/superadmin/SuperadminClimateMigration'));
+// W5.17 — Virtual Staging IA (Studio dev tool)
+const VirtualStagingPage = lazy(() => import('./pages/portal/studio/VirtualStagingPage'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -600,6 +602,8 @@ function AppRouter() {
       {/* W5.9 — Climate Migration (publico T0 + superadmin debug) */}
       <Route path="/portal/climate-migration" element={<Suspense fallback={null}><ClimateMigrationPage /></Suspense>} />
       <Route path="/superadmin/climate-migration" element={<AdvisorRoute Page={SuperadminClimateMigration} />} />
+      {/* W5.17 — Virtual Staging IA (Studio · protegido dev T1+) */}
+      <Route path="/portal/studio/staging" element={<AdvisorRoute Page={VirtualStagingPage} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
