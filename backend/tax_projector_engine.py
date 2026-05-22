@@ -111,11 +111,33 @@ VULNERABLE_VALOR_CATASTRAL_LIMITE = 2_808_466.00  # 2026
 VULNERABLE_CUOTA_FIJA_BIMESTRAL = 68.00           # $68 × 6 = $408 anual fijo
 VULNERABLE_DESCUENTO_EXCEDE_PCT = 0.30            # 30% off si excede el límite
 
-# Closing cost percentages (sobre precio_venta · servicios sujetos a IVA 16%)
-NOTARIO_FEE_PCT = 1.0
-AVALUO_FEE_PCT = 0.25
-GESTORIAS_FEE_PCT = 0.25
-REGISTRO_FEE_PCT = 0.30
+# ─── Closing costs · defaults vs tabla oficial ───────────────────────────────
+# Honorarios notariales · Arancel CDMX 2026 (Gaceta Oficial 30-enero-2026, Numeral 14)
+# RANGO: 0.7% - 1.2% sobre valor de operación · arancel marca el MÁXIMO, negociable
+NOTARIO_FEE_PCT = 1.0  # mid-range default (negociable por user)
+
+# Avalúo · servicio libre · rango típico mercado CDMX 2026
+AVALUO_FEE_PCT = 0.15  # 0.15% del valor · piso $5,000 · sin techo (alta gama puede exceder $20k)
+AVALUO_FLOOR = 5_000.0
+
+# Gestorías y certificados · libertad gravamen + no adeudo predial/agua + zonificación
+# Rango mercado CDMX 2026: $5,000 - $15,000 · default mid
+GESTORIAS_DEFAULT_MXN = 10_000.0
+
+# ─── Crédito hipotecario · costos adicionales ──────────────────────────────
+# Escritura de hipoteca · honorarios notariales sobre monto del crédito (IVA aplica)
+HIPOTECA_NOTARIO_PCT = 0.3   # 0.3% del monto del crédito (rango mercado CDMX 2026)
+# RPP inscripción hipoteca · misma cuota fija que transmisión (Art. 196 frac I.c CFCDMX)
+
+# RPP Derechos · Art. 196 CFCDMX 2026 (TABLA OFICIAL · NO negociable)
+# FUENTE: Código Fiscal CDMX, Art. 196 fracción I.a (inscripción transmisión propiedad)
+# Para inmuebles > vivienda interés social: cuota fija (no porcentaje)
+# Cuota 2024 base $19,774 · ajustada 2026 con inflación acumulada 22.14% → $24,143
+# Verificado contra cotización notario 30-abril-2026 ($25,098 incluye certificados)
+RPP_CUOTA_TRANSMISION_2026 = 24_143.00   # Art. 196 frac I.a · inmuebles arriba interés social
+RPP_CUOTA_BASE_2026 = 2_411.00            # Art. 196 párrafo 1 · cuota general
+RPP_VIVIENDA_INTERES_SOCIAL_2026 = 2_300_000.00  # Umbral interés social CDMX 2026
+
 IVA_PCT = 16.0
 
 # Depreciacion construccion: 3% por anio · cap acumulado 80%
@@ -128,11 +150,13 @@ PREDIAL_FACTOR_ANUAL = 1.06
 
 # ─── Helpers internos ────────────────────────────────────────────────────────
 def _parse_ymd(text: str) -> datetime:
-    """Parse YYYY-MM-DD a datetime · acepta tambien ISO completo."""
+    """Parse YYYY-MM-DD o YYYY a datetime · si solo año, usa enero 1."""
     if isinstance(text, datetime):
         return text
-    s = str(text)[:10]
-    return datetime.strptime(s, "%Y-%m-%d")
+    s = str(text).strip()
+    if len(s) == 4 and s.isdigit():
+        return datetime(int(s), 1, 1)
+    return datetime.strptime(s[:10], "%Y-%m-%d")
 
 
 def _inpc_for(date: datetime) -> float:
@@ -170,19 +194,18 @@ def _inpc_for(date: datetime) -> float:
 
 
 def _aplicar_tarifa(base: float, brackets: List[Dict[str, float]]) -> Dict[str, float]:
-    """Aplica tarifa progresiva · retorna {impuesto, bracket_idx, excedente, marginal_pct}."""
+    """Aplica tarifa progresiva · retorna {impuesto, bracket_idx, limite_inferior, limite_superior, cuota_fija, excedente, marginal_pct}."""
     if base <= 0:
-        return {"impuesto": 0.0, "bracket_idx": 0, "excedente": 0.0, "marginal_pct": 0.0}
+        return {"impuesto": 0.0, "bracket_idx": 0, "limite_inferior": 0.0, "limite_superior": 0.0, "cuota_fija": 0.0, "excedente": 0.0, "marginal_pct": 0.0}
     for i, b in enumerate(brackets):
         if b["limite_inferior"] <= base <= b["limite_superior"]:
             excedente = base - b["limite_inferior"]
             impuesto = b["cuota_fija"] + (excedente * b["marginal_pct"] / 100.0)
-            return {"impuesto": round(impuesto, 2), "bracket_idx": i, "excedente": round(excedente, 2), "marginal_pct": b["marginal_pct"]}
-    # Si no encaja (no deberia con limite 1e18), usar ultimo
+            return {"impuesto": round(impuesto, 2), "bracket_idx": i, "limite_inferior": round(b["limite_inferior"], 2), "limite_superior": round(b["limite_superior"], 2), "cuota_fija": round(b["cuota_fija"], 2), "excedente": round(excedente, 2), "marginal_pct": b["marginal_pct"]}
     last = brackets[-1]
     excedente = base - last["limite_inferior"]
     impuesto = last["cuota_fija"] + (excedente * last["marginal_pct"] / 100.0)
-    return {"impuesto": round(impuesto, 2), "bracket_idx": len(brackets) - 1, "excedente": round(excedente, 2), "marginal_pct": last["marginal_pct"]}
+    return {"impuesto": round(impuesto, 2), "bracket_idx": len(brackets) - 1, "limite_inferior": round(last["limite_inferior"], 2), "limite_superior": round(last["limite_superior"], 2), "cuota_fija": round(last["cuota_fija"], 2), "excedente": round(excedente, 2), "marginal_pct": last["marginal_pct"]}
 
 
 # ─── Funciones publicas ──────────────────────────────────────────────────────
@@ -210,11 +233,11 @@ def calculate_isr_vendedor(
         if precio_compra <= 0 or precio_venta <= 0:
             return {"ok": False, "reason": "Precios deben ser positivos"}
         if not (0.05 <= terreno_pct <= 0.5):
-            return {"ok": False, "reason": "terreno_pct fuera de rango (0.05 - 0.5)"}
+            return {"ok": False, "reason": "Porcentaje de terreno fuera de rango (5% - 50%)"}
         d_compra = _parse_ymd(fecha_compra)
         d_venta = _parse_ymd(fecha_venta)
         if d_venta <= d_compra:
-            return {"ok": False, "reason": "fecha_venta debe ser posterior a fecha_compra"}
+            return {"ok": False, "reason": "La fecha de venta debe ser posterior a la fecha de compra"}
 
         anios = max(1, min(20, int((d_venta - d_compra).days / 365.25)))
         inpc_compra = _inpc_for(d_compra)
@@ -303,6 +326,9 @@ def calculate_isai_comprador(
                 "valor_catastral": round(valor_catastral, 2),
                 "base_usada": "precio_venta" if precio_venta >= valor_catastral else "valor_catastral",
                 "bracket_idx": tarifa["bracket_idx"],
+                "limite_inferior": tarifa["limite_inferior"],
+                "limite_superior": tarifa["limite_superior"],
+                "cuota_fija": tarifa["cuota_fija"],
                 "marginal_pct": tarifa["marginal_pct"],
                 "excedente": tarifa["excedente"],
                 "tasa_efectiva_pct": tasa_efectiva,
@@ -338,7 +364,7 @@ def project_predial_10y(
     """
     try:
         if valor_catastral <= 0 and not predial_anual_actual:
-            return {"ok": False, "reason": "valor_catastral o predial_anual_actual requeridos"}
+            return {"ok": False, "reason": "Valor Catastral o Predial Anual Actual requeridos"}
 
         items: List[Dict[str, Any]] = []
         modo = "user_actual" if predial_anual_actual and predial_anual_actual > 0 else "tabla_oficial"
@@ -415,25 +441,71 @@ def project_predial_10y(
         return {"ok": False, "reason": str(e)}
 
 
+def _calcular_rpp_derechos(valor: float) -> Dict[str, Any]:
+    """Derechos RPP · Art. 196 CFCDMX 2026 · tabla oficial (NO negociable).
+
+    Fracción I.a: inscripción de transmisión de propiedad · cuota $19,774 (2024) → $24,143 (2026)
+    Fracción II: si valor ≤ vivienda interés social, aplica cuota base $2,411
+                 · si valor ≤ 2× interés social, aumenta 2 tantos por cada 25% adicional
+    """
+    if valor <= 0:
+        return {"monto": RPP_CUOTA_BASE_2026, "regla": "cuota_base", "fuente": "Art. 196 párrafo 1 CFCDMX"}
+    if valor <= RPP_VIVIENDA_INTERES_SOCIAL_2026:
+        return {"monto": RPP_CUOTA_BASE_2026, "regla": "interes_social", "fuente": "Art. 196 frac II CFCDMX"}
+    if valor <= 2 * RPP_VIVIENDA_INTERES_SOCIAL_2026:
+        pct_excedente = (valor - RPP_VIVIENDA_INTERES_SOCIAL_2026) / RPP_VIVIENDA_INTERES_SOCIAL_2026
+        tantos = int(pct_excedente / 0.25) * 2
+        monto = RPP_CUOTA_BASE_2026 * (1 + tantos)
+        return {"monto": round(monto, 2), "regla": "progresivo", "fuente": "Art. 196 frac II CFCDMX"}
+    return {"monto": RPP_CUOTA_TRANSMISION_2026, "regla": "transmision_inmueble", "fuente": "Art. 196 frac I.a CFCDMX"}
+
+
 def calculate_closing_cost_total(
     precio_venta: float,
     valor_catastral: float,
     year: int = 2026,
+    con_credito_hipotecario: bool = False,
+    monto_credito: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Costo total de cierre comprador · ISAI + notario + avaluo + gestorias + registro + IVA."""
+    """Costo total de cierre comprador · ISAI + RPP + avalúo + gestorías + notario + IVA.
+
+    Si con_credito_hipotecario, suma escritura hipoteca + RPP hipoteca + IVA hipoteca.
+    monto_credito default = 80% del precio_venta (LTV típico CDMX 2026).
+    """
     try:
         if precio_venta <= 0:
-            return {"ok": False, "reason": "precio_venta debe ser positivo"}
+            return {"ok": False, "reason": "El precio de venta debe ser mayor a cero"}
         isai_res = calculate_isai_comprador(precio_venta, valor_catastral, year=year)
         isai = isai_res.get("isai", 0.0) if isai_res.get("ok") else 0.0
 
+        base_valor = max(precio_venta, valor_catastral)
         notario_fees = round(precio_venta * NOTARIO_FEE_PCT / 100.0, 2)
-        avaluo = round(precio_venta * AVALUO_FEE_PCT / 100.0, 2)
-        gestorias = round(precio_venta * GESTORIAS_FEE_PCT / 100.0, 2)
-        registro = round(precio_venta * REGISTRO_FEE_PCT / 100.0, 2)
-        servicios_subtotal = notario_fees + avaluo + gestorias + registro
-        iva = round(servicios_subtotal * IVA_PCT / 100.0, 2)
-        total = round(isai + notario_fees + avaluo + gestorias + registro + iva, 2)
+        avaluo_calc = precio_venta * AVALUO_FEE_PCT / 100.0
+        avaluo = round(max(AVALUO_FLOOR, avaluo_calc), 2)
+        gestorias = GESTORIAS_DEFAULT_MXN
+        rpp_calc = _calcular_rpp_derechos(base_valor)
+        registro = rpp_calc["monto"]
+        iva = round(notario_fees * IVA_PCT / 100.0, 2)
+
+        hipoteca: Dict[str, Any] = {"aplica": False}
+        hipoteca_total = 0.0
+        if con_credito_hipotecario:
+            credito = float(monto_credito) if (monto_credito and monto_credito > 0) else round(precio_venta * 0.80, 2)
+            hip_notario = round(credito * HIPOTECA_NOTARIO_PCT / 100.0, 2)
+            hip_rpp = RPP_CUOTA_TRANSMISION_2026
+            hip_iva = round(hip_notario * IVA_PCT / 100.0, 2)
+            hipoteca_total = round(hip_notario + hip_rpp + hip_iva, 2)
+            hipoteca = {
+                "aplica": True,
+                "monto_credito": credito,
+                "ltv_pct": round((credito / precio_venta * 100.0), 2),
+                "notario_fees": hip_notario,
+                "rpp_inscripcion": hip_rpp,
+                "iva": hip_iva,
+                "total": hipoteca_total,
+            }
+
+        total = round(isai + notario_fees + avaluo + gestorias + registro + iva + hipoteca_total, 2)
 
         return {
             "ok": True,
@@ -443,19 +515,22 @@ def calculate_closing_cost_total(
             "gestorias": gestorias,
             "registro": registro,
             "iva": iva,
+            "hipoteca": hipoteca,
             "total": total,
             "breakdown": {
                 "precio_venta": round(precio_venta, 2),
                 "valor_catastral": round(valor_catastral, 2),
                 "year": year,
-                "servicios_subtotal": round(servicios_subtotal, 2),
+                "iva_nota": "IVA 16% solo sobre honorarios notariales",
                 "isai_pct_of_total": round((isai / total * 100.0) if total > 0 else 0.0, 2),
+                "rpp_regla": rpp_calc["regla"],
+                "rpp_fuente": rpp_calc["fuente"],
                 "rates": {
-                    "notario_pct": NOTARIO_FEE_PCT,
-                    "avaluo_pct": AVALUO_FEE_PCT,
-                    "gestorias_pct": GESTORIAS_FEE_PCT,
-                    "registro_pct": REGISTRO_FEE_PCT,
+                    "notario_pct_default": NOTARIO_FEE_PCT,
+                    "avaluo_pct_default": AVALUO_FEE_PCT,
+                    "gestorias_default_mxn": GESTORIAS_DEFAULT_MXN,
                     "iva_pct": IVA_PCT,
+                    "hipoteca_notario_pct": HIPOTECA_NOTARIO_PCT,
                 },
             },
         }
