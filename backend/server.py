@@ -191,6 +191,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[F4.2] compare_router include failed: {_exc}")
 
+# W5.x F5 — Reverse Search (NL query → ranked catalog · público T0 · LLM parser)
+try:
+    from routes.reverse_search import router as reverse_search_router
+    app.include_router(reverse_search_router)
+except Exception as _exc:
+    logging.warning(f"[F5] reverse_search_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1115,6 +1122,12 @@ async def startup():
         await _cmp_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] comparator indexes failed: {e}")
+    # W5.x F5 — Reverse Search indexes
+    try:
+        from reverse_search_engine import ensure_indexes as _rs_indexes
+        await _rs_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] reverse_search indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)

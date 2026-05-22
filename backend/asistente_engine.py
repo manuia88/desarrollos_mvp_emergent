@@ -232,6 +232,11 @@ TOOLS Y PARAMS:
     devuelve: {{ ai_verdict, deltas_summary, items_count }}
     Usar cuando: user pregunta "comparar X vs Y", "cuál es mejor entre estos proyectos", o quiere un veredicto rápido entre 2-3 propiedades. Devuelve un resumen ejecutivo con la mejor opción por audiencia.
 
+28. reverse_search
+    params: {{ "text": str (query lenguaje natural, max 500 chars), "audience": str? (investor|family|first_home|luxury|boutique|neutral), "limit": int? (default 5, max 20) }}
+    devuelve: {{ results: [{{entity_id, title, match_score, explanation, sources}}], parsed: {{hard_filters, soft_criteria, negative_criteria, buyer_intent}} }}
+    Usar cuando: user describe propiedad en lenguaje natural ("busco depto", "quiero algo en Polanco", "para mi familia con escuelas"). Parser LLM extrae filtros duros + blandos + negativos. NO uses tools 1-10 si query es descriptivo · usa reverse_search.
+
 ══ PROBABILITY UX (tool 20 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -397,6 +402,14 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
                 scope=params.get("scope") or "project",
                 entity_ids=params.get("entity_ids") or [],
                 audience=params.get("audience") or "neutral",
+            )
+        # W5.x F5 — Tool 28: reverse_search (NL query → ranked catalog)
+        if tool_name == "reverse_search":
+            return await _tool_reverse_search(
+                db,
+                text=params.get("text") or "",
+                audience=params.get("audience"),
+                limit=int(params.get("limit") or 5),
             )
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
@@ -1914,6 +1927,39 @@ async def _tool_compare_properties(
     except Exception as e:
         log.warning(f"[asistente_tool] compare_properties failed: {e}")
         return {"error": str(e), "source": "comparator_engine"}
+
+
+# W5.x F5 — Tool 28: reverse_search (NL query → ranked catalog · LLM parser)
+async def _tool_reverse_search(
+    db,
+    *,
+    text: str = "",
+    audience: Optional[str] = None,
+    limit: int = 5,
+) -> Dict[str, Any]:
+    """Llama reverse_search_engine.generate · retorna shape compacto para Copilot."""
+    if not text or not str(text).strip():
+        return {"error": "text requerido", "source": "reverse_search_engine"}
+    try:
+        from reverse_search_engine import generate as rs_generate
+        limit = max(1, min(int(limit or 5), 20))
+        result = await rs_generate(
+            db,
+            text=str(text).strip(),
+            audience=audience,
+            language="es-MX",
+            limit=limit,
+            force_refresh=False,
+        )
+        return {
+            "results": result.get("results", []),
+            "parsed": result.get("parsed", {}),
+            "cached": result.get("cached", False),
+            "source": "reverse_search_engine",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] reverse_search failed: {e}")
+        return {"error": str(e), "source": "reverse_search_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
