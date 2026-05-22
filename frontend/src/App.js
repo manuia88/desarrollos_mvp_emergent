@@ -59,6 +59,8 @@ const ComparatorPage = lazy(() => import('./pages/portal/tools/ComparatorPage'))
 const ReverseSearchPage = lazy(() => import('./pages/portal/tools/ReverseSearchPage'));
 // W5.x F8 — Predictive Alerts dashboard (asesor)
 const AlertasPage = lazy(() => import('./pages/portal/asesor/AlertasPage'));
+// W5.x F10 — Mood/Vibe Quiz (publico T0)
+const MoodQuizPage = lazy(() => import('./pages/portal/tools/MoodQuizPage'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -586,6 +588,8 @@ function AppRouter() {
       <Route path="/portal/buscar" element={<Suspense fallback={null}><ReverseSearchPage /></Suspense>} />
       {/* W5.x F8 — Predictive Alerts dashboard (asesor · protegido) */}
       <Route path="/portal/asesor/alertas" element={<AdvisorRoute Page={AlertasPage} />} />
+      {/* W5.x F10 — Mood/Vibe Quiz (publico T0) */}
+      <Route path="/portal/vibe" element={<Suspense fallback={null}><MoodQuizPage /></Suspense>} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
