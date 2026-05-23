@@ -96,6 +96,7 @@ const ASESOR_NAV = [
     items: [
       { key: 'comisiones',   to: '/asesor/comisiones',                   label: 'Comisiones',       Icon: DollarSign },
       { key: 'ranking',      to: '/asesor/ranking',                      label: 'Ranking',          Icon: Trophy },
+      { key: 'soc-asesor',   to: '/portal/asesor/soc',                   label: 'SOC Certificación', Icon: Trophy },
       { key: 'studio',       to: '/asesor/studio',                       label: 'Studio · Director IA', Icon: Sparkles },
       { key: 'studio-video', to: '/portal/asesor/studio-video',          label: 'Studio · Video',   Icon: Video },
       { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
@@ -186,6 +187,8 @@ const SUPERADMIN_NAV = [
       { key: 'documents',    to: '/superadmin/documents',    label: 'Documentos',       Icon: FileText },
       { key: 'data-lake',    to: '/superadmin/data-lake',    label: 'Data Lake',        Icon: Database },
       { key: 'metrics-cube', to: '/superadmin/metrics-cube', label: 'Cubo de métricas', Icon: Layers },
+      // ─ W6.MOV.2 · Gov Data MX External Sources (3 tracks) ─
+      { key: 'gov-data-mx',  to: '/superadmin/gov-data-mx',  label: 'Gov Data MX',      Icon: Database },
     ],
   },
   {
@@ -208,6 +211,8 @@ const SUPERADMIN_NAV = [
       { key: 'live-pulse',        to: '/superadmin/live-pulse',        label: 'Live Pulse',        Icon: Activity },
       // ─ W6.MOV.5 · Construction Quality Index ─
       { key: 'construction-quality', to: '/superadmin/construction-quality', label: 'Construction Quality', Icon: ShieldCheck },
+      // ─ W6.MOV.3 · Reviews Residentes ─
+      { key: 'reviews-residents', to: '/superadmin/reviews-residents', label: 'Reviews Residentes', Icon: MessageSquare },
     ],
   },
   // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─
@@ -243,6 +248,8 @@ const SUPERADMIN_NAV = [
       { key: 'vertical-products', to: '/superadmin/vertical-products',     label: 'Productos verticales', Icon: Boxes },
       { key: 'data-licensing',    to: '/superadmin/data-licensing',        label: 'Data Licensing',     Icon: Briefcase },
       { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell',         Icon: HeartHandshake },
+      // ─ W6.MOV.1 · SOC Franchise (Sistema Operación Certificado) ─
+      { key: 'soc-franchise',     to: '/superadmin/soc-franchise',         label: 'SOC Franchise',      Icon: Trophy },
     ],
   },
   // ─── tier 6 · CRECIMIENTO teal · 2026-05-18 sidebar fix ───────────────────────────────
