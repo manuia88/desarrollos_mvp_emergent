@@ -13,7 +13,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request, Body
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from construction_quality_engine import (
     compute_quality_index,
@@ -31,6 +31,14 @@ class ManualOverrideBody(BaseModel):
     score: Optional[float] = Field(None, ge=0, le=100, description="Override 0-100 · None elimina override")
     reason: Optional[str] = Field(None, max_length=500)
 
+    @model_validator(mode="after")
+    def _require_reason_when_setting_score(self):
+        # J.2 audit · reason obligatorio (≥10 chars) cuando se pin un score · cuando score=None (remove) reason puede ser vacío
+        if self.score is not None:
+            if not self.reason or len(self.reason.strip()) < 10:
+                raise ValueError("reason requerido (min 10 chars) cuando score!=None · justifica el override para audit")
+        return self
+
 
 @router.get("/api/construction-quality/{development_id}")
 async def get_quality(request: Request, development_id: str):
@@ -47,7 +55,7 @@ async def get_quality(request: Request, development_id: str):
 async def list_quality(
     request: Request,
     min_score: Optional[float] = Query(None, ge=0, le=100),
-    tier: Optional[str] = Query(None, regex="^(excelente|bueno|regular|deficiente)$"),
+    tier: Optional[str] = Query(None, pattern="^(excelente|bueno|regular|deficiente)$"),
     limit: int = Query(50, ge=1, le=200),
     skip: int = Query(0, ge=0),
 ):

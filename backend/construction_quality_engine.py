@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from datetime import datetime, timezone, timedelta
+import os
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 log = logging.getLogger("dmx.construction_quality_engine")
@@ -35,7 +36,9 @@ DIMENSION_WEIGHTS = {
     "cronograma": 0.25,
 }
 
-CACHE_TTL_DAYS = 7
+# Cache TTL parametrizable via env (J.4 audit forense) · default 3d reduce staleness
+# Cron weekly resetea todo cada lunes 02:00 UTC con use_cache=False (J.1 mitigado)
+CACHE_TTL_DAYS = int(os.environ.get("CONSTRUCTION_QUALITY_CACHE_TTL_DAYS", "3"))
 INDEX_VERSION = "1.0.0"
 
 # Score thresholds for tier label
