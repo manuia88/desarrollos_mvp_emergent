@@ -282,6 +282,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[W6.MOV.4] marketing_mcp_router include failed: {_exc}")
 
+# W6.4 — Marketplace Templates (publish + clone + revenue + moderation · 11 endpoints)
+try:
+    from routes.marketplace_templates import router as marketplace_templates_router
+    app.include_router(marketplace_templates_router)
+except Exception as _exc:
+    logging.warning(f"[W6.4] marketplace_templates_router include failed: {_exc}")
+
 # W6.5 — Project Wizard duplication (3 endpoints · dev/superadmin)
 try:
     from routes.project_wizard import router as project_wizard_router
@@ -1855,6 +1862,12 @@ async def startup():
             await marketing_mcp_ensure_indexes(db)
         except Exception as e:
             logging.warning(f"[W6.MOV.4] marketing_mcp startup register failed: {e}")
+        # W6.4 — Marketplace Templates: indexes (templates + clones + ratings + cache TTL)
+        try:
+            from marketplace_templates_engine import ensure_indexes as mt_ensure_indexes
+            await mt_ensure_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W6.4] marketplace_templates startup register failed: {e}")
         # W6.5 — Project Wizard: indexes (duplicate history)
         try:
             from project_wizard_engine import ensure_indexes as project_wizard_ensure_indexes

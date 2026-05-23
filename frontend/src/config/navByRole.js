@@ -112,6 +112,8 @@ const ASESOR_NAV = [
       { key: 'links',        to: '/asesor/links-tracking',               label: 'Links tracking',   Icon: Link },
       { key: 'cma',          to: '/asesor/cma',                          label: 'CMA · Análisis comparativo', Icon: BarChart3 },
       { key: 'lead-aliases', to: '/asesor/lead-aliases',                 label: 'Conectar fuentes leads', Icon: Plug },
+      // W6.4 · Marketplace Templates de workflows
+      { key: 'marketplace-templates', to: '/portal/asesor/marketplace-templates', label: 'Marketplace Plantillas', Icon: Layers },
     ],
   },
 ];
@@ -252,6 +254,8 @@ const SUPERADMIN_NAV = [
       { key: 'cross-sell',        to: '/superadmin/cross-sell-analytics',  label: 'Cross-sell',         Icon: HeartHandshake },
       // ─ W6.MOV.1 · SOC Franchise (Sistema Operación Certificado) ─
       { key: 'soc-franchise',     to: '/superadmin/soc-franchise',         label: 'SOC Franchise',      Icon: Trophy },
+      // ─ W6.4 · Marketplace Templates (moderación + revenue split) ─
+      { key: 'marketplace-templates', to: '/superadmin/marketplace-templates', label: 'Marketplace Templates', Icon: Layers },
     ],
   },
   // ─── tier 6 · CRECIMIENTO teal · 2026-05-18 sidebar fix ───────────────────────────────

@@ -4783,5 +4783,110 @@
       "rationaleTitle": "Análisis IA",
       "noRationale": "Sin rationale disponible"
     }
+  },
+  "marketplaceTemplates": {
+    "title": "Plantillas de Workflows · DMX Marketplace",
+    "subtitle": "Reutiliza workflows probados por otros asesores · publica los tuyos y gana ingresos.",
+    "publishCta": "Publicar plantilla",
+    "useTemplate": "Usar plantilla",
+    "downloads": "descargas",
+    "noDescription": "Sin descripción",
+    "author": "Autor",
+    "rateThis": "Calificar (requiere clonar primero)",
+    "rateBtn": "Calificar",
+    "rateOk": "¡Gracias por tu calificación!",
+    "commentPlaceholder": "Comentario opcional",
+    "category": {
+      "nurture": "Nurture",
+      "post-visita": "Post-visita",
+      "win-back": "Win-back",
+      "custom": "Custom"
+    },
+    "tier": {
+      "free": "Gratis",
+      "pro": "Pro",
+      "enterprise": "Enterprise"
+    },
+    "price": {
+      "free": "Gratis",
+      "label": "Precio"
+    },
+    "sort": {
+      "popular": "Más populares",
+      "recent": "Recientes",
+      "rating": "Mejor calificadas"
+    },
+    "filter": {
+      "allCategories": "Todas",
+      "anyPrice": "Cualquier precio"
+    },
+    "status": {
+      "approved": "Aprobada",
+      "pending_review": "En revisión",
+      "rejected": "Rechazada",
+      "draft": "Borrador"
+    },
+    "revenue": {
+      "clones": "Clones",
+      "earned": "Ganado",
+      "published": "Publicados"
+    },
+    "empty": {
+      "title": "Catálogo en crecimiento",
+      "body": "Aún no hay plantillas aprobadas. Sé el primero en publicar la tuya."
+    },
+    "publish": {
+      "title": "Publicar plantilla",
+      "helper": "Selecciona un workflow propio para publicarlo. Se enviará a revisión interna antes de aparecer en el catálogo.",
+      "workflowLabel": "Workflow a publicar",
+      "workflowEmpty": "selecciona uno",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ej. Seguimiento post-visita 7 días",
+      "descLabel": "Descripción",
+      "descPlaceholder": "Qué hace · cuándo usarlo · resultado esperado",
+      "categoryLabel": "Categoría",
+      "priceLabel": "Precio MXN (0 = gratis)",
+      "submit": "Enviar a revisión",
+      "ok": "Enviado a revisión · te notificaremos al aprobar",
+      "errWorkflow": "Selecciona un workflow",
+      "errTitle": "Título mínimo 4 caracteres"
+    },
+    "admin": {
+      "title": "Marketplace Templates · Moderación",
+      "subtitle": "Aprobar/rechazar plantillas · revenue split 70/30 · auditoría inmutable",
+      "rejectReasonPrompt": "Motivo de rechazo:",
+      "deleteConfirm": "¿Eliminar plantilla?",
+      "emptyFilter": "No hay plantillas con este filtro.",
+      "topSellersTitle": "Top sellers (revenue acumulado)",
+      "kpi": {
+        "total": "Templates totales",
+        "pending": "Pendientes review",
+        "pendingHint": "Requieren acción",
+        "approved": "Aprobadas",
+        "revenue30d": "Revenue 30d"
+      },
+      "filter": {
+        "pending_review": "Pendientes",
+        "approved": "Aprobadas",
+        "rejected": "Rechazadas",
+        "all": "Todas"
+      },
+      "col": {
+        "title": "Título",
+        "author": "Autor",
+        "category": "Categoría",
+        "price": "Precio",
+        "status": "Estado",
+        "downloads": "Downloads",
+        "actions": "Acciones",
+        "clones": "Clones",
+        "authorRevenue": "Revenue autor"
+      },
+      "action": {
+        "approve": "Aprobar",
+        "reject": "Rechazar",
+        "delete": "Eliminar"
+      }
+    }
   }
 }
