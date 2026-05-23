@@ -15,7 +15,7 @@ import {
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck, Swords,
-  Share2,
+  Share2, Video,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -97,6 +97,7 @@ const ASESOR_NAV = [
       { key: 'comisiones',   to: '/asesor/comisiones',                   label: 'Comisiones',       Icon: DollarSign },
       { key: 'ranking',      to: '/asesor/ranking',                      label: 'Ranking',          Icon: Trophy },
       { key: 'studio',       to: '/asesor/studio',                       label: 'Studio · Director IA', Icon: Sparkles },
+      { key: 'studio-video', to: '/portal/asesor/studio-video',          label: 'Studio · Video',   Icon: Video },
       { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
       { key: 'studio-assets',    to: '/portal/studio/assets',            label: 'Studio · Assets',  Icon: FolderOpen },
       { key: 'studio-import',    to: '/portal/studio/import',            label: 'Studio · Importar Listing', Icon: FolderUp },

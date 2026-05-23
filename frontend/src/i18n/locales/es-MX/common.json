@@ -4304,5 +4304,61 @@
     "style_boutique_desc": "Curado y unico",
     "style_scandi_desc": "Madera clara",
     "error_generic": "No fue posible generar el staging. Intenta de nuevo."
+  },
+  "studioVideo": {
+    "title": "Studio Video",
+    "subtitle": "Genera reels y stories desde tu propiedad.",
+    "disclaimer": "Los videos son generados por IA · usalos como inspiracion · revisa siempre el resultado antes de publicar.",
+    "scriptLabel": "Script del video",
+    "scriptPlaceholder": "Describe la propiedad en 2-3 oraciones. La IA puede ayudarte a redactarlo.",
+    "generateAI": "Generar con IA",
+    "generateAILoading": "Generando...",
+    "scriptStubNotice": "Script generado en modo demo",
+    "imageUrlLabel": "Imagen de la propiedad",
+    "imagePreviewEmpty": "Preview aparece aqui",
+    "providerLabel": "Proveedor de IA",
+    "provider_auto": "Auto",
+    "provider_luma": "Luma",
+    "provider_pika": "Pika",
+    "provider_runway": "Runway",
+    "durationLabel": "Duracion",
+    "generateCTA": "Generar Video",
+    "loading": "Procesando...",
+    "loadingHint": "Este proceso toma ~30s",
+    "stubBanner": "Modo demo: video no real, sin creditos consumidos.",
+    "stubPlayerTitle": "Video demo",
+    "downloadCTA": "Descargar",
+    "shareWhatsApp": "Compartir a WhatsApp",
+    "sendNow": "Enviar",
+    "cancel": "Cancelar",
+    "errorGeneric": "No fue posible generar el video. Intenta de nuevo.",
+    "tabs": {
+      "reel": "Reel (1:1)",
+      "stories": "Stories (9:16)",
+      "youtube": "YouTube (16:9)"
+    },
+    "queue": {
+      "title": "Mis videos generados",
+      "emptyEyebrow": "Sin videos aun",
+      "empty": "Aun no has generado videos · Crea tu primer reel.",
+      "col_thumb": "Thumb",
+      "col_script": "Script",
+      "col_provider": "Provider",
+      "col_ratios": "Ratios",
+      "col_status": "Status",
+      "col_date": "Fecha",
+      "col_actions": "Acciones",
+      "btn_view": "Ver",
+      "btn_regenerate": "Re-generar",
+      "btn_delete": "Eliminar",
+      "confirmDeleteTitle": "Eliminar este video?",
+      "confirmDeleteBody": "Esta accion no se puede deshacer."
+    },
+    "status": {
+      "queued": "En cola",
+      "processing": "Procesando",
+      "completed": "Listo",
+      "failed": "Fallido"
+    }
   }
 }
