@@ -1,5 +1,7 @@
 // W5.x F11 · FitScoreBadge · circulo con anillo segun score + chip "?" si tentativa
-import React from 'react';
+// W5.x F11 close · prop opcional `breakdown` activa FitBreakdownTooltip on hover (backward compat).
+import React, { useState } from 'react';
+import FitBreakdownTooltip from './FitBreakdownTooltip';
 
 const CREAM = '#F0EBE0';
 const INDIGO = '#6366F1';
@@ -19,16 +21,47 @@ function ringFor(score) {
   return { kind: 'solid', color: 'rgba(240,235,224,0.2)', width: 1 };
 }
 
-export default function FitScoreBadge({ score = 0, confidence = 'media', size = 'md', onClick }) {
+export default function FitScoreBadge({
+  score = 0,
+  confidence = 'media',
+  size = 'md',
+  onClick,
+  breakdown = null,
+  explanation_short = '',
+  reasons_top_3 = [],
+  tooltipPosition = 'bottom',
+}) {
   const safe = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
   const cfg = SIZE_MAP[size] || SIZE_MAP.md;
   const ring = ringFor(safe);
   const interactive = typeof onClick === 'function';
+  const hasTooltip = !!(breakdown && typeof breakdown === 'object' && Object.keys(breakdown).length > 0);
+  const [hovered, setHovered] = useState(false);
 
   const ringBg = ring.kind === 'grad' ? GRAD : ring.color;
   const ringSize = ring.kind === 'grad' ? (cfg.ringHi || 3) : (ring.width || 2);
 
+  // Tooltip positioning offsets per side · keep absolute relative to a wrapper
+  const tooltipStyle = (() => {
+    const base = { position: 'absolute', zIndex: 50, pointerEvents: 'none' };
+    if (tooltipPosition === 'top') return { ...base, bottom: cfg.box + 8, left: '50%', transform: 'translateX(-50%)' };
+    if (tooltipPosition === 'right') return { ...base, left: cfg.box + 8, top: '50%', transform: 'translateY(-50%)' };
+    if (tooltipPosition === 'left') return { ...base, right: cfg.box + 8, top: '50%', transform: 'translateY(-50%)' };
+    return { ...base, top: cfg.box + 8, left: '50%', transform: 'translateX(-50%)' };
+  })();
+
+  const Wrapper = hasTooltip ? 'span' : React.Fragment;
+  const wrapperProps = hasTooltip
+    ? {
+        style: { position: 'relative', display: 'inline-block' },
+        onMouseEnter: () => setHovered(true),
+        onMouseLeave: () => setHovered(false),
+        'data-testid': `fit-badge-wrapper-${size}`,
+      }
+    : {};
+
   return (
+    <Wrapper {...wrapperProps}>
     <button
       type="button"
       data-testid={`fit-badge-${size}`}
@@ -87,5 +120,18 @@ export default function FitScoreBadge({ score = 0, confidence = 'media', size = 
         >?</span>
       )}
     </button>
+    {hasTooltip && hovered && (
+      <span style={tooltipStyle} data-testid="fit-badge-tooltip-wrap">
+        <FitBreakdownTooltip
+          score={safe}
+          confidence={confidence}
+          breakdown={breakdown}
+          explanation_short={explanation_short}
+          reasons_top_3={reasons_top_3}
+          position={tooltipPosition}
+        />
+      </span>
+    )}
+    </Wrapper>
   );
 }

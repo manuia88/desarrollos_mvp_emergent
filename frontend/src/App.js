@@ -69,6 +69,8 @@ const SuperadminFSDAccuracy = lazy(() => import('./pages/superadmin/SuperadminFS
 const SuperadminVirtualStaging = lazy(() => import('./pages/superadmin/SuperadminVirtualStaging'));
 // W5.x F11 wire — AsesorMarketplace (advisor view with per-card fit-score)
 const AsesorMarketplace = lazy(() => import('./pages/asesor/AsesorMarketplace'));
+// W5.x F11 close — PropertyFitLeadsPage (consumes FitTopLeadsList huérfano)
+const PropertyFitLeadsPage = lazy(() => import('./pages/asesor/PropertyFitLeadsPage'));
 // W5 cleanup — Superadmin Entity Resolution (dedup queue)
 const SuperadminEntityResolution = lazy(() => import('./pages/superadmin/SuperadminEntityResolution'));
 // W5.9 — Climate Migration (T0 publico + superadmin debug)
@@ -620,6 +622,8 @@ function AppRouter() {
       <Route path="/superadmin/virtual-staging" element={<SuperadminRoute Page={SuperadminVirtualStaging} />} />
       {/* W5.x F11 wire — Asesor Marketplace (fit-score per card) */}
       <Route path="/portal/asesor/marketplace" element={<AdvisorRoute Page={AsesorMarketplace} />} />
+      {/* W5.x F11 close — Top leads cualificados por propiedad (consume FitTopLeadsList) */}
+      <Route path="/portal/asesor/property/:propertyId/fit-leads" element={<AdvisorRoute Page={PropertyFitLeadsPage} />} />
       {/* W4.17 — Notifications Settings */}
       <Route path="/portal/settings/notifications" element={<NotifSettingsRoute />} />
       <Route path="/portal/notifications" element={<NotifSettingsRoute />} />
