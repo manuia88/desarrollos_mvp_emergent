@@ -247,6 +247,27 @@ try:
 except Exception as _exc:
     logging.warning(f"[W6.MOV.5] construction_quality_router include failed: {_exc}")
 
+# W6.MOV.3 — Reviews Residentes (Google Places + Foursquare + Atlas · sentiment LLM · cache 7d)
+try:
+    from routes.reviews_residents import router as reviews_residents_router
+    app.include_router(reviews_residents_router)
+except Exception as _exc:
+    logging.warning(f"[W6.MOV.3] reviews_residents_router include failed: {_exc}")
+
+# W6.MOV.2 — Gov Data MX (3 tracks · 6 API + 6 cron + admin upload · 8 endpoints)
+try:
+    from routes.gov_data_mx import router as gov_data_mx_router
+    app.include_router(gov_data_mx_router)
+except Exception as _exc:
+    logging.warning(f"[W6.MOV.2] gov_data_mx_router include failed: {_exc}")
+
+# W6.MOV.1 — SOC Franchise (Sistema Operación Certificado · scoring 5 dims · 4 levels)
+try:
+    from routes.soc_franchise import router as soc_franchise_router
+    app.include_router(soc_franchise_router)
+except Exception as _exc:
+    logging.warning(f"[W6.MOV.1] soc_franchise_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1773,6 +1794,28 @@ async def startup():
             register_construction_quality_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W6.MOV.5] construction_quality startup register failed: {e}")
+        # W6.MOV.1 — SOC Franchise: indexes (cache + history) · cron lazy/on-demand
+        try:
+            from soc_franchise_engine import ensure_indexes as soc_franchise_ensure_indexes
+            await soc_franchise_ensure_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W6.MOV.1] soc_franchise startup register failed: {e}")
+        # W6.MOV.3 — Reviews Residentes: indexes + 1 cron (scrape lun 03:00 UTC)
+        try:
+            from reviews_residents_engine import ensure_indexes as reviews_residents_ensure_indexes
+            from reviews_residents_cron import register_reviews_residents_jobs
+            await reviews_residents_ensure_indexes(db)
+            register_reviews_residents_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W6.MOV.3] reviews_residents startup register failed: {e}")
+        # W6.MOV.2 — Gov Data MX: indexes + 2 crons (weekly dom 04:00 + monthly día 1 05:00 UTC)
+        try:
+            from gov_data_mx_engine import ensure_gov_data_mx_indexes
+            from gov_data_mx_cron import register_gov_data_mx_jobs
+            await ensure_gov_data_mx_indexes(db)
+            register_gov_data_mx_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W6.MOV.2] gov_data_mx startup register failed: {e}")
         # W2.4 SA5 — Trial expiry email cron (daily 08:00 MX)
         try:
             from trial_expiry_cron import schedule_trial_expiry_cron

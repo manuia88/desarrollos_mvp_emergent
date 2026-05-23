@@ -4418,5 +4418,210 @@
     "nav": {
       "construction-quality": "Construction Quality"
     }
+  },
+  "reviewsResidents": {
+    "title": "Voz de residentes",
+    "subtitle": "Reseñas agregadas · sentimiento",
+    "subtitleDev": "Opiniones sobre este desarrollo",
+    "loading": "Cargando reseñas residentes…",
+    "empty": "Aún no hay reseñas suficientes para esta entidad.",
+    "stubBadge": "Modo demo · 0 reseñas",
+    "sentiment": {
+      "positive": "Positivas",
+      "neutral": "Neutrales",
+      "negative": "Negativas"
+    },
+    "themes": {
+      "seguridad": "Seguridad",
+      "ruido": "Ruido",
+      "tráfico": "Tráfico",
+      "limpieza": "Limpieza",
+      "servicios": "Servicios",
+      "convivencia": "Convivencia",
+      "precio": "Precio",
+      "ubicación": "Ubicación"
+    },
+    "kpi": {
+      "rating": "Rating promedio",
+      "nReviews": "Reseñas"
+    },
+    "col": {
+      "type": "Tipo",
+      "id": "ID",
+      "n": "Reseñas",
+      "rating": "Rating",
+      "posPct": "% Positivas",
+      "score": "Score",
+      "actions": "Acciones"
+    },
+    "entityType": {
+      "zone": "Zona",
+      "development": "Desarrollo"
+    },
+    "admin": {
+      "title": "Reviews Residentes",
+      "sub": "Sentiment agregado por zona y desarrollo · Google · Foursquare · Atlas",
+      "kpi": {
+        "total": "Reseñas totales",
+        "positive": "Positivas",
+        "neutral": "Neutrales",
+        "negative": "Negativas"
+      },
+      "cronHealth": "Salud del cron semanal · lun 03:00 UTC",
+      "lastRun": "Última corrida",
+      "processed": "procesadas",
+      "errors": "errores",
+      "refresh": "Refrescar",
+      "topEntities": "Top 50 entidades por calidad de reseñas",
+      "emptyTable": "Sin entidades con reseñas. Corre el cron o force-scrape una entidad.",
+      "scrape": "Scrape",
+      "delete": "Eliminar",
+      "close": "Cerrar",
+      "confirmDelete": "¿Eliminar todas las reseñas de esta entidad?"
+    },
+    "nav": {
+      "reviews-residents": "Reviews Residentes"
+    }
+  },
+  "govDataMx": {
+    "title": "Gov Data MX",
+    "subtitle": "3 tracks · 6 fuentes API + 6 parsers cron + admin upload · INEGI · BANXICO · DataMéxico · CONAVI · SESNSP · CENAPRED",
+    "tab": {
+      "api": "API",
+      "cron": "Cron",
+      "upload": "Upload"
+    },
+    "status": {
+      "ok": "OK",
+      "stale": "Stale",
+      "error": "Error",
+      "skipped": "Skipped",
+      "missing": "Missing"
+    },
+    "stats": {
+      "trackA": "Track A · API",
+      "trackB": "Track B · raw rows",
+      "trackC": "Track C · uploads",
+      "cache": "Cache entries"
+    },
+    "api": {
+      "title": "Connectors API (Track A)",
+      "forcePull": "Force pull",
+      "col": {
+        "source": "Fuente",
+        "status": "Status",
+        "fetched": "Última lectura",
+        "expires": "Expira",
+        "actions": "Acciones"
+      }
+    },
+    "cron": {
+      "title": "Parsers cron (Track B)",
+      "schedule": "Weekly · dom 04:00 UTC · Monthly · día 1 05:00 UTC",
+      "col": {
+        "parser": "Parser",
+        "schedule": "Schedule",
+        "lastPeriod": "Último period",
+        "lastRun": "Último run",
+        "bytes": "Bytes"
+      }
+    },
+    "upload": {
+      "title": "Subir archivo manual",
+      "source": "Fuente",
+      "schemaHint": "Schema hint (opcional)",
+      "schemaHintPh": "p.ej. cuenta_catastral,valor,fecha",
+      "dropOrClick": "Arrastra archivo aquí o haz click para seleccionar",
+      "constraints": "CSV · Excel · PDF · max 10MB",
+      "uploading": "Subiendo…",
+      "tooLarge": "Archivo excede 10MB",
+      "badExt": "Extensión no permitida · usa .csv, .xlsx, .xls o .pdf",
+      "deleteReason": "Razón (opcional)",
+      "tableTitle": "Uploads previos",
+      "noUploads": "Sin uploads aún",
+      "col": {
+        "filename": "Archivo",
+        "source": "Fuente",
+        "size": "Tamaño",
+        "uploadedAt": "Fecha",
+        "actions": "Acciones"
+      }
+    },
+    "uploadSource": {
+      "notarias_cnnym": "Notarías CNNyM",
+      "rpp_cdmx": "RPP CDMX",
+      "catastro_miguel_hidalgo": "Catastro Miguel Hidalgo",
+      "catastro_cuauhtemoc": "Catastro Cuauhtémoc",
+      "shf_reportes": "SHF Reportes",
+      "bmv_fibras_local": "BMV FIBRAs (local)",
+      "cfe_cobertura": "CFE Cobertura",
+      "conagua": "CONAGUA",
+      "otros": "Otros"
+    }
+  },
+  "socFranchise": {
+    "title": "SOC Franquicia",
+    "label": "SOC",
+    "subtitle": "Sistema de Operación Certificado · alcanza Gold y recibe revenue share + visibilidad premium en marketplace.",
+    "adminTitle": "SOC Franchise · Debug",
+    "adminSubtitle": "Scoring 0-100 · 4 niveles (bronze/silver/gold/platinum) · 5 dimensiones",
+    "myScoreLabel": "Tu score",
+    "nextTier": "Próximo nivel",
+    "breakdownTitle": "Breakdown 5 dimensiones",
+    "tipsTitle": "Cómo subir tu score",
+    "leaderboardTitle": "Top franchisees",
+    "leaderboardSubtitle": "Ranking semanal",
+    "tableTitle": "Franchisees",
+    "levelsTitle": "Distribución por nivel",
+    "filterLevel": "Nivel",
+    "levelAll": "Todos",
+    "noResults": "Sin resultados",
+    "avgScore": "Promedio",
+    "updated": "Actualizado",
+    "manualOverride": "Override manual",
+    "dim": {
+      "missingData": "Datos parciales"
+    },
+    "action": {
+      "certify": "Certificar",
+      "revoke": "Revocar"
+    },
+    "certifyTitle": "Certificar franchisee",
+    "certifyLevel": "Nivel",
+    "certifyReason": "Razón (min 10 chars)",
+    "revokeTitle": "Revocar certificación",
+    "revokeReason": "Razón",
+    "col": {
+      "name": "Asesor",
+      "score": "Score",
+      "level": "Nivel",
+      "delta": "Δ semana",
+      "actions": "Acciones"
+    },
+    "kpi": {
+      "totalAdvisors": "Asesores totales",
+      "totalFranchisees": "Con score",
+      "coverage": "Cobertura",
+      "topMover": "Top mover semana"
+    },
+    "leaderboard": {
+      "empty": "Aún sin franchisees · sé el primero",
+      "you": "Tú",
+      "colName": "Asesor",
+      "colScore": "Score",
+      "colLevel": "Nivel",
+      "colDelta": "Δ semana"
+    },
+    "tier": {
+      "bronze": "BRONZE",
+      "silver": "SILVER",
+      "gold": "GOLD",
+      "platinum": "PLATINUM",
+      "no_data": "SIN DATOS"
+    },
+    "nav": {
+      "soc-franchise": "SOC Franchise",
+      "soc-asesor": "SOC Certificación"
+    }
   }
 }

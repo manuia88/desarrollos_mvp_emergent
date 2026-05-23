@@ -82,6 +82,13 @@ const VirtualStagingPage = lazy(() => import('./pages/portal/studio/VirtualStagi
 const StudioVideoPage = lazy(() => import('./pages/portal/asesor/StudioVideoPage'));
 // W6.MOV.5 — Construction Quality Index (Superadmin)
 const SuperadminConstructionQuality = lazy(() => import('./pages/superadmin/SuperadminConstructionQuality'));
+// W6.MOV.3 — Reviews Residentes (Superadmin)
+const SuperadminReviewsResidents = lazy(() => import('./pages/superadmin/SuperadminReviewsResidents'));
+// W6.MOV.2 — Gov Data MX External Sources (Superadmin)
+const SuperadminGovDataMx = lazy(() => import('./pages/superadmin/SuperadminGovDataMx'));
+// W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin)
+const SocFranchisePage = lazy(() => import('./pages/portal/asesor/SocFranchisePage'));
+const SuperadminSocFranchise = lazy(() => import('./pages/superadmin/SuperadminSocFranchise'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -624,6 +631,13 @@ function AppRouter() {
       <Route path="/portal/asesor/studio-video" element={<AdvisorRoute Page={StudioVideoPage} />} />
       {/* W6.MOV.5 — Construction Quality (Superadmin) */}
       <Route path="/superadmin/construction-quality" element={<SuperadminRoute Page={SuperadminConstructionQuality} />} />
+      {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
+      <Route path="/portal/asesor/soc" element={<AdvisorRoute Page={SocFranchisePage} />} />
+      <Route path="/superadmin/soc-franchise" element={<SuperadminRoute Page={SuperadminSocFranchise} />} />
+      {/* W6.MOV.3 — Reviews Residentes (Superadmin) */}
+      <Route path="/superadmin/reviews-residents" element={<SuperadminRoute Page={SuperadminReviewsResidents} />} />
+      {/* W6.MOV.2 — Gov Data MX External Sources (Superadmin) */}
+      <Route path="/superadmin/gov-data-mx" element={<SuperadminRoute Page={SuperadminGovDataMx} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

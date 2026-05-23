@@ -14,6 +14,8 @@ import ZoneSubscoresCard from '../../components/zones/ZoneSubscoresCard';
 import ForecastChart from '../../components/forecast/ForecastChart';
 import NarrativeBlock from '../../components/landing/NarrativeBlock';
 import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
+// W6.MOV.3 — Reviews Residentes
+import ZoneReviewsBlock from '../../components/zones/ZoneReviewsBlock';
 import ProbabilityBar from '../../components/shared/ProbabilityBar';
 // W5 cleanup · ProbabilityCard Kalshi-style
 import ProbabilityCard from '../../components/probability/ProbabilityCard';
@@ -584,6 +586,11 @@ export default function ZonePage() {
         {/* W5.6 Sub-A — Narrativa AI para la zona */}
         <div style={{ marginBottom: 32 }}>
           <NarrativeBlock entityType="zone" entityId={slug} />
+        </div>
+
+        {/* W6.MOV.3 — Reviews Residentes para la zona */}
+        <div style={{ marginBottom: 32 }}>
+          <ZoneReviewsBlock zoneId={slug} />
         </div>
 
         {/* W5.3 Parte 1 — Forecast multi-horizonte para la zona */}

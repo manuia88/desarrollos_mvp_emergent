@@ -16,6 +16,8 @@ import RegistrationModal from '../components/dev/RegistrationModal';
 import ZoneScoreStrip from '../components/landing/ZoneScoreStrip';
 import ScoreExplainModal from '../components/landing/ScoreExplainModal';
 import NarrativeBlock from '../components/landing/NarrativeBlock';
+// W6.MOV.3 — Reviews Residentes
+import DevReviewsBlock from '../components/property/DevReviewsBlock';
 // W5.x F4 — Narrative Layer LLM (cross-feature storyteller)
 import NarrativeBlockLLM from '../components/NarrativeBlock';
 // W5.x F7 — Lead Capture (behavioral tracker + modal)
@@ -289,6 +291,11 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
           {/* Narrativa AI — N5 (Phase C2) */}
           <section data-testid="dev-narrative-section" style={{ marginTop: 20 }}>
             <NarrativeBlock scope="development" entityId={dev.id} />
+          </section>
+
+          {/* W6.MOV.3 — Reviews Residentes para el desarrollo */}
+          <section data-testid="dev-reviews-residents-section" style={{ marginTop: 20 }}>
+            <DevReviewsBlock devId={dev.id} />
           </section>
 
           {/* W5.x F4 — Narrative Layer LLM cross-feature (project audience) */}

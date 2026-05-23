@@ -322,6 +322,21 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "index": {{development_id, score 0-100, tier, breakdown {{avance, acabados, defectos, cronograma}}, manual_override, cached}} · "top": {{items[], count}} · "stats": {{total_developments, total_with_quality_score, coverage_pct, tiers, cache_entries}}
     Usar cuando: comprador o asesor pregunta calidad de construcción de un desarrollo · "qué tan confiable es este desarrollador" · "muéstrame los proyectos mejor calificados" · comparar 2 desarrollos en cumplimiento de obra · breakdown 4 dimensiones (avance vs cronograma · defectos acabados · quejas reportadas · entregas a tiempo) · W6.MOV.5 índice 0-100 diferenciador competitivo.
 
+42. query_reviews_residents
+    params: {{ "mode": "zone"|"development"|"summary" (default "zone"), "entity_id": str (id de zona o desarrollo · requerido), "entity_type": "zone"|"development"? (solo mode=summary · default infiere de mode) }}
+    devuelve: {{entity_type, entity_id, n_reviews, avg_rating (0-5|null), sentiment_breakdown_pct {{positive,neutral,negative}}, sentiment_counts, top_themes (5 themes con count), top_quotes (3 cuotes con autor+sentiment+source)}}
+    Usar cuando: comprador o asesor pregunta sobre opiniones/reseñas/reputación residentes de una zona o desarrollo · "qué dicen los vecinos de Polanco" · "es segura esta colonia" · "qué opinan residentes del desarrollo X" · "muéstrame sentimiento de la zona" · W6.MOV.3 agrega Google Places + Foursquare + Atlas con sentiment Claude (positive/neutral/negative + themes seguridad/ruido/tráfico/limpieza/servicios/convivencia/precio/ubicación).
+
+43. query_gov_data_mx
+    params: {{ "mode": "sources"|"upload-list"|"stats" (default "sources"), "limit": int? (mode=upload-list default 50), "offset": int? (mode=upload-list default 0) }}
+    devuelve: depende mode · "sources": {{sources[] con source_id+label+status+fetched_at+expires_at, total, counts {{ok,error,skipped,stale,missing}}}} · "upload-list": {{items[], total, limit, offset}} · "stats": {{track_a, track_b_raw_total, track_c_uploads_active, cache_entries}}
+    Usar cuando: superadmin pregunta estado de fuentes GOV MX (INEGI DENUE · BANXICO SIE · DataMéxico · CONAVI · SESNSP · CENAPRED) · cuántos uploads se han subido · si una fuente está stale/missing · stats agregados tracks A/B/C · W6.MOV.2 fuentes mexicanas (distinto a query_global_insights tool #21 que cubre BIS/OECD/IMF globales).
+
+44. query_soc_franchise
+    params: {{ "mode": "leaderboard"|"my_score"|"admin_stats" (default "leaderboard"), "user_id": str? (mode=my_score · si vacío usa caller user_id), "level": "bronze"|"silver"|"gold"|"platinum"? (filtro leaderboard), "limit": int? (default 20) }}
+    devuelve: depende mode · "leaderboard": {{items[] con user_id+name+score+level+delta_week, count}} · "my_score": {{user_id, score 0-100, level, breakdown {{lead_conversion, nps_proxy, response_time, revenue_30d, compliance}}, manual_override}} · "admin_stats": {{total_franchisees, coverage_pct, levels: {{bronze, silver, gold, platinum}}, top_movers, bottom_movers}}
+    Usar cuando: asesor pregunta "¿cuál es mi score SOC?", "¿soy gold o platinum?", "¿cómo me comparo con otros?" · comprador o asesor pregunta "¿quién es el mejor asesor?", "ranking franquiciatarios" · superadmin pregunta "¿cuántos asesores certificados tenemos?" · W6.MOV.1 SOC Sistema Operación Certificado 4 niveles bronze/silver/gold/platinum.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -548,6 +563,12 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_generate_studio_video(db, params)
         if tool_name == "query_construction_quality":
             return await _tool_query_construction_quality(db, params)
+        if tool_name == "query_reviews_residents":
+            return await _tool_query_reviews_residents(db, params)
+        if tool_name == "query_gov_data_mx":
+            return await _tool_query_gov_data_mx(db, params)
+        if tool_name == "query_soc_franchise":
+            return await _tool_query_soc_franchise(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3224,6 +3245,104 @@ async def _tool_query_construction_quality(db, params: Dict[str, Any]) -> Dict[s
     except Exception as e:
         log.warning(f"[asistente_tool] query_construction_quality: {e}")
         return {"error": str(e), "source": "construction_quality_engine"}
+
+
+# ── W6.MOV.2 · Gov Data MX (tool #43) ────────────────────────────────────────
+async def _tool_query_gov_data_mx(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool #43 query_gov_data_mx.
+
+    Modes:
+      - mode="sources" → Track A status (6 connectors INEGI/BANXICO/etc)
+      - mode="upload-list" + limit?+offset? → Track C uploads paginated
+      - mode="stats" → aggregated stats Track A+B+C
+    """
+    try:
+        from gov_data_mx_engine import get_all_sources, list_uploads, get_stats
+        mode = (params.get("mode") or "sources").lower()
+        if mode == "sources":
+            data = await get_all_sources(db)
+            return {"source": "gov_data_mx_engine", "mode": "sources", **data}
+        if mode == "upload-list":
+            limit = int(params.get("limit", 50))
+            offset = int(params.get("offset", 0))
+            data = await list_uploads(db, limit=limit, offset=offset)
+            return {"source": "gov_data_mx_engine", "mode": "upload-list", **data}
+        if mode == "stats":
+            data = await get_stats(db)
+            return {"source": "gov_data_mx_engine", "mode": "stats", "stats": data}
+        return {"error": f"mode inválido: {mode} · usa sources|upload-list|stats",
+                "source": "gov_data_mx_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_gov_data_mx: {e}")
+        return {"error": str(e), "source": "gov_data_mx_engine"}
+
+
+# ── W6.MOV.3 · Reviews Residentes (tool #42) ─────────────────────────────────
+async def _tool_query_reviews_residents(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool #42 query_reviews_residents.
+
+    Modes:
+      - mode="zone" + entity_id → sentiment breakdown + top quotes para zona
+      - mode="development" + entity_id → sentiment breakdown + top quotes para desarrollo
+      - mode="summary" + entity_id + entity_type → summary genérico
+    """
+    try:
+        from reviews_residents_engine import aggregate_by_entity
+        mode = (params.get("mode") or "zone").lower()
+        entity_id = params.get("entity_id")
+        if not entity_id:
+            return {"error": "entity_id requerido", "source": "reviews_residents_engine"}
+        if mode == "zone":
+            entity_type = "zone"
+        elif mode == "development":
+            entity_type = "development"
+        elif mode == "summary":
+            entity_type = (params.get("entity_type") or "zone").lower()
+            if entity_type not in ("zone", "development"):
+                return {"error": "entity_type inválido · usa zone|development", "source": "reviews_residents_engine"}
+        else:
+            return {"error": f"mode inválido: {mode} · usa zone|development|summary", "source": "reviews_residents_engine"}
+        result = await aggregate_by_entity(db, entity_type, entity_id)
+        return {"source": "reviews_residents_engine", "mode": mode, "result": result}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_reviews_residents: {e}")
+        return {"error": str(e), "source": "reviews_residents_engine"}
+
+
+# ── W6.MOV.1 · SOC Franchise (tool #44) ──────────────────────────────────────
+async def _tool_query_soc_franchise(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool #44 query_soc_franchise.
+
+    Modes:
+      - mode="leaderboard" + level?  + limit?=20 → top N franquiciatarios
+      - mode="my_score" + user_id     → score + breakdown 5 dims del asesor
+      - mode="admin_stats"            → totales + tier distribution + movers
+    """
+    try:
+        from soc_franchise_engine import (
+            compute_soc_score,
+            list_franchisees,
+            get_stats,
+        )
+        mode = (params.get("mode") or "leaderboard").lower()
+        if mode == "leaderboard":
+            level = params.get("level")
+            limit = int(params.get("limit", 20))
+            items = await list_franchisees(db, level=level, limit=limit)
+            return {"source": "soc_franchise_engine", "mode": "leaderboard", "items": items, "count": len(items)}
+        if mode == "my_score":
+            user_id = params.get("user_id")
+            if not user_id:
+                return {"error": "user_id requerido en mode=my_score", "source": "soc_franchise_engine"}
+            result = await compute_soc_score(db, user_id, use_cache=True)
+            return {"source": "soc_franchise_engine", "mode": "my_score", "result": result}
+        if mode == "admin_stats":
+            stats_data = await get_stats(db)
+            return {"source": "soc_franchise_engine", "mode": "admin_stats", "stats": stats_data}
+        return {"error": f"mode inválido: {mode} · usa leaderboard|my_score|admin_stats", "source": "soc_franchise_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_soc_franchise: {e}")
+        return {"error": str(e), "source": "soc_franchise_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
