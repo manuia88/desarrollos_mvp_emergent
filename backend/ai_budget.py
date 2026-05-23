@@ -355,6 +355,102 @@ async def ensure_ai_budget_indexes(db) -> None:
         pass
 
 
+# ─── W5.16-A · Studio Video per-feature daily cap ───────────────────────────
+STUDIO_VIDEO_DAILY_CAP_USD = float(os.environ.get("STUDIO_VIDEO_DAILY_CAP_USD", "2.0"))
+
+
+async def check_studio_video_quota(db, dev_org_id: Optional[str]) -> Dict:
+    """W5.16-A · Per-feature daily cap for studio_video (TTS + scripts).
+
+    Returns {available, used_today_usd, cap_daily_usd, remaining_usd, reset_at}.
+    Fail-open: si dev_org_id es None o lookup falla, devuelve available=True.
+    """
+    cap = STUDIO_VIDEO_DAILY_CAP_USD
+    now = datetime.now(timezone.utc)
+    daily_iso = now.strftime("%Y-%m-%d")
+    # Reset 00:00 UTC del dia siguiente
+    reset_at = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    # Add 1 day worth of seconds via simple string for reset_at_next_day
+    try:
+        from datetime import timedelta as _td
+        reset_at = (now.replace(hour=0, minute=0, second=0, microsecond=0) + _td(days=1)).isoformat()
+    except Exception:
+        pass
+
+    if not dev_org_id:
+        return {
+            "available": True,
+            "used_today_usd": 0.0,
+            "cap_daily_usd": cap,
+            "remaining_usd": cap,
+            "reset_at": reset_at,
+        }
+
+    used = 0.0
+    try:
+        cursor = db.ai_call_events.find(
+            {
+                "dev_org_id": dev_org_id,
+                "feature_key": "studio_video",
+                "daily_iso": daily_iso,
+            },
+            {"_id": 0, "cost_usd": 1},
+        )
+        async for ev in cursor:
+            try:
+                used += float(ev.get("cost_usd") or 0)
+            except (TypeError, ValueError):
+                continue
+    except Exception as exc:
+        log.warning(f"[ai_budget] studio_video quota lookup failed: {exc}")
+        return {
+            "available": True,  # fail-open
+            "used_today_usd": 0.0,
+            "cap_daily_usd": cap,
+            "remaining_usd": cap,
+            "reset_at": reset_at,
+            "error": True,
+        }
+
+    remaining = max(0.0, cap - used)
+    return {
+        "available": used < cap,
+        "used_today_usd": round(used, 4),
+        "cap_daily_usd": round(cap, 2),
+        "remaining_usd": round(remaining, 4),
+        "reset_at": reset_at,
+    }
+
+
+async def increment_studio_video_usage(
+    db,
+    dev_org_id: Optional[str],
+    cost_usd: float,
+    model: str = "studio_video",
+    call_type: str = "studio_video",
+) -> None:
+    """W5.16-A · Increment per-feature usage. Stub-safe (cost_usd=0 OK).
+
+    Wraps track_ai_call con feature_key="studio_video" para que el cron de
+    daily snapshots + check_studio_video_quota lo detecten correctamente.
+    """
+    if not dev_org_id:
+        return
+    try:
+        # Aproximacion tokens: $0.001/1k tokens default → tokens = cost_usd * 1000
+        approx_tokens = max(1, int(float(cost_usd or 0) * 1000))
+        await track_ai_call(
+            db,
+            dev_org_id=dev_org_id,
+            model=model,
+            tokens=approx_tokens,
+            call_type=call_type,
+            feature_key="studio_video",
+        )
+    except Exception as exc:
+        log.warning(f"[ai_budget] increment_studio_video_usage failed: {exc}")
+
+
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 @router.get("/api/superadmin/ai-usage")
 async def get_ai_usage_dashboard(request: Request):

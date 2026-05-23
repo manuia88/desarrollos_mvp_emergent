@@ -307,6 +307,11 @@ TOOLS Y PARAMS:
     devuelve: {{ generated_copy: {{hero, sections, ctas}}, model_used, token_count }}
     Usar cuando: dev pide copy adaptado a un perfil específico para landing · variantes A/B por audience · usa F4 narrative_layer como base.
 
+39. query_studio_videos
+    params: {{ "mode": "stats"|"user"|"voices" (default "stats"), "dev_org_id": str? (si mode=user) }}
+    devuelve: depende mode · "stats": {{total_scripts, total_audios, total_cost_usd_30d, top_tone, top_duration}} · "user": {{scripts_count, quota}} · "voices": {{voices_list, default_voice_id}}
+    Usar cuando: dev pregunta cuántos videos ha generado · cuál estilo/duracion es popular · stats del feature W5.16 · qué voces ES-MX disponibles.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -527,6 +532,8 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_query_climate_migration(db, params)
         if tool_name == "query_virtual_staging":
             return await _tool_query_virtual_staging(db, params)
+        if tool_name == "query_studio_videos":
+            return await _tool_query_studio_videos(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3054,6 +3061,81 @@ async def _tool_query_virtual_staging(db, params: Dict[str, Any]) -> Dict[str, A
     except Exception as e:
         log.warning(f"[asistente_tool] query_virtual_staging: {e}")
         return {"error": str(e), "source": "virtual_staging_engine"}
+
+
+async def _tool_query_studio_videos(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.16-A — Studio Video stats tool (TTS + scripts).
+
+    Modes:
+      - "stats" (default): {total_scripts, total_audios, total_cost_usd_30d, top_tone, top_duration}
+      - "user": {scripts_count, quota} · requires dev_org_id
+      - "voices": {voices_list, default_voice_id}
+    """
+    mode = (params.get("mode") or "stats").strip().lower()
+    try:
+        if mode == "voices":
+            from adapters.tts.elevenlabs import list_voices_es_mx, DEFAULT_VOICE_ID
+            return {"voices_list": list_voices_es_mx(), "default_voice_id": DEFAULT_VOICE_ID}
+
+        if mode == "user":
+            dev_org_id = params.get("dev_org_id")
+            if not dev_org_id:
+                return {"error": "dev_org_id required for mode=user"}
+            scripts_count = await db.studio_video_scripts.count_documents({"dev_org_id": dev_org_id})
+            from ai_budget import check_studio_video_quota
+            quota = await check_studio_video_quota(db, dev_org_id)
+            return {"scripts_count": scripts_count, "quota": quota}
+
+        # default: stats
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        total_scripts = await db.studio_video_scripts.count_documents({})
+        total_audios = await db.studio_video_audios.count_documents({})
+
+        # cost 30d via ai_call_events feature_key=studio_video
+        sum_cost = 0.0
+        try:
+            cursor = db.ai_call_events.find(
+                {"feature_key": "studio_video", "ts": {"$gte": cutoff}},
+                {"_id": 0, "cost_usd": 1},
+            )
+            async for ev in cursor:
+                try:
+                    sum_cost += float(ev.get("cost_usd") or 0)
+                except (TypeError, ValueError):
+                    continue
+        except Exception as cost_e:
+            log.debug(f"[studio_video] cost agg failed: {cost_e}")
+
+        # top tone + top duration via aggregation
+        top_tone = None
+        top_duration = None
+        try:
+            async for d in db.studio_video_scripts.aggregate([
+                {"$group": {"_id": "$tone", "n": {"$sum": 1}}},
+                {"$sort": {"n": -1}},
+                {"$limit": 1},
+            ]):
+                top_tone = d.get("_id")
+            async for d in db.studio_video_scripts.aggregate([
+                {"$group": {"_id": "$duration_sec", "n": {"$sum": 1}}},
+                {"$sort": {"n": -1}},
+                {"$limit": 1},
+            ]):
+                top_duration = d.get("_id")
+        except Exception as agg_e:
+            log.debug(f"[studio_video] agg failed: {agg_e}")
+
+        return {
+            "total_scripts": total_scripts,
+            "total_audios": total_audios,
+            "total_cost_usd_30d": round(sum_cost, 2),
+            "top_tone": top_tone,
+            "top_duration": top_duration,
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_studio_videos: {e}")
+        return {"error": str(e), "source": "studio_video_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

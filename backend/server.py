@@ -786,6 +786,14 @@ try:
 except Exception as e:
     logging.warning(f"[w5.15] fsd router mount failed: {e}")
 
+# W5.16-A — Studio Video bundle (TTS + auto-script + cost gating)
+try:
+    from routes.studio_video import router as studio_video_router
+    app.include_router(studio_video_router)
+    logging.info("[w5.16] studio_video router mounted")
+except Exception as e:
+    logging.warning(f"[w5.16] studio_video router mount failed: {e}")
+
 # W4.18.3 — Private Beta Gate (invite codes + waitlist)
 from routes.private_beta import router as private_beta_router
 from private_beta_engine import ensure_private_beta_indexes, is_private_beta_mode
@@ -1214,6 +1222,12 @@ async def startup():
         await _vs_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] virtual_staging indexes failed: {e}")
+    # W5.16-A — Studio Video scripts + audios indexes
+    try:
+        from studio_video_engine import ensure_indexes as _sv_indexes
+        await _sv_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] studio_video indexes failed: {e}")
     # W2.5 SA6 — Metrics Cube indexes
     try:
         await ensure_metrics_cube_indexes(db)
