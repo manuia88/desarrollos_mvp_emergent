@@ -1,6 +1,58 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W5.16 Studio Video bundle (A+B+C) — 2026-05-22
+
+Studio Video end-to-end: TTS multi-voz + auto-script tone-aware + video multi-ratio (1:1/9:16/16:9) + UI builder + queue polling 5s + WhatsApp share. Primera ejecución paralela Claude Code (backend) + emergent (UI) confirmada funcional.
+
+### Sub-A · Backend foundation TTS + auto-script + cost gating (Claude Code · 12h · SHA `78c62ba4`)
+- **NEW** `backend/adapters/tts/elevenlabs.py` (264L) · 5 voces ES-MX curadas (Rachel · Antonio · Sofia · Carlos · Valentina) · `synthesize_with_cache` 30d en `studio_video_audios` · STUB-AWARE 4 paths fallback (sin API key · 402/403 · network · quota body) · audio real → data URL base64 browser-playable sin R2.
+- **NEW** `backend/studio_video_engine.py` (305L) · `generate_script_from_property(duration 30/60/90, tone brunson/hormozi/vogue/neutral, audience)` · split heurístico hook/body/cta · template fallback si narrative_layer falla · cache 90d `studio_video_scripts`.
+- **EDIT** `backend/ai_budget.py` (+96L) · `check_studio_video_quota` daily cap default $2 USD configurable `STUDIO_VIDEO_DAILY_CAP_USD` · `increment_studio_video_usage` wraps `track_ai_call` con `feature_key="studio_video"`.
+- **NEW** `backend/routes/studio_video.py` (201L) · 4 endpoints prefix `/api/studio/video` (POST /script · POST /tts · GET /voices · GET /quota) · rate-limit 20/min script · 10/min tts · 403 si quota excedida.
+- **EDIT** `backend/asistente_engine.py` · tool **#39** `query_studio_videos` (3 modes: stats/user/voices) · dispatcher + handler + system prompt doc · numeración 1-39 consecutiva.
+- Smoke 7/7 ✅ · stub fallback sin API key retorna `/static/stub/voice_sample_es.mp3`.
+
+### Sub-B · Video multi-ratio adapter Luma/Pika/Runway/Kling (Claude Code · 10h · SHA `80cb6fb3`)
+- **NEW** `backend/studio_video_providers.py` (355L) · 4 adapters interface unificada `generate(script, image_url, duration_sec)` STUB-AWARE · LumaAdapter (POST + `_poll_async` 6 intentos × 5s) · PikaAdapter · RunwayAdapter (gen3a_turbo) · ReplicateKlingAdapter wrap de `studio_engines.video_kling_replicate` existente · `generate_with_fallback(preferred)` chain luma>pika>runway>replicate_kling reportando `fallback_attempts[]`.
+- **NEW** `backend/multiratio_renderer.py` (219L) · `render_multiratio(master_url, task_id)` retorna `{1:1 1080×1080 · 9:16 1080×1920 · 16:9 1920×1080}` paralelo `asyncio.gather` · ffmpeg-python chain scale+crop+pad libx264/aac CRF23 +faststart · `_verify_dimensions` con ffprobe fail-open · STUB-AWARE 3 paths.
+- **EDIT** `backend/studio_video_engine.py` (+218L) · `generate_video_multiratio()` cache 7d `sha256(provider+image_hash+script[:2000])[:16]` en `studio_video_cache` + persistencia upsert por `task_id` en `studio_videos` · quota check antes (429 si exceeded) · audit `"video.generated"`.
+- **EDIT** `backend/routes/studio_video.py` (+67L) · POST `/api/studio-video/generate-video` rate-limit 5/min · 429 quota_exceeded · 422 validación.
+- **EDIT** `backend/asistente_engine.py` · tool **#40** `generate_studio_video` (dispatcher + handler + system prompt) · numeración 1-40 consecutiva.
+- Smoke 7/7 ✅ · providers `['luma', 'pika', 'replicate_kling', 'runway']`.
+
+### Sub-C · UI Studio Video Page (emergent · 12h cherry-pick selectivo · SHA `24fa3482`)
+- **NEW** `frontend/src/api/studioVideo.js` · `generateVideo`/`generateScript`/`listTasks`/`getTask`/`deleteTask` con STUB MODE fallback automático 404/503.
+- **NEW** `frontend/src/components/studio/ScriptComposer.js` · textarea 8 rows + chip "Generar con IA" gradient rounded-full · contador chars + estimación duración (chars/2.5 wpm) · stub notice amarillo.
+- **NEW** `frontend/src/components/studio/VideoRatioPreview.js` · 3 tabs gradient underline ("Reel 1:1" / "Stories 9:16" / "YouTube 16:9") con `aspectRatio` correcto · player HTML5 nativo · banner amarillo "Modo demo: video no real, sin créditos consumidos" · CTA Descargar (blob download · disabled stub) · CTA WhatsApp green #25D366 modal `wa.me/?text=...`.
+- **NEW** `frontend/src/components/studio/VideoQueueList.js` · tabla 7 cols (thumb/script/provider/ratios/status/fecha/acciones) · status badges 4-tier (queued cream · processing gradient · completed verde aurora · failed rosa) · polling 5s automático mientras `queued|processing` · stop cuando `all completed` · acciones Ver/Re-generar/Eliminar · empty state SmartEmptyState.
+- **NEW** `frontend/src/pages/portal/asesor/StudioVideoPage.js` · hero clamp(2rem, 4vw, 3rem) "Studio Video" + eyebrow indigo + builder grid 3 cols `repeat(auto-fit, minmax(280px, 1fr))` responsivo · `URL_RX` regex validación · loading hint "Este proceso toma ~30s" · `VideoRatioPreview` latest result + `VideoQueueList` con `refreshKey` increment.
+- **EDIT** `frontend/src/App.js` (+4L) · 2 lazy import + 2 Route `/portal/asesor/studio-video` AdvisorRoute después del bloque W5.17.
+- **EDIT** `frontend/src/config/navByRole.js` (+2L) · 1 `Video` icon import lucide-react + 1 item `studio-video` insertado entre `studio` y `studio-brand-kit`.
+- **EDIT** `frontend/src/i18n/locales/es-MX/common.json` · namespace `studioVideo` NUEVO (48 strings: 29 top-level + tabs 3 + queue 12 + status 4).
+- Audit 5 puntos POST-MERGE limpio (memory/* · backend/* · superadmin críticos diff=0).
+- `yarn build` 22s LIMPIO · 0 warnings en W5.16-C files.
+- Cherry-pick selectivo desde `conflict_110526_0125` (branch atrasada 827 archivos diff vs main).
+
+### Sub-D · Cosmetic cleanup (Claude Code · audit-only · 0 cambios necesarios)
+- 16/16 docstrings backend W5.x bundle ya presentes · 0 strings hardcoded en JSX · 0 console.log/debug · 0 unused imports · 5/5 tools #36-40 con args+devuelve+usar cuando completos. Bundle W5.x heredó hábitos limpios.
+
+### Bundle metrics
+- **Total horas**: 34h (12+10+12 + audit cleanup 0)
+- **3 SHAs**: `78c62ba4` + `80cb6fb3` + `24fa3482`
+- **Insertions / Deletions**: 962 + 903 + 1115 = **2980 / 2** (puro aditivo)
+- **Smoke total**: 21/21 ✅ (7+7+7)
+- **Críticos diff**: 0 en los 3 batches
+- **Primer paralelo Claude Code + emergent confirmado funcional** (B + C ejecutaron simultáneos · C usa STUB MODE mientras B construye real)
+
+### Notas / riesgos residuales NO bloqueantes
+- ffmpeg-python no instalado local degrade automático a stub URLs (real activa post-deploy)
+- Convención path `/portal/asesor/studio-video` (spec) vs `/asesor/*` (otras nav items) · founder puede ajustar futuro 1 línea
+- ⚠️ Collision número W5.16 con Social Cards shipped 2026-05-18 (SHA `e42bf945`) · resolver naming en futura sesión
+
+---
+
+
 ## W4.18.2A — Mapa Cerebro Espacial DMX core (2026-05-10)
 
 Mapa público interactivo en `/mapa` (Mapbox GL JS · style `dark-v11`) que superpone 5 capas (proyectos preventa, propiedades usada/brokers, catastro heatmap, zone score A-F, riesgo zona) con Atlax context-injection para conversaciones AI con visión geoespacial.
