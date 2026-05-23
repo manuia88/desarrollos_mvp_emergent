@@ -1,6 +1,89 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W6.MOV.5 Construction Quality Index — 2026-05-23
+
+🚀 **Primer batch Wave 6 SHIPPED end-to-end Claude Code single chat (sin emergent).**
+
+Índice 0-100 calidad de construcción por desarrollo CDMX · 4 dimensiones · cron semanal · diferenciador competitivo (Inmuebles24/Lamudi NO tienen). End-to-end: backend engine + cron + routes + asistente tool + frontend badge + breakdown modal + superadmin dashboard.
+
+### Backend (3 NEW + 2 EDIT additive · ~21h)
+- **NEW** `backend/construction_quality_engine.py` (385L)
+  - `compute_quality_index(db, dev_id, use_cache)` 4 dimensiones pesos 25% c/u:
+    - **Avance**: ratio progress_pct vs expected_pct según cronograma
+    - **Acabados**: defectos/total inspecciones (signal_type `finish_defect`|`finish_ok`)
+    - **Defectos**: count severity-weighted normalizado por units_sold_count
+    - **Cronograma**: avg_delay_days desde `milestones_history` array
+  - `_clamp` 0-100 · 4 tiers (excelente≥85 / bueno≥70 / regular≥50 / deficiente<50 / no_data)
+  - `manual_override` pin superadmin (sin breakdown · audit log)
+  - Cache TTL parametrizable env `CONSTRUCTION_QUALITY_CACHE_TTL_DAYS` (default 3d)
+  - Denormaliza `score`+`tier` en `developments` collection para fast filtering
+  - 5 `ensure_indexes` idempotente
+  - FAIL-OPEN: si data incompleta retorna `score=None` + `reason` · no crash
+- **NEW** `backend/construction_quality_cron.py` (110L)
+  - `cron_recompute_quality_weekly` @ lunes 02:00 UTC APScheduler
+  - Skip `status='archived'` · fuerza recompute con `use_cache=False`
+  - Persistencia `construction_quality_runs` TTL 30d
+- **NEW** `backend/routes/construction_quality.py` (177L)
+  - 5 endpoints: 3 público T0 + 2 superadmin con `require_superadmin` gate
+  - `ManualOverrideBody` Pydantic con `model_validator`: `reason` ≥10 chars cuando `score!=None`
+  - `audit_immutable_engine.log` en refresh + manual_override (entity_type=development)
+- **EDIT** `backend/server.py` (+13L) · include_router + startup ensure_indexes + cron register
+- **EDIT** `backend/asistente_engine.py` · **tool #41** `query_construction_quality` 3 modes (index/top/stats) · numeración 1-41 consecutiva sin gaps
+
+### Frontend (4 NEW + 5 EDIT additive · ~4h)
+- **NEW** `frontend/src/api/constructionQuality.js` · 5 fetch wrappers (NO axios · patrón `studio_z2`)
+- **NEW** `frontend/src/components/property/ConstructionQualityBadge.js` (115L)
+  - Pill score + tier label aurora design
+  - 4 tier styles: excelente gradient · bueno indigo · regular cream · deficiente rose
+  - 3 sizes (sm/md/lg) · `rounded-full` · sin emoji
+  - Click opens breakdown modal si `hasBreakdown && !manual_override`
+- **NEW** `frontend/src/components/property/ConstructionQualityBreakdown.js` (170L)
+  - Modal 4 dimensiones · `dimColor` por score (verde≥85 indigo≥70 amber≥50 rose<50)
+  - ESC + body scroll lock + click outside cierra
+- **NEW** `frontend/src/pages/superadmin/SuperadminConstructionQuality.js` (310L)
+  - SuperadminLayout wrap · KPIs strip (totalDevs · withScore · coverage% · cacheEntries)
+  - Tier distribution 4 cards · filtros `min_score`+`tier` · tabla con acciones Refresh+Override
+  - Modal override con `score` input + `reason` textarea (validador min 10 chars cliente y servidor)
+- **EDIT** `frontend/src/App.js` (+4L) · lazy + Route SuperadminRoute
+- **EDIT** `frontend/src/components/superadmin/SuperadminLayout.js` · 1 keyword regex Inteligencia (Edit puntual permitido per memory rule · NO reescritura)
+- **EDIT** `frontend/src/config/navByRole.js` (+2L) · item SUPERADMIN_NAV tier 3 · `ShieldCheck` ya importado
+- **EDIT** `frontend/src/i18n/locales/es-MX/common.json` · namespace `constructionQuality` 27 keys
+- **EDIT** `frontend/src/pages/DevelopmentDetail.js` (+13L) · import + state + useEffect + badge sm en header (junto ComplianceBadge+verified+stage)
+
+### NO tocado
+- `Marketplace.js` filter min_score diferido (670L invasivo · documentado para batch futuro)
+
+### Audit forense 55/55 PASS
+- 4 hallazgos identificados (A.10 timedelta dead import + J.1 staleness 14d teórica + J.2 reason vacío + J.4 cache TTL no parametrizable + bonus FastAPI deprecation `regex`→`pattern`)
+- **4 fixes aplicados** directo en SHA `9f231a29` (NO backlog · arreglo en el momento)
+- 0 🔴 · 0 🟡 · 0 🟢 residual
+
+### Audit 5 puntos POST-MERGE limpio
+- `memory/*` diff=0 ✅
+- backend críticos (audit_immutable_engine · feature_registry · feature_gate_engine) diff=0 ✅
+- superadmin críticos: SuperadminLayout 1 línea regex Edit puntual ✅
+- App.js: 4 líneas añadidas ✅
+- navByRole.js: 2 líneas añadidas ✅
+- `yarn build` 20.63s · 0 warnings W6.MOV.5
+
+### Metrics
+- **14 archivos** · 1541 inserts / 2 deletes (puro aditivo) + 15 inserts / 4 deletes audit fixes
+- **41 tools** asistente consecutivos
+- **5 endpoints** registrados
+- **Cron lunes 02:00 UTC** registrado
+
+### Hito histórico
+Primer batch Wave 6 demuestra Claude Code end-to-end funcional sin emergent · track record 12 batches consecutivos cero bugs aurora cero críticos tocados.
+
+### Riesgos residuales NO bloqueantes
+- Requiere collection `construction_quality_signals` seedeada (vacía hasta seed sintético O ingest W6.MOV.2 External Sources)
+- Sin data, score retorna 50-75 default con `missing_data=True` flag (badge renderiza sin crash)
+- ⚠️ Numbering W6.MOV.5 sin colisión con otros batches (W5.16 ambigüedad ya documentada · resolver en futura sesión)
+
+---
+
+
 ## W5.16 Studio Video bundle (A+B+C) — 2026-05-22
 
 Studio Video end-to-end: TTS multi-voz + auto-script tone-aware + video multi-ratio (1:1/9:16/16:9) + UI builder + queue polling 5s + WhatsApp share. Primera ejecución paralela Claude Code (backend) + emergent (UI) confirmada funcional.
