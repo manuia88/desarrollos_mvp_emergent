@@ -312,6 +312,11 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "stats": {{total_scripts, total_audios, total_cost_usd_30d, top_tone, top_duration}} · "user": {{scripts_count, quota}} · "voices": {{voices_list, default_voice_id}}
     Usar cuando: dev pregunta cuántos videos ha generado · cuál estilo/duracion es popular · stats del feature W5.16 · qué voces ES-MX disponibles.
 
+40. generate_studio_video
+    params: {{ "script": str (1-5000), "image_url": str?, "provider": "luma"|"pika"|"runway"|"replicate_kling" (default "luma"), "duration_sec": 30|60|90 (default 60), "dev_org_id": str?, "user_id": str? }}
+    devuelve: {{ task_id, provider, ratios: {{"1:1", "9:16", "16:9"}}, master_url, is_stub, cost_usd, quota, status, cached, fallback_attempts }}
+    Usar cuando: dev pide generar video multi-ratio (reel 1:1 · stories 9:16 · youtube 16:9) desde script + imagen · usa fallback chain providers · stub-aware sin credito · respeta cap diario studio_video W5.16-A.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -534,6 +539,8 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_query_virtual_staging(db, params)
         if tool_name == "query_studio_videos":
             return await _tool_query_studio_videos(db, params)
+        if tool_name == "generate_studio_video":
+            return await _tool_generate_studio_video(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3135,6 +3142,43 @@ async def _tool_query_studio_videos(db, params: Dict[str, Any]) -> Dict[str, Any
         }
     except Exception as e:
         log.warning(f"[asistente_tool] query_studio_videos: {e}")
+        return {"error": str(e), "source": "studio_video_engine"}
+
+
+async def _tool_generate_studio_video(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.16-B — Generate multi-ratio video tool.
+
+    Params:
+      script (str, required) · image_url (str, optional) ·
+      provider (luma|pika|runway|replicate_kling, default luma) ·
+      duration_sec (30|60|90, default 60) ·
+      dev_org_id (str, optional · si presente, aplica cap diario · si None, fail-open).
+    Returns engine result dict (task_id, ratios, provider, is_stub, cost_usd, quota).
+    """
+    script = params.get("script")
+    if not script or not isinstance(script, str) or not script.strip():
+        return {"error": "script vacio o invalido"}
+    image_url = params.get("image_url")
+    provider = (params.get("provider") or "luma").strip().lower()
+    try:
+        duration_sec = int(params.get("duration_sec") or 60)
+    except (TypeError, ValueError):
+        duration_sec = 60
+    dev_org_id = params.get("dev_org_id")
+    user_id = params.get("user_id")
+    try:
+        from studio_video_engine import generate_video_multiratio
+        return await generate_video_multiratio(
+            db,
+            dev_org_id=dev_org_id,
+            script=script,
+            image_url=image_url,
+            provider=provider,
+            duration_sec=duration_sec,
+            user_id=user_id,
+        )
+    except Exception as e:
+        log.warning(f"[asistente_tool] generate_studio_video: {e}")
         return {"error": str(e), "source": "studio_video_engine"}
 
 

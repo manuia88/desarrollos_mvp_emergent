@@ -298,8 +298,226 @@ async def ensure_indexes(db) -> None:
         )
     except Exception as exc:
         log.warning(f"[studio_video] ensure_indexes failed: {exc}")
+    # W5.16-B · multi-ratio videos cache (7 dias)
+    try:
+        await db.studio_video_cache.create_index("cache_key", unique=True, background=True)
+        await db.studio_video_cache.create_index(
+            "ttl_until", expireAfterSeconds=0, background=True,
+        )
+        await db.studio_video_cache.create_index(
+            [("dev_org_id", 1), ("generated_at", -1)], background=True,
+        )
+    except Exception as exc:
+        log.warning(f"[studio_video] cache indexes failed: {exc}")
+    # W5.16-B · studio_videos (persistencia outputs por task_id)
+    try:
+        await db.studio_videos.create_index("task_id", unique=True, background=True)
+        await db.studio_videos.create_index(
+            [("dev_org_id", 1), ("generated_at", -1)], background=True,
+        )
+    except Exception as exc:
+        log.warning(f"[studio_video] studio_videos indexes failed: {exc}")
     try:
         from adapters.tts.elevenlabs import ensure_audio_indexes
         await ensure_audio_indexes(db)
     except Exception as exc:
         log.warning(f"[studio_video] audio indexes failed: {exc}")
+
+
+# ─── W5.16-B · multi-ratio video generator ──────────────────────────────────
+
+VIDEO_CACHE_TTL_DAYS = 7
+SUPPORTED_PROVIDERS = ("luma", "pika", "runway", "replicate_kling")
+
+
+def _image_hash(image_url: Optional[str]) -> str:
+    if not image_url:
+        return "noimg"
+    return hashlib.sha256(image_url.encode("utf-8")).hexdigest()[:16]
+
+
+def _video_cache_key(script: str, image_url: Optional[str], provider: str) -> str:
+    payload = f"{provider}|{_image_hash(image_url)}|{(script or '')[:2000]}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+async def generate_video_multiratio(
+    db,
+    dev_org_id: Optional[str],
+    script: str,
+    image_url: Optional[str] = None,
+    provider: str = "luma",
+    duration_sec: int = 60,
+    user_id: Optional[str] = None,
+    force_refresh: bool = False,
+) -> Dict[str, Any]:
+    """W5.16-B · Genera 3 ratios (1:1, 9:16, 16:9) desde script + imagen.
+
+    Returns {task_id, ratios: {1:1, 9:16, 16:9}, provider, is_stub, cost_usd,
+             cached, status, quota}.
+    Quota check: si excede daily cap, retorna {"quota_exceeded": True}.
+    """
+    if not isinstance(script, str) or not script.strip():
+        return {"ok": False, "reason": "script_empty"}
+    if provider not in SUPPORTED_PROVIDERS:
+        return {"ok": False, "reason": f"provider_invalid · soportados {list(SUPPORTED_PROVIDERS)}"}
+    if duration_sec not in SUPPORTED_DURATIONS:
+        return {"ok": False, "reason": f"duration_invalid · soportados {SUPPORTED_DURATIONS}"}
+
+    # Quota check
+    quota = {"available": True, "used_today_usd": 0, "cap_daily_usd": 0, "remaining_usd": 0}
+    try:
+        from ai_budget import check_studio_video_quota
+        quota = await check_studio_video_quota(db, dev_org_id)
+    except Exception as exc:
+        log.warning(f"[studio_video.B] quota lookup failed: {exc}")
+    if not quota.get("available"):
+        return {
+            "ok": False,
+            "reason": "quota_exceeded",
+            "quota": quota,
+        }
+
+    cache_key = _video_cache_key(script, image_url, provider)
+
+    if not force_refresh:
+        try:
+            hit = await db.studio_video_cache.find_one({"cache_key": cache_key}, {"_id": 0})
+        except Exception as exc:
+            log.warning(f"[studio_video.B] cache lookup failed: {exc}")
+            hit = None
+        if hit:
+            out = dict(hit)
+            out["cached"] = True
+            out["ok"] = True
+            out["quota"] = quota
+            out.pop("ttl_until", None)
+            gen_at = out.get("generated_at")
+            if hasattr(gen_at, "isoformat"):
+                out["generated_at"] = gen_at.isoformat()
+            return out
+
+    # Provider call con fallback chain
+    try:
+        from studio_video_providers import generate_with_fallback
+        prov_result = await generate_with_fallback(
+            script=script,
+            image_url=image_url,
+            duration_sec=duration_sec,
+            preferred=provider,
+        )
+    except Exception as exc:
+        log.warning(f"[studio_video.B] provider error: {exc}")
+        return {"ok": False, "reason": f"provider_error: {type(exc).__name__}"}
+
+    task_id = prov_result.get("job_id") or hashlib.sha256(cache_key.encode()).hexdigest()[:14]
+    master_url = prov_result.get("url") or ""
+    is_stub_provider = bool(prov_result.get("is_stub"))
+    cost_usd = float(prov_result.get("cost_usd") or 0)
+
+    # Multi-ratio render
+    try:
+        from multiratio_renderer import render_multiratio
+        ratios = await render_multiratio(master_url, task_id)
+    except Exception as exc:
+        log.warning(f"[studio_video.B] render error: {exc}")
+        # Fallback: stub ratios
+        from multiratio_renderer import _stub_response as _renderer_stub  # type: ignore
+        ratios = _renderer_stub(task_id, f"render_error_{type(exc).__name__}")
+
+    is_stub_final = bool(is_stub_provider or ratios.get("is_stub"))
+
+    now = _now()
+    ttl_until = now + timedelta(days=VIDEO_CACHE_TTL_DAYS)
+    doc = {
+        "cache_key": cache_key,
+        "task_id": task_id,
+        "provider": prov_result.get("provider") or provider,
+        "provider_preferred": provider,
+        "ratios": {
+            "1:1": ratios.get("1:1"),
+            "9:16": ratios.get("9:16"),
+            "16:9": ratios.get("16:9"),
+        },
+        "master_url": master_url,
+        "is_stub": is_stub_final,
+        "cost_usd": cost_usd,
+        "duration_sec": duration_sec,
+        "script_chars": len(script or ""),
+        "image_url": image_url,
+        "user_id": user_id,
+        "dev_org_id": dev_org_id,
+        "fallback_attempts": prov_result.get("fallback_attempts") or [],
+        "generated_at": now,
+        "ttl_until": ttl_until,
+    }
+    try:
+        await db.studio_video_cache.insert_one(dict(doc))
+    except Exception as exc:
+        log.warning(f"[studio_video.B] cache insert failed: {exc}")
+
+    # studio_videos persistence (by task_id)
+    try:
+        await db.studio_videos.update_one(
+            {"task_id": task_id},
+            {"$set": {**{k: v for k, v in doc.items() if k != "cache_key"}, "task_id": task_id}},
+            upsert=True,
+        )
+    except Exception as exc:
+        log.warning(f"[studio_video.B] studio_videos upsert failed: {exc}")
+
+    # ai_budget track real spend (skip si stub · costo 0)
+    if not is_stub_final and cost_usd > 0 and dev_org_id:
+        try:
+            from ai_budget import increment_studio_video_usage
+            await increment_studio_video_usage(
+                db, dev_org_id=dev_org_id, cost_usd=cost_usd,
+                model=f"video_{prov_result.get('provider')}",
+                call_type="studio_video_generate",
+            )
+        except Exception as exc:
+            log.warning(f"[studio_video.B] ai_budget increment failed: {exc}")
+
+    # Audit
+    try:
+        from audit_immutable_engine import log as audit_log
+        await audit_log(
+            db,
+            actor={"user_id": user_id or "anon", "role": "system"},
+            action="video.generated",
+            entity_type="studio_video",
+            entity_id=task_id,
+            before=None,
+            after={
+                "provider": prov_result.get("provider"),
+                "is_stub": is_stub_final,
+                "cost_usd": cost_usd,
+                "duration_sec": duration_sec,
+            },
+        )
+    except Exception as exc:
+        log.debug(f"[studio_video.B] audit skipped: {exc}")
+
+    # Refresh quota for response
+    try:
+        from ai_budget import check_studio_video_quota
+        quota = await check_studio_video_quota(db, dev_org_id)
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "task_id": task_id,
+        "provider": prov_result.get("provider") or provider,
+        "provider_preferred": provider,
+        "ratios": doc["ratios"],
+        "master_url": master_url,
+        "is_stub": is_stub_final,
+        "cost_usd": cost_usd,
+        "duration_sec": duration_sec,
+        "status": "completed",
+        "cached": False,
+        "fallback_attempts": prov_result.get("fallback_attempts") or [],
+        "quota": quota,
+        "generated_at": now.isoformat(),
+    }

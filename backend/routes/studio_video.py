@@ -93,6 +93,31 @@ class ScriptBody(BaseModel):
         return v
 
 
+class GenerateVideoBody(BaseModel):
+    script: str = Field(..., min_length=1, max_length=5000)
+    image_url: Optional[str] = Field(None)
+    provider: Optional[str] = Field("luma")
+    duration_sec: Optional[int] = Field(60)
+
+    @field_validator("provider")
+    @classmethod
+    def _v_provider(cls, v: Optional[str]) -> str:
+        from studio_video_engine import SUPPORTED_PROVIDERS
+        vv = (v or "luma").strip().lower()
+        if vv not in SUPPORTED_PROVIDERS:
+            raise ValueError(f"provider invalido · soportados {list(SUPPORTED_PROVIDERS)}")
+        return vv
+
+    @field_validator("duration_sec")
+    @classmethod
+    def _v_duration_b(cls, v: Optional[int]) -> int:
+        from studio_video_engine import SUPPORTED_DURATIONS
+        vv = int(v or 60)
+        if vv not in SUPPORTED_DURATIONS:
+            raise ValueError(f"duration_sec invalido · soportadas {SUPPORTED_DURATIONS}")
+        return vv
+
+
 class TTSBody(BaseModel):
     text: str = Field(..., min_length=1, max_length=2500)
     voice_id: str = Field("rachel_es")
@@ -178,6 +203,48 @@ async def post_video_tts(request: Request, body: TTSBody):
         "remaining_usd": quota.get("remaining_usd"),
         "cap_daily_usd": quota.get("cap_daily_usd"),
     }
+    return res
+
+
+# ─── POST /api/studio-video/generate-video (W5.16-B multi-ratio) ──────────
+
+_RATE_VIDEO: Dict[str, deque] = defaultdict(lambda: deque(maxlen=5))
+
+
+@router.post("/api/studio-video/generate-video")
+async def post_generate_video(request: Request, body: GenerateVideoBody):
+    user = await _auth(request)
+    user_id = getattr(user, "user_id", None)
+    dev_org_id = getattr(user, "tenant_id", None)
+    _rate_check(_RATE_VIDEO, user_id or "anon", limit=5)
+    db = _db(request)
+
+    from studio_video_engine import generate_video_multiratio
+    try:
+        res = await generate_video_multiratio(
+            db,
+            dev_org_id=dev_org_id,
+            script=body.script,
+            image_url=body.image_url,
+            provider=body.provider or "luma",
+            duration_sec=body.duration_sec or 60,
+            user_id=user_id,
+        )
+    except Exception as exc:
+        log.warning(f"[studio_video.B] generate error: {exc}")
+        raise HTTPException(500, "Error generando video")
+
+    if not res.get("ok"):
+        reason = res.get("reason") or "unknown"
+        if reason == "quota_exceeded":
+            raise HTTPException(
+                429,
+                detail={"reason": "quota_exceeded", "quota": res.get("quota")},
+            )
+        if reason in ("script_empty",):
+            raise HTTPException(422, "script vacio")
+        raise HTTPException(422, f"No fue posible generar video · {reason}")
+
     return res
 
 
