@@ -6,6 +6,59 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## W6 Huérfanos Sketch Original Diferidos (2026-05-23 · founder ruling)
+
+5 features del sketch original Wave 6 (~227h reconstruido). Founder decidió diferir/cancelar/skip post-W6 batch 4 shipped.
+
+### W6.6 · Compliance MX nativa (CFDI 4.0 + Mifiel NOM-151) · 15h
+- **Qué hace:** Genera facturas oficiales SAT cuando se cierra venta + firmas digitales NOM-151 con Mifiel
+- **Razón diferir:** Complejidad alta (integración terceros SAT + Mifiel) · sin volumen real ventas aún
+- **Destino:** Post-MVP cuando exista volumen ventas real (cierres por mes ≥5)
+- **Dependencias:** ninguna técnica · negocio = W6.10 Lead post-close flow idealmente primero
+- **Costo:** 15h · alta complejidad regulatoria
+
+### W6.7 · Tax IVA/ISR automáticas · 10h · ❌ CANCELAR
+- **Qué hace:** Cálculo automático IVA + ISR en operaciones
+- **Razón cancelar:** **80% DUPLICA con F6 Tax Projector** (shipped) · F6 ya calcula ISR vendedor Art 126 LISR + ISAI comprador Art 113 CFCDMX + Predial Art 130 con tablas oficiales 2026
+- **Gap real:** IVA preventa case específico (3-5h max si se quiere · NO los 10h spec)
+- **Decisión founder 2026-05-23:** cancelar · F6 cubre escenarios principales
+
+### W6.9 · Multi-currency MXN/USD/AED · 12h
+- **Qué hace:** Soporte 3 monedas en simuladores · ROI calculadora · brochures
+- **Razón diferir:** Útil para Dubai expansion pero W5.18 Dubai BLOCKED (esperando founder source 50+ properties)
+- **Destino:** Cuando W5.18 Dubai shipped (post-source acquisition)
+- **Dependencias:** W5.18 Dubai listings disponibles
+- **Costo:** 12h · scope contenido
+
+### W6.10 · Lead post-close legal flow · 20h
+- **Qué hace:** Después de cerrar lead (closed_won): depósito → escrow → firmas → entrega de llaves
+- **Razón diferir:** Diferenciador competitivo fuerte (cierra ciclo full-stack) PERO complejo (integración legal MX · escrow vendor · firmas)
+- **Destino:** Post-MVP cuando exista volumen cierres real
+- **Dependencias:** ninguna técnica · debe shipear con W6.6 Compliance MX idealmente
+- **Costo:** 20h · alta complejidad integración terceros
+
+### W6.12 · Community foros propiedad/colonia · 25h · ❌ SKIP
+- **Qué hace:** Foros tipo Reddit threaded por propiedad/colonia · Atlax community manager modera
+- **Razón skip:** W6.MOV.3 Reviews residentes (shipped) cubre opinion · foros threaded = different feature pero alto risk moderación MX (spam · trolls · libelo) · costo community management caro
+- **Alternativa lightweight:** WhatsApp grupos de residentes (cero código)
+- **Decisión founder 2026-05-23:** skip · W6.MOV.3 + WA grupos cubren
+
+### Resumen W6 huérfanos diferidos
+
+| Batch | Acción | Horas | Status |
+|---|---|---|---|
+| W6.6 Compliance MX | Diferir post-MVP | 15h | Vigente · espera volumen ventas |
+| W6.7 Tax IVA/ISR | ❌ CANCELAR | 0h | Duplica F6 Tax Projector shipped |
+| W6.9 Multi-currency | Diferir | 12h | Espera W5.18 Dubai listings |
+| W6.10 Lead post-close | Diferir post-MVP | 20h | Vigente complejo · alto valor |
+| W6.12 Community foros | ❌ SKIP | 0h | W6.MOV.3 + WA grupos cubren |
+| **Total diferido vigente** | | **47h** | (W6.6 + W6.9 + W6.10) |
+| **Total cancelado** | | 35h | (W6.7 + W6.12) |
+
+**Wave 6 total shipped:** ~190h (9 batches activos 2026-05-23) · vs ~227h sketch original = ~83% scope vigente entregado.
+
+---
+
 ## 🟡 ALTA PRIORIDAD (1-3 batches futuros)
 
 ### W5.ASR.4 DNS ops · Wildcard `*.asesores.desarrollosmx.io` A record (origen: emergent W5.ASR.4 P2 · 2026-05-17)

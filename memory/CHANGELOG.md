@@ -1,6 +1,102 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W6 batch 4 · W6.4 Marketplace Templates + Seed Sintético — 2026-05-23
+
+🚀 **3ra iteración 2-terminales CC paralelos · primera ejecución de Seed Sintético como batch independiente.**
+
+2 batches W6 shipped en sesión coordinada · cero conflict (Seed solo NEW files standalone · W6.4 toca shared) · merge custom limpio.
+
+### W6.4 · Marketplace Templates (~20h · SHA branch `7d17e59e`)
+Catálogo donde asesores T2+ publican workflows como plantillas para que otros asesores las clonen.
+
+- **NEW** `backend/marketplace_templates_engine.py` (656L)
+  - `publish_template(author_user_id, workflow_id, metadata)` → moves workflow JSON a template + status="pending_review"
+  - `approve_template(template_id, admin_user_id)` → status="approved" (superadmin only)
+  - `clone_template(template_id, target_user_id, paid_amount)` → crea nuevo workflow + records revenue split 70/30 author/DMX
+  - `list_templates(category?, price_range?, sort?, limit?)` paginated
+  - `search_templates(query)` full-text en title + description + category
+  - `rate_template(template_id, user_id, stars 1-5, comment?)` idempotent
+  - `get_revenue_stats(author_user_id?)` totals + breakdown
+  - 4 categorías: nurture · post-visita · win-back · custom
+  - Pricing tiers: free (0) · pro (50-200 MXN) · enterprise (500+ MXN) · author elige
+  - Revenue split configurable env `MARKETPLACE_TEMPLATE_REVENUE_DMX_PCT` (default 30% DMX)
+  - Moderación: draft → pending_review → approved (audit log per transición)
+  - Cache 7d `marketplace_templates_cache`
+- **NEW** `backend/routes/marketplace_templates.py` (244L) · 12 endpoints:
+  - Advisor (7): publish · clone · rate · revenue/my · list · search · detail
+  - Superadmin (5): approve · reject · delete · admin-list (filter status) · admin-stats
+- **EDIT** `backend/asistente_engine.py` · tool **#48** `query_marketplace_templates` (3 modes: list/my-published/revenue-stats) · numeración 1-48 consecutiva
+- **NEW** `frontend/src/api/marketplaceTemplates.js` · 12 fetch wrappers
+- **NEW** `frontend/src/pages/portal/asesor/MarketplaceTemplatesPage.js` (486L) · catálogo asesor + filtros (categoría · precio · sort) + grid cards (rating · downloads · price · clone btn) + modal detail
+- **NEW** `frontend/src/pages/portal/asesor/PublishTemplateModal.js` (231L) · publicar workflow propio (dropdown · title · description · category · price · submit)
+- **NEW** `frontend/src/pages/superadmin/SuperadminMarketplaceTemplates.js` (337L) · KPIs strip + acciones Approve/Reject/Delete + revenue stats top 10 sellers
+- **EDIT** `frontend/src/App.js` (+6L) · 2 lazy + 2 routes
+- **EDIT** `frontend/src/config/navByRole.js` (+4L) · 2 items (ASESOR_NAV tier 3 + SUPERADMIN tier 5 monetizacion)
+- **EDIT** `frontend/src/components/superadmin/SuperadminLayout.js` · keyword `marketplace-templates` regex monetizacion
+- **EDIT** `frontend/src/i18n/locales/es-MX/common.json` · namespace `marketplaceTemplates` ~80 keys
+- Rate solo si clonó antes (anti-spam) · pending templates hidden del catálogo público
+- Reusa workflow JSON schema de W6.AS.1 (NO duplica)
+
+### Seed Sintético Consolidado (~45 min · SHA branch `4abca4e5`)
+9 archivos NEW en `/backend/scripts/` · cero archivos shared modificados · pobla 7 features W6 con data realista.
+
+- **NEW** `seed_w6_construction_quality.py` (195L) · 15 devs + ~50 signals + scores 4D distribuidos
+- **NEW** `seed_w6_reviews_residents.py` (163L) · 60 reviews mixed sentiment (60% positive · 25% neutral · 15% negative) · 5 themes recurrentes · 3 sources · 12 zonas + 8 devs
+- **NEW** `seed_w6_gov_data_mx.py` (178L) · 12 cache entries (6 API + 6 parsers) + 5 uploads + 3 runs por cron type
+- **NEW** `seed_w6_soc_franchise.py` (178L) · 20 asesores distribución realista (5 platinum · 7 gold · 5 silver · 3 bronze) + 10 snapshots 7d en history
+- **NEW** `seed_w6_workflows.py` (180L) · 8 workflows activos + 20 runs (70% success · 20% failed · 10% in_progress)
+- **NEW** `seed_w6_marketing_mcp.py` (163L) · 25 publishes 30d (10 Twitter · 6 LinkedIn · 5 Telegram · 4 Discord) + 3 scheduled
+- **NEW** `seed_w6_quick_wins.py` (230L) · 5 templates marcados + 8 duplicaciones + 5 courses + 10 fact-check entries
+- **NEW** `seed_w6_all.py` (119L) · master runner `--all` / `--feature {cq|reviews|gov|soc|workflows|mcp|qw}` / `--clean` · tabla resumen
+- **NEW** `README_SEED_W6.md` (70L) · setup + invocación + limpieza
+- Marker `_seed_synthetic=True` por entity · idempotente · safe re-ejecutar
+- Audit log `seed.w6.{feature}` por script con count + timestamp
+
+### Activación post-deploy
+```bash
+python3 backend/scripts/seed_w6_all.py --all
+# o por feature:
+python3 backend/scripts/seed_w6_construction_quality.py --count 15
+# limpieza:
+python3 backend/scripts/seed_w6_all.py --clean
+```
+
+⚠️ **Seed local NO ejecutable** en working dir founder (MongoDB localhost:27017 NO corriendo). Opciones:
+1. Levantar Mongo local: `brew services start mongodb-community` O `docker run -d -p 27017:27017 mongo`
+2. Ejecutar post-deploy en prod (Mongo Atlas/cloud configurado en .env real)
+
+### Merge custom (21 archivos · +3732 inserts / 1 delete · SHA `cf980162`)
+- Cero conflict entre branches: Seed solo NEW files standalone (`/backend/scripts/`) · W6.4 toca shared (asistente + server + App.js + navByRole + SuperadminLayout + i18n)
+- Cherry-pick selectivo NEW per branch + W6.4 shared files tomados de su branch sin contaminación
+- 48 tools asistente consecutivos sin gaps (#36-#47 W5.x+W6 previos intactos · #48 marketplace nuevo)
+
+### Audit 5 puntos POST-MERGE limpio
+- `memory/*` diff=0 ✅
+- backend críticos (`audit_immutable_engine` + `feature_registry` + `feature_gate_engine` + W5.x + W6.MOV.* + W6.AS.1 + W6.MOV.4 + Quick Wins con G.90 PII fix + G.94 SSRF + G.92 cap preservados) diff=0 ✅
+- superadmin críticos: `SuperadminLayout` Edit puntual 1 keyword permitido ✅
+- App.js · navByRole · NO reescritos · deltas additive ✅
+- `yarn build` 18.67s · 0 warnings W6.4/seed files (1 warning pre-existente MarketplaceHeatmapLayer W4.18.2A ajeno) ✅
+
+### Metrics
+- **Total horas**: 20h (W6.4) + 45min (Seed) = ~21h
+- **2 SHAs branches** + **1 merge custom** + **1 merge a main**
+- **12 endpoints nuevos** (7 advisor + 5 superadmin)
+- **9 scripts seed standalone** para activación post-deploy
+- **1 tool asistente nuevo** (#48) · total 48 consecutivos
+- **21 archivos** · +3732 inserts / 1 delete
+
+### Hito histórico
+3ra iteración patrón 2-terminales CC paralelos · primera vez que **Seed Sintético se entrega como batch independiente** · cero conflict porque paths únicos (`/backend/scripts/`) · pattern replicable para futuros batches "infraestructura paralela" (tests · migrations · scripts utility).
+
+### Riesgos residuales NO bloqueantes
+- Seed local NO ejecutable en working dir founder (MongoDB apagado) · ejecutar post-deploy
+- Marketplace Templates depende workflow_engine W6.AS.1 (ya shipped) para schema compartido
+- 5 W6 huérfanos persistidos en `BACKLOG_ENHANCEMENTS.md` post-MVP (W6.6 Compliance MX + W6.7 Tax cancelar + W6.9 Multi-currency espera Dubai + W6.10 Lead post-close vigente complejo + W6.12 Community foros skip)
+
+---
+
+
 ## W6 batch 3 · AS.1 Workflow Builder + MOV.4 Marketing MCP + Quick Wins (W6.5+W6.11) — 2026-05-23
 
 🚀 **2da iteración 3-terminales CC paralelos + audit forense 95/95 PASS post-fixes + 3 hallazgos críticos arreglados.**
