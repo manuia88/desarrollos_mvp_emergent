@@ -3328,13 +3328,17 @@ async def _tool_query_soc_franchise(db, params: Dict[str, Any]) -> Dict[str, Any
         if mode == "leaderboard":
             level = params.get("level")
             limit = int(params.get("limit", 20))
-            items = await list_franchisees(db, level=level, limit=limit)
+            # Atlax es público T0 · public_safe=True elimina PII (audit forense G.90 fix)
+            items = await list_franchisees(db, level=level, limit=limit, public_safe=True)
             return {"source": "soc_franchise_engine", "mode": "leaderboard", "items": items, "count": len(items)}
         if mode == "my_score":
             user_id = params.get("user_id")
             if not user_id:
                 return {"error": "user_id requerido en mode=my_score", "source": "soc_franchise_engine"}
             result = await compute_soc_score(db, user_id, use_cache=True)
+            # Atlax es público T0 · sanitizar PII (audit forense G.90 fix)
+            for pii_field in ("email", "tenant_id"):
+                result.pop(pii_field, None)
             return {"source": "soc_franchise_engine", "mode": "my_score", "result": result}
         if mode == "admin_stats":
             stats_data = await get_stats(db)

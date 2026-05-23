@@ -66,9 +66,13 @@ async def leaderboard(
     limit: int = Query(20, ge=1, le=100),
     skip: int = Query(0, ge=0),
 ):
-    """Público T0. Top N franquiciatarios por score."""
+    """Público T0. Top N franquiciatarios por score.
+
+    Audit forense G.90 fix · public_safe=True elimina PII (email · tenant_id · manual_override).
+    Superadmin endpoint separado puede usar list_franchisees(public_safe=False) si necesita full data.
+    """
     db = request.app.state.db
-    items = await list_franchisees(db, level=level, limit=limit, skip=skip)
+    items = await list_franchisees(db, level=level, limit=limit, skip=skip, public_safe=True)
     return {"items": items, "count": len(items), "skip": skip, "limit": limit}
 
 

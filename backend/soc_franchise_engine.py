@@ -363,21 +363,28 @@ async def list_franchisees(
     limit: int = 20,
     skip: int = 0,
     use_cache: bool = True,
+    public_safe: bool = False,
 ) -> List[Dict[str, Any]]:
     """Top N franquiciatarios sorted by score desc.
 
     Si use_cache=True lee directo de soc_franchise_cache (rápido para leaderboard público).
+    public_safe=True (audit forense G.90 fix) elimina PII (email · tenant_id · manual_override)
+    de la respuesta · debe usarse SIEMPRE en endpoint público T0 sin auth.
     """
     query: Dict[str, Any] = {"score": {"$ne": None}}
     if level and level in VALID_LEVELS:
         query["level"] = level
 
+    # PII-safe projection cuando endpoint público · admin obtiene full
+    if public_safe:
+        projection = {"_id": 0, "user_id": 1, "name": 1, "avatar_url": 1,
+                      "score": 1, "level": 1, "computed_at": 1}
+    else:
+        projection = {"_id": 0, "user_id": 1, "name": 1, "email": 1, "avatar_url": 1,
+                      "score": 1, "level": 1, "tenant_id": 1, "computed_at": 1, "manual_override": 1}
+
     cursor = (
-        db.soc_franchise_cache.find(
-            query,
-            {"_id": 0, "user_id": 1, "name": 1, "email": 1, "avatar_url": 1,
-             "score": 1, "level": 1, "tenant_id": 1, "computed_at": 1, "manual_override": 1},
-        )
+        db.soc_franchise_cache.find(query, projection)
         .sort("score", -1)
         .skip(skip)
         .limit(limit)
