@@ -318,12 +318,70 @@ async def _action_move_stage(db, params: Dict[str, Any], lead_context: Dict[str,
         return {"ok": False, "error": str(exc)}
 
 
+def _is_safe_webhook_url(url: str) -> Tuple[bool, str]:
+    """G.94 SSRF protection · valida URL destino seguro para webhook.
+
+    Bloquea:
+    - Protocolos no-HTTP(S)
+    - Hostnames loopback (localhost · 127.0.0.0/8)
+    - Hostnames link-local (169.254.0.0/16 · incluye AWS/GCP/Azure metadata 169.254.169.254)
+    - Hostnames RFC1918 privados (10/8 · 172.16/12 · 192.168/16)
+    - Hostnames *.internal · *.local · *.svc.cluster
+    """
+    import socket
+    import ipaddress
+    from urllib.parse import urlparse
+
+    if not url or not url.startswith(("http://", "https://")):
+        return False, "invalid_protocol"
+
+    try:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower().strip()
+    except Exception:
+        return False, "invalid_url_parse"
+
+    if not host:
+        return False, "missing_host"
+
+    # Bloquear suffixes obviamente internos
+    BLOCKED_SUFFIXES = (".internal", ".local", ".svc.cluster.local", ".cluster.local")
+    if any(host.endswith(s) for s in BLOCKED_SUFFIXES):
+        return False, "internal_suffix"
+    if host in ("localhost", "ip6-localhost", "ip6-loopback"):
+        return False, "localhost"
+
+    # Resolver hostname → IPs · validar cada una
+    try:
+        addrs = socket.getaddrinfo(host, None)
+    except Exception:
+        return False, "dns_resolve_failed"
+
+    for addr in addrs:
+        ip_str = addr[4][0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except Exception:
+            continue
+        # is_private cubre RFC1918 (10/8 · 172.16/12 · 192.168/16) + IPv6 ULA
+        # is_loopback cubre 127.0.0.0/8 + ::1
+        # is_link_local cubre 169.254.0.0/16 (AWS/GCP/Azure metadata) + fe80::/10
+        # is_multicast / is_reserved / is_unspecified bonus
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified:
+            return False, f"blocked_ip_range:{ip_str}"
+
+    return True, "ok"
+
+
 async def _action_call_webhook(db, params: Dict[str, Any], lead_context: Dict[str, Any]) -> Dict[str, Any]:
     try:
         import httpx
         url = params.get("url")
-        if not url or not url.startswith(("http://", "https://")):
-            return {"ok": False, "error": "invalid_url"}
+        # G.94 SSRF fix · valida URL contra rangos privados/loopback/metadata
+        is_safe, reason = _is_safe_webhook_url(url or "")
+        if not is_safe:
+            log.warning(f"[workflow_engine] webhook blocked SSRF: {reason} · url={url}")
+            return {"ok": False, "error": f"url_blocked_ssrf:{reason}"}
         secret = params.get("secret") or ""
         payload = {
             "lead_id": lead_context.get("id"),
@@ -338,7 +396,8 @@ async def _action_call_webhook(db, params: Dict[str, Any], lead_context: Dict[st
         headers = {"Content-Type": "application/json"}
         if sig:
             headers["X-DMX-Signature"] = sig
-        async with httpx.AsyncClient(timeout=WEBHOOK_TIMEOUT_S) as client:
+        # follow_redirects=False · evita bypass via 302 a IP interna
+        async with httpx.AsyncClient(timeout=WEBHOOK_TIMEOUT_S, follow_redirects=False) as client:
             r = await client.post(url, json=payload, headers=headers)
         return {"ok": 200 <= r.status_code < 300, "status_code": r.status_code}
     except Exception as exc:
@@ -663,19 +722,40 @@ async def dispatch_event(db, event: Dict[str, Any]) -> Dict[str, Any]:
 
     Encuentra workflows con status=active + trigger matcheando event,
     los ejecuta secuencialmente. Idempotency via execution_id derivada.
+
+    Audit forense G.90 fix · CRÍTICO tenant isolation:
+    Resuelve el tenant_id del lead PRIMERO · solo dispara workflows del mismo tenant
+    (workflow Tenant A NUNCA debe ejecutarse sobre lead Tenant B).
     """
     fired: List[Dict[str, Any]] = []
+    lead_id = event.get("lead_id")
+
+    # G.90 fix · resolver tenant_id del lead para isolation cross-tenant
+    lead_tenant_id = None
+    if lead_id:
+        try:
+            lead_doc = await db.leads.find_one(
+                {"id": lead_id},
+                {"_id": 0, "tenant_id": 1, "dev_org_id": 1},
+            )
+            if lead_doc:
+                lead_tenant_id = lead_doc.get("tenant_id") or lead_doc.get("dev_org_id")
+        except Exception as exc:
+            log.warning(f"[workflow_engine] dispatch tenant resolve failed: {exc}")
+            # FAIL-CLOSED: si no podemos resolver tenant, no disparar (security > availability)
+            return {"ok": False, "error": "tenant_resolve_failed", "fired": 0}
+
+    # Query con tenant_id filter cuando aplica · fallback si lead sin tenant
+    query: Dict[str, Any] = {"status": "active", "deleted_at": None}
+    if lead_tenant_id:
+        query["tenant_id"] = lead_tenant_id
     try:
-        cursor = db.workflows.find(
-            {"status": "active", "deleted_at": None},
-            {"_id": 0},
-        )
+        cursor = db.workflows.find(query, {"_id": 0})
         wfs = await cursor.to_list(length=500)
     except Exception as exc:
         log.warning(f"[workflow_engine] dispatch list failed: {exc}")
         return {"ok": False, "error": str(exc), "fired": 0}
 
-    lead_id = event.get("lead_id")
     for wf in wfs:
         if not evaluate_trigger(wf, event):
             continue

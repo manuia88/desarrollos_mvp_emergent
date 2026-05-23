@@ -71,6 +71,30 @@ class MarkTemplateIn(BaseModel):
     enabled: bool = True
 
 
+DAILY_DUPLICATE_CAP_PER_TENANT = 10  # G.92 audit · cap antiabuse (superadmin bypass)
+
+
+async def _check_daily_duplicate_cap(db, tenant_id: Optional[str], role: str) -> None:
+    """G.92 fix · cap 10 duplicaciones/día/tenant (superadmin bypass)."""
+    if role == "superadmin" or not tenant_id:
+        return
+    from datetime import datetime, timezone, timedelta
+    since = datetime.now(timezone.utc) - timedelta(days=1)
+    try:
+        count = await db.developments.count_documents({
+            "tenant_id": tenant_id,
+            "duplicated_from": {"$exists": True, "$ne": None},
+            "created_at": {"$gte": since},
+        })
+    except Exception:
+        return  # FAIL-OPEN si query falla
+    if count >= DAILY_DUPLICATE_CAP_PER_TENANT:
+        raise HTTPException(
+            429,
+            f"daily_duplicate_cap_exceeded · max {DAILY_DUPLICATE_CAP_PER_TENANT}/día/tenant",
+        )
+
+
 @router.post("/api/projects/duplicate")
 async def duplicate_project_endpoint(body: DuplicateIn, request: Request):
     _check_rate(_client_ip(request))
@@ -81,6 +105,8 @@ async def duplicate_project_endpoint(body: DuplicateIn, request: Request):
         "role": getattr(user, "role", "unknown"),
         "tenant_id": getattr(user, "tenant_id", None),
     }
+    # G.92 audit · enforce cap 10/día/tenant antes de duplicate (superadmin bypass)
+    await _check_daily_duplicate_cap(db, actor["tenant_id"], actor["role"])
     res = await duplicate_project(
         db,
         source_id=body.source_id,
