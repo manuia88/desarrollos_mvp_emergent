@@ -1,6 +1,116 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W6 batch 2 · MOV.3 Reviews + MOV.2 External Sources + MOV.1 SOC Franquicia — 2026-05-23
+
+🚀 **Primer test 3 sesiones Claude Code paralelas (mismo working directory) · merge custom + audit forense 90/90 PASS + fix G.90 PII leak.**
+
+3 batches W6 shipped en sesión coordinada · race condition entre terminales detectada y manejada cleanly · merge consolidado a main vía cherry-pick selectivo + reconstrucción manual archivos shared.
+
+### W6.MOV.3 · Reviews Residentes (Claude Code · 25h · SHA branch `9afd491c`)
+- **NEW** `backend/reviews_residents_engine.py` · 3 source connectors (Google Places · Foursquare · Atlas CDMX scrape detrás flag `ATLAS_RESENAS_ENABLED` default off)
+- `sentiment_classify` LLM Claude Sonnet 4.5 vía emergentintegrations · FAIL-OPEN neutral si falla
+- `aggregate_by_entity` retorna `{avg_rating, sentiment_breakdown_pct, top_themes, n_reviews}`
+- Cache `reviews_residents_cache` por `(entity_type, entity_id, source)`
+- **NEW** `backend/reviews_residents_cron.py` · `cron_scrape_reviews_weekly` @ lunes 03:00 UTC (NO choca con W6.MOV.5 @ 02:00 ni MOV.2 @ 04:00) · MAX_CONCURRENT=4 Semaphore
+- **NEW** `backend/routes/reviews_residents.py` · 6 endpoints (5 spec + DELETE para dashboard · audit log)
+- **EDIT** `backend/asistente_engine.py` · tool **#42** `query_reviews_residents` (3 modes: zone/development/summary)
+- **NEW** `frontend/src/api/reviewsResidents.js` · 5 fetch wrappers
+- **NEW** `frontend/src/components/zones/ZoneReviewsBlock.js` · sentiment chart + top 3 quotes
+- **NEW** `frontend/src/components/property/DevReviewsBlock.js` · pattern reviews per development
+- **NEW** `frontend/src/pages/superadmin/SuperadminReviewsResidents.js` · admin dashboard
+- **EDIT** `frontend/src/pages/public/ZonePage.js` (+7L) · render `ZoneReviewsBlock` después de existing sections
+- **EDIT** `frontend/src/pages/DevelopmentDetail.js` (+6L) · render `DevReviewsBlock` (coexiste con W6.MOV.5 ConstructionQualityBadge)
+
+### W6.MOV.2 · External Sources MX (Claude Code · 38h · SHA branch `2305e860`)
+- **NEW** `backend/gov_data_mx_engine.py` · **3 tracks consolidados:**
+  - **Track A · API auto-pull** · 6 connectors (INEGI DENUE · BANXICO SIE · DataMéxico SE · CONAVI · SESNSP delitos · CENAPRED Atlas Riesgos) · stub-aware status="skipped" si keys ausentes
+  - **Track B · Cron download parsers** · 6 parsers (SEP Estadística 911 · INEGI Censo ITER · IMSS asegurados · CNBV Portafolio · ENVIPE seguridad · Atlas Riesgo CDMX)
+  - **Track C · Admin Upload** · `upload_file` max 10MB · ALLOWED_MIME csv/xlsx/pdf · audit log per upload · soft delete
+- Cache 14d compartida `gov_data_mx_cache`
+- **NEW** `backend/gov_data_mx_cron.py` · `cron_gov_data_pull_weekly` @ domingos 04:00 UTC + `cron_gov_data_pull_monthly` @ día 1 mes 05:00 UTC · asyncio.gather paralelo
+- **NEW** `backend/routes/gov_data_mx.py` · 8 endpoints (7 superadmin + 1 público aggregated indicators)
+- **EDIT** `backend/asistente_engine.py` · tool **#43** `query_gov_data_mx` (3 modes: sources/upload-list/stats)
+- **NEW** `frontend/src/api/govDataMx.js` · 8 fetch wrappers
+- **NEW** `frontend/src/pages/superadmin/SuperadminGovDataMx.js` · 3 tabs (API · Cron · Upload)
+- **NEW** `frontend/src/components/superadmin/govDataMx/AdminUploadPanel.js` · drag-drop CSV/Excel/PDF + progress bar + validation errors
+- ⚠️ **NO confundir con `external_insights_engine.py` W5.20** (fuentes globales BIS/OECD/IMF · diff=0 verificado)
+
+### W6.MOV.1 · SOC Franquicia (Claude Code · 20h · SHA branch `390f6336`)
+- **NEW** `backend/soc_franchise_engine.py` · `compute_soc_score` 5 dimensiones pesos 20% c/u:
+  - Lead conversion · NPS proxy · Response time · Revenue 30d · Compliance audit
+- 4 niveles: bronze (<50) · silver (50-69) · gold (70-89) · platinum (≥90)
+- Manual override pin superadmin · `reason` ≥10 chars (Pydantic validator)
+- Cache 7d `soc_franchise_cache`
+- FAIL-OPEN si data insuficiente (`missing_data` flag)
+- **NEW** `backend/routes/soc_franchise.py` · 6 endpoints (1 público leaderboard + 2 T2+ advisor + 3 superadmin)
+- **EDIT** `backend/asistente_engine.py` · tool **#44** `query_soc_franchise` (3 modes: leaderboard/my_score/admin_stats)
+- **NEW** `frontend/src/api/socFranchise.js` · 5 fetch wrappers
+- **NEW** `frontend/src/components/franchise/SocBadge.js` · 4 tier styles aurora (bronze cream · silver indigo · gold gradient · **platinum gradient+shimmer**)
+- **NEW** `frontend/src/components/franchise/SocLeaderboard.js` · tabla top 20 con highlightUserId
+- **NEW** `frontend/src/pages/portal/asesor/SocFranchisePage.js` · `/portal/asesor/soc` AdvisorRoute · hero my score + breakdown 5 dims + tips + leaderboard
+- **NEW** `frontend/src/pages/superadmin/SuperadminSocFranchise.js` · KPIs + tier distribution + tabla con acciones Certify/Revoke (validator reason min 10 chars cliente+servidor)
+
+### 🚨 Race condition 3 sesiones CC paralelas (confirmada y manejada)
+- 3 terminales Claude Code en MISMO working directory → contaminación cruzada en archivos shared
+- Terminal 1 (MOV.3): commit aterrizó momentáneamente en `w6-mov1-soc-franchise` por checkout simultáneo · resolvió con `git branch -f`
+- Terminal 2 (MOV.2): reseteo backend files a HEAD limpio y re-aplicó surgical
+- Terminal 3 (MOV.1): re-aplicó edits a `asistente_engine.py`+`server.py` durante working tree volátil
+- **Resultado:** cada branch quedó con contaminación distinta en archivos shared
+  - `w6-mov3-reviews` (MOV.3): tools 42+43+44 todos en `asistente_engine.py` (contaminada)
+  - `w6-mov2-external-sources` (MOV.2): tool 43 limpio
+  - `w6-mov1-soc-franchise` (MOV.1): tool 44 limpio · NO incluyó namespace `socFranchise` i18n propio
+
+### Merge custom (28 archivos · +5282 inserts / 3 deletes · SHA `94867c40` → main `46b771c8`)
+1. Branch `w6-merge` desde `origin/main` (05ee60e9)
+2. **Cherry-pick selectivo** archivos NEW per branch (engines + crons + routes + components + pages + api) · cero conflict (paths únicos)
+3. **Reconstrucción manual** archivos shared:
+   - `asistente_engine.py` · 44 tools 1-44 consecutivos sin gaps (usé MOV.3 branch versión consolidada · #36-41 W5.x intactos)
+   - `server.py` · 3 include_routers fail-soft + 3 startup blocks ensure_indexes + 3 crons + W6.MOV.5 wires preservados
+   - `App.js` · +12L · 4 lazy imports + 4 routes nuevas (otras lazy intactas)
+   - `navByRole.js` · +4 items (soc-asesor ASESOR_NAV + gov-data-mx SUPERADMIN tier 2 Datos + reviews-residents SUPERADMIN tier 3 Inteligencia + soc-franchise SUPERADMIN tier 5 Monetización)
+   - `SuperadminLayout.js` · +3 keywords regex (Edit puntual permitido · construction-quality W6.MOV.5 preservado)
+   - `i18n/common.json` · +3 namespaces (`reviewsResidents` + `govDataMx` + `socFranchise`)
+   - `socFranchise` namespace RECONSTRUIDO manualmente desde grep componentes SOC (42 keys identificadas · cobertura 100%)
+   - `DevelopmentDetail.js` +13L · AMBOS ConstructionQualityBadge W6.MOV.5 + DevReviewsBlock W6.MOV.3 coexisten
+   - `ZonePage.js` +7L
+
+### 🔴 Audit forense 90/90 PASS + fix G.90 PII leak
+- Audit forense post-merge identificó **1 🔴 hallazgo crítico**: `GET /api/soc-franchise/leaderboard` (público T0 sin auth) exponía PII de asesores (`email` + `tenant_id` + `manual_override` + `avatar_url`)
+- **Fix inmediato `d71833a2`** (3 archivos · +23/-8):
+  - `list_franchisees()` · nuevo param `public_safe: bool = False`
+  - Endpoint público pasa `public_safe=True` (projection minimal: user_id+name+avatar_url+score+level+computed_at)
+  - Atlax tool #44 mode=leaderboard pasa `public_safe=True`
+  - Atlax tool #44 mode=my_score sanitiza `result.pop("email") + result.pop("tenant_id")`
+  - Admin endpoints con `require_superadmin` mantienen full data (backward compat 100%)
+- Re-check: **90/90 PASS · 0 🔴 residual**
+
+### Audit 5 puntos POST-MERGE limpio
+- `memory/*` diff=0 ✅
+- backend críticos (`audit_immutable_engine` + `feature_registry` + `feature_gate_engine` + `external_insights_engine` W5.20 + `whatsapp_engine` W4.10) diff=0 ✅
+- superadmin críticos: `SuperadminLayout` Edit puntual permitido · `superadmin-aurora.css` NO tocado ✅
+- App.js · navByRole · NO reescritos · solo deltas additive ✅
+- `yarn build` 19.95s · 0 warnings W6 files (1 cosmetic fix GRAD unused en ZoneReviewsBlock) ✅
+
+### Metrics
+- **Total horas**: 83h (25+38+20)
+- **3 SHAs branches** + **1 merge custom** + **1 merge to main** + **1 audit fix**
+- **20 endpoints nuevos** (6+8+6)
+- **3 tools asistente** (#42+#43+#44) · numeración 1-44 consecutiva
+- **4 cron jobs nuevos** (W6.MOV.3 lun 03:00 + W6.MOV.2 dom 04:00 + W6.MOV.2 día 1 05:00 + W6.MOV.1 manual recompute via routes)
+- **28 archivos** · +5282 inserts / 3 deletes + 23 inserts / 8 deletes audit fix
+
+### Hito histórico
+Primer demostración patrón **3 terminales Claude Code paralelos** viable · race condition documentada para `AURORA_BUGS_LEARNINGS.md` (futuros batches paralelos deben usar branches separadas + considerar working directories separados).
+
+### Riesgos residuales NO bloqueantes
+- Race condition working dir compartido documentada · futuros paralelos: branches separadas o working dirs separados
+- Seed sintético pendiente (Reviews residentes + Gov Data tracks + SOC franchisees) · sin data, scores aparecen como "datos parciales" (FAIL-OPEN funciona · no crash)
+- `WAVE6_CLAUDE_EMERGENT_SPLIT.md` DEPRECATED: founder sin créditos emergent → todo es Claude Code end-to-end ahora
+
+---
+
+
 ## W6.MOV.5 Construction Quality Index — 2026-05-23
 
 🚀 **Primer batch Wave 6 SHIPPED end-to-end Claude Code single chat (sin emergent).**
