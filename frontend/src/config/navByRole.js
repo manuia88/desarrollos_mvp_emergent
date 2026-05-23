@@ -266,6 +266,8 @@ const SUPERADMIN_NAV = [
       { key: 'lead-sources', to: '/superadmin/lead-sources',          label: 'Lead sources',         Icon: Plug },
       // W5.16 · Social Cards Renderer (viral growth public-facing)
       { key: 'social-cards', to: '/superadmin/social-cards',          label: 'Social Cards',         Icon: Share2 },
+      // W6.MOV.4 · Marketing Distribution MCP (Twitter/LinkedIn/Telegram/Discord)
+      { key: 'marketing-mcp',to: '/superadmin/marketing-mcp',         label: 'Marketing MCP',        Icon: Megaphone },
     ],
   },
   // ─── tier 7 · DEV TOOLS morado · 2026-05-18 sidebar fix ───────────────────────────────

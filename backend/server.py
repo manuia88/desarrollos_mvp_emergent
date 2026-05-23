@@ -268,6 +268,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[W6.MOV.1] soc_franchise_router include failed: {_exc}")
 
+# W6.MOV.4 — Marketing Distribution MCP (4 platforms · stub-aware · cache 24h)
+try:
+    from routes.marketing_mcp import router as marketing_mcp_router
+    app.include_router(marketing_mcp_router)
+except Exception as _exc:
+    logging.warning(f"[W6.MOV.4] marketing_mcp_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1800,6 +1807,12 @@ async def startup():
             await soc_franchise_ensure_indexes(db)
         except Exception as e:
             logging.warning(f"[W6.MOV.1] soc_franchise startup register failed: {e}")
+        # W6.MOV.4 — Marketing MCP: indexes (log + cache + scheduled)
+        try:
+            from marketing_mcp_engine import ensure_indexes as marketing_mcp_ensure_indexes
+            await marketing_mcp_ensure_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W6.MOV.4] marketing_mcp startup register failed: {e}")
         # W6.MOV.3 — Reviews Residentes: indexes + 1 cron (scrape lun 03:00 UTC)
         try:
             from reviews_residents_engine import ensure_indexes as reviews_residents_ensure_indexes

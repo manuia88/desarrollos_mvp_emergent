@@ -4623,5 +4623,34 @@
       "soc-franchise": "SOC Franchise",
       "soc-asesor": "SOC Certificación"
     }
+  },
+  "marketingMcp": {
+    "title": "Marketing Distribution MCP",
+    "subtitle": "4 platforms · stub-aware · cache 24h · audit inmutable",
+    "platformsTitle": "Estado de canales",
+    "publishTitle": "Nueva publicación",
+    "historyTitle": "Historial 30 días",
+    "historyEmpty": "Sin publicaciones aún",
+    "contentLabel": "Contenido (máx 5000 chars · Twitter recorta a 280)",
+    "scheduleLabel": "Programar (opcional · vacío = publicar ahora)",
+    "actionPublish": "Publicar ahora",
+    "actionSchedule": "Programar",
+    "statusConfigured": "Activo",
+    "statusSkipped": "Sin keys",
+    "kpi": {
+      "totalPublishes": "Publicaciones totales",
+      "totalOk": "OK enviadas",
+      "scheduledPending": "Pendientes scheduled",
+      "cacheEntries": "Cache entries (24h)"
+    },
+    "col": {
+      "date": "Fecha",
+      "text": "Contenido",
+      "platforms": "Platforms",
+      "actions": "Acciones"
+    },
+    "nav": {
+      "marketing-mcp": "Marketing MCP"
+    }
   }
 }

@@ -89,6 +89,8 @@ const SuperadminGovDataMx = lazy(() => import('./pages/superadmin/SuperadminGovD
 // W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin)
 const SocFranchisePage = lazy(() => import('./pages/portal/asesor/SocFranchisePage'));
 const SuperadminSocFranchise = lazy(() => import('./pages/superadmin/SuperadminSocFranchise'));
+// W6.MOV.4 — Marketing Distribution MCP (Superadmin)
+const SuperadminMarketingMcp = lazy(() => import('./pages/superadmin/SuperadminMarketingMcp'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -638,6 +640,8 @@ function AppRouter() {
       <Route path="/superadmin/reviews-residents" element={<SuperadminRoute Page={SuperadminReviewsResidents} />} />
       {/* W6.MOV.2 — Gov Data MX External Sources (Superadmin) */}
       <Route path="/superadmin/gov-data-mx" element={<SuperadminRoute Page={SuperadminGovDataMx} />} />
+      {/* W6.MOV.4 — Marketing Distribution MCP (Superadmin) */}
+      <Route path="/superadmin/marketing-mcp" element={<SuperadminRoute Page={SuperadminMarketingMcp} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

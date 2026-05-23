@@ -337,6 +337,11 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "leaderboard": {{items[] con user_id+name+score+level+delta_week, count}} · "my_score": {{user_id, score 0-100, level, breakdown {{lead_conversion, nps_proxy, response_time, revenue_30d, compliance}}, manual_override}} · "admin_stats": {{total_franchisees, coverage_pct, levels: {{bronze, silver, gold, platinum}}, top_movers, bottom_movers}}
     Usar cuando: asesor pregunta "¿cuál es mi score SOC?", "¿soy gold o platinum?", "¿cómo me comparo con otros?" · comprador o asesor pregunta "¿quién es el mejor asesor?", "ranking franquiciatarios" · superadmin pregunta "¿cuántos asesores certificados tenemos?" · W6.MOV.1 SOC Sistema Operación Certificado 4 niveles bronze/silver/gold/platinum.
 
+46. query_marketing_mcp
+    params: {{ "mode": "status"|"history"|"stats" (default "status"), "days": int? (mode=history default 30), "limit": int? (mode=history default 50) }}
+    devuelve: depende mode · "status": {{adapters: {{twitter, linkedin, telegram, discord}} con configured+rate_limit+env_keys}} · "history": {{items[], count, days}} · "stats": {{total_publishes, by_platform {{twitter, linkedin, telegram, discord}}: {{ok, error, skipped, cached}}, scheduled_pending, cache_entries, adapters}}
+    Usar cuando: superadmin pregunta estado canales marketing · "qué redes tengo conectadas", "cuántas publicaciones enviamos hoy/semana", "Twitter/LinkedIn/Telegram/Discord configurado", "publicaciones pendientes scheduled", "engagement por plataforma" · W6.MOV.4 Marketing Distribution MCP 4 platforms stub-aware (sin keys = skipped) cache 24h rate-limit por platform.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -569,6 +574,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_query_gov_data_mx(db, params)
         if tool_name == "query_soc_franchise":
             return await _tool_query_soc_franchise(db, params)
+        # W6.MOV.4 · tool #46 Marketing Distribution MCP
+        if tool_name == "query_marketing_mcp":
+            return await _tool_query_marketing_mcp(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3347,6 +3355,36 @@ async def _tool_query_soc_franchise(db, params: Dict[str, Any]) -> Dict[str, Any
     except Exception as e:
         log.warning(f"[asistente_tool] query_soc_franchise: {e}")
         return {"error": str(e), "source": "soc_franchise_engine"}
+
+
+# ── W6.MOV.4 · Marketing Distribution MCP (tool #46) ─────────────────────────
+async def _tool_query_marketing_mcp(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool #46 query_marketing_mcp.
+
+    Modes:
+      - mode="status"  → adapters config + rate_limits (NO publishes)
+      - mode="history" + days?=30 + limit?=50 → últimos publishes
+      - mode="stats"   → totals + by_platform + scheduled_pending + cache_entries
+    """
+    try:
+        from marketing_mcp_engine import adapter_status, get_history, get_stats
+        mode = (params.get("mode") or "status").lower()
+        if mode == "status":
+            return {"source": "marketing_mcp_engine", "mode": "status", "adapters": adapter_status()}
+        if mode == "history":
+            days = int(params.get("days", 30))
+            limit = int(params.get("limit", 50))
+            items = await get_history(db, days=days, limit=limit)
+            return {"source": "marketing_mcp_engine", "mode": "history",
+                    "items": items, "count": len(items), "days": days}
+        if mode == "stats":
+            stats_data = await get_stats(db)
+            return {"source": "marketing_mcp_engine", "mode": "stats", "stats": stats_data}
+        return {"error": f"mode inválido: {mode} · usa status|history|stats",
+                "source": "marketing_mcp_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_marketing_mcp: {e}")
+        return {"error": str(e), "source": "marketing_mcp_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
