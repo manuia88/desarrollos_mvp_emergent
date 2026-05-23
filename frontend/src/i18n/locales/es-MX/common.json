@@ -4360,5 +4360,63 @@
       "completed": "Listo",
       "failed": "Fallido"
     }
+  },
+  "constructionQuality": {
+    "title": "Calidad de construcción",
+    "short": "CALIDAD",
+    "label": "Calidad construcción",
+    "tooltipHint": "Click para ver detalle 4 dimensiones",
+    "modalTitle": "Índice de calidad",
+    "scoreLabel": "Score 0-100 · 4 dimensiones",
+    "missingData": "Datos parciales",
+    "disclaimer": "Índice calculado semanalmente desde data interna DMX · avance vs cronograma · inspecciones de acabados · defectos reportados por residentes · puntualidad de hitos.",
+    "tier": {
+      "excelente": "EXCELENTE",
+      "bueno": "BUENO",
+      "regular": "REGULAR",
+      "deficiente": "DEFICIENTE",
+      "no_data": "SIN DATOS"
+    },
+    "dim": {
+      "avance": "Avance de obra",
+      "acabados": "Acabados",
+      "defectos": "Defectos reportados",
+      "cronograma": "Cronograma"
+    },
+    "dimDesc": {
+      "avance": "Pct real vs esperado según cronograma",
+      "acabados": "Defectos en acabados / inspecciones totales",
+      "defectos": "Quejas residentes normalizadas por unidades",
+      "cronograma": "Cumplimiento de hitos prometidos"
+    },
+    "adminTitle": "Construction Quality · Debug",
+    "adminSubtitle": "Índice 0-100 por desarrollo · 4 dimensiones · cron lunes 02:00 UTC",
+    "tiersTitle": "Distribución por tier",
+    "devsTitle": "Desarrollos con score",
+    "avgScore": "Promedio",
+    "noResults": "Sin resultados con los filtros aplicados",
+    "filterMinScore": "Min score",
+    "filterTier": "Tier",
+    "tierAll": "Todos",
+    "overrideTitle": "Override manual",
+    "overrideScore": "Score (0-100 · vacío = remover)",
+    "overrideReason": "Razón",
+    "override": "Override",
+    "col": {
+      "name": "Desarrollo",
+      "zone": "Zona",
+      "score": "Score",
+      "tier": "Tier",
+      "actions": "Acciones"
+    },
+    "kpi": {
+      "totalDevs": "Desarrollos totales",
+      "withScore": "Con score calculado",
+      "coverage": "Cobertura",
+      "cacheEntries": "Cache entries"
+    },
+    "nav": {
+      "construction-quality": "Construction Quality"
+    }
   }
 }

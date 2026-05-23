@@ -80,6 +80,8 @@ const SuperadminClimateMigration = lazy(() => import('./pages/superadmin/Superad
 const VirtualStagingPage = lazy(() => import('./pages/portal/studio/VirtualStagingPage'));
 // W5.16-C — Studio Video (Asesor)
 const StudioVideoPage = lazy(() => import('./pages/portal/asesor/StudioVideoPage'));
+// W6.MOV.5 — Construction Quality Index (Superadmin)
+const SuperadminConstructionQuality = lazy(() => import('./pages/superadmin/SuperadminConstructionQuality'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -620,6 +622,8 @@ function AppRouter() {
       <Route path="/portal/studio/staging" element={<AdvisorRoute Page={VirtualStagingPage} />} />
       {/* W5.16-C — Studio Video Page (Asesor) */}
       <Route path="/portal/asesor/studio-video" element={<AdvisorRoute Page={StudioVideoPage} />} />
+      {/* W6.MOV.5 — Construction Quality (Superadmin) */}
+      <Route path="/superadmin/construction-quality" element={<SuperadminRoute Page={SuperadminConstructionQuality} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

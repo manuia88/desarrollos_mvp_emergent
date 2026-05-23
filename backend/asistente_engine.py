@@ -317,6 +317,11 @@ TOOLS Y PARAMS:
     devuelve: {{ task_id, provider, ratios: {{"1:1", "9:16", "16:9"}}, master_url, is_stub, cost_usd, quota, status, cached, fallback_attempts }}
     Usar cuando: dev pide generar video multi-ratio (reel 1:1 · stories 9:16 · youtube 16:9) desde script + imagen · usa fallback chain providers · stub-aware sin credito · respeta cap diario studio_video W5.16-A.
 
+41. query_construction_quality
+    params: {{ "mode": "index"|"top"|"stats" (default "index"), "development_id": str? (mode=index), "min_score": float? (mode=top default 70), "tier": "excelente"|"bueno"|"regular"|"deficiente"? (filtro), "limit": int? (mode=top default 10) }}
+    devuelve: depende mode · "index": {{development_id, score 0-100, tier, breakdown {{avance, acabados, defectos, cronograma}}, manual_override, cached}} · "top": {{items[], count}} · "stats": {{total_developments, total_with_quality_score, coverage_pct, tiers, cache_entries}}
+    Usar cuando: comprador o asesor pregunta calidad de construcción de un desarrollo · "qué tan confiable es este desarrollador" · "muéstrame los proyectos mejor calificados" · comparar 2 desarrollos en cumplimiento de obra · breakdown 4 dimensiones (avance vs cronograma · defectos acabados · quejas reportadas · entregas a tiempo) · W6.MOV.5 índice 0-100 diferenciador competitivo.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -541,6 +546,8 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_query_studio_videos(db, params)
         if tool_name == "generate_studio_video":
             return await _tool_generate_studio_video(db, params)
+        if tool_name == "query_construction_quality":
+            return await _tool_query_construction_quality(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3180,6 +3187,43 @@ async def _tool_generate_studio_video(db, params: Dict[str, Any]) -> Dict[str, A
     except Exception as e:
         log.warning(f"[asistente_tool] generate_studio_video: {e}")
         return {"error": str(e), "source": "studio_video_engine"}
+
+
+# ── W6.MOV.5 · Construction Quality Index (tool #41) ─────────────────────────
+async def _tool_query_construction_quality(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool #41 query_construction_quality.
+
+    Modes:
+      - mode="index" + development_id → score + breakdown 4 dims
+      - mode="top" + min_score?=70 + limit?=10 → top N developments by score
+      - mode="stats" → globales superadmin (tiers distribution + coverage)
+    """
+    try:
+        from construction_quality_engine import (
+            compute_quality_index,
+            list_developments_by_quality,
+            get_stats,
+        )
+        mode = (params.get("mode") or "index").lower()
+        if mode == "index":
+            dev_id = params.get("development_id")
+            if not dev_id:
+                return {"error": "development_id requerido en mode=index"}
+            result = await compute_quality_index(db, dev_id, use_cache=True)
+            return {"source": "construction_quality_engine", "mode": "index", "result": result}
+        if mode == "top":
+            min_score = params.get("min_score", 70)
+            limit = int(params.get("limit", 10))
+            tier = params.get("tier")
+            items = await list_developments_by_quality(db, min_score=float(min_score), tier=tier, limit=limit)
+            return {"source": "construction_quality_engine", "mode": "top", "items": items, "count": len(items)}
+        if mode == "stats":
+            stats_data = await get_stats(db)
+            return {"source": "construction_quality_engine", "mode": "stats", "stats": stats_data}
+        return {"error": f"mode inválido: {mode} · usa index|top|stats"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_construction_quality: {e}")
+        return {"error": str(e), "source": "construction_quality_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

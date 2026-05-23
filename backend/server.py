@@ -240,6 +240,13 @@ try:
 except Exception as _exc:
     logging.warning(f"[W5.17] virtual_staging_router include failed: {_exc}")
 
+# W6.MOV.5 — Construction Quality Index (0-100 score · 4 dimensiones · cache 7d)
+try:
+    from routes.construction_quality import router as construction_quality_router
+    app.include_router(construction_quality_router)
+except Exception as _exc:
+    logging.warning(f"[W6.MOV.5] construction_quality_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1758,6 +1765,14 @@ async def startup():
             register_climate_migration_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W5.9] climate_migration startup register failed: {e}")
+        # W6.MOV.5 — Construction Quality Index: indexes + 1 cron (recompute lun 02:00 UTC)
+        try:
+            from construction_quality_engine import ensure_indexes as construction_quality_ensure_indexes
+            from construction_quality_cron import register_construction_quality_jobs
+            await construction_quality_ensure_indexes(db)
+            register_construction_quality_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W6.MOV.5] construction_quality startup register failed: {e}")
         # W2.4 SA5 — Trial expiry email cron (daily 08:00 MX)
         try:
             from trial_expiry_cron import schedule_trial_expiry_cron

@@ -41,6 +41,9 @@ import BrochureGenerator from '../components/brochure/BrochureGenerator';
 // W4.9.6 — 3DGS Tour
 import Tour3DViewer from '../components/tour3d/Tour3DViewer';
 import Tour3DOnboardingWizard from '../components/tour3d/Tour3DOnboardingWizard';
+// W6.MOV.5 — Construction Quality Badge
+import ConstructionQualityBadge from '../components/property/ConstructionQualityBadge';
+import { getQualityIndex } from '../api/constructionQuality';
 
 const ADVISOR_ROLES = new Set(['advisor', 'asesor_admin', 'superadmin']);
 
@@ -62,6 +65,8 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
   const [explain, setExplain] = useState(null); // { zoneId, code } | null
   const [briefingOpen, setBriefingOpen] = useState(false);
   const [brochureOpen, setBrochureOpen] = useState(false);
+  // W6.MOV.5 — Construction Quality Index (score + breakdown 4 dims)
+  const [cqData, setCqData] = useState(null);
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('lead');
   const contactoId = searchParams.get('contacto');
@@ -90,6 +95,16 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         }
       })
       .catch(() => {});
+    return () => { alive = false; };
+  }, [id]);
+
+  // W6.MOV.5 — Fetch construction quality index (best-effort · no bloquea render si falla)
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    getQualityIndex(id)
+      .then((data) => { if (alive) setCqData(data); })
+      .catch(() => { if (alive) setCqData(null); });
     return () => { alive = false; };
   }, [id]);
 
@@ -189,8 +204,18 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
               }}>
                 {dev.name}
               </h1>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 <ComplianceBadgeInline devId={dev.id} />
+                {cqData && cqData.score !== null && (
+                  <ConstructionQualityBadge
+                    score={cqData.score}
+                    tier={cqData.tier}
+                    breakdown={cqData.breakdown}
+                    developmentName={dev.name}
+                    hasBreakdown={!cqData.manual_override}
+                    size="sm"
+                  />
+                )}
                 {dev.verified && (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
