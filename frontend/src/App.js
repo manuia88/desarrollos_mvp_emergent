@@ -94,6 +94,9 @@ const WorkflowBuilderPage = lazy(() => import('./pages/portal/asesor/WorkflowBui
 const WorkflowHistoryPage = lazy(() => import('./pages/portal/asesor/WorkflowHistoryPage'));
 // W6.MOV.4 — Marketing Distribution MCP (Superadmin)
 const SuperadminMarketingMcp = lazy(() => import('./pages/superadmin/SuperadminMarketingMcp'));
+// W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation)
+const MarketplaceTemplatesPage = lazy(() => import('./pages/portal/asesor/MarketplaceTemplatesPage'));
+const SuperadminMarketplaceTemplates = lazy(() => import('./pages/superadmin/SuperadminMarketplaceTemplates'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -649,6 +652,9 @@ function AppRouter() {
       <Route path="/portal/asesor/workflows/:workflowId/history" element={<AdvisorRoute Page={WorkflowHistoryPage} />} />
       {/* W6.MOV.4 — Marketing Distribution MCP (Superadmin) */}
       <Route path="/superadmin/marketing-mcp" element={<SuperadminRoute Page={SuperadminMarketingMcp} />} />
+      {/* W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation) */}
+      <Route path="/portal/asesor/marketplace-templates" element={<AdvisorRoute Page={MarketplaceTemplatesPage} />} />
+      <Route path="/superadmin/marketplace-templates" element={<SuperadminRoute Page={SuperadminMarketplaceTemplates} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

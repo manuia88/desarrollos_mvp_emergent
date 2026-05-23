@@ -352,6 +352,11 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "templates": {{items[] con id+name+colonia+price_tier+stage, count}} · "duplicate_history": {{items[] con id+name+duplicated_from+created_at, count}}
     Usar cuando: developer pregunta "¿qué plantillas de proyecto puedo duplicar?", "¿qué proyectos ya he duplicado?", "¿tengo templates listos?" · superadmin pregunta uso agregado duplicación · W6.5 Wizard duplicación · responde con nombre + colonia · sugiere abrir modal de duplicación desde portal developer (botón Duplicar en Mis Proyectos).
 
+48. query_marketplace_templates
+    params: {{ "mode": "list"|"my_published"|"revenue_stats" (default "list"), "category": "nurture"|"post-visita"|"win-back"|"custom"? (filtro mode=list), "price_tier": "free"|"pro"|"enterprise"? (filtro mode=list), "sort": "popular"|"recent"|"rating"? (default "popular"), "limit": int? (default 20) }}
+    devuelve: depende mode · "list": {{items[] con id+title+category+price_mxn+price_tier+avg_rating+downloads, count}} (solo approved) · "my_published": {{items[] con status+downloads+revenue_total_mxn, count}} (templates del caller) · "revenue_stats": {{total_clones, author_revenue_mxn, dmx_revenue_mxn, my_templates[]}} (caller advisor)
+    Usar cuando: asesor pregunta "¿qué plantillas de workflow hay en el marketplace?", "¿cuánto he ganado vendiendo mis workflows?", "¿qué tan populares son mis plantillas publicadas?" · superadmin pregunta uso global vía revenue_stats sin user_id · W6.4 Marketplace Templates de workflows · revenue split 70/30 · pricing free/pro/enterprise · 4 categorías.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -593,6 +598,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W6.5 · tool #47 Project Wizard duplication
         if tool_name == "query_project_wizard":
             return await _tool_query_project_wizard(db, params)
+        # W6.4 · tool #48 Marketplace Templates
+        if tool_name == "query_marketplace_templates":
+            return await _tool_query_marketplace_templates(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3486,6 +3494,57 @@ async def _tool_query_project_wizard(db, params: Dict[str, Any]) -> Dict[str, An
     except Exception as e:
         log.warning(f"[asistente_tool] query_project_wizard: {e}")
         return {"error": str(e), "source": "project_wizard_engine"}
+
+
+async def _tool_query_marketplace_templates(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W6.4 · Tool #48 · Marketplace Templates queries.
+
+    Modes:
+      - mode="list"          → catálogo público approved (filtrable category/price_tier/sort)
+      - mode="my_published"  → templates del caller (cualquier status)
+      - mode="revenue_stats" → revenue del caller (advisor) o global (superadmin)
+    """
+    try:
+        from marketplace_templates_engine import (
+            get_revenue_stats,
+            list_templates,
+        )
+
+        mode = (params.get("mode") or "list").lower()
+        limit = int(params.get("limit", 20))
+
+        if mode == "list":
+            return await list_templates(
+                db,
+                category=params.get("category"),
+                price_tier=params.get("price_tier"),
+                sort=(params.get("sort") or "popular"),
+                limit=limit,
+            )
+
+        if mode == "my_published":
+            author_id = params.get("author_user_id") or params.get("user_id")
+            if not author_id:
+                return {"error": "author_user_id requerido para my_published",
+                        "source": "marketplace_templates_engine"}
+            cursor = db.marketplace_templates.find(
+                {"author_user_id": author_id, "deleted_at": None}, {"_id": 0},
+            ).sort("published_at", -1).limit(limit)
+            items = await cursor.to_list(length=limit)
+            from marketplace_templates_engine import _serialize
+            return {"source": "marketplace_templates_engine", "mode": "my_published",
+                    "items": [_serialize(d) for d in items], "count": len(items)}
+
+        if mode == "revenue_stats":
+            author_id = params.get("author_user_id") or params.get("user_id")
+            res = await get_revenue_stats(db, author_user_id=author_id)
+            return {"source": "marketplace_templates_engine", "mode": "revenue_stats", **res}
+
+        return {"error": f"mode inválido: {mode} · usa list|my_published|revenue_stats",
+                "source": "marketplace_templates_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_marketplace_templates: {e}")
+        return {"error": str(e), "source": "marketplace_templates_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
