@@ -268,6 +268,27 @@ try:
 except Exception as _exc:
     logging.warning(f"[W6.MOV.1] soc_franchise_router include failed: {_exc}")
 
+# W6.AS.1 — Workflow Builder Visual (8 endpoints CRUD + toggle + test + runs)
+try:
+    from routes.workflows import router as workflows_router
+    app.include_router(workflows_router)
+except Exception as _exc:
+    logging.warning(f"[W6.AS.1] workflows_router include failed: {_exc}")
+
+# W6.MOV.4 — Marketing Distribution MCP (4 platforms · stub-aware · cache 24h)
+try:
+    from routes.marketing_mcp import router as marketing_mcp_router
+    app.include_router(marketing_mcp_router)
+except Exception as _exc:
+    logging.warning(f"[W6.MOV.4] marketing_mcp_router include failed: {_exc}")
+
+# W6.5 — Project Wizard duplication (3 endpoints · dev/superadmin)
+try:
+    from routes.project_wizard import router as project_wizard_router
+    app.include_router(project_wizard_router)
+except Exception as _exc:
+    logging.warning(f"[W6.5] project_wizard_router include failed: {_exc}")
+
 # W5.25 — Widget Embed Analytics (1 público tracking + 2 superadmin stats)
 from routes.widget_embed_analytics import router as widget_embed_analytics_router
 app.include_router(widget_embed_analytics_router)
@@ -1816,6 +1837,36 @@ async def startup():
             register_gov_data_mx_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W6.MOV.2] gov_data_mx startup register failed: {e}")
+        # W6.AS.1 — Workflow Builder: indexes (engine + queue) + tick scheduler 60s
+        try:
+            from workflow_engine import ensure_indexes as wf_ensure_indexes
+            from workflow_queue import (
+                ensure_indexes as wfq_ensure_indexes,
+                register_workflow_queue_job,
+            )
+            await wf_ensure_indexes(db)
+            await wfq_ensure_indexes(db)
+            register_workflow_queue_job(sched, db)
+        except Exception as e:
+            logging.warning(f"[W6.AS.1] workflow startup register failed: {e}")
+        # W6.MOV.4 — Marketing MCP: indexes (log + cache + scheduled)
+        try:
+            from marketing_mcp_engine import ensure_indexes as marketing_mcp_ensure_indexes
+            await marketing_mcp_ensure_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W6.MOV.4] marketing_mcp startup register failed: {e}")
+        # W6.5 — Project Wizard: indexes (duplicate history)
+        try:
+            from project_wizard_engine import ensure_indexes as project_wizard_ensure_indexes
+            await project_wizard_ensure_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W6.5] project_wizard startup register failed: {e}")
+        # W6.11 — Insights Fact-Check: indexes (cache + courses)
+        try:
+            from insights_factcheck_engine import ensure_indexes as factcheck_ensure_indexes
+            await factcheck_ensure_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W6.11] insights_factcheck startup register failed: {e}")
         # W2.4 SA5 — Trial expiry email cron (daily 08:00 MX)
         try:
             from trial_expiry_cron import schedule_trial_expiry_cron

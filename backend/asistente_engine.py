@@ -337,6 +337,21 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "leaderboard": {{items[] con user_id+name+score+level+delta_week, count}} · "my_score": {{user_id, score 0-100, level, breakdown {{lead_conversion, nps_proxy, response_time, revenue_30d, compliance}}, manual_override}} · "admin_stats": {{total_franchisees, coverage_pct, levels: {{bronze, silver, gold, platinum}}, top_movers, bottom_movers}}
     Usar cuando: asesor pregunta "¿cuál es mi score SOC?", "¿soy gold o platinum?", "¿cómo me comparo con otros?" · comprador o asesor pregunta "¿quién es el mejor asesor?", "ranking franquiciatarios" · superadmin pregunta "¿cuántos asesores certificados tenemos?" · W6.MOV.1 SOC Sistema Operación Certificado 4 niveles bronze/silver/gold/platinum.
 
+45. query_workflow_builder
+    params: {{ "mode": "list"|"stats"|"templates" (default "list"), "owner_user_id": str? (mode=list · si vacío usa caller), "limit": int? (default 20) }}
+    devuelve: depende mode · "list": {{items[] con id+name+status+nodes_count+last_run_at, count, cap}} · "stats": {{total_workflows, active, paused, draft, runs_last_30d, success_rate_pct, fired_actions_30d}} · "templates": {{items[] con key+label+description+nodes_count}} (5 plantillas precargadas)
+    Usar cuando: asesor pregunta "¿qué workflows tengo activos?" · "¿cuál ha ejecutado más veces?" · "¿qué plantillas hay disponibles?" · superadmin pregunta uso agregado workflows · W6.AS.1 Workflow Builder Visual.
+
+46. query_marketing_mcp
+    params: {{ "mode": "status"|"history"|"stats" (default "status"), "days": int? (mode=history default 30), "limit": int? (mode=history default 50) }}
+    devuelve: depende mode · "status": {{adapters: {{twitter, linkedin, telegram, discord}} con configured+rate_limit+env_keys}} · "history": {{items[], count, days}} · "stats": {{total_publishes, by_platform {{twitter, linkedin, telegram, discord}}: {{ok, error, skipped, cached}}, scheduled_pending, cache_entries, adapters}}
+    Usar cuando: superadmin pregunta estado canales marketing · "qué redes tengo conectadas", "cuántas publicaciones enviamos hoy/semana", "Twitter/LinkedIn/Telegram/Discord configurado", "publicaciones pendientes scheduled", "engagement por plataforma" · W6.MOV.4 Marketing Distribution MCP 4 platforms stub-aware (sin keys = skipped) cache 24h rate-limit por platform.
+
+47. query_project_wizard
+    params: {{ "mode": "templates"|"duplicate_history" (default "templates"), "tenant_id": str? (superadmin filtra por tenant · si vacío usa caller), "limit": int? (default 20) }}
+    devuelve: depende mode · "templates": {{items[] con id+name+colonia+price_tier+stage, count}} · "duplicate_history": {{items[] con id+name+duplicated_from+created_at, count}}
+    Usar cuando: developer pregunta "¿qué plantillas de proyecto puedo duplicar?", "¿qué proyectos ya he duplicado?", "¿tengo templates listos?" · superadmin pregunta uso agregado duplicación · W6.5 Wizard duplicación · responde con nombre + colonia · sugiere abrir modal de duplicación desde portal developer (botón Duplicar en Mis Proyectos).
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -569,6 +584,15 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
             return await _tool_query_gov_data_mx(db, params)
         if tool_name == "query_soc_franchise":
             return await _tool_query_soc_franchise(db, params)
+        # W6.AS.1 · tool #45 Workflow Builder
+        if tool_name == "query_workflow_builder":
+            return await _tool_query_workflow_builder(db, params)
+        # W6.MOV.4 · tool #46 Marketing Distribution MCP
+        if tool_name == "query_marketing_mcp":
+            return await _tool_query_marketing_mcp(db, params)
+        # W6.5 · tool #47 Project Wizard duplication
+        if tool_name == "query_project_wizard":
+            return await _tool_query_project_wizard(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3347,6 +3371,121 @@ async def _tool_query_soc_franchise(db, params: Dict[str, Any]) -> Dict[str, Any
     except Exception as e:
         log.warning(f"[asistente_tool] query_soc_franchise: {e}")
         return {"error": str(e), "source": "soc_franchise_engine"}
+
+
+# ── W6.AS.1 · Workflow Builder (tool #45) ───────────────────────────────────
+async def _tool_query_workflow_builder(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool #45 query_workflow_builder · modes list|stats|templates."""
+    try:
+        from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+        mode = (params.get("mode") or "list").lower()
+        if mode == "list":
+            owner = params.get("owner_user_id")
+            q = {"deleted_at": None}
+            if owner:
+                q["owner_user_id"] = owner
+            limit = int(params.get("limit", 20))
+            cursor = db.workflows.find(q, {"_id": 0, "id": 1, "name": 1, "status": 1, "nodes": 1, "last_run_at": 1, "updated_at": 1}).sort("updated_at", -1).limit(limit)
+            items_raw = await cursor.to_list(length=limit)
+            items = []
+            for it in items_raw:
+                last_run = it.get("last_run_at")
+                if isinstance(last_run, _dt):
+                    last_run = last_run.isoformat()
+                items.append({"id": it.get("id"), "name": it.get("name"), "status": it.get("status"), "nodes_count": len(it.get("nodes") or []), "last_run_at": last_run})
+            return {"source": "workflow_engine", "mode": "list", "items": items, "count": len(items), "cap": 20}
+        if mode == "stats":
+            total = await db.workflows.count_documents({"deleted_at": None})
+            active = await db.workflows.count_documents({"deleted_at": None, "status": "active"})
+            paused = await db.workflows.count_documents({"deleted_at": None, "status": "paused"})
+            draft = await db.workflows.count_documents({"deleted_at": None, "status": "draft"})
+            cutoff = _dt.now(_tz.utc) - _td(days=30)
+            runs_30 = await db.workflow_runs.count_documents({"started_at": {"$gte": cutoff}})
+            done_30 = await db.workflow_runs.count_documents({"started_at": {"$gte": cutoff}, "status": "done"})
+            success_pct = round((done_30 / runs_30) * 100, 1) if runs_30 else 0.0
+            fired = 0
+            try:
+                cursor = db.workflow_runs.find({"started_at": {"$gte": cutoff}, "status": "done"}, {"_id": 0, "steps": 1}).limit(2000)
+                async for r in cursor:
+                    for s in (r.get("steps") or []):
+                        if s.get("type") == "action":
+                            fired += 1
+            except Exception:
+                pass
+            return {"source": "workflow_engine", "mode": "stats", "total_workflows": total, "active": active, "paused": paused, "draft": draft, "runs_last_30d": runs_30, "success_rate_pct": success_pct, "fired_actions_30d": fired}
+        if mode == "templates":
+            templates = [
+                {"key": "nurture_30d", "label": "Nurture 30 dias", "description": "5 toques distribuidos", "nodes_count": 10},
+                {"key": "post_visit_24h", "label": "Post-visita 24h", "description": "WA 2h + email 24h", "nodes_count": 5},
+                {"key": "winback_60d", "label": "Win-back 60d", "description": "WA + email + tarea", "nodes_count": 6},
+                {"key": "cold_reactivation", "label": "Cold lead reactivation", "description": "Secuencia 3 toques", "nodes_count": 7},
+                {"key": "birthday", "label": "Birthday", "description": "WA personalizado", "nodes_count": 3},
+            ]
+            return {"source": "workflow_engine", "mode": "templates", "items": templates, "count": len(templates)}
+        return {"error": f"mode invalido: {mode}", "source": "workflow_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_workflow_builder: {e}")
+        return {"error": str(e), "source": "workflow_engine"}
+
+
+# ── W6.MOV.4 · Marketing Distribution MCP (tool #46) ─────────────────────────
+async def _tool_query_marketing_mcp(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """Tool #46 query_marketing_mcp.
+
+    Modes:
+      - mode="status"  → adapters config + rate_limits (NO publishes)
+      - mode="history" + days?=30 + limit?=50 → últimos publishes
+      - mode="stats"   → totals + by_platform + scheduled_pending + cache_entries
+    """
+    try:
+        from marketing_mcp_engine import adapter_status, get_history, get_stats
+        mode = (params.get("mode") or "status").lower()
+        if mode == "status":
+            return {"source": "marketing_mcp_engine", "mode": "status", "adapters": adapter_status()}
+        if mode == "history":
+            days = int(params.get("days", 30))
+            limit = int(params.get("limit", 50))
+            items = await get_history(db, days=days, limit=limit)
+            return {"source": "marketing_mcp_engine", "mode": "history",
+                    "items": items, "count": len(items), "days": days}
+        if mode == "stats":
+            stats_data = await get_stats(db)
+            return {"source": "marketing_mcp_engine", "mode": "stats", "stats": stats_data}
+        return {"error": f"mode inválido: {mode} · usa status|history|stats",
+                "source": "marketing_mcp_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_marketing_mcp: {e}")
+        return {"error": str(e), "source": "marketing_mcp_engine"}
+
+
+# ── W6.5 · Project Wizard duplication (tool #47) ─────────────────────────────
+async def _tool_query_project_wizard(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W6.5 · Tool #47 · Project Wizard duplication queries.
+
+    Modes:
+      - mode="templates"          → list duplicable templates (per tenant if provided)
+      - mode="duplicate_history"  → recent duplications (per tenant if provided)
+    """
+    try:
+        from project_wizard_engine import list_templates, get_duplicate_history
+
+        mode = (params.get("mode") or "templates").lower()
+        tenant_id = params.get("tenant_id")
+        limit = int(params.get("limit", 20))
+
+        if mode == "templates":
+            items = await list_templates(db, tenant_id=tenant_id, limit=limit)
+            return {"source": "project_wizard_engine", "mode": "templates",
+                    "items": items, "count": len(items)}
+        if mode == "duplicate_history":
+            items = await get_duplicate_history(db, tenant_id=tenant_id, limit=limit)
+            return {"source": "project_wizard_engine", "mode": "duplicate_history",
+                    "items": items, "count": len(items)}
+        return {"error": f"mode inválido: {mode} · usa templates|duplicate_history",
+                "source": "project_wizard_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_project_wizard: {e}")
+        return {"error": str(e), "source": "project_wizard_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
