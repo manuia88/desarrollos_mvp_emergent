@@ -81,7 +81,13 @@ def _price_tier(price_mxn: int) -> str:
     return "enterprise"
 
 
-def _serialize(doc: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def _serialize(doc: Optional[Dict[str, Any]], public_safe: bool = True) -> Dict[str, Any]:
+    """Serializa template doc · datetime → ISO.
+
+    Audit forense F.68 fix · CRÍTICO PII protection:
+    public_safe=True (default) elimina author_email del output (endpoints públicos T0).
+    public_safe=False permite ver author_email · debe usarse SOLO en endpoints admin/self con auth.
+    """
     if not doc:
         return {}
     out = dict(doc)
@@ -91,6 +97,9 @@ def _serialize(doc: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         v = out.get(k)
         if isinstance(v, datetime):
             out[k] = v.isoformat()
+    # F.68 PII protection · strip author_email en public_safe mode
+    if public_safe:
+        out.pop("author_email", None)
     return out
 
 
@@ -573,13 +582,13 @@ async def get_revenue_stats(db, author_user_id: Optional[str] = None) -> Dict[st
         top_sellers = sorted(by_author.values(),
                               key=lambda x: x["revenue_mxn"], reverse=True)[:10]
 
-    # Templates owned (cuando es vista self)
+    # Templates owned (cuando es vista self · puede ver su propio email)
     my_templates: List[Dict[str, Any]] = []
     if author_user_id:
         tcursor = db.marketplace_templates.find(
             {"author_user_id": author_user_id, "deleted_at": None}, {"_id": 0},
         ).sort("downloads", -1).limit(50)
-        my_templates = [_serialize(d) for d in await tcursor.to_list(length=50)]
+        my_templates = [_serialize(d, public_safe=False) for d in await tcursor.to_list(length=50)]
 
     return {
         "total_clones": total_clones,

@@ -16,6 +16,8 @@
 from __future__ import annotations
 
 import logging
+import os
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -40,6 +42,49 @@ log = logging.getLogger("dmx.routes_marketplace_templates")
 router = APIRouter()
 
 _ADVISOR_ROLES = ("superadmin", "advisor", "asesor_admin", "asesor_freelance")
+
+# Audit forense A.11/F.71 fix · rate limits antiabuse (superadmin bypass)
+DAILY_PUBLISH_CAP = int(os.environ.get("MARKETPLACE_TEMPLATES_PUBLISH_CAP_DAILY", "3"))
+HOURLY_CLONE_CAP = int(os.environ.get("MARKETPLACE_TEMPLATES_CLONE_CAP_HOURLY", "5"))
+
+
+async def _check_publish_rate_limit(db, user_id: str, role: str) -> None:
+    """F.71 fix · cap 3 publishes/día/user (superadmin bypass)."""
+    if role == "superadmin" or not user_id:
+        return
+    since = datetime.now(timezone.utc) - timedelta(days=1)
+    try:
+        count = await db.marketplace_templates.count_documents({
+            "author_user_id": user_id,
+            "published_at": {"$gte": since},
+            "deleted_at": None,
+        })
+    except Exception:
+        return  # FAIL-OPEN si query falla
+    if count >= DAILY_PUBLISH_CAP:
+        raise HTTPException(
+            429,
+            f"publish_rate_limit_exceeded · max {DAILY_PUBLISH_CAP}/día/user · evita spam catálogo",
+        )
+
+
+async def _check_clone_rate_limit(db, user_id: str, role: str) -> None:
+    """A.11 fix · cap 5 clones/hora/user (superadmin bypass)."""
+    if role == "superadmin" or not user_id:
+        return
+    since = datetime.now(timezone.utc) - timedelta(hours=1)
+    try:
+        count = await db.marketplace_template_clones.count_documents({
+            "target_user_id": user_id,
+            "cloned_at": {"$gte": since},
+        })
+    except Exception:
+        return  # FAIL-OPEN si query falla
+    if count >= HOURLY_CLONE_CAP:
+        raise HTTPException(
+            429,
+            f"clone_rate_limit_exceeded · max {HOURLY_CLONE_CAP}/hora/user · evita abuso",
+        )
 
 
 async def _get_user(request: Request):
@@ -87,6 +132,8 @@ async def publish_endpoint(body: PublishIn, request: Request):
     user = await _require_advisor(request)
     db = request.app.state.db
     author_id = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    # F.71 audit · cap 3 publishes/día/user antiabuse (superadmin bypass)
+    await _check_publish_rate_limit(db, author_id, getattr(user, "role", ""))
     res = await publish_template(
         db, author_user_id=author_id, workflow_id=body.workflow_id,
         author_email=getattr(user, "email", None),
@@ -152,6 +199,8 @@ async def clone_endpoint(template_id: str, body: CloneIn, request: Request):
     user = await _require_advisor(request)
     db = request.app.state.db
     target_id = getattr(user, "id", None) or getattr(user, "email", None) or "unknown"
+    # A.11 audit · cap 5 clones/hora/user antiabuse (superadmin bypass)
+    await _check_clone_rate_limit(db, target_id, getattr(user, "role", ""))
     res = await clone_template(
         db,
         template_id=template_id,
