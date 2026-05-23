@@ -7,7 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import HealthScore from '../../components/shared/HealthScore';
 import { listProjectsWithStats } from '../../api/developer';
-import { Plus, Building, BarChart, Users, TrendUp } from '../../components/icons';
+import { Plus, Building, BarChart, Users, TrendUp, Copy } from '../../components/icons';
+import DuplicateProjectModal from '../../components/dev/DuplicateProjectModal';
 
 // ─── Mini Sparkline SVG ──────────────────────────────────────────────────────
 function MiniSparkline({ data = [], color = '#22c55e', width = 80, height = 28 }) {
@@ -77,7 +78,7 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 20;
 
 // ─── Project Card ────────────────────────────────────────────────────────────
-function ProjectCard({ project, onClick }) {
+function ProjectCard({ project, onClick, onDuplicate }) {
   const stage = project.stage || 'preventa';
   const stageColor = STAGE_COLORS[stage] || STAGE_COLORS.preventa;
   const total = Math.max(1, project.units_total || 1);
@@ -157,6 +158,22 @@ function ProjectCard({ project, onClick }) {
         <div style={{ position: 'absolute', top: 8, right: 8 }}>
           <HealthScore score={project.health_score || 0} size="sm" />
         </div>
+        {onDuplicate && (
+          <button
+            data-testid={`duplicate-project-btn-${project.id}`}
+            aria-label="duplicar"
+            title="Duplicar proyecto"
+            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+            style={{
+              position: 'absolute', bottom: 8, right: 8,
+              background: 'rgba(13,17,24,0.72)', border: '1px solid rgba(240,235,224,0.18)',
+              color: 'var(--cream-2)', borderRadius: 999, padding: 6, cursor: 'pointer',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            <Copy size={14} />
+          </button>
+        )}
       </div>
 
       {/* Body */}
@@ -239,6 +256,7 @@ export default function MisProyectos({ user, onLogout }) {
   const [sort, setSort] = useState('nombre');
   const [viewMode, setViewMode] = useState('cards');
   const [page, setPage] = useState(1);
+  const [duplicating, setDuplicating] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -378,11 +396,20 @@ export default function MisProyectos({ user, onLogout }) {
                 key={p.id}
                 project={p}
                 onClick={() => navigate(`/desarrollador/proyectos/${p.id}`)}
+                onDuplicate={() => setDuplicating(p)}
               />
             ))}
           </div>
         ) : (
-          <ListaView projects={paged} onSelect={id => navigate(`/desarrollador/proyectos/${id}`)} />
+          <ListaView projects={paged} onSelect={id => navigate(`/desarrollador/proyectos/${id}`)} onDuplicate={(p) => setDuplicating(p)} />
+        )}
+
+        {duplicating && (
+          <DuplicateProjectModal
+            source={duplicating}
+            onClose={() => setDuplicating(null)}
+            onDuplicated={() => { setDuplicating(null); load(); }}
+          />
         )}
 
         {/* Pagination */}
@@ -448,14 +475,14 @@ function LoadingSkeleton({ viewMode }) {
   );
 }
 
-function ListaView({ projects, onSelect }) {
+function ListaView({ projects, onSelect, onDuplicate }) {
   return (
     <div style={{ border: '1px solid rgba(240,235,224,0.12)', borderRadius: 10, overflow: 'hidden' }}>
       <table className="density-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: 'rgba(240,235,224,0.06)' }}>
-            {['Proyecto', 'Etapa', 'Vendido', 'Disponibles', 'Leads', 'Revenue MTD', 'Salud'].map(h => (
-              <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', borderBottom: '1px solid rgba(240,235,224,0.1)' }}>
+            {['Proyecto', 'Etapa', 'Vendido', 'Disponibles', 'Leads', 'Revenue MTD', 'Salud', ''].map((h, i) => (
+              <th key={`${h}-${i}`} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--cream-3)', borderBottom: '1px solid rgba(240,235,224,0.1)' }}>
                 {h}
               </th>
             ))}
@@ -494,6 +521,19 @@ function ListaView({ projects, onSelect }) {
                 <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--green)', fontWeight: 600 }}>{fmtMXN(p.revenue_mtd_est)}</td>
                 <td style={{ padding: '10px 14px' }}>
                   <HealthScore score={p.health_score || 0} size="sm" />
+                </td>
+                <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                  {onDuplicate && (
+                    <button
+                      data-testid={`duplicate-project-row-${p.id}`}
+                      aria-label="duplicar"
+                      title="Duplicar"
+                      onClick={(e) => { e.stopPropagation(); onDuplicate(p); }}
+                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--cream-2)', borderRadius: 999, padding: 4, cursor: 'pointer' }}
+                    >
+                      <Copy size={13} />
+                    </button>
+                  )}
                 </td>
               </tr>
             );

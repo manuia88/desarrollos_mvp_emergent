@@ -22,12 +22,23 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request
 
+from pydantic import BaseModel
+
 from external_insights_engine import (
     fetch_source,
     list_sources_status,
     SOURCE_METADATA,
     ALL_SOURCES,
     ensure_external_insights_indexes,
+)
+from insights_factcheck_engine import (
+    verify_source as factcheck_verify_source,
+    list_courses as factcheck_list_courses,
+    get_course as factcheck_get_course,
+    create_course as factcheck_create_course,
+    update_course as factcheck_update_course,
+    delete_course as factcheck_delete_course,
+    ensure_factcheck_indexes,
 )
 from permissions import require_superadmin
 from audit_immutable_engine import log as audit_log
@@ -187,6 +198,93 @@ async def refresh_source(source_id: str, request: Request):
     }}
 
 
+# ─── W6.11 · Fact-check + Courses ────────────────────────────────────────────
+class FactCheckIn(BaseModel):
+    claim_text: str
+    source_url: str
+
+
+class CourseIn(BaseModel):
+    title: str
+    description: str | None = None
+    slug: str | None = None
+    lessons: list | None = None
+    source_urls: list | None = None
+    published: bool | None = True
+
+
+class CourseUpdateIn(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    lessons: list | None = None
+    source_urls: list | None = None
+    published: bool | None = None
+
+
+@router.post(PUBLIC_PREFIX + "/fact-check")
+async def post_fact_check(body: FactCheckIn, request: Request):
+    _check_rate(_RATE_PUBLIC, _client_ip(request), 300)
+    db = request.app.state.db
+    res = await factcheck_verify_source(db, body.claim_text, body.source_url)
+    if isinstance(res, dict) and res.get("error"):
+        raise HTTPException(400, res["error"])
+    return res
+
+
+@router.get(PUBLIC_PREFIX + "/courses")
+async def get_courses(request: Request, limit: int = 20, offset: int = 0):
+    _check_rate(_RATE_PUBLIC, _client_ip(request), 300)
+    db = request.app.state.db
+    return await factcheck_list_courses(db, limit=limit, offset=offset)
+
+
+@router.get(PUBLIC_PREFIX + "/courses/{slug}")
+async def get_course_by_slug(slug: str, request: Request):
+    _check_rate(_RATE_PUBLIC, _client_ip(request), 300)
+    db = request.app.state.db
+    res = await factcheck_get_course(db, slug)
+    if res.get("error"):
+        raise HTTPException(404, res["error"])
+    return res
+
+
+@router.post(SUPERADMIN_PREFIX + "/courses")
+async def post_course(body: CourseIn, request: Request):
+    _check_rate(_RATE_SA, _client_ip(request), 60)
+    actor = await require_superadmin(request)
+    db = request.app.state.db
+    actor_dict = {"user_id": getattr(actor, "user_id", "superadmin"), "role": "superadmin"}
+    res = await factcheck_create_course(db, body.model_dump(exclude_none=True), actor_dict)
+    if res.get("error"):
+        raise HTTPException(400, res["error"])
+    return res
+
+
+@router.put(SUPERADMIN_PREFIX + "/courses/{slug}")
+async def put_course(slug: str, body: CourseUpdateIn, request: Request):
+    _check_rate(_RATE_SA, _client_ip(request), 60)
+    actor = await require_superadmin(request)
+    db = request.app.state.db
+    actor_dict = {"user_id": getattr(actor, "user_id", "superadmin"), "role": "superadmin"}
+    res = await factcheck_update_course(db, slug, body.model_dump(exclude_none=True), actor_dict)
+    if res.get("error"):
+        raise HTTPException(404, res["error"])
+    return res
+
+
+@router.delete(SUPERADMIN_PREFIX + "/courses/{slug}")
+async def delete_course(slug: str, request: Request):
+    _check_rate(_RATE_SA, _client_ip(request), 60)
+    actor = await require_superadmin(request)
+    db = request.app.state.db
+    actor_dict = {"user_id": getattr(actor, "user_id", "superadmin"), "role": "superadmin"}
+    res = await factcheck_delete_course(db, slug, actor_dict)
+    if res.get("error"):
+        raise HTTPException(404, res["error"])
+    return res
+
+
 # Startup hook helper (called from server.py · keeps imports tidy)
 async def ensure_indexes(db) -> None:
     await ensure_external_insights_indexes(db)
+    await ensure_factcheck_indexes(db)

@@ -9,6 +9,8 @@ import {
 } from 'recharts';
 import { Z } from '../../styles/zIndex';
 import { fetchAllSourcesStatus, fetchGlobalSource } from '../../api/insights_external';
+import FactCheckBadge from '../../components/insights/FactCheckBadge';
+import CoursesPanel from '../../components/insights/CoursesPanel';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -440,7 +442,7 @@ export default function InsightsGlobal() {
           }}>Explorar comparativas →</Link>
         </div>
 
-        <div style={{ marginTop: 18, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 18, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <Link to="/methodology" style={{
             fontFamily: 'DM Sans', fontSize: 13, color: PALETTE.cream2,
             textDecoration: 'underline',
@@ -449,7 +451,14 @@ export default function InsightsGlobal() {
             fontFamily: 'DM Sans', fontSize: 13, color: PALETTE.cream2,
             textDecoration: 'underline',
           }}>State of CDMX 2026</Link>
+          <FactCheckBadge
+            claim="México registra +4.2% YoY en precios vivienda según fuentes oficiales agregadas."
+            sourceUrl="https://www.inegi.org.mx/"
+          />
         </div>
+      </section>
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
+        <CoursesPanel limit={6} />
       </section>
     </div>
   );
