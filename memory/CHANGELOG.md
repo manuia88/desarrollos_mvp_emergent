@@ -1,6 +1,144 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W6 batch 3 · AS.1 Workflow Builder + MOV.4 Marketing MCP + Quick Wins (W6.5+W6.11) — 2026-05-23
+
+🚀 **2da iteración 3-terminales CC paralelos + audit forense 95/95 PASS post-fixes + 3 hallazgos críticos arreglados.**
+
+3 batches W6 shipped en sesión coordinada · race condition recurrente manejada · merge custom consolidado a main · audit forense identificó 3 vulnerabilidades críticas · arreglos inmediatos antes de docs canónicos.
+
+### W6.AS.1 · Workflow Builder Visual (~40h · SHA branch `3754135e` · 3 commits)
+- **NEW** `backend/workflow_engine.py` (707L)
+  - DAG executor con 4 triggers: `lead.new` · `lead.stage_changed` · `lead.no_response_X_hours` · `lead.custom_event`
+  - 5 actions: `send_whatsapp` (W4.10 reuse) · `send_email` (W2.x) · `create_task` · `move_stage` (CRM) · `call_webhook`
+  - IF/ELSE conditions sobre lead fields (zone · price · score · disc · tags)
+  - Delay nodes con reagenda en queue
+  - Idempotency `execution_id` único · 3x retry exponential backoff
+- **NEW** `backend/workflow_queue.py` (159L)
+  - APScheduler tick cada 60s
+  - Continuation tras delays · TTL 30d queue / 90d runs
+- **NEW** `backend/routes/workflows.py` (288L) · 8 endpoints (CRUD + toggle + test dry-run + runs history) · T2+ advisor auth · cap 20 workflows/user
+- **NEW** `frontend/src/pages/portal/asesor/WorkflowBuilderPage.js` (532L)
+  - Canvas SVG/DOM **NATIVO** (sin `react-flow` · decisión conservadora · evita yarn.lock change)
+  - Paleta drag-drop + 4 node types + edges curvas branches true/false + connect mode
+- **NEW** `frontend/src/pages/portal/asesor/WorkflowHistoryPage.js` (123L) · runs 30d + expand logs
+- **NEW** 4 node components: `WorkflowNodeTrigger` · `WorkflowNodeAction` · `WorkflowNodeCondition` · `WorkflowTemplatesGallery`
+- **NEW** 5 plantillas precargadas: Nurture30d · PostVisita24h · Winback60d · ColdReactivation · Birthday
+- **EDIT** `backend/asistente_engine.py` · tool **#45** `query_workflow_builder` (3 modes: list/stats/templates)
+- i18n namespace `workflows` (~75 keys es-MX)
+
+### W6.MOV.4 · Marketing Distribution MCP (~10h · SHA branch `67d22db1`)
+- **NEW** `backend/marketing_mcp_engine.py` (453L)
+  - 4 platform adapters: TwitterAdapter · LinkedInAdapter · TelegramAdapter · DiscordAdapter
+  - Interface unificada `publish(content_dict, target_platforms)` → {success_per_platform, urls}
+  - Stub-aware: sin keys (`X_BEARER_TOKEN` · `LINKEDIN_OAUTH` · `TG_BOT_TOKEN` · `DISCORD_WEBHOOK_URL`) → `status="skipped"`
+  - Rate-limit por platform: Twitter 1500/día · LinkedIn 100/día · Telegram 30/sec · Discord 5/sec
+  - Cache 24h `marketing_mcp_cache`
+  - FAIL-OPEN: si platform falla, continúa con las demás · `partial_success`
+- **NEW** `backend/routes/marketing_mcp.py` (110L) · 5 endpoints superadmin (publish · schedule · history · stats · cancel)
+- **NEW** `frontend/src/pages/superadmin/SuperadminMarketingMcp.js` (385L) · KPIs strip + 4 platform status cards + form publish + tabla history 50
+- **EDIT** `backend/asistente_engine.py` · tool **#46** `query_marketing_mcp` (3 modes: status/history/stats)
+- i18n namespace `marketingMcp` (~25 keys)
+- Audit log en publish + delete
+
+### W6 Quick Wins · W6.5 Project Wizard + W6.11 Insights Extensions (~12h · SHA branch `5fcb7b3c`)
+
+**W6.5 · Wizard duplicación proyecto:**
+- **NEW** `backend/project_wizard_engine.py` (233L)
+  - `duplicate_project(source_id, new_name, options)` · FORK JSON
+  - Sanitize 15 runtime fields (id · units_sold · created_at · audit_id · leads_* · weekly_sales · duplicated_from · etc)
+  - Validate `new_name` unique per tenant
+- **NEW** `backend/routes/project_wizard.py` · 3 endpoints (+ history bonus) · dev/superadmin gate
+- **NEW** `frontend/src/components/dev/DuplicateProjectModal.js` (194L) · integrado en `MisProyectos.js` (+52L delta · NO reescritura)
+
+**W6.11 · Insights expansiones:**
+- **NEW** `backend/insights_factcheck_engine.py` (323L)
+  - LLM Claude Sonnet 4.5 `verify_source(claim, url)` → {confidence 0-100, verdict verified/disputed/unverified, sources_consulted}
+  - Cache 30d `insights_factcheck_cache`
+  - Heuristic fallback si LLM ausente (FAIL-OPEN)
+  - Courses CRUD `insights_courses` collection
+- **EDIT** `backend/routes/external_insights.py` (extender · +98L · preservando W5.20 endpoints) · 2 públicos nuevos + 4 superadmin
+- **NEW** `frontend/src/components/insights/FactCheckBadge.js` (112L) · pill verde/amarillo/rojo según confidence
+- **NEW** `frontend/src/components/insights/CoursesPanel.js` (173L) · cards courses + modal detail con lessons[]
+- **EDIT** `frontend/src/pages/public/InsightsGlobal.js` (+11L · integra FactCheckBadge + CoursesPanel · NO reescritura)
+- **EDIT** `backend/asistente_engine.py` · tool **#47** `query_project_wizard` (2 modes: templates/duplicate_history)
+- i18n namespaces `projectWizard` + `insightsExt` (~30 keys totales · RECONSTRUIDOS manualmente desde grep componentes por race condition)
+
+### 🚨 Race condition recurrente (3 sesiones CC paralelas)
+Mismo problema que W6 batch 2:
+- Terminal 1 (AS.1): 3 commits porque watcher externo reseteaba archivos shared · cherry-pick a `w6-as1-workflow` tras commit accidental en `w6-quick-wins`
+- Terminal 2 (MOV.4): `git apply --cached` para aislar quirúrgicamente solo hunks W6.MOV.4
+- Terminal 3 (QW): detectó archivos W6.AS.1+W6.MOV.4 en working tree untracked · los excluyó correctamente
+- QW branch i18n omitió `projectWizard` + `insightsExt` propios (capturó `workflows` contaminado de AS.1) · reconstruidos manualmente
+
+### Merge custom (30 archivos · +5181 inserts / 8 deletes · SHA `94867c40` → main `3245278b`)
+1. Branch `w6-batch3-merge` desde `origin/main` (041deeb7)
+2. Cherry-pick selectivo archivos NEW per branch (21 NEW + 3 EXTEND) · cero conflict (paths únicos)
+3. Reconstrucción manual archivos shared:
+   - `asistente_engine.py` · 47 tools 1-47 consecutivos sin gaps (#36-#44 W5.x+W6.MOV intactos)
+   - `server.py` · 3 include_routers fail-soft + 4 startup blocks ensure_indexes + 1 cron tick scheduler 60s · W5.x+W6.MOV.1-5 wires preservados
+   - `App.js` · +12L · 3 lazy imports + 4 routes nuevas
+   - `navByRole.js` · +4L · 2 items (workflows ASESOR_NAV tier 2 Operación GitMerge + marketing-mcp SUPERADMIN tier 6 Crecimiento Megaphone)
+   - `SuperadminLayout.js` · +1 keyword regex `marketing-mcp` crecimiento (Edit puntual)
+   - `i18n/common.json` · +4 namespaces nuevos (workflows + marketingMcp + projectWizard + insightsExt)
+4. `DevelopmentDetail.js` mantiene W5.x F4-F11 + W6.MOV.5 ConstructionQualityBadge + W6.MOV.3 DevReviewsBlock todos coexistiendo
+
+### 🔴 Audit forense 90/95 → 95/95 PASS post-fixes (SHA `0c12d09d` · 2 archivos · +114/-8)
+
+**Hallazgo G.90 🔴 · Workflow tenant isolation cross-tenant leak:**
+- Workflow Tenant A podía disparar sobre lead Tenant B si trigger matcheaba
+- **Fix:** `dispatch_event` resuelve `tenant_id` del lead PRIMERO + query filtra `workflows.tenant_id` match · FAIL-CLOSED si tenant_resolve falla (security > availability)
+
+**Hallazgo G.94 🔴 · Workflow webhook action SSRF:**
+- Asesor autenticado podía exfiltrar internal services (127.0.0.1 · 10.x · 192.168 · 169.254.169.254 AWS metadata)
+- **Fix:** NEW `_is_safe_webhook_url()` valida URL antes de POST · bloquea:
+  - Protocolos no-HTTP(S)
+  - Loopback (127.0.0.0/8 · localhost · ::1)
+  - RFC1918 (10/8 · 172.16/12 · 192.168/16)
+  - Link-local (169.254.0.0/16 · AWS/GCP/Azure metadata incluido)
+  - Multicast · reserved · unspecified
+  - Suffixes `.internal` · `.local` · `.svc.cluster.local` (k8s)
+  - httpx `follow_redirects=False` (evita bypass via 302 a IP interna)
+- Smoke test 14/14 cases PASS (11 blocked correctos + 3 allowed correctos: webhook.site · zapier · slack)
+
+**Hallazgo G.92 🟡 · Project Wizard sin cap diario antiabuse:**
+- Asesor dev podía spam duplicate sin límite
+- **Fix:** NEW `DAILY_DUPLICATE_CAP_PER_TENANT=10` + `_check_daily_duplicate_cap()` count developments con `duplicated_from` últimas 24h + HTTP 429 si excedido + superadmin bypass + FAIL-OPEN si query falla
+
+Audit re-check final: **95/95 PASS · 0 🔴 · 0 🟡 · 0 🟢 residual**
+
+### Audit 5 puntos POST-MERGE limpio
+- `memory/*` diff=0 ✅
+- backend críticos (`audit_immutable_engine` + `feature_registry` + `feature_gate_engine` + `external_insights_engine` W5.20 + `whatsapp_engine` W4.10 + `construction_quality_engine` + `soc_franchise_engine` con G.90 PII fix preservado) diff=0 ✅
+- superadmin críticos: `SuperadminLayout` Edit puntual 1 keyword permitido ✅
+- App.js · navByRole · NO reescritos · deltas additive ✅
+- `yarn build` 17.79s · 0 warnings W6 batch 3 files (3 warnings pre-existentes ajenos) ✅
+
+### Cron sin colisión horaria
+- CQ (W6.MOV.5) · lunes 02:00 UTC
+- Reviews residentes (W6.MOV.3) · lunes 03:00 UTC
+- Gov Data MX (W6.MOV.2) · domingos 04:00 UTC + día 1 mes 05:00 UTC
+- Workflow queue tick (W6.AS.1) · cada 60s
+- Trial expiry · diario 08:00 MX
+
+### Metrics
+- **Total horas**: 62h (40 + 10 + 12)
+- **3 SHAs branches** + **1 merge custom** + **1 merge to main** + **1 audit fix consolidado**
+- **17 endpoints nuevos** (8 workflows + 5 marketing-mcp + 3 project_wizard + 1 fact-check pública)
+- **3 tools asistente** (#45 + #46 + #47) · numeración 1-47 consecutiva sin gaps
+- **30 archivos** · +5181 inserts / 8 deletes (merge) + 114 / 8 (audit fixes)
+
+### Hito histórico
+2da iteración patrón **3 terminales Claude Code paralelos** confirmada viable · race condition manejada cleanly · 3 fixes seguridad críticos atajados antes de deploy a prod.
+
+### Riesgos residuales NO bloqueantes
+- Race condition recurrente working dir compartido documentada (futuros paralelos deberían usar branches separadas O working dirs separados · proceso mejorable)
+- Seed sintético pendiente Workflow templates + SOC franchisees + Reviews residentes + Gov Data tracks (defaults FAIL-OPEN funcionan sin crash)
+- `WAVE6_CLAUDE_EMERGENT_SPLIT.md` DEPRECATED · Wave 6 ahora 100% Claude Code end-to-end
+
+---
+
+
 ## W6 batch 2 · MOV.3 Reviews + MOV.2 External Sources + MOV.1 SOC Franquicia — 2026-05-23
 
 🚀 **Primer test 3 sesiones Claude Code paralelas (mismo working directory) · merge custom + audit forense 90/90 PASS + fix G.90 PII leak.**
