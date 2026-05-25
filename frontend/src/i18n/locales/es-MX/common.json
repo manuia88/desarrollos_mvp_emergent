@@ -4888,5 +4888,163 @@
         "delete": "Eliminar"
       }
     }
+  },
+  "reputationMonitor": {
+    "title": "Monitor de Reputación",
+    "sub": "Menciones de DMX en Google · X · Reddit · News · sentiment Claude",
+    "loading": "Cargando…",
+    "kpi": {
+      "total": "Menciones totales",
+      "positivePct": "Positivas",
+      "negativePct": "Negativas",
+      "trend": "Tendencia 7d",
+      "alerts7d": "Alertas 7d"
+    },
+    "trend": {
+      "title": "Menciones diarias · últimos 7 días",
+      "up": "Subiendo",
+      "down": "Bajando",
+      "flat": "Estable"
+    },
+    "filter": {
+      "sentiment": "Sentimiento",
+      "source": "Fuente",
+      "status": "Estado",
+      "days": "Días",
+      "all": "Todas"
+    },
+    "sentiment": {
+      "positive": "Positiva",
+      "neutral": "Neutral",
+      "negative": "Negativa"
+    },
+    "source": {
+      "google_search": "Google",
+      "twitter_x": "X / Twitter",
+      "reddit": "Reddit",
+      "news_web": "News"
+    },
+    "status": {
+      "new": "Nueva",
+      "reviewed": "Revisada",
+      "dismissed": "Descartada"
+    },
+    "actions": {
+      "refresh": "Refrescar",
+      "scanNow": "Escanear ahora",
+      "scanning": "Escaneando…",
+      "open": "Abrir",
+      "markReviewed": "Marcar revisada",
+      "markDismissed": "Descartar"
+    },
+    "topNegative": {
+      "title": "Top 5 menciones negativas"
+    },
+    "mention": {
+      "noTitle": "(sin título)"
+    },
+    "table": {
+      "title": "Menciones",
+      "empty": "Sin menciones en este rango. Corre un scan o ajusta filtros."
+    },
+    "col": {
+      "date": "Fecha",
+      "source": "Fuente",
+      "sentiment": "Sentimiento",
+      "title": "Título",
+      "snippet": "Extracto",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "alerts": {
+      "title": "Historial de alertas",
+      "negatives": "negativas",
+      "threshold": "umbral"
+    }
+  },
+  "leadEnrichment": {
+    "panel": {
+      "title": "Datos enriquecidos",
+      "subtitle": "Contexto profesional · LinkedIn · empresa · resumen AI",
+      "lastUpdated": "Última actualización",
+      "confidence": "Confianza",
+      "sources": "Fuentes",
+      "cost": "Costo enrichment",
+      "cached": "Datos en caché",
+      "freshness": "Refrescado hace {{days}} días",
+      "loading": "Enriqueciendo lead…"
+    },
+    "empty": {
+      "title": "Sin enriquecer",
+      "body": "Aún no hay datos enriquecidos para este lead. Ejecuta el enrichment para obtener LinkedIn, empresa y resumen AI."
+    },
+    "action": {
+      "enrichNow": "Enriquecer ahora",
+      "reEnrich": "Re-enriquecer",
+      "refresh": "Refrescar",
+      "viewSources": "Ver fuentes"
+    },
+    "sourceLabel": {
+      "email_validation": "Validación email",
+      "linkedin_pdl": "LinkedIn (PDL)",
+      "company_clearbit": "Empresa (Clearbit)",
+      "ai_research_summary": "Resumen AI"
+    },
+    "field": {
+      "linkedinUrl": "Perfil LinkedIn",
+      "headline": "Headline",
+      "jobTitle": "Cargo",
+      "jobCompany": "Empresa",
+      "industry": "Industria",
+      "summary": "Resumen profesional",
+      "emailValid": "Email válido",
+      "emailDisposable": "Email desechable",
+      "companySize": "Tamaño empresa"
+    },
+    "errors": {
+      "rateLimited": "Cap diario alcanzado · vuelve mañana",
+      "notFound": "Lead no encontrado",
+      "forbidden": "Sin permisos sobre este lead",
+      "generic": "No se pudo enriquecer · intenta de nuevo"
+    },
+    "superadmin": {
+      "title": "Lead Enrichment · monitoreo",
+      "subtitle": "Waterfall lookup · cost tracking · cap por tenant",
+      "kpi": {
+        "totalEnriched": "Enrichments 30d",
+        "successRate": "Tasa éxito",
+        "totalCost": "Costo total (USD)",
+        "avgCost": "Costo promedio (USD)"
+      },
+      "bySource": "Distribución por fuente",
+      "byTenant": "Uso por tenant",
+      "nearCap": "≥80% del cap",
+      "capLabel": "Cap diario por tenant",
+      "filterDays": "Periodo (días)",
+      "filterTenant": "Filtrar tenant",
+      "loadError": "No se pudieron cargar las estadísticas"
+    }
+  },
+  "hookPredictor": {
+    "title": "Predecir hook",
+    "subtitle": "Score 0-100 · 4 dimensiones · clarity + CTA + novelty + urgency",
+    "input_label": "Texto del hook",
+    "input_placeholder": "Pega aquí el hook que quieres evaluar (máx 500 chars)…",
+    "char_counter": "{{n}}/500",
+    "audience_label": "Audiencia objetivo (opcional)",
+    "audience_placeholder": "Ej. compradores Polanco · inversionistas LATAM",
+    "predict_btn": "Predecir score",
+    "predicting": "Analizando…",
+    "empty_text": "Escribe un hook y presiona Predecir score.",
+    "error_score": "No se pudo predecir · intenta de nuevo.",
+    "dimensions_title": "Breakdown por dimensión",
+    "suggestion_title": "Sugerencia de mejora",
+    "threshold_label": "Threshold",
+    "confidence_label": "Confianza",
+    "no_pass_label": "No pasa threshold (sugerimos reescribir)",
+    "source_llm": "LLM",
+    "source_heuristic": "Heurística",
+    "source_cache": "Cache",
+    "close": "Cerrar"
   }
 }

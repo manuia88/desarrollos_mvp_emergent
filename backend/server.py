@@ -268,6 +268,20 @@ try:
 except Exception as _exc:
     logging.warning(f"[W6.MOV.1] soc_franchise_router include failed: {_exc}")
 
+# W7.AS.6 — Reputation Monitor (Brand24-style · 4 sources · sentiment LLM · alerts)
+try:
+    from routes.reputation_monitor import router as reputation_monitor_router
+    app.include_router(reputation_monitor_router)
+except Exception as _exc:
+    logging.warning(f"[W7.AS.6] reputation_monitor_router include failed: {_exc}")
+
+# W7.AS.1 — Lead Enrichment (Clay-style waterfall · 4 connectors · cache 30d · cap diario)
+try:
+    from routes.lead_enrichment import router as lead_enrichment_router
+    app.include_router(lead_enrichment_router)
+except Exception as _exc:
+    logging.warning(f"[W7.AS.1] lead_enrichment_router include failed: {_exc}")
+
 # W6.AS.1 — Workflow Builder Visual (8 endpoints CRUD + toggle + test + runs)
 try:
     from routes.workflows import router as workflows_router
@@ -736,6 +750,11 @@ app.include_router(tracking_links_router)
 app.include_router(funnel_router)
 app.include_router(insights_router)
 app.include_router(copilot_router)
+
+# W5.22 Z.5 — Hook Predictor standalone (4-dim scoring + cache + stats)
+from routes.hook_predictor import router as hook_predictor_router
+from hook_predictor_engine import ensure_indexes as ensure_hook_predictor_indexes
+app.include_router(hook_predictor_router)
 
 # Phase 4 Batch 24 — Marketplace Map Intelligence + Image Search
 from routes.marketplace_map import router as marketplace_map_router
@@ -1206,6 +1225,11 @@ async def startup():
         await ensure_auto_content_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] studio Z.2 indexes failed: {e}")
+    # W5.22 Z.5 — Hook Predictor standalone indexes
+    try:
+        await ensure_hook_predictor_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] hook_predictor indexes failed: {e}")
     # W5.22 Z.8 — Studio Landing Pages indexes
     try:
         await ensure_studio_landing_indexes(db)
@@ -1844,6 +1868,20 @@ async def startup():
             register_gov_data_mx_jobs(sched, db)
         except Exception as e:
             logging.warning(f"[W6.MOV.2] gov_data_mx startup register failed: {e}")
+        # W7.AS.6 — Reputation Monitor: indexes + 1 cron (scan diario 05:00 UTC)
+        try:
+            from reputation_monitor_engine import ensure_indexes as reputation_monitor_ensure_indexes
+            from reputation_monitor_cron import register_reputation_monitor_jobs
+            await reputation_monitor_ensure_indexes(db)
+            register_reputation_monitor_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W7.AS.6] reputation_monitor startup register failed: {e}")
+        # W7.AS.1 — Lead Enrichment: indexes (waterfall cache + audit)
+        try:
+            from lead_enrichment_engine import ensure_indexes as lead_enrichment_ensure_indexes
+            await lead_enrichment_ensure_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W7.AS.1] lead_enrichment startup register failed: {e}")
         # W6.AS.1 — Workflow Builder: indexes (engine + queue) + tick scheduler 60s
         try:
             from workflow_engine import ensure_indexes as wf_ensure_indexes

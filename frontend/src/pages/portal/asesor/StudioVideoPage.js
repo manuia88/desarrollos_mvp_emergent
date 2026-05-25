@@ -5,6 +5,7 @@ import ScriptComposer from '../../../components/studio/ScriptComposer';
 import VideoRatioPreview from '../../../components/studio/VideoRatioPreview';
 import VideoQueueList from '../../../components/studio/VideoQueueList';
 import { generateVideo } from '../../../api/studioVideo';
+import HookPredictorModal from '../../../components/hook/HookPredictorModal';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -36,6 +37,7 @@ export default function StudioVideoPage() {
   const [latestTask, setLatestTask] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [queueRefreshKey, setQueueRefreshKey] = useState(0);
+  const [hookModalOpen, setHookModalOpen] = useState(false);
 
   const imageValid = !!imageUrl && URL_RX.test(imageUrl);
   const scriptValid = !!script && script.trim().length >= 8;
@@ -92,9 +94,22 @@ export default function StudioVideoPage() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           }}
         >
-          {/* Col 1: ScriptComposer */}
+          {/* Col 1: ScriptComposer + Hook Predictor trigger (W5.22 Z.5) */}
           <div style={{ gridColumn: 'span 1', minWidth: 0 }}>
             <ScriptComposer value={script} onChange={setScript} />
+            <button
+              type="button"
+              data-testid="svp-hook-predictor-open"
+              onClick={() => setHookModalOpen(true)}
+              style={{
+                marginTop: 10, padding: '7px 14px', borderRadius: 9999,
+                background: 'transparent', color: CREAM,
+                border: '1px solid rgba(240,235,224,0.18)',
+                fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700,
+                cursor: 'pointer',
+              }}>
+              {t('hookPredictor.title', 'Predecir hook')}
+            </button>
           </div>
 
           {/* Col 2: Image URL + preview */}
@@ -247,6 +262,11 @@ export default function StudioVideoPage() {
           color: MUTED_2, fontSize: 12,
         }}>{t('studioVideo.disclaimer', 'Los videos son generados por IA · usalos como inspiracion · revisa siempre el resultado antes de publicar.')}</aside>
       </main>
+      <HookPredictorModal
+        open={hookModalOpen}
+        onClose={() => setHookModalOpen(false)}
+        initialText={script}
+      />
     </div>
   );
 }
