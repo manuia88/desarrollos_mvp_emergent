@@ -372,6 +372,16 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "enrich-now": {{status, enriched_fields, sources_used[], cost_usd, confidence}} · "cache-status": {{has_cache, age_days, data?}} · "stats": {{total_enriched, success_rate, avg_cost, by_source, daily_usage_by_tenant}}
     Usar cuando: asesor pregunta enriquecer lead con data externa · "¿tienes más info de este lead?" · "¿cuál es su LinkedIn?" · "¿en qué empresa trabaja?" · "research IA sobre este contacto" · W7.AS.1 Clay-style waterfall lookup 4 connectors (email validation + LinkedIn PDL + Company Clearbit + AI research summary) stub-aware sin keys · cache 30d · cap 100/día/tenant · cost tracking ai_budget.
 
+52. query_social_ads
+    params: {{ "mode": "status"|"campaigns"|"budget-suggestion" (default "status"), "user_id": str? (mode=status · cuentas del asesor), "account_id": str? (requerido mode=campaigns/budget-suggestion), "status": "ACTIVE"|"PAUSED"? (filtro mode=campaigns) }}
+    devuelve: depende mode · "status": {{accounts[] con account_id+name+status, count, connections, cap, stub_mode}} · "campaigns": {{campaigns[] con name+status+spent_mxn+impressions+clicks+cpc_mxn+conversions, totals}} · "budget-suggestion": {{allocation[] con suggested_budget_mxn+share_pct, rationale, source}}
+    Usar cuando: asesor T2+ pregunta sobre sus campañas Meta Ads · "¿cómo van mis anuncios?", "¿cuánto gasté?", "¿qué cuentas tengo conectadas?", "¿cómo reparto mi presupuesto?" · W5.10 Social/Ads infra multi-tenant Meta Business · STUB mode (mock data realista) hasta Meta App Review aprobado · OAuth encrypted token vault.
+
+53. query_video_standalone
+    params: {{ "mode": "history"|"stats"|"queue-status" (default "history"), "user_id": str? (mode=history/queue-status · si vacío usa caller), "days": int? (default 30), "provider": "luma"|"pika"|"runway"|"replicate_kling"? (filtro history), "status": "queued"|"processing"|"completed"|"error"? (filtro history), "ratio": "1:1"|"9:16"|"16:9"? (filtro history), "limit": int? (default 50) }}
+    devuelve: depende mode · "history": {{items[] con video_id+status+provider_used+retry_count+is_stub+cost_usd+created_at, count, active}} (own) · "queue-status": {{active, recent[]}} (jobs en queued/processing del caller) · "stats": {{total_videos, completed, success_rate_pct, avg_cost_usd, top_providers[], top_users[]}} (superadmin global).
+    Usar cuando: asesor T2+ pregunta "¿qué videos he generado?", "¿cuántos están procesando?", "¿se reintentó algún video?" · superadmin pide métricas globales de Studio Video Standalone (volumen · success rate · costo · top providers/users) · W5.22 Z.4 standalone reusa W5.16 bundle · queue robust retry 3x + fallback · Hook Predictor gate · export PDF/WhatsApp.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -625,6 +635,12 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W7.AS.1 · tool #51 Lead Enrichment (Clay-style waterfall · 4 connectors · cache 30d · cap diario)
         if tool_name == "query_lead_enrichment":
             return await _tool_query_lead_enrichment(db, params)
+        # W5.10 · tool #52 Social/Ads (Meta multi-tenant · STUB-aware · status/campaigns/budget)
+        if tool_name == "query_social_ads":
+            return await _tool_query_social_ads(db, params)
+        # W5.22 Z.4 · tool #53 Video Standalone (reusa W5.16 bundle + queue robust + export)
+        if tool_name == "query_video_standalone":
+            return await _tool_query_video_standalone(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3753,6 +3769,82 @@ async def _tool_query_lead_enrichment(db, params: Dict[str, Any]) -> Dict[str, A
     except Exception as e:
         log.warning(f"[asistente_tool] query_lead_enrichment: {e}")
         return {"error": str(e), "source": "lead_enrichment_engine"}
+
+
+# ── W5.10 · Social/Ads (tool #52) ────────────────────────────────────────────
+async def _tool_query_social_ads(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.10 · Tool #52 · Social/Ads Meta multi-tenant (3 modos · STUB-aware)."""
+    try:
+        from social_ads_engine import (
+            list_ad_accounts, get_campaigns, suggest_budget_allocation,
+        )
+        from social_ads_oauth import is_stub_mode
+
+        mode = (params.get("mode") or "status").lower()
+
+        if mode == "status":
+            user_id = params.get("user_id") or "asistente"
+            accounts = await list_ad_accounts(db, user_id)
+            return {
+                "source": "social_ads_engine", "mode": "status",
+                "accounts": accounts, "count": len(accounts),
+                "stub_mode": is_stub_mode(),
+            }
+
+        if mode == "campaigns":
+            account_id = params.get("account_id")
+            if not account_id:
+                return {"error": "account_id requerido para mode=campaigns",
+                        "source": "social_ads_engine"}
+            res = await get_campaigns(db, account_id, status=params.get("status"))
+            return {"source": "social_ads_engine", "mode": "campaigns", **res}
+
+        if mode == "budget-suggestion":
+            account_id = params.get("account_id")
+            if not account_id:
+                return {"error": "account_id requerido para mode=budget-suggestion",
+                        "source": "social_ads_engine"}
+            res = await suggest_budget_allocation(db, account_id)
+            return {"source": "social_ads_engine", "mode": "budget-suggestion", **res}
+
+        return {"error": f"mode inválido: {mode} · usa status|campaigns|budget-suggestion",
+                "source": "social_ads_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_social_ads: {e}")
+        return {"error": str(e), "source": "social_ads_engine"}
+
+
+# ── W5.22 Z.4 · Video Standalone (tool #53) ──────────────────────────────────
+async def _tool_query_video_standalone(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.22 Z.4 · Tool #53 · Video Standalone queries (history/queue-status/stats).
+
+    Reusa W5.16 Studio Video bundle · NO redefine adapters.
+    """
+    try:
+        from video_standalone_engine import get_user_history, get_queue_status, get_stats
+        mode = (params.get("mode") or "history").lower()
+        user_id = params.get("user_id")
+        days = int(params.get("days", 30))
+        limit = int(params.get("limit", 50))
+        if mode == "history":
+            filters = {
+                k: params.get(k) for k in ("provider", "status", "ratio") if params.get(k)
+            }
+            items = await get_user_history(db, user_id=user_id, days=days, limit=limit, **filters)
+            active = sum(1 for it in items if it.get("status") in ("queued", "processing"))
+            return {"source": "video_standalone_engine", "mode": "history",
+                    "items": items, "count": len(items), "active": active}
+        if mode == "queue-status":
+            res = await get_queue_status(db, user_id=user_id)
+            return {"source": "video_standalone_engine", "mode": "queue-status", **res}
+        if mode == "stats":
+            res = await get_stats(db, days=days)
+            return {"source": "video_standalone_engine", "mode": "stats", **res}
+        return {"error": f"mode inválido: {mode} · usa history|queue-status|stats",
+                "source": "video_standalone_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_video_standalone: {e}")
+        return {"error": str(e), "source": "video_standalone_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

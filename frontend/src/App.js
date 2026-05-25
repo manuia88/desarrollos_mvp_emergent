@@ -101,6 +101,13 @@ const SuperadminMarketplaceTemplates = lazy(() => import('./pages/superadmin/Sup
 const SuperadminReputationMonitor = lazy(() => import('./pages/superadmin/SuperadminReputationMonitor'));
 // W7.AS.1 — Lead Enrichment Clay-style (Superadmin cost monitoring)
 const SuperadminLeadEnrichment = lazy(() => import('./pages/superadmin/SuperadminLeadEnrichment'));
+// W5.10 — Social/Ads Meta multi-tenant (Asesor connect + campaigns · Superadmin monitoring)
+const SocialAdsConnectPage = lazy(() => import('./pages/portal/asesor/SocialAdsConnectPage'));
+const SocialAdsCampaignsPage = lazy(() => import('./pages/portal/asesor/SocialAdsCampaignsPage'));
+const SuperadminSocialAds = lazy(() => import('./pages/superadmin/SuperadminSocialAds'));
+// W5.22 Z.4 — Video Standalone (Asesor T2+ creator + Superadmin stats)
+const VideoStandalonePage = lazy(() => import('./pages/portal/asesor/VideoStandalonePage'));
+const SuperadminVideoStandalone = lazy(() => import('./pages/superadmin/SuperadminVideoStandalone'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -663,6 +670,13 @@ function AppRouter() {
       <Route path="/superadmin/reputation-monitor" element={<SuperadminRoute Page={SuperadminReputationMonitor} />} />
       {/* W7.AS.1 — Lead Enrichment (Superadmin cost monitoring) */}
       <Route path="/superadmin/lead-enrichment" element={<SuperadminRoute Page={SuperadminLeadEnrichment} />} />
+      {/* W5.10 — Social/Ads Meta multi-tenant (2 asesor + 1 superadmin) */}
+      <Route path="/portal/asesor/social-ads" element={<AdvisorRoute Page={SocialAdsConnectPage} />} />
+      <Route path="/portal/asesor/social-ads/campaigns" element={<AdvisorRoute Page={SocialAdsCampaignsPage} />} />
+      <Route path="/superadmin/social-ads" element={<SuperadminRoute Page={SuperadminSocialAds} />} />
+      {/* W5.22 Z.4 — Video Standalone (Asesor T2+ creator · Superadmin stats) */}
+      <Route path="/portal/asesor/video-standalone" element={<AdvisorRoute Page={VideoStandalonePage} />} />
+      <Route path="/superadmin/video-standalone" element={<SuperadminRoute Page={SuperadminVideoStandalone} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

@@ -282,6 +282,22 @@ try:
 except Exception as _exc:
     logging.warning(f"[W7.AS.1] lead_enrichment_router include failed: {_exc}")
 
+# W5.10 — Social/Ads (Meta multi-tenant OAuth · STUB-aware · 9 endpoints)
+try:
+    from routes.social_ads import router as social_ads_router
+    app.include_router(social_ads_router)
+except Exception as _exc:
+    logging.warning(f"[W5.10] social_ads_router include failed: {_exc}")
+
+# W5.22 Z.4 — Video Standalone (reusa W5.16 bundle · queue robust + export pipeline)
+try:
+    from routes.video_standalone import router as video_standalone_router
+    from video_standalone_engine import ensure_indexes as ensure_video_standalone_indexes
+    app.include_router(video_standalone_router)
+except Exception as _exc:
+    logging.warning(f"[W5.22 Z.4] video_standalone_router include failed: {_exc}")
+    ensure_video_standalone_indexes = None  # noqa: F811
+
 # W6.AS.1 — Workflow Builder Visual (8 endpoints CRUD + toggle + test + runs)
 try:
     from routes.workflows import router as workflows_router
@@ -1888,6 +1904,20 @@ async def startup():
             await lead_enrichment_ensure_indexes(db)
         except Exception as e:
             logging.warning(f"[W7.AS.1] lead_enrichment startup register failed: {e}")
+        # W5.10 — Social/Ads: token vault indexes + 1 cron (refresh tokens diario 06:00 UTC)
+        try:
+            from social_ads_engine import ensure_indexes as social_ads_ensure_indexes
+            from social_ads_engine import register_social_ads_jobs
+            await social_ads_ensure_indexes(db)
+            register_social_ads_jobs(sched, db)
+        except Exception as e:
+            logging.warning(f"[W5.10] social_ads startup register failed: {e}")
+        # W5.22 Z.4 — Video Standalone: indexes (queue + history) · skip si import falló (fail-soft)
+        try:
+            if ensure_video_standalone_indexes is not None:
+                await ensure_video_standalone_indexes(db)
+        except Exception as e:
+            logging.warning(f"[W5.22 Z.4] video_standalone startup register failed: {e}")
         # W6.AS.1 — Workflow Builder: indexes (engine + queue) + tick scheduler 60s
         try:
             from workflow_engine import ensure_indexes as wf_ensure_indexes
