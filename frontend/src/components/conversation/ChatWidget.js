@@ -1,6 +1,13 @@
 // W7.AS.3.A · ChatWidget — embebible en landings Z.8 (iframe-ready).
 // 280px wide, bottom-right. Habla con /api/conversation (start + message públicos).
 // Si corre dentro de un <iframe>, reenvía cada turno al host vía window.postMessage.
+//
+// D6 audit recheck · IMPORTANTE para embebido en Z.8:
+//   Si el iframe usa Referrer-Policy: no-referrer (o "strict-origin-when-cross-origin"
+//   con cross-origin), document.referrer estará vacío y NO podremos derivar el origin
+//   del host. En ese caso el relay postMessage se vuelve silencioso (NO leak · pero
+//   degrada la integración). Para evitarlo, en Z.8 landings PASA explícitamente
+//   la prop hostOrigin con el origin del landing (ej: hostOrigin="https://desarrollosmx.io").
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';

@@ -40,6 +40,11 @@ _RL_LIMIT_START = 5     # 5 starts/min/IP (abuse: bot spawning conversations)
 _RL_LIMIT_MSG = 30      # 30 msg/min/IP (un humano no manda más de 1/2s sostenido)
 _RL_WINDOW_S = 60
 
+# D3 audit recheck · daily cap anon (in-memory · prod=Redis)
+_RL_ANON_DAILY: Dict[str, Deque[float]] = defaultdict(deque)
+_RL_ANON_DAILY_LIMIT = 100   # 100 mensajes/día/IP sin auth (humano normal ≤30)
+_RL_DAILY_WINDOW_S = 86400
+
 
 def _client_ip(request: Request) -> str:
     fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
@@ -48,10 +53,11 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _rate_limit_check(bucket_dict: Dict[str, Deque[float]], ip: str, limit: int) -> None:
+def _rate_limit_check(bucket_dict: Dict[str, Deque[float]], ip: str, limit: int,
+                     window_s: int = _RL_WINDOW_S) -> None:
     now = time.time()
     bucket = bucket_dict[ip]
-    while bucket and (now - bucket[0]) > _RL_WINDOW_S:
+    while bucket and (now - bucket[0]) > window_s:
         bucket.popleft()
     if len(bucket) >= limit:
         raise HTTPException(429, "rate_limit_exceeded")
@@ -144,23 +150,34 @@ async def start_conversation(body: StartIn, request: Request):
 
 @router.post("/message", status_code=201)
 async def post_message(body: MessageIn, request: Request):
-    # F2 · rate-limit IP (público anon)
-    _rate_limit_check(_RL_MSG, _client_ip(request), _RL_LIMIT_MSG)
+    # F2 · rate-limit IP per-min (público anon)
+    ip = _client_ip(request)
+    _rate_limit_check(_RL_MSG, ip, _RL_LIMIT_MSG)
     user = await _optional_user(request)  # public-friendly (widget en landings Z.8)
+
+    # D3 audit recheck · daily cap por IP cuando anon (quota engine no protege
+    # IPs porque no son user_ids registrados). Cap 100/día/IP sin auth.
+    if user is None:
+        _rate_limit_check(_RL_ANON_DAILY, ip, _RL_ANON_DAILY_LIMIT,
+                          window_s=_RL_DAILY_WINDOW_S)
+
     db = request.app.state.db
     engine = ConversationEngine(db)
     if not body.message or not body.message.strip():
         raise HTTPException(422, "Mensaje vacío")
 
-    # F2 · pre-LLM quota check (FAIL-OPEN si quota engine ausente)
-    try:
-        from ai_budget import check_quota_or_raise
-        check_user = getattr(user, "user_id", None) if user else _client_ip(request)
-        await check_quota_or_raise(db, check_user, estimated_tokens=1500)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        log.warning(f"[conversation] quota check skipped: {exc}")
+    # F2 · pre-LLM quota check (FAIL-OPEN si quota engine ausente).
+    # Si autenticado, quota engine aplica per-user/per-tenant cap real.
+    # Si anon, el daily cap por IP (D3 arriba) ya es la barrera.
+    if user is not None:
+        try:
+            from ai_budget import check_quota_or_raise
+            await check_quota_or_raise(db, getattr(user, "user_id", None),
+                                       estimated_tokens=1500)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            log.warning(f"[conversation] quota check skipped: {exc}")
 
     try:
         result = await engine.send_message(

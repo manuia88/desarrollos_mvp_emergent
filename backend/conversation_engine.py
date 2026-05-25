@@ -146,12 +146,14 @@ class ConversationEngine:
         session_key: Optional[str] = None,  # F12 fix · dedup per session
         is_anon: bool = False,              # F9 fix · ignora system_prompt si anon
     ) -> Dict[str, Any]:
-        # F12 · idempotency by session_key (active threads · 24h window)
+        # F12 · idempotency by session_key (active threads · 24h window).
+        # D1 fix · cutoff REAL aplicado (antes era dead code).
         if session_key:
-            cutoff = _now().replace(microsecond=0)
-            cutoff_iso = (cutoff.timestamp() - 86400)
+            from datetime import timedelta as _td
+            cutoff = _now() - _td(hours=24)
             existing = await self.db.conversation_threads.find_one(
-                {"session_key": session_key, "status": "active"},
+                {"session_key": session_key, "status": "active",
+                 "created_at": {"$gte": cutoff}},
             )
             if existing:
                 return {

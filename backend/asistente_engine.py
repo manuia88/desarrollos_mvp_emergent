@@ -3868,17 +3868,18 @@ async def _tool_query_video_standalone(db, params: Dict[str, Any]) -> Dict[str, 
 async def _tool_query_conversation(db, params: Dict[str, Any]) -> Dict[str, Any]:
     """W7.AS.3 · Tool #54 · Conversation Agent queries (active/by-lead/stats).
 
-    API real del motor:
-    - ConversationEngine(db).superadmin_list(asesor_id, sentiment, status, limit)
-    - ConversationEngine(db).list_lead_conversations(lead_id)
-    - ConversationEngine(db).superadmin_stats() → métricas globales
-    Cycle-closers integrados via _build_intel_context (RAG KG + DISC + Plan Venta +
-    Hook + Auto-enrich) y _record_cycle_signals (SOC W6.MOV.1).
+    D2 audit recheck fix · respeta tenant gate del engine W7.AS.3 R1 F1 fix:
+    el caller pasa tenant_id + role en params (paridad tool #51 lead_enrichment).
+    Si role!='superadmin' → engine filtra por tenant_id (no cross-tenant leak).
     """
     try:
         from conversation_engine import ConversationEngine
         engine = ConversationEngine(db)
         mode = (params.get("mode") or "active").lower()
+
+        # D2 · caller context (paridad tool #51 patrón actor)
+        caller_tenant_id = params.get("tenant_id") or params.get("user_id") or None
+        is_superadmin = (params.get("role") or "").lower() == "superadmin"
 
         if mode == "active":
             res = await engine.superadmin_list(
@@ -3886,6 +3887,8 @@ async def _tool_query_conversation(db, params: Dict[str, Any]) -> Dict[str, Any]
                 sentiment=params.get("sentiment"),
                 status=params.get("status") or "active",
                 limit=int(params.get("limit", 50)),
+                caller_tenant_id=caller_tenant_id,  # D2
+                is_superadmin=is_superadmin,        # D2
             )
             return {"source": "conversation_engine", "mode": "active",
                     "conversations": res or [], "count": len(res or [])}
@@ -3895,13 +3898,31 @@ async def _tool_query_conversation(db, params: Dict[str, Any]) -> Dict[str, Any]
             if not lead_id:
                 return {"error": "lead_id requerido para mode=by-lead",
                         "source": "conversation_engine"}
-            res = await engine.list_lead_conversations(lead_id)
+            res = await engine.list_lead_conversations(
+                lead_id,
+                caller_tenant_id=caller_tenant_id,  # D2
+                is_superadmin=is_superadmin,        # D2
+            )
             return {"source": "conversation_engine", "mode": "by-lead",
                     "conversations": res or [], "count": len(res or [])}
 
         if mode == "stats":
+            # stats globales solo superadmin · si caller no es SA → solo su tenant
+            if not is_superadmin:
+                # devolver counts scoped al tenant (paridad superadmin_list)
+                items = await engine.superadmin_list(
+                    limit=500, caller_tenant_id=caller_tenant_id, is_superadmin=False,
+                )
+                return {
+                    "source": "conversation_engine", "mode": "stats",
+                    "scoped": "tenant",
+                    "total_conversations": len(items or []),
+                    "active": sum(1 for it in (items or []) if it.get("status") == "active"),
+                    "handoff": sum(1 for it in (items or []) if it.get("status") in ("handoff", "taken_over")),
+                    "closed": sum(1 for it in (items or []) if it.get("status") == "closed"),
+                }
             res = await engine.superadmin_stats()
-            return {"source": "conversation_engine", "mode": "stats",
+            return {"source": "conversation_engine", "mode": "stats", "scoped": "global",
                     **(res if isinstance(res, dict) else {})}
 
         return {"error": f"mode inválido: {mode} · usa active|by-lead|stats",
