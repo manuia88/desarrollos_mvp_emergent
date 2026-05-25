@@ -83,8 +83,9 @@ export default function SuperadminLeadEnrichment() {
   useEffect(() => { load(); }, [load]);
 
   const totals = stats?.totals || {};
-  const bySource = stats?.by_source || {};
-  const byTenant = stats?.by_tenant || {};
+  // F.93 fix · bySource memoized to stabilize useMemo deps below
+  const bySource = useMemo(() => stats?.by_source || {}, [stats]);
+  const byTenant = useMemo(() => stats?.by_tenant || {}, [stats]);
   const cap = stats?.cap_per_tenant_daily;
 
   const sourceLabels = useMemo(() => ({

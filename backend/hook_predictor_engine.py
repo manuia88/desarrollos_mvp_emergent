@@ -39,6 +39,8 @@ CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 CACHE_TTL_DAYS = 7
 DEFAULT_THRESHOLD = int(os.environ.get("HOOK_PREDICTOR_THRESHOLD", "60"))
 MAX_TEXT_LEN = 2000
+# G.101 audit fix · cap LLM cost runaway (superadmin bypass)
+DAILY_LLM_CAP_PER_TENANT = int(os.environ.get("HOOK_PREDICTOR_DAILY_CAP_PER_TENANT", "200"))
 
 
 def _now() -> datetime:
@@ -49,9 +51,34 @@ def _uid() -> str:
     return f"hpred_{uuid.uuid4().hex[:12]}"
 
 
-def _hash_content(text: str, audience: Optional[str]) -> str:
-    payload = (text or "")[:MAX_TEXT_LEN] + "|" + (audience or "")
+def _hash_content(text: str, audience: Optional[str], tenant_id: Optional[str] = None) -> str:
+    """G.103 audit fix · include tenant_id in hash to prevent cross-tenant cache sharing.
+
+    tenant_id=None preserves backward compat para callers públicos sin auth.
+    """
+    payload = (text or "")[:MAX_TEXT_LEN] + "|" + (audience or "") + "|" + (tenant_id or "_global")
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+async def _check_daily_llm_cap(db, tenant_id: Optional[str], role: str) -> None:
+    """G.101 audit fix · cap LLM scores diarios por tenant (superadmin bypass)."""
+    if role == "superadmin" or not tenant_id or tenant_id == "default":
+        return
+    from fastapi import HTTPException
+    since = _now() - timedelta(days=1)
+    try:
+        count = await db.hook_predictor_scores.count_documents({
+            "tenant_id": tenant_id,
+            "source": {"$in": ["llm", "cache"]},  # heuristic no cuesta · no cuenta
+            "created_at": {"$gte": since},
+        })
+    except Exception:
+        return  # FAIL-OPEN si query falla
+    if count >= DAILY_LLM_CAP_PER_TENANT:
+        raise HTTPException(
+            429,
+            f"hook_predictor_daily_cap_exceeded · max {DAILY_LLM_CAP_PER_TENANT}/día/tenant · evita LLM cost runaway",
+        )
 
 
 # ─── ensure_indexes ──────────────────────────────────────────────────────────
@@ -295,7 +322,13 @@ async def predict_hook_score(
             "missing_data": True,
         }
 
-    content_hash = _hash_content(body, target_audience)
+    # G.101 audit fix · enforce daily LLM cap antes de proceder (superadmin bypass)
+    tenant_id_check = getattr(user, "tenant_id", None) if user else None
+    role_check = getattr(user, "role", "anon") if user else "anon"
+    await _check_daily_llm_cap(db, tenant_id_check, role_check)
+
+    # G.103 audit fix · include tenant_id en hash para evitar cache cross-tenant
+    content_hash = _hash_content(body, target_audience, tenant_id_check)
 
     # 1) cache
     cached = await _cache_get(db, content_hash)
@@ -313,6 +346,20 @@ async def predict_hook_score(
         if llm:
             payload = {**llm, "source": "llm"}
             await _cache_put(db, content_hash, target_audience, llm, "llm")
+            # G.101 audit fix · track ai_budget cost para cap diario tenant
+            try:
+                from ai_budget import track_ai_call
+                tokens_in = len(body) // 4
+                tokens_out = 200  # rubric response avg
+                if tenant_id_check:
+                    await track_ai_call(
+                        db, dev_org_id=tenant_id_check, model=CLAUDE_MODEL,
+                        tokens=tokens_in + tokens_out, call_type="hook_predictor",
+                        tokens_in=tokens_in, tokens_out=tokens_out,
+                        feature_key="hook_predictor",
+                    )
+            except Exception as exc:
+                log.debug(f"[hook_predictor] ai_budget track skip: {exc}")
         else:
             # 3) Heuristic (FAIL-OPEN)
             heur = _heuristic_score(body)

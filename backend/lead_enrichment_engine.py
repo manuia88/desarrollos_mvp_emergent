@@ -46,7 +46,12 @@ COST_PDL_USD = 0.08                # ~$0.08 per match
 COST_CLEARBIT_USD = 0.06           # ~$0.06 per match
 COST_LLM_USD_BASE = 0.012          # ~600 tokens in/out
 
-SOURCES_PREFERENCE_ORDER = ("linkedin_pdl", "company_clearbit", "ai_research_summary")
+# G.104 audit fix · waterfall order configurable env (default PDL > Clearbit > AI)
+# Formato env: comma-separated · ej LEAD_ENRICHMENT_SOURCES_ORDER="company_clearbit,linkedin_pdl,ai_research_summary"
+_DEFAULT_ORDER = "linkedin_pdl,company_clearbit,ai_research_summary"
+_VALID_SOURCES = {"linkedin_pdl", "company_clearbit", "ai_research_summary"}
+_env_order = [s.strip() for s in os.environ.get("LEAD_ENRICHMENT_SOURCES_ORDER", _DEFAULT_ORDER).split(",") if s.strip() in _VALID_SOURCES]
+SOURCES_PREFERENCE_ORDER = tuple(_env_order) if _env_order else ("linkedin_pdl", "company_clearbit", "ai_research_summary")
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 DISPOSABLE_DOMAINS = {
     "mailinator.com", "tempmail.com", "10minutemail.com", "guerrillamail.com",

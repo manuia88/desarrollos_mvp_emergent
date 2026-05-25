@@ -56,7 +56,8 @@ export default function SuperadminReputationMonitor() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filters.days, filters.sentiment, filters.source, filters.status]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- F.93 audit · load() reads filters from closure, depending solo on filter values evita loop infinito
+  useEffect(() => { load(); }, [filters.days, filters.sentiment, filters.source, filters.status]);
 
   const handleScan = async () => {
     setScanning(true);
@@ -86,7 +87,8 @@ export default function SuperadminReputationMonitor() {
   const total = stats?.total_mentions || 0;
   const sent = stats?.by_sentiment || { positive: 0, neutral: 0, negative: 0 };
   const pctNeg = total > 0 ? Math.round((sent.negative / total) * 100) : 0;
-  const trend = stats?.trend_7d || [];
+  // F.93 fix · trend memoized to stabilize useMemo deps below
+  const trend = useMemo(() => stats?.trend_7d || [], [stats]);
   const trendDir = useMemo(() => {
     if (!trend || trend.length < 2) return 'flat';
     const first = trend[0]?.count || 0;

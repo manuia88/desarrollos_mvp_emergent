@@ -752,9 +752,14 @@ app.include_router(insights_router)
 app.include_router(copilot_router)
 
 # W5.22 Z.5 — Hook Predictor standalone (4-dim scoring + cache + stats)
-from routes.hook_predictor import router as hook_predictor_router
-from hook_predictor_engine import ensure_indexes as ensure_hook_predictor_indexes
-app.include_router(hook_predictor_router)
+# D.61b audit fix · wrap try/except como AS.6/AS.1 patrón fail-soft (evita server crash si módulo roto)
+try:
+    from routes.hook_predictor import router as hook_predictor_router
+    from hook_predictor_engine import ensure_indexes as ensure_hook_predictor_indexes
+    app.include_router(hook_predictor_router)
+except Exception as _exc:
+    logging.warning(f"[W5.22 Z.5] hook_predictor_router include failed: {_exc}")
+    ensure_hook_predictor_indexes = None  # noqa: F811
 
 # Phase 4 Batch 24 — Marketplace Map Intelligence + Image Search
 from routes.marketplace_map import router as marketplace_map_router
@@ -1225,9 +1230,10 @@ async def startup():
         await ensure_auto_content_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] studio Z.2 indexes failed: {e}")
-    # W5.22 Z.5 — Hook Predictor standalone indexes
+    # W5.22 Z.5 — Hook Predictor standalone indexes (D.61b audit · skip si module roto en import)
     try:
-        await ensure_hook_predictor_indexes(db)
+        if ensure_hook_predictor_indexes is not None:
+            await ensure_hook_predictor_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] hook_predictor indexes failed: {e}")
     # W5.22 Z.8 — Studio Landing Pages indexes

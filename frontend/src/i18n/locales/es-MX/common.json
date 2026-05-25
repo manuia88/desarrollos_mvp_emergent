@@ -5045,6 +5045,7 @@
     "source_llm": "LLM",
     "source_heuristic": "Heurística",
     "source_cache": "Cache",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "passes_label": "Pasa el umbral"
   }
 }
