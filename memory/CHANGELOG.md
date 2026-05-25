@@ -1,6 +1,72 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W7.AS.3 Round 2 · UI Advanced + ML Loop + Cost Optimizer — 2026-05-25
+
+🚀 **7ma iteración 3-terminales CC paralelos · git worktree aislado 4ta confirmación · 21h adicionales · SHA `7fc72adf` · 63 batches shipped ~1131h.**
+
+**Scope**: Round 2 cierra los 21h restantes del W7.AS.3 original scope (5 UX + 4 ML + 1 Cost upgrades).
+
+**Terminal D** (~10h · SHA `10690e50` · 8 NEW + 5 shared):
+- `conversation_kb_gaps_engine.py` · detecta gaps (sentiment neg + handoff + LLM fail) · cache 7d · integración W6.11 fact-check verify_source
+- `routes/conversation_kb_gaps.py` · 3 endpoints superadmin
+- `ConversationInbox.js` · 3-cols Slack-style · filtros sentiment/handoff/asesor · search
+- `SuggestedReplies.js` · 3 botones IA · Cmd/Ctrl+1/2/3 shortcuts · "Enviar" 1-click o "Editar antes"
+- `LiveTakeover.js` · botón flotante + modal confirm + POST /takeover
+- `SentimentHeatmap.js` · timeline horizontal · max 50 turns + tooltip · scroll horizontal
+- `SuperadminKbGaps.js` · convert-to-FAQ + dismiss + stats top week + integración fact-check
+- i18n `conversation_round2_ui.json` ~50 keys (namespace separado)
+- shared D: server.py + App.js + navByRole + SuperadminLayout + i18n/index.js
+- smoke 7/7 endpoints PASS · build limpio · 0 React-hooks warnings
+- server.py wires defensive try/except para E/F (resuelven al mergear)
+
+**Terminal E** (~8h · SHA `a99561f` · 5 NEW · CERO shared):
+- `conversation_self_tuning.py` · LLM Claude analiza top-50 vs bottom-50 convs · genera diff system_prompt propuesto · superadmin approve manual · cron WEEKLY dom 04:30 UTC max_instances=1 (NO choca W6.MOV.2 dom 04:00) · ai_budget cap $5/tenant/sem
+- `conversation_drift_detector.py` · reusa W5.15 FSD drift pattern · baseline 30d vs current 7d (handoff_rate + avg_sentiment + avg_confidence) · alert >15% via notifications_engine + dedup 1/7d · cron DAILY 04:45 UTC
+- `conversation_ab_testing.py` · 2 system_prompts paralelos 50/50 random · chi² reusado de Z.8 · auto-pick winner si p<0.05 + n>=100
+- `conversation_confidence_score.py` · LLM Claude Haiku self-eval confidence 0-100 · si <50 auto-handoff · FAIL-OPEN confidence=70 default
+- 12/12 pytest test_conversation_ml PASS
+- register_cron(scheduler) callable trigger 'cron' string · módulos importables en cualquier entorno
+
+**Terminal F** (~3h · SHA `70aca6ac` · 6 NEW · CERO shared):
+- `conversation_cost_optimizer.py` · `select_model(text, history, intent_hint)` lógica 3-tier:
+  - intent=classification → Haiku ($0.25/M tokens)
+  - intent=conversation (default) → Sonnet 4.5 ($3/M tokens)
+  - intent=escalation_review → Opus ($15/M tokens)
+  - history>20 + sentiment negative → upgrade Sonnet→Opus (lead en riesgo)
+  - text<50 + simple greeting → downgrade Sonnet→Haiku
+  - FAIL-OPEN Sonnet default
+- `conversation_cost_stats_engine.py` · agregados costos · top expensive · model distribution · reusa ai_budget (NO duplica · usa ai_call_events + _cost_usd)
+- `routes/conversation_cost.py` · 4 endpoints superadmin · rate-limit 30/min
+- `SuperadminConversationCost.js` · 4 KPIs cards + tabla top10 + chart distribución modelos · aurora design
+- i18n `conversation_cost.json` ~20 keys (namespace separado)
+- 6/6 pytest test_conversation_cost PASS · heurísticas validadas
+
+**MERGE CUSTOM** (`7fc72adf` · 24 archivos · +3372/-4):
+- Cherry-pick NEW de las 3 ramas (20 archivos cero collision)
+- 5 shared heredados directo de Terminal D
+- 2 wires post-merge activados (D dejó inline doc):
+  - App.js: descomentado `lazy SuperadminConversationCost` + Route
+  - i18n/index.js: replace `const esMXConversationCost = {}` por import real
+- server.py de D ya tenía wires defensive try/except para E/F · al mergear se activan
+
+**VERIFICACIÓN POST-MERGE:**
+- 34/34 pytest PASS (16 R1 + 18 R2 · 12 ML + 6 cost)
+- python imports OK 18 backend modules conversation_* (audit gate satisfecho)
+- yarn build limpio · 0 warnings R2 files
+
+**11+ UPGRADES W7.AS.3 SHIPPED TOTAL:**
+- R1 6 cycle-closers: RAG KG W5.12 · DISC Buyer Score W5.4 · Plan Venta IA · SOC bidirectional W6.MOV.1 · Workflow bidirectional W6.AS.1 · Hook Predictor Z.5
+- R1 STUB-aware doble (LLM + WhatsApp) + Function Calling Atlax 53 tools
+- R2 5 UX: Inbox · Suggested Replies + Cmd shortcuts · Live Takeover · Sentiment Heatmap · KB Gaps con W6.11 fact-check
+- R2 4 ML: Self-tuning weekly · Drift detector daily · A/B testing chi² · Confidence auto-handoff
+- R2 1 Cost: Optimizer 3-tier + Dashboard
+
+**AUDIT FORENSE W7.AS.3 R1 DOBLE-RECHECK 19/19 RESUELTOS** (12 1er audit + 7 2do audit · founder ruling "0 backlog · solucionar todo" cumplido 3 rondas · 0 deuda seguridad pendiente).
+
+**PRÓXIMO**: audit forense R2 (recomendado) + opcional Round 3 (UI A/B + UI confidence + UI drift dashboard) O pausa build + onboarding piloto 3-5 asesores reales.
+
+
 ## W7.AS.3 Round 1 · Conversation AI Agent + RAG/DISC/Plan Venta + cycle-closers — 2026-05-25
 
 🚀 **6ta iteración 3-terminales CC paralelos · git worktree aislado 3ra confirmación · 11 cycle-closers aplicados en 1 merge · SHA `f6be3263` · 62 batches shipped ~1110h.**
