@@ -382,6 +382,11 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "history": {{items[] con video_id+status+provider_used+retry_count+is_stub+cost_usd+created_at, count, active}} (own) · "queue-status": {{active, recent[]}} (jobs en queued/processing del caller) · "stats": {{total_videos, completed, success_rate_pct, avg_cost_usd, top_providers[], top_users[]}} (superadmin global).
     Usar cuando: asesor T2+ pregunta "¿qué videos he generado?", "¿cuántos están procesando?", "¿se reintentó algún video?" · superadmin pide métricas globales de Studio Video Standalone (volumen · success rate · costo · top providers/users) · W5.22 Z.4 standalone reusa W5.16 bundle · queue robust retry 3x + fallback · Hook Predictor gate · export PDF/WhatsApp.
 
+54. query_conversation
+    params: {{ "mode": "active"|"stats"|"by-lead" (default "active"), "lead_id": str? (mode=by-lead requerido), "asesor_id": str? (filtro mode=active), "sentiment": "positive"|"neutral"|"negative"? (filtro mode=active), "status": "active"|"handoff"|"taken_over"|"closed"? (filtro), "limit": int? (default 50) }}
+    devuelve: depende mode · "active": {{conversations[] con conversation_id+lead_id+channel+status+sentiment+message_count+last_message_at, count}} (filtros) · "by-lead": {{conversations[] del lead específico ordenadas desc, count}} · "stats": {{total_conversations, active, handoff, closed, negative_sentiment, total_messages, by_sentiment}} (superadmin global).
+    Usar cuando: asesor pregunta "¿qué conversaciones tengo activas?", "¿cuántos handoff hoy?", "¿qué dijo el lead X?" · superadmin pide métricas globales del Conversation Agent (volumen · sentiment · handoff rate · takeover count) · W7.AS.3 Conversation AI Agent GHL-style standalone + cycle-closers (RAG KG + DISC + Plan Venta + SOC + Workflow + Hook Predictor + Lead Enrichment) · STUB-aware sin EMERGENT_LLM_KEY (heurístico) y sin WHATSAPP_VPS_READY (would-send log).
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -641,6 +646,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W5.22 Z.4 · tool #53 Video Standalone (reusa W5.16 bundle + queue robust + export)
         if tool_name == "query_video_standalone":
             return await _tool_query_video_standalone(db, params)
+        # W7.AS.3 · tool #54 Conversation Agent (GHL-style · RAG KG + DISC + Plan Venta + cycle-closers)
+        if tool_name == "query_conversation":
+            return await _tool_query_conversation(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3854,6 +3862,53 @@ async def _tool_query_video_standalone(db, params: Dict[str, Any]) -> Dict[str, 
     except Exception as e:
         log.warning(f"[asistente_tool] query_video_standalone: {e}")
         return {"error": str(e), "source": "video_standalone_engine"}
+
+
+# ── W7.AS.3 · Conversation Agent (tool #54) ──────────────────────────────────
+async def _tool_query_conversation(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W7.AS.3 · Tool #54 · Conversation Agent queries (active/by-lead/stats).
+
+    API real del motor:
+    - ConversationEngine(db).superadmin_list(asesor_id, sentiment, status, limit)
+    - ConversationEngine(db).list_lead_conversations(lead_id)
+    - ConversationEngine(db).superadmin_stats() → métricas globales
+    Cycle-closers integrados via _build_intel_context (RAG KG + DISC + Plan Venta +
+    Hook + Auto-enrich) y _record_cycle_signals (SOC W6.MOV.1).
+    """
+    try:
+        from conversation_engine import ConversationEngine
+        engine = ConversationEngine(db)
+        mode = (params.get("mode") or "active").lower()
+
+        if mode == "active":
+            res = await engine.superadmin_list(
+                asesor_id=params.get("asesor_id"),
+                sentiment=params.get("sentiment"),
+                status=params.get("status") or "active",
+                limit=int(params.get("limit", 50)),
+            )
+            return {"source": "conversation_engine", "mode": "active",
+                    "conversations": res or [], "count": len(res or [])}
+
+        if mode == "by-lead":
+            lead_id = params.get("lead_id")
+            if not lead_id:
+                return {"error": "lead_id requerido para mode=by-lead",
+                        "source": "conversation_engine"}
+            res = await engine.list_lead_conversations(lead_id)
+            return {"source": "conversation_engine", "mode": "by-lead",
+                    "conversations": res or [], "count": len(res or [])}
+
+        if mode == "stats":
+            res = await engine.superadmin_stats()
+            return {"source": "conversation_engine", "mode": "stats",
+                    **(res if isinstance(res, dict) else {})}
+
+        return {"error": f"mode inválido: {mode} · usa active|by-lead|stats",
+                "source": "conversation_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_conversation: {e}")
+        return {"error": str(e), "source": "conversation_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

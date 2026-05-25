@@ -15,7 +15,7 @@ import {
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck, Swords,
-  Share2, Video,
+  Share2, Video, MessageCircle,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -90,6 +90,8 @@ const ASESOR_NAV = [
       { key: 'leads-dev',    to: '/asesor/leads-dev',                    label: 'Leads Dev',        Icon: Megaphone },
       // W6.AS.1 · Workflow Builder Visual
       { key: 'workflows',    to: '/portal/asesor/workflows',             label: 'Workflows',        Icon: GitMerge },
+      // W7.AS.3.A · Conversation AI Agent playground
+      { key: 'conversaciones', to: '/portal/asesor/conversation-playground', label: 'Conversaciones', Icon: MessageCircle },
     ],
   },
   {
@@ -222,6 +224,8 @@ const SUPERADMIN_NAV = [
       { key: 'construction-quality', to: '/superadmin/construction-quality', label: 'Construction Quality', Icon: ShieldCheck },
       // ─ W6.MOV.3 · Reviews Residentes ─
       { key: 'reviews-residents', to: '/superadmin/reviews-residents', label: 'Reviews Residentes', Icon: MessageSquare },
+      // ─ W7.AS.3.A · Conversation AI Agent inbox ─
+      { key: 'conversations', to: '/superadmin/conversations', label: 'Conversaciones IA', Icon: MessageCircle },
     ],
   },
   // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─

@@ -668,6 +668,12 @@ from asistente_engine import ensure_indexes as ensure_asistente_indexes
 app.include_router(asistente_router)
 app.include_router(asistente_sa_router)
 
+# W7.AS.3.A — Conversation AI Agent (GHL-style) · Core engine + 4 channel adapters
+from routes.conversation import router as conversation_router, sa_router as conversation_sa_router
+from conversation_engine import ensure_indexes as ensure_conversation_indexes
+app.include_router(conversation_router)
+app.include_router(conversation_sa_router)
+
 # W4.5 Y.2A — Pricing Sub-Agent
 from routes.subagents import router as subagents_router, sa_router as subagents_sa_router
 from sub_agents.pricing_agent import ensure_pricing_indexes
@@ -1531,6 +1537,10 @@ async def startup():
         await ensure_asistente_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W4.4E asistente indexes failed: {e}")
+    try:
+        await ensure_conversation_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W7.AS.3.A conversation indexes failed: {e}")
     # W4.5 Y.2A — Pricing Sub-Agent indexes
     try:
         await ensure_pricing_indexes(db)

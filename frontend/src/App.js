@@ -108,6 +108,9 @@ const SuperadminSocialAds = lazy(() => import('./pages/superadmin/SuperadminSoci
 // W5.22 Z.4 — Video Standalone (Asesor T2+ creator + Superadmin stats)
 const VideoStandalonePage = lazy(() => import('./pages/portal/asesor/VideoStandalonePage'));
 const SuperadminVideoStandalone = lazy(() => import('./pages/superadmin/SuperadminVideoStandalone'));
+// W7.AS.3.A — Conversation AI Agent (asesor playground + superadmin inbox)
+const ConversationPlayground = lazy(() => import('./pages/asesor/ConversationPlayground'));
+const SuperadminConversations = lazy(() => import('./components/superadmin/SuperadminConversations'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -677,6 +680,10 @@ function AppRouter() {
       {/* W5.22 Z.4 — Video Standalone (Asesor T2+ creator · Superadmin stats) */}
       <Route path="/portal/asesor/video-standalone" element={<AdvisorRoute Page={VideoStandalonePage} />} />
       <Route path="/superadmin/video-standalone" element={<SuperadminRoute Page={SuperadminVideoStandalone} />} />
+
+      {/* W7.AS.3.A — Conversation AI Agent */}
+      <Route path="/portal/asesor/conversation-playground" element={<AdvisorRoute Page={ConversationPlayground} />} />
+      <Route path="/superadmin/conversations" element={<SuperadminRoute Page={SuperadminConversations} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

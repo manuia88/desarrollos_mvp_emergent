@@ -22,6 +22,9 @@ import en from './locales/en.json';
 import esMXCommon from './locales/es-MX/common.json';
 import enUSCommon from './locales/en-US/common.json';
 
+// W7.AS.3.A — Conversation AI Agent (namespace separado para evitar race con common.json)
+import esMXConversationRound1 from './locales/es-MX/conversation_round1.json';
+
 i18n.use(initReactI18next).init({
   resources: {
     // Legacy support
@@ -32,6 +35,7 @@ i18n.use(initReactI18next).init({
     'es-MX': {
       translation: es,       // also exposes legacy keys under es-MX for fallback
       common: esMXCommon,
+      conversation_round1: esMXConversationRound1,
     },
 
     // Namespaced en-US
@@ -51,7 +55,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'translation',
 
   // Available namespaces
-  ns: ['translation', 'common'],
+  ns: ['translation', 'common', 'conversation_round1'],
 
   interpolation: {
     escapeValue: false,  // React already escapes

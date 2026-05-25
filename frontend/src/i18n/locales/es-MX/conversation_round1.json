@@ -1,0 +1,73 @@
+{
+  "playground": {
+    "title": "Playground de Conversación IA",
+    "subtitle": "Configura el system prompt, prueba al agente y observa qué herramientas usa.",
+    "col_config": "Configuración",
+    "col_chat": "Conversación",
+    "col_tools": "Herramientas usadas",
+    "system_prompt_label": "System prompt del asesor",
+    "system_prompt_placeholder": "Ej. Eres un asesor inmobiliario IA de DesarrollosMX...",
+    "channel_label": "Canal",
+    "context_label": "Contexto inicial (opcional)",
+    "context_placeholder": "Ej. Prospecto interesado en Polanco, presupuesto 8M MXN.",
+    "start": "Iniciar conversación",
+    "reset": "Reiniciar",
+    "send": "Enviar",
+    "input_placeholder": "Escribe un mensaje como prospecto...",
+    "start_first": "Inicia una conversación para comenzar a probar el agente.",
+    "tools_title": "Detalle del turno",
+    "no_tools": "Sin herramientas en este turno (Round 1).",
+    "model": "Modelo",
+    "latency": "Latencia",
+    "sentiment": "Sentimiento",
+    "stub_mode": "Modo heurístico (sin LLM key)",
+    "handoff_suggested": "Handoff sugerido",
+    "thinking": "Pensando...",
+    "request_handoff": "Solicitar handoff"
+  },
+  "widget": {
+    "title": "Asesor IA",
+    "placeholder": "Escribe tu mensaje...",
+    "send": "Enviar",
+    "greeting": "¡Hola! Soy tu asesor IA de DesarrollosMX. ¿En qué te ayudo?",
+    "powered": "Powered by DesarrollosMX",
+    "error": "No pudimos enviar tu mensaje. Intenta de nuevo."
+  },
+  "inbox": {
+    "title": "Conversaciones IA",
+    "subtitle": "Bandeja de todas las conversaciones del agente IA.",
+    "refresh": "Actualizar",
+    "filter_asesor": "Asesor",
+    "filter_sentiment": "Sentimiento",
+    "filter_status": "Estado",
+    "all": "Todas",
+    "empty": "No hay conversaciones que coincidan con los filtros.",
+    "select_hint": "Selecciona una conversación para ver el detalle.",
+    "takeover": "Tomar conversación",
+    "taken_over_by": "Tomada por",
+    "messages": "mensajes",
+    "lead": "Lead",
+    "channel": "Canal",
+    "stats_total": "Total",
+    "stats_active": "Activas",
+    "stats_handoff": "Handoff",
+    "stats_negative": "Negativas"
+  },
+  "sentiment": {
+    "positive": "Positivo",
+    "neutral": "Neutral",
+    "negative": "Negativo"
+  },
+  "status": {
+    "active": "Activa",
+    "handoff": "Handoff",
+    "taken_over": "Tomada",
+    "closed": "Cerrada"
+  },
+  "channels": {
+    "web": "Web",
+    "email": "Email",
+    "inapp": "En app",
+    "whatsapp": "WhatsApp"
+  }
+}
