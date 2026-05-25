@@ -1,6 +1,75 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W7.AS.3 Round 1 · Conversation AI Agent + RAG/DISC/Plan Venta + cycle-closers — 2026-05-25
+
+🚀 **6ta iteración 3-terminales CC paralelos · git worktree aislado 3ra confirmación · 11 cycle-closers aplicados en 1 merge · SHA `f6be3263` · 62 batches shipped ~1110h.**
+
+**Scope**: W7.AS.3 Conversation AI Agent GHL-style standalone con 11 upgrades integrados (cycle-closers + UX + IA/ML core). 3 terminales paralelos validaron diseño anti-race-condition: solo Terminal A toca shared files · B y C son módulos puros 100% standalone.
+
+**Terminal A** (~20h · SHA `865bdaa5` · 11 NEW + 5 shared):
+- conversation_engine.py 515L · LLM Claude Sonnet 4.5 + memory short/long term + sentiment heurístico + handoff intent + FAIL-OPEN
+- 4 channel adapters (web · email · inapp · whatsapp_stub con `WHATSAPP_VPS_READY=false` → "would send" log)
+- routes/conversation.py · 8 endpoints (start+message públicos para ChatWidget Z.8 · resto auth-gated)
+- ConversationPlayground 3-cols asesor · ChatWidget embebible · SuperadminConversations inbox tipo Slack filtros sentiment/handoff
+- i18n namespace separado `conversation_round1.json` (anti-collision deliberado)
+- 8/8 smoke endpoints PASS · 0 React-hooks warnings · audit + memory + cost tracking
+
+**Terminal B** (~15h · SHA `5c16692` · CERO shared · módulos puros):
+- conversation_rag.py · RAG sobre Knowledge Graph W5.12 · top-5 nodos · FAIL-OPEN ("" si KG vacío)
+- conversation_disc_adapter.py · `adapt_system_prompt(prompt, tier)` D/I/S/C tones
+- conversation_plan_venta_playbook.py · máquina 5 etapas (descubrimiento → calificación → demo → objeciones → cierre)
+- conversation_function_calling.py · wrapper Atlax 53 tools + audit + cita fuentes en respuesta
+- conversation_prompts/: system_base ES-MX + 4 personas (luxury/family/investor/first_home)
+- 8/8 pytest intel PASS
+
+**Terminal C** (~12h · SHA `72d1e88c` · CERO shared · módulos puros):
+- conversation_soc_integration.py · `record_conversation_signal` alimenta W6.MOV.1 SOC (response_time + nps_proxy + lead_conversion)
+- conversation_workflow_bridge.py · `agent_triggers_workflow` + `agent_pauses_workflow` → W6.AS.1
+- conversation_hook_predictor.py · `score_first_message` gate<60 NO bloquea → W5.22 Z.5
+- conversation_lead_enrichment.py · `auto_enrich_on_detect` regex email + phone MX → W7.AS.1 (respeta DAILY_CAP)
+- 8/8 pytest cycles PASS
+
+**MERGE CUSTOM** (`f6be3263` · 33 archivos · +3608/-3):
+- Cherry-pick NEW files de las 3 ramas (cero collision · 27 backend + 4 frontend)
+- 5 shared files heredados directamente de Terminal A (B y C no los tocaron)
+- Integración manual conversation_engine.py:
+  - NEW `_build_intel_context()` · wire RAG + DISC + Plan Venta + Hook + Auto-enrich con FAIL-OPEN per módulo (try/except)
+  - NEW `_record_cycle_signals()` · post-LLM SOC signals (response_time + nps_proxy + lead_conversion)
+  - NEW helper `_maybe_await()` · acepta funciones B/C sync o async transparente
+  - `send_message()` ahora invoca ambos pre/post-LLM · respuesta extendida campo `intel` para observability
+- Atlax tool #54 `query_conversation` añadido al final de asistente_engine.py · 3 modes (active/by-lead/stats) · 54 tools consecutivos sin gaps
+
+**11 CYCLE-CLOSERS LOGRADOS:**
+- ✅ RAG sobre Knowledge Graph W5.12 · grounding NO hallucination (cierra W5.12 huérfano backend-only)
+- ✅ DISC tone Buyer Score W5.4 · adaptación per perfil (cierra W5.4 subutilizado)
+- ✅ Plan Venta IA playbook · agente sigue framework (cierra Plan Venta IA sin uso directo)
+- ✅ SOC bidirectional W6.MOV.1 · cada convo afecta tier asesor
+- ✅ Workflow bidirectional W6.AS.1 · agent puede triggers/pauses workflows
+- ✅ Hook Predictor Z.5 · 1er mensaje del agente pasa por gate quality
+- ✅ Function Calling Atlax 53 tools format · cita fuentes con tool calls visibles
+- ✅ Lead Enrichment auto W7.AS.1 · detect email/phone MX dispara enrichment
+- ✅ ai_budget cost tracking per turn · paridad otras features W5/W6
+- ✅ audit_immutable_engine log per turn · trail completo
+- ✅ STUB-aware doble (sin EMERGENT_LLM_KEY → heurístico · sin WHATSAPP_VPS_READY → "would send")
+
+**🎯 GIT WORKTREE AISLADO 3ra CONFIRMACIÓN:**
+- Terminales B y C cero archivos shared modificados (diseño módulos puros)
+- Solo Terminal A tocó shared con regla pre-acordada (server.py + App.js + navByRole + SuperadminLayout + i18n/index.js)
+- CERO race condition · merge custom limpio sin reconstrucción manual ni conflict resolution
+- Asistente_engine.py heredado directo de main + tool #54 añadido manual al final (no necesité reconstruir como en W6 R1/R2)
+- Técnica establecida como **ESTÁNDAR** para paralelos: 1 terminal "owner" de shared files + N terminales puros sin collision
+
+**MÉTRICAS:**
+- 31 NEW files (27 backend + 4 frontend) + 5 shared modified
+- 54 tools Atlax consecutivos · 8 endpoints conversation
+- 16 pytest PASS (B 8/8 + C 8/8)
+- yarn build limpio (warnings pre-existentes ajenos a W7.AS.3)
+- 0 deuda técnica seguridad (audit forense pendiente · founder ruling "0 backlog" aplicará tras)
+
+**PRÓXIMO**: audit forense W7.AS.3 R1 + Round 2 (UI advanced 10h Inbox Slack + Suggested Replies + Live Takeover + Sentiment Heatmap + KB Gaps · ML loop 8h Self-tuning + Drift + A/B + Confidence auto-handoff · Cost optimizer 3h Haiku/Sonnet/Opus 3-tier).
+
+
 ## 📌 STATUS PENDIENTES CORREGIDO — 2026-05-25
 
 **Corrección importante post-verificación directa git log:**
