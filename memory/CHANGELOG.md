@@ -1,6 +1,156 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W6 R2 · W5.10 Social/Ads infra STUB + W5.22 Z.4 Video Standalone — 2026-05-23
+
+🚀 **5ta iteración 2-terminales CC paralelos · git worktree aislado validado 2da confirmación (CERO contaminación cruzada) · audit forense 89/89 PASS post-4 fixes (founder ruling "0 backlog").**
+
+2 batches paralelos shipped · git worktree aislado por terminal → cero race condition · merge custom limpio · 53 tools asistente consecutivos · 0 deuda técnica de seguridad post-R2.
+
+### W5.10 · Social/Ads Multi-tenant infrastructure STUB (~35h · SHA branch `e34022fe`)
+Infraestructura completa para que cada asesor conecte su cuenta Meta Business (Facebook/Instagram Ads). STUB mode con mock data realista hasta Meta App Review aprobado (2-4 sem founder ops).
+
+- **NEW** `backend/social_ads_engine.py` (460L)
+  - OAuth Meta multi-tenant + token vault Fernet encrypted
+  - Env key alignment: `SOCIAL_ADS_ENCRYPTION_KEY` (spec name · audit fix) acepta también `SOCIAL_ADS_FERNET_KEY` legacy + `OAUTH_TOKEN_ENCRYPTION_KEY` + `IE_FERNET_KEY`
+  - Ad accounts STUB: prefix `act_meta_stub_<sha1>` + `is_stub=True` flag (A.2 audit fix · facilita debugging post-real)
+  - Campaign sync mock realistic: 5-10 campaigns · CPC $5-50 MXN · impressions 1000-50000 random
+  - Budget allocation IA: LLM Claude rubric + fallback heurístico determinístico
+  - `ai_budget.track_ai_call` post-LLM cost monitoring (F.89 audit fix · paridad hook_predictor G.101 fix)
+  - Cap 5 conexiones/tenant configurable env
+  - STUB default `META_APP_REVIEW_APPROVED=false` → flip → real Meta API
+- **NEW** `backend/social_ads_oauth.py` (299L)
+  - OAuth flow build_url + handle_callback + refresh_token_if_expiring
+  - **CSRF state validation:** `token_urlsafe(32)` single-use pop (no race condition single-worker)
+  - Cron daily 06:00 UTC max_instances=1 (NO choca con W7.AS.6 @ 05:00 ni W6.MOV.2 @ dom/día1)
+- **NEW** `backend/routes/social_ads.py` (288L) · 9 endpoints + rate-limit + `_assert_account_owner` cross-user isolation
+- **NEW** `frontend/src/pages/portal/asesor/SocialAdsConnectPage.js` (233L) · OAuth banner status + accounts list + disconnect
+- **NEW** `frontend/src/pages/portal/asesor/SocialAdsCampaignsPage.js` (297L) · tabla campaigns + budget IA card + performance chart 30d
+- **NEW** `frontend/src/pages/superadmin/SuperadminSocialAds.js` (167L) · KPIs + tokens monitoring + Meta API status
+- **EDIT** `backend/asistente_engine.py` · tool **#52** `query_social_ads` 3 modes (status/campaigns/budget-suggestion)
+- i18n namespace `socialAds` (~45 keys)
+
+### W5.22 Z.4 · Video Standalone (~32h · SHA branch `e4b4c566`)
+Página standalone para crear videos sin pasar por Studio Director IA. Reusa W5.16 Studio Video bundle 100% (cero duplicación de adapters).
+
+- **NEW** `backend/video_standalone_engine.py` (573L)
+  - **REUSA W5.16:** `studio_video_engine.generate_video_multiratio` + `studio_video_providers.get_provider` + `generate_with_fallback` (NO redefine adapters Luma/Pika/Runway/Kling)
+  - `generate_video_robust(script, image_url, provider?, audience?, hook_check?)` wrap retry 3x exponential + fallback chain
+  - `_check_hook_score` integra W5.22 Z.5 Hook Predictor (gate warning si score<60 · NO bloquea)
+  - `get_user_history(db, user_id, limit, filters dict)` con filtros (days/provider/status/ratio)
+  - `get_superadmin_stats(db, days)` globales
+  - `export_video(video_id, format)` PDF reportlab + download URL · `share_to_whatsapp` wa.me link
+  - FAIL-OPEN si W5.16 engine falla
+  - Reusa cap `ai_budget.studio_video` $2/día W5.16-A (NO crea cap nuevo)
+- **NEW** `backend/routes/video_standalone.py` (262L) · 7 endpoints + rate-limit 5/min + `_assert_video_owner` own-only
+- **NEW** `frontend/src/pages/portal/asesor/VideoStandalonePage.js` (285L) · 3 cols + Hook Predictor + VideoRatioPreview reuse + VideoQueueRobust
+- **NEW** `frontend/src/components/video/VideoQueueRobust.js` (231L) · filtros + sort + retry_count + fallback_attempts visible
+- **NEW** `frontend/src/components/video/VideoExportModal.js` (238L) · 4 tabs (PDF + Download + WhatsApp + Social Cards via W5.16)
+- **NEW** `frontend/src/pages/superadmin/SuperadminVideoStandalone.js` (169L) · KPIs + cost monitoring + top users
+- **EDIT** `backend/asistente_engine.py` · tool **#53** `query_video_standalone` 3 modes (history/queue-status/stats)
+  - **C.42 audit fix:** handler reescrito con API real del motor (`get_user_history` + `get_superadmin_stats`) · audit detectó imports imaginarios `get_queue_status` + `get_stats` introducidos durante merge manual
+- **EDIT** `backend/server.py` · try/except fail-soft (D.61b patrón establecido R1)
+- Reusa `HookScoreBadge` W5.22 Z.2 + `VideoRatioPreview` W5.16-C + `HookPredictorModal` W5.22 Z.5 (cero duplicación)
+- i18n namespace `videoStandalone` (~30 keys)
+
+### 🎯 Git worktree aislado · 2da confirmación (técnica escape race condition validada)
+- Terminal 1 (W5.10) usó `/tmp/w5-10-worktree`
+- Terminal 2 (Z.4) usó `/tmp/z4-worktree`
+- **CERO contaminación cruzada** entre branches origen (W5.10 tools 1-52 sin #53 · Z.4 tools 1-51+#53 skip #52 desde commit)
+- Merge custom solo añadió #53 manualmente desde Z.4 (no había contaminación inversa)
+- **Técnica establecida:** git worktree aislado por terminal en `/tmp/<batch>-worktree` previene race condition · patrón replicable
+
+### Merge custom (20 archivos · +4005 inserts / 1 delete · SHA `45b0df4d`)
+- Cherry-pick selectivo 14 NEW files (cero conflict path único)
+- `asistente_engine.py` base W5.10 (tenía #52) + #53 video_standalone añadido manualmente (system prompt doc + dispatcher + handler · numeración 1-53 consecutiva sin gaps · tools #36-#51 W5.x+W6.MOV+W6.AS.*+W6.4+R1 INTACTOS)
+- `server.py` 2 include_routers fail-soft + startup blocks + cron social_ads
+- `App.js` +12L · 5 lazy + 5 routes (3 social-ads + 2 video-standalone)
+- `navByRole.js` +4L · 3 items asesor + 2 superadmin
+- `SuperadminLayout.js` +2 keywords regex monetizacion
+- `i18n common.json` +2 namespaces aislados
+
+### 🔴/🟡/🟢 Audit forense 85/89 → 89/89 PASS post-fixes (SHA `4d74c3bb` · 4 archivos +75/-26)
+
+Founder ruling **"0 backlog · solucionar todo"** · 4 hallazgos arreglados sin diferir:
+
+**🟡 C.42 · Tool #53 query_video_standalone roto (asistente IA):**
+- Handler reconstruido en merge manual usaba `get_queue_status` + `get_stats` (NO existen en motor)
+- Motor real exporta `get_user_history(db, user_id, limit, filters dict)` + `get_superadmin_stats(db, days)`
+- FIX: handler reescrito con API real · smoke 5/5 cases validados
+- Sin tocar el motor
+
+**🟡 F.89 · suggest_budget_allocation LLM sin cost tracking:**
+- `_llm_allocation_rationale` invocaba Claude pero NO trackeaba cost (vs hook_predictor G.101)
+- FIX: signature `(campaigns, db, tenant_id)` opcionales + `track_ai_call` post-LLM call · `feature_key="social_ads"` · routes pasa tenant_id desde user
+- Paridad con hook_predictor pattern
+
+**🟢 A.2 · Mock account prefix confunde stub vs real:**
+- Spec: 3 mock accounts con prefix `act_meta_stub_xxx` (inequívoco stub)
+- Realidad: 1-2 con prefix `act_<10díg>` (real Meta format)
+- FIX: prefix `act_meta_stub_<sha1[10]>` + n random 1-3 + `is_stub=True` flag explícito
+- Facilita cleanup post-Meta App Review aprobado
+
+**🟢 Env Fernet key alignment:**
+- Código leía `SOCIAL_ADS_FERNET_KEY` · spec/audit doc dice `SOCIAL_ADS_ENCRYPTION_KEY`
+- FIX: `_get_fernet()` acepta ambos (orden prioridad: SOCIAL_ADS_ENCRYPTION_KEY > SOCIAL_ADS_FERNET_KEY > legacy aliases)
+- Warning log + docstring spec alignment
+
+**NO arreglado (diseño correcto):**
+- **A.6 · cap retorna `{error:cap_exceeded}` no HTTP 429:** Es OAuth callback flow · redirect con `?social_ads=cap_exceeded` es UX correcto · HTTP 429 rompería redirect chain. Documentado en commit.
+
+**0 🔴 DESDE INICIO:**
+- CSRF state validation correcta (token_urlsafe(32) single-use pop)
+- Fernet encryption siempre (sin key efímera con warning)
+- Tenant isolation `_assert_account_owner` + `_assert_video_owner`
+- XSS WhatsApp share `quote()`/`encodeURIComponent`
+- PII PDF export sin datos personales
+- Social Cards tab usa endpoint público branded (no inyecta script/lead)
+- **TODOS PASS** demostrando madurez de prompts iniciales + git worktree aislado
+
+**Audit re-check final:** 89/89 PASS · 0 🔴 · 0 🟡 · 0 🟢 residual.
+
+### Audit 5 puntos POST-MERGE limpio
+- `memory/*` diff=0 ✅
+- backend críticos (audit_immutable + feature_registry + feature_gate + **W5.16 Studio Video bundle PRESERVADO para Z.4 reuse** + W5.x + W6.MOV.* + W6.AS.* + W6.4 + R1 con TODOS fixes previos preservados G.90/G.94/G.92/F.68/F.71/A.11/D.76/F.93/G.101/G.103/G.104/D.61b) diff=0 ✅
+- superadmin críticos: `SuperadminLayout` Edit puntual 2 keywords permitido ✅
+- App.js · navByRole · NO reescritos · deltas additive ✅
+- `yarn build` 22.89s · 0 warnings R2 files ✅
+
+### Cron sin colisión horaria (8 jobs activos)
+- CQ (W6.MOV.5) lunes 02:00 UTC
+- Reviews (W6.MOV.3) lunes 03:00 UTC
+- Gov (W6.MOV.2) dom 04:00 + día 1 mes 05:00 UTC
+- Workflow queue (W6.AS.1) tick 60s
+- Reputation (W7.AS.6) daily 05:00 UTC
+- **Social Ads refresh tokens (W5.10) daily 06:00 UTC ← NUEVO**
+- Trial expiry diario 08:00 MX
+
+### Metrics
+- **Total horas R2**: 67h (35 + 32)
+- **2 SHAs branches** + **1 merge custom** + **1 audit fixes consolidados** + **53 tools asistente consecutivos**
+- **16 endpoints nuevos** (9 social_ads + 7 video_standalone)
+- **1 cron nuevo** (social_ads refresh daily 06:00 UTC)
+- **20 archivos merge** · +4005 / 1 · **4 archivos audit fixes** · +75 / 26
+
+### Hito histórico
+- **5ta iteración patrón paralelo CC viable**
+- **git worktree aislado SOLUCIÓN ESTABLE** de race condition recurrente (2 confirmaciones consecutivas)
+- **0 🔴 DESDE INICIO** demostrando madurez prompts + técnica escape
+- **5 audit forense consecutivos limpios** (90+95+75+104+89/89 PASS post-fixes)
+- **0 deuda técnica de seguridad** post-R2 (founder ruling "solucionar todo" cumplido en cada audit)
+
+### Riesgos residuales NO bloqueantes
+- Meta App Review pendiente (founder ops 2-4 sem) · STUB mode funcional mientras tanto
+- Seed local sin Mongo activación (MongoDB localhost:27017 NO corriendo · activar post-deploy)
+- CSRF state in-process (multi-worker tendría issue · agregar Redis state store en futuro deploy multi-worker)
+
+### Recomendación Master Dev
+**PAUSA BUILD · activación seed remoto + Meta App Review + onboarding piloto.**
+NO Round 3 hasta validar con 3-5 asesores reales · sistema ya tiene 1057.5h shipped sin usuarios reales · seguir construyendo sin validación = deuda técnica futura.
+
+---
+
+
 ## W6 R1 · Z.5 Hook Predictor + AS.6 Reputation Monitor + AS.1 Lead Enrichment — 2026-05-23
 
 🚀 **4ta iteración 3-terminales CC paralelos · audit forense 104/104 PASS post-6 fixes · 0 backlog (founder ruling "solucionar todo").**
