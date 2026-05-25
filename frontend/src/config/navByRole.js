@@ -15,7 +15,7 @@ import {
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck, Swords,
-  Share2, Video, MessageCircle,
+  Share2, Video, MessageCircle, HelpCircle,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -92,6 +92,8 @@ const ASESOR_NAV = [
       { key: 'workflows',    to: '/portal/asesor/workflows',             label: 'Workflows',        Icon: GitMerge },
       // W7.AS.3.A · Conversation AI Agent playground
       { key: 'conversaciones', to: '/portal/asesor/conversation-playground', label: 'Conversaciones', Icon: MessageCircle },
+      // W7.AS.3.D · Round 2 · Inbox avanzado (3 cols + piloto IA)
+      { key: 'conversation-inbox', to: '/portal/asesor/conversation-inbox', label: 'Bandeja IA', Icon: MessageSquare },
     ],
   },
   {
@@ -226,6 +228,8 @@ const SUPERADMIN_NAV = [
       { key: 'reviews-residents', to: '/superadmin/reviews-residents', label: 'Reviews Residentes', Icon: MessageSquare },
       // ─ W7.AS.3.A · Conversation AI Agent inbox ─
       { key: 'conversations', to: '/superadmin/conversations', label: 'Conversaciones IA', Icon: MessageCircle },
+      // ─ W7.AS.3.D · Round 2 · KB Gaps (huecos de conocimiento) ─
+      { key: 'kb-gaps', to: '/superadmin/kb-gaps', label: 'KB Gaps', Icon: HelpCircle },
     ],
   },
   // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─

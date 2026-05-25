@@ -24,6 +24,10 @@ import enUSCommon from './locales/en-US/common.json';
 
 // W7.AS.3.A — Conversation AI Agent (namespace separado para evitar race con common.json)
 import esMXConversationRound1 from './locales/es-MX/conversation_round1.json';
+// W7.AS.3.D — Round 2 · UI Advanced (Inbox/SuggestedReplies/Takeover/Heatmap/KbGaps)
+import esMXConversationRound2Ui from './locales/es-MX/conversation_round2_ui.json';
+// W7.AS.3.F — Round 2 · Cost dashboard namespace (Terminal F · post-merge activado).
+import esMXConversationCost from './locales/es-MX/conversation_cost.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -36,6 +40,8 @@ i18n.use(initReactI18next).init({
       translation: es,       // also exposes legacy keys under es-MX for fallback
       common: esMXCommon,
       conversation_round1: esMXConversationRound1,
+      conversation_round2_ui: esMXConversationRound2Ui,
+      conversation_cost: esMXConversationCost,
     },
 
     // Namespaced en-US
@@ -55,7 +61,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'translation',
 
   // Available namespaces
-  ns: ['translation', 'common', 'conversation_round1'],
+  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost'],
 
   interpolation: {
     escapeValue: false,  // React already escapes

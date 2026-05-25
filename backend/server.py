@@ -674,6 +674,22 @@ from conversation_engine import ensure_indexes as ensure_conversation_indexes
 app.include_router(conversation_router)
 app.include_router(conversation_sa_router)
 
+# W7.AS.3.D — Round 2 · KB Gaps (superadmin-only · detect "no supe responder")
+from routes.conversation_kb_gaps import (
+    router as kb_gaps_router,
+    ensure_indexes as ensure_kb_gaps_indexes,
+)
+app.include_router(kb_gaps_router)
+
+# W7.AS.3.F — Round 2 · Conversation Cost Optimizer router (Terminal F · opcional)
+# Defensive: si el módulo de Terminal F aún no está mergeado, NO romper el server.
+try:
+    from routes.conversation_cost import router as conversation_cost_router  # type: ignore
+    app.include_router(conversation_cost_router)
+    logging.info("[W7.AS.3.F] conversation cost router wired")
+except Exception as _e_cost:
+    logging.info(f"[W7.AS.3.F] conversation cost router pending (Terminal F): {_e_cost}")
+
 # W4.5 Y.2A — Pricing Sub-Agent
 from routes.subagents import router as subagents_router, sa_router as subagents_sa_router
 from sub_agents.pricing_agent import ensure_pricing_indexes
@@ -1541,6 +1557,10 @@ async def startup():
         await ensure_conversation_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W7.AS.3.A conversation indexes failed: {e}")
+    try:
+        await ensure_kb_gaps_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W7.AS.3.D kb-gaps indexes failed: {e}")
     # W4.5 Y.2A — Pricing Sub-Agent indexes
     try:
         await ensure_pricing_indexes(db)
@@ -1775,6 +1795,27 @@ async def startup():
             register_auto_content_job(sched, db)
         except Exception as e:
             logging.warning(f"[W5.22 Z.2] auto-content scheduler register failed: {e}")
+        # W7.AS.3.E — Conversation self-tuning (weekly) + drift detector (daily)
+        # Defensive: Terminal E modules may not be merged yet · NO crashear startup.
+        # register_cron(scheduler, db) con fallback a register_cron(scheduler).
+        try:
+            from conversation_self_tuning import register_cron as _register_self_tuning
+            try:
+                _register_self_tuning(sched, db)
+            except TypeError:
+                _register_self_tuning(sched)
+            logging.info("[W7.AS.3.E] conversation self-tuning weekly cron registered")
+        except Exception as e:
+            logging.info(f"[W7.AS.3.E] self-tuning cron pending (Terminal E): {e}")
+        try:
+            from conversation_drift_detector import register_cron as _register_drift
+            try:
+                _register_drift(sched, db)
+            except TypeError:
+                _register_drift(sched)
+            logging.info("[W7.AS.3.E] conversation drift-detector daily cron registered")
+        except Exception as e:
+            logging.info(f"[W7.AS.3.E] drift-detector cron pending (Terminal E): {e}")
         # Phase 4 Batch 8 — daily 6am cash-flow recalc for active projects
         try:
             from apscheduler.triggers.cron import CronTrigger
