@@ -6,8 +6,18 @@ import { MessageCircle, RefreshCw, Hand, Loader2 } from 'lucide-react';
 import SuperadminLayout from './SuperadminLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
-const SENTIMENT_COLOR = { positive: '#22C55E', neutral: '#94A3B8', negative: '#EF4444' };
-const STATUS_COLOR = { active: '#22C55E', handoff: '#F59E0B', taken_over: '#6366F1', closed: '#64748B' };
+// F11 fix · tokens var(--theme*) en lugar de hex hardcoded (aurora design system).
+const SENTIMENT_COLOR = {
+  positive: 'var(--theme-success, #22C55E)',
+  neutral: 'var(--theme-muted, #94A3B8)',
+  negative: 'var(--theme-danger, #EF4444)',
+};
+const STATUS_COLOR = {
+  active: 'var(--theme-success, #22C55E)',
+  handoff: 'var(--theme-warning, #F59E0B)',
+  taken_over: 'var(--theme-primary, #6366F1)',
+  closed: 'var(--theme-muted-dark, #64748B)',
+};
 
 function authHeaders() {
   const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
@@ -94,9 +104,9 @@ export default function SuperadminConversations() {
       {stats && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
           <Stat label={t('inbox.stats_total')} value={stats.total_conversations} />
-          <Stat label={t('inbox.stats_active')} value={stats.active} color="#22C55E" />
-          <Stat label={t('inbox.stats_handoff')} value={stats.handoff} color="#F59E0B" />
-          <Stat label={t('inbox.stats_negative')} value={stats.negative_sentiment} color="#EF4444" />
+          <Stat label={t('inbox.stats_active')} value={stats.active} color="var(--theme-success, #22C55E)" />
+          <Stat label={t('inbox.stats_handoff')} value={stats.handoff} color="var(--theme-warning, #F59E0B)" />
+          <Stat label={t('inbox.stats_negative')} value={stats.negative_sentiment} color="var(--theme-danger, #EF4444)" />
         </div>
       )}
 

@@ -45,8 +45,15 @@ def _pause_id(workflow_id: str, lead_id: Optional[str]) -> str:
     return "wfpause_" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:16]
 
 
-async def agent_triggers_workflow(workflow_id: str, lead_id: Optional[str], db) -> Dict[str, Any]:
+async def agent_triggers_workflow(
+    workflow_id: str, lead_id: Optional[str], db,
+    caller_tenant_id: Optional[str] = None,  # F8 fix · cross-tenant gate
+) -> Dict[str, Any]:
     """Dispara un workflow desde la conversación. Idempotente · FAIL-OPEN.
+
+    F8 fix · si `caller_tenant_id` se proporciona, valida que el workflow
+    pertenezca al mismo tenant antes de ejecutar (prevent cross-tenant
+    workflow execution).
 
     Returns:
         {ok, triggered, idempotent, workflow_id, lead_id, run_id, execution_id, reason?}
@@ -68,6 +75,10 @@ async def agent_triggers_workflow(workflow_id: str, lead_id: Optional[str], db) 
         if wf.get("status") != "active":
             return {"ok": False, "triggered": False, "idempotent": False,
                     "reason": "workflow_not_active", "workflow_id": workflow_id, "lead_id": lead_id}
+        # F8 · cross-tenant gate
+        if caller_tenant_id and wf.get("tenant_id") and wf.get("tenant_id") != caller_tenant_id:
+            return {"ok": False, "triggered": False, "idempotent": False,
+                    "reason": "tenant_mismatch", "workflow_id": workflow_id, "lead_id": lead_id}
 
         # No disparar si está pausado para este lead
         if await _is_paused(db, workflow_id, lead_id):

@@ -16,7 +16,9 @@ wins over the path param.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+import time
+from collections import defaultdict, deque
+from typing import Any, Deque, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -31,6 +33,31 @@ router = APIRouter(prefix="/api/conversation", tags=["conversation"])
 sa_router = APIRouter(prefix="/api/superadmin/conversations", tags=["conversation-admin"])
 
 
+# F2 fix · rate-limit IP buckets para endpoints públicos (in-memory · prod=Redis)
+_RL_START: Dict[str, Deque[float]] = defaultdict(deque)
+_RL_MSG: Dict[str, Deque[float]] = defaultdict(deque)
+_RL_LIMIT_START = 5     # 5 starts/min/IP (abuse: bot spawning conversations)
+_RL_LIMIT_MSG = 30      # 30 msg/min/IP (un humano no manda más de 1/2s sostenido)
+_RL_WINDOW_S = 60
+
+
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    if fwd:
+        return fwd
+    return request.client.host if request.client else "unknown"
+
+
+def _rate_limit_check(bucket_dict: Dict[str, Deque[float]], ip: str, limit: int) -> None:
+    now = time.time()
+    bucket = bucket_dict[ip]
+    while bucket and (now - bucket[0]) > _RL_WINDOW_S:
+        bucket.popleft()
+    if len(bucket) >= limit:
+        raise HTTPException(429, "rate_limit_exceeded")
+    bucket.append(now)
+
+
 # ─── Pydantic models ──────────────────────────────────────────────────────────
 class StartIn(BaseModel):
     lead_id: Optional[str] = None
@@ -38,6 +65,7 @@ class StartIn(BaseModel):
     channel: str = "web"
     system_prompt: Optional[str] = None
     initial_context: Optional[str] = None
+    session_key: Optional[str] = None  # F12 · idempotency by session
 
 
 class MessageIn(BaseModel):
@@ -46,6 +74,7 @@ class MessageIn(BaseModel):
     role: str = "user"
     channel: Optional[str] = None
     to: Optional[str] = None  # recipient (email/phone) for adapter delivery
+    client_msg_id: Optional[str] = None  # F5 · idempotency key
 
 
 class HandoffIn(BaseModel):
@@ -91,6 +120,8 @@ def _tenant_of(user) -> str:
 # ─── Asesor endpoints ─────────────────────────────────────────────────────────
 @router.post("/start", status_code=201)
 async def start_conversation(body: StartIn, request: Request):
+    # F2 · rate-limit IP (público anon)
+    _rate_limit_check(_RL_START, _client_ip(request), _RL_LIMIT_START)
     user = await _optional_user(request)  # public-friendly (widget en landings Z.8)
     db = request.app.state.db
     engine = ConversationEngine(db)
@@ -102,6 +133,8 @@ async def start_conversation(body: StartIn, request: Request):
             channel=body.channel or "web",
             system_prompt=body.system_prompt,
             initial_context=body.initial_context,
+            session_key=body.session_key,  # F12
+            is_anon=user is None,           # F9
         )
     except Exception as exc:
         log.error(f"[conversation] start failed: {exc}")
@@ -111,14 +144,28 @@ async def start_conversation(body: StartIn, request: Request):
 
 @router.post("/message", status_code=201)
 async def post_message(body: MessageIn, request: Request):
-    await _optional_user(request)  # public-friendly (widget en landings Z.8)
+    # F2 · rate-limit IP (público anon)
+    _rate_limit_check(_RL_MSG, _client_ip(request), _RL_LIMIT_MSG)
+    user = await _optional_user(request)  # public-friendly (widget en landings Z.8)
     db = request.app.state.db
     engine = ConversationEngine(db)
     if not body.message or not body.message.strip():
         raise HTTPException(422, "Mensaje vacío")
+
+    # F2 · pre-LLM quota check (FAIL-OPEN si quota engine ausente)
+    try:
+        from ai_budget import check_quota_or_raise
+        check_user = getattr(user, "user_id", None) if user else _client_ip(request)
+        await check_quota_or_raise(db, check_user, estimated_tokens=1500)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.warning(f"[conversation] quota check skipped: {exc}")
+
     try:
         result = await engine.send_message(
             body.conversation_id, body.message, role=body.role or "user", channel=body.channel,
+            client_msg_id=body.client_msg_id,  # F5
         )
     except ValueError as exc:
         raise HTTPException(404, str(exc))
@@ -144,19 +191,25 @@ async def post_message(body: MessageIn, request: Request):
 
 @router.get("/lead/{lead_id}/conversations")
 async def lead_conversations(lead_id: str, request: Request):
-    await _require_user(request)
+    user = await _require_user(request)
     db = request.app.state.db
     engine = ConversationEngine(db)
-    items = await engine.list_lead_conversations(lead_id)
+    is_sa = getattr(user, "role", "") == "superadmin"
+    items = await engine.list_lead_conversations(
+        lead_id, caller_tenant_id=_tenant_of(user), is_superadmin=is_sa,  # F1
+    )
     return {"lead_id": lead_id, "count": len(items), "conversations": items}
 
 
 @router.get("/{conversation_id}")
 async def get_conversation(conversation_id: str, request: Request):
-    await _require_user(request)
+    user = await _require_user(request)
     db = request.app.state.db
     engine = ConversationEngine(db)
-    conv = await engine.get_conversation(conversation_id)
+    is_sa = getattr(user, "role", "") == "superadmin"
+    conv = await engine.get_conversation(
+        conversation_id, caller_tenant_id=_tenant_of(user), is_superadmin=is_sa,  # F1
+    )
     if not conv:
         raise HTTPException(404, "Conversación no encontrada")
     return conv
@@ -167,12 +220,18 @@ async def handoff(body: HandoffIn, request: Request):
     user = await _require_user(request)
     db = request.app.state.db
     engine = ConversationEngine(db)
+    is_sa = getattr(user, "role", "") == "superadmin"
     try:
         result = await engine.request_handoff(
             body.conversation_id, reason=body.reason,
             actor_id=getattr(user, "user_id", None),
+            caller_tenant_id=_tenant_of(user),  # F3
+            is_superadmin=is_sa,                 # F3
         )
     except ValueError as exc:
+        # F3 · 403 si owner mismatch, 404 si no existe
+        if "permiso" in str(exc).lower() or "owner" in str(exc).lower():
+            raise HTTPException(403, str(exc))
         raise HTTPException(404, str(exc))
     except Exception as exc:
         log.error(f"[conversation] handoff failed: {exc}")

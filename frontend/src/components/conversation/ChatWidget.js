@@ -15,6 +15,7 @@ export default function ChatWidget({
   channel = 'web',
   initialContext = null,
   defaultOpen = false,
+  hostOrigin = null,   // F7 fix · explicit origin del landing Z.8 que embebe
 }) {
   const { t } = useTranslation('conversation_round1');
   const [open, setOpen] = useState(defaultOpen);
@@ -34,13 +35,27 @@ export default function ChatWidget({
   }, [messages, open]);
 
   // Relay each turn to the iframe host (Z.8 landing) if embedded.
+  // F7 fix · NEVER usar '*' como targetOrigin (leak content a cualquier host).
+  // Si hostOrigin no se provee, derivamos del document.referrer (mismo origen).
   const relayToHost = useCallback((payload) => {
     try {
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'dmx:conversation:message', ...payload }, '*');
+        let target = hostOrigin;
+        if (!target) {
+          try {
+            const ref = document.referrer || '';
+            if (ref) target = new URL(ref).origin;
+          } catch { /* invalid referrer */ }
+        }
+        if (target) {
+          window.parent.postMessage(
+            { type: 'dmx:conversation:message', ...payload }, target,
+          );
+        }
+        // Si no podemos resolver origin seguro, NO enviamos (silencioso · F7).
       }
     } catch { /* no-op */ }
-  }, []);
+  }, [hostOrigin]);
 
   const ensureConversation = useCallback(async () => {
     if (convId) return convId;

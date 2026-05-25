@@ -143,7 +143,32 @@ class ConversationEngine:
         channel: str = "web",
         system_prompt: Optional[str] = None,
         initial_context: Optional[str] = None,
+        session_key: Optional[str] = None,  # F12 fix · dedup per session
+        is_anon: bool = False,              # F9 fix · ignora system_prompt si anon
     ) -> Dict[str, Any]:
+        # F12 · idempotency by session_key (active threads · 24h window)
+        if session_key:
+            cutoff = _now().replace(microsecond=0)
+            cutoff_iso = (cutoff.timestamp() - 86400)
+            existing = await self.db.conversation_threads.find_one(
+                {"session_key": session_key, "status": "active"},
+            )
+            if existing:
+                return {
+                    "conversation_id": existing["_id"],
+                    "status": existing.get("status", "active"),
+                    "channel": existing.get("channel"),
+                    "system_prompt": existing.get("system_prompt"),
+                    "created_at": _iso(existing.get("created_at")),
+                    "deduped": True,
+                }
+
+        # F9 fix · cap + anon-safety on user-controlled prompts
+        sp_raw = (system_prompt or "").strip()
+        if is_anon:
+            sp_raw = ""  # anon never overrides system prompt (jailbreak block)
+        sp = sp_raw[:4000] or DEFAULT_SYSTEM_PROMPT
+
         cid = _cid()
         now = _now()
         thread = {
@@ -153,8 +178,9 @@ class ConversationEngine:
             "tenant_id": tenant_id or "default",
             "channel": channel or "web",
             "status": "active",
-            "system_prompt": (system_prompt or "").strip() or DEFAULT_SYSTEM_PROMPT,
+            "system_prompt": sp,
             "initial_context": (initial_context or "").strip()[:2000] or None,
+            "session_key": session_key,
             "sentiment": "neutral",
             "message_count": 0,
             "created_at": now,
@@ -182,6 +208,7 @@ class ConversationEngine:
         content: str,
         role: str = "user",
         channel: Optional[str] = None,
+        client_msg_id: Optional[str] = None,  # F5 fix · idempotency key
     ) -> Dict[str, Any]:
         thread = await self.db.conversation_threads.find_one({"_id": conversation_id})
         if not thread:
@@ -196,9 +223,35 @@ class ConversationEngine:
         ch = channel or thread.get("channel") or "web"
         sentiment = detect_sentiment(content)
 
+        # F5 · idempotency: if client_msg_id seen for this thread, return cached
+        if client_msg_id:
+            seen = await self.db.conversation_messages.find_one(
+                {"conversation_id": conversation_id, "client_msg_id": client_msg_id},
+                {"_id": 0},
+            )
+            if seen:
+                # find assistant reply paired with this client_msg_id (if any)
+                later = await self.db.conversation_messages.find(
+                    {"conversation_id": conversation_id, "role": "assistant",
+                     "created_at": {"$gte": seen.get("created_at")}},
+                    {"_id": 0, "content": 1},
+                ).sort("created_at", 1).limit(1).to_list(1)
+                return {
+                    "conversation_id": conversation_id,
+                    "assistant_message": (later[0]["content"] if later else None),
+                    "status": thread.get("status", "active"),
+                    "sentiment": seen.get("sentiment", sentiment),
+                    "stub": False,
+                    "tools_used": [],
+                    "suggested_handoff": False,
+                    "ai_replied": bool(later),
+                    "deduped": True,
+                }
+
         # ── persist inbound message ──────────────────────────────────────────
         await self._persist_message(conversation_id, role, content, ch,
-                                    tokens_in=_estimate_tokens(content), sentiment=sentiment)
+                                    tokens_in=_estimate_tokens(content), sentiment=sentiment,
+                                    client_msg_id=client_msg_id)
 
         # If an asesor took over, the IA does NOT auto-reply — just records the turn.
         if thread.get("status") == "taken_over" or role == "asesor":
@@ -240,7 +293,10 @@ class ConversationEngine:
         suggested = _suggests_handoff(content, assistant_text, sentiment)
 
         # ── cycle signals to SOC W6.MOV.1 (Terminal C · fail-soft) ───────────
-        await self._record_cycle_signals(thread, sentiment, latency_ms, suggested)
+        await self._record_cycle_signals(
+            thread, sentiment, latency_ms, suggested,
+            user_text=content, assistant_text=assistant_text,
+        )
 
         # ── long-term memory denorm onto the lead (fail-soft) ────────────────
         await self._denorm_to_lead(thread.get("lead_id"), content, assistant_text, sentiment)
@@ -289,8 +345,16 @@ class ConversationEngine:
         }
 
     # ── read ───────────────────────────────────────────────────────────────
-    async def get_conversation(self, conversation_id: str) -> Optional[Dict[str, Any]]:
-        thread = await self.db.conversation_threads.find_one({"_id": conversation_id})
+    async def get_conversation(
+        self, conversation_id: str, caller_tenant_id: Optional[str] = None,
+        is_superadmin: bool = False,
+    ) -> Optional[Dict[str, Any]]:
+        """F1 fix · tenant-gate read. If caller_tenant_id provided and not
+        superadmin, thread tenant_id must match (else returns None → 404)."""
+        q: Dict[str, Any] = {"_id": conversation_id}
+        if caller_tenant_id and not is_superadmin:
+            q["tenant_id"] = caller_tenant_id
+        thread = await self.db.conversation_threads.find_one(q)
         if not thread:
             return None
         msgs = await self.db.conversation_messages.find(
@@ -301,17 +365,36 @@ class ConversationEngine:
             m["created_at"] = _iso(m.get("created_at"))
         return {**self._thread_public(thread), "messages": msgs}
 
-    async def list_lead_conversations(self, lead_id: str) -> List[Dict[str, Any]]:
-        docs = await self.db.conversation_threads.find(
-            {"lead_id": lead_id},
-        ).sort("last_message_at", -1).to_list(length=100)
+    async def list_lead_conversations(
+        self, lead_id: str, caller_tenant_id: Optional[str] = None,
+        is_superadmin: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """F1 fix · tenant-gate list. If caller_tenant_id provided and not
+        superadmin, filter by tenant_id (else returns empty list)."""
+        q: Dict[str, Any] = {"lead_id": lead_id}
+        if caller_tenant_id and not is_superadmin:
+            q["tenant_id"] = caller_tenant_id
+        docs = await self.db.conversation_threads.find(q).sort(
+            "last_message_at", -1).to_list(length=100)
         return [self._thread_public(d) for d in docs]
 
     async def request_handoff(self, conversation_id: str, reason: Optional[str] = None,
-                              actor_id: Optional[str] = None) -> Dict[str, Any]:
+                              actor_id: Optional[str] = None,
+                              caller_tenant_id: Optional[str] = None,
+                              is_superadmin: bool = False) -> Dict[str, Any]:
+        """F3 fix · ownership validation. Solo el asesor owner del thread o
+        un superadmin pueden hacer handoff. Anon (caller_tenant_id=None)
+        bloqueado salvo que sea el ChatWidget público (route capa lo permite
+        para "solicitud_handoff" tipo lead-asks-human)."""
         thread = await self.db.conversation_threads.find_one({"_id": conversation_id})
         if not thread:
             raise ValueError("Conversación no encontrada")
+        # F3 enforcement (skipped if no caller_tenant — public widget path)
+        if caller_tenant_id and not is_superadmin:
+            if thread.get("tenant_id") != caller_tenant_id:
+                raise ValueError("Sin permiso para handoff de esta conversación")
+            if thread.get("asesor_id") and thread.get("asesor_id") != actor_id:
+                raise ValueError("Solo el asesor owner puede solicitar handoff")
         now = _now()
         await self.db.conversation_threads.update_one(
             {"_id": conversation_id},
@@ -331,8 +414,13 @@ class ConversationEngine:
         sentiment: Optional[str] = None,
         status: Optional[str] = None,
         limit: int = 100,
+        caller_tenant_id: Optional[str] = None,
+        is_superadmin: bool = False,
     ) -> List[Dict[str, Any]]:
+        """F1 fix · scoped list. If caller not superadmin, force tenant filter."""
         q: Dict[str, Any] = {}
+        if not is_superadmin and caller_tenant_id:
+            q["tenant_id"] = caller_tenant_id
         if asesor_id:
             q["asesor_id"] = asesor_id
         if sentiment:
@@ -486,8 +574,14 @@ class ConversationEngine:
 
     async def _record_cycle_signals(
         self, thread: Dict, sentiment: str, latency_ms: int, suggested_handoff: bool,
+        user_text: str = "", assistant_text: str = "",
     ) -> None:
-        """Terminal C · feeds W6.MOV.1 SOC scoring + W6.AS.1 workflow bridge."""
+        """Terminal C · feeds W6.MOV.1 SOC scoring + W6.AS.1 workflow bridge.
+
+        F6 fix · lead_conversion ahora requiere señal POSITIVA explícita
+        (intención clara de cita/visita/compra) y NO se contamina con
+        suggested_handoff cuando el motivo es sentiment negative.
+        """
         asesor_id = thread.get("asesor_id")
         if not asesor_id:
             return
@@ -501,7 +595,17 @@ class ConversationEngine:
             # nps_proxy from sentiment (positive=+1, neutral=0, negative=-1)
             nps_val = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}.get(sentiment, 0.0)
             await _maybe_await(_soc(asesor_id, "nps_proxy_sentiment", nps_val, self.db))
-            if suggested_handoff:
+            # F6 · conversion only on real positive intent (cita/visita/comprar)
+            blob = f"{user_text} {assistant_text}".lower()
+            real_conversion_signal = (
+                sentiment != "negative"
+                and any(k in blob for k in (
+                    "agendar cita", "agendamos cita", "agendada", "confirmo cita",
+                    "visita confirmada", "quiero comprar", "voy a comprar", "apartado",
+                    "reservado", "depósito", "deposito",
+                ))
+            )
+            if real_conversion_signal:
                 await _maybe_await(_soc(asesor_id, "lead_conversion", 1.0, self.db))
         except Exception as exc:
             log.warning(f"[conversation] SOC signal failed silent: {exc}")
@@ -519,11 +623,13 @@ class ConversationEngine:
             ctx = thread.get("initial_context")
             if ctx:
                 sys_prompt = f"{sys_prompt}\n\n## CONTEXTO\n{ctx}"
+            # F10 fix · system_message is the canonical channel · initial_messages
+            # carries ONLY the actual history (no duplicate system role).
             chat = LlmChat(
                 api_key=api_key,
                 session_id=thread["_id"],
                 system_message=sys_prompt,
-                initial_messages=[{"role": "system", "content": sys_prompt}] + history,
+                initial_messages=history,
             ).with_model("anthropic", CONVERSATION_MODEL)
             raw = await chat.send_message(LlmUserMsg(text=user_text))
             text = (raw or "").strip()
@@ -540,10 +646,13 @@ class ConversationEngine:
             )
 
     async def _load_history(self, conversation_id: str) -> List[Dict[str, str]]:
+        """F4 fix · take the MOST RECENT MAX_HISTORY messages (desc + reverse),
+        not the oldest. After 24 turns the LLM kept losing recent context."""
         docs = await self.db.conversation_messages.find(
             {"conversation_id": conversation_id, "role": {"$in": ["user", "assistant", "asesor"]}},
-            {"_id": 0, "role": 1, "content": 1},
-        ).sort("created_at", 1).limit(MAX_HISTORY).to_list(MAX_HISTORY)
+            {"_id": 0, "role": 1, "content": 1, "created_at": 1},
+        ).sort("created_at", -1).limit(MAX_HISTORY).to_list(MAX_HISTORY)
+        docs.reverse()  # chronological order for LLM
         out = []
         for d in docs:
             role = d.get("role")
@@ -554,7 +663,8 @@ class ConversationEngine:
 
     async def _persist_message(self, conversation_id, role, content, channel,
                                tokens_in=0, tokens_out=0, latency_ms=0,
-                               sentiment="neutral", stub=False):
+                               sentiment="neutral", stub=False,
+                               client_msg_id: Optional[str] = None):
         await self.db.conversation_messages.insert_one({
             "_id": _mid(),
             "conversation_id": conversation_id,
@@ -567,6 +677,7 @@ class ConversationEngine:
             "latency_ms": int(latency_ms),
             "sentiment": sentiment,
             "stub": bool(stub),
+            "client_msg_id": client_msg_id,  # F5
             "created_at": _now(),
         })
 
@@ -638,7 +749,11 @@ class ConversationEngine:
 
 
 async def ensure_indexes(db) -> None:
-    """W7.AS.3.A · conversation collections indexes. Idempotent / fail-soft."""
+    """W7.AS.3.A · conversation collections indexes. Idempotent / fail-soft.
+
+    Post-audit R1 fixes: +session_key (F12 dedup) + client_msg_id (F5 dedup) +
+    compound tenant_id+last_message_at (F1 tenant-scoped reads).
+    """
     try:
         await db.conversation_threads.create_index([("lead_id", 1)], background=True)
         await db.conversation_threads.create_index(
@@ -647,10 +762,19 @@ async def ensure_indexes(db) -> None:
             [("status", 1), ("last_message_at", -1)], background=True)
         await db.conversation_threads.create_index([("sentiment", 1)], background=True)
         await db.conversation_threads.create_index([("tenant_id", 1)], background=True)
+        # F1 · compound for tenant-scoped sorted reads
+        await db.conversation_threads.create_index(
+            [("tenant_id", 1), ("last_message_at", -1)], background=True)
+        # F12 · idempotency by session_key (sparse · solo widget público)
+        await db.conversation_threads.create_index(
+            [("session_key", 1), ("status", 1)], background=True, sparse=True)
     except Exception as exc:
         log.warning(f"[conversation] thread indexes failed: {exc}")
     try:
         await db.conversation_messages.create_index(
             [("conversation_id", 1), ("created_at", 1)], background=True)
+        # F5 · idempotency by client_msg_id (sparse · solo cuando el cliente lo manda)
+        await db.conversation_messages.create_index(
+            [("conversation_id", 1), ("client_msg_id", 1)], background=True, sparse=True)
     except Exception as exc:
         log.warning(f"[conversation] message indexes failed: {exc}")
