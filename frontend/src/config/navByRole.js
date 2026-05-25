@@ -114,6 +114,11 @@ const ASESOR_NAV = [
       { key: 'lead-aliases', to: '/asesor/lead-aliases',                 label: 'Conectar fuentes leads', Icon: Plug },
       // W6.4 · Marketplace Templates de workflows
       { key: 'marketplace-templates', to: '/portal/asesor/marketplace-templates', label: 'Marketplace Plantillas', Icon: Layers },
+      // W5.10 · Social/Ads Meta multi-tenant (connect + campañas)
+      { key: 'social-ads',           to: '/portal/asesor/social-ads',           label: 'Meta Ads · Conectar', Icon: Megaphone },
+      { key: 'social-ads-campaigns', to: '/portal/asesor/social-ads/campaigns', label: 'Meta Ads · Campañas',  Icon: Share2 },
+      // W5.22 Z.4 · Video Standalone (reusa W5.16 bundle · queue robust + export)
+      { key: 'video-standalone', to: '/portal/asesor/video-standalone',  label: 'Studio · Video Standalone', Icon: Video },
     ],
   },
 ];
@@ -260,6 +265,10 @@ const SUPERADMIN_NAV = [
       { key: 'marketplace-templates', to: '/superadmin/marketplace-templates', label: 'Marketplace Templates', Icon: Layers },
       // ─ W7.AS.1 · Lead Enrichment Clay-style (waterfall · cache · cost monitoring) ─
       { key: 'lead-enrichment',  to: '/superadmin/lead-enrichment',       label: 'Lead Enrichment',    Icon: Search },
+      // ─ W5.10 · Social/Ads Meta multi-tenant (tokens · cost · API health) ─
+      { key: 'social-ads',       to: '/superadmin/social-ads',            label: 'Social Ads',         Icon: Megaphone },
+      // ─ W5.22 Z.4 · Video Standalone (stats + cost monitoring) ─
+      { key: 'video-standalone', to: '/superadmin/video-standalone',      label: 'Video Standalone',   Icon: Video },
     ],
   },
   // ─── tier 6 · CRECIMIENTO teal · 2026-05-18 sidebar fix ───────────────────────────────

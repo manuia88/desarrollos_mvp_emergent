@@ -5047,5 +5047,203 @@
     "source_cache": "Cache",
     "close": "Cerrar",
     "passes_label": "Pasa el umbral"
+  },
+  "socialAds": {
+    "loadError": "No se pudieron cargar las cuentas.",
+    "connectError": "No se pudo iniciar la conexión con Meta.",
+    "disconnectError": "No se pudo desconectar la cuenta.",
+    "budgetError": "No se pudo generar la sugerencia.",
+    "statusActive": "Activa",
+    "statusExpired": "Expirada",
+    "disconnect": "Desconectar",
+    "confirmYes": "Confirmar",
+    "campActive": "Activa",
+    "campPaused": "Pausada",
+    "connect": {
+      "title": "Conectar Meta Business",
+      "subtitle": "Vincula tu cuenta de Meta Ads para ver campañas, gasto y recibir sugerencias de presupuesto con IA.",
+      "stubBanner": "Modo demo · Meta App Review pendiente",
+      "liveBanner": "Conectado en modo real",
+      "flashConnected": "Cuenta conectada correctamente.",
+      "flashCap": "Alcanzaste el máximo de conexiones permitidas.",
+      "flashError": "La conexión no se completó. Intenta de nuevo.",
+      "cardTitle": "Tu conexión con Meta",
+      "usage": "Conexiones",
+      "connecting": "Conectando…",
+      "capReached": "Límite alcanzado",
+      "connectBtn": "Conectar con Meta Business",
+      "accountsTitle": "Cuentas conectadas",
+      "goCampaigns": "Ver campañas →",
+      "empty": "Aún no tienes cuentas conectadas."
+    },
+    "campaigns": {
+      "title": "Campañas Meta Ads",
+      "subtitle": "Rendimiento por campaña · sugerencia de presupuesto con IA.",
+      "manageConn": "Gestionar conexiones",
+      "noAccounts": "Conecta una cuenta de Meta para ver campañas.",
+      "account": "Cuenta",
+      "status": "Estado",
+      "allStatuses": "Todas",
+      "tableTitle": "Campañas",
+      "empty": "Sin campañas para este filtro."
+    },
+    "budget": {
+      "loading": "Calculando…",
+      "suggestBtn": "Sugerencia IA de presupuesto",
+      "title": "Sugerencia IA de presupuesto",
+      "sourceLlm": "Generado con IA",
+      "sourceHeuristic": "Heurística",
+      "apply": "Aplicar",
+      "applied": "Aplicado (demo)"
+    },
+    "totals": {
+      "spent": "Gasto",
+      "impressions": "Impresiones",
+      "clicks": "Clics",
+      "conversions": "Conversiones"
+    },
+    "perf": {
+      "title": "Clics por día · últimos 30d"
+    },
+    "col": {
+      "name": "Campaña",
+      "status": "Estado",
+      "budget": "Presup.",
+      "spent": "Gasto",
+      "impr": "Impr.",
+      "clicks": "Clics",
+      "conv": "Conv."
+    },
+    "superadmin": {
+      "loadError": "No se pudieron cargar las estadísticas.",
+      "title": "Social Ads · monitoreo",
+      "subtitle": "Conexiones Meta por tenant · tokens · salud de la API.",
+      "stubBadge": "Modo demo · Meta App Review pendiente",
+      "healthOk": "Operativa",
+      "healthDown": "Caída",
+      "tenantsTitle": "Conexiones por tenant",
+      "noTenants": "Sin tenants conectados aún.",
+      "colConn": "conexiones",
+      "colUsers": "usuarios",
+      "colExp": "exp. 7d",
+      "apiStatusTitle": "Estado Meta API",
+      "latency": "Latencia última llamada",
+      "errorRate": "Tasa de error",
+      "totalTokens": "Tokens totales",
+      "estCost": "Costo mensual estimado",
+      "checkedAt": "Verificado",
+      "kpi": {
+        "tenants": "Tenants conectados",
+        "activeTokens": "Tokens activos",
+        "expiring": "Expiran en 7d",
+        "apiHealth": "Meta API"
+      }
+    }
+  },
+  "videoStandalone": {
+    "title": "Studio Video · Standalone",
+    "subtitle": "Crea videos profesionales · cualquier momento · cualquier proyecto.",
+    "predictHook": "Predecir hook",
+    "hookGate": "Verificar hook al generar",
+    "imageUrlLabel": "Imagen de la propiedad",
+    "imageInvalid": "URL inválida (debe iniciar con http).",
+    "imagePreviewEmpty": "Preview aparece aquí",
+    "providerLabel": "Proveedor de IA",
+    "provider_auto": "Automático (con respaldo)",
+    "provider_luma": "Luma",
+    "provider_pika": "Pika",
+    "provider_runway": "Runway",
+    "provider_kling": "Kling (Replicate)",
+    "audienceLabel": "Audiencia",
+    "durationLabel": "Duración",
+    "generateCTA": "Generar Video",
+    "loading": "Procesando...",
+    "loadingHint": "Reintenta automáticamente si un proveedor falla (~30s)",
+    "errorGeneric": "No fue posible generar el video. Intenta de nuevo.",
+    "exportLatest": "Exportar este video",
+    "disclaimer": "Los videos son generados por IA · úsalos como inspiración · revisa siempre el resultado antes de publicar.",
+    "demo": "demo",
+    "retries": "{{n}} intentos",
+    "fallbacks": "{{n}} fallback",
+    "audience": {
+      "neutral": "Neutral",
+      "investor": "Inversionista",
+      "family": "Familia",
+      "first_home": "Primera casa",
+      "luxury": "Lujo",
+      "boutique": "Boutique",
+      "urgent": "Urgente"
+    },
+    "status": {
+      "queued": "En cola",
+      "processing": "Procesando",
+      "completed": "Listo",
+      "error": "Error"
+    },
+    "actions": {
+      "view": "Ver",
+      "regenerate": "Re-generar",
+      "export": "Export",
+      "delete": "Eliminar"
+    },
+    "queue": {
+      "title": "Mis videos",
+      "refresh": "Actualizar",
+      "lastDays": "{{n}}d",
+      "allProviders": "Todos los proveedores",
+      "allStatuses": "Todos los estados",
+      "allRatios": "Todos los formatos",
+      "sortNew": "Recientes primero",
+      "sortOld": "Antiguos primero",
+      "empty": "Aún no hay videos. Genera el primero arriba.",
+      "loading": "Cargando...",
+      "polling": "Actualizando estado cada 5s · {{n}} en proceso"
+    },
+    "export": {
+      "title": "Exportar video",
+      "subtitle": "PDF, descarga, WhatsApp o tarjetas sociales.",
+      "close": "Cerrar",
+      "stub": "Modo demo: descargas y compartir deshabilitados (video no real).",
+      "error": "No fue posible exportar.",
+      "tabPdf": "PDF Report",
+      "tabDownload": "Descargar",
+      "tabWhatsApp": "WhatsApp",
+      "tabSocial": "Tarjetas",
+      "pdfDesc": "Genera un reporte PDF con el guion, enlaces por formato y métricas del video.",
+      "pdfBtn": "Descargar PDF",
+      "download": "Descargar",
+      "ratioLabel": "Formato",
+      "buildMsg": "Generar mensaje",
+      "waPlaceholder": "El mensaje aparecerá aquí…",
+      "waSend": "Abrir WhatsApp",
+      "socialDesc": "Tarjetas sociales (Open Graph, Feed y Story) generadas por DesarrollosMX.",
+      "open": "Abrir"
+    },
+    "superadmin": {
+      "eyebrow": "Monetización · Studio",
+      "title": "Video Standalone",
+      "sub": "Volumen, tasa de éxito y costo de generación de videos.",
+      "error": "No fue posible cargar las métricas.",
+      "refresh": "Actualizar",
+      "lastDays": "{{n}} días",
+      "loading": "Cargando…",
+      "empty": "Sin datos en el periodo.",
+      "kpi": {
+        "total": "Videos {{n}}d",
+        "success": "Tasa de éxito",
+        "avgCost": "Costo promedio",
+        "totalCost": "Costo total"
+      },
+      "providers": {
+        "title": "Proveedores más usados",
+        "provider": "Proveedor",
+        "count": "Videos"
+      },
+      "users": {
+        "title": "Top usuarios por volumen",
+        "user": "Usuario",
+        "count": "Videos"
+      }
+    }
   }
 }
