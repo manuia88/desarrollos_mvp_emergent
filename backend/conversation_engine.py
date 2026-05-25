@@ -288,7 +288,7 @@ class ConversationEngine:
 
         # ── generate assistant reply (LLM or heuristic stub) ─────────────────
         t0 = time.monotonic()
-        assistant_text, stub, used_llm = await self._generate(thread, history, content)
+        assistant_text, stub, used_llm, model_used = await self._generate(thread, history, content)
         latency_ms = int((time.monotonic() - t0) * 1000)
 
         tokens_in = _estimate_tokens(content) + sum(_estimate_tokens(h["content"]) for h in history)
@@ -319,7 +319,7 @@ class ConversationEngine:
                 await track_ai_call(
                     db=self.db,
                     dev_org_id=thread.get("tenant_id") or "default",
-                    model=CONVERSATION_MODEL,
+                    model=model_used,
                     tokens=int(tokens_in) + int(tokens_out),
                     tokens_in=int(tokens_in),
                     tokens_out=int(tokens_out),
@@ -345,7 +345,7 @@ class ConversationEngine:
             "tools_used": intel.get("tools_used") or [],
             "suggested_handoff": suggested,
             "latency_ms": latency_ms,
-            "model": CONVERSATION_MODEL if used_llm else "heuristic_stub",
+            "model": model_used if used_llm else "heuristic_stub",
             "ai_replied": True,
             "intel": {  # observable for asesor UI debug
                 "disc_tone": intel.get("disc_tone"),
@@ -638,11 +638,19 @@ class ConversationEngine:
 
     # ── internals ────────────────────────────────────────────────────────────
     async def _generate(self, thread: Dict, history: List[Dict], user_text: str):
-        """Returns (assistant_text, stub: bool, used_llm: bool)."""
+        """Returns (assistant_text, stub: bool, used_llm: bool, model_used: str)."""
         api_key = os.environ.get("EMERGENT_LLM_KEY")
         sentiment = detect_sentiment(user_text)
+        # W7.AS.3.F R2 fix · 3-tier cost optimizer picks the model (FAIL-OPEN →
+        # CONVERSATION_MODEL). Wiring select_model here makes the optimizer live
+        # and feeds real model ids to track_ai_call → cost dashboard distribution.
+        try:
+            from conversation_cost_optimizer import select_model
+            model = select_model(user_text, len(history or []), intent_hint="conversation")
+        except Exception:
+            model = CONVERSATION_MODEL
         if not api_key:
-            return _stub_reply(user_text, sentiment), True, False
+            return _stub_reply(user_text, sentiment), True, False, model
         try:
             from emergentintegrations.llm.chat import LlmChat, UserMessage as LlmUserMsg
             sys_prompt = thread.get("system_prompt") or DEFAULT_SYSTEM_PROMPT
@@ -656,19 +664,19 @@ class ConversationEngine:
                 session_id=thread["_id"],
                 system_message=sys_prompt,
                 initial_messages=history,
-            ).with_model("anthropic", CONVERSATION_MODEL)
+            ).with_model("anthropic", model)
             raw = await chat.send_message(LlmUserMsg(text=user_text))
             text = (raw or "").strip()
             if not text:
-                return _stub_reply(user_text, sentiment), True, False
-            return text, False, True
+                return _stub_reply(user_text, sentiment), True, False, model
+            return text, False, True, model
         except Exception as exc:
             log.warning(f"[conversation] LLM error conv={thread.get('_id')}: {exc}")
             # FAIL-OPEN — courtesy reply, never raise
             return (
                 "Tuve un problema técnico al procesar tu mensaje. ¿Puedes repetirlo? "
                 "Si es urgente, te conecto con un asesor humano.",
-                True, False,
+                True, False, model,
             )
 
     async def _load_history(self, conversation_id: str) -> List[Dict[str, str]]:

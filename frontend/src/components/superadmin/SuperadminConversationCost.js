@@ -9,7 +9,13 @@ import { DollarSign, Building2, User, MessageCircle, RefreshCw, Loader2 } from '
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const BASE = `${API}/api/superadmin/conversation-cost`;
-const TIER_COLOR = { haiku: '#22C55E', sonnet: '#6366F1', opus: '#EC4899', other: '#64748B' };
+// E.12 fix · tokens var(--theme*) (aurora design system · no hex hardcoded · paridad F11 R1)
+const TIER_COLOR = {
+  haiku: 'var(--theme-success, #22C55E)',
+  sonnet: 'var(--theme-primary, #6366F1)',
+  opus: 'var(--theme-accent, #EC4899)',
+  other: 'var(--theme-muted-dark, #64748B)',
+};
 
 function authHeaders() {
   const t = localStorage.getItem('dmx_token') || localStorage.getItem('token');
@@ -51,15 +57,15 @@ export default function SuperadminConversationCost() {
 
   const cards = [
     { key: 'total', Icon: DollarSign, label: t('kpi_total_cost'),
-      value: summary ? fmtUsd(summary.total_cost_usd) : '$0', color: '#22C55E' },
+      value: summary ? fmtUsd(summary.total_cost_usd) : '$0', color: 'var(--theme-success, #22C55E)' },
     { key: 'tenant', Icon: Building2, label: t('kpi_top_tenant'),
       value: summary?.top_tenant?.tenant_id || '—',
-      sub: summary ? fmtUsd(summary.top_tenant?.cost_usd) : null, color: '#6366F1' },
+      sub: summary ? fmtUsd(summary.top_tenant?.cost_usd) : null, color: 'var(--theme-primary, #6366F1)' },
     { key: 'asesor', Icon: User, label: t('kpi_top_asesor'),
       value: summary?.top_asesor?.asesor_id || '—',
-      sub: summary ? fmtUsd(summary.top_asesor?.cost_usd) : null, color: '#EC4899' },
+      sub: summary ? fmtUsd(summary.top_asesor?.cost_usd) : null, color: 'var(--theme-accent, #EC4899)' },
     { key: 'avg', Icon: MessageCircle, label: t('kpi_avg_convo'),
-      value: summary ? fmtUsd(summary.avg_cost_per_convo_usd) : '$0', color: '#F59E0B' },
+      value: summary ? fmtUsd(summary.avg_cost_per_convo_usd) : '$0', color: 'var(--theme-warning, #F59E0B)' },
   ];
 
   const dl = {
@@ -163,7 +169,7 @@ export default function SuperadminConversationCost() {
                     <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700 }}>{fmtUsd(c.cost_usd)}</td>
                     <td style={{ padding: '8px' }}>
                       <a href={`/superadmin/conversations?focus=${c.conversation_id}`}
-                        style={{ color: '#A5B4FC', textDecoration: 'none', fontSize: 12 }}>{t('view_thread')}</a>
+                        style={{ color: 'var(--theme-primary, #A5B4FC)', textDecoration: 'none', fontSize: 12 }}>{t('view_thread')}</a>
                     </td>
                   </tr>
                 ))}
