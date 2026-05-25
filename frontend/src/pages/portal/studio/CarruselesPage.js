@@ -8,6 +8,7 @@ import * as studioApi from '../../../api/studio';
 import HookScoreBadge from '../../../components/studio/HookScoreBadge';
 import CarruselPreviewLive from '../../../components/studio/CarruselPreviewLive';
 import CopyGeneratorModal from '../../../components/studio/CopyGeneratorModal';
+import HookPredictorModal from '../../../components/hook/HookPredictorModal';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
@@ -26,6 +27,7 @@ export default function CarruselesPage({ user, onLogout }) {
   const [filters, setFilters] = useState({ project_id: '', buyer_angle: '', status: '', ab_group: '' });
   const [generateOpen, setGenerateOpen] = useState(false);
   const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [hookPredictorOpen, setHookPredictorOpen] = useState(false);
   const [autoSelectCopyId, setAutoSelectCopyId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(null);
   const [abStats, setAbStats] = useState(null);
@@ -105,9 +107,24 @@ export default function CarruselesPage({ user, onLogout }) {
             <h1 style={hStyle()}>{t('studio.carrusel.title')}</h1>
             <p style={subStyle()}>{t('studio.carrusel.subtitle')}</p>
           </div>
-          <button data-testid="new-carrusel-btn" onClick={() => setGenerateOpen(true)} style={primaryBtn()}>
-            <Plus size={14} /> {t('studio.carrusel.new_cta')}
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              data-testid="carrusel-hook-predictor-open"
+              onClick={() => setHookPredictorOpen(true)}
+              style={{
+                padding: '8px 14px', borderRadius: 9999,
+                background: 'transparent', color: 'var(--cream-2)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700,
+                cursor: 'pointer',
+              }}>
+              {t('hookPredictor.title', 'Predecir hook')}
+            </button>
+            <button data-testid="new-carrusel-btn" onClick={() => setGenerateOpen(true)} style={primaryBtn()}>
+              <Plus size={14} /> {t('studio.carrusel.new_cta')}
+            </button>
+          </div>
         </header>
 
         {/* Filters */}
@@ -230,6 +247,11 @@ export default function CarruselesPage({ user, onLogout }) {
         {toast && (
           <div data-testid="carrusel-toast" role="status" style={toastStyle()}>{toast}</div>
         )}
+
+        <HookPredictorModal
+          open={hookPredictorOpen}
+          onClose={() => setHookPredictorOpen(false)}
+        />
       </div>
     </PortalLayout>
   );

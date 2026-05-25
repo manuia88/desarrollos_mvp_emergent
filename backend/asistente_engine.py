@@ -357,6 +357,21 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "list": {{items[] con id+title+category+price_mxn+price_tier+avg_rating+downloads, count}} (solo approved) · "my_published": {{items[] con status+downloads+revenue_total_mxn, count}} (templates del caller) · "revenue_stats": {{total_clones, author_revenue_mxn, dmx_revenue_mxn, my_templates[]}} (caller advisor)
     Usar cuando: asesor pregunta "¿qué plantillas de workflow hay en el marketplace?", "¿cuánto he ganado vendiendo mis workflows?", "¿qué tan populares son mis plantillas publicadas?" · superadmin pregunta uso global vía revenue_stats sin user_id · W6.4 Marketplace Templates de workflows · revenue split 70/30 · pricing free/pro/enterprise · 4 categorías.
 
+49. query_hook_predictor
+    params: {{ "mode": "score"|"stats"|"global_stats" (default "score"), "text": str (mode=score · max 500 chars), "target_audience": str? (mode=score · opcional), "days": int? (mode=stats/global_stats · default 30) }}
+    devuelve: depende mode · "score": {{score 0-100, breakdown{{clarity, cta, novelty, urgency}}, suggestion?, confidence alta|media|baja, source cache|llm|heuristic, threshold, passes, missing_data}} · "stats": {{total_scored, avg_score, distribution_by_tier{{excellent, good, weak}}, top_dimensions_failing[], days}} (own) · "global_stats": idem agregado tenant (superadmin).
+    Usar cuando: T2+ advisor pregunta "¿qué tan bueno es este hook?", "¿pasa el filtro?", "¿cómo lo mejoro?", "¿qué hooks me funcionan?" o superadmin pide métricas globales · W5.22 Z.5 standalone · rubric 4 dim 25% c/u · cache 7d · FAIL-OPEN heurística si LLM cae.
+
+50. query_reputation_monitor
+    params: {{ "mode": "mentions"|"stats"|"trend" (default "stats"), "days": int? (default 30, max 365), "sentiment": "positive"|"neutral"|"negative"? (filtro mode=mentions), "source": "google_search"|"twitter_x"|"reddit"|"news_web"? (filtro mode=mentions), "limit": int? (default 20) }}
+    devuelve: depende mode · "mentions": {{items[] con url+title+snippet+sentiment+source+found_at, total}} · "stats": {{total_mentions, by_source, by_sentiment {{positive,neutral,negative}}, top_negative_urls[], alerts_triggered_7d}} · "trend": {{trend_7d:[{{date,count}}], total_mentions, by_sentiment}}
+    Usar cuando: superadmin pregunta sobre reputación de marca DMX en redes · "¿qué mencionan de DMX online?" · "¿hay menciones negativas?" · "¿está saliendo en news?" · "¿cuántas menciones últimos 30d?" · "tendencia sentimiento" · W7.AS.6 Brand24-style monitor 4 sources (Google Search + X + Reddit + News RSS) sentiment Claude · alert ≥3 negativas 24h via notifications_engine · feature superadmin-only.
+
+51. query_lead_enrichment
+    params: {{ "mode": "enrich-now"|"cache-status"|"stats" (default "enrich-now"), "lead_id": str? (requerido mode=enrich-now/cache-status), "tenant_id": str?, "force_refresh": bool? (default false), "user_id": str?, "role": str?, "days": int? (default 30, mode=stats) }}
+    devuelve: depende mode · "enrich-now": {{status, enriched_fields, sources_used[], cost_usd, confidence}} · "cache-status": {{has_cache, age_days, data?}} · "stats": {{total_enriched, success_rate, avg_cost, by_source, daily_usage_by_tenant}}
+    Usar cuando: asesor pregunta enriquecer lead con data externa · "¿tienes más info de este lead?" · "¿cuál es su LinkedIn?" · "¿en qué empresa trabaja?" · "research IA sobre este contacto" · W7.AS.1 Clay-style waterfall lookup 4 connectors (email validation + LinkedIn PDL + Company Clearbit + AI research summary) stub-aware sin keys · cache 30d · cap 100/día/tenant · cost tracking ai_budget.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -601,6 +616,15 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W6.4 · tool #48 Marketplace Templates
         if tool_name == "query_marketplace_templates":
             return await _tool_query_marketplace_templates(db, params)
+        # W5.22 Z.5 · tool #49 Hook Predictor (4-dim scoring · cache 7d · FAIL-OPEN)
+        if tool_name == "query_hook_predictor":
+            return await _tool_query_hook_predictor(db, params)
+        # W7.AS.6 · tool #50 Reputation Monitor (Brand24-style · 4 sources · sentiment · alerts)
+        if tool_name == "query_reputation_monitor":
+            return await _tool_query_reputation_monitor(db, params)
+        # W7.AS.1 · tool #51 Lead Enrichment (Clay-style waterfall · 4 connectors · cache 30d · cap diario)
+        if tool_name == "query_lead_enrichment":
+            return await _tool_query_lead_enrichment(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3545,6 +3569,190 @@ async def _tool_query_marketplace_templates(db, params: Dict[str, Any]) -> Dict[
     except Exception as e:
         log.warning(f"[asistente_tool] query_marketplace_templates: {e}")
         return {"error": str(e), "source": "marketplace_templates_engine"}
+
+
+async def _tool_query_hook_predictor(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W5.22 Z.5 · Tool #49 · Hook Predictor standalone (3 modos).
+
+    Modes:
+      - mode="score"        → predice score 4-dim para un texto (FAIL-OPEN heurística)
+      - mode="stats"        → stats agregadas del caller (user_id / tenant_id)
+      - mode="global_stats" → stats agregadas globales (intended superadmin)
+    """
+    try:
+        from hook_predictor_engine import (
+            DEFAULT_THRESHOLD,
+            get_stats,
+            get_stats_global,
+            predict_hook_score,
+        )
+
+        mode = (params.get("mode") or "score").lower()
+
+        if mode == "score":
+            text = (params.get("text") or "").strip()
+            if not text:
+                return {"error": "text requerido para mode=score",
+                        "source": "hook_predictor_engine"}
+            res = await predict_hook_score(
+                db,
+                text=text[:500],
+                target_audience=params.get("target_audience"),
+            )
+            return {"source": "hook_predictor_engine", "mode": "score", **res}
+
+        days = int(params.get("days") or 30)
+
+        if mode == "stats":
+            user_id = params.get("user_id") or params.get("author_user_id")
+            tenant_id = params.get("tenant_id")
+            res = await get_stats(db, user_id=user_id, tenant_id=tenant_id, days=days)
+            return {"source": "hook_predictor_engine", "mode": "stats",
+                    "threshold": DEFAULT_THRESHOLD, **res}
+
+        if mode == "global_stats":
+            res = await get_stats_global(db, days=days)
+            return {"source": "hook_predictor_engine", "mode": "global_stats",
+                    "threshold": DEFAULT_THRESHOLD, **res}
+
+        return {"error": f"mode inválido: {mode} · usa score|stats|global_stats",
+                "source": "hook_predictor_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_hook_predictor: {e}")
+        return {"error": str(e), "source": "hook_predictor_engine"}
+
+
+async def _tool_query_reputation_monitor(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W7.AS.6 · Tool #50 · Reputation Monitor queries.
+
+    Modes:
+      - mode="mentions" → list filtered (sentiment/source/days/limit)
+      - mode="stats"    → aggregate (total · by_source · by_sentiment · top_negative · alerts_7d)
+      - mode="trend"    → trend_7d daily counts + aggregate snapshot
+    """
+    try:
+        from reputation_monitor_engine import (
+            COLLECTION_ALERTS,
+            COLLECTION_MENTIONS,
+            SENTIMENTS,
+            SOURCES,
+            aggregate_stats,
+        )
+        from datetime import datetime, timedelta, timezone
+
+        mode = (params.get("mode") or "stats").lower()
+        days = int(params.get("days") or 30)
+        days = max(1, min(days, 365))
+        limit = int(params.get("limit") or 20)
+        limit = max(1, min(limit, 100))
+
+        if mode == "stats":
+            stats = await aggregate_stats(db, days=days)
+            try:
+                cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
+                stats["alerts_triggered_7d"] = int(await db[COLLECTION_ALERTS].count_documents(
+                    {"triggered_at": {"$gte": cutoff_7d}},
+                ) or 0)
+            except Exception:
+                stats["alerts_triggered_7d"] = 0
+            return {"source": "reputation_monitor_engine", "mode": "stats", **stats}
+
+        if mode == "trend":
+            stats = await aggregate_stats(db, days=days)
+            return {
+                "source": "reputation_monitor_engine",
+                "mode": "trend",
+                "trend_7d": stats.get("trend_7d") or [],
+                "total_mentions": stats.get("total_mentions") or 0,
+                "by_sentiment": stats.get("by_sentiment") or {},
+            }
+
+        if mode == "mentions":
+            cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+            q: Dict[str, Any] = {"found_at": {"$gte": cutoff}}
+            sent = params.get("sentiment")
+            if sent and sent in SENTIMENTS:
+                q["sentiment"] = sent
+            src = params.get("source")
+            if src and src in SOURCES:
+                q["source"] = src
+            items = []
+            try:
+                cursor = db[COLLECTION_MENTIONS].find(q, {"_id": 0}).sort(
+                    "found_at", -1,
+                ).limit(limit)
+                async for d in cursor:
+                    v = d.get("found_at")
+                    if hasattr(v, "isoformat"):
+                        d["found_at"] = v.isoformat()
+                    items.append(d)
+            except Exception as exc:
+                log.debug(f"[asistente_tool] reputation mentions fail: {exc}")
+            return {
+                "source": "reputation_monitor_engine",
+                "mode": "mentions",
+                "items": items,
+                "total": len(items),
+            }
+
+        return {"error": f"mode inválido: {mode} · usa mentions|stats|trend",
+                "source": "reputation_monitor_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_reputation_monitor: {e}")
+        return {"error": str(e), "source": "reputation_monitor_engine"}
+
+
+# ── W7.AS.1 · Lead Enrichment (tool #51) ─────────────────────────────────────
+async def _tool_query_lead_enrichment(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """W7.AS.1 · Tool #51 · Lead Enrichment Clay-style (3 modos)."""
+    try:
+        from lead_enrichment_engine import (
+            enrich_lead,
+            get_cached_enrichment,
+            get_stats,
+        )
+
+        mode = (params.get("mode") or "enrich-now").lower()
+
+        if mode == "enrich-now":
+            lead_id = params.get("lead_id")
+            if not lead_id:
+                return {"error": "lead_id requerido para mode=enrich-now",
+                        "source": "lead_enrichment_engine"}
+            actor = {
+                "user_id": params.get("user_id") or "asistente",
+                "role": params.get("role") or "advisor",
+            }
+            res = await enrich_lead(
+                db,
+                lead_id=lead_id,
+                tenant_id=params.get("tenant_id"),
+                actor=actor,
+                force_refresh=bool(params.get("force_refresh", False)),
+                is_superadmin=(params.get("role") == "superadmin"),
+            )
+            return {"source": "lead_enrichment_engine", "mode": "enrich-now", **res}
+
+        if mode == "cache-status":
+            lead_id = params.get("lead_id")
+            if not lead_id:
+                return {"error": "lead_id requerido para mode=cache-status",
+                        "source": "lead_enrichment_engine"}
+            res = await get_cached_enrichment(db, lead_id)
+            return {"source": "lead_enrichment_engine", "mode": "cache-status", **res}
+
+        if mode == "stats":
+            days = int(params.get("days") or 30)
+            res = await get_stats(
+                db, tenant_id=params.get("tenant_id"), days=days,
+            )
+            return {"source": "lead_enrichment_engine", "mode": "stats", **res}
+
+        return {"error": f"mode inválido: {mode} · usa enrich-now|cache-status|stats",
+                "source": "lead_enrichment_engine"}
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_lead_enrichment: {e}")
+        return {"error": str(e), "source": "lead_enrichment_engine"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

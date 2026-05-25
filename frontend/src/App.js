@@ -97,6 +97,10 @@ const SuperadminMarketingMcp = lazy(() => import('./pages/superadmin/SuperadminM
 // W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation)
 const MarketplaceTemplatesPage = lazy(() => import('./pages/portal/asesor/MarketplaceTemplatesPage'));
 const SuperadminMarketplaceTemplates = lazy(() => import('./pages/superadmin/SuperadminMarketplaceTemplates'));
+// W7.AS.6 — Reputation Monitor (Superadmin · Brand24-style)
+const SuperadminReputationMonitor = lazy(() => import('./pages/superadmin/SuperadminReputationMonitor'));
+// W7.AS.1 — Lead Enrichment Clay-style (Superadmin cost monitoring)
+const SuperadminLeadEnrichment = lazy(() => import('./pages/superadmin/SuperadminLeadEnrichment'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -655,6 +659,10 @@ function AppRouter() {
       {/* W6.4 — Marketplace Templates (Asesor catalog + Superadmin moderation) */}
       <Route path="/portal/asesor/marketplace-templates" element={<AdvisorRoute Page={MarketplaceTemplatesPage} />} />
       <Route path="/superadmin/marketplace-templates" element={<SuperadminRoute Page={SuperadminMarketplaceTemplates} />} />
+      {/* W7.AS.6 — Reputation Monitor (Superadmin · Brand24-style) */}
+      <Route path="/superadmin/reputation-monitor" element={<SuperadminRoute Page={SuperadminReputationMonitor} />} />
+      {/* W7.AS.1 — Lead Enrichment (Superadmin cost monitoring) */}
+      <Route path="/superadmin/lead-enrichment" element={<SuperadminRoute Page={SuperadminLeadEnrichment} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

@@ -240,6 +240,8 @@ const SUPERADMIN_NAV = [
       { key: 'feature-visibility',     to: '/superadmin/feature-visibility',     label: 'Feature Visibility',     Icon: GitMerge },
       // W5.25 · Widget Embed Analytics (dominios externos que embeben widgets)
       { key: 'widget-embeds',          to: '/superadmin/widget-embeds',          label: 'Widget Embeds',          Icon: Link },
+      // W7.AS.6 · Reputation Monitor (Brand24-style · 4 sources · sentiment · alerts)
+      { key: 'reputation-monitor',     to: '/superadmin/reputation-monitor',     label: 'Reputation Monitor',     Icon: Eye },
     ],
   },
   // ─── tier 5 · MONETIZACIÓN verde · 2026-05-18 sidebar fix ─────────────────────────────
@@ -256,6 +258,8 @@ const SUPERADMIN_NAV = [
       { key: 'soc-franchise',     to: '/superadmin/soc-franchise',         label: 'SOC Franchise',      Icon: Trophy },
       // ─ W6.4 · Marketplace Templates (moderación + revenue split) ─
       { key: 'marketplace-templates', to: '/superadmin/marketplace-templates', label: 'Marketplace Templates', Icon: Layers },
+      // ─ W7.AS.1 · Lead Enrichment Clay-style (waterfall · cache · cost monitoring) ─
+      { key: 'lead-enrichment',  to: '/superadmin/lead-enrichment',       label: 'Lead Enrichment',    Icon: Search },
     ],
   },
   // ─── tier 6 · CRECIMIENTO teal · 2026-05-18 sidebar fix ───────────────────────────────
