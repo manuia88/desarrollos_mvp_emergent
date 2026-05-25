@@ -6,6 +6,19 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 📌 STATUS RESUMEN W5 / W6 (2026-05-25 corregido)
+
+### W5 — 100% SHIPPED EN CÓDIGO ✅
+**Único pendiente = acciones OPS founder (no dev):**
+- W5.18 Dubai · source 50+ properties (founder data)
+- W5.ASR.1 WhatsApp QR · VPS Hostinger setup (founder ops · ver entry abajo)
+- W5.ASR.4 DNS · wildcard A record Cloudflare (~5 min · ver entry abajo)
+
+### W6 — Diferidos vigentes 47h (triggers MVP)
+Ver sección "W6 Huérfanos Sketch Original Diferidos" abajo.
+
+---
+
 ## W6 Huérfanos Sketch Original Diferidos (2026-05-23 · founder ruling)
 
 5 features del sketch original Wave 6 (~227h reconstruido). Founder decidió diferir/cancelar/skip post-W6 batch 4 shipped.

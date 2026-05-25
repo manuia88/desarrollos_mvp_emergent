@@ -1,6 +1,48 @@
 # DesarrollosMX — CHANGELOG
 
 
+## 📌 STATUS PENDIENTES CORREGIDO — 2026-05-25
+
+**Corrección importante post-verificación directa git log:**
+
+### W5 — 100% SHIPPED EN CÓDIGO ✅
+
+Verificado batch por batch en `git log` (no en WAVE_PROGRESS interpretación):
+- W5.5 Live Pulse · CERRADO (commit 7dd725e4)
+- W5.9 Climate Migration · shipped (561e3a4e + c6b48fe3)
+- W5.10 Social/Ads · shipped R2 (45b0df4d)
+- W5.11 Entity Resolution · shipped
+- W5.12 Knowledge Graph · CERRADO (d5b62fe5)
+- W5.15 FSD Forecast Std Dev · CERRADO (bd6576bd)
+- W5.16 Social Cards · shipped (4c4fac48)
+- W5.17 Virtual Staging · shipped (c8685015) — absorbido en W5.22
+- W5.19 Probability UX · CERRADO (c8621942)
+- W5.20 External Insights · shipped (63c802a3)
+- W5.21 External Insights UI · shipped (e81c4ce2)
+- W5.22 Phase Z · Z.1, Z.2, Z.4, Z.5, Z.8 (todos sub-chunks) shipped
+- W5.23 Battle Card · CERRADO (e75010b5)
+- W5.25 Widget Embed Analytics · shipped (535828ea)
+- W5.FF1, FF2, FF3, FF4, FF5 · shipped
+
+**Únicos pendientes W5 = acciones OPS founder (no dev):**
+1. **W5.18 Dubai** — source 50+ properties (founder data)
+2. **W5.ASR.1 WhatsApp QR** — VPS Hostinger setup (founder ops)
+3. **W5.ASR.4 DNS** — wildcard `*.asesores.desarrollosmx.io` A record Cloudflare (~5 min founder ops)
+
+### W6 — 47h diferidos vigentes por trigger MVP
+
+| Batch | Trigger desbloqueo |
+|---|---|
+| W6.6 Compliance MX (15h) | Volumen ventas reales |
+| W6.9 Multi-currency (12h) | W5.18 Dubai desbloqueado |
+| W6.10 Lead post-close (20h) | Post-MVP con W6.6 |
+| W6.7 Tax IVA/ISR | ❌ CANCELLED (duplica F6) |
+| W6.12 Community foros | ❌ SKIPPED (WA + W6.MOV.3) |
+
+**Conclusión Master Dev:** sistema completo · pausa build · próximo = adquisición usuarios + piloto 3-5 asesores.
+
+---
+
 ## W6 R2 · W5.10 Social/Ads infra STUB + W5.22 Z.4 Video Standalone — 2026-05-23
 
 🚀 **5ta iteración 2-terminales CC paralelos · git worktree aislado validado 2da confirmación (CERO contaminación cruzada) · audit forense 89/89 PASS post-4 fixes (founder ruling "0 backlog").**
