@@ -1,6 +1,130 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W6 R1 · Z.5 Hook Predictor + AS.6 Reputation Monitor + AS.1 Lead Enrichment — 2026-05-23
+
+🚀 **4ta iteración 3-terminales CC paralelos · audit forense 104/104 PASS post-6 fixes · 0 backlog (founder ruling "solucionar todo").**
+
+3 batches paralelos shipped · race condition severa manejada con git worktree aislado · merge custom limpio · 51 tools asistente consecutivos.
+
+### W5.22 Z.5 · Hook Predictor standalone (~6h · SHA branch `09eb6117`)
+- **NEW** `backend/hook_predictor_engine.py` (419L)
+  - `predict_hook_score(text, audience?, user, request)` LLM Claude Sonnet 4.5 rubric 4 dimensiones (clarity/CTA/novelty/urgency) pesos 25%
+  - Cache 7d en `hook_predictor_cache` por sha256(text+audience+tenant_id) (G.103 audit fix)
+  - Heuristic fallback FAIL-OPEN si LLM ausente (length + keywords + ?-marks)
+  - `DAILY_LLM_CAP_PER_TENANT=200` antiabuse · superadmin bypass · FAIL-OPEN si query falla (G.101 audit fix)
+  - `track_ai_call` post-LLM cost monitoring · `feature_key="hook_predictor"`
+- **NEW** `backend/routes/hook_predictor.py` (116L) · 3 endpoints + rate-limit 30/min
+- **NEW** `frontend/src/components/hook/HookPredictorModal.js` (298L) · ESC + body scroll lock · reusa `HookScoreBadge` W5.22 Z.2 (NO redefine)
+- **EDIT** `backend/asistente_engine.py` · tool **#49** `query_hook_predictor` 3 modes (score/stats/global-stats)
+- **EDIT** `backend/server.py` · include_router con try/except fail-soft (D.61b audit fix)
+- **EDIT** integraciones `StudioVideoPage.js` (+22L) + `CarruselesPage.js` (+22L) · botón "Predecir hook"
+- **EDIT** `frontend/src/i18n/locales/es-MX/common.json` · namespace `hookPredictor` 20 keys (`passes_label` añadido post-audit D.76 fix)
+
+### W7.AS.6 · Reputation Monitor Brand24-style (~10h · SHA branch `4bd190ef`)
+- **NEW** `backend/reputation_monitor_engine.py` (627L)
+  - 4 sources: `_scan_google` (CSE) · `_scan_twitter` (X API) · `_scan_reddit` (públicos sin key) · `_scan_news_rss`
+  - Stub-aware sin keys (`GOOGLE_CSE_KEY` · `X_BEARER_TOKEN`) → `status="skipped"` · no crash
+  - `classify_sentiment` LLM Claude 3 tiers · FAIL-OPEN neutral si falla
+  - `trigger_alerts(threshold=3)` emit_notification superadmin si ≥3 negativas 24h via notifications_engine
+  - Dedup throttle 1 alerta/24h por keyword (anti-spam)
+  - Cache 24h por (source, query_hash) · TTL mentions 180d · runs 30d · alerts 30d
+- **NEW** `backend/reputation_monitor_cron.py` (131L) · `cron_scan_daily` @ 05:00 UTC (NO choca con W6.MOV.2 @ dom 04:00 ni @ día 1 mes 05:00 · APScheduler max_instances=1)
+- **NEW** `backend/routes/reputation_monitor.py` (212L) · 5 endpoints superadmin · `scan-now` rate-limit 5/h
+- **NEW** `frontend/src/pages/superadmin/SuperadminReputationMonitor.js` (358L) · KPIs + filtros + tabla + top negativas + trend SVG nativo + alerts history
+- **EDIT** `backend/asistente_engine.py` · tool **#50** `query_reputation_monitor` 3 modes (mentions/stats/trend)
+- nav SUPERADMIN tier 4 operacion · Icon `Eye` (ya importado)
+
+### W7.AS.1 · Lead Enrichment Clay-style (~18h · SHA branch `5293e8ea`)
+- **NEW** `backend/lead_enrichment_engine.py` (755L)
+  - Waterfall 4 connectors: email validation → LinkedIn PDL → Company Clearbit → AI research summary
+  - Stub-aware sin keys (`PDL_API_KEY` · `CLEARBIT_API_KEY` · `EMERGENT_LLM_KEY`) → `status="skipped"` + reason
+  - `LEAD_ENRICHMENT_SOURCES_ORDER` env configurable comma-separated · default PDL>Clearbit>AI (G.104 audit fix)
+  - Cache 30d en `lead_enrichment_cache` por sha256(email + phone)
+  - Cost tracking `ai_budget.track_ai_call` + `audit_immutable_engine.log`
+  - Cap 100/día/tenant configurable `LEAD_ENRICHMENT_DAILY_CAP_PER_TENANT` · superadmin bypass
+  - FAIL-OPEN partial_success · `_assert_lead_owner` tenant isolation (C.50+G.98 audit PASS · 0 cross-tenant leak)
+- **NEW** `backend/routes/lead_enrichment.py` (214L) · 4 endpoints + bulk-enrich max 20
+- **NEW** `frontend/src/components/lead/LeadEnrichmentPanel.js` (263L) · panel embebible en lead detail
+- **NEW** `frontend/src/pages/superadmin/SuperadminLeadEnrichment.js` (294L) · KPIs + cost monitoring + top tenants
+- **EDIT** `backend/asistente_engine.py` · tool **#51** `query_lead_enrichment` 3 modes (enrich-now/cache-status/stats)
+- nav SUPERADMIN tier 5 monetizacion · Icon `Search` (ya importado)
+
+### 🚨 Race condition 4ta confirmación (técnica escape validada)
+- Terminal 1 (Z.5) usó **git worktree aislado** en `/tmp/z5-worktree` · escape técnico válido confirmado
+- Terminal 2 (AS.6) sufrió 4+ branch switches mid-flight · re-aplicó ~6 edits a shared files atomic
+- Terminal 3 (AS.1) commit aterrizó inicialmente en `w7-as6-reputation` por race · recolocado con `git branch -f` + `git update-ref refs/heads/w7-as6-reputation 38734332` (restored)
+- 3 stashes user-W7 preservados (no tocados)
+- **Patrón establecido:** git worktree aislado por terminal evita race · O working dirs separados
+
+### Merge custom (22 archivos · +4280 inserts / 6 deletes · SHA `1fd9887e`)
+- `asistente_engine.py` reconstruido manualmente desde base AS.6 (tenía #49+#50) + #51 doc añadido a system prompt + dispatcher + handler (numeración 1-51 consecutiva sin gaps · tools #36-#48 W5.x+W6.MOV+W6.AS.1+W6.MOV.4+QW+W6.4 INTACTOS)
+- `server.py` base AS.6 (hook+reputation wires) + W7.AS.1 lead_enrichment include_router + startup ensure_indexes
+- `App.js` +6L · 2 lazy + 2 routes (Z.5 NO añadió route · modal embebido)
+- `navByRole.js` +4L · 2 items
+- `SuperadminLayout.js` +2 keywords (operacion + monetizacion)
+- `i18n common.json` +3 namespaces aislados · `hookPredictor` RECONSTRUIDO manualmente desde grep componentes porque Z.5 branch capturó `reputationMonitor` contaminado y omitió `hookPredictor` propio
+- `StudioVideoPage.js` + `CarruselesPage.js` · +22L cada uno integraciones Z.5
+
+### 🔴/🟡/🟢 Audit forense 98/104 → 104/104 PASS post-fixes (SHA `d7844188` · 6 archivos +76/-14)
+
+Founder ruling **"0 backlog · solucionar todo"** · 6 hallazgos arreglados sin diferir:
+
+**🟡 D.76 · hookPredictor.passes_label faltante:**
+- Modal usaba `t('hookPredictor.passes_label')` sin default · happy-path roto (mostraba key cruda)
+- FIX: añadido al namespace i18n
+
+**🟡 F.93 · react-hooks/exhaustive-deps warnings:**
+- SuperadminLeadEnrichment.js L86-87: `bySource` + `byTenant` memoized (wrap useMemo)
+- SuperadminReputationMonitor.js L59: `eslint-disable-next-line` documentado con razón (load reads filters from closure)
+- SuperadminReputationMonitor.js L90: `trend` memoized
+
+**🟡 G.101 · Hook Predictor sin cap LLM cost runaway:**
+- Solo rate-limit 30/min burst · advisor podía acumular 43k scores/día sobre `EMERGENT_LLM_KEY`
+- FIX: NEW `DAILY_LLM_CAP_PER_TENANT=200` env + `_check_daily_llm_cap` + `track_ai_call` post-LLM (`feature_key="hook_predictor"`)
+
+**🟢 G.103 · Cache key omitía tenant (cross-tenant share):**
+- FIX: `_hash_content(text, audience, tenant_id?)` · sha256 incluye tenant_id · backward compat (default "_global" para callers públicos)
+
+**🟢 G.104 · Waterfall order Lead Enrichment hardcoded:**
+- FIX: `LEAD_ENRICHMENT_SOURCES_ORDER` env comma-separated · valida contra `_VALID_SOURCES` · fallback default si vacío/inválido
+
+**🟢 D.61b · Hook Predictor import sin fail-soft:**
+- FIX: server.py try/except wrap patrón AS.6/AS.1 · si módulo rompe → log warning + `ensure_hook_predictor_indexes=None` · startup verifica None antes de invocar
+
+**0 🔴 desde inicio** (tenant isolation correcto · 4 críticos C.50/C.54/G.98/G.99 PASARON · demuestra madurez prompts iniciales).
+**Audit re-check final:** 104/104 PASS · 0 🔴 · 0 🟡 · 0 🟢 residual.
+
+### Audit 5 puntos POST-MERGE limpio
+- `memory/*` diff=0 ✅
+- backend críticos (audit_immutable + feature_registry + feature_gate + W5.x + W6.MOV.* + W6.AS.* + W6.MOV.4 + QW + W6.4 con G.90/G.94/G.92/F.68/F.71/A.11 fixes preservados) diff=0 ✅
+- superadmin críticos: `SuperadminLayout` Edit puntual 2 keywords permitido ✅
+- App.js · navByRole · NO reescritos · deltas additive ✅
+- `yarn build` 20.77s · 0 warnings R1 files post-fixes ✅
+
+### Cron sin colisión horaria
+- CQ (W6.MOV.5) lunes 02:00 UTC · Reviews (W6.MOV.3) lunes 03:00 UTC · Gov (W6.MOV.2) dom 04:00 + día 1 mes 05:00 UTC · Workflow queue (W6.AS.1) tick 60s · **Reputation (W7.AS.6) daily 05:00 UTC** · Trial expiry diario 08:00 MX
+
+### Metrics
+- **Total horas R1**: 34h (6 + 10 + 18)
+- **3 SHAs branches** + **1 merge custom** + **1 audit fixes consolidados** + **51 tools asistente consecutivos**
+- **12 endpoints nuevos** (3 hook + 5 reputation + 4 lead-enrichment)
+- **1 cron nuevo** (reputation_monitor daily 05:00 UTC)
+- **22 archivos merge** · +4280 / 6 · **6 archivos audit fixes** · +76 / 14
+
+### Hito histórico
+- **4ta iteración patrón 3-terminales CC paralelos viable**
+- **git worktree aislado** validado como técnica escape de race condition recurrente
+- Audit forense detectó **0 🔴 desde inicio** demostrando madurez de prompts iniciales · catch solo cosmético/UX
+- **0 backlog** · founder ruling "solucionar todo" cumplido
+
+### Riesgos residuales NO bloqueantes
+- Race condition working dir compartido sigue documentada (mitigation: git worktree aislado por terminal · funcional)
+- Seed local sin Mongo activación (MongoDB localhost:27017 NO corriendo · activar post-deploy)
+
+---
+
+
 ## W6 batch 4 · W6.4 Marketplace Templates + Seed Sintético — 2026-05-23
 
 🚀 **3ra iteración 2-terminales CC paralelos · primera ejecución de Seed Sintético como batch independiente.**
