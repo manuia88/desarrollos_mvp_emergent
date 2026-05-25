@@ -45,6 +45,11 @@ _RL_ANON_DAILY: Dict[str, Deque[float]] = defaultdict(deque)
 _RL_ANON_DAILY_LIMIT = 100   # 100 mensajes/día/IP sin auth (humano normal ≤30)
 _RL_DAILY_WINDOW_S = 86400
 
+# D4 audit recheck · evita memory leak · cleanup periódico de IPs viejas + size cap
+_RL_MAX_BUCKETS = 10000          # cap defensivo · ≥10k IPs distintas activas = anomalía
+_RL_LAST_CLEANUP = [0.0]         # timestamp del último cleanup global (1 por proceso)
+_RL_CLEANUP_INTERVAL_S = 600     # cleanup global cada 10 min
+
 
 def _client_ip(request: Request) -> str:
     fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
@@ -53,9 +58,35 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _gc_bucket(bucket_dict: Dict[str, Deque[float]], window_s: int) -> None:
+    """D4 · global GC: borra IPs cuyos buckets están vacíos tras cleanup
+    + drena el bucket de cada IP a su ventana. O(N) pero solo cada 10 min."""
+    now = time.time()
+    if now - _RL_LAST_CLEANUP[0] < _RL_CLEANUP_INTERVAL_S:
+        return
+    _RL_LAST_CLEANUP[0] = now
+    dead_keys = []
+    for ip, bucket in bucket_dict.items():
+        while bucket and (now - bucket[0]) > window_s:
+            bucket.popleft()
+        if not bucket:
+            dead_keys.append(ip)
+    for k in dead_keys:
+        bucket_dict.pop(k, None)
+
+
 def _rate_limit_check(bucket_dict: Dict[str, Deque[float]], ip: str, limit: int,
                      window_s: int = _RL_WINDOW_S) -> None:
     now = time.time()
+    # D4 · cap defensivo (DDoS protection): si el diccionario crece de más,
+    # forzamos GC inmediato. Si tras GC sigue sobre el cap → 429 generalizado
+    # (protege memoria del worker · prefiero degradar a permitir leak).
+    if len(bucket_dict) >= _RL_MAX_BUCKETS:
+        _gc_bucket(bucket_dict, window_s)
+        if len(bucket_dict) >= _RL_MAX_BUCKETS:
+            raise HTTPException(429, "rate_limit_pressure")
+    else:
+        _gc_bucket(bucket_dict, window_s)
     bucket = bucket_dict[ip]
     while bucket and (now - bucket[0]) > window_s:
         bucket.popleft()
@@ -139,8 +170,9 @@ async def start_conversation(body: StartIn, request: Request):
             channel=body.channel or "web",
             system_prompt=body.system_prompt,
             initial_context=body.initial_context,
-            session_key=body.session_key,  # F12
-            is_anon=user is None,           # F9
+            session_key=body.session_key,                      # F12
+            is_anon=user is None,                              # F9
+            caller_role=getattr(user, "role", None) if user else None,  # D7
         )
     except Exception as exc:
         log.error(f"[conversation] start failed: {exc}")

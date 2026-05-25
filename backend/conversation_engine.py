@@ -135,6 +135,10 @@ class ConversationEngine:
         self.db = db
 
     # ── lifecycle ──────────────────────────────────────────────────────────
+    # D7 audit recheck · solo estos roles/tiers pueden overrider system_prompt.
+    # Usuarios autenticados low-tier (basic) NO pueden inyectar prompt custom.
+    _TRUSTED_OVERRIDE_ROLES = {"superadmin", "asesor_pro", "asesor_premium", "founder"}
+
     async def start_conversation(
         self,
         lead_id: Optional[str] = None,
@@ -145,6 +149,7 @@ class ConversationEngine:
         initial_context: Optional[str] = None,
         session_key: Optional[str] = None,  # F12 fix · dedup per session
         is_anon: bool = False,              # F9 fix · ignora system_prompt si anon
+        caller_role: Optional[str] = None,  # D7 · solo trusted roles pueden override
     ) -> Dict[str, Any]:
         # F12 · idempotency by session_key (active threads · 24h window).
         # D1 fix · cutoff REAL aplicado (antes era dead code).
@@ -165,10 +170,14 @@ class ConversationEngine:
                     "deduped": True,
                 }
 
-        # F9 fix · cap + anon-safety on user-controlled prompts
+        # F9 + D7 audit recheck · cap + anon-safety + tier-gate.
+        # Solo trusted roles pueden inyectar system_prompt custom.
+        # Anon (sin token) y low-tier authenticated (rol no trusted) → forced default.
         sp_raw = (system_prompt or "").strip()
         if is_anon:
             sp_raw = ""  # anon never overrides system prompt (jailbreak block)
+        elif caller_role and caller_role.lower() not in self._TRUSTED_OVERRIDE_ROLES:
+            sp_raw = ""  # D7 · low-tier authenticated NO puede override
         sp = sp_raw[:4000] or DEFAULT_SYSTEM_PROMPT
 
         cid = _cid()
@@ -597,15 +606,30 @@ class ConversationEngine:
             # nps_proxy from sentiment (positive=+1, neutral=0, negative=-1)
             nps_val = {"positive": 1.0, "neutral": 0.0, "negative": -1.0}.get(sentiment, 0.0)
             await _maybe_await(_soc(asesor_id, "nps_proxy_sentiment", nps_val, self.db))
-            # F6 · conversion only on real positive intent (cita/visita/comprar)
+            # F6 + D5 audit recheck · conversion only on positive intent
+            # (cita/visita/compra/confirmación explícita). Lista ampliada para
+            # recoger señales coloquiales MX que el audit detectó como perdidas:
+            # "ok perfecto" "vamos adelante" "me apunto" "cuándo nos vemos" "dale" etc.
             blob = f"{user_text} {assistant_text}".lower()
+            _POS_INTENT = (
+                # Citas / visitas
+                "agendar cita", "agendamos cita", "agendada", "confirmo cita",
+                "confirmada la cita", "visita confirmada", "cuándo nos vemos",
+                "cuando nos vemos", "qué día visito", "que dia visito",
+                # Compra explícita
+                "quiero comprar", "voy a comprar", "lo compro", "me lo llevo",
+                "lo tomo", "me lo quedo",
+                # Reserva / apartado / depósito
+                "apartado", "reservado", "depósito", "deposito", "enganche",
+                "transferencia hoy", "pago hoy",
+                # Confirmaciones coloquiales MX (D5)
+                "ok perfecto", "perfecto vamos", "vamos adelante", "me apunto",
+                "dale", "acepto", "confirmo", "está bien", "esta bien",
+                "le entro", "vámonos", "vamonos", "cerramos",
+            )
             real_conversion_signal = (
                 sentiment != "negative"
-                and any(k in blob for k in (
-                    "agendar cita", "agendamos cita", "agendada", "confirmo cita",
-                    "visita confirmada", "quiero comprar", "voy a comprar", "apartado",
-                    "reservado", "depósito", "deposito",
-                ))
+                and any(k in blob for k in _POS_INTENT)
             )
             if real_conversion_signal:
                 await _maybe_await(_soc(asesor_id, "lead_conversion", 1.0, self.db))
