@@ -246,7 +246,9 @@ async def get_budget_suggestion(account_id: str, request: Request):
     user = await _require_advisor(request)
     await _assert_account_owner(request, user, account_id)
     from social_ads_engine import suggest_budget_allocation
-    result = await suggest_budget_allocation(_db(request), account_id)
+    # F.89 audit fix · pasa tenant_id para cost tracking ai_budget en LLM allocation
+    tenant_id = getattr(user, "tenant_id", None) or getattr(user, "dev_org_id", None)
+    result = await suggest_budget_allocation(_db(request), account_id, tenant_id=tenant_id)
     return JSONResponse(result)
 
 

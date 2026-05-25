@@ -3818,28 +3818,37 @@ async def _tool_query_social_ads(db, params: Dict[str, Any]) -> Dict[str, Any]:
 async def _tool_query_video_standalone(db, params: Dict[str, Any]) -> Dict[str, Any]:
     """W5.22 Z.4 · Tool #53 · Video Standalone queries (history/queue-status/stats).
 
+    C.42 audit fix · API real del motor:
+    - get_user_history(db, user_id, limit, filters dict) → {items, count, active}
+    - get_superadmin_stats(db, days) → stats globales
     Reusa W5.16 Studio Video bundle · NO redefine adapters.
     """
     try:
-        from video_standalone_engine import get_user_history, get_queue_status, get_stats
+        from video_standalone_engine import get_user_history, get_superadmin_stats
         mode = (params.get("mode") or "history").lower()
         user_id = params.get("user_id")
         days = int(params.get("days", 30))
         limit = int(params.get("limit", 50))
-        if mode == "history":
-            filters = {
-                k: params.get(k) for k in ("provider", "status", "ratio") if params.get(k)
-            }
-            items = await get_user_history(db, user_id=user_id, days=days, limit=limit, **filters)
+        if mode in ("history", "queue-status"):
+            # API real: filters como dict (days/provider/status/ratio)
+            filters_dict: Dict[str, Any] = {"days": days}
+            for k in ("provider", "status", "ratio"):
+                v = params.get(k)
+                if v:
+                    filters_dict[k] = v
+            res = await get_user_history(db, user_id=user_id, limit=limit, filters=filters_dict)
+            items = res.get("items", []) if isinstance(res, dict) else (res or [])
             active = sum(1 for it in items if it.get("status") in ("queued", "processing"))
+            if mode == "queue-status":
+                recent = [it for it in items if it.get("status") in ("queued", "processing")][:10]
+                return {"source": "video_standalone_engine", "mode": "queue-status",
+                        "active": active, "recent": recent}
             return {"source": "video_standalone_engine", "mode": "history",
                     "items": items, "count": len(items), "active": active}
-        if mode == "queue-status":
-            res = await get_queue_status(db, user_id=user_id)
-            return {"source": "video_standalone_engine", "mode": "queue-status", **res}
         if mode == "stats":
-            res = await get_stats(db, days=days)
-            return {"source": "video_standalone_engine", "mode": "stats", **res}
+            res = await get_superadmin_stats(db, days=days)
+            return {"source": "video_standalone_engine", "mode": "stats",
+                    **(res if isinstance(res, dict) else {})}
         return {"error": f"mode inválido: {mode} · usa history|queue-status|stats",
                 "source": "video_standalone_engine"}
     except Exception as e:

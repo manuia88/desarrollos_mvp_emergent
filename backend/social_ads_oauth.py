@@ -59,20 +59,27 @@ _fernet: Optional[Fernet] = None
 
 
 def _get_fernet() -> Fernet:
+    """Carga Fernet key desde env vars (orden de búsqueda).
+
+    Audit fix · acepta `SOCIAL_ADS_ENCRYPTION_KEY` (nombre spec) además de los aliases legacy.
+    Prioridad: SOCIAL_ADS_ENCRYPTION_KEY > SOCIAL_ADS_FERNET_KEY > OAUTH_TOKEN_ENCRYPTION_KEY > IE_FERNET_KEY.
+    """
     global _fernet
     if _fernet is None:
         key = (
-            os.environ.get("SOCIAL_ADS_FERNET_KEY")
+            os.environ.get("SOCIAL_ADS_ENCRYPTION_KEY")  # nombre spec (audit alignment)
+            or os.environ.get("SOCIAL_ADS_FERNET_KEY")    # alias legacy
             or os.environ.get("OAUTH_TOKEN_ENCRYPTION_KEY")
             or os.environ.get("IE_FERNET_KEY")
         )
         if not key:
             # STUB-safe: sin key configurada generamos una efímera (tokens mock).
-            # En producción real exigir SOCIAL_ADS_FERNET_KEY persistente.
+            # En producción real exigir SOCIAL_ADS_ENCRYPTION_KEY persistente.
             key = Fernet.generate_key()
             log.warning(
-                "[social_ads] SOCIAL_ADS_FERNET_KEY no configurada · usando key "
-                "efímera (solo válido para STUB · tokens no persisten entre reinicios)."
+                "[social_ads] SOCIAL_ADS_ENCRYPTION_KEY no configurada · usando key "
+                "efímera (solo válido para STUB · tokens no persisten entre reinicios). "
+                "Configurar antes de pasar Meta a real."
             )
         _fernet = Fernet(key.encode() if isinstance(key, str) else key)
     return _fernet

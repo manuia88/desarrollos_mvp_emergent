@@ -76,18 +76,23 @@ async def _audit(db, user_id: str, action: str, entity_id: str, after: Optional[
 # ─── STUB generators ──────────────────────────────────────────────────────────
 
 def _mock_ad_accounts_for_business(meta_business_id: str) -> List[Dict[str, Any]]:
-    """1-2 ad accounts determinísticos por Meta Business conectado."""
+    """1-3 ad accounts determinísticos por Meta Business conectado.
+
+    A.2 audit fix · prefix `act_meta_stub_` inequívocamente identifica STUB
+    (vs Meta real-format `act_<digits>`) · facilita debugging + cleanup post-deploy real.
+    """
     rng = _seeded(meta_business_id, "accounts")
-    n = rng.randint(1, 2)
+    n = rng.randint(1, 3)
     accounts = []
     for i in range(n):
-        digits = "".join(str(rng.randint(0, 9)) for _ in range(10))
+        digest = hashlib.sha1(f"{meta_business_id}|{i}".encode()).hexdigest()[:10]
         accounts.append({
-            "account_id": f"act_{digits}",
+            "account_id": f"act_meta_stub_{digest}",
             "name": f"Cuenta Publicitaria {i + 1}",
             "currency": "MXN",
             "status": "active",
             "meta_business_id": meta_business_id,
+            "is_stub": True,
         })
     return accounts
 
@@ -283,8 +288,16 @@ def _heuristic_allocation(campaigns: List[Dict[str, Any]], total_budget: float) 
     return out
 
 
-async def _llm_allocation_rationale(campaigns: List[Dict[str, Any]]) -> Optional[str]:
-    """Claude sugiere razonamiento de allocation. None si LLM ausente/falla."""
+async def _llm_allocation_rationale(
+    campaigns: List[Dict[str, Any]],
+    db=None,
+    tenant_id: Optional[str] = None,
+) -> Optional[str]:
+    """Claude sugiere razonamiento de allocation. None si LLM ausente/falla.
+
+    F.89 audit fix · si db+tenant_id presentes, invoca ai_budget.track_ai_call
+    para cost monitoring (paridad con hook_predictor G.101 fix).
+    """
     if not EMERGENT_LLM_KEY:
         return None
     try:
@@ -303,19 +316,37 @@ async def _llm_allocation_rationale(campaigns: List[Dict[str, Any]]) -> Optional
             session_id=f"socialads_{uuid.uuid4().hex[:8]}",
             system_message=system,
         ).with_model("anthropic", CLAUDE_MODEL)
-        raw = await chat.send_message(UserMessage(text=json.dumps(summary, ensure_ascii=False)[:3000]))
-        return (raw or "").strip() or None
+        user_text = json.dumps(summary, ensure_ascii=False)[:3000]
+        raw = await chat.send_message(UserMessage(text=user_text))
+        result = (raw or "").strip() or None
+
+        # F.89 audit fix · track ai_budget cost (paridad con hook_predictor)
+        if result and db is not None and tenant_id:
+            try:
+                from ai_budget import track_ai_call
+                tokens_in = (len(system) + len(user_text)) // 4
+                tokens_out = len(result) // 4
+                await track_ai_call(
+                    db, dev_org_id=tenant_id, model=CLAUDE_MODEL,
+                    tokens=tokens_in + tokens_out, call_type="social_ads_budget",
+                    tokens_in=tokens_in, tokens_out=tokens_out,
+                    feature_key="social_ads",
+                )
+            except Exception as exc:
+                log.debug(f"[social_ads] ai_budget track skip: {exc}")
+        return result
     except Exception as exc:
         log.warning(f"[social_ads] LLM allocation error: {exc}")
         return None
 
 
-async def suggest_budget_allocation(db, account_id: str) -> Dict[str, Any]:
+async def suggest_budget_allocation(db, account_id: str, tenant_id: Optional[str] = None) -> Dict[str, Any]:
     data = await get_campaigns(db, account_id)
     campaigns = data["campaigns"]
     total_budget = round(sum(c.get("daily_budget_mxn", 0) for c in campaigns), 2)
     allocation = _heuristic_allocation(campaigns, total_budget)
-    rationale = await _llm_allocation_rationale(campaigns)
+    # F.89 audit fix · pass db+tenant_id para cost tracking ai_budget
+    rationale = await _llm_allocation_rationale(campaigns, db=db, tenant_id=tenant_id)
     return {
         "account_id": account_id,
         "total_daily_budget_mxn": total_budget,
