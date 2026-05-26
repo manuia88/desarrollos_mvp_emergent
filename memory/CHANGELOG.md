@@ -1,6 +1,54 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W7.AS.3 R2 · Audit Forense Doble-Pase — 2026-05-25
+
+✅ **GO verdict · 90/90 checks · 2 🟡 fixed + 1 🟢 documentado · 0 🔴 · 0 regresiones audit 2 · SHA `0c79e497`.**
+
+Audit forense ejecutado en sesión separada CC (WRITE-enabled · 2 pases secuenciales con fixes).
+
+### Audit 1 · findings (2 🟡 críticos)
+
+**D.6 🟡 Cost optimizer dead code** (`conversation_engine.py:640`)
+- Bug: `select_model()` del Terminal F NUNCA estaba invocado · todo el Cost Optimizer era código muerto · `model-distribution` retornaba 100% Sonnet siempre.
+- Fix: `_generate()` ahora elige modelo 3-tier via `select_model()` · propaga `model_used` a `track_ai_call` (l.322) + response (l.348) · FAIL-OPEN → CONVERSATION_MODEL default.
+- Impacto: ahorro REAL activado · Haiku para saludos · Sonnet para conversación · Opus para escalation/leads en riesgo.
+
+**E.12 🟡 Hex hardcoded regresión F11** (`SuperadminConversationCost.js:12,54-62,166`)
+- Bug: `TIER_COLOR` + 4 KPI cards + link usaban hex literal → regresión del fix F11 de R1 que estableció var(--theme-*) tokens.
+- Fix: tokens `var(--theme-*, #hex)` aplicados · paridad aurora design system.
+
+### Audit 1 · 1 🟢 documentado (FAIL-OPEN no bloqueante)
+
+**Drift detector `avg_confidence` métrica zero** (`conversation_drift_detector.py:69`)
+- Limitación: lee `conversation_messages.confidence/tenant_id` que el engine NO persiste todavía.
+- Estado: FAIL-OPEN · 2/3 métricas drift funcionan (handoff_rate + sentiment).
+- Backlog R3: wire `confidence_score` per turno = decisión de costo founder (Haiku extra/turn).
+
+### Audit 2 · recheck
+
+- 0 regresiones detectadas
+- D.6 wiring validado en 3 spots (unpack + track_ai_call + response)
+- `select_model` import + `with_model(model)` correctos
+- FAIL-OPEN intacto
+- E.12 grep no-var residual · limpio
+- Cross-module side-effect POSITIVO: model-distribution recibe ids reales (haiku/sonnet/opus)
+- Guard `pct = ... if total_calls else 0.0` intacto · no NaN
+- A.1-A.4 gates · B.1-B.10 ML · C.1-C.8 crones · E.5 (asesor envía `role:'asesor'` → no LLM injection) · E.7 (takeover require_superadmin) · TODOS PASS
+
+### Verificación final
+
+- pytest 34/34 PASS (16 R1 + 18 R2)
+- yarn build limpio · 0 warnings R2 files
+- 9 backend modules import OK
+- 18 backend modules conversation_* import OK
+- R1 fixes intactos (no regresión cross-round)
+
+**Veredicto**: Round 3 puede arrancar O pausa build + onboarding piloto.
+
+**W7.AS.3 audit tally final**: 30/30 findings resueltos a lo largo de 3 rondas de audit (R1 1er audit 12 · R1 2do recheck 7 · R2 doble-pase 2 + 1 doc). 0 deuda seguridad pendiente. 0 backlog literal aplicado.
+
+
 ## W7.AS.3 Round 2 · UI Advanced + ML Loop + Cost Optimizer — 2026-05-25
 
 🚀 **7ma iteración 3-terminales CC paralelos · git worktree aislado 4ta confirmación · 21h adicionales · SHA `7fc72adf` · 63 batches shipped ~1131h.**
