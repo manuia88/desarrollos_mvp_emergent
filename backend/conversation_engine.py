@@ -335,28 +335,34 @@ class ConversationEngine:
         suggested = _suggests_handoff(content, assistant_text, sentiment)
 
         # ── W7.AS.3.H · auto-handoff si confidence < 50 (notify) ───────────────
+        # Audit R3 fix · solo en la TRANSICIÓN a handoff: thread.status es el
+        # snapshot pre-turno (en memoria), así que si ya estaba "handoff" no
+        # re-notificamos cada turno (evita spam de notificaciones high).
+        already_handoff = thread.get("status") == "handoff"
         if conf and conf.get("handoff"):
             await self._audit(
                 thread.get("asesor_id"), "conversation_low_confidence_handoff",
                 conversation_id,
                 {"confidence": conf.get("confidence"), "reason": conf.get("reason")},
             )
-            try:
-                from notifications_engine import emit_notification
-                await emit_notification(
-                    self.db,
-                    user_id=thread.get("asesor_id") or "admin@desarrollosmx.com",
-                    tenant_id=thread.get("tenant_id"),
-                    type="generic",
-                    severity="high",
-                    title="Handoff por baja confianza IA",
-                    body=(f"La IA marcó la conversación para asesor humano "
-                          f"(confianza {conf.get('confidence')}%)."),
-                    payload={"conversation_id": conversation_id,
-                             "confidence": conf.get("confidence")},
-                )
-            except Exception as exc:
-                log.warning(f"[conversation] low-confidence notify failed silent: {exc}")
+            # Notificar SOLO en la transición (no si ya estaba en handoff) → no spam.
+            if not already_handoff:
+                try:
+                    from notifications_engine import emit_notification
+                    await emit_notification(
+                        self.db,
+                        user_id=thread.get("asesor_id") or "admin@desarrollosmx.com",
+                        tenant_id=thread.get("tenant_id"),
+                        type="generic",
+                        severity="high",
+                        title="Handoff por baja confianza IA",
+                        body=(f"La IA marcó la conversación para asesor humano "
+                              f"(confianza {conf.get('confidence')}%)."),
+                        payload={"conversation_id": conversation_id,
+                                 "confidence": conf.get("confidence")},
+                    )
+                except Exception as exc:
+                    log.warning(f"[conversation] low-confidence notify failed silent: {exc}")
 
         # ── W7.AS.3.G · A/B conversion tracking (handoff = lead conversion) ──
         if ab_info:
@@ -711,9 +717,16 @@ class ConversationEngine:
             return None
         try:
             tenant_id = thread.get("tenant_id")
+            # Audit R3 fix · precedencia determinista: test del tenant ANTES que
+            # el test global (tenant_id=None). El $in de un solo find_one no
+            # garantizaba cuál ganaba si ambos corrían a la vez.
             test = await self.db.conversation_ab_tests.find_one(
-                {"status": "running", "tenant_id": {"$in": [tenant_id, None]}}
+                {"status": "running", "tenant_id": tenant_id}
             )
+            if not test and tenant_id is not None:
+                test = await self.db.conversation_ab_tests.find_one(
+                    {"status": "running", "tenant_id": None}
+                )
             if not test:
                 return None
             test_id = test.get("_id") or test.get("test_id")
@@ -733,7 +746,10 @@ class ConversationEngine:
             if new_assignment:
                 await self.db.conversation_threads.update_one(
                     {"_id": conversation_id},
-                    {"$set": {"ab_test_id": test_id, "ab_variant": variant}},
+                    # Audit R3 fix · reset ab_converted al asignar test nuevo, si no
+                    # un conversion previo (de otro test) bloquearía el conteo de éste.
+                    {"$set": {"ab_test_id": test_id, "ab_variant": variant,
+                              "ab_converted": False}},
                 )
                 # impression: users+1 (converted=False)
                 await ab.record_event(self.db, test_id, variant, converted=False)
@@ -869,7 +885,9 @@ class ConversationEngine:
                 usage = await self.db.conversation_confidence_usage.find_one_and_update(
                     {"_id": f"{tenant_id}:{day_iso}"},
                     {"$inc": {"count": 1},
-                     "$setOnInsert": {"tenant_id": tenant_id, "day": day_iso}},
+                     # created_at → TTL index (route ensure_indexes) limpia counters viejos
+                     "$setOnInsert": {"tenant_id": tenant_id, "day": day_iso,
+                                      "created_at": _now()}},
                     upsert=True, return_document=ReturnDocument.AFTER,
                 )
                 if usage and usage.get("count", 0) > CONFIDENCE_DAILY_CAP:

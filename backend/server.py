@@ -711,8 +711,12 @@ except Exception as _e_conf:
     logging.info(f"[W7.AS.3.H] conversation confidence routers pending: {_e_conf}")
 
 # W7.AS.3.I — Round 3 · Drift Dashboard routes (cierra orphan conversation_drift_detector)
+ensure_conversation_drift_indexes = None
 try:
-    from routes.conversation_drift import router as conversation_drift_router
+    from routes.conversation_drift import (
+        router as conversation_drift_router,
+        ensure_indexes as ensure_conversation_drift_indexes,
+    )
     app.include_router(conversation_drift_router)
     logging.info("[W7.AS.3.I] conversation drift router wired")
 except Exception as _e_drift:
@@ -1598,6 +1602,12 @@ async def startup():
         await ensure_confidence_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W7.AS.3.H confidence indexes failed: {e}")
+    # W7.AS.3.I · drift alerts/baselines indexes (FAIL-OPEN si routes pendientes)
+    try:
+        if ensure_conversation_drift_indexes is not None:
+            await ensure_conversation_drift_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W7.AS.3.I drift indexes failed: {e}")
     # W4.5 Y.2A — Pricing Sub-Agent indexes
     try:
         await ensure_pricing_indexes(db)

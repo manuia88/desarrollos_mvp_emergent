@@ -249,3 +249,20 @@ async def recompute_endpoint(request: Request, tenant_id: str = Query(..., min_l
     await _require_superadmin(request)
     db = request.app.state.db
     return await recompute_baseline(db, tenant_id)
+
+
+# ─── Indexes (wired desde server.py startup) ──────────────────────────────────
+async def ensure_indexes(db) -> None:
+    """W7.AS.3.I · índices para alerts/baselines. Idempotente / fail-soft.
+
+    alerts_history + _recent_alert filtran por (tenant_id, alerted_at); sin
+    índice eran full-scans de colección. baselines se lee por tenant·fecha.
+    """
+    try:
+        await db[ALERTS_COLL].create_index(
+            [("tenant_id", 1), ("alerted_at", -1)], background=True)
+        await db[ALERTS_COLL].create_index([("alerted_at", -1)], background=True)
+        await db[BASELINES_COLL].create_index(
+            [("tenant_id", 1), ("computed_at", -1)], background=True)
+    except Exception as exc:
+        log.warning(f"[drift] ensure_indexes failed: {exc}")

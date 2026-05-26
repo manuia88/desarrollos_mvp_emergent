@@ -7,6 +7,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Activity, ArrowLeftRight, Gauge, ShieldAlert, RefreshCw, Loader2, Check } from 'lucide-react';
+import SuperadminLayout from './SuperadminLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const BASE = `${API}/api/superadmin/conversation-drift`;
@@ -100,7 +101,7 @@ function TrendChart({ data, t }) {
 }
 
 export default function SuperadminConversationDrift() {
-  const { t } = useTranslation('conversation_drift');
+  const { t } = useTranslation(['conversation_drift', 'conversation_confidence']);
   const [tenantId, setTenantId] = useState('');
   const [data, setData] = useState(null);
   const [alerts, setAlerts] = useState({ alerts: [], total: 0, page: 1 });
@@ -109,6 +110,14 @@ export default function SuperadminConversationDrift() {
   const [acking, setAcking] = useState(null);
   const [recomputing, setRecomputing] = useState(false);
   const [notice, setNotice] = useState('');
+  const [confStats, setConfStats] = useState(null); // W7.AS.3.H · confidence stats (SA)
+
+  const loadConfStats = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/api/superadmin/confidence/stats`, { headers: authHeaders() });
+      setConfStats(res.ok ? await res.json() : null);
+    } catch { setConfStats(null); }
+  }, []);
 
   const loadAlerts = useCallback(async (p = 1) => {
     try {
@@ -141,6 +150,7 @@ export default function SuperadminConversationDrift() {
   }, [tenantId, loadAlerts]);
 
   useEffect(() => { loadAlerts(1); }, [loadAlerts]);
+  useEffect(() => { loadConfStats(); }, [loadConfStats]);
 
   const onAck = async (alertId) => {
     setAcking(alertId);
@@ -171,6 +181,7 @@ export default function SuperadminConversationDrift() {
   };
 
   return (
+    <SuperadminLayout>
     <div style={{ padding: 24, color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
@@ -298,6 +309,55 @@ export default function SuperadminConversationDrift() {
           </>
         )}
       </div>
+
+      {/* (5) W7.AS.3.H · Estadísticas de confianza IA (superadmin · global) */}
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 16, padding: 18, marginTop: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Gauge size={16} color="var(--theme-success, #22C55E)" />
+          <span style={{ fontSize: 13, fontWeight: 700 }}>{t('conversation_confidence:stats.title', 'Estadísticas de confianza IA')}</span>
+        </div>
+        {!confStats || (confStats.trend && confStats.trend.all == null && (confStats.avg_per_asesor || []).length === 0) ? (
+          <div style={{ color: 'rgba(240,235,224,0.4)', fontSize: 13 }}>{t('conversation_confidence:stats.empty', 'Aún no hay datos de confianza.')}</div>
+        ) : (
+          <>
+            {/* trend strip */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 16 }}>
+              {[['trend_7d', confStats.trend?.['7d']], ['trend_30d', confStats.trend?.['30d']], ['trend_all', confStats.trend?.all]].map(([k, v]) => (
+                <div key={k} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 12, padding: 14 }}>
+                  <div style={{ fontSize: 11.5, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t(`conversation_confidence:stats.${k}`)}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, marginTop: 6, color: v != null && v < 50 ? '#fca5a5' : 'var(--cream, #F0EBE0)' }}>
+                    {v != null ? `${v}%` : '—'}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* avg per asesor (peores primero · cap 8) */}
+            {(confStats.avg_per_asesor || []).length > 0 && (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', fontSize: 10.5, letterSpacing: '0.04em' }}>
+                      <th style={{ padding: '6px 8px' }}>{t('conversation_confidence:stats.asesor', 'Asesor')}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('conversation_confidence:stats.confidence', 'Confianza')}</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('conversation_confidence:stats.conversations', 'convs.')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(confStats.avg_per_asesor || []).slice(0, 8).map((row) => (
+                      <tr key={row.asesor_id} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px' }}>{row.asesor_id}</td>
+                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700, color: row.avg_confidence < 50 ? '#fca5a5' : '#86efac' }}>{row.avg_confidence}%</td>
+                        <td style={{ padding: '8px', textAlign: 'right', color: 'rgba(240,235,224,0.55)' }}>{row.conversations}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
+    </SuperadminLayout>
   );
 }

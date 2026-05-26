@@ -10,18 +10,23 @@
     }
   },
   "history": {
-    "title": "Histórico de confianza",
+    "title": "Confianza IA del hilo",
     "empty": "Aún no hay datos",
     "avg": "Promedio",
+    "last": "Última",
     "low_turns": "Turnos de baja confianza",
     "turn": "Turno {{n}}"
   },
   "stats": {
-    "title": "Estadísticas de confianza",
-    "trend_7d": "Tendencia 7 días",
-    "trend_30d": "Tendencia 30 días",
+    "title": "Estadísticas de confianza IA",
+    "trend_7d": "7 días",
+    "trend_30d": "30 días",
+    "trend_all": "Histórico",
     "avg_per_asesor": "Promedio por asesor",
     "top_low": "Conversaciones de menor confianza",
-    "empty": "Aún no hay datos"
+    "asesor": "Asesor",
+    "conversations": "convs.",
+    "confidence": "Confianza",
+    "empty": "Aún no hay datos de confianza."
   }
 }

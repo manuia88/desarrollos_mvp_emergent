@@ -30,12 +30,13 @@ function authHeaders() {
 }
 
 export default function ConversationInbox() {
-  const { t } = useTranslation('conversation_round2_ui');
+  const { t } = useTranslation(['conversation_round2_ui', 'conversation_confidence']);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [confSummary, setConfSummary] = useState(null); // W7.AS.3.H · confidence-history del hilo
   const [fSentiment, setFSentiment] = useState('');
   const [fStatus, setFStatus] = useState('');
   const [fAsesor, setFAsesor] = useState('');
@@ -67,6 +68,7 @@ export default function ConversationInbox() {
   const openThread = useCallback(async (conv) => {
     setSelected(conv.conversation_id);
     setDetail(null);
+    setConfSummary(null);
     setDetailLoading(true);
     try {
       const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { headers: authHeaders() });
@@ -76,6 +78,14 @@ export default function ConversationInbox() {
     } finally {
       setDetailLoading(false);
     }
+    // W7.AS.3.H · resumen de confianza IA del hilo (owner endpoint · best-effort)
+    try {
+      const cr = await fetch(`${API}/api/conversation/${conv.conversation_id}/confidence-history`, { headers: authHeaders() });
+      if (cr.ok) {
+        const cd = await cr.json();
+        if (cd && cd.count > 0) setConfSummary(cd);
+      }
+    } catch { /* no-op */ }
   }, []);
 
   const refreshDetail = useCallback(async () => {
@@ -252,6 +262,24 @@ export default function ConversationInbox() {
               <InfoRow label={t('inbox.filter_sentiment')} value={t(`sentiment.${detail.sentiment}`, detail.sentiment)}
                 color={SENTIMENT_COLOR[detail.sentiment]} />
               {detail.taken_over_by && <InfoRow label={t('inbox.taken_over_by')} value={detail.taken_over_by} />}
+
+              {/* W7.AS.3.H · resumen de confianza IA del hilo (confidence-history) */}
+              {confSummary && (
+                <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+                  <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(240,235,224,0.5)', marginBottom: 8 }}>
+                    {t('conversation_confidence:history.title', 'Confianza IA del hilo')}
+                  </div>
+                  <InfoRow label={t('conversation_confidence:history.avg', 'Promedio')}
+                    value={confSummary.avg_confidence != null ? `${confSummary.avg_confidence}%` : '—'}
+                    color={confSummary.avg_confidence != null && confSummary.avg_confidence < 50 ? SENTIMENT_COLOR.negative : SENTIMENT_COLOR.positive} />
+                  {confSummary.last_confidence != null && (
+                    <InfoRow label={t('conversation_confidence:history.last', 'Última')} value={`${confSummary.last_confidence}%`} />
+                  )}
+                  <InfoRow label={t('conversation_confidence:history.low_turns', 'Turnos de baja confianza')}
+                    value={confSummary.low_confidence_turns ?? 0}
+                    color={(confSummary.low_confidence_turns || 0) > 0 ? STATUS_COLOR.handoff : undefined} />
+                </div>
+              )}
 
               <div style={{ marginTop: 18, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
                 <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(240,235,224,0.5)', marginBottom: 10 }}>

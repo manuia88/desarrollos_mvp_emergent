@@ -192,5 +192,8 @@ async def ensure_indexes(db) -> None:
         await db.conversation_threads.create_index(
             [("ultimo_confidence_score", 1)], background=True, sparse=True)
         await db.conversation_confidence_usage.create_index("day", background=True)
+        # TTL · los counters diarios (1 doc por tenant·día) se auto-borran a los 7d
+        await db.conversation_confidence_usage.create_index(
+            "created_at", expireAfterSeconds=7 * 24 * 3600, background=True)
     except Exception as exc:
         log.warning(f"[conversation_confidence] ensure_indexes failed: {exc}")
