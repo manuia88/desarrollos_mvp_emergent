@@ -1,6 +1,57 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W7.AS.3 R3 · Audit Forense Doble-Pase — 2026-05-25
+
+✅ **GO verdict · 76/80 checks · 7 findings fixed (1 🔴 + 4 🟡 + 2 🟢) · 0 regresiones audit 2 · SHA `f720767f`.**
+
+Audit doble-pase ejecutado en sesión CC separada (WRITE-enabled · regla NO ORPHANS aplicada en checks).
+
+### Audit 1 · findings
+
+| # | Sev | Archivo | Descripción | Fix |
+|---|---|---|---|---|
+| F1 | 🔴 | conversation_confidence.py | 2 endpoints sin consumer FE · violaba regla NO ORPHANS | history → resumen confianza col3 ConversationInbox · stats → panel Drift dashboard |
+| F2 | 🟡 | SuperadminConversationDrift.js | Sin SuperadminLayout wrap (sin sidebar/nav) | `<SuperadminLayout>` añadido |
+| F3 | 🟡 | conversation_engine.py:337 | Auto-handoff <50 notification spam cada turno | Guard `already_handoff` → solo notifica en transición |
+| F4 | 🟡 | routes/conversation_drift.py | drift_alerts/baselines full-scan sin índices | `ensure_indexes()` + wire server.py startup |
+| F5 | 🟡 | conversation_engine.py:714 | A/B `$in:[tenant,None]` ganador no determinista | Precedencia tenant-first · fallback global |
+| F6 | 🟢 | _score_confidence | confidence_usage counter sin cleanup | `created_at` + índice TTL 7d |
+
+### Audit 2 · recheck
+
+0 regresiones · validados 6 fixes · cross-module side-effects PASS:
+- F3 thread.status snapshot pre-turno → 1 notificación por transición (no spam)
+- B.11 cost double-count check: Haiku (confidence) y LLM principal usan feature_key distintos · llamadas reales separadas · NO double count
+- F5/F6 no alteran shape de respuesta ni rompen tests
+
+| # | Sev | Archivo | Descripción | Fix |
+|---|---|---|---|---|
+| F7 | 🟢 | conversation_engine.py:733 | `ab_converted=True` pegado al reasignar test nuevo · test nuevo nunca contaría conversión | Reset `ab_converted:false` en `new_assignment` |
+
+### Verificación final
+
+- pytest 38/38 PASS (intel 8 · cycles 8 · ml 9 · cost 9 · drift 4)
+- yarn build limpio · 0 warnings R3 files
+- 21 módulos conversation_* import OK
+- py_compile server.py OK
+- **NO ORPHANS confirmado: 11/11 endpoints con consumer FE** (5 A/B + 2 confidence + 4 drift)
+- R1 + R2 fixes intactos · rate-limit + tenant-gate + audit + FAIL-OPEN preservados
+
+### W7.AS.3 audit tally TOTAL
+
+- R1 · 19/19 fixes (2 rondas)
+- R2 · 11/11 fixes (doble-pase)
+- R3 · 7/7 fixes (doble-pase)
+- **37/37 findings resueltos** · founder ruling "0 backlog · solucionar todo" cumplido 4 rondas
+
+### W7.AS.3 cierre oficial
+
+19 features shipped end-to-end · 3 rounds merge custom · 8 batches CC paralelos validados (R1 3T + R2 3T + R3 3T - 1 secuencial) · git worktree aislado 5 confirmaciones · regla NO ORPHANS canónica establecida.
+
+**Veredicto**: GO para pausa build + piloto 3-5 asesores reales.
+
+
 ## W7.AS.3 Round 3 · A/B Testing + Confidence + Drift Dashboard — 2026-05-25
 
 🚀 **8va iteración 3-terminales CC paralelos · git worktree aislado 5ta confirmación · 18h adicionales · SHA `a1aa1fef` · 64 batches shipped ~1149h.**
