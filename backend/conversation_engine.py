@@ -32,12 +32,17 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+# W7.AS.3.H · Round 3 · used by confidence persistence flow
+from pymongo import ReturnDocument  # noqa: F401
+
 log = logging.getLogger("dmx.conversation_engine")
 
 CONVERSATION_MODEL = os.environ.get("CONVERSATION_MODEL", "claude-sonnet-4-5-20250929")
 MAX_HISTORY = 24          # short-term window (messages) sent to the LLM
 MEMORY_FACTS_MAX = 12     # long-term denorm facts kept on the lead
 INPUT_CAP = 4000          # cap user input chars
+# W7.AS.3.H · per-turn Haiku confidence self-eval daily cap per tenant (cheap but finite)
+CONFIDENCE_DAILY_CAP = int(os.environ.get("CONFIDENCE_DAILY_CAP", "500"))
 
 DEFAULT_SYSTEM_PROMPT = (
     "Eres un asesor inmobiliario IA de DesarrollosMX. Respondes en español de México, "
@@ -262,7 +267,8 @@ class ConversationEngine:
         # ── persist inbound message ──────────────────────────────────────────
         await self._persist_message(conversation_id, role, content, ch,
                                     tokens_in=_estimate_tokens(content), sentiment=sentiment,
-                                    client_msg_id=client_msg_id)
+                                    client_msg_id=client_msg_id,
+                                    tenant_id=thread.get("tenant_id"))
 
         # If an asesor took over, the IA does NOT auto-reply — just records the turn.
         if thread.get("status") == "taken_over" or role == "asesor":
@@ -280,6 +286,14 @@ class ConversationEngine:
         # ── build memory: short-term history ─────────────────────────────────
         history = await self._load_history(conversation_id)
 
+        # ── W7.AS.3.G · A/B test variant (ANTES del LLM · FAIL-OPEN) ─────────
+        # Si el tenant tiene un test activo, asigna variante 50/50 sticky por
+        # conversation_id y usa variant.system_prompt en lugar del thread prompt.
+        # Si no hay test (o el módulo falta), ab_info=None → comportamiento R2.
+        ab_info = await self._resolve_ab_variant(thread, conversation_id)
+        if ab_info and ab_info.get("system_prompt"):
+            thread = {**thread, "system_prompt": ab_info["system_prompt"]}
+
         # ── B/C intel context (RAG + DISC + Plan Venta + Hook + Auto-enrich) ─
         intel = await self._build_intel_context(thread, history, content)
         # Temporarily swap the augmented system_prompt for _generate (in-memory only)
@@ -294,14 +308,59 @@ class ConversationEngine:
         tokens_in = _estimate_tokens(content) + sum(_estimate_tokens(h["content"]) for h in history)
         tokens_out = _estimate_tokens(assistant_text)
 
+        # ── W7.AS.3.H · confidence self-eval (Haiku · FAIL-OPEN · daily-capped) ─
+        conf = await self._score_confidence(thread, conversation_id, content, assistant_text)
+
         await self._persist_message(
             conversation_id, "assistant", assistant_text, ch,
             tokens_in=tokens_in, tokens_out=tokens_out, latency_ms=latency_ms,
             sentiment="neutral", stub=stub,
+            confidence=(conf or {}).get("confidence"),
+            confidence_reason=(conf or {}).get("reason"),
+            tenant_id=thread.get("tenant_id"),
         )
+
+        # W7.AS.3.H · denorm último confidence en el thread (drift 3ra métrica)
+        if conf and conf.get("confidence") is not None:
+            try:
+                await self.db.conversation_threads.update_one(
+                    {"_id": conversation_id},
+                    {"$set": {"ultimo_confidence_score": conf["confidence"]}},
+                )
+            except Exception as exc:
+                log.warning(f"[conversation] denorm confidence failed silent: {exc}")
+
         await self._bump_thread(conversation_id, sentiment, channel=ch)
 
         suggested = _suggests_handoff(content, assistant_text, sentiment)
+
+        # ── W7.AS.3.H · auto-handoff si confidence < 50 (notify) ───────────────
+        if conf and conf.get("handoff"):
+            await self._audit(
+                thread.get("asesor_id"), "conversation_low_confidence_handoff",
+                conversation_id,
+                {"confidence": conf.get("confidence"), "reason": conf.get("reason")},
+            )
+            try:
+                from notifications_engine import emit_notification
+                await emit_notification(
+                    self.db,
+                    user_id=thread.get("asesor_id") or "admin@desarrollosmx.com",
+                    tenant_id=thread.get("tenant_id"),
+                    type="generic",
+                    severity="high",
+                    title="Handoff por baja confianza IA",
+                    body=(f"La IA marcó la conversación para asesor humano "
+                          f"(confianza {conf.get('confidence')}%)."),
+                    payload={"conversation_id": conversation_id,
+                             "confidence": conf.get("confidence")},
+                )
+            except Exception as exc:
+                log.warning(f"[conversation] low-confidence notify failed silent: {exc}")
+
+        # ── W7.AS.3.G · A/B conversion tracking (handoff = lead conversion) ──
+        if ab_info:
+            await self._record_ab_conversion(conversation_id, ab_info, suggested)
 
         # ── cycle signals to SOC W6.MOV.1 (Terminal C · fail-soft) ───────────
         await self._record_cycle_signals(
@@ -347,6 +406,8 @@ class ConversationEngine:
             "latency_ms": latency_ms,
             "model": model_used if used_llm else "heuristic_stub",
             "ai_replied": True,
+            "variant_id": (ab_info or {}).get("variant"),       # W7.AS.3.G · A/B
+            "ab_test_id": (ab_info or {}).get("test_id"),
             "intel": {  # observable for asesor UI debug
                 "disc_tone": intel.get("disc_tone"),
                 "plan_venta": intel.get("plan_venta"),
@@ -636,6 +697,73 @@ class ConversationEngine:
         except Exception as exc:
             log.warning(f"[conversation] SOC signal failed silent: {exc}")
 
+    # ── W7.AS.3.G · A/B testing integration (FAIL-OPEN) ──────────────────────
+    async def _resolve_ab_variant(self, thread: Dict, conversation_id: str):
+        """If the tenant has a running A/B test, assign a sticky 50/50 variant by
+        conversation_id and return {test_id, variant, system_prompt}. Else None.
+
+        FAIL-OPEN: any error (incl. module ausente) → None → comportamiento R2.
+        Impression (users+1) se registra una sola vez por conversación.
+        """
+        try:
+            import conversation_ab_testing as ab
+        except Exception:
+            return None
+        try:
+            tenant_id = thread.get("tenant_id")
+            test = await self.db.conversation_ab_tests.find_one(
+                {"status": "running", "tenant_id": {"$in": [tenant_id, None]}}
+            )
+            if not test:
+                return None
+            test_id = test.get("_id") or test.get("test_id")
+            split = int(test.get("split_pct", 50) or 50)
+
+            prev_test = thread.get("ab_test_id")
+            prev_variant = thread.get("ab_variant")
+            if prev_test == test_id and prev_variant in ("A", "B"):
+                variant = prev_variant
+                new_assignment = False
+            else:
+                variant = ab.assign(test_id, conversation_id, split)
+                new_assignment = True
+
+            prompt = ((test.get("variants") or {}).get(variant) or {}).get("prompt")
+
+            if new_assignment:
+                await self.db.conversation_threads.update_one(
+                    {"_id": conversation_id},
+                    {"$set": {"ab_test_id": test_id, "ab_variant": variant}},
+                )
+                # impression: users+1 (converted=False)
+                await ab.record_event(self.db, test_id, variant, converted=False)
+
+            return {"test_id": test_id, "variant": variant, "system_prompt": prompt}
+        except Exception as exc:
+            log.warning(f"[conversation] A/B resolve fail-open: {exc}")
+            return None
+
+    async def _record_ab_conversion(self, conversation_id: str, ab_info: Dict, converted_signal: bool):
+        """Count one conversion per conversation when the turn signals a lead
+        conversion (handoff). Guarded to avoid double counting. FAIL-OPEN."""
+        if not converted_signal or not ab_info:
+            return
+        try:
+            doc = await self.db.conversation_threads.find_one(
+                {"_id": conversation_id}, {"_id": 0, "ab_converted": 1}
+            )
+            if doc and doc.get("ab_converted"):
+                return
+            await self.db.conversation_threads.update_one(
+                {"_id": conversation_id}, {"$set": {"ab_converted": True}}
+            )
+            await self.db.conversation_ab_tests.update_one(
+                {"_id": ab_info["test_id"]},
+                {"$inc": {f"variants.{ab_info['variant']}.conversions": 1}},
+            )
+        except Exception as exc:
+            log.warning(f"[conversation] A/B conversion fail-open: {exc}")
+
     # ── internals ────────────────────────────────────────────────────────────
     async def _generate(self, thread: Dict, history: List[Dict], user_text: str):
         """Returns (assistant_text, stub: bool, used_llm: bool, model_used: str)."""
@@ -698,13 +826,19 @@ class ConversationEngine:
     async def _persist_message(self, conversation_id, role, content, channel,
                                tokens_in=0, tokens_out=0, latency_ms=0,
                                sentiment="neutral", stub=False,
-                               client_msg_id: Optional[str] = None):
-        await self.db.conversation_messages.insert_one({
+                               client_msg_id: Optional[str] = None,
+                               confidence: Optional[int] = None,
+                               confidence_reason: Optional[str] = None,
+                               tenant_id: Optional[str] = None):
+        doc = {
             "_id": _mid(),
             "conversation_id": conversation_id,
             "role": role,
             "content": content,
             "channel": channel,
+            # W7.AS.3.H · tenant_id en el mensaje → drift_detector filtra avg_confidence
+            # por tenant sobre conversation_messages (sin esto la 3ra métrica = 0).
+            "tenant_id": tenant_id,
             "tokens_in": int(tokens_in),
             "tokens_out": int(tokens_out),
             "cost_usd": 0.0,
@@ -713,7 +847,45 @@ class ConversationEngine:
             "stub": bool(stub),
             "client_msg_id": client_msg_id,  # F5
             "created_at": _now(),
-        })
+        }
+        # W7.AS.3.H · confidence solo en mensajes assistant scoreados
+        if confidence is not None:
+            doc["confidence"] = int(confidence)
+            doc["confidence_reason"] = confidence_reason or ""
+        await self.db.conversation_messages.insert_one(doc)
+
+    async def _score_confidence(self, thread, conversation_id, user_text, assistant_text):
+        """W7.AS.3.H · auto-evalúa la respuesta con Haiku. FAIL-OPEN total.
+
+        Retorna {confidence, reason, handoff} o None si: cap diario alcanzado,
+        o cualquier error. score_reply ya hace track_ai_call + set handoff
+        (recibe db + conversation_id en el context).
+        """
+        tenant_id = thread.get("tenant_id") or "default"
+        try:
+            # Cap diario por tenant (cheap pero finito).
+            day_iso = _now().strftime("%Y-%m-%d")
+            try:
+                usage = await self.db.conversation_confidence_usage.find_one_and_update(
+                    {"_id": f"{tenant_id}:{day_iso}"},
+                    {"$inc": {"count": 1},
+                     "$setOnInsert": {"tenant_id": tenant_id, "day": day_iso}},
+                    upsert=True, return_document=ReturnDocument.AFTER,
+                )
+                if usage and usage.get("count", 0) > CONFIDENCE_DAILY_CAP:
+                    return None  # cap alcanzado → no scoreamos este turno
+            except Exception as exc:
+                log.debug(f"[conversation] confidence cap check skip: {exc}")
+
+            from conversation_confidence_score import score_reply
+            result = await score_reply(
+                user_text, assistant_text,
+                {"db": self.db, "conversation_id": conversation_id, "tenant_id": tenant_id},
+            )
+            return result if isinstance(result, dict) else None
+        except Exception as exc:  # FAIL-OPEN
+            log.warning(f"[conversation] confidence scoring failed silent: {exc}")
+            return None
 
     async def _bump_thread(self, conversation_id, sentiment, channel=None):
         now = _now()

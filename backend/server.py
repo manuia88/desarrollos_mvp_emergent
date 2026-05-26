@@ -690,6 +690,34 @@ try:
 except Exception as _e_cost:
     logging.info(f"[W7.AS.3.F] conversation cost router pending (Terminal F): {_e_cost}")
 
+# W7.AS.3.G — Round 3 · A/B Testing routes (cierra orphan conversation_ab_testing)
+from routes.conversation_ab_testing import (
+    router as conversation_ab_router,
+    ensure_indexes as ensure_conversation_ab_indexes,
+)
+app.include_router(conversation_ab_router)
+
+# W7.AS.3.H — Round 3 · Confidence Score routes (owner history + superadmin stats)
+try:
+    from routes.conversation_confidence import (
+        router as conversation_confidence_router,
+        sa_router as conversation_confidence_sa_router,
+        ensure_indexes as ensure_confidence_indexes,
+    )
+    app.include_router(conversation_confidence_router)
+    app.include_router(conversation_confidence_sa_router)
+    logging.info("[W7.AS.3.H] conversation confidence routers wired")
+except Exception as _e_conf:
+    logging.info(f"[W7.AS.3.H] conversation confidence routers pending: {_e_conf}")
+
+# W7.AS.3.I — Round 3 · Drift Dashboard routes (cierra orphan conversation_drift_detector)
+try:
+    from routes.conversation_drift import router as conversation_drift_router
+    app.include_router(conversation_drift_router)
+    logging.info("[W7.AS.3.I] conversation drift router wired")
+except Exception as _e_drift:
+    logging.info(f"[W7.AS.3.I] conversation drift router pending: {_e_drift}")
+
 # W4.5 Y.2A — Pricing Sub-Agent
 from routes.subagents import router as subagents_router, sa_router as subagents_sa_router
 from sub_agents.pricing_agent import ensure_pricing_indexes
@@ -1561,6 +1589,15 @@ async def startup():
         await ensure_kb_gaps_indexes(db)
     except Exception as e:
         logging.warning(f"[startup] W7.AS.3.D kb-gaps indexes failed: {e}")
+    try:
+        await ensure_conversation_ab_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W7.AS.3.G ab-testing indexes failed: {e}")
+    # W7.AS.3.H · confidence indexes (FAIL-OPEN si routes pendientes)
+    try:
+        await ensure_confidence_indexes(db)
+    except Exception as e:
+        logging.warning(f"[startup] W7.AS.3.H confidence indexes failed: {e}")
     # W4.5 Y.2A — Pricing Sub-Agent indexes
     try:
         await ensure_pricing_indexes(db)

@@ -9,6 +9,7 @@ import { MessageSquare, RefreshCw, Loader2, Search, AlertTriangle, User } from '
 import SentimentHeatmap from '../../components/conversation/SentimentHeatmap';
 import SuggestedReplies from '../../components/conversation/SuggestedReplies';
 import LiveTakeover from '../../components/conversation/LiveTakeover';
+import ConfidenceIndicator from '../../components/conversation/ConfidenceIndicator';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const SENTIMENT_COLOR = {
@@ -218,6 +219,12 @@ export default function ConversationInbox() {
                     borderRadius: 12, padding: '9px 12px', fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap',
                   }}>
                     {m.content}
+                    {/* W7.AS.3.H · confidence dot solo en respuestas IA con score persistido */}
+                    {m.role === 'assistant' && m.confidence != null && (
+                      <span style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}>
+                        <ConfidenceIndicator value={m.confidence} reason={m.confidence_reason} />
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

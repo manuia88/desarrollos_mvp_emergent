@@ -1,0 +1,27 @@
+{
+  "indicator": {
+    "label": "Confianza IA",
+    "tooltip": "Confianza IA: {{value}}%",
+    "reason_label": "Motivo",
+    "band": {
+      "green": "Alta confianza",
+      "yellow": "Confianza media",
+      "red": "Baja confianza"
+    }
+  },
+  "history": {
+    "title": "Histórico de confianza",
+    "empty": "Aún no hay datos",
+    "avg": "Promedio",
+    "low_turns": "Turnos de baja confianza",
+    "turn": "Turno {{n}}"
+  },
+  "stats": {
+    "title": "Estadísticas de confianza",
+    "trend_7d": "Tendencia 7 días",
+    "trend_30d": "Tendencia 30 días",
+    "avg_per_asesor": "Promedio por asesor",
+    "top_low": "Conversaciones de menor confianza",
+    "empty": "Aún no hay datos"
+  }
+}

@@ -111,11 +111,15 @@ const SuperadminVideoStandalone = lazy(() => import('./pages/superadmin/Superadm
 // W7.AS.3.A — Conversation AI Agent (asesor playground + superadmin inbox)
 const ConversationPlayground = lazy(() => import('./pages/asesor/ConversationPlayground'));
 const SuperadminConversations = lazy(() => import('./components/superadmin/SuperadminConversations'));
+// W7.AS.3.G — Round 3 · A/B Testing de prompts (superadmin)
+const SuperadminAbTesting = lazy(() => import('./components/superadmin/SuperadminAbTesting'));
 // W7.AS.3.D — Round 2 · UI Advanced (Inbox asesor + KB Gaps superadmin)
 const ConversationInbox = lazy(() => import('./pages/asesor/ConversationInbox'));
 const SuperadminKbGaps = lazy(() => import('./components/superadmin/SuperadminKbGaps'));
 // W7.AS.3.F — Round 2 · Cost dashboard (Terminal F · post-merge activado).
 const SuperadminConversationCost = lazy(() => import('./components/superadmin/SuperadminConversationCost'));
+// W7.AS.3.I — Round 3 · Drift Dashboard (post-merge activado)
+const SuperadminConversationDrift = lazy(() => import('./components/superadmin/SuperadminConversationDrift'));
 // W4.9.6 — 3DGS Tour public embed
 const Embed3DGSPage = lazy(() => import('./pages/public/Embed3DGSPage'));
 // W4.16 — Marketing (Free Audit + State of CDMX + MCP Tutorial)
@@ -689,11 +693,14 @@ function AppRouter() {
       {/* W7.AS.3.A — Conversation AI Agent */}
       <Route path="/portal/asesor/conversation-playground" element={<AdvisorRoute Page={ConversationPlayground} />} />
       <Route path="/superadmin/conversations" element={<SuperadminRoute Page={SuperadminConversations} />} />
+      <Route path="/superadmin/ab-testing" element={<SuperadminRoute Page={SuperadminAbTesting} />} />
       {/* W7.AS.3.D — Round 2 · Inbox avanzado + KB Gaps */}
       <Route path="/portal/asesor/conversation-inbox" element={<AdvisorRoute Page={ConversationInbox} />} />
       <Route path="/superadmin/kb-gaps" element={<SuperadminRoute Page={SuperadminKbGaps} />} />
       {/* W7.AS.3.F — Round 2 · Cost dashboard */}
       <Route path="/superadmin/conversation-cost" element={<SuperadminRoute Page={SuperadminConversationCost} />} />
+      {/* W7.AS.3.I — Round 3 · Drift Dashboard */}
+      <Route path="/superadmin/conversation-drift" element={<SuperadminRoute Page={SuperadminConversationDrift} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}
       <Route path="/superadmin/fsd-accuracy" element={<SuperadminRoute Page={SuperadminFSDAccuracy} />} />
       {/* W5.17 wire — Superadmin Virtual Staging stats */}

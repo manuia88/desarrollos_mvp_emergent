@@ -28,6 +28,12 @@ import esMXConversationRound1 from './locales/es-MX/conversation_round1.json';
 import esMXConversationRound2Ui from './locales/es-MX/conversation_round2_ui.json';
 // W7.AS.3.F — Round 2 · Cost dashboard namespace (Terminal F · post-merge activado).
 import esMXConversationCost from './locales/es-MX/conversation_cost.json';
+// W7.AS.3.G — Round 3 · A/B Testing namespace (separado · no toca common.json)
+import esMXConversationAbTesting from './locales/es-MX/conversation_ab_testing.json';
+// W7.AS.3.H — Round 3 · Confidence Score namespace (post-merge activado)
+import esMXConversationConfidence from './locales/es-MX/conversation_confidence.json';
+// W7.AS.3.I — Round 3 · Drift Dashboard namespace (post-merge activado)
+import esMXConversationDrift from './locales/es-MX/conversation_drift.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -42,6 +48,9 @@ i18n.use(initReactI18next).init({
       conversation_round1: esMXConversationRound1,
       conversation_round2_ui: esMXConversationRound2Ui,
       conversation_cost: esMXConversationCost,
+      conversation_ab_testing: esMXConversationAbTesting,
+      conversation_confidence: esMXConversationConfidence,
+      conversation_drift: esMXConversationDrift,
     },
 
     // Namespaced en-US
@@ -61,7 +70,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'translation',
 
   // Available namespaces
-  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost'],
+  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost', 'conversation_ab_testing', 'conversation_confidence', 'conversation_drift'],
 
   interpolation: {
     escapeValue: false,  // React already escapes

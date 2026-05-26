@@ -15,7 +15,7 @@ import {
   Target, Briefcase, DollarSign, Trophy, Sparkles, Megaphone, Boxes,
   MessageSquare, Link, Store, HeartHandshake, Network, BarChart2, FolderUp, Plug,
   AlertTriangle, Key, Package, Mail, Phone, GitMerge, ShieldCheck, Swords,
-  Share2, Video, MessageCircle, HelpCircle,
+  Share2, Video, MessageCircle, HelpCircle, FlaskConical,
 } from 'lucide-react';
 
 // ─── DEV (developer / developer_admin) — Phase 4 Batch 10 Reorganizado ────────
@@ -230,6 +230,10 @@ const SUPERADMIN_NAV = [
       { key: 'conversations', to: '/superadmin/conversations', label: 'Conversaciones IA', Icon: MessageCircle },
       // ─ W7.AS.3.D · Round 2 · KB Gaps (huecos de conocimiento) ─
       { key: 'kb-gaps', to: '/superadmin/kb-gaps', label: 'KB Gaps', Icon: HelpCircle },
+      // ─ W7.AS.3.G · Round 3 · A/B Testing de prompts ─
+      { key: 'ab-testing', to: '/superadmin/ab-testing', label: 'A/B Testing', Icon: FlaskConical },
+      // ─ W7.AS.3.I · Round 3 · Drift Dashboard (calidad agente IA) ─
+      { key: 'conversation-drift', to: '/superadmin/conversation-drift', label: 'Drift IA', Icon: Activity },
     ],
   },
   // ─── tier 4 · OPERACIÓN naranja · 2026-05-18 sidebar fix · features previamente huérfanas ─
