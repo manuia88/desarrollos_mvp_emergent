@@ -1,6 +1,82 @@
 # DesarrollosMX — CHANGELOG
 
 
+## W7.AS.3 Round 3 · A/B Testing + Confidence + Drift Dashboard — 2026-05-25
+
+🚀 **8va iteración 3-terminales CC paralelos · git worktree aislado 5ta confirmación · 18h adicionales · SHA `a1aa1fef` · 64 batches shipped ~1149h.**
+
+**Regla canónica nueva** persistida en `memory/feedback_no_orphan_features.md` post-audit R2 D.6 (Cost Optimizer era dead code · select_model() nunca invocado). NO features huérfanas backend-only ni frontend-only. Cada función pública DEBE tener callsite real. Cada component DEBE tener route. Audit forense detectará orphans como 🔴 ALTO.
+
+**Round 3 cierra las 3 UIs huérfanas de Round 2.**
+
+**Terminal G** (~6h · SHA `a7edf562` · 4 NEW + 6 shared):
+- `routes/conversation_ab_testing.py` · 5 endpoints superadmin · audit_immutable per acción
+- `SuperadminAbTesting.js` · 4-cols Slack-style · `AbTestCreateModal.js` form 2 prompts + traffic_split slider
+- `conversation_engine._generate` ahora invoca `_resolve_ab_variant` ANTES del LLM · si tenant tiene test running asigna variant 50/50 sticky por conversation_id · tracking impressions/conversions · FAIL-OPEN
+- NEW `_record_ab_conversion` guarded contra double counting
+- response extendida con `variant_id` + `ab_test_id` fields
+- smoke 5/5 endpoints PASS · A/B variant funciona end-to-end
+- cierra orphan `conversation_ab_testing.py` del R2
+
+**Terminal H** (~7h · SHA `6649bd54` · 3 NEW + 3 shared):
+- `routes/conversation_confidence.py` · 2 endpoints (history owner + stats superadmin)
+- `ConfidenceIndicator.js` · dot color verde≥70/amarillo50-70/rojo<50 + tooltip
+- `conversation_engine.py` NEW `_score_confidence` method · invoca `score_reply` post-LLM (Haiku self-eval) · daily cap `CONFIDENCE_DAILY_CAP=500`/tenant atomic via `find_one_and_update` · FAIL-OPEN total
+- `_persist_message` ahora persiste `confidence` + `reason` + `tenant_id` en `conversation_messages` doc · denorma `ultimo_confidence_score` en thread
+- Auto-handoff <50 · audit log + `emit_notification` alert superadmin
+- `ConversationInbox.js` renderiza `<ConfidenceIndicator value={...} />` conditional
+- track_ai_call invocado post-Haiku (cost monitoring)
+- **Cierra 🟢 R2 doc** · drift detector 3ra métrica `avg_confidence` ahora recibe data real (smoke `current.avg_confidence=60.0` validated)
+
+**Terminal I** (~6h · SHA `f245b8da` · 4 NEW · CERO shared):
+- `routes/conversation_drift.py` · 4 endpoints superadmin (compute · alerts/history · alerts/:id/ack · baseline/recompute)
+- `SuperadminConversationDrift.js` · 4 widgets (KPIs delta · trend chart SVG nativo 30d · tabla alerts cap 100 + ack · botón recompute)
+- 4/4 pytest test_conversation_drift_routes PASS
+- Empty states ("Esperando 30 días" · "Sin alerts" · "Datos insuficientes")
+- cierra orphan `conversation_drift_detector.py` del R2
+
+**MERGE CUSTOM** (`a1aa1fef` · 18 archivos · +2009/-7):
+- Cherry-pick NEW 11 archivos (cero collision esperada)
+- Reconstrucción manual `conversation_engine.py` merge G+H surgical:
+  - A/B variant resolution ANTES del LLM
+  - Confidence self-eval POST LLM
+  - `tenant_id` propagation en `_persist_message`
+  - Auto-handoff notify wired
+  - 2 nuevos métodos `_score_confidence` + `_resolve_ab_variant` + `_record_ab_conversion` + 1 helper `_maybe_await` (R1 preservado)
+- Reconstrucción manual `server.py` merge G+H+I:
+  - 3 include_routers (ab_testing + confidence + drift)
+  - 2 ensure_indexes startup blocks
+  - I router defensive try/except (módulo importable)
+- 4 shared frontend heredados de G + manual wire I:
+  - App.js +2L (lazy SuperadminConversationDrift + Route /superadmin/conversation-drift)
+  - navByRole +1 item "Drift IA" tier 3 inteligencia Activity icon
+  - SuperadminLayout regex inteligencia +1 keyword conversation-drift
+  - i18n/index.js +2 namespaces (conversation_confidence + conversation_drift)
+- ConversationInbox.js modification heredada de H
+
+**Verificación post-merge:**
+- 38/38 pytest PASS (16 R1 + 18 R2 + 4 R3 drift)
+- python imports OK · 21 backend modules conversation_* + 3 nuevas routes
+- yarn build limpio · 0 warnings R3 files
+- server.py syntactically valid (`ast.parse` PASS)
+
+**W7.AS.3 TOTAL SHIPPED (R1 + R2 + R3):**
+- R1 · 6 cycle-closers (RAG KG W5.12 · DISC W5.4 · Plan Venta IA · SOC W6.MOV.1 · Workflow W6.AS.1 · Hook Z.5)
+- R2 · 5 UX (Inbox · Suggested Replies · Live Takeover · Sentiment Heatmap · KB Gaps fact-check)
+- R2 · 4 ML (Self-tuning · Drift · A/B testing · Confidence)
+- R2 · 1 Cost (Optimizer 3-tier Haiku/Sonnet/Opus)
+- R3 · 3 UIs end-to-end (A/B Testing dashboard · Confidence indicator · Drift Dashboard)
+- R3 · Confidence wire cierra drift 3ra métrica del audit R2 🟢
+
+**Audit tally W7.AS.3:**
+- R1 · 19/19 fixes resueltos (2 rondas)
+- R2 · 11/11 fixes resueltos (doble-pase)
+- R3 · pendiente audit
+- 0 deuda seguridad acumulada
+
+**Próximo**: audit forense R3 doble-pase + pausa build · piloto 3-5 asesores reales + onboarding founder ops.
+
+
 ## W7.AS.3 R2 · Audit Forense Doble-Pase — 2026-05-25
 
 ✅ **GO verdict · 90/90 checks · 2 🟡 fixed + 1 🟢 documentado · 0 🔴 · 0 regresiones audit 2 · SHA `0c79e497`.**
