@@ -407,6 +407,20 @@ async def _build_action_queue(db, owner: str) -> list:
     except Exception:
         pass
 
+    # SUPRESIÓN · acciones (sintéticas o de agente) que el asesor ya resolvió
+    # (done/dismissed/archived) NO deben reaparecer en la cola. Se persisten por
+    # su id en command_center_actions (ver _cc_set_status upsert).
+    try:
+        resolved = await db.command_center_actions.find(
+            {"user_id": owner, "status": {"$in": ["done", "dismissed", "archived"]}},
+            {"_id": 0, "id": 1},
+        ).limit(500).to_list(500)
+        suppressed = {r["id"] for r in resolved if r.get("id")}
+        if suppressed:
+            queue = [a for a in queue if a.get("id") not in suppressed]
+    except Exception:
+        pass
+
     # Orden: priority desc (1=más urgente arriba) → priority ascendente
     queue.sort(key=lambda x: x.get("priority", 99))
     return queue[:50]
@@ -524,39 +538,76 @@ async def dashboard(request: Request):
 
 
 # ─── Command Center (P1) · endpoints complete/dismiss ────────────────────────────
-async def _cc_set_status(request: Request, action_id: str, new_status: str):
+async def _cc_set_status(request: Request, action_id: str, new_status: str, payload: dict = None):
+    """Cambia el status de una acción · UPSERT por id.
+
+    Acciones de agente ya existen en command_center_actions. Las SINTÉTICAS
+    (cita_/tarea_/lead_ · generadas por heurística) NO existen aún: si llega
+    `payload` (el contenido de la card), se persiste la primera vez para que
+    (a) NO reaparezca en la cola (supresión) y (b) sea recuperable si archived.
+    _assert owner siempre (NO cross-tenant).
+    """
     user = await require_advisor(request)
     db = get_db(request)
-    # _assert owner — solo el dueño puede completar/descartar (NO cross-tenant)
-    action = await db.command_center_actions.find_one({"id": action_id, "user_id": user.user_id}, {"_id": 0})
-    if not action:
-        raise HTTPException(404, "Acción no encontrada")
+    existing = await db.command_center_actions.find_one(
+        {"id": action_id, "user_id": user.user_id}, {"_id": 0})
+    set_doc = {"status": new_status, "resolved_at": _now()}
+    if not existing:
+        if not payload:
+            raise HTTPException(404, "Acción no encontrada")
+        # Persistir sintética la primera vez (con su contenido para recuperarla).
+        set_doc.update({
+            "id": action_id,
+            "user_id": user.user_id,
+            "tenant_id": getattr(user, "tenant_id", None) or "default",
+            "type": payload.get("type", "accion"),
+            "title": payload.get("title", "Acción"),
+            "subtitle": payload.get("subtitle", ""),
+            "priority": payload.get("priority", 3),
+            "lead_id": payload.get("lead_id"),
+            "source_agent": payload.get("source_agent"),
+            "cta_actions": payload.get("cta_actions") or [],
+            "icon_hint": payload.get("icon_hint", "sparkles"),
+            "color_hint": payload.get("color_hint", "indigo"),
+            "synthetic": True,
+            "created_at": _now(),
+        })
     await db.command_center_actions.update_one(
         {"id": action_id, "user_id": user.user_id},
-        {"$set": {"status": new_status, "resolved_at": _now()}},
+        {"$set": set_doc}, upsert=True,
     )
     try:
         from audit_log import log_mutation
-        await log_mutation(db, user, new_status, "command_center_action", action_id, before=action, after={**action, "status": new_status}, request=request)
+        await log_mutation(db, user, new_status, "command_center_action", action_id,
+                           before=existing or {}, after={**(existing or {}), **set_doc}, request=request)
     except Exception:
         pass
     return {"ok": True, "id": action_id, "status": new_status}
 
 
+async def _cc_payload(request: Request) -> dict:
+    # Body opcional · contiene la card sintética para persistirla la 1ra vez.
+    try:
+        body = await request.json()
+        return body if isinstance(body, dict) else {}
+    except Exception:
+        return {}
+
+
 @router.post("/command-center/action/{action_id}/complete")
 async def cc_complete_action(action_id: str, request: Request):
-    return await _cc_set_status(request, action_id, "done")
+    return await _cc_set_status(request, action_id, "done", await _cc_payload(request))
 
 
 @router.post("/command-center/action/{action_id}/dismiss")
 async def cc_dismiss_action(action_id: str, request: Request):
-    return await _cc_set_status(request, action_id, "dismissed")
+    return await _cc_set_status(request, action_id, "dismissed", await _cc_payload(request))
 
 
 @router.post("/command-center/action/{action_id}/archive")
 async def cc_archive_action(action_id: str, request: Request):
     # Archivar = guardar sin perder (status=archived · recuperable · NO en queue pending).
-    return await _cc_set_status(request, action_id, "archived")
+    return await _cc_set_status(request, action_id, "archived", await _cc_payload(request))
 
 
 @router.post("/command-center/action/{action_id}/restore")

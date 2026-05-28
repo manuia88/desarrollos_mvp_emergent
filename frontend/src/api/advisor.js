@@ -21,9 +21,10 @@ export const updateProfile = (b) => patch('/api/asesor/profile', b);
 export const getDashboard = () => j('/api/asesor/dashboard');
 
 // P1 · Command Center — completar / descartar / archivar acciones (la queue viene en getDashboard)
-export const completeAction = (id) => post(`/api/asesor/command-center/action/${id}/complete`);
-export const dismissAction = (id) => post(`/api/asesor/command-center/action/${id}/dismiss`);
-export const archiveAction = (id) => post(`/api/asesor/command-center/action/${id}/archive`);
+// payload opcional = la card (para persistir acciones sintéticas la 1ra vez)
+export const completeAction = (id, payload) => post(`/api/asesor/command-center/action/${id}/complete`, payload);
+export const dismissAction = (id, payload) => post(`/api/asesor/command-center/action/${id}/dismiss`, payload);
+export const archiveAction = (id, payload) => post(`/api/asesor/command-center/action/${id}/archive`, payload);
 export const restoreAction = (id) => post(`/api/asesor/command-center/action/${id}/restore`);
 export const getArchivedActions = () => j('/api/asesor/command-center/archived');
 

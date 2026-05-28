@@ -31,8 +31,6 @@ const probPill = (p) => {
 };
 
 // Ids sintéticos (heurística del dashboard) vs acciones reales de agentes (collection).
-const SYNTHETIC_PREFIXES = ['cita_', 'tarea_', 'lead_hot_', 'lead_cold_'];
-const isAgentAction = (id) => !!id && !SYNTHETIC_PREFIXES.some((p) => id.startsWith(p));
 
 const fmtMXN = (n) => {
   const v = Number(n || 0);
@@ -149,17 +147,19 @@ export default function AsesorCommandCenter({ user, onLogout }) {
       case 'ver_lead':
         goLead(action.lead_id);
         break;
+      // Persistimos SIEMPRE (agente o sintética) enviando la card como payload ·
+      // así sintéticas no reaparecen (supresión) + archivadas son recuperables.
       case 'completar':
         removeFromQueue(action.id);
-        if (isAgentAction(action.id)) completeAction(action.id).catch(() => {});
+        completeAction(action.id, action).catch(() => {});
         break;
       case 'descartar':
         removeFromQueue(action.id);
-        if (isAgentAction(action.id)) dismissAction(action.id).catch(() => {});
+        dismissAction(action.id, action).catch(() => {});
         break;
       case 'archivar':
         removeFromQueue(action.id);
-        if (isAgentAction(action.id)) archiveAction(action.id).catch(() => {});
+        archiveAction(action.id, action).catch(() => {});
         break;
       default:
         goLead(action.lead_id);
