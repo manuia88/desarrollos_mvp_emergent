@@ -372,8 +372,11 @@ async def _build_action_queue(db, owner: str) -> list:
     #     Dedup en lectura (red de seguridad para 5 agentes P2): si dos docs comparten
     #     (type, lead_id, source_agent) se conserva el de MAYOR prioridad (priority menor).
     try:
+        # synthetic:{$ne:True} → las sintéticas (cita_/tarea_/lead_) reaparecen vía
+        # regeneración (secciones 1-4); incluirlas aquí tras un restore duplicaría la
+        # card (mismo id) y rompería la key de React. Solo mergeamos acciones de agente.
         agent_actions = await db.command_center_actions.find(
-            {"user_id": owner, "status": "pending"}, {"_id": 0},
+            {"user_id": owner, "status": "pending", "synthetic": {"$ne": True}}, {"_id": 0},
         ).sort("priority", -1).limit(100).to_list(100)
         seen: dict = {}
         for a in agent_actions:
