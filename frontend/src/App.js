@@ -983,9 +983,11 @@ function SuperadminInvitesRoute() {
 }
 
 function AsesorOutboundRoute() {
-  const { user, loading } = useAuth();
+  const { user, logout, loading } = useAuth();
   if (loading) return null;
-  return <AsesorOutbound user={user} />;
+  // F1.5 audit fix: pasar onLogout para que el botón "Cerrar sesión" del
+  // sidebar (envoltura PortalLayout) funcione en /asesor/outbound.
+  return <AsesorOutbound user={user} onLogout={logout} />;
 }
 
 function NotifSettingsRoute() {
