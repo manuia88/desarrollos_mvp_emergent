@@ -1,8 +1,85 @@
 # Asesor Module · Redesign Plan Total (2026-05-26)
 
-**Founder approved:** rediseño completo módulo asesor · 6 fases · 16 terminales CC paralelas · ~116h trabajo · ~44h calendar · audit doble-pase post c/fase.
+> **2026-05-26 UPGRADE · founder "todo lo aplicamos"**: el plan escaló de
+> rediseño UX a **"Command Center + AI Agent Workforce"**. Ver sección
+> COMMAND CENTER MEGA-PLAN al final. F1 + F1.5 (sidebar) ya SHIPPED · el resto
+> se reorganiza en 6 fases P1-P6 (~150h) bajo la nueva arquitectura.
+
+**Founder approved:** rediseño completo módulo asesor · audit doble-pase post c/fase · protocolo quirúrgico.
 
 **Trigger:** post-W7.AS.3 cierre · founder reportó "sidebar confuso, no entiendo qué hace cada cosa, mala UX". 35 tabs visibles en sidebar actual.
+
+---
+
+## ═══ COMMAND CENTER MEGA-PLAN (2026-05-26 · "todo") ═══
+
+**Visión:** DMX deja de ser "CRM con IA" → se vuelve **"asesor con un equipo de IA trabajando 24/7"**. El Command Center es el HUB · agentes trabajan de fondo y reportan ahí.
+
+### Arquitectura
+```
+        COMMAND CENTER (hub · lo que ve el asesor)
+        action queue · KPIs contexto · status pills · quick actions
+                       ↑ alimentan
+     ┌─────────────────┼─────────────────┐
+ 🤖 AGENTES        🧠 ML LAYER       🎙️ IA GEN
+ Prospector       Close prob        Daily briefing
+ Nurturer         Pipeline drift    Voice briefing (TTS)
+ Closer           Real-time score   Smart digest
+ Coach
+ Analyst
+     ↑ reusan
+ W5.4 · W5.15 · W5.19 · W7.AS.1 · W7.AS.3 · W6.AS.1 · Plan Venta IA · Atlax 54 tools
+```
+
+### 6 Fases
+
+| Fase | Contenido | Terminales | Horas |
+|---|---|---|---|
+| **P1 · Command Center Hub** (BLOQUEA) | command_center_engine (aggregator + prioritizer heurística) · AsesorCommandCenter UI (reemplaza dashboard · feature flag) · action queue + KPIs contexto + status pills W5.4 + quick actions toolbar + inline preview · Atlax tool #55 query_command_center | 1-2 | 16h |
+| **P2 · Agent Workforce** | agent_orchestrator + 5 agentes: Prospector (W7.AS.1+auto-cat) · Nurturer (Workflow+Conversation) · Closer (close-prob+W5.19) · Coach (SOC+LLM) · Analyst (drift) · background runner cron max_instances=1 · cap diario per-agente ai_budget | 3 paralelas | 36h |
+| **P3 · ML Layer** | Close probability per lead (W5.4+W5.15+W5.19 Kalshi-style) · Pipeline drift personal (drift_detector aplicado al asesor) · Real-time lead scoring <2s (W7.AS.1+W5.4) | 3 paralelas | 20h |
+| **P4 · Conversacional + Voz** | Conversational command (Atlax embedded en Command Center · "¿qué hago hoy?") · Daily briefing IA auto (Plan Venta IA+W5.5) · Voice briefing TTS (W5.16 ElevenLabs) · Smart digest WhatsApp/email (notifications_engine) | 3 paralelas | 30h |
+| **P5 · Auto-pilot + UX** | Auto-pilot mode (agente ejecuta acciones aprobadas · confidence gate + audit + NUNCA money/contratos) · Bulk actions leads · Pinned VIP · Custom widgets · Notif prefs · Recent items | 3 paralelas | 28h |
+| **P6 · Polish + A11y** | Design tokens (spacing/type/colors/icons) · Skeleton · Optimistic UI · Toast · Transitions · Tooltips · Contextual help · Onboarding tour · AI empty states · Mobile responsive · A11y WCAG | 3 paralelas | 18h |
+
+### 🛡️ Guardrails (baked-in)
+
+| Riesgo | Protección |
+|---|---|
+| 5 agentes = costo LLM | Cap diario per-agente per-tenant + ai_budget.track_ai_call |
+| Background runner compute | Cron max_instances=1 · horario sin choque (11 crones existentes) |
+| Auto-pilot ejecuta solo | Confidence gate ≥umbral + audit_immutable per acción + founder approval inicial · NUNCA money/contratos auto |
+| Romper lo construido | Protocolo quirúrgico 4 pases + audit doble-pase por fase + tags rollback pre-asesor-pN |
+| Command Center reemplaza dashboard | Feature flag REACT_APP_COMMAND_CENTER · V1 dashboard preservado · rollback instant |
+
+### Equipo de Agentes (P2 detalle)
+
+| Agente | Rol | Reusa | Output al hub |
+|---|---|---|---|
+| 🔍 Prospector | Busca + califica leads nuevos | W7.AS.1 enrichment + auto-cat | "3 leads calificados" |
+| 🌱 Nurturer | Mantiene leads tibios calientes | Workflow + Conversation | "5 follow-ups enviados" |
+| 🎯 Closer | Detecta listos para cerrar + alerta | close_probability + W5.19 | "1 listo para cierre" |
+| 🎓 Coach | Entrena con tu performance | SOC W6.MOV.1 + LLM | "tip: cierres caen viernes" |
+| 📊 Analyst | Drift + anomalías de tu pipeline | drift_detector | "tasa respuesta -30%" |
+
+### Cycle-closers totales (cero standalone)
+
+Command Center base (6) + 5 agentes (4+ c/u) + 3 ML (3 c/u) + 3 IA gen (2 c/u) + Auto-pilot (3) = **40+ cycle-closers** · reusa TODO lo shipped W5/W6/W7.
+
+### Cronograma estimado
+
+| Bloque | Fases | Días calendar |
+|---|---|---|
+| Hub | P1 | 1 |
+| Cerebro | P2 + P3 | 2-3 |
+| Voz/Conversa | P4 | 1-2 |
+| Ejecución/UX | P5 | 1-2 |
+| Pulido | P6 | 1 |
+| **Total** | P1-P6 | **~7-9 días** |
+
+---
+
+## ═══ HISTÓRICO F1-F6 plan original (pre-upgrade) ═══
 
 **Regla canónica preservada:** NO ORPHANS (`feedback_no_orphan_features.md`). Cada terminal verifica callsite/route antes push. Audit detecta orphans como 🔴 ALTO.
 
