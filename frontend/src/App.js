@@ -140,6 +140,10 @@ const AsesoresLanding   = lazy(() => import('./pages/AsesoresLanding'));
 
 // Advisor portal
 const AsesorDashboard   = lazy(() => import('./pages/asesor/AsesorDashboard'));
+// P1 · Command Center (UPGRADE dashboard) · feature flag REACT_APP_COMMAND_CENTER='true' → CC, else V1.
+const AsesorCommandCenter = lazy(() => import('./pages/asesor/AsesorCommandCenter'));
+const COMMAND_CENTER = process.env.REACT_APP_COMMAND_CENTER === 'true';
+const AsesorHome = COMMAND_CENTER ? AsesorCommandCenter : AsesorDashboard;
 const AsesorContactos   = lazy(() => import('./pages/asesor/AsesorContactos'));
 const AsesorBusquedas   = lazy(() => import('./pages/asesor/AsesorBusquedas'));
 const AsesorCaptaciones = lazy(() => import('./pages/asesor/AsesorCaptaciones'));
@@ -730,7 +734,7 @@ function AppRouter() {
       <Route path="/inteligencia" element={<Inteligencia />} />
       <Route path="/asesores" element={<AsesoresLanding />} />
 
-      <Route path="/asesor" element={<AdvisorRoute Page={AsesorDashboard} />} />
+      <Route path="/asesor" element={<AdvisorRoute Page={AsesorHome} />} />
       <Route path="/asesor/contactos" element={<AdvisorRoute Page={AsesorContactos} />} />
       <Route path="/asesor/contactos/:id" element={<AdvisorRoute Page={AsesorContactos} />} />
       <Route path="/asesor/busquedas" element={<AdvisorRoute Page={AsesorBusquedas} />} />

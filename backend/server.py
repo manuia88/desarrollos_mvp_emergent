@@ -1245,6 +1245,12 @@ async def startup():
     await ensure_ml_indexes_fn(db)
     # Phase F0.1 — Audit log indexes
     await ensure_audit_log_indexes(db)
+    # P1 · Command Center action queue indexes (user+status+priority + TTL expires_at)
+    try:
+        from routes.advisor import ensure_command_center_indexes
+        await ensure_command_center_indexes(db)
+    except Exception as _e:
+        logging.warning(f"[startup] command_center indexes: {_e}")
     try:
         await ensure_superadmin_tenant_indexes(db)
     except Exception as e:

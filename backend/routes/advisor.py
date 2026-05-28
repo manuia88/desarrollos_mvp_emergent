@@ -217,6 +217,247 @@ async def patch_profile(payload: AsesorProfilePatch, request: Request):
     return prof
 
 
+# ─── Command Center (P1) · helpers ──────────────────────────────────────────────
+# Collection: command_center_actions — acciones priorizadas que agentes (P2) insertan.
+# P1 las mergea en la action_queue. Schema:
+#   {id, user_id, tenant_id, type, priority, title, subtitle, lead_id?, source_agent?,
+#    cta_actions[], status: pending|done|dismissed, created_at, expires_at}
+
+async def ensure_command_center_indexes(db):
+    """Índices para command_center_actions. Idempotente. Llamado en startup server.py."""
+    try:
+        await db.command_center_actions.create_index([("user_id", 1), ("status", 1), ("priority", -1)])
+        # TTL: documentos con expires_at se borran automáticamente al vencer.
+        await db.command_center_actions.create_index("expires_at", expireAfterSeconds=0)
+    except Exception as _e:
+        import logging
+        logging.getLogger("dmx.advisor").warning(f"[command_center] ensure_indexes: {_e}")
+
+
+def _pct(cur: float, prev: float) -> int:
+    """Cambio porcentual entero · FAIL-OPEN 0 si base 0/inválida."""
+    try:
+        if not prev:
+            return 0
+        return round((cur - prev) / prev * 100)
+    except Exception:
+        return 0
+
+
+async def _last_contact_map(db, contacto_ids: list) -> dict:
+    """Mapa contacto_id → último ts (datetime) de su timeline. FAIL-OPEN {}."""
+    out: dict = {}
+    try:
+        if not contacto_ids:
+            return out
+        async for row in db.asesor_contacto_timeline.aggregate([
+            {"$match": {"contacto_id": {"$in": contacto_ids}}},
+            {"$group": {"_id": "$contacto_id", "last_ts": {"$max": "$ts"}}},
+        ]):
+            out[row["_id"]] = row.get("last_ts")
+    except Exception:
+        pass
+    return out
+
+
+async def _build_action_queue(db, owner: str) -> list:
+    """Unifica + prioriza acciones en UNA lista. Cada sección FAIL-OPEN."""
+    now = _now()
+    now_iso = now.isoformat()
+    queue: list = []
+
+    # 1 · Citas de hoy (appointments · prioridad 1)
+    try:
+        day_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        day_end = (now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)).isoformat()
+        citas = await db.appointments.find(
+            {"asesor_id": owner, "datetime": {"$gte": day_start, "$lt": day_end}, "status": {"$nin": ["cancelada"]}},
+            {"_id": 0},
+        ).sort("datetime", 1).limit(20).to_list(20)
+        for c in citas:
+            queue.append({
+                "id": f"cita_{c.get('id', c.get('datetime'))}",
+                "type": "cita_hoy", "priority": 1,
+                "title": c.get("titulo") or "Cita de hoy",
+                "subtitle": (c.get("lead", {}) or {}).get("contact", "") or c.get("datetime", ""),
+                "lead_id": c.get("lead_id"), "source_agent": None,
+                "cta_actions": ["ver_lead", "completar"],
+                "icon_hint": "calendar", "color_hint": "blue",
+            })
+    except Exception:
+        pass
+
+    # 2 · Tareas vencidas (asesor_tareas done=false, due_at < now · prioridad 1)
+    try:
+        vencidas = await db.asesor_tareas.find(
+            {"owner_id": owner, "done": False, "due_at": {"$lt": now_iso}}, {"_id": 0},
+        ).sort("due_at", 1).limit(20).to_list(20)
+        for t in vencidas:
+            queue.append({
+                "id": f"tarea_{t.get('id')}",
+                "type": "tarea_vencida", "priority": 1,
+                "title": t.get("titulo") or "Tarea vencida",
+                "subtitle": t.get("entity_label") or "Vencida",
+                "lead_id": t.get("entity_id") if t.get("tipo") in ("client", "lead") else None,
+                "source_agent": None,
+                "cta_actions": ["completar", "ver_lead"],
+                "icon_hint": "clock", "color_hint": "red",
+            })
+    except Exception:
+        pass
+
+    # 3+4 · Leads sin contacto reciente (buyer_scores tier hot → prio 2 · resto >7d → prio 3)
+    try:
+        leads = await db.asesor_contactos.find(
+            {"owner_id": owner}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "emails": 1},
+        ).sort("created_at", -1).limit(200).to_list(200)
+        ids = [c["id"] for c in leads if c.get("id")]
+        last_map = await _last_contact_map(db, ids)
+        # buyer_scores join (email → user_id → tier) reusa patrón de list_contactos
+        emails = list({(c.get("emails") or [None])[0] for c in leads if (c.get("emails") or [None])[0]})
+        email_to_uid: dict = {}
+        if emails:
+            async for u in db.users.find({"email": {"$in": emails}}, {"_id": 0, "user_id": 1, "email": 1}):
+                if u.get("user_id") and u.get("email"):
+                    email_to_uid[u["email"]] = u["user_id"]
+        tier_map: dict = {}
+        if email_to_uid:
+            async for s in db.buyer_scores.find({"user_id": {"$in": list(email_to_uid.values())}}, {"_id": 0, "user_id": 1, "tier": 1}):
+                tier_map[s["user_id"]] = s.get("tier", "cold")
+        d3 = now - timedelta(days=3)
+        d7 = now - timedelta(days=7)
+        for c in leads:
+            last = last_map.get(c["id"])
+            # normaliza last a datetime aware
+            if isinstance(last, str):
+                try:
+                    last = datetime.fromisoformat(last.replace("Z", "+00:00"))
+                except Exception:
+                    last = None
+            email = (c.get("emails") or [None])[0]
+            tier = tier_map.get(email_to_uid.get(email)) if email else None
+            nombre = (f"{c.get('first_name', '')} {c.get('last_name', '')}").strip() or "Lead"
+            if tier == "hot" and (last is None or last < d3):
+                queue.append({
+                    "id": f"lead_hot_{c['id']}", "type": "lead_caliente", "priority": 2,
+                    "title": f"Contactar a {nombre}", "subtitle": "Lead caliente sin contacto reciente",
+                    "lead_id": c["id"], "source_agent": None,
+                    "cta_actions": ["llamar", "whatsapp", "ver_lead"],
+                    "icon_hint": "flame", "color_hint": "amber",
+                })
+            elif last is not None and last < d7:
+                queue.append({
+                    "id": f"lead_cold_{c['id']}", "type": "lead_sin_contacto", "priority": 3,
+                    "title": f"Reactivar a {nombre}", "subtitle": "Sin contacto hace más de 7 días",
+                    "lead_id": c["id"], "source_agent": None,
+                    "cta_actions": ["whatsapp", "ver_lead"],
+                    "icon_hint": "user", "color_hint": "muted",
+                })
+    except Exception:
+        pass
+
+    # 5 · MERGE acciones de agentes (command_center_actions · pending, no vencidas)
+    try:
+        agent_actions = await db.command_center_actions.find(
+            {"user_id": owner, "status": "pending"}, {"_id": 0},
+        ).sort("priority", -1).limit(50).to_list(50)
+        for a in agent_actions:
+            exp = a.get("expires_at")
+            if isinstance(exp, str):
+                try:
+                    exp = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+                except Exception:
+                    exp = None
+            if exp and exp < now:
+                continue
+            queue.append({
+                "id": a.get("id"),
+                "type": a.get("type", "agente"),
+                "priority": a.get("priority", 2),
+                "title": a.get("title", "Acción sugerida"),
+                "subtitle": a.get("subtitle", ""),
+                "lead_id": a.get("lead_id"),
+                "source_agent": a.get("source_agent"),
+                "cta_actions": a.get("cta_actions") or ["ver_lead"],
+                "icon_hint": a.get("icon_hint", "sparkles"),
+                "color_hint": a.get("color_hint", "indigo"),
+            })
+    except Exception:
+        pass
+
+    # Orden: priority desc (1=más urgente arriba) → priority ascendente
+    queue.sort(key=lambda x: x.get("priority", 99))
+    return queue[:50]
+
+
+async def _build_kpis_trend(db, owner: str) -> dict:
+    """KPIs con tendencia vs 7 días atrás. Cada métrica FAIL-OPEN."""
+    now = _now()
+    d7 = now - timedelta(days=7)
+    d7_iso = d7.isoformat()
+    kpis = {
+        "pipeline_mxn": 0, "pipeline_trend_pct": 0,
+        "leads_calientes": 0, "leads_calientes_trend_pct": 0,
+        "cierres_mes": 0, "cierres_trend_pct": 0,
+        "meta_mes": 0, "comisiones_por_cobrar": 0,
+    }
+    # Pipeline = suma valor_cierre de operaciones abiertas · trend vs creadas hace >7d
+    try:
+        ops = await db.asesor_operaciones.find(
+            {"owner_id": owner, "status": {"$nin": ["cobrada", "cancelada"]}},
+            {"_id": 0, "valor_cierre": 1, "created_at": 1},
+        ).to_list(500)
+        total = sum(o.get("valor_cierre", 0) or 0 for o in ops)
+        prev = sum(o.get("valor_cierre", 0) or 0 for o in ops if str(o.get("created_at", "")) and str(o.get("created_at")) <= d7_iso)
+        kpis["pipeline_mxn"] = total
+        kpis["pipeline_trend_pct"] = _pct(total, prev)
+    except Exception:
+        pass
+    # Leads calientes = contactos con buyer_score tier hot
+    try:
+        leads = await db.asesor_contactos.find({"owner_id": owner}, {"_id": 0, "emails": 1, "created_at": 1}).limit(500).to_list(500)
+        emails = list({(c.get("emails") or [None])[0] for c in leads if (c.get("emails") or [None])[0]})
+        email_to_uid: dict = {}
+        if emails:
+            async for u in db.users.find({"email": {"$in": emails}}, {"_id": 0, "user_id": 1, "email": 1}):
+                if u.get("user_id") and u.get("email"):
+                    email_to_uid[u["email"]] = u["user_id"]
+        hot_uids = set()
+        if email_to_uid:
+            async for s in db.buyer_scores.find({"user_id": {"$in": list(email_to_uid.values())}, "tier": "hot"}, {"_id": 0, "user_id": 1}):
+                hot_uids.add(s["user_id"])
+        hot = sum(1 for c in leads if email_to_uid.get((c.get("emails") or [None])[0]) in hot_uids)
+        prev_total = sum(1 for c in leads if str(c.get("created_at", "")) and str(c.get("created_at")) <= d7_iso)
+        kpis["leads_calientes"] = hot
+        kpis["leads_calientes_trend_pct"] = _pct(len(leads), prev_total)
+    except Exception:
+        pass
+    # Cierres del mes (status cerrada/cobrada con fecha_cierre este mes)
+    try:
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        prev_month_start = (now.replace(day=1) - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        cierres = await db.asesor_operaciones.count_documents(
+            {"owner_id": owner, "status": {"$in": ["cerrada", "cobrada", "pagando"]}, "fecha_cierre": {"$gte": month_start}})
+        cierres_prev = await db.asesor_operaciones.count_documents(
+            {"owner_id": owner, "status": {"$in": ["cerrada", "cobrada", "pagando"]}, "fecha_cierre": {"$gte": prev_month_start, "$lt": month_start}})
+        kpis["cierres_mes"] = cierres
+        kpis["cierres_trend_pct"] = _pct(cierres, cierres_prev)
+    except Exception:
+        pass
+    # Meta mensual (del perfil · FAIL-OPEN 0) + comisiones por cobrar
+    try:
+        prof = await db.asesor_profiles.find_one({"user_id": owner}, {"_id": 0, "meta_mes": 1}) or {}
+        kpis["meta_mes"] = prof.get("meta_mes", 0) or 0
+    except Exception:
+        pass
+    try:
+        ops_pag = await db.asesor_operaciones.find({"owner_id": owner, "status": "pagando"}, {"_id": 0, "comision_total": 1}).to_list(100)
+        kpis["comisiones_por_cobrar"] = sum(o.get("comision_total", 0) or 0 for o in ops_pag)
+    except Exception:
+        pass
+    return kpis
+
+
 # ─── Dashboard ────────────────────────────────────────────────────────────────
 @router.get("/dashboard")
 async def dashboard(request: Request):
@@ -238,13 +479,56 @@ async def dashboard(request: Request):
         "operaciones_abiertas": await db.asesor_operaciones.count_documents({"owner_id": owner, "status": {"$nin": ["cobrada", "cancelada"]}}),
     }
 
+    # P1 · Command Center extensions (FAIL-OPEN · no rompen el shape previo)
+    try:
+        action_queue = await _build_action_queue(db, owner)
+    except Exception:
+        action_queue = []
+    try:
+        kpis_trend = await _build_kpis_trend(db, owner)
+    except Exception:
+        kpis_trend = {}
+
     return {
         "tareas_hoy": tareas,
         "leads_recientes": leads,
         "comisiones_por_cobrar": comisiones_por_cobrar,
         "briefing": briefings[0] if briefings else None,
         "counts": counts,
+        # P1 · nuevos campos (aditivos)
+        "action_queue": action_queue,
+        "kpis_trend": kpis_trend,
     }
+
+
+# ─── Command Center (P1) · endpoints complete/dismiss ────────────────────────────
+async def _cc_set_status(request: Request, action_id: str, new_status: str):
+    user = await require_advisor(request)
+    db = get_db(request)
+    # _assert owner — solo el dueño puede completar/descartar (NO cross-tenant)
+    action = await db.command_center_actions.find_one({"id": action_id, "user_id": user.user_id}, {"_id": 0})
+    if not action:
+        raise HTTPException(404, "Acción no encontrada")
+    await db.command_center_actions.update_one(
+        {"id": action_id, "user_id": user.user_id},
+        {"$set": {"status": new_status, "resolved_at": _now()}},
+    )
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, new_status, "command_center_action", action_id, before=action, after={**action, "status": new_status}, request=request)
+    except Exception:
+        pass
+    return {"ok": True, "id": action_id, "status": new_status}
+
+
+@router.post("/command-center/action/{action_id}/complete")
+async def cc_complete_action(action_id: str, request: Request):
+    return await _cc_set_status(request, action_id, "done")
+
+
+@router.post("/command-center/action/{action_id}/dismiss")
+async def cc_dismiss_action(action_id: str, request: Request):
+    return await _cc_set_status(request, action_id, "dismissed")
 
 
 # ─── Contactos ────────────────────────────────────────────────────────────────

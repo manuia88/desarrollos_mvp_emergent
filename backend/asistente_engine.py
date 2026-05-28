@@ -387,6 +387,11 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "active": {{conversations[] con conversation_id+lead_id+channel+status+sentiment+message_count+last_message_at, count}} (filtros) · "by-lead": {{conversations[] del lead específico ordenadas desc, count}} · "stats": {{total_conversations, active, handoff, closed, negative_sentiment, total_messages, by_sentiment}} (superadmin global).
     Usar cuando: asesor pregunta "¿qué conversaciones tengo activas?", "¿cuántos handoff hoy?", "¿qué dijo el lead X?" · superadmin pide métricas globales del Conversation Agent (volumen · sentiment · handoff rate · takeover count) · W7.AS.3 Conversation AI Agent GHL-style standalone + cycle-closers (RAG KG + DISC + Plan Venta + SOC + Workflow + Hook Predictor + Lead Enrichment) · STUB-aware sin EMERGENT_LLM_KEY (heurístico) y sin WHATSAPP_VPS_READY (would-send log).
 
+55. query_command_center
+    params: {{ "mode": "today"|"actions-count" (default "today"), "user_id": str (asesor · requerido) }}
+    devuelve: depende mode · "today": {{actions[] (top 10 priorizadas con type+priority+title+subtitle+lead_id+source_agent+cta_actions), total_actions, kpis (pipeline_mxn+pipeline_trend_pct+leads_calientes+cierres_mes+meta_mes+comisiones_por_cobrar)}} · "actions-count": {{total_actions, urgent}} (urgent = prioridad 1).
+    Usar cuando: asesor pregunta "¿qué tengo que hacer hoy?", "¿cuántas acciones pendientes?", "¿cómo va mi pipeline?", "¿cuántos leads calientes?" · P1 Command Center action queue unificada (citas hoy + tareas vencidas + leads calientes sin contacto + acciones de agentes P2) · reusa /api/asesor/dashboard · FAIL-OPEN por sección.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -649,6 +654,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # W7.AS.3 · tool #54 Conversation Agent (GHL-style · RAG KG + DISC + Plan Venta + cycle-closers)
         if tool_name == "query_conversation":
             return await _tool_query_conversation(db, params)
+        # P1 · tool #55 Command Center (action queue unificada + KPIs trend · reusa dashboard)
+        if tool_name == "query_command_center":
+            return await _tool_query_command_center(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3930,6 +3938,32 @@ async def _tool_query_conversation(db, params: Dict[str, Any]) -> Dict[str, Any]
     except Exception as e:
         log.warning(f"[asistente_tool] query_conversation: {e}")
         return {"error": str(e), "source": "conversation_engine"}
+
+
+async def _tool_query_command_center(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """P1 · Tool #55 · Command Center. Reusa el motor de /api/asesor/dashboard
+    (_build_action_queue + _build_kpis_trend). Modes: today | actions-count."""
+    try:
+        user_id = params.get("user_id")
+        if not user_id:
+            return {"error": "user_id requerido", "source": "command_center"}
+        mode = (params.get("mode") or "today").strip()
+        from routes.advisor import _build_action_queue, _build_kpis_trend
+        queue = await _build_action_queue(db, user_id)
+        if mode == "actions-count":
+            urgent = sum(1 for a in queue if a.get("priority") == 1)
+            return {"mode": mode, "total_actions": len(queue), "urgent": urgent, "source": "command_center"}
+        kpis = await _build_kpis_trend(db, user_id)
+        return {
+            "mode": "today",
+            "actions": queue[:10],
+            "total_actions": len(queue),
+            "kpis": kpis,
+            "source": "command_center",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_command_center: {e}")
+        return {"error": str(e), "source": "command_center"}
 
 
 # W5.FF4 register_feature marker · NO duplicate

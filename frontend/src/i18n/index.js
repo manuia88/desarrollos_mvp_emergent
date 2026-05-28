@@ -36,6 +36,8 @@ import esMXConversationConfidence from './locales/es-MX/conversation_confidence.
 import esMXConversationDrift from './locales/es-MX/conversation_drift.json';
 // F1 — Asesor Sidebar Reorg V2 namespace (separado · no toca common.json)
 import esMXAsesorSidebarV2 from './locales/es-MX/asesor_sidebar_v2.json';
+// P1 — Command Center namespace (separado · no toca common.json)
+import esMXCommandCenter from './locales/es-MX/command_center.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -54,6 +56,7 @@ i18n.use(initReactI18next).init({
       conversation_confidence: esMXConversationConfidence,
       conversation_drift: esMXConversationDrift,
       asesor_sidebar_v2: esMXAsesorSidebarV2,
+      command_center: esMXCommandCenter,
     },
 
     // Namespaced en-US
@@ -73,7 +76,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'translation',
 
   // Available namespaces
-  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost', 'conversation_ab_testing', 'conversation_confidence', 'conversation_drift', 'asesor_sidebar_v2'],
+  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost', 'conversation_ab_testing', 'conversation_confidence', 'conversation_drift', 'asesor_sidebar_v2', 'command_center'],
 
   interpolation: {
     escapeValue: false,  // React already escapes

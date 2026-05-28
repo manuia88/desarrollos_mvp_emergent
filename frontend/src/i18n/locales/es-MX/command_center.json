@@ -1,0 +1,56 @@
+{
+  "hero": {
+    "greeting_morning": "Buenos días",
+    "greeting_afternoon": "Buenas tardes",
+    "greeting_evening": "Buenas noches",
+    "actions_today_one": "{{count}} acción para hoy",
+    "actions_today_other": "{{count}} acciones para hoy",
+    "all_clear": "Todo al día"
+  },
+  "queue": {
+    "title": "Tu cola de acciones",
+    "priority_high": "Urgente",
+    "priority_mid": "Importante",
+    "priority_low": "Cuando puedas",
+    "empty_title": "Sin acciones pendientes",
+    "empty_subtitle": "El agente IA prospectará y te dejará tareas aquí pronto."
+  },
+  "action_type": {
+    "cita_hoy": "Cita de hoy",
+    "tarea_vencida": "Tarea vencida",
+    "lead_caliente": "Lead caliente",
+    "lead_sin_contacto": "Reactivar lead",
+    "agente": "Sugerido por IA"
+  },
+  "cta": {
+    "llamar": "Llamar",
+    "whatsapp": "WhatsApp",
+    "ver_lead": "Ver lead",
+    "completar": "Completar",
+    "descartar": "Descartar"
+  },
+  "kpi": {
+    "pipeline": "Pipeline activo",
+    "leads_calientes": "Leads calientes",
+    "cierres_mes": "Cierres del mes",
+    "comisiones": "Comisiones por cobrar",
+    "meta_mes": "Meta del mes",
+    "vs_week": "vs semana pasada"
+  },
+  "panels": {
+    "recent_leads": "Leads recientes",
+    "performance": "Tu desempeño",
+    "ranking_position": "Posición {{rank}}",
+    "briefing": "Briefing del día",
+    "no_leads": "Aún no tienes leads",
+    "no_briefing": "Sin briefing hoy",
+    "view_all": "Ver todos"
+  },
+  "quick_actions": {
+    "new_lead": "Nuevo lead",
+    "new_task": "Nueva tarea",
+    "new_cita": "Agendar cita",
+    "open_studio": "Abrir Studio"
+  },
+  "agent_badge": "{{agent}}"
+}
