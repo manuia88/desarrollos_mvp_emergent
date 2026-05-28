@@ -54,7 +54,11 @@
     "no_briefing": "Sin briefing hoy",
     "view_all": "Ver todos",
     "close_prob_suffix": "cierre",
-    "close_prob_tooltip": "Probabilidad estimada de cierre"
+    "close_prob_tooltip": "Probabilidad estimada de cierre",
+    "voice_listen": "Escuchar briefing",
+    "voice_loading": "Generando voz…",
+    "voice_playing": "Reproduciendo…",
+    "voice_unavailable": "Voz no disponible"
   },
   "quick_actions": {
     "new_lead": "Nuevo lead",

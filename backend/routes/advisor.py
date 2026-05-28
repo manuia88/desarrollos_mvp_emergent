@@ -1517,6 +1517,97 @@ async def daily_briefing(request: Request):
     return doc
 
 
+# ─── P4 · Voice Briefing (TTS) + Smart Digest ────────────────────────────────────
+# Rate-limit in-memory para digest send-now: 3/h/usuario (best-effort · FAIL-OPEN abierto).
+_digest_send_buckets: dict = {}
+
+
+def _check_digest_send_rate(user_id: str, limit: int = 3, window_s: int = 3600) -> bool:
+    import time
+    now = time.monotonic()
+    bucket = [t for t in _digest_send_buckets.get(user_id, []) if now - t < window_s]
+    if len(bucket) >= limit:
+        _digest_send_buckets[user_id] = bucket
+        return False
+    bucket.append(now)
+    _digest_send_buckets[user_id] = bucket
+    return True
+
+
+@router.post("/briefing/voice")
+async def briefing_voice(request: Request):
+    """P4 · Lee el briefing del día en voz. Reusa VoiceAtlaxEngine.synthesize (TTS ·
+    stub-aware sin ELEVENLABS · trackea ai_budget internamente). _assert owner ·
+    FAIL-OPEN: si TTS no disponible retorna {ok:False, reason} (200 · el botón se deshabilita)."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    # Texto del briefing del día (último doc). Si no hay, no sintetiza.
+    b = await db.asesor_briefings.find_one(
+        {"user_id": user.user_id}, {"_id": 0, "text": 1}, sort=[("date", -1)])
+    text = (b or {}).get("text", "").strip() if b else ""
+    if not text:
+        return {"ok": False, "reason": "no_briefing", "audio_id": None, "audio_url": None}
+    try:
+        from voice_atlax_engine import VoiceAtlaxEngine
+        engine = VoiceAtlaxEngine(db)
+        result = await engine.synthesize(text[:2500], session_token=f"asesor_briefing:{user.user_id}")
+        if not result.get("ok"):
+            return {"ok": False, "reason": result.get("error", "tts_unavailable"),
+                    "audio_id": None, "audio_url": None}
+        return {"ok": True, "audio_id": result.get("audio_id"),
+                "audio_url": result.get("audio_url_relative")}
+    except Exception as e:
+        import logging
+        logging.getLogger("dmx.advisor").warning(f"[briefing_voice] {e}")
+        return {"ok": False, "reason": "tts_error", "audio_id": None, "audio_url": None}
+
+
+@router.get("/digest/preview")
+async def digest_preview(request: Request):
+    """P4 · Arma el digest del día SIN enviarlo (para previsualizar). _assert owner."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    from asesor_digest_engine import build_daily_digest, get_digest_prefs
+    digest = await build_daily_digest(db, user.user_id, getattr(user, "tenant_id", None))
+    prefs = await get_digest_prefs(db, user.user_id)
+    return {"digest": digest, "prefs": prefs}
+
+
+@router.post("/digest/send-now")
+async def digest_send_now(request: Request):
+    """P4 · Envía el digest ahora (override · ignora dedup diario). Rate-limit 3/h."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    if not _check_digest_send_rate(user.user_id):
+        raise HTTPException(429, "Límite alcanzado: máximo 3 envíos por hora.")
+    from asesor_digest_engine import send_digest
+    return await send_digest(db, user.user_id, getattr(user, "tenant_id", None), force=True)
+
+
+@router.get("/digest/prefs")
+async def digest_get_prefs(request: Request):
+    """P4 · Lee preferencias de digest del asesor (toggle + canales). _assert owner."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    from asesor_digest_engine import get_digest_prefs
+    return await get_digest_prefs(db, user.user_id)
+
+
+@router.patch("/digest/prefs")
+async def digest_set_prefs(request: Request):
+    """P4 · Actualiza preferencias de digest (enabled + canales). _assert owner."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    try:
+        patch = await request.json()
+        if not isinstance(patch, dict):
+            patch = {}
+    except Exception:
+        patch = {}
+    from asesor_digest_engine import set_digest_prefs
+    return await set_digest_prefs(db, user.user_id, patch)
+
+
 # ─── Leaderboard + public profile ─────────────────────────────────────────────
 @router.get("/leaderboard")
 async def leaderboard(request: Request, scope: str = "global", limit: int = 20):

@@ -77,6 +77,15 @@ export const generateArgumentarioRag = (b) => post('/api/asesor/argumentario-rag
 // Briefing
 export const generateBriefing = () => post('/api/asesor/briefing/daily');
 
+// P4 · Voice Briefing (reusa voice synthesize · FAIL-OPEN {ok:false} si TTS no disponible)
+export const briefingVoice = () => post('/api/asesor/briefing/voice');
+
+// P4 · Smart Digest (preview / send-now / prefs · reusa email+whatsapp+prefs)
+export const getDigestPreview = () => j('/api/asesor/digest/preview');
+export const sendDigestNow = () => post('/api/asesor/digest/send-now');
+export const getDigestPrefs = () => j('/api/asesor/digest/prefs');
+export const setDigestPrefs = (body) => patch('/api/asesor/digest/prefs', body);
+
 // P3.A · Agent Workforce (consume endpoints P2 · agent_workforce diff=0)
 export const getAgents = () => j('/api/agent-workforce/agents');
 export const getAgentWorkforceStatus = () => j('/api/agent-workforce/status');

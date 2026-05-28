@@ -2048,6 +2048,14 @@ async def startup():
             logging.info("[P2] agent_workforce startup registered (cron 07:00 UTC)")
         except Exception as e:
             logging.warning(f"[P2] agent_workforce startup register failed: {e}")
+        # P4 · Smart Digest: indexes (dedup envíos) + daily 07:30 UTC cron (post-agentes)
+        try:
+            import asesor_digest_engine
+            await asesor_digest_engine.ensure_indexes(db)
+            asesor_digest_engine.register_cron(sched, db)
+            logging.info("[P4] asesor_digest startup registered (cron 07:30 UTC)")
+        except Exception as e:
+            logging.warning(f"[P4] asesor_digest startup register failed: {e}")
         # W6.MOV.4 — Marketing MCP: indexes (log + cache + scheduled)
         try:
             from marketing_mcp_engine import ensure_indexes as marketing_mcp_ensure_indexes

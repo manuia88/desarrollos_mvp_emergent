@@ -4,12 +4,13 @@
  * y FloatingQuickActions. NO recrea backend ni componentes existentes.
  * Activado por feature flag REACT_APP_COMMAND_CENTER='true' (else AsesorDashboard V1).
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   DollarSign, Flame, CheckCircle2, Wallet, Trophy, FileText, Users,
   UserPlus, ListPlus, CalendarPlus, Sparkles, Inbox, ChevronDown, ChevronRight,
+  Volume2, Loader2,
 } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
@@ -20,7 +21,10 @@ import AgentTeamCard from '../../components/asesor/command_center/AgentTeamCard'
 import {
   getDashboard, getLeaderboard, completeAction, dismissAction, archiveAction,
   restoreAction, getArchivedActions, generateBriefing, getCloseProbability,
+  briefingVoice,
 } from '../../api/advisor';
+
+const API_BASE = process.env.REACT_APP_BACKEND_URL;
 
 // Pill color por probabilidad de cierre (reusa paleta aurora).
 const probPill = (p) => {
@@ -62,6 +66,25 @@ export default function AsesorCommandCenter({ user, onLogout }) {
   const [queue, setQueue] = useState([]);
   const [hoverLead, setHoverLead] = useState(null);
   const [closeProbs, setCloseProbs] = useState({});
+  // P4 · Voice Briefing · estados idle|loading|playing|unavailable (FAIL-OPEN)
+  const [voiceState, setVoiceState] = useState('idle');
+  const audioRef = useRef(null);
+  const playBriefingVoice = useCallback(async () => {
+    if (voiceState === 'loading' || voiceState === 'playing') return;
+    setVoiceState('loading');
+    try {
+      const res = await briefingVoice();
+      if (!res?.ok || !res?.audio_url) { setVoiceState('unavailable'); return; }
+      const audio = new Audio(`${API_BASE}${res.audio_url}`);
+      audioRef.current = audio;
+      audio.onended = () => setVoiceState('idle');
+      audio.onerror = () => setVoiceState('unavailable');
+      await audio.play();
+      setVoiceState('playing');
+    } catch (_e) {
+      setVoiceState('unavailable');
+    }
+  }, [voiceState]);
   // Colapsar "Prioridades de hoy" · recuerda preferencia (localStorage)
   const [queueCollapsed, setQueueCollapsed] = useState(() => {
     try { return localStorage.getItem('dmx_cc_queue_collapsed') === '1'; } catch { return false; }
@@ -384,16 +407,34 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                     <FileText size={15} /> {t('panels.briefing')}
                   </h2>
                   {data?.briefing ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/asesor/briefings')}
-                      data-testid="briefing-card"
-                      className="w-full text-left p-3 rounded-xl bg-[rgba(var(--theme-rgb),0.08)] border border-[rgba(var(--theme-rgb),0.2)] hover:bg-[rgba(var(--theme-rgb),0.12)] transition-colors"
-                    >
-                      <p className="text-[var(--cream)] text-sm font-medium line-clamp-3">
-                        {data.briefing.titulo || data.briefing.title || data.briefing.text || t('panels.briefing')}
-                      </p>
-                    </button>
+                    <div className="rounded-xl bg-[rgba(var(--theme-rgb),0.08)] border border-[rgba(var(--theme-rgb),0.2)] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => navigate('/asesor/briefings')}
+                        data-testid="briefing-card"
+                        className="w-full text-left p-3 hover:bg-[rgba(var(--theme-rgb),0.12)] transition-colors"
+                      >
+                        <p className="text-[var(--cream)] text-sm font-medium line-clamp-3">
+                          {data.briefing.titulo || data.briefing.title || data.briefing.text || t('panels.briefing')}
+                        </p>
+                      </button>
+                      {/* P4 · Voice Briefing · ▶ escuchar (reusa TTS · FAIL-OPEN) */}
+                      <button
+                        type="button"
+                        onClick={playBriefingVoice}
+                        disabled={voiceState === 'loading' || voiceState === 'playing' || voiceState === 'unavailable'}
+                        data-testid="briefing-voice-btn"
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-t border-[rgba(var(--theme-rgb),0.15)] text-xs font-medium text-[var(--cream-2)] hover:bg-[rgba(var(--theme-rgb),0.1)] disabled:opacity-60 transition-colors"
+                      >
+                        {voiceState === 'loading'
+                          ? <><Loader2 size={13} className="animate-spin" /> {t('panels.voice_loading')}</>
+                          : voiceState === 'playing'
+                          ? <><Volume2 size={13} className="animate-pulse" /> {t('panels.voice_playing')}</>
+                          : voiceState === 'unavailable'
+                          ? <>{t('panels.voice_unavailable')}</>
+                          : <><Volume2 size={13} /> {t('panels.voice_listen')}</>}
+                      </button>
+                    </div>
                   ) : (
                     <p className="text-[var(--cream-3)] text-xs">{t('panels.no_briefing')}</p>
                   )}

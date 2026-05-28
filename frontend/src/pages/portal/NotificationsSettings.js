@@ -50,6 +50,12 @@ export default function NotificationsSettings({ user }) {
 
   const role = user?.role || '';
   const isSuperadmin = role === 'superadmin';
+  const isAsesor = ['advisor', 'asesor_admin'].includes(role);
+
+  // P4 · Smart Digest prefs (solo asesor · endpoints /api/asesor/digest/prefs)
+  const [digest, setDigest] = useState(null);
+  const [digestSaving, setDigestSaving] = useState(false);
+  const [digestToast, setDigestToast] = useState('');
 
   useEffect(() => {
     fetch(`${API}/api/notifications/preferences`, { credentials: 'include' })
@@ -57,6 +63,44 @@ export default function NotificationsSettings({ user }) {
       .then(d => { if (d?.preferences) setPrefs(d.preferences); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isAsesor) return;
+    fetch(`${API}/api/asesor/digest/prefs`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setDigest(d); })
+      .catch(() => {});
+  }, [isAsesor]);
+
+  const toggleDigestChannel = (ch) => {
+    setDigest(d => {
+      const chans = new Set(d?.asesor_digest_channels || []);
+      if (chans.has(ch)) chans.delete(ch); else chans.add(ch);
+      return { ...d, asesor_digest_channels: Array.from(chans) };
+    });
+  };
+
+  const saveDigest = async () => {
+    setDigestSaving(true);
+    try {
+      const r = await fetch(`${API}/api/asesor/digest/prefs`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          asesor_digest_enabled: !!digest?.asesor_digest_enabled,
+          asesor_digest_channels: digest?.asesor_digest_channels || ['email'],
+        }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setDigest(d);
+        setDigestToast('Resumen diario guardado');
+        setTimeout(() => setDigestToast(''), 3000);
+      }
+    } catch {}
+    setDigestSaving(false);
+  };
 
   const toggle = (cat, channel) => {
     setPrefs(p => ({
@@ -281,6 +325,80 @@ export default function NotificationsSettings({ user }) {
           ))}
         </div>
       </div>
+
+      {/* P4 · Smart Digest · resumen diario por WhatsApp/email (solo asesor) */}
+      {isAsesor && digest && (
+        <div
+          data-testid="digest-settings"
+          style={{
+            background: 'rgba(13,16,23,0.92)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: '18px 20px',
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+            <div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>
+                Resumen diario (Smart Digest)
+              </div>
+              <p style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 4, maxWidth: 420 }}>
+                Recibe cada mañana tu briefing + acciones de tus agentes IA + prioridades, aunque no abras la app.
+              </p>
+            </div>
+            <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                data-testid="digest-enabled-toggle"
+                checked={!!digest.asesor_digest_enabled}
+                onChange={() => setDigest(d => ({ ...d, asesor_digest_enabled: !d.asesor_digest_enabled }))}
+                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#6366F1' }}
+              />
+            </label>
+          </div>
+          {digest.asesor_digest_enabled && (
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>Canales:</span>
+              {['email', 'whatsapp'].map(ch => (
+                <label key={ch} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    data-testid={`digest-channel-${ch}`}
+                    checked={(digest.asesor_digest_channels || []).includes(ch)}
+                    onChange={() => toggleDigestChannel(ch)}
+                    style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#6366F1' }}
+                  />
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream)' }}>
+                    {ch === 'email' ? 'Email' : 'WhatsApp'}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14 }}>
+            <button
+              data-testid="digest-save-btn"
+              onClick={saveDigest}
+              disabled={digestSaving}
+              style={{
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
+                padding: '8px 18px', borderRadius: 9999,
+                background: 'rgba(99,102,241,0.2)', color: '#a5b4fc',
+                border: '1px solid #6366F1', cursor: digestSaving ? 'not-allowed' : 'pointer',
+                opacity: digestSaving ? 0.7 : 1,
+              }}
+            >
+              {digestSaving ? 'Guardando...' : 'Guardar resumen'}
+            </button>
+            {digestToast && (
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#4ADE80', fontWeight: 600 }}>
+                {digestToast}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Save button */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
