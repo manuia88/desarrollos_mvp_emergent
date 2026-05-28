@@ -129,7 +129,7 @@ function NavTier({ tier, collapsed, badges }) {
 }
 
 // ─── Main PortalLayout ─────────────────────────────────────────────────────────
-function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot }) {
+function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot, renderSidebar }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -259,7 +259,9 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
     navigate('/');
   }, [onLogout, navigate]);
 
-  const sidebarContent = (
+  // F1 · render-prop opcional (Asesor Sidebar V2). undefined = layout V1 idéntico
+  // para todos los demás roles (cero cambio de comportamiento).
+  const defaultSidebarContent = (
     <>
       {/* Logo area */}
       <div className={`flex items-center ${collapsed ? 'justify-center px-2' : 'px-4'} py-5 border-b border-[rgba(240,235,224,0.08)] mb-3`}>
@@ -323,6 +325,10 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
     </>
   );
 
+  const sidebarContent = renderSidebar
+    ? renderSidebar({ collapsed, badges, handleLogout, user, role })
+    : defaultSidebarContent;
+
   return (
     <div className="flex h-screen bg-[var(--navy)] overflow-hidden" data-testid="portal-layout">
       {/* Presentation Mode Badge */}
@@ -345,7 +351,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
 
       {/* Desktop sidebar */}
       <aside
-        className={`sidebar-portal hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${collapsed ? 'w-[56px]' : 'w-[220px]'}`}
+        className={`sidebar-portal hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${renderSidebar ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
         data-testid="portal-sidebar"
         aria-label="Barra lateral de navegación"
       >

@@ -1,0 +1,93 @@
+{
+  "search_placeholder": "Buscar función…",
+  "no_results": "Sin resultados",
+  "user_menu": {
+    "profile": "Mi perfil",
+    "config": "Configuración",
+    "logout": "Cerrar sesión"
+  },
+  "inicio": {
+    "label": "Inicio",
+    "description": "Tu vista del día · KPIs · próximas citas · leads calientes"
+  },
+  "mis-leads": {
+    "label": "Mis Leads",
+    "description": "Todos tus prospectos · filtros · scoring",
+    "children": {
+      "contactos": "Lista de leads",
+      "busquedas": "Búsquedas guardadas",
+      "lead-aliases": "Conectar fuentes"
+    }
+  },
+  "agenda": {
+    "label": "Agenda",
+    "description": "Citas confirmadas + tareas hoy y semana",
+    "children": {
+      "citas": "Citas",
+      "tareas": "Tareas"
+    }
+  },
+  "inventario": {
+    "label": "Inventario",
+    "description": "Desarrollos + tus captaciones + Mini Market público",
+    "children": {
+      "desarrollos": "Desarrollos",
+      "captaciones": "Mis captaciones",
+      "mini-market": "Mini Market",
+      "leads-dev": "Leads de developers"
+    }
+  },
+  "conversaciones-ia": {
+    "label": "Conversaciones IA",
+    "description": "Agente IA califica leads · bandeja Slack-style · handoff",
+    "children": {
+      "playground": "Playground IA",
+      "inbox": "Bandeja IA"
+    }
+  },
+  "automatizaciones": {
+    "label": "Automatizaciones",
+    "description": "Workflows que se disparan solos + plantillas marketplace",
+    "children": {
+      "workflows": "Mis workflows",
+      "marketplace": "Marketplace plantillas"
+    }
+  },
+  "studio": {
+    "label": "Studio Marketing",
+    "description": "Crea videos · carruseles · landings · brand kit con IA",
+    "children": {
+      "studio-director": "Director IA",
+      "studio-brand-kit": "Brand Kit",
+      "studio-assets": "Assets · Mood Board",
+      "studio-import": "Importar Listing",
+      "studio-video": "Videos",
+      "studio-video-standalone": "Video Standalone",
+      "studio-carruseles": "Carruseles",
+      "studio-auto-content": "Auto-Content",
+      "studio-landings": "Landing Pages"
+    }
+  },
+  "anuncios": {
+    "label": "Anuncios Meta",
+    "description": "Campañas FB + IG · presupuesto IA · ROI",
+    "children": {
+      "social-ads-connect": "Conectar cuenta",
+      "social-ads-campaigns": "Campañas"
+    }
+  },
+  "performance": {
+    "label": "Mi Performance",
+    "description": "Comisiones · ranking · SOC · análisis comparativo",
+    "children": {
+      "comisiones": "Comisiones",
+      "ranking": "Ranking equipo",
+      "soc": "SOC Certificación",
+      "cma": "CMA · Análisis",
+      "briefings": "Briefings PDF",
+      "briefing-traffic": "Tráfico + Clima",
+      "operaciones": "Métricas equipo",
+      "links-tracking": "Links tracking"
+    }
+  }
+}

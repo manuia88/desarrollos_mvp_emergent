@@ -1,14 +1,19 @@
 // AdvisorLayout — backward-compat wrapper around PortalLayout.
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import { PortalLayout } from '../shared/PortalLayout';
 import OnboardingGate from './OnboardingGate';
 import CitaNotifBanner from '../shared/CitaNotifBanner';
 import ArgumentarioDrawer from '../shared/ArgumentarioDrawer';
+import AsesorSidebarV2 from '../asesor/AsesorSidebarV2';
 import * as api from '../../api/advisor';
 import { Z } from '../../styles/zIndex';
 
 const ROLES_OK = new Set(['advisor', 'asesor_admin', 'superadmin']);
+
+// F1 · feature flag · 'true' activa sidebar reorganizado V2 (10 grupos), else V1.
+// undefined/'false' → comportamiento V1 idéntico (rollback instant).
+const SIDEBAR_V2 = process.env.REACT_APP_SIDEBAR_V2 === 'true';
 
 export default function AdvisorLayout({ user, onLogout, children }) {
   const loc = useLocation();
@@ -44,7 +49,14 @@ export default function AdvisorLayout({ user, onLogout, children }) {
   const needsOnboarding = profile && profile.profile_completed === false;
 
   return (
-    <PortalLayout role={user.role} user={user} onLogout={onLogout}>
+    <PortalLayout
+      role={user.role}
+      user={user}
+      onLogout={onLogout}
+      renderSidebar={SIDEBAR_V2
+        ? (ctx => <AsesorSidebarV2 user={ctx.user} onLogout={ctx.handleLogout} badges={ctx.badges} />)
+        : undefined}
+    >
       <div data-testid="advisor-main" style={{ padding: '22px 28px 80px', maxWidth: 1400 }}>
         <CitaNotifBanner />
         {children}
