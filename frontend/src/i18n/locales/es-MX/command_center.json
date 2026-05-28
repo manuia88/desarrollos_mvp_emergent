@@ -44,7 +44,9 @@
     "briefing": "Briefing del día",
     "no_leads": "Aún no tienes leads",
     "no_briefing": "Sin briefing hoy",
-    "view_all": "Ver todos"
+    "view_all": "Ver todos",
+    "close_prob_suffix": "cierre",
+    "close_prob_tooltip": "Probabilidad estimada de cierre"
   },
   "quick_actions": {
     "new_lead": "Nuevo lead",

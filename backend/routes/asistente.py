@@ -29,6 +29,12 @@ log = logging.getLogger("dmx.routes_asistente")
 # W4.4E.5.2 · Rate limit capture-lead: 3 leads/hora/ip_hash
 _lead_capture_buckets: Dict[str, list] = defaultdict(list)
 
+# P3.B · Rate limit Command Bar IA: 20 preguntas/min/usuario
+_ask_buckets: Dict[str, list] = defaultdict(list)
+# P3.B · Sesión Atlax por usuario del dashboard (reuso de sesión · NO recrea engine).
+#   En memoria · si se pierde (restart) se recrea de forma transparente.
+_dashboard_sessions: Dict[str, str] = {}
+
 
 def _check_capture_rate(ip_hash: str, limit: int = 3, window_s: int = 3600) -> bool:
     import time
@@ -37,6 +43,16 @@ def _check_capture_rate(ip_hash: str, limit: int = 3, window_s: int = 3600) -> b
     if len(_lead_capture_buckets[ip_hash]) >= limit:
         return False
     _lead_capture_buckets[ip_hash].append(now)
+    return True
+
+
+def _check_ask_rate(user_id: str, limit: int = 20, window_s: int = 60) -> bool:
+    import time
+    now = time.monotonic()
+    _ask_buckets[user_id] = [t for t in _ask_buckets[user_id] if now - t < window_s]
+    if len(_ask_buckets[user_id]) >= limit:
+        return False
+    _ask_buckets[user_id].append(now)
     return True
 
 
@@ -65,6 +81,11 @@ class CaptureLeadIn(BaseModel):
     email: Optional[str] = None
     mensaje: Optional[str] = None
     source: Optional[str] = None  # override: "caya_bubble" o "asistente_publico" (default)
+
+
+class AskIn(BaseModel):
+    message: str
+    context: Optional[str] = None  # contexto opcional (ej: página/mapa actual)
 
 
 # ─── Public endpoints ─────────────────────────────────────────────────────────
@@ -140,6 +161,75 @@ async def send_message(session_token: str, body: SendMessageIn, request: Request
         log.error(f"[asistente] send_message failed session={session_token}: {e}")
         raise HTTPException(500, "Error al procesar mensaje")
     return JSONResponse(result, status_code=201)
+
+
+# ─── P3.B · Command Bar IA · authenticated "preguntar a Atlax" ──────────────────
+@router.post("/ask")
+async def ask(body: AskIn, request: Request):
+    """Pregunta autenticada a Atlax desde la Command Bar (UniversalSearch ⌘K).
+
+    THIN WRAPPER sobre AsistenteEngine (54 tools) · NO modifica el engine.
+    - _require_user: cualquier rol autenticado (Atlax es global · multi-rol).
+    - rate-limit 20/min/usuario · ai_budget se trackea DENTRO del engine.chat (reuso).
+    - Reusa/crea una sesión Atlax por usuario (en memoria) para mantener contexto.
+    - FAIL-OPEN: ante error del engine retorna respuesta amable (no 500).
+    Retorna: {reply, tools_used[], tier, simulated, ok}.
+    """
+    # _require_user — autenticación (cualquier rol)
+    from server import get_current_user
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(401, "No autenticado")
+    uid = getattr(user, "user_id", None) or getattr(user, "email", None) or "anon"
+
+    msg = (body.message or "").strip()
+    if not msg:
+        raise HTTPException(422, "Mensaje vacío")
+
+    # rate-limit 20/min/usuario
+    if not _check_ask_rate(uid):
+        raise HTTPException(429, "Demasiadas preguntas en poco tiempo. Intenta en un momento.")
+
+    db = request.app.state.db
+    engine = AsistenteEngine(db)
+
+    async def _new_session() -> str:
+        ip = _extract_ip(request)
+        ua = request.headers.get("user-agent", "")
+        res = await engine.start_session(ip, ua, referral_source=f"dashboard:{getattr(user, 'role', '') or ''}")
+        return res.get("session_token")
+
+    try:
+        token = _dashboard_sessions.get(uid)
+        if not token:
+            token = await _new_session()
+            _dashboard_sessions[uid] = token
+        try:
+            result = await engine.chat(token, msg, map_context=body.context or "")
+        except (ValueError, AsistenteSessionCapError):
+            # sesión expirada/llena → recrear una vez y reintentar
+            token = await _new_session()
+            _dashboard_sessions[uid] = token
+            result = await engine.chat(token, msg, map_context=body.context or "")
+    except AsistenteRateLimitError as e:
+        raise HTTPException(429, str(e))
+    except AsistenteDisabledError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:  # FAIL-OPEN
+        log.error(f"[asistente] ask failed user={uid}: {e}")
+        return JSONResponse({
+            "ok": False,
+            "reply": "Atlax no está disponible en este momento. Intenta de nuevo en un momento.",
+            "tools_used": [],
+        })
+
+    return JSONResponse({
+        "ok": True,
+        "reply": result.get("assistant_message", ""),
+        "tools_used": result.get("tool_calls") or [],
+        "tier": result.get("tier"),
+        "simulated": result.get("simulated", False),
+    })
 
 
 @router.post("/sessions/{session_token}/capture-lead", status_code=201)

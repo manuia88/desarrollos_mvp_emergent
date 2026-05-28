@@ -6,10 +6,20 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Clock, Building2, MapPin, Users, Home, Briefcase, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Search, X, Clock, Building2, MapPin, Users, Home, Briefcase, ArrowRight, Sparkles, Wrench } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const STORAGE_KEY = 'dmx_recent_searches';
+
+// P3.B · Command Bar IA — heurística: ¿la query es una PREGUNTA o COMANDO?
+// Prefijos interrogativos/imperativos es-MX + signos de pregunta.
+const ASK_RE = /^(¿|cómo|como|qué|que|cuál|cual|cuándo|cuando|quién|quien|dónde|donde|por qué|porque|muéstrame|muestrame|enséñame|ensename|agéndame|agendame|agenda|genera|créame|creame|crea|dame|hazme|haz|escribe|redacta|recomiéndame|recomiendame|sugiéreme|sugiereme|necesito|quiero|ayúdame|ayudame|llama|envía|envia|manda|resume|analiza|compara)\b/i;
+function looksLikeQuestion(q) {
+  if (!q) return false;
+  const s = q.trim();
+  return ASK_RE.test(s) || s.includes('?') || s.includes('¿');
+}
 const TYPE_ICONS = {
   development: Building2,
   colonia:     MapPin,
@@ -39,6 +49,7 @@ function addRecent(q) {
 
 export function UniversalSearch({ onClose, user }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const inputRef = useRef(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -46,6 +57,17 @@ export function UniversalSearch({ onClose, user }) {
   const [recent, setRecent] = useState(getRecent());
   const [activeIdx, setActiveIdx] = useState(-1);
   const debounceRef = useRef(null);
+
+  // P3.B · estado modo "preguntar a Atlax" (aditivo · no afecta búsqueda entidad)
+  const [atlaxLoading, setAtlaxLoading] = useState(false);
+  const [atlaxAnswer, setAtlaxAnswer] = useState(null);   // {reply, tools_used[]}
+  const [atlaxError, setAtlaxError] = useState(false);
+
+  // Mostrar fila Atlax: pregunta/comando explícito, o texto largo sin match de entidad.
+  const q = query.trim();
+  const isQuestion = looksLikeQuestion(q);
+  const longNoMatch = !loading && results.length === 0 && q.length > 15;
+  const showAtlax = q.length >= 2 && (isQuestion || longNoMatch);
 
   // Group results by type
   const grouped = results.reduce((acc, r) => {
@@ -98,6 +120,7 @@ export function UniversalSearch({ onClose, user }) {
       e.preventDefault();
       const item = flatList[activeIdx];
       if (item) navigateTo(item);
+      else if (showAtlax) askAtlax();          // P3.B · pregunta → Atlax
       else if (query.trim()) searchRecent(query);
     }
   };
@@ -114,6 +137,35 @@ export function UniversalSearch({ onClose, user }) {
     setRecent(getRecent());
   };
 
+  // P3.B · Preguntar a Atlax — reusa endpoint /api/asistente/ask (54 tools · FAIL-OPEN).
+  const askAtlax = async () => {
+    const text = query.trim();
+    if (!text || atlaxLoading) return;
+    setAtlaxLoading(true);
+    setAtlaxError(false);
+    setAtlaxAnswer(null);
+    addRecent(text);
+    setRecent(getRecent());
+    try {
+      const res = await fetch(`${API}/api/asistente/ask`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok === false && !data.reply) setAtlaxError(true);
+        else setAtlaxAnswer({ reply: data.reply || '', tools_used: data.tools_used || [] });
+      } else {
+        setAtlaxError(true);
+      }
+    } catch (_) {
+      setAtlaxError(true);
+    }
+    setAtlaxLoading(false);
+  };
+
   return (
     <div
       className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh]"
@@ -128,7 +180,7 @@ export function UniversalSearch({ onClose, user }) {
           <input
             ref={inputRef}
             value={query}
-            onChange={e => { setQuery(e.target.value); setActiveIdx(-1); }}
+            onChange={e => { setQuery(e.target.value); setActiveIdx(-1); setAtlaxAnswer(null); setAtlaxError(false); }}
             onKeyDown={handleKey}
             placeholder="Buscar proyectos, colonias, leads…"
             className="flex-1 bg-transparent text-[var(--cream)] placeholder-[rgba(240,235,224,0.3)] outline-none text-sm"
@@ -144,7 +196,51 @@ export function UniversalSearch({ onClose, user }) {
 
         {/* Results */}
         <div className="max-h-[60vh] overflow-y-auto">
-          {query.length >= 2 && results.length === 0 && !loading && (
+          {/* P3.B · Fila "Preguntar a Atlax" (aditiva · arriba de los resultados) */}
+          {showAtlax && (
+            <div className="px-2 pt-2">
+              <button
+                onClick={askAtlax}
+                disabled={atlaxLoading}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left border border-[rgba(124,108,255,0.35)] bg-[rgba(124,108,255,0.12)] hover:bg-[rgba(124,108,255,0.2)] transition-colors disabled:opacity-60"
+                data-testid="search-ask-atlax"
+              >
+                <Sparkles size={15} className="text-[#a99bff] shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[var(--cream)] text-sm font-medium">{t('commandBar.askAtlax', '🤖 Preguntar a Atlax')}</p>
+                  <p className="text-[rgba(240,235,224,0.5)] text-xs truncate">"{q}"</p>
+                </div>
+                {atlaxLoading
+                  ? <span className="w-4 h-4 border-2 border-[rgba(169,155,255,0.3)] border-t-[#a99bff] rounded-full animate-spin shrink-0" />
+                  : <ArrowRight size={12} className="text-[rgba(169,155,255,0.6)] shrink-0" />}
+              </button>
+
+              {atlaxLoading && !atlaxAnswer && (
+                <p className="px-3 py-2 text-xs text-[rgba(240,235,224,0.4)]">{t('commandBar.thinking', 'Atlax está pensando…')}</p>
+              )}
+
+              {atlaxAnswer && (
+                <div className="mt-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] p-3" data-testid="atlax-answer">
+                  <p className="text-[var(--cream)] text-sm whitespace-pre-wrap leading-relaxed">{atlaxAnswer.reply}</p>
+                  {atlaxAnswer.tools_used && atlaxAnswer.tools_used.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-[rgba(255,255,255,0.06)] flex flex-wrap items-center gap-1.5">
+                      <Wrench size={11} className="text-[rgba(240,235,224,0.35)]" />
+                      <span className="text-[10px] uppercase tracking-wider text-[rgba(240,235,224,0.35)] mr-1">{t('commandBar.toolsUsed', 'Herramientas usadas')}</span>
+                      {atlaxAnswer.tools_used.map((tool, i) => (
+                        <span key={i} className="px-1.5 py-0.5 rounded bg-[rgba(124,108,255,0.15)] text-[10px] text-[#a99bff]">{tool}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {atlaxError && (
+                <p className="px-3 py-2 text-xs text-[#ff8f8f]" data-testid="atlax-error">{t('commandBar.error', 'Atlax no pudo responder. Intenta de nuevo.')}</p>
+              )}
+            </div>
+          )}
+
+          {query.length >= 2 && results.length === 0 && !loading && !showAtlax && (
             <div className="px-4 py-8 text-center text-[rgba(240,235,224,0.4)] text-sm">
               Sin resultados para "{query}"
             </div>

@@ -26,6 +26,13 @@
     "overlay_cta": "Abrir reporte completo",
     "pill_updated": "Lectura actualizada hace 4 horas"
   },
+  "commandBar": {
+    "askAtlax": "🤖 Preguntar a Atlax",
+    "thinking": "Atlax está pensando…",
+    "toolsUsed": "Herramientas usadas",
+    "error": "Atlax no pudo responder. Intenta de nuevo.",
+    "askHint": "preguntar a Atlax"
+  },
   "search": {
     "placeholder": "Barrio, alcaldía o característica — p. ej. \"Condesa con azotea\"",
     "tab_buy": "Comprar",

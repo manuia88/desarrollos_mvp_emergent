@@ -73,6 +73,14 @@ export const generateArgumentarioRag = (b) => post('/api/asesor/argumentario-rag
 // Briefing
 export const generateBriefing = () => post('/api/asesor/briefing/daily');
 
+// P3.A · Agent Workforce (consume endpoints P2 · agent_workforce diff=0)
+export const getAgents = () => j('/api/agent-workforce/agents');
+export const getAgentWorkforceStatus = () => j('/api/agent-workforce/status');
+export const runAgentsNow = () => post('/api/agent-workforce/run-now');
+
+// P3.A · Close probability por lead (reusa close_probability P2 · endpoint advisor nuevo · FAIL-OPEN)
+export const getCloseProbability = (id) => j(`/api/asesor/contactos/${id}/close-probability`);
+
 // Leaderboard + perfil público
 export const getLeaderboard = () => j('/api/asesor/leaderboard');
 export const getPublicProfile = (slug) => j(`/api/asesor/perfil-publico/${slug}`);

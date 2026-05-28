@@ -28,7 +28,7 @@ import {
   Building2, Briefcase, Store, Megaphone, MessageCircle, MessageSquare,
   GitMerge, Layers, Sparkles, Package, FolderOpen, FolderUp, Video,
   Share2, BarChart3, DollarSign, Trophy, ShieldCheck, FileText, MapPin,
-  Activity, Link,
+  Activity, Link, Bot,
 } from 'lucide-react';
 
 /** @type {NavGroupV2[]} */
@@ -83,6 +83,7 @@ export const ASESOR_NAV_V2 = [
     key: 'automatizaciones', to: '/portal/asesor/workflows', label: 'Automatizaciones', Icon: GitMerge,
     description: 'Workflows que se disparan solos + plantillas marketplace',
     children: [
+      { key: 'agents',      to: '/portal/asesor/agents',                 label: 'Agentes IA',             Icon: Bot },
       { key: 'workflows',   to: '/portal/asesor/workflows',              label: 'Mis workflows',          Icon: GitMerge },
       { key: 'marketplace', to: '/portal/asesor/marketplace-templates',  label: 'Marketplace plantillas', Icon: Layers },
     ],

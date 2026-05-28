@@ -38,6 +38,8 @@ import esMXConversationDrift from './locales/es-MX/conversation_drift.json';
 import esMXAsesorSidebarV2 from './locales/es-MX/asesor_sidebar_v2.json';
 // P1 — Command Center namespace (separado · no toca common.json)
 import esMXCommandCenter from './locales/es-MX/command_center.json';
+// P3.A — Agentes IA Workforce namespace (separado · no toca common.json)
+import esMXAgentsWorkforce from './locales/es-MX/agents_workforce.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -57,6 +59,7 @@ i18n.use(initReactI18next).init({
       conversation_drift: esMXConversationDrift,
       asesor_sidebar_v2: esMXAsesorSidebarV2,
       command_center: esMXCommandCenter,
+      agents_workforce: esMXAgentsWorkforce,
     },
 
     // Namespaced en-US
@@ -76,7 +79,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'translation',
 
   // Available namespaces
-  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost', 'conversation_ab_testing', 'conversation_confidence', 'conversation_drift', 'asesor_sidebar_v2', 'command_center'],
+  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost', 'conversation_ab_testing', 'conversation_confidence', 'conversation_drift', 'asesor_sidebar_v2', 'command_center', 'agents_workforce'],
 
   interpolation: {
     escapeValue: false,  // React already escapes

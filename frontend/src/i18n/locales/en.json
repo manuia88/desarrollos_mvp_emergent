@@ -26,6 +26,13 @@
     "overlay_cta": "Open full report",
     "pill_updated": "Reading refreshed 4 hours ago"
   },
+  "commandBar": {
+    "askAtlax": "🤖 Ask Atlax",
+    "thinking": "Atlax is thinking…",
+    "toolsUsed": "Tools used",
+    "error": "Atlax couldn't respond. Please try again.",
+    "askHint": "ask Atlax"
+  },
   "search": {
     "placeholder": "Neighborhood, borough or feature — e.g. \"Condesa with rooftop\"",
     "tab_buy": "Buy",

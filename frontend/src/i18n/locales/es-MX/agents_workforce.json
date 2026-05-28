@@ -1,0 +1,40 @@
+{
+  "page": {
+    "title": "Tus Agentes IA",
+    "subtitle": "5 agentes trabajan de fondo y llenan tu cola de acciones automáticamente.",
+    "run_all": "Ejecutar todos ahora",
+    "running": "Ejecutando…",
+    "run_success_one": "Listo · {{count}} acción generada",
+    "run_success_other": "Listo · {{count}} acciones generadas",
+    "run_none": "Listo · sin acciones nuevas por ahora",
+    "run_error": "No se pudo ejecutar. Intenta de nuevo.",
+    "rate_limited": "Límite alcanzado: máximo 3 ejecuciones por hora.",
+    "last_run": "Último run",
+    "never_run": "Aún no corre",
+    "run_agent": "Ejecutar",
+    "unavailable": "Próximamente",
+    "pending_one": "{{count}} acción en tu cola",
+    "pending_other": "{{count}} acciones en tu cola",
+    "generated_one": "{{count}} generada en el último run",
+    "generated_other": "{{count}} generadas en el último run",
+    "recent_log_title": "Acciones recientes de tus agentes",
+    "recent_log_empty": "Tus agentes aún no han generado acciones. Ejecútalos para empezar.",
+    "view_in_queue": "Ver en tu cola →"
+  },
+  "agents": {
+    "prospector": { "role": "Prospección", "desc": "Detecta leads nuevos sin calificar y te dice el siguiente paso." },
+    "nurturer":   { "role": "Nutrición",   "desc": "Reactiva leads tibios que llevan días en silencio." },
+    "closer":     { "role": "Cierre",      "desc": "Prioriza los leads con mayor probabilidad de cierre." },
+    "coach":      { "role": "Coaching",    "desc": "Te sugiere mejoras en tu proceso y argumentario." },
+    "analyst":    { "role": "Análisis",    "desc": "Detecta tendencias y anomalías en tu pipeline." }
+  },
+  "team_card": {
+    "title": "Tu equipo IA",
+    "actions_one": "{{count}} acción pendiente",
+    "actions_other": "{{count}} acciones pendientes",
+    "no_actions": "Sin acciones pendientes",
+    "last_run": "último run {{time}}",
+    "never_run": "aún no corre",
+    "view_detail": "Ver detalle →"
+  }
+}

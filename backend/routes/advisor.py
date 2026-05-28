@@ -652,6 +652,22 @@ async def get_contacto(cid: str, request: Request):
     return c
 
 
+@router.get("/contactos/{cid}/close-probability")
+async def get_close_probability(cid: str, request: Request):
+    """P3.A · Probabilidad de cierre de un lead. Reusa close_probability (P2) ·
+    _assert owner · FAIL-OPEN (prob None) si el motor no está disponible."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1})
+    if not c:
+        raise HTTPException(404, "No encontrado")
+    try:
+        from close_probability import close_probability
+        return await close_probability(db, cid)
+    except Exception:
+        return {"prob": None, "factors": [], "confidence": "BAJA"}
+
+
 @router.patch("/contactos/{cid}")
 async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
     user = await require_advisor(request)

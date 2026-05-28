@@ -16,7 +16,19 @@ import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
 import ActionCard from '../../components/asesor/command_center/ActionCard';
 import KpiCard from '../../components/asesor/command_center/KpiCard';
 import LeadInlinePreview from '../../components/asesor/command_center/LeadInlinePreview';
-import { getDashboard, getLeaderboard, completeAction, dismissAction } from '../../api/advisor';
+import AgentTeamCard from '../../components/asesor/command_center/AgentTeamCard';
+import {
+  getDashboard, getLeaderboard, completeAction, dismissAction,
+  generateBriefing, getCloseProbability,
+} from '../../api/advisor';
+
+// Pill color por probabilidad de cierre (reusa paleta aurora).
+const probPill = (p) => {
+  if (p == null) return null;
+  if (p >= 70) return 'text-emerald-300 bg-[rgba(16,185,129,0.12)] border-[rgba(16,185,129,0.25)]';
+  if (p >= 40) return 'text-amber-300 bg-[rgba(245,158,11,0.12)] border-[rgba(245,158,11,0.25)]';
+  return 'text-[var(--cream-3)] bg-[rgba(240,235,224,0.06)] border-[rgba(240,235,224,0.12)]';
+};
 
 // Ids sintéticos (heurística del dashboard) vs acciones reales de agentes (collection).
 const SYNTHETIC_PREFIXES = ['cita_', 'tarea_', 'lead_hot_', 'lead_cold_'];
@@ -51,6 +63,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [queue, setQueue] = useState([]);
   const [hoverLead, setHoverLead] = useState(null);
+  const [closeProbs, setCloseProbs] = useState({});
 
   useEffect(() => {
     let alive = true;
@@ -64,6 +77,28 @@ export default function AsesorCommandCenter({ user, onLogout }) {
         setData(dash);
         setQueue(dash.action_queue || []);
         setLeaders(Array.isArray(lb) ? lb.slice(0, 5) : []);
+
+        // Briefing auto: si no hay briefing hoy, genéralo solo (reusa daily_briefing · FAIL-OPEN).
+        if (!dash.briefing) {
+          generateBriefing()
+            .then((b) => { if (alive && b) setData((prev) => ({ ...(prev || {}), briefing: b })); })
+            .catch(() => {});
+        }
+
+        // Close prob por lead reciente (lazy · reusa close_probability · FAIL-OPEN por lead).
+        const leads = (dash.leads_recientes || []).filter((l) => l?.id);
+        if (leads.length) {
+          Promise.all(leads.map((l) =>
+            getCloseProbability(l.id)
+              .then((r) => [l.id, r?.prob])
+              .catch(() => [l.id, null]),
+          )).then((pairs) => {
+            if (!alive) return;
+            const map = {};
+            pairs.forEach(([id, prob]) => { if (prob != null) map[id] = prob; });
+            setCloseProbs(map);
+          });
+        }
       } catch (_e) {
         if (alive) setData({});
       } finally {
@@ -171,6 +206,11 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                 Icon={Wallet} onClick={() => navigate('/asesor/comisiones')} />
             </div>
 
+            {/* P3.A · mini-resumen del equipo IA (consume /api/agent-workforce/status) */}
+            <div className="mb-6">
+              <AgentTeamCard />
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Action queue (col principal) */}
               <section className="lg:col-span-2">
@@ -217,12 +257,23 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                           <span className="text-[var(--cream-2)] text-sm truncate">
                             {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Lead'}
                           </span>
-                          <BuyerScoreBadge
-                            score={lead.buyer_score?.value}
-                            tier={lead.buyer_score?.tier}
-                            delta={lead.buyer_score?.delta_pct}
-                            size="sm"
-                          />
+                          <span className="flex items-center gap-1.5 shrink-0">
+                            {closeProbs[lead.id] != null && (
+                              <span
+                                data-testid={`close-prob-${lead.id}`}
+                                title={t('panels.close_prob_tooltip')}
+                                className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${probPill(closeProbs[lead.id])}`}
+                              >
+                                {closeProbs[lead.id]}% {t('panels.close_prob_suffix')}
+                              </span>
+                            )}
+                            <BuyerScoreBadge
+                              score={lead.buyer_score?.value}
+                              tier={lead.buyer_score?.tier}
+                              delta={lead.buyer_score?.delta_pct}
+                              size="sm"
+                            />
+                          </span>
                         </button>
                         {hoverLead === lead.id && <LeadInlinePreview lead={lead} />}
                       </div>
@@ -258,8 +309,8 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                       data-testid="briefing-card"
                       className="w-full text-left p-3 rounded-xl bg-[rgba(var(--theme-rgb),0.08)] border border-[rgba(var(--theme-rgb),0.2)] hover:bg-[rgba(var(--theme-rgb),0.12)] transition-colors"
                     >
-                      <p className="text-[var(--cream)] text-sm font-medium line-clamp-2">
-                        {data.briefing.titulo || data.briefing.title || t('panels.briefing')}
+                      <p className="text-[var(--cream)] text-sm font-medium line-clamp-3">
+                        {data.briefing.titulo || data.briefing.title || data.briefing.text || t('panels.briefing')}
                       </p>
                     </button>
                   ) : (
