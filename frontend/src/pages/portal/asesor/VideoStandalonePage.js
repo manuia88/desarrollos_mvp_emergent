@@ -10,6 +10,7 @@ import HookPredictorModal from '../../../components/hook/HookPredictorModal';
 import VideoQueueRobust from '../../../components/video/VideoQueueRobust';
 import VideoExportModal from '../../../components/video/VideoExportModal';
 import { generateStandaloneVideo } from '../../../api/videoStandalone';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -39,7 +40,7 @@ const inputStyle = {
   border: '1px solid rgba(240,235,224,0.12)', color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none',
 };
 
-export default function VideoStandalonePage() {
+function VideoStandalonePageBody() {
   const { t } = useTranslation('common');
   const [script, setScript] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -281,5 +282,14 @@ export default function VideoStandalonePage() {
       <HookPredictorModal open={hookModalOpen} onClose={() => setHookModalOpen(false)} initialText={script} />
       <VideoExportModal open={!!exportVideo} onClose={() => setExportVideo(null)} video={exportVideo} />
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function VideoStandalonePage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <VideoStandalonePageBody {...props} />
+    </PortalLayout>
   );
 }

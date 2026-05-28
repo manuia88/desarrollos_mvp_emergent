@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { listWorkflowRuns, getWorkflow } from '../../../api/workflows';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -16,7 +17,7 @@ const STATUS_COLORS = {
   failed: '#EF4444',
 };
 
-export default function WorkflowHistoryPage() {
+function WorkflowHistoryPageBody() {
   const { t } = useTranslation('common');
   const { workflowId } = useParams();
   const navigate = useNavigate();
@@ -119,5 +120,14 @@ export default function WorkflowHistoryPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function WorkflowHistoryPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <WorkflowHistoryPageBody {...props} />
+    </PortalLayout>
   );
 }

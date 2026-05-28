@@ -34,8 +34,14 @@ import ImpersonationBanner from '../superadmin/ImpersonationBanner';
 import CommandPaletteExtended from '../superadmin/CommandPaletteExtended';
 import { FounderPrefetchProvider } from '../../contexts/FounderPrefetchContext';
 import { disputes_pending_count as fetchDisputesPendingCount } from '../../api/badges';
+import AsesorSidebarV2 from '../asesor/AsesorSidebarV2';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// F1.5 · selección de sidebar centralizada (punto único de verdad).
+// asesor + flag → AsesorSidebarV2 · cualquier otro rol → nav default (V1).
+const SIDEBAR_V2 = process.env.REACT_APP_SIDEBAR_V2 === 'true';
+const ASESOR_ROLES = new Set(['advisor', 'asesor_admin']);
 
 // ─── Badge counter cache ───────────────────────────────────────────────────────
 const BADGE_SOURCES = {
@@ -325,9 +331,13 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
     </>
   );
 
-  const sidebarContent = renderSidebar
-    ? renderSidebar({ collapsed, badges, handleLogout, user, role })
-    : defaultSidebarContent;
+  // F1.5 · role-aware tiene prioridad; renderSidebar se mantiene por backward-compat.
+  const useAsesorV2 = SIDEBAR_V2 && ASESOR_ROLES.has(role);
+  const sidebarContent = useAsesorV2
+    ? <AsesorSidebarV2 user={user} onLogout={handleLogout} badges={badges} />
+    : (renderSidebar
+        ? renderSidebar({ collapsed, badges, handleLogout, user, role })
+        : defaultSidebarContent);
 
   return (
     <div className="flex h-screen bg-[var(--navy)] overflow-hidden" data-testid="portal-layout">
@@ -351,7 +361,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
 
       {/* Desktop sidebar */}
       <aside
-        className={`sidebar-portal hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${renderSidebar ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
+        className={`sidebar-portal hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${(useAsesorV2 || renderSidebar) ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
         data-testid="portal-sidebar"
         aria-label="Barra lateral de navegación"
       >

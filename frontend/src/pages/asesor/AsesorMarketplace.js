@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import DevelopmentCardWithFit from '../../components/marketplace/DevelopmentCardWithFit';
 import { fetchDevelopments } from '../../api/marketplace';
 import { getKanban } from '../../api/leads';
+import PortalLayout from '../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -28,7 +29,7 @@ const selectStyle = {
   transition: `border-color 320ms ${EASE}`,
 };
 
-export default function AsesorMarketplace({ user }) {
+function AsesorMarketplaceBody({ user }) {
   const { t } = useTranslation('common');
   const [developments, setDevelopments] = useState([]);
   const [leads, setLeads] = useState([]);
@@ -159,5 +160,14 @@ export default function AsesorMarketplace({ user }) {
         )}
       </div>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function AsesorMarketplace(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <AsesorMarketplaceBody {...props} />
+    </PortalLayout>
   );
 }

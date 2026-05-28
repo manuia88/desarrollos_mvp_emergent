@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import FitTopLeadsList from '../../components/fit/FitTopLeadsList';
 import { fetchDevelopment } from '../../api/marketplace';
+import PortalLayout from '../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -15,7 +16,7 @@ const BORDER = '1px solid rgba(240,235,224,0.10)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
-export default function PropertyFitLeadsPage() {
+function PropertyFitLeadsPageBody() {
   const { t } = useTranslation('common');
   const { propertyId } = useParams();
   const navigate = useNavigate();
@@ -182,5 +183,14 @@ export default function PropertyFitLeadsPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function PropertyFitLeadsPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <PropertyFitLeadsPageBody {...props} />
+    </PortalLayout>
   );
 }

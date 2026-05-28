@@ -12,6 +12,7 @@ import WorkflowNodeTrigger from '../../../components/workflow/WorkflowNodeTrigge
 import WorkflowNodeAction from '../../../components/workflow/WorkflowNodeAction';
 import WorkflowNodeCondition from '../../../components/workflow/WorkflowNodeCondition';
 import WorkflowTemplatesGallery from '../../../components/workflow/WorkflowTemplatesGallery';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -88,7 +89,7 @@ function DelayNode({ node, selected, onChange, onSelect }) {
 
 // ─── Canvas page ──────────────────────────────────────────────────────────────
 
-export default function WorkflowBuilderPage() {
+function WorkflowBuilderPageBody() {
   const { t } = useTranslation('common');
   const { workflowId } = useParams();
   const navigate = useNavigate();
@@ -529,4 +530,13 @@ function feedbackStyle(color) {
     background: `${color}1a`, border: `1px solid ${color}55`,
     borderRadius: 12, color, fontSize: 13, fontWeight: 600,
   };
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function WorkflowBuilderPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <WorkflowBuilderPageBody {...props} />
+    </PortalLayout>
+  );
 }

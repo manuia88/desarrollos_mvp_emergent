@@ -5,6 +5,7 @@ import StagingUploader from '../../../components/staging/StagingUploader';
 import StyleSelector from '../../../components/staging/StyleSelector';
 import StagingResultGallery from '../../../components/staging/StagingResultGallery';
 import { postVirtualStaging } from '../../../api/virtual_staging';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -27,7 +28,7 @@ const STEPS = {
 
 const ROOMS = ['sala', 'recamara', 'comedor', 'cocina', 'oficina', 'bano'];
 
-export default function VirtualStagingPage() {
+function VirtualStagingPageBody() {
   const { t } = useTranslation('common');
   const [step, setStep] = useState(STEPS.UPLOAD);
   const [image, setImage] = useState(null); // { file, dataUrl, hash }
@@ -280,5 +281,14 @@ export default function VirtualStagingPage() {
         >{t('virtualStaging.disclaimer', 'El staging es generado por IA · puede mostrar imperfecciones · usa solo como inspiracion o referencia visual.')}</aside>
       </main>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function VirtualStagingPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <VirtualStagingPageBody {...props} />
+    </PortalLayout>
   );
 }

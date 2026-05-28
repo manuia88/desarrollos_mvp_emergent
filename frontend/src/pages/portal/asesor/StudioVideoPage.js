@@ -6,6 +6,7 @@ import VideoRatioPreview from '../../../components/studio/VideoRatioPreview';
 import VideoQueueList from '../../../components/studio/VideoQueueList';
 import { generateVideo } from '../../../api/studioVideo';
 import HookPredictorModal from '../../../components/hook/HookPredictorModal';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -27,7 +28,7 @@ const PROVIDERS = [
 
 const URL_RX = /^https?:\/\/.+/i;
 
-export default function StudioVideoPage() {
+function StudioVideoPageBody() {
   const { t } = useTranslation('common');
   const [script, setScript] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -268,5 +269,14 @@ export default function StudioVideoPage() {
         initialText={script}
       />
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function StudioVideoPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <StudioVideoPageBody {...props} />
+    </PortalLayout>
   );
 }

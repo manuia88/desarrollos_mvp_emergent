@@ -8,6 +8,7 @@ import AlertCard from '../../../components/alerts/AlertCard';
 import BuyerScoreBadge from '../../../components/asesor/BuyerScoreBadge';
 import FitTopPropertiesList from '../../../components/fit/FitTopPropertiesList';
 import { getBuyerScore } from '../../../api/buyer_score';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -92,7 +93,7 @@ function AlertCardWithBuyerScore({ alert, onRefresh, onSelect, selected }) {
   );
 }
 
-export default function AlertasPage() {
+function AlertasPageBody() {
   const { t } = useTranslation('common');
   const [status, setStatus] = useState('active');
   const [tier, setTier] = useState('all');
@@ -297,5 +298,14 @@ export default function AlertasPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function AlertasPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <AlertasPageBody {...props} />
+    </PortalLayout>
   );
 }

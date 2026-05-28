@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageCircle, Send, RotateCcw, Loader2, Wrench, PhoneForwarded } from 'lucide-react';
+import PortalLayout from '../../components/shared/PortalLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const GRADIENT = 'linear-gradient(135deg, #6366F1, #EC4899)';
@@ -15,7 +16,7 @@ function authHeaders() {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-export default function ConversationPlayground() {
+function ConversationPlaygroundBody() {
   const { t } = useTranslation('conversation_round1');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [context, setContext] = useState('');
@@ -248,5 +249,14 @@ function Detail({ label, value }) {
       <span style={{ color: 'rgba(240,235,224,0.5)' }}>{label}</span>
       <span style={{ fontWeight: 600 }}>{value}</span>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function ConversationPlayground(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <ConversationPlaygroundBody {...props} />
+    </PortalLayout>
   );
 }

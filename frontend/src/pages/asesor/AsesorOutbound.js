@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Z } from '../../styles/zIndex';
+import PortalLayout from '../../components/shared/PortalLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -24,7 +25,7 @@ const FILTERS_DISC = [
   { k: 'unknown', label: '?' },
 ];
 
-export default function AsesorOutbound({ user }) {
+function AsesorOutboundBody({ user }) {
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState(null);
@@ -303,3 +304,12 @@ const btnGhost = () => ({
   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
   color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
 });
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function AsesorOutbound(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <AsesorOutboundBody {...props} />
+    </PortalLayout>
+  );
+}

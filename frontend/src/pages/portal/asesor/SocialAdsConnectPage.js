@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { getOAuthUrl, getAccounts, disconnectAccount } from '../../../api/socialAds';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -21,7 +22,7 @@ function bannerFromQuery() {
   } catch { return ''; }
 }
 
-export default function SocialAdsConnectPage() {
+function SocialAdsConnectPageBody() {
   const { t } = useTranslation('common');
   const [accounts, setAccounts] = useState([]);
   const [meta, setMeta] = useState({ stub_mode: true, connections: 0, cap: 5 });
@@ -229,5 +230,14 @@ export default function SocialAdsConnectPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function SocialAdsConnectPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <SocialAdsConnectPageBody {...props} />
+    </PortalLayout>
   );
 }

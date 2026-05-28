@@ -13,6 +13,7 @@ import {
 } from '../../../api/marketplaceTemplates';
 import { SmartEmptyState } from '../../../components/shared/SmartEmptyState';
 import PublishTemplateModal from './PublishTemplateModal';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -274,7 +275,7 @@ function DetailModal({ open, item, onClose, onCloneOk }) {
   );
 }
 
-export default function MarketplaceTemplatesPage() {
+function MarketplaceTemplatesPageBody() {
   const { t } = useTranslation('common');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -482,5 +483,14 @@ export default function MarketplaceTemplatesPage() {
         onPublished={() => { setOpenPublish(false); load(); }}
       />
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function MarketplaceTemplatesPage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <MarketplaceTemplatesPageBody {...props} />
+    </PortalLayout>
   );
 }

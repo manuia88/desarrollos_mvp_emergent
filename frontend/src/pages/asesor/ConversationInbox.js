@@ -10,6 +10,7 @@ import SentimentHeatmap from '../../components/conversation/SentimentHeatmap';
 import SuggestedReplies from '../../components/conversation/SuggestedReplies';
 import LiveTakeover from '../../components/conversation/LiveTakeover';
 import ConfidenceIndicator from '../../components/conversation/ConfidenceIndicator';
+import PortalLayout from '../../components/shared/PortalLayout';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const SENTIMENT_COLOR = {
@@ -29,7 +30,7 @@ function authHeaders() {
   return tk ? { Authorization: `Bearer ${tk}` } : {};
 }
 
-export default function ConversationInbox() {
+function ConversationInboxBody() {
   const { t } = useTranslation(['conversation_round2_ui', 'conversation_confidence']);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -305,5 +306,14 @@ function InfoRow({ label, value, color }) {
       <span style={{ color: 'rgba(240,235,224,0.5)' }}>{label}</span>
       <span style={{ color: color || 'var(--cream, #F0EBE0)', fontWeight: 600, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function ConversationInbox(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <ConversationInboxBody {...props} />
+    </PortalLayout>
   );
 }

@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import SocBadge from '../../../components/franchise/SocBadge';
 import SocLeaderboard from '../../../components/franchise/SocLeaderboard';
 import { getMyScore } from '../../../api/socFranchise';
+import PortalLayout from '../../../components/shared/PortalLayout';
 
 const BG = '#06080F';
 const CREAM = '#F0EBE0';
@@ -63,7 +64,7 @@ const TIPS = [
   { key: 'compliance',       text: 'tipsCompliance' },
 ];
 
-export default function SocFranchisePage() {
+function SocFranchisePageBody() {
   const { t } = useTranslation('common');
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -214,5 +215,14 @@ export default function SocFranchisePage() {
         )}
       </div>
     </div>
+  );
+}
+
+// F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)
+export default function SocFranchisePage(props) {
+  return (
+    <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
+      <SocFranchisePageBody {...props} />
+    </PortalLayout>
   );
 }
