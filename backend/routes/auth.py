@@ -18,6 +18,12 @@ router = APIRouter(tags=["auth"])
 
 ADVISOR_ROLES = {"advisor", "asesor_admin", "superadmin"}
 
+# Dev/Prod cookie config · localhost requiere secure=False + samesite=lax
+# porque browser bloquea cookies con secure=True sin HTTPS.
+_DEV_MODE = os.environ.get("DMX_DEV_MODE", "false").lower() == "true"
+COOKIE_SECURE = not _DEV_MODE
+COOKIE_SAMESITE = "lax" if _DEV_MODE else "none"
+
 
 def _db(request: Request):
     return request.app.state.db
@@ -71,8 +77,8 @@ async def register(payload: RegisterIn, response: Response, request: Request):
     })
     access = create_access_token(user_id, payload.email)
     refresh = create_refresh_token(user_id)
-    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=28800)
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000)
+    response.set_cookie("access_token", access, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=28800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=2592000)
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
     return {"user": UserOut(**user_doc)}
 
@@ -91,8 +97,8 @@ async def login(payload: LoginIn, response: Response, request: Request):
     user_id = user_doc["user_id"]
     access = create_access_token(user_id, payload.email)
     refresh = create_refresh_token(user_id)
-    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=28800)
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000)
+    response.set_cookie("access_token", access, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=28800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=2592000)
     user_doc.pop("_id", None)
     user_doc.pop("password_hash", None)
     uo = UserOut(**user_doc)
@@ -139,7 +145,7 @@ async def create_session(payload: SessionCreate, response: Response, request: Re
         "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
         "created_at": datetime.now(timezone.utc),
     })
-    response.set_cookie("session_token", session_token, httponly=True, secure=True, samesite="none", path="/", max_age=604800)
+    response.set_cookie("session_token", session_token, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, path="/", max_age=604800)
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     return {"user": UserOut(**user_doc)}
 
@@ -180,9 +186,9 @@ async def logout(request: Request, response: Response):
     token = request.cookies.get("session_token")
     if token:
         await db.user_sessions.delete_one({"session_token": token})
-    response.delete_cookie("session_token", path="/", samesite="none", secure=True)
-    response.delete_cookie("access_token", path="/", samesite="none", secure=True)
-    response.delete_cookie("refresh_token", path="/", samesite="none", secure=True)
+    response.delete_cookie("session_token", path="/", samesite=COOKIE_SAMESITE, secure=COOKIE_SECURE)
+    response.delete_cookie("access_token", path="/", samesite=COOKIE_SAMESITE, secure=COOKIE_SECURE)
+    response.delete_cookie("refresh_token", path="/", samesite=COOKIE_SAMESITE, secure=COOKIE_SECURE)
     return {"message": "Sesión cerrada"}
 
 
@@ -370,8 +376,8 @@ async def verify_magic_link(token: str, request: Request, response: Response):
     # Issue cookies (mismo formato que login con password)
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
-    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=28800)
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000)
+    response.set_cookie("access_token", access, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=28800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=2592000)
 
     user_doc.pop("_id", None)
     user_doc.pop("password_hash", None)
@@ -414,8 +420,8 @@ async def accept_in_house_invitation(
     email = user_doc.get("email", "")
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
-    response.set_cookie("access_token", access, httponly=True, secure=True, samesite="none", max_age=28800)
-    response.set_cookie("refresh_token", refresh, httponly=True, secure=True, samesite="none", max_age=2592000)
+    response.set_cookie("access_token", access, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=28800)
+    response.set_cookie("refresh_token", refresh, httponly=True, secure=COOKIE_SECURE, samesite=COOKIE_SAMESITE, max_age=2592000)
 
     user_doc.pop("_id", None)
     user_doc.pop("password_hash", None)

@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/landing/Navbar';
 import InviteCodeInput from '../../components/private_beta/InviteCodeInput';
+import { useAuth } from '../../App';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -29,6 +30,7 @@ const LBL = {
 
 export default function BrokerPortal() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [tab, setTab] = useState('login');
 
   // Login state
@@ -59,7 +61,9 @@ export default function BrokerPortal() {
         const d = await r.json().catch(() => ({}));
         throw new Error(d.detail || `Error ${r.status}`);
       }
-      navigate('/dashboard');
+      const data = await r.json().catch(() => ({}));
+      if (data.user) setUser(data.user);  // sync AuthProvider state
+      navigate('/asesor');
     } catch (e) { setLoginErr(String(e.message || e)); }
     finally { setLoginLoading(false); }
   };
@@ -81,7 +85,9 @@ export default function BrokerPortal() {
         const msg = (d.detail && (d.detail.reason || d.detail.code)) || d.detail || `Error ${r.status}`;
         throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
       }
-      navigate('/dashboard');
+      const data = await r.json().catch(() => ({}));
+      if (data.user) setUser(data.user);  // sync AuthProvider state
+      navigate('/asesor');
     } catch (e) { setSignupErr(String(e.message || e)); }
     finally { setSignupLoading(false); }
   };

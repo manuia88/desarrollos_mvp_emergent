@@ -30,7 +30,9 @@ app = FastAPI(title="DesarrollosMX API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # Spec: si allow_credentials=True NO se puede usar "*" en allow_origins
+    # (browser tira las cookies). Para localhost usamos regex específico.
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
