@@ -41,7 +41,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 // F1.5 · selección de sidebar centralizada (punto único de verdad).
 // asesor + flag → AsesorSidebarV2 · cualquier otro rol → nav default (V1).
 const SIDEBAR_V2 = process.env.REACT_APP_SIDEBAR_V2 === 'true';
-const ASESOR_ROLES = new Set(['advisor', 'asesor_admin']);
+const ASESOR_ROLES = new Set(['advisor', 'asesor_admin', 'asesor_freelance']);
 
 // ─── Badge counter cache ───────────────────────────────────────────────────────
 const BADGE_SOURCES = {
