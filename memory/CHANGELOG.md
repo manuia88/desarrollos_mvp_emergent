@@ -1,6 +1,32 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Asesor Redesign P1 · Command Center SHIPPED — 2026-05-26
+
+🎨 **Command Center Hub (P1 · SHA 03966270 + fixes f21d6dc7).** Founder validó visual OK.
+
+### P1 · Command Center · UPGRADE dashboard (SHA 03966270)
+
+**Anti-over-engineer** (founder ruling · análisis 3 lentes pre-código):
+- dashboard endpoint + BuyerScoreBadge + FloatingQuickActions YA existían → reuso
+- `director_agent_engine.py` (1263L · agente completo developer) descubierto → P2 reusará patrón
+
+**UPGRADE (no recrea):**
+- `routes/advisor.py dashboard()` EXTENDIDO · helpers `_build_action_queue` (citas hoy p1 · tareas vencidas p1 · leads calientes p2 · fríos >7d p3 + merge agentes P2) + `_build_kpis_trend` (pipeline% · leads calientes% · cierres% · meta · comisiones) · backward compat
+- NEW `command_center_actions` collection (único backend nuevo · hook agentes P2 · schema source_agent + cta_actions + TTL)
+- 2 endpoints (complete/dismiss) · _assert owner + audit
+- `AsesorCommandCenter.js` command-center look · REUSA BuyerScoreBadge + FloatingQuickActions
+- Atlax #55 query_command_center · 55 tools sin gaps
+- Feature flag REACT_APP_COMMAND_CENTER opt-in · AsesorDashboard V1 preservado
+
+### P1 fixes UX (SHA f21d6dc7 · founder testing)
+
+- **Botones encimados**: FloatingQuickActions (+) chocaba con globales (AI Copilot + Argumentario + Reportar) → quick actions movidas INLINE al hero · removido flotante
+- **Logo no navegaba**: "DMX Asesor" era `<span>` → `<Link to="/asesor">`
+
+**Próximo**: audit P1 doble-pase + P2 (5 agentes sobre director_agent pattern).
+
+
 ## Asesor Redesign F1 + F1.5 SHIPPED — 2026-05-26
 
 🎨 **Sidebar reorg 34→10 grupos (F1 · SHA 8a27f59e) + Layout consistency (F1.5 · SHA f791e0ea).** Founder validó visual OK.
