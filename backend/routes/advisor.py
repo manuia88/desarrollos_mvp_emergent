@@ -413,14 +413,20 @@ async def _build_action_queue(db, owner: str) -> list:
     # SUPRESIÓN · acciones (sintéticas o de agente) que el asesor ya resolvió
     # (done/dismissed/archived) NO deben reaparecer en la cola. Se persisten por
     # su id en command_center_actions (ver _cc_set_status upsert).
+    # Scope: solo se consultan los ids YA presentes en la cola (≤~100) en vez de
+    # cargar TODOS los resueltos con limit(500) → robusto a escala (un asesor con
+    # cientos de acciones resueltas no podría hacer reaparecer una por overflow).
     try:
-        resolved = await db.command_center_actions.find(
-            {"user_id": owner, "status": {"$in": ["done", "dismissed", "archived"]}},
-            {"_id": 0, "id": 1},
-        ).limit(500).to_list(500)
-        suppressed = {r["id"] for r in resolved if r.get("id")}
-        if suppressed:
-            queue = [a for a in queue if a.get("id") not in suppressed]
+        queue_ids = [a.get("id") for a in queue if a.get("id")]
+        if queue_ids:
+            resolved = await db.command_center_actions.find(
+                {"user_id": owner, "id": {"$in": queue_ids},
+                 "status": {"$in": ["done", "dismissed", "archived"]}},
+                {"_id": 0, "id": 1},
+            ).to_list(len(queue_ids))
+            suppressed = {r["id"] for r in resolved if r.get("id")}
+            if suppressed:
+                queue = [a for a in queue if a.get("id") not in suppressed]
     except Exception:
         pass
 
@@ -541,6 +547,11 @@ async def dashboard(request: Request):
 
 
 # ─── Command Center (P1) · endpoints complete/dismiss ────────────────────────────
+# Retención de acciones resueltas (done/dismissed/archived) antes de que el TTL las borre.
+# Suficiente para "Ver archivadas" reciente; las sintéticas resueltas no se acumulan eterno.
+RESOLVED_ACTION_TTL_DAYS = 30
+
+
 async def _cc_set_status(request: Request, action_id: str, new_status: str, payload: dict = None):
     """Cambia el status de una acción · UPSERT por id.
 
@@ -552,9 +563,16 @@ async def _cc_set_status(request: Request, action_id: str, new_status: str, payl
     """
     user = await require_advisor(request)
     db = get_db(request)
+    now = _now()
     existing = await db.command_center_actions.find_one(
         {"id": action_id, "user_id": user.user_id}, {"_id": 0})
-    set_doc = {"status": new_status, "resolved_at": _now()}
+    set_doc = {"status": new_status, "resolved_at": now}
+    # TTL housekeeping · las acciones RESUELTAS (incl. sintéticas, que no traían
+    # expires_at) caducan a los 30d → el índice TTL las borra. Evita crecimiento
+    # ilimitado de command_center_actions y mantiene chico el set de supresión.
+    # Restore (pending) NO setea expires_at aquí → se conserva el horizonte previo.
+    if new_status in ("done", "dismissed", "archived"):
+        set_doc["expires_at"] = now + timedelta(days=RESOLVED_ACTION_TTL_DAYS)
     if not existing:
         if not payload:
             raise HTTPException(404, "Acción no encontrada")
