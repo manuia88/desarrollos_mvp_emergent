@@ -12,7 +12,6 @@ import {
   UserPlus, ListPlus, CalendarPlus, Sparkles, Inbox,
 } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
-import { FloatingQuickActions } from '../../components/shared/FloatingQuickActions';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
 import ActionCard from '../../components/asesor/command_center/ActionCard';
 import KpiCard from '../../components/asesor/command_center/KpiCard';
@@ -125,16 +124,39 @@ export default function AsesorCommandCenter({ user, onLogout }) {
       <div className="max-w-[1100px] mx-auto" data-testid="asesor-command-center">
         {loading ? <Skeleton /> : (
           <>
-            {/* Hero */}
-            <div className="mb-6">
-              <h1 className="text-[var(--cream)] text-2xl font-bold tracking-tight">
-                {greeting}{firstName ? `, ${firstName}` : ''}
-              </h1>
-              <p className="text-[var(--cream-3)] text-sm mt-1">
-                {actionCount > 0
-                  ? t('hero.actions_today', { count: actionCount })
-                  : t('hero.all_clear')}
-              </p>
+            {/* Hero · greeting + quick actions inline (fix: NO floating · evita
+                encimar con botones globales AI/Argumentario/Reportar) */}
+            <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h1 className="text-[var(--cream)] text-2xl font-bold tracking-tight">
+                  {greeting}{firstName ? `, ${firstName}` : ''}
+                </h1>
+                <p className="text-[var(--cream-3)] text-sm mt-1">
+                  {actionCount > 0
+                    ? t('hero.actions_today', { count: actionCount })
+                    : t('hero.all_clear')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {quickActions.map((qa, i) => {
+                  const Ico = qa.icon;
+                  return (
+                    <button
+                      key={i}
+                      onClick={qa.onClick}
+                      data-testid={`quick-action-${i}`}
+                      className={`flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors ${
+                        qa.primary
+                          ? 'text-white bg-[linear-gradient(90deg,#6366F1,#EC4899)] hover:opacity-90'
+                          : 'text-[var(--cream)] bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] hover:bg-[rgba(240,235,224,0.1)]'
+                      }`}
+                    >
+                      {Ico ? <Ico size={15} /> : null}
+                      {qa.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* KPI strip */}
@@ -250,8 +272,8 @@ export default function AsesorCommandCenter({ user, onLogout }) {
         )}
       </div>
 
-      {/* Quick actions — REUSO FloatingQuickActions (NO toolbar nuevo) */}
-      <FloatingQuickActions actions={quickActions} />
+      {/* Quick actions ahora inline en el hero (fix: evita encimar con los
+          botones flotantes globales AI/Argumentario/Reportar en esa esquina) */}
     </AdvisorLayout>
   );
 }

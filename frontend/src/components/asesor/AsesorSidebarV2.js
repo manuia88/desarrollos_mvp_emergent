@@ -136,11 +136,15 @@ export default function AsesorSidebarV2({ user, onLogout, badges = {} }) {
 
   return (
     <>
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 h-[52px] border-b border-[rgba(240,235,224,0.08)] shrink-0 bg-gradient-to-r from-[rgba(var(--theme-rgb),0.18)] to-transparent">
+      {/* Header · click → Inicio (fix: logo navegable) */}
+      <Link
+        to="/asesor"
+        className="flex items-center gap-2 px-4 h-[52px] border-b border-[rgba(240,235,224,0.08)] shrink-0 bg-gradient-to-r from-[rgba(var(--theme-rgb),0.18)] to-transparent hover:bg-[rgba(var(--theme-rgb),0.1)] transition-colors"
+        aria-label="Ir a Inicio"
+      >
         <span className="text-[var(--cream)] font-bold text-lg tracking-tight">DMX</span>
         <span className="text-[rgba(240,235,224,0.4)] text-xs">Asesor</span>
-      </div>
+      </Link>
 
       {/* Búsqueda inline */}
       <div className="px-3 py-3 shrink-0">
