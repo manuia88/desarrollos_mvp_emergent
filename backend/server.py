@@ -46,6 +46,10 @@ app.state.db = db
 from routes.advisor import router as advisor_router
 app.include_router(advisor_router)
 
+# P2 · Agent Workforce (orchestrator + prospector + nurturer · 4 endpoints)
+from routes.agent_workforce import router as agent_workforce_router
+app.include_router(agent_workforce_router)
+
 # Wire developer portal router
 from routes.developer import router as developer_router
 app.include_router(developer_router)
@@ -2036,6 +2040,14 @@ async def startup():
             register_workflow_queue_job(sched, db)
         except Exception as e:
             logging.warning(f"[W6.AS.1] workflow startup register failed: {e}")
+        # P2 · Agent Workforce: indexes (command_center reuse + runs) + daily 07:00 UTC cron
+        try:
+            from agent_workforce import orchestrator as agent_workforce_orchestrator
+            await agent_workforce_orchestrator.ensure_indexes(db)
+            agent_workforce_orchestrator.register_cron(sched, db)
+            logging.info("[P2] agent_workforce startup registered (cron 07:00 UTC)")
+        except Exception as e:
+            logging.warning(f"[P2] agent_workforce startup register failed: {e}")
         # W6.MOV.4 — Marketing MCP: indexes (log + cache + scheduled)
         try:
             from marketing_mcp_engine import ensure_indexes as marketing_mcp_ensure_indexes

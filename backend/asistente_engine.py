@@ -392,6 +392,11 @@ TOOLS Y PARAMS:
     devuelve: depende mode · "today": {{actions[] (top 10 priorizadas con type+priority+title+subtitle+lead_id+source_agent+cta_actions), total_actions, kpis (pipeline_mxn+pipeline_trend_pct+leads_calientes+cierres_mes+meta_mes+comisiones_por_cobrar)}} · "actions-count": {{total_actions, urgent}} (urgent = prioridad 1).
     Usar cuando: asesor pregunta "¿qué tengo que hacer hoy?", "¿cuántas acciones pendientes?", "¿cómo va mi pipeline?", "¿cuántos leads calientes?" · P1 Command Center action queue unificada (citas hoy + tareas vencidas + leads calientes sin contacto + acciones de agentes P2) · reusa /api/asesor/dashboard · FAIL-OPEN por sección.
 
+56. query_agent_workforce
+    params: {{ "mode": "status"|"agents" (default "status"), "user_id": str (asesor · requerido) }}
+    devuelve: depende mode · "status": {{last_run (by_agent+total_actions+trigger+ran_at), pending_by_agent (acciones pending por agente), total_pending}} · "agents": {{agents[] con name+label+available+pending_actions, total}}.
+    Usar cuando: asesor pregunta "¿qué hicieron mis agentes?", "¿cuántas acciones generó el prospector?", "¿qué agentes tengo activos?", "¿cuándo corrió el workforce?" · P2 AI Agent Workforce (5 agentes de fondo: Prospector + Nurturer + Closer + Analyst + Coach) que llenan el Command Center con acciones priorizadas · reusa agent_workforce.orchestrator · FAIL-OPEN.
+
 ══ PROBABILITY UX (tool 18 · transparencia Robinhood) ══
 Usa query_probability cuando el usuario pregunte sobre probabilidades de eventos:
   - ¿Se venderá todo el proyecto? → type=sells_complete, id=project_id
@@ -657,6 +662,9 @@ async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, An
         # P1 · tool #55 Command Center (action queue unificada + KPIs trend · reusa dashboard)
         if tool_name == "query_command_center":
             return await _tool_query_command_center(db, params)
+        # P2 · tool #56 Agent Workforce (5 agentes de fondo · status/agents · reusa orchestrator)
+        if tool_name == "query_agent_workforce":
+            return await _tool_query_agent_workforce(db, params)
         return {"error": f"Tool desconocida: {tool_name}"}
     except Exception as e:
         log.warning(f"[asistente_tool] {tool_name}: {e}")
@@ -3964,6 +3972,65 @@ async def _tool_query_command_center(db, params: Dict[str, Any]) -> Dict[str, An
     except Exception as e:
         log.warning(f"[asistente_tool] query_command_center: {e}")
         return {"error": str(e), "source": "command_center"}
+
+
+# ── P2 · Agent Workforce (tool #56) ──────────────────────────────────────────
+async def _tool_query_agent_workforce(db, params: Dict[str, Any]) -> Dict[str, Any]:
+    """P2 · Tool #56 · Agent Workforce. Reusa agent_workforce.orchestrator + el conteo de
+    acciones pending por agente. Modes: status | agents. Read-only (NO dispara run)."""
+    try:
+        user_id = params.get("user_id")
+        if not user_id:
+            return {"error": "user_id requerido", "source": "agent_workforce"}
+        mode = (params.get("mode") or "status").strip()
+
+        # Pending por agente (reusa command_center_actions · FAIL-OPEN {}).
+        pending: Dict[str, int] = {}
+        try:
+            async for row in db.command_center_actions.aggregate([
+                {"$match": {"user_id": user_id, "status": "pending", "source_agent": {"$ne": None}}},
+                {"$group": {"_id": "$source_agent", "n": {"$sum": 1}}},
+            ]):
+                if row.get("_id"):
+                    pending[row["_id"]] = row.get("n", 0)
+        except Exception:
+            pass
+
+        if mode == "agents":
+            from agent_workforce.agent_common import AGENT_NAMES, AGENT_LABELS
+            from agent_workforce import orchestrator as _orch
+            available = set()
+            for name, module, fn in _orch._AGENT_SPECS:
+                if _orch._resolve_agent(module, fn) is not None:
+                    available.add(name)
+            agents = [{
+                "name": n, "label": AGENT_LABELS.get(n, n),
+                "available": n in available, "pending_actions": pending.get(n, 0),
+            } for n in AGENT_NAMES]
+            return {"mode": "agents", "agents": agents, "total": len(agents), "source": "agent_workforce"}
+
+        # mode == status
+        last_run = None
+        try:
+            rows = await db.agent_workforce_runs.find(
+                {"user_id": user_id}, {"_id": 0},
+            ).sort("ran_at", -1).limit(1).to_list(1)
+            if rows:
+                last_run = rows[0]
+                if hasattr(last_run.get("ran_at"), "isoformat"):
+                    last_run["ran_at"] = last_run["ran_at"].isoformat()
+        except Exception:
+            pass
+        return {
+            "mode": "status",
+            "last_run": last_run,
+            "pending_by_agent": pending,
+            "total_pending": sum(pending.values()),
+            "source": "agent_workforce",
+        }
+    except Exception as e:
+        log.warning(f"[asistente_tool] query_agent_workforce: {e}")
+        return {"error": str(e), "source": "agent_workforce"}
 
 
 # W5.FF4 register_feature marker · NO duplicate
