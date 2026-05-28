@@ -222,11 +222,23 @@ async def patch_profile(payload: AsesorProfilePatch, request: Request):
 # P1 las mergea en la action_queue. Schema:
 #   {id, user_id, tenant_id, type, priority, title, subtitle, lead_id?, source_agent?,
 #    cta_actions[], status: pending|done|dismissed, created_at, expires_at}
+#
+# CONTRATO P2 (5 agentes escriben aquí):
+#   · dedup: usar dedup_key determinista (p.ej. f"{source_agent}:{type}:{lead_id}") y
+#     upsert por (user_id, dedup_key) para NO crear duplicados al re-correr. P1 además
+#     deduplica en lectura (_build_action_queue) por (type, lead_id, source_agent) como
+#     red de seguridad, así que aunque un agente inserte dos veces, el asesor ve una.
+#   · expires_at: horizonte de RELEVANCIA de la acción (no created+ttl corto), porque el
+#     índice TTL la borra cuando vence sin importar el status (incluido pending).
+#   · user_id: el del asesor dueño. dashboard() solo lee acciones del owner (no cross-tenant).
 
 async def ensure_command_center_indexes(db):
     """Índices para command_center_actions. Idempotente. Llamado en startup server.py."""
     try:
+        # Lectura dashboard: owner + pending ordenado por prioridad.
         await db.command_center_actions.create_index([("user_id", 1), ("status", 1), ("priority", -1)])
+        # P2 orchestrator: consultas/dedup por agente (user_id + status + source_agent).
+        await db.command_center_actions.create_index([("user_id", 1), ("status", 1), ("source_agent", 1)])
         # TTL: documentos con expires_at se borran automáticamente al vencer.
         await db.command_center_actions.create_index("expires_at", expireAfterSeconds=0)
     except Exception as _e:
@@ -357,10 +369,13 @@ async def _build_action_queue(db, owner: str) -> list:
         pass
 
     # 5 · MERGE acciones de agentes (command_center_actions · pending, no vencidas)
+    #     Dedup en lectura (red de seguridad para 5 agentes P2): si dos docs comparten
+    #     (type, lead_id, source_agent) se conserva el de MAYOR prioridad (priority menor).
     try:
         agent_actions = await db.command_center_actions.find(
             {"user_id": owner, "status": "pending"}, {"_id": 0},
-        ).sort("priority", -1).limit(50).to_list(50)
+        ).sort("priority", -1).limit(100).to_list(100)
+        seen: dict = {}
         for a in agent_actions:
             exp = a.get("expires_at")
             if isinstance(exp, str):
@@ -370,10 +385,15 @@ async def _build_action_queue(db, owner: str) -> list:
                     exp = None
             if exp and exp < now:
                 continue
-            queue.append({
+            dedup_key = a.get("dedup_key") or (a.get("type"), a.get("lead_id"), a.get("source_agent"))
+            prio = a.get("priority", 2)
+            prev = seen.get(dedup_key)
+            if prev is not None and prev[0] <= prio:
+                continue  # ya hay una de igual o mayor prioridad
+            seen[dedup_key] = (prio, {
                 "id": a.get("id"),
                 "type": a.get("type", "agente"),
-                "priority": a.get("priority", 2),
+                "priority": prio,
                 "title": a.get("title", "Acción sugerida"),
                 "subtitle": a.get("subtitle", ""),
                 "lead_id": a.get("lead_id"),
@@ -382,6 +402,8 @@ async def _build_action_queue(db, owner: str) -> list:
                 "icon_hint": a.get("icon_hint", "sparkles"),
                 "color_hint": a.get("color_hint", "indigo"),
             })
+        for _k, (_p, item) in seen.items():
+            queue.append(item)
     except Exception:
         pass
 
