@@ -19,7 +19,7 @@ import LeadInlinePreview from '../../components/asesor/command_center/LeadInline
 import AgentTeamCard from '../../components/asesor/command_center/AgentTeamCard';
 import {
   getDashboard, getLeaderboard, completeAction, dismissAction, archiveAction,
-  generateBriefing, getCloseProbability,
+  restoreAction, getArchivedActions, generateBriefing, getCloseProbability,
 } from '../../api/advisor';
 
 // Pill color por probabilidad de cierre (reusa paleta aurora).
@@ -74,6 +74,21 @@ export default function AsesorCommandCenter({ user, onLogout }) {
       try { localStorage.setItem('dmx_cc_queue_collapsed', next ? '1' : '0'); } catch { /* no-op */ }
       return next;
     });
+  }, []);
+  // Archivadas · ver/recuperar
+  const [showArchived, setShowArchived] = useState(false);
+  const [archived, setArchived] = useState([]);
+  const toggleArchived = useCallback(() => {
+    setShowArchived((s) => {
+      const next = !s;
+      if (next) getArchivedActions().then((r) => setArchived(r?.archived || [])).catch(() => setArchived([]));
+      return next;
+    });
+  }, []);
+  const onRestore = useCallback((action) => {
+    setArchived((arr) => arr.filter((a) => a.id !== action.id));
+    setQueue((q) => [action, ...q]);  // vuelve a la cola visualmente
+    restoreAction(action.id).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -257,6 +272,42 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                       {queue.map((a) => <ActionCard key={a.id} action={a} onCTA={onCTA} t={t} />)}
                     </div>
                   )
+                )}
+
+                {/* Ver / recuperar archivadas */}
+                {!queueCollapsed && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={toggleArchived}
+                      data-testid="toggle-archived"
+                      className="text-[var(--cream-3)] text-xs hover:text-[var(--cream)] transition-colors"
+                    >
+                      {showArchived ? t('queue.hide_archived') : t('queue.view_archived')}
+                    </button>
+                    {showArchived && (
+                      <div className="mt-2 space-y-1.5" data-testid="archived-list">
+                        {archived.length === 0 ? (
+                          <p className="text-[var(--cream-3)] text-xs py-2">{t('queue.no_archived')}</p>
+                        ) : archived.map((a) => (
+                          <div
+                            key={a.id}
+                            className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(240,235,224,0.03)] border border-[rgba(240,235,224,0.06)]"
+                          >
+                            <span className="min-w-0 flex-1 text-[var(--cream-3)] text-xs truncate">{a.title}</span>
+                            <button
+                              type="button"
+                              onClick={() => onRestore(a)}
+                              data-testid={`restore-${a.id}`}
+                              className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-medium text-[rgba(240,235,224,0.7)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.08)] transition-colors"
+                            >
+                              {t('queue.restore')}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </section>
 

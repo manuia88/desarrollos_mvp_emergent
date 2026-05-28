@@ -24,6 +24,8 @@ export const getDashboard = () => j('/api/asesor/dashboard');
 export const completeAction = (id) => post(`/api/asesor/command-center/action/${id}/complete`);
 export const dismissAction = (id) => post(`/api/asesor/command-center/action/${id}/dismiss`);
 export const archiveAction = (id) => post(`/api/asesor/command-center/action/${id}/archive`);
+export const restoreAction = (id) => post(`/api/asesor/command-center/action/${id}/restore`);
+export const getArchivedActions = () => j('/api/asesor/command-center/archived');
 
 // Contactos
 export const listContactos = (q = {}) => {

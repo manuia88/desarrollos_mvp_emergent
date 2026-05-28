@@ -559,6 +559,23 @@ async def cc_archive_action(action_id: str, request: Request):
     return await _cc_set_status(request, action_id, "archived")
 
 
+@router.post("/command-center/action/{action_id}/restore")
+async def cc_restore_action(action_id: str, request: Request):
+    # Restaurar archivada → vuelve a la cola (status=pending).
+    return await _cc_set_status(request, action_id, "pending")
+
+
+@router.get("/command-center/archived")
+async def cc_list_archived(request: Request):
+    # Acciones archivadas del asesor (para ver/recuperar). Solo del owner.
+    user = await require_advisor(request)
+    db = get_db(request)
+    items = await db.command_center_actions.find(
+        {"user_id": user.user_id, "status": "archived"}, {"_id": 0},
+    ).sort("resolved_at", -1).limit(100).to_list(100)
+    return {"archived": items, "count": len(items)}
+
+
 # ─── Contactos ────────────────────────────────────────────────────────────────
 @router.get("/contactos")
 async def list_contactos(

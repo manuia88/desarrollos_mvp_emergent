@@ -15,7 +15,12 @@
     "empty_title": "Sin acciones pendientes",
     "empty_subtitle": "El agente IA prospectará y te dejará tareas aquí pronto.",
     "collapse": "Ocultar",
-    "expand": "Mostrar"
+    "expand": "Mostrar",
+    "view_archived": "Ver archivadas",
+    "hide_archived": "Ocultar archivadas",
+    "archived_title": "Archivadas",
+    "no_archived": "No tienes acciones archivadas.",
+    "restore": "Restaurar"
   },
   "action_type": {
     "cita_hoy": "Cita de hoy",
