@@ -1,6 +1,48 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Checkpoint localhost dev + Asesor Redesign Plan — 2026-05-26
+
+🔧 **Checkpoint** SHA `ca04dd55` · 3 fixes para login en `http://localhost`.
+
+🎨 **Plan Asesor Redesign Total persistido** post W7.AS.3 cierre · founder reportó UX confusa.
+
+### Checkpoint localhost dev fixes
+
+3 cambios sin afectar producción (env-driven):
+
+1. **server.py CORS regex** · `allow_origins=["*"]` era inválido con `credentials=True` (browser tira cookies). Cambio a `allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?"` · compatible con credentials.
+
+2. **routes/auth.py cookies** · NEW `COOKIE_SECURE` + `COOKIE_SAMESITE` controlados por `DMX_DEV_MODE` env. Dev: `secure=False` + `samesite="lax"` (permite cookies en http://). Prod: `secure=True` + `samesite="none"` (intacto). 14 occurrences replaced.
+
+3. **BrokerPortal.js** · 2 fixes:
+   - `navigate('/dashboard')` → `navigate('/asesor')` (ruta correcta · /dashboard no existe en App.js)
+   - `import useAuth` + `setUser(data.user)` post-login para sync AuthProvider state (sin esto AdvisorRoute no detectaba sesión → mostraba modal duplicado)
+
+`backend/.env` per-machine: `DMX_DEV_MODE=true` para dev local (no commiteado).
+
+### Asesor Redesign Plan (persistido en memory/ASESOR_REDESIGN_PLAN.md)
+
+**Trigger**: founder reportó "sidebar confuso 35 tabs · mala UX". Plan total:
+
+- **6 fases · 16 terminales CC paralelas · ~116h trabajo · ~44h calendar · 5 días**
+- **12 cycle-closers** ejecutados · 21 features que conectan ≥2 features shipped W5/W6/W7
+- **NO ORPHANS** preservado (regla canónica `feedback_no_orphan_features.md`)
+- **Audit forense doble-pase** post c/fase (6 audits · 3h extra)
+- **Founder ruling 0 backlog** preservado · findings se arreglan en mismo round
+
+| Fase | Contenido | Terminales | Horas |
+|---|---|---|---|
+| F1 | Sidebar reorg 35 → 10 grupos · submenús · user menu pie | 1 (bloquea) | 4h |
+| F2 | Cycle-Closers UX (Status pills · Inline preview · Task dashboard · Bulk · Smart suggestions · Pinned · Widgets · Notif prefs · Recent) | 3 paralelas | 18h |
+| F3 | ML/IA Core (Inline Atlax · Auto-cat lead · Smart notifs · Drift-aware UI) | 3 paralelas | 24h |
+| F4 | ML/IA Advanced (Predictive Cmd+K · Next-best-action · Auto-summarize · Time-of-day · Sentiment composer) | 3 paralelas | 28h |
+| F5 | Design System Polish (Tokens · Skeleton · Optimistic UI · Toast · Transitions · Cards) | 3 paralelas | 24h |
+| F6 | Add-on Layer (Tooltips · Help · Changelog · Tour · AI empty states · Density · A11y · Mobile) | 3 paralelas | 18h |
+
+**Próximo**: prompt F1 CC arranca rediseño.
+
+
 ## W7.AS.3 R3 · Audit Forense Doble-Pase — 2026-05-25
 
 ✅ **GO verdict · 76/80 checks · 7 findings fixed (1 🔴 + 4 🟡 + 2 🟢) · 0 regresiones audit 2 · SHA `f720767f`.**
