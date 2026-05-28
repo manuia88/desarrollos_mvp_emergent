@@ -8,12 +8,14 @@
     "all_clear": "Todo al día"
   },
   "queue": {
-    "title": "Tu cola de acciones",
+    "title": "Prioridades de hoy",
     "priority_high": "Urgente",
     "priority_mid": "Importante",
     "priority_low": "Cuando puedas",
     "empty_title": "Sin acciones pendientes",
-    "empty_subtitle": "El agente IA prospectará y te dejará tareas aquí pronto."
+    "empty_subtitle": "El agente IA prospectará y te dejará tareas aquí pronto.",
+    "collapse": "Ocultar",
+    "expand": "Mostrar"
   },
   "action_type": {
     "cita_hoy": "Cita de hoy",
@@ -27,7 +29,8 @@
     "whatsapp": "WhatsApp",
     "ver_lead": "Ver lead",
     "completar": "Completar",
-    "descartar": "Descartar"
+    "descartar": "Descartar",
+    "archivar": "Archivar"
   },
   "kpi": {
     "pipeline": "Pipeline activo",

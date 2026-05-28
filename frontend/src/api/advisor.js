@@ -20,9 +20,10 @@ export const updateProfile = (b) => patch('/api/asesor/profile', b);
 // Dashboard
 export const getDashboard = () => j('/api/asesor/dashboard');
 
-// P1 · Command Center — completar / descartar acciones (la queue viene en getDashboard)
+// P1 · Command Center — completar / descartar / archivar acciones (la queue viene en getDashboard)
 export const completeAction = (id) => post(`/api/asesor/command-center/action/${id}/complete`);
 export const dismissAction = (id) => post(`/api/asesor/command-center/action/${id}/dismiss`);
+export const archiveAction = (id) => post(`/api/asesor/command-center/action/${id}/archive`);
 
 // Contactos
 export const listContactos = (q = {}) => {

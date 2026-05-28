@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   DollarSign, Flame, CheckCircle2, Wallet, Trophy, FileText, Users,
-  UserPlus, ListPlus, CalendarPlus, Sparkles, Inbox,
+  UserPlus, ListPlus, CalendarPlus, Sparkles, Inbox, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
@@ -18,7 +18,7 @@ import KpiCard from '../../components/asesor/command_center/KpiCard';
 import LeadInlinePreview from '../../components/asesor/command_center/LeadInlinePreview';
 import AgentTeamCard from '../../components/asesor/command_center/AgentTeamCard';
 import {
-  getDashboard, getLeaderboard, completeAction, dismissAction,
+  getDashboard, getLeaderboard, completeAction, dismissAction, archiveAction,
   generateBriefing, getCloseProbability,
 } from '../../api/advisor';
 
@@ -64,6 +64,17 @@ export default function AsesorCommandCenter({ user, onLogout }) {
   const [queue, setQueue] = useState([]);
   const [hoverLead, setHoverLead] = useState(null);
   const [closeProbs, setCloseProbs] = useState({});
+  // Colapsar "Prioridades de hoy" · recuerda preferencia (localStorage)
+  const [queueCollapsed, setQueueCollapsed] = useState(() => {
+    try { return localStorage.getItem('dmx_cc_queue_collapsed') === '1'; } catch { return false; }
+  });
+  const toggleQueue = useCallback(() => {
+    setQueueCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem('dmx_cc_queue_collapsed', next ? '1' : '0'); } catch { /* no-op */ }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -130,6 +141,10 @@ export default function AsesorCommandCenter({ user, onLogout }) {
       case 'descartar':
         removeFromQueue(action.id);
         if (isAgentAction(action.id)) dismissAction(action.id).catch(() => {});
+        break;
+      case 'archivar':
+        removeFromQueue(action.id);
+        if (isAgentAction(action.id)) archiveAction(action.id).catch(() => {});
         break;
       default:
         goLead(action.lead_id);
@@ -212,21 +227,36 @@ export default function AsesorCommandCenter({ user, onLogout }) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {/* Action queue (col principal) */}
+              {/* Prioridades de hoy (col principal · colapsable) */}
               <section className="lg:col-span-2">
-                <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3">
+                <button
+                  type="button"
+                  onClick={toggleQueue}
+                  data-testid="queue-toggle"
+                  className="w-full flex items-center gap-2 mb-3 text-[var(--cream)] text-sm font-semibold uppercase tracking-wide hover:opacity-80 transition-opacity"
+                  aria-expanded={!queueCollapsed}
+                  aria-label={queueCollapsed ? t('queue.expand') : t('queue.collapse')}
+                >
+                  {queueCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                   {t('queue.title')}
-                </h2>
-                {queue.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-dashed border-[rgba(240,235,224,0.12)]" data-testid="queue-empty">
-                    <Inbox size={28} className="text-[var(--cream-3)] mb-2" />
-                    <p className="text-[var(--cream)] text-sm font-medium">{t('queue.empty_title')}</p>
-                    <p className="text-[var(--cream-3)] text-xs mt-1 max-w-xs">{t('queue.empty_subtitle')}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {queue.map((a) => <ActionCard key={a.id} action={a} onCTA={onCTA} t={t} />)}
-                  </div>
+                  {actionCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[rgba(var(--theme-rgb),0.18)] text-[var(--theme)] text-[10px] font-bold normal-case">
+                      {actionCount}
+                    </span>
+                  )}
+                </button>
+                {!queueCollapsed && (
+                  queue.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-dashed border-[rgba(240,235,224,0.12)]" data-testid="queue-empty">
+                      <Inbox size={28} className="text-[var(--cream-3)] mb-2" />
+                      <p className="text-[var(--cream)] text-sm font-medium">{t('queue.empty_title')}</p>
+                      <p className="text-[var(--cream-3)] text-xs mt-1 max-w-xs">{t('queue.empty_subtitle')}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {queue.map((a) => <ActionCard key={a.id} action={a} onCTA={onCTA} t={t} />)}
+                    </div>
+                  )
                 )}
               </section>
 

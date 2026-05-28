@@ -553,6 +553,12 @@ async def cc_dismiss_action(action_id: str, request: Request):
     return await _cc_set_status(request, action_id, "dismissed")
 
 
+@router.post("/command-center/action/{action_id}/archive")
+async def cc_archive_action(action_id: str, request: Request):
+    # Archivar = guardar sin perder (status=archived · recuperable · NO en queue pending).
+    return await _cc_set_status(request, action_id, "archived")
+
+
 # ─── Contactos ────────────────────────────────────────────────────────────────
 @router.get("/contactos")
 async def list_contactos(

@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import {
-  Calendar, Clock, Flame, User, Sparkles, Phone, MessageCircle, Eye, Check, X,
+  Calendar, Clock, Flame, User, Sparkles, Phone, MessageCircle, Eye, Check, X, Archive,
 } from 'lucide-react';
 
 const ICONS = {
@@ -23,7 +23,8 @@ const PRIORITY_DOT = {
 };
 
 const CTA_ICONS = {
-  llamar: Phone, whatsapp: MessageCircle, ver_lead: Eye, completar: Check, descartar: X,
+  llamar: Phone, whatsapp: MessageCircle, ver_lead: Eye, completar: Check,
+  descartar: X, archivar: Archive,
 };
 
 export default function ActionCard({ action, onCTA, t }) {
@@ -57,9 +58,9 @@ export default function ActionCard({ action, onCTA, t }) {
           <p className="text-[var(--cream-3)] text-xs mt-0.5 truncate">{action.subtitle}</p>
         )}
 
-        {/* CTAs inline */}
+        {/* CTAs inline · +Archivar siempre disponible (guardar sin perder) */}
         <div className="flex flex-wrap items-center gap-1.5 mt-2">
-          {(action.cta_actions || []).map((cta) => {
+          {[...(action.cta_actions || []), 'archivar'].map((cta) => {
             const CtaIcon = CTA_ICONS[cta] || Eye;
             const danger = cta === 'descartar';
             return (
