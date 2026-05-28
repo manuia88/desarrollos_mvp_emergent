@@ -1,6 +1,43 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Asesor Redesign P2 + P3 · Agentes + Command Center Inteligente SHIPPED — 2026-05-26
+
+🤖 **P2 AI Agent Workforce + P3 Command Center Inteligente + audits.** Founder validó visual OK.
+
+### P2 · AI Agent Workforce (SHA 69e00651 · 24/24 pytest)
+
+5 agentes de fondo que escriben acciones en command_center_actions (badge 🤖):
+- **Prospector** (leads nuevos <14d · W7.AS.1+W5.4) · **Nurturer** (enfriados >5d · workflow)
+- **Closer** (close_probability · W5.4+W5.19) · **Analyst** (pipeline drift · W7.AS.3 pattern)
+- **Coach** (SOC W6.MOV.1 + LLM Haiku · cap 1/día)
+- Orchestrator: importlib registry + FAIL-OPEN per-agente + upsert dedup_key + cap · cron 07:10 UTC (catch: 07:00 ocupado por entity_resolution+external_insights)
+- Atlax #56 · 3 batches paralelos (T1 owner + T2/T3 puros)
+- 2do recheck pre-P2: dedup + índices blindados (5 agentes escribiendo)
+
+### P3 · Command Center Inteligente (SHA 7dae0774 + fixes UX)
+
+- **Sección Agentes IA** (Automatizaciones → Agentes IA · 5 tarjetas + Ejecutar) · cierra P2 visible
+- **Command Bar IA** (Cmd+K → Atlax 54 tools · UniversalSearch extendido aditivo)
+- **Mini-card equipo** + **Briefing auto** (reusa daily_briefing) + **Close prob en leads**
+- 2 batches paralelos (A owner + B Command Bar) · asistente_engine diff=0
+
+### P3 fixes UX (founder testing · 4 commits)
+
+- "Tu cola de acciones" → **"Prioridades de hoy"** (048cf15e)
+- Colapsar sección (localStorage) + **Archivar** acción
+- **"Ver archivadas" + Restaurar** (0bad0575 · gap: archivar sin recuperar)
+- **Persistencia unificada** (3bb318a6): sintéticas+agente se persisten igual · supresión (no reaparecen) · _cc_set_status upsert + payload
+
+### Audits
+
+- **P2**: 24/24 pytest · pre-merge limpio
+- **P3 doble-pase** (SHA a3067362): 1 🟡 fixed (restore duplicaba card · merge excluye sintéticas persistidas) · audit 2 0 regresiones · GO
+- Tenant isolation sólido · invariantes diff=0 (agentes/close_prob/asistente_engine/V1)
+
+**Estado mega-plan asesor:** F1+F1.5+P1+P2+P3 SHIPPED. Pendientes: P4 (Conversacional+Voz) · P5 (Auto-pilot+UX) · P6 (Polish+A11y).
+
+
 ## Asesor Redesign P1 · Command Center SHIPPED — 2026-05-26
 
 🎨 **Command Center Hub (P1 · SHA 03966270 + fixes f21d6dc7).** Founder validó visual OK.
