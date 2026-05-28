@@ -1,6 +1,36 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Asesor Redesign P4 · Voice + Digest SHIPPED · MEGA-PLAN CORE CERRADO — 2026-05-26
+
+🔊📲 **P4 Voice Briefing + Smart Digest (SHA 02ac3d29 + audit fix e4aa94eb).** Cierra el core del mega-plan asesor (P1→P4).
+
+### P4 · Voice + Digest
+
+- **Voice Briefing**: botón ▶ en card Briefing → POST /briefing/voice → reusa voice synthesize (W5.16) → reproduce audio · STUB-aware sin ELEVENLABS · FAIL-OPEN
+- **Smart Digest**: `asesor_digest_engine` build_daily_digest (briefing + agent actions por agente + top prioridades + citas) + send_digest (email reusa `_send_email_notification` + WhatsApp reusa `WAEngine.send_message`) · cron 07:30 UTC max_instances=1 · opt-in (default off) · dedup 1/día · TTL 14d
+- 5 endpoints (voice + digest preview/send-now/prefs) · toggle en NotificationsSettings asesor-only
+- **Decisión**: prefs digest escritas via upsert thin (NO toca update_preferences core prohibido)
+
+### P4 audit doble-pase (SHA e4aa94eb)
+- 1 🟡 (NO-ORPHANS: digest preview/send-now sin botón UI) fixed (wired) · audit 2 0 regresiones · GO
+- Prohibidos diff=0 (notifications/voice/whatsapp/agentes/asistente) · tenant sólido · opt-in + dedup + TTL verificados
+
+### MEGA-PLAN ASESOR CORE CERRADO (P1→P4)
+
+| Fase | Qué | Audits |
+|---|---|---|
+| F1 + F1.5 | Sidebar 34→10 + layout consistency | 2+2 |
+| P1 | Command Center (dashboard accionable) | 2 + recheck |
+| P2 | 5 Agentes IA (Prospector/Nurturer/Closer/Coach/Analyst) | pytest 24/24 |
+| P3 | Command Center Inteligente (Cmd+K Atlax + agentes UI + briefing auto + close prob) | doble-pase + recheck |
+| P4 | Voice briefing + Smart digest | doble-pase |
+
+**DMX asesor = "asesor con equipo de IA 24/7"**: sidebar limpio · dashboard que dice qué hacer · 5 agentes que llenan la cola solos · le hablás (Cmd+K) · te lee el día (voz) · te busca por WhatsApp (digest). 40+ cycle-closers · 0 standalone · 0 deuda seguridad.
+
+**Pendientes mega-plan:** P5 (Auto-pilot + Bulk + Pinned + Custom widgets) · P6 (Design tokens + Skeleton + Tour + Mobile + A11y).
+
+
 ## Asesor Redesign P2 + P3 · Agentes + Command Center Inteligente SHIPPED — 2026-05-26
 
 🤖 **P2 AI Agent Workforce + P3 Command Center Inteligente + audits.** Founder validó visual OK.
