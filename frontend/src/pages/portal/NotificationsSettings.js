@@ -1,5 +1,6 @@
 // W4.17 — NotificationsSettings · página /portal/settings/notifications
 import React, { useState, useEffect } from 'react';
+import { getDigestPreview, sendDigestNow } from '../../api/advisor';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -100,6 +101,30 @@ export default function NotificationsSettings({ user }) {
       }
     } catch {}
     setDigestSaving(false);
+  };
+
+  // P4 · Vista previa + enviar ahora (consume /digest/preview + /digest/send-now)
+  const [digestPreview, setDigestPreview] = useState(null);
+  const [digestBusy, setDigestBusy] = useState(false);
+  const doPreview = async () => {
+    setDigestBusy(true);
+    try {
+      const r = await getDigestPreview();
+      setDigestPreview(r?.digest || null);
+    } catch { setDigestPreview(null); }
+    setDigestBusy(false);
+  };
+  const doSendNow = async () => {
+    setDigestBusy(true);
+    try {
+      const r = await sendDigestNow();
+      const chans = (r?.sent_channels || []);
+      setDigestToast(chans.length ? `Enviado por ${chans.join(' y ')}` : 'Resumen procesado (sin canales activos)');
+    } catch (e) {
+      setDigestToast(e?.status === 429 ? 'Límite: máx 3 envíos por hora' : 'No se pudo enviar');
+    }
+    setTimeout(() => setDigestToast(''), 4000);
+    setDigestBusy(false);
   };
 
   const toggle = (cat, channel) => {
@@ -391,12 +416,55 @@ export default function NotificationsSettings({ user }) {
             >
               {digestSaving ? 'Guardando...' : 'Guardar resumen'}
             </button>
+            <button
+              data-testid="digest-preview-btn"
+              onClick={doPreview}
+              disabled={digestBusy}
+              style={{
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
+                padding: '8px 16px', borderRadius: 9999,
+                background: 'transparent', color: 'var(--cream-3)',
+                border: '1px solid rgba(255,255,255,0.14)', cursor: digestBusy ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Vista previa
+            </button>
+            <button
+              data-testid="digest-sendnow-btn"
+              onClick={doSendNow}
+              disabled={digestBusy}
+              style={{
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
+                padding: '8px 16px', borderRadius: 9999,
+                background: 'transparent', color: 'var(--cream-3)',
+                border: '1px solid rgba(255,255,255,0.14)', cursor: digestBusy ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Enviar ahora
+            </button>
             {digestToast && (
               <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: '#4ADE80', fontWeight: 600 }}>
                 {digestToast}
               </span>
             )}
           </div>
+          {/* Vista previa del digest del día */}
+          {digestPreview && (
+            <div
+              data-testid="digest-preview-box"
+              style={{
+                marginTop: 14, padding: '12px 14px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              }}
+            >
+              <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream)', lineHeight: 1.6 }}>
+                {digestPreview.briefing_resumen || 'Sin briefing del día todavía.'}
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', marginTop: 8 }}>
+                {digestPreview.agent_actions_total || 0} acciones de agentes · {(digestPreview.top_prioridades || []).length} prioridades · {digestPreview.citas_hoy || 0} citas hoy
+              </div>
+            </div>
+          )}
         </div>
       )}
 
