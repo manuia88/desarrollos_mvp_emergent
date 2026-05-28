@@ -1,6 +1,42 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Asesor Redesign F1 + F1.5 SHIPPED — 2026-05-26
+
+🎨 **Sidebar reorg 34→10 grupos (F1 · SHA 8a27f59e) + Layout consistency (F1.5 · SHA f791e0ea).** Founder validó visual OK.
+
+### F1 · Sidebar Reorg V2 (SHA 8a27f59e)
+
+- `config/navByRoleV2.js` · ASESOR_NAV_V2 10 grupos · 34 items mapeados con `to` originales (NO ORPHANS)
+- `components/asesor/AsesorSidebarV2.js` · submenús accordion + user menu pie + búsqueda inline + auto-expand grupo activo
+- `i18n/locales/es-MX/asesor_sidebar_v2.json` · namespace separado · 10 grupos + descriptions
+- **Hallazgo**: AsesorLayout/Sidebar.js no existían · sidebar lo dibuja PortalLayout (shared) · resuelto con render-prop opcional
+- Feature flag `REACT_APP_SIDEBAR_V2` opt-in · V1 default producción
+- 70% menos ruido visual (34 tabs → 10 grupos)
+
+### F1.5 · Layout Consistency (SHA f791e0ea)
+
+**Causa raíz detectada en testing founder**: 3 sistemas de layout coexistían:
+1. AdvisorLayout (V2 via render-prop) → solo Inicio
+2. PortalLayout directo (V1 siempre) → Studio pages
+3. Sin layout → 15 páginas W5/W6/W7 (sin sidebar)
+
+**Solución punto único de verdad**:
+- **PortalLayout role-aware**: `useAsesorV2 = SIDEBAR_V2 && {advisor,asesor_admin}.has(role)` · asesor→AsesorSidebarV2 · otros→su nav
+- **AdvisorLayout simplificado**: quitado render-prop (PortalLayout decide)
+- **15 páginas huérfanas envueltas** en PortalLayout role={user?.role}: ConversationPlayground · ConversationInbox · AsesorMarketplace · AsesorOutbound · PropertyFitLeads · Alertas · MarketplaceTemplates · SocFranchise · SocialAdsConnect · SocialAdsCampaigns · StudioVideo · VideoStandalone · WorkflowBuilder · WorkflowHistory · VirtualStaging
+
+**Resultado**: 6 Studio pages heredan V2 sin tocarlas · 15 huérfanas ahora con sidebar · consistente en TODO el portal asesor.
+
+**Multi-rol preservado (crítico)**: inmobiliaria/developer/superadmin sidebars intactos · 0 roles hardcodeados · flag OFF → V1 todo.
+
+### Protocolo Quirúrgico aplicado (memory/SURGICAL_WORK_PROTOCOL.md)
+
+3 roles · 4 pases · 10 invariantes · tags rollback (pre-asesor-f1 · pre-asesor-f1.5).
+
+**Próximo**: audit forense F1+F1.5 doble-pase + F2 (cycle-closers UX 3 terminales).
+
+
 ## Checkpoint localhost dev + Asesor Redesign Plan — 2026-05-26
 
 🔧 **Checkpoint** SHA `ca04dd55` · 3 fixes para login en `http://localhost`.
