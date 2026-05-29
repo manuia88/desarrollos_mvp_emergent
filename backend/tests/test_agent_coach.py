@@ -72,12 +72,14 @@ async def test_run_coach_returns_list_with_source_agent_coach(mock_db):
 
 async def test_cap_one_per_day(mock_db):
     """Cap 1 tip/día: si ya hay acción coach pending creada hoy, devuelve []."""
-    now_iso = datetime.now(timezone.utc).isoformat()
+    # created_at como datetime (BSON Date) · así lo guarda el orchestrator en prod
+    # (comparar con isoformat string rompía el cap en Mongo real · fix audit P2).
+    now_dt = datetime.now(timezone.utc)
     await mock_db.command_center_actions.insert_one({
         "user_id": "advisor-1",
         "source_agent": "coach",
         "status": "pending",
-        "created_at": now_iso,
+        "created_at": now_dt,
         "type": "coach_tip",
     })
     with patch.dict(sys.modules, {"soc_franchise_engine": _fake_soc_module()}):

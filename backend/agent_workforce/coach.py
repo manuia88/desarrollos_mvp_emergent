@@ -44,11 +44,14 @@ async def _already_sent_today(db, user_id: str) -> bool:
     try:
         now = _now()
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # created_at lo guarda el orchestrator como BSON Date (datetime), NO string →
+        # comparar contra datetime (con string, $gte nunca matchea el Date y el cap
+        # 1/día queda inerte → run-now repetido re-invocaría el LLM Haiku).
         existing = await db.command_center_actions.find_one({
             "user_id": user_id,
             "source_agent": SOURCE_AGENT,
             "status": "pending",
-            "created_at": {"$gte": day_start.isoformat()},
+            "created_at": {"$gte": day_start},
         })
         return existing is not None
     except Exception as e:
