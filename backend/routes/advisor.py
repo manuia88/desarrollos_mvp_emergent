@@ -1722,3 +1722,196 @@ async def seed_demo(request: Request):
         await db.asesor_operaciones.insert_one(dict(doc))
 
     return {"message": "Demo seed creado", "contactos": len(ids_contactos), "busquedas": len(busqs), "captaciones": len(capts), "tareas": len(tareas), "operaciones": len(ops)}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# P5.B · UX bundle · Bulk + Pinned + Custom Widgets + Recent
+# Sección NUEVA · aditiva · NO modifica endpoints P1-P4 (diff=0 arriba de esta línea).
+# Reglas: bulk → _assert owner CADA id (el filtro owner_id en el query lo garantiza ·
+# imposible mutar cross-tenant) · widgets/recent → upsert thin en colecciones propias
+# (NO toca asesor_profiles core).
+# ════════════════════════════════════════════════════════════════════════════
+
+# Paneles configurables del Command Center (orden por defecto).
+WIDGET_PANELS = ["kpis", "agents", "queue", "leads", "perf", "briefing", "recent"]
+
+
+class BulkContactosIn(BaseModel):
+    ids: List[str]
+    action: str  # archive | unarchive | set_temp | assign_task
+    payload: Optional[dict] = None
+
+
+class WidgetsConfigIn(BaseModel):
+    order: Optional[List[str]] = None    # ids de panel en orden
+    hidden: Optional[List[str]] = None   # ids de panel ocultos
+
+
+class RecentTrackIn(BaseModel):
+    entity_type: str                     # lead | page | busqueda | operacion ...
+    entity_id: str
+    label: Optional[str] = ""
+    url: Optional[str] = None
+
+
+# ─── Bulk actions sobre contactos ───────────────────────────────────────────────
+@router.post("/contactos/bulk")
+async def bulk_contactos(payload: BulkContactosIn, request: Request):
+    """Acción en lote sobre N leads. _assert owner CADA id vía filtro owner_id en el
+    query (un id de otro asesor simplemente no matchea → cero mutación cross-tenant).
+    Acciones: archive · unarchive · set_temp{temperatura} · assign_task{titulo,due_at,prioridad?}."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    ids = [i for i in (payload.ids or []) if i][:200]
+    if not ids:
+        raise HTTPException(400, "ids vacío")
+    owner_flt = {"id": {"$in": ids}, "owner_id": user.user_id}
+    action = payload.action
+    pl = payload.payload or {}
+
+    if action == "archive":
+        res = await db.asesor_contactos.update_many(owner_flt, {"$set": {"archived": True, "archived_at": _now()}})
+        affected = res.modified_count
+    elif action == "unarchive":
+        res = await db.asesor_contactos.update_many(owner_flt, {"$set": {"archived": False}, "$unset": {"archived_at": ""}})
+        affected = res.modified_count
+    elif action == "set_temp":
+        temp = pl.get("temperatura")
+        if temp not in TEMP_CONTACTO:
+            raise HTTPException(400, "temperatura inválida")
+        res = await db.asesor_contactos.update_many(owner_flt, {"$set": {"temperatura": temp}})
+        affected = res.modified_count
+    elif action == "assign_task":
+        titulo = (pl.get("titulo") or "").strip()
+        due_at = pl.get("due_at")
+        if not titulo or not due_at:
+            raise HTTPException(400, "assign_task requiere titulo + due_at")
+        prioridad = pl.get("prioridad") if pl.get("prioridad") in PRIORITY else "media"
+        # Sólo contactos que son del owner (re-confirma ownership por cada id).
+        owned = await db.asesor_contactos.find(owner_flt, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}).to_list(200)
+        docs = []
+        for c in owned:
+            docs.append({
+                "id": _uid("tarea"), "owner_id": user.user_id, "done": False, "created_at": _now(),
+                "titulo": titulo, "tipo": "lead", "entity_id": c["id"],
+                "entity_label": (f"{c.get('first_name','')} {c.get('last_name','')}").strip() or "Lead",
+                "due_at": due_at, "prioridad": prioridad, "notas": "",
+            })
+        if docs:
+            await db.asesor_tareas.insert_many(docs)
+        affected = len(docs)
+    else:
+        raise HTTPException(400, f"acción no soportada: {action}")
+
+    # Audit log (best-effort · no rompe).
+    try:
+        from audit_log import log_mutation
+        await log_mutation(db, user, f"bulk_{action}", "contacto", ",".join(ids[:20]),
+                           before=None, after={"action": action, "count": affected}, request=request)
+    except Exception:
+        pass
+    return {"ok": True, "action": action, "requested": len(ids), "affected": affected}
+
+
+# ─── Pin / unpin contacto ───────────────────────────────────────────────────────
+@router.post("/contactos/{cid}/pin")
+async def pin_contacto(cid: str, request: Request):
+    """Toggle pinned de un lead. _assert owner. Pinned al top lo ordena el cliente
+    (list_contactos devuelve el campo `pinned` en el doc · P1-P4 diff=0)."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "pinned": 1})
+    if c is None:
+        raise HTTPException(404, "No encontrado")
+    new_val = not bool(c.get("pinned"))
+    await db.asesor_contactos.update_one(
+        {"id": cid, "owner_id": user.user_id},
+        {"$set": {"pinned": new_val, "pinned_at": _now() if new_val else None}},
+    )
+    return {"id": cid, "pinned": new_val}
+
+
+# ─── Custom widgets config (Command Center) ──────────────────────────────────────
+@router.get("/dashboard/widgets-config")
+async def get_widgets_config(request: Request):
+    """Config de paneles del Command Center del asesor. upsert thin · colección propia
+    asesor_dashboard_widgets (NO toca asesor_profiles core). Default si no existe."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    doc = await db.asesor_dashboard_widgets.find_one({"user_id": user.user_id}, {"_id": 0})
+    if not doc:
+        return {"order": WIDGET_PANELS, "hidden": []}
+    return {"order": doc.get("order") or WIDGET_PANELS, "hidden": doc.get("hidden") or []}
+
+
+@router.patch("/dashboard/widgets-config")
+async def patch_widgets_config(payload: WidgetsConfigIn, request: Request):
+    """Actualiza orden/ocultos de paneles. Valida ids contra WIDGET_PANELS. upsert thin."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    patch = {}
+    if payload.order is not None:
+        patch["order"] = [p for p in payload.order if p in WIDGET_PANELS]
+    if payload.hidden is not None:
+        patch["hidden"] = [p for p in payload.hidden if p in WIDGET_PANELS]
+    if not patch:
+        raise HTTPException(400, "Nada que actualizar")
+    patch["updated_at"] = _now()
+    await db.asesor_dashboard_widgets.update_one(
+        {"user_id": user.user_id}, {"$set": patch}, upsert=True,
+    )
+    doc = await db.asesor_dashboard_widgets.find_one({"user_id": user.user_id}, {"_id": 0})
+    return {"order": doc.get("order") or WIDGET_PANELS, "hidden": doc.get("hidden") or []}
+
+
+# ─── Recent items (visto recientemente · TTL 30d) ────────────────────────────────
+_recent_idx_ready = False
+
+
+async def _ensure_recent_index(db):
+    """Crea índices de asesor_recent de forma lazy + idempotente (NO toca server.py
+    startup · A owner). TTL 30d sobre viewed_at. FAIL-OPEN."""
+    global _recent_idx_ready
+    if _recent_idx_ready:
+        return
+    try:
+        await db.asesor_recent.create_index([("owner_id", 1), ("entity_type", 1), ("entity_id", 1)], unique=True)
+        await db.asesor_recent.create_index([("owner_id", 1), ("viewed_at", -1)])
+        await db.asesor_recent.create_index("viewed_at", expireAfterSeconds=2592000)  # 30d
+        _recent_idx_ready = True
+    except Exception:
+        pass
+
+
+@router.post("/recent")
+async def track_recent(payload: RecentTrackIn, request: Request):
+    """Registra/actualiza un item visto recientemente (upsert por owner+entity).
+    TTL 30d (lazy index). FAIL-OPEN: nunca rompe la navegación."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    await _ensure_recent_index(db)
+    try:
+        await db.asesor_recent.update_one(
+            {"owner_id": user.user_id, "entity_type": payload.entity_type, "entity_id": payload.entity_id},
+            {"$set": {"label": payload.label or "", "url": payload.url, "viewed_at": _now()}},
+            upsert=True,
+        )
+    except Exception:
+        return {"ok": False}
+    return {"ok": True}
+
+
+@router.get("/recent")
+async def list_recent(request: Request, limit: int = 5):
+    """Últimos N items vistos (default 5). Orden por viewed_at desc · TTL 30d."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    limit = max(1, min(limit, 20))
+    items = await db.asesor_recent.find(
+        {"owner_id": user.user_id}, {"_id": 0, "owner_id": 0},
+    ).sort("viewed_at", -1).limit(limit).to_list(limit)
+    for it in items:
+        ts = it.get("viewed_at")
+        if isinstance(ts, datetime):
+            it["viewed_at"] = ts.isoformat()
+    return items

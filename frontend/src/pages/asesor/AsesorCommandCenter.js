@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import {
   DollarSign, Flame, CheckCircle2, Wallet, Trophy, FileText, Users,
   UserPlus, ListPlus, CalendarPlus, Sparkles, Inbox, ChevronDown, ChevronRight,
-  Volume2, Loader2,
+  Volume2, Loader2, Settings, Eye, EyeOff, ArrowUp, ArrowDown, Clock, Pin,
 } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
@@ -21,8 +21,13 @@ import AgentTeamCard from '../../components/asesor/command_center/AgentTeamCard'
 import {
   getDashboard, getLeaderboard, completeAction, dismissAction, archiveAction,
   restoreAction, getArchivedActions, generateBriefing, getCloseProbability,
-  briefingVoice,
+  briefingVoice, getWidgetsConfig, patchWidgetsConfig, getRecent, trackRecent,
 } from '../../api/advisor';
+
+// P5.B · Custom widgets · paneles configurables del Command Center.
+const DEFAULT_WIDGETS = ['kpis', 'agents', 'queue', 'leads', 'perf', 'briefing', 'recent'];
+const ASIDE_PANELS = ['leads', 'perf', 'briefing', 'recent'];  // reordenables (col lateral)
+const WIDGETS_LS_KEY = 'dmx_cc_widgets_v1';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL;
 
@@ -59,6 +64,7 @@ function Skeleton() {
 
 export default function AsesorCommandCenter({ user, onLogout }) {
   const { t } = useTranslation('command_center');
+  const { t: tp } = useTranslation('p5_ux');
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [leaders, setLeaders] = useState([]);
@@ -66,6 +72,42 @@ export default function AsesorCommandCenter({ user, onLogout }) {
   const [queue, setQueue] = useState([]);
   const [hoverLead, setHoverLead] = useState(null);
   const [closeProbs, setCloseProbs] = useState({});
+  // P5.B · custom widgets (orden + ocultos) · localStorage fallback
+  const [widgetCfg, setWidgetCfg] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem(WIDGETS_LS_KEY) || 'null'); if (v?.order) return v; } catch { /* no-op */ }
+    return { order: DEFAULT_WIDGETS, hidden: [] };
+  });
+  const [customizing, setCustomizing] = useState(false);
+  // P5.B · recent items (visto recientemente)
+  const [recent, setRecent] = useState([]);
+
+  const isHidden = useCallback((id) => (widgetCfg.hidden || []).includes(id), [widgetCfg]);
+
+  // P5.B · persiste config (localStorage + backend best-effort)
+  const togglePanel = useCallback((id) => {
+    setWidgetCfg((prev) => {
+      const hidden = (prev.hidden || []).includes(id)
+        ? prev.hidden.filter((x) => x !== id)
+        : [...(prev.hidden || []), id];
+      const next = { order: prev.order || DEFAULT_WIDGETS, hidden };
+      try { localStorage.setItem(WIDGETS_LS_KEY, JSON.stringify(next)); } catch { /* no-op */ }
+      patchWidgetsConfig(next).catch(() => {});
+      return next;
+    });
+  }, []);
+  const movePanel = useCallback((id, dir) => {
+    setWidgetCfg((prev) => {
+      const order = [...(prev.order || DEFAULT_WIDGETS)];
+      const i = order.indexOf(id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= order.length) return prev;
+      [order[i], order[j]] = [order[j], order[i]];
+      const next = { order, hidden: prev.hidden || [] };
+      try { localStorage.setItem(WIDGETS_LS_KEY, JSON.stringify(next)); } catch { /* no-op */ }
+      patchWidgetsConfig(next).catch(() => {});
+      return next;
+    });
+  }, []);
   // P4 · Voice Briefing · estados idle|loading|playing|unavailable (FAIL-OPEN)
   const [voiceState, setVoiceState] = useState('idle');
   const audioRef = useRef(null);
@@ -116,14 +158,21 @@ export default function AsesorCommandCenter({ user, onLogout }) {
     let alive = true;
     (async () => {
       try {
-        const [dash, lb] = await Promise.all([
+        const [dash, lb, wcfg, rec] = await Promise.all([
           getDashboard(),
           getLeaderboard().catch(() => []),
+          getWidgetsConfig().catch(() => null),
+          getRecent(5).catch(() => []),
         ]);
         if (!alive) return;
         setData(dash);
         setQueue(dash.action_queue || []);
         setLeaders(Array.isArray(lb) ? lb.slice(0, 5) : []);
+        if (wcfg?.order) {
+          setWidgetCfg(wcfg);
+          try { localStorage.setItem(WIDGETS_LS_KEY, JSON.stringify(wcfg)); } catch { /* no-op */ }
+        }
+        setRecent(Array.isArray(rec) ? rec : []);
 
         // Briefing auto: si no hay briefing hoy, genéralo solo (reusa daily_briefing · FAIL-OPEN).
         if (!dash.briefing) {
@@ -155,8 +204,13 @@ export default function AsesorCommandCenter({ user, onLogout }) {
     return () => { alive = false; };
   }, []);
 
-  const goLead = useCallback((leadId) => {
-    navigate(leadId ? `/asesor/contactos/${leadId}` : '/asesor/contactos');
+  const goLead = useCallback((leadId, label) => {
+    if (leadId) {
+      trackRecent({ entity_type: 'lead', entity_id: leadId, label: label || 'Lead', url: `/asesor/contactos/${leadId}` }).catch(() => {});
+      navigate(`/asesor/contactos/${leadId}`);
+    } else {
+      navigate('/asesor/contactos');
+    }
   }, [navigate]);
 
   const removeFromQueue = useCallback((id) => {
@@ -207,6 +261,123 @@ export default function AsesorCommandCenter({ user, onLogout }) {
   const firstName = (user?.name || '').split(' ')[0] || '';
   const actionCount = queue.length;
 
+  // P5.B · recent leads respeta pin (orden cliente · pinned al top)
+  const recentLeads = [...(data?.leads_recientes || [])].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  // P5.B · paneles laterales en el orden configurado (sin ocultos)
+  const asideOrder = (widgetCfg.order || DEFAULT_WIDGETS).filter((id) => ASIDE_PANELS.includes(id) && !isHidden(id));
+
+  const PANEL_LABELS = {
+    kpis: tp('widgets.panel_kpis', 'Indicadores'), agents: tp('widgets.panel_agents', 'Equipo IA'),
+    queue: tp('widgets.panel_queue', 'Prioridades de hoy'), leads: tp('widgets.panel_leads', 'Leads recientes'),
+    perf: tp('widgets.panel_perf', 'Desempeño'), briefing: tp('widgets.panel_briefing', 'Briefing'),
+    recent: tp('widgets.panel_recent', 'Visto recientemente'),
+  };
+
+  const renderAsidePanel = (id) => {
+    if (id === 'leads') return (
+      <div key="leads">
+        <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2">
+          <Users size={15} /> {t('panels.recent_leads')}
+        </h2>
+        <div className="space-y-1.5">
+          {recentLeads.length === 0 && <p className="text-[var(--cream-3)] text-xs">{t('panels.no_leads')}</p>}
+          {recentLeads.map((lead) => (
+            <div key={lead.id} className="relative" onMouseEnter={() => setHoverLead(lead.id)} onMouseLeave={() => setHoverLead(null)}>
+              <button type="button" onClick={() => goLead(lead.id, `${lead.first_name || ''} ${lead.last_name || ''}`.trim())}
+                data-testid={`recent-lead-${lead.id}`}
+                className="w-full flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-[rgba(240,235,224,0.06)] transition-colors text-left">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {lead.pinned && <Pin size={11} className="text-[#a5b4fc] shrink-0" fill="#a5b4fc" />}
+                  <span className="text-[var(--cream-2)] text-sm truncate">
+                    {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Lead'}
+                  </span>
+                </span>
+                <span className="flex items-center gap-1.5 shrink-0">
+                  {closeProbs[lead.id] != null && (
+                    <span data-testid={`close-prob-${lead.id}`} title={t('panels.close_prob_tooltip')}
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${probPill(closeProbs[lead.id])}`}>
+                      {closeProbs[lead.id]}% {t('panels.close_prob_suffix')}
+                    </span>
+                  )}
+                  <BuyerScoreBadge score={lead.buyer_score?.value} tier={lead.buyer_score?.tier} delta={lead.buyer_score?.delta_pct} size="sm" />
+                </span>
+              </button>
+              {hoverLead === lead.id && <LeadInlinePreview lead={lead} />}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+    if (id === 'perf') return (
+      <div key="perf">
+        <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2">
+          <Trophy size={15} /> {t('panels.performance')}
+        </h2>
+        <div className="space-y-1.5">
+          {leaders.map((p, i) => (
+            <div key={p.user_id || i} className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(240,235,224,0.03)]">
+              <span className="w-5 text-center text-[var(--cream-3)] text-xs font-bold">{i + 1}</span>
+              <span className="text-[var(--cream-2)] text-sm truncate flex-1">{p.full_name || '—'}</span>
+              <span className="text-[var(--cream)] text-xs font-semibold">{p.score_elo ?? 1000}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+    if (id === 'recent') return (
+      <div key="recent" data-testid="recent-panel">
+        <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2">
+          <Clock size={15} /> {tp('recent.title', 'Visto recientemente')}
+        </h2>
+        <div className="space-y-1.5">
+          {recent.length === 0 ? (
+            <p className="text-[var(--cream-3)] text-xs">{tp('recent.empty', 'Aún no has visto nada.')}</p>
+          ) : recent.map((it) => (
+            <button key={`${it.entity_type}:${it.entity_id}`} type="button"
+              onClick={() => navigate(it.url || (it.entity_type === 'lead' ? `/asesor/contactos/${it.entity_id}` : '/asesor'))}
+              data-testid={`recent-item-${it.entity_id}`}
+              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[rgba(240,235,224,0.06)] transition-colors text-left">
+              <Clock size={12} className="text-[var(--cream-3)] shrink-0" />
+              <span className="text-[var(--cream-2)] text-sm truncate flex-1">{it.label || it.entity_id}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+    if (id === 'briefing') return (
+      <div key="briefing">
+        <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2">
+          <FileText size={15} /> {t('panels.briefing')}
+        </h2>
+        {data?.briefing ? (
+          <div className="rounded-xl bg-[rgba(var(--theme-rgb),0.08)] border border-[rgba(var(--theme-rgb),0.2)] overflow-hidden">
+            <button type="button" onClick={() => navigate('/asesor/briefings')} data-testid="briefing-card"
+              className="w-full text-left p-3 hover:bg-[rgba(var(--theme-rgb),0.12)] transition-colors">
+              <p className="text-[var(--cream)] text-sm font-medium line-clamp-3">
+                {data.briefing.titulo || data.briefing.title || data.briefing.text || t('panels.briefing')}
+              </p>
+            </button>
+            <button type="button" onClick={playBriefingVoice}
+              disabled={voiceState === 'loading' || voiceState === 'playing' || voiceState === 'unavailable'}
+              data-testid="briefing-voice-btn"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-t border-[rgba(var(--theme-rgb),0.15)] text-xs font-medium text-[var(--cream-2)] hover:bg-[rgba(var(--theme-rgb),0.1)] disabled:opacity-60 transition-colors">
+              {voiceState === 'loading'
+                ? <><Loader2 size={13} className="animate-spin" /> {t('panels.voice_loading')}</>
+                : voiceState === 'playing'
+                ? <><Volume2 size={13} className="animate-pulse" /> {t('panels.voice_playing')}</>
+                : voiceState === 'unavailable'
+                ? <>{t('panels.voice_unavailable')}</>
+                : <><Volume2 size={13} /> {t('panels.voice_listen')}</>}
+            </button>
+          </div>
+        ) : (
+          <p className="text-[var(--cream-3)] text-xs">{t('panels.no_briefing')}</p>
+        )}
+      </div>
+    );
+    return null;
+  };
+
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
       <div className="max-w-[1100px] mx-auto" data-testid="asesor-command-center">
@@ -244,10 +415,67 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                     </button>
                   );
                 })}
+                {/* P5.B · personalizar paneles */}
+                <button
+                  onClick={() => setCustomizing((c) => !c)}
+                  data-testid="customize-widgets-btn"
+                  aria-label={tp('widgets.customize', 'Personalizar paneles')}
+                  title={tp('widgets.customize', 'Personalizar paneles')}
+                  className={`flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors ${
+                    customizing
+                      ? 'text-[var(--theme)] bg-[rgba(var(--theme-rgb),0.16)] border border-[rgba(var(--theme-rgb),0.3)]'
+                      : 'text-[var(--cream)] bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] hover:bg-[rgba(240,235,224,0.1)]'
+                  }`}
+                >
+                  <Settings size={15} />
+                </button>
               </div>
             </div>
 
+            {/* P5.B · panel de personalización (mostrar/ocultar + reordenar) */}
+            {customizing && (
+              <div data-testid="customize-panel" className="mb-6 rounded-2xl border border-[rgba(240,235,224,0.12)] bg-[rgba(240,235,224,0.03)] p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-[var(--cream)] text-sm font-semibold">{tp('widgets.customize', 'Personalizar paneles')}</h3>
+                  <button onClick={() => setCustomizing(false)} data-testid="customize-done" className="text-[var(--cream-3)] text-xs hover:text-[var(--cream)]">
+                    {tp('widgets.done', 'Listo')}
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {(widgetCfg.order || DEFAULT_WIDGETS).map((id, idx, arr) => {
+                    const hidden = isHidden(id);
+                    const isAside = ASIDE_PANELS.includes(id);
+                    return (
+                      <div key={id} data-testid={`widget-row-${id}`} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[rgba(240,235,224,0.03)]">
+                        <span className={`flex-1 text-sm ${hidden ? 'text-[var(--cream-3)] line-through' : 'text-[var(--cream-2)]'}`}>
+                          {PANEL_LABELS[id] || id}
+                        </span>
+                        {isAside && (
+                          <>
+                            <button onClick={() => movePanel(id, -1)} disabled={idx === 0} data-testid={`widget-up-${id}`}
+                              aria-label={tp('widgets.move_up', 'Subir')} className="p-1 text-[var(--cream-3)] hover:text-[var(--cream)] disabled:opacity-30">
+                              <ArrowUp size={13} />
+                            </button>
+                            <button onClick={() => movePanel(id, 1)} disabled={idx === arr.length - 1} data-testid={`widget-down-${id}`}
+                              aria-label={tp('widgets.move_down', 'Bajar')} className="p-1 text-[var(--cream-3)] hover:text-[var(--cream)] disabled:opacity-30">
+                              <ArrowDown size={13} />
+                            </button>
+                          </>
+                        )}
+                        <button onClick={() => togglePanel(id)} data-testid={`widget-toggle-${id}`}
+                          aria-label={hidden ? tp('widgets.show', 'Mostrar') : tp('widgets.hide', 'Ocultar')}
+                          className="p-1 text-[var(--cream-3)] hover:text-[var(--cream)]">
+                          {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* KPI strip */}
+            {!isHidden('kpis') && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               <KpiCard label={t('kpi.pipeline')} value={fmtMXN(kpis.pipeline_mxn)} trendPct={kpis.pipeline_trend_pct ?? null}
                 Icon={DollarSign} trendLabel={t('kpi.vs_week')} onClick={() => navigate('/asesor/operaciones')} />
@@ -258,14 +486,18 @@ export default function AsesorCommandCenter({ user, onLogout }) {
               <KpiCard label={t('kpi.comisiones')} value={fmtMXN(kpis.comisiones_por_cobrar ?? data?.comisiones_por_cobrar)} trendPct={null}
                 Icon={Wallet} onClick={() => navigate('/asesor/comisiones')} />
             </div>
+            )}
 
             {/* P3.A · mini-resumen del equipo IA (consume /api/agent-workforce/status) */}
+            {!isHidden('agents') && (
             <div className="mb-6">
               <AgentTeamCard />
             </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Prioridades de hoy (col principal · colapsable) */}
+              {!isHidden('queue') && (
               <section className="lg:col-span-2">
                 <button
                   type="button"
@@ -333,112 +565,11 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                   </div>
                 )}
               </section>
+              )}
 
-              {/* Lateral: leads + performance + briefing */}
-              <aside className="space-y-5">
-                {/* Recent leads */}
-                <div>
-                  <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <Users size={15} /> {t('panels.recent_leads')}
-                  </h2>
-                  <div className="space-y-1.5">
-                    {(data?.leads_recientes || []).length === 0 && (
-                      <p className="text-[var(--cream-3)] text-xs">{t('panels.no_leads')}</p>
-                    )}
-                    {(data?.leads_recientes || []).map((lead) => (
-                      <div
-                        key={lead.id}
-                        className="relative"
-                        onMouseEnter={() => setHoverLead(lead.id)}
-                        onMouseLeave={() => setHoverLead(null)}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => goLead(lead.id)}
-                          data-testid={`recent-lead-${lead.id}`}
-                          className="w-full flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-[rgba(240,235,224,0.06)] transition-colors text-left"
-                        >
-                          <span className="text-[var(--cream-2)] text-sm truncate">
-                            {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Lead'}
-                          </span>
-                          <span className="flex items-center gap-1.5 shrink-0">
-                            {closeProbs[lead.id] != null && (
-                              <span
-                                data-testid={`close-prob-${lead.id}`}
-                                title={t('panels.close_prob_tooltip')}
-                                className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold border ${probPill(closeProbs[lead.id])}`}
-                              >
-                                {closeProbs[lead.id]}% {t('panels.close_prob_suffix')}
-                              </span>
-                            )}
-                            <BuyerScoreBadge
-                              score={lead.buyer_score?.value}
-                              tier={lead.buyer_score?.tier}
-                              delta={lead.buyer_score?.delta_pct}
-                              size="sm"
-                            />
-                          </span>
-                        </button>
-                        {hoverLead === lead.id && <LeadInlinePreview lead={lead} />}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Performance / ranking */}
-                <div>
-                  <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <Trophy size={15} /> {t('panels.performance')}
-                  </h2>
-                  <div className="space-y-1.5">
-                    {leaders.map((p, i) => (
-                      <div key={p.user_id || i} className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(240,235,224,0.03)]">
-                        <span className="w-5 text-center text-[var(--cream-3)] text-xs font-bold">{i + 1}</span>
-                        <span className="text-[var(--cream-2)] text-sm truncate flex-1">{p.full_name || '—'}</span>
-                        <span className="text-[var(--cream)] text-xs font-semibold">{p.score_elo ?? 1000}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Briefing */}
-                <div>
-                  <h2 className="text-[var(--cream)] text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2">
-                    <FileText size={15} /> {t('panels.briefing')}
-                  </h2>
-                  {data?.briefing ? (
-                    <div className="rounded-xl bg-[rgba(var(--theme-rgb),0.08)] border border-[rgba(var(--theme-rgb),0.2)] overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => navigate('/asesor/briefings')}
-                        data-testid="briefing-card"
-                        className="w-full text-left p-3 hover:bg-[rgba(var(--theme-rgb),0.12)] transition-colors"
-                      >
-                        <p className="text-[var(--cream)] text-sm font-medium line-clamp-3">
-                          {data.briefing.titulo || data.briefing.title || data.briefing.text || t('panels.briefing')}
-                        </p>
-                      </button>
-                      {/* P4 · Voice Briefing · ▶ escuchar (reusa TTS · FAIL-OPEN) */}
-                      <button
-                        type="button"
-                        onClick={playBriefingVoice}
-                        disabled={voiceState === 'loading' || voiceState === 'playing' || voiceState === 'unavailable'}
-                        data-testid="briefing-voice-btn"
-                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-t border-[rgba(var(--theme-rgb),0.15)] text-xs font-medium text-[var(--cream-2)] hover:bg-[rgba(var(--theme-rgb),0.1)] disabled:opacity-60 transition-colors"
-                      >
-                        {voiceState === 'loading'
-                          ? <><Loader2 size={13} className="animate-spin" /> {t('panels.voice_loading')}</>
-                          : voiceState === 'playing'
-                          ? <><Volume2 size={13} className="animate-pulse" /> {t('panels.voice_playing')}</>
-                          : voiceState === 'unavailable'
-                          ? <>{t('panels.voice_unavailable')}</>
-                          : <><Volume2 size={13} /> {t('panels.voice_listen')}</>}
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-[var(--cream-3)] text-xs">{t('panels.no_briefing')}</p>
-                  )}
-                </div>
+              {/* Lateral: paneles configurables (orden + visibilidad · P5.B) */}
+              <aside className={isHidden('queue') ? 'lg:col-span-3 space-y-5' : 'space-y-5'}>
+                {asideOrder.map((id) => renderAsidePanel(id))}
               </aside>
             </div>
           </>

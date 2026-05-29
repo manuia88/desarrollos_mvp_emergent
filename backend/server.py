@@ -50,6 +50,10 @@ app.include_router(advisor_router)
 from routes.agent_workforce import router as agent_workforce_router
 app.include_router(agent_workforce_router)
 
+# P5.A · Auto-pilot (ejecuta acciones aprobadas · guardrails estrictos)
+from routes.auto_pilot import router as auto_pilot_router
+app.include_router(auto_pilot_router)
+
 # Wire developer portal router
 from routes.developer import router as developer_router
 app.include_router(developer_router)
@@ -2056,6 +2060,14 @@ async def startup():
             logging.info("[P4] asesor_digest startup registered (cron 07:30 UTC)")
         except Exception as e:
             logging.warning(f"[P4] asesor_digest startup register failed: {e}")
+        # P5.A · Auto-pilot: indexes (config + log TTL) + daily 07:20 UTC cron (entre agentes y digest)
+        try:
+            import auto_pilot_engine
+            await auto_pilot_engine.ensure_indexes(db)
+            auto_pilot_engine.register_cron(sched, db)
+            logging.info("[P5.A] auto_pilot startup registered (cron 07:20 UTC)")
+        except Exception as e:
+            logging.warning(f"[P5.A] auto_pilot startup register failed: {e}")
         # W6.MOV.4 — Marketing MCP: indexes (log + cache + scheduled)
         try:
             from marketing_mcp_engine import ensure_indexes as marketing_mcp_ensure_indexes

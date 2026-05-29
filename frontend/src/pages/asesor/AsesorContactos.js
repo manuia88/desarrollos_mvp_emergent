@@ -1,6 +1,8 @@
 // /asesor/contactos — list + detail drawer with argumentario AI
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Pin, Archive, ListPlus, Thermometer } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
@@ -21,10 +23,16 @@ const SOURCE_LABELS = {
 };
 
 export default function AsesorContactos({ user, onLogout }) {
+  const { t } = useTranslation('p5_ux');
   const { id } = useParams();
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState([]);
+  // P5.B · selección múltiple (bulk) + ver archivados
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [showArchived, setShowArchived] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMode, setBulkMode] = useState(null);  // null | 'temp' | 'task'
   const [q, setQ] = useState('');
   const [tipo, setTipo] = useState('');
   const [temp, setTemp] = useState('');
@@ -92,9 +100,54 @@ export default function AsesorContactos({ user, onLogout }) {
       setToast({ kind: 'info', text: 'Este es un lead del pipeline · ábrelo desde el Kanban' });
       return;
     }
+    // P5.B · track recent (best-effort · no bloquea navegación)
+    api.trackRecent({
+      entity_type: 'lead', entity_id: c.id,
+      label: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Lead',
+      url: `/asesor/contactos/${c.id}`,
+    }).catch(() => {});
     nav(`/asesor/contactos/${c.id}`);
   };
   const closeDetail = () => nav('/asesor/contactos');
+
+  // P5.B · lista mostrada: filtra archivados (salvo toggle) + fija pinned al top (estable).
+  const display = useMemo(() => {
+    const arr = list.filter((c) => (showArchived ? true : !c.archived));
+    return [...arr].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  }, [list, showArchived]);
+
+  // P5.B · selección
+  const toggleSelect = (cid) => setSelectedIds((prev) => {
+    const next = new Set(prev);
+    next.has(cid) ? next.delete(cid) : next.add(cid);
+    return next;
+  });
+  const allVisibleSelected = display.length > 0 && display.every((c) => selectedIds.has(c.id));
+  const toggleSelectAll = () => setSelectedIds(() => (
+    allVisibleSelected ? new Set() : new Set(display.map((c) => c.id))
+  ));
+  const clearSelection = () => { setSelectedIds(new Set()); setBulkMode(null); };
+
+  // P5.B · pin toggle (optimista + persiste)
+  const togglePin = async (c) => {
+    setList((prev) => prev.map((x) => (x.id === c.id ? { ...x, pinned: !x.pinned } : x)));
+    try { await api.pinContacto(c.id); } catch (_) { load(); }
+  };
+
+  // P5.B · bulk actions
+  const runBulk = async (action, payload) => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const r = await api.bulkContactos(ids, action, payload);
+      setToast({ kind: 'success', text: t('bulk.done', { count: r.affected ?? ids.length }) });
+      clearSelection();
+      await load();
+    } catch (e) {
+      setToast({ kind: 'error', text: e.message || 'No se pudo aplicar' });
+    } finally { setBulkBusy(false); }
+  };
 
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
@@ -194,25 +247,89 @@ export default function AsesorContactos({ user, onLogout }) {
         </div>
       </Card>
 
+      {/* P5.B · barra de acciones en lote (aparece al seleccionar) */}
+      {selectedIds.size > 0 && (
+        <Card data-testid="bulk-bar" style={{ marginBottom: 12, padding: 12, borderColor: 'rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.08)' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <strong data-testid="bulk-count" style={{ color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13 }}>
+              {t('bulk.selected', { count: selectedIds.size })}
+            </strong>
+            <div style={{ flex: 1 }} />
+            {bulkMode === 'temp' ? (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>{t('bulk.pick_temp', 'Elige temperatura')}:</span>
+                {TEMPS.map((x) => (
+                  <button key={x} disabled={bulkBusy} data-testid={`bulk-temp-${x}`} className="btn btn-glass btn-sm"
+                    onClick={() => runBulk('set_temp', { temperatura: x })}>{x}</button>
+                ))}
+                <button className="btn btn-glass btn-sm" onClick={() => setBulkMode(null)}>{t('bulk.cancel', 'Cancelar')}</button>
+              </div>
+            ) : bulkMode === 'task' ? (
+              <BulkTaskForm busy={bulkBusy} onCancel={() => setBulkMode(null)} onSubmit={(pl) => runBulk('assign_task', pl)} t={t} />
+            ) : (
+              <>
+                <button disabled={bulkBusy} data-testid="bulk-move-stage" className="btn btn-glass btn-sm" onClick={() => setBulkMode('temp')}>
+                  <Thermometer size={13} /> {t('bulk.move_stage', 'Mover temperatura')}
+                </button>
+                <button disabled={bulkBusy} data-testid="bulk-assign-task" className="btn btn-glass btn-sm" onClick={() => setBulkMode('task')}>
+                  <ListPlus size={13} /> {t('bulk.assign_task', 'Asignar tarea')}
+                </button>
+                <button disabled={bulkBusy} data-testid="bulk-archive" className="btn btn-glass btn-sm" onClick={() => runBulk('archive')}>
+                  <Archive size={13} /> {t('bulk.archive', 'Archivar')}
+                </button>
+                <button disabled={bulkBusy} data-testid="bulk-clear" className="btn btn-glass btn-sm" onClick={clearSelection}>
+                  {t('bulk.clear', 'Limpiar selección')}
+                </button>
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* P5.B · ver archivados */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <button data-testid="toggle-archived" className="btn btn-glass btn-sm"
+          onClick={() => setShowArchived((s) => !s)}>
+          {showArchived ? t('hide_archived', 'Ocultar archivados') : t('show_archived', 'Ver archivados')}
+        </button>
+      </div>
+
       {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
-        : list.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin contactos'} sub={smartList ? 'Prueba con otra smart list o limpia el filtro.' : 'Crea tu primer contacto o ajusta filtros.'} />
+        : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin contactos'} sub={smartList ? 'Prueba con otra smart list o limpia el filtro.' : 'Crea tu primer contacto o ajusta filtros.'} />
         : (
           <Card style={{ padding: 0, overflow: 'hidden' }}>
             <table data-testid="contacts-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'DM Sans' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: '12px 10px', width: 36 }}>
+                    <input type="checkbox" data-testid="bulk-select-all" checked={allVisibleSelected}
+                      onChange={toggleSelectAll} style={{ cursor: 'pointer', accentColor: '#6366f1' }} />
+                  </th>
+                  <th style={{ width: 28 }} />
                   {['Nombre', 'Fuente', 'Tipo', 'Temperatura', 'Score', 'Tags', 'Teléfono', 'Email', ''].map(c => (
                     <th key={c} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{c}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {list.map(c => (
+                {display.map(c => (
                   <tr key={c.id} data-testid={`contact-row-${c.id}`}
                     onClick={() => openContact(c)}
-                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.15s' }}
+                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.15s',
+                      background: selectedIds.has(c.id) ? 'rgba(99,102,241,0.08)' : 'transparent' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.06)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    onMouseLeave={e => e.currentTarget.style.background = selectedIds.has(c.id) ? 'rgba(99,102,241,0.08)' : 'transparent'}>
+                    <td style={{ padding: '11px 10px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" data-testid={`bulk-select-${c.id}`} checked={selectedIds.has(c.id)}
+                        onChange={() => toggleSelect(c.id)} style={{ cursor: 'pointer', accentColor: '#6366f1' }} />
+                    </td>
+                    <td style={{ padding: '11px 4px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <button data-testid={`pin-${c.id}`} title={c.pinned ? t('pin.unpin', 'Quitar de fijados') : t('pin.pin', 'Fijar arriba')}
+                        onClick={() => togglePin(c)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}>
+                        <Pin size={13} color={c.pinned ? '#a5b4fc' : 'var(--cream-3)'} fill={c.pinned ? '#a5b4fc' : 'none'} />
+                      </button>
+                    </td>
                     <td style={{ padding: '11px 14px', color: 'var(--cream)', fontWeight: 500, fontSize: 13 }}>{c.first_name} {c.last_name}</td>
                     {/* W5.ASR.5 P2 — SourceBadge */}
                     <td style={{ padding: '11px 14px' }}>
@@ -277,6 +394,29 @@ export default function AsesorContactos({ user, onLogout }) {
         }
       `}</style>
     </AdvisorLayout>
+  );
+}
+
+// P5.B · mini-form de "asignar tarea" en lote (título + fecha)
+function BulkTaskForm({ busy, onCancel, onSubmit, t }) {
+  const [titulo, setTitulo] = useState('');
+  const [due, setDue] = useState('');
+  const submit = () => {
+    if (!titulo.trim() || !due) return;
+    onSubmit({ titulo: titulo.trim(), due_at: new Date(due).toISOString(), prioridad: 'media' });
+  };
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+      <input data-testid="bulk-task-title" value={titulo} onChange={(e) => setTitulo(e.target.value)}
+        placeholder={t('bulk.task_title', 'Título de la tarea')}
+        style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', minWidth: 180 }} />
+      <input data-testid="bulk-task-due" type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)}
+        style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
+      <button disabled={busy || !titulo.trim() || !due} data-testid="bulk-task-submit" className="btn btn-primary btn-sm" onClick={submit}>
+        {t('bulk.confirm', 'Aplicar')}
+      </button>
+      <button className="btn btn-glass btn-sm" onClick={onCancel}>{t('bulk.cancel', 'Cancelar')}</button>
+    </div>
   );
 }
 

@@ -13,6 +13,7 @@ import {
   Zap, Clock, Inbox, ChevronRight,
 } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
+import AutopilotPanel from '../../components/asesor/AutopilotPanel';
 import {
   getAgents, getAgentWorkforceStatus, runAgentsNow, getDashboard,
 } from '../../api/advisor';
@@ -201,6 +202,9 @@ export default function AsesorAgentsPage({ user, onLogout }) {
               <Clock size={13} />
               {lastRunHora ? `${t('page.last_run')}: ${lastRunHora}` : t('page.never_run')}
             </div>
+
+            {/* P5.A · Modo Piloto · el agente EJECUTA acciones aprobadas (guardrails) */}
+            <AutopilotPanel />
 
             {/* Log de acciones recientes generadas por agentes */}
             <section>

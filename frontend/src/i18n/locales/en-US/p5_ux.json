@@ -1,0 +1,46 @@
+{
+  "bulk": {
+    "selected": "{{count}} selected",
+    "selected_plural": "{{count}} selected",
+    "move_stage": "Set temperature",
+    "assign_task": "Assign task",
+    "archive": "Archive",
+    "clear": "Clear selection",
+    "select_all": "Select all",
+    "task_title": "Task title",
+    "task_due": "Due",
+    "confirm": "Apply",
+    "cancel": "Cancel",
+    "done": "Done: {{count}} updated",
+    "pick_temp": "Pick temperature"
+  },
+  "pin": {
+    "pin": "Pin to top",
+    "unpin": "Unpin",
+    "pinned": "Pinned"
+  },
+  "widgets": {
+    "customize": "Customize panels",
+    "done": "Done",
+    "show": "Show",
+    "hide": "Hide",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "reset": "Reset",
+    "panel_kpis": "Indicators (KPIs)",
+    "panel_agents": "AI Team",
+    "panel_queue": "Today's priorities",
+    "panel_leads": "Recent leads",
+    "panel_perf": "Performance",
+    "panel_briefing": "Briefing",
+    "panel_recent": "Recently viewed"
+  },
+  "recent": {
+    "title": "Recently viewed",
+    "empty": "Nothing viewed yet.",
+    "lead": "Lead",
+    "page": "Page"
+  },
+  "show_archived": "Show archived",
+  "hide_archived": "Hide archived"
+}

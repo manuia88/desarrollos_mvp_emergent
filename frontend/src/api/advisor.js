@@ -86,6 +86,25 @@ export const sendDigestNow = () => post('/api/asesor/digest/send-now');
 export const getDigestPrefs = () => j('/api/asesor/digest/prefs');
 export const setDigestPrefs = (body) => patch('/api/asesor/digest/prefs', body);
 
+// P5.A · Auto-pilot (config opt-in por tipo + kill switch + log + run-now)
+export const getAutopilotConfig = () => j('/api/asesor/autopilot/config');
+export const setAutopilotConfig = (body) => patch('/api/asesor/autopilot/config', body);
+export const getAutopilotLog = (days = 7) => j(`/api/asesor/autopilot/log?days=${days}`);
+export const pauseAutopilot = (paused) => post('/api/asesor/autopilot/pause', { paused });
+export const runAutopilotNow = () => post('/api/asesor/autopilot/run-now');
+
+// P5.B · Bulk + Pin (contactos)
+export const bulkContactos = (ids, action, payload) => post('/api/asesor/contactos/bulk', { ids, action, payload });
+export const pinContacto = (id) => post(`/api/asesor/contactos/${id}/pin`);
+
+// P5.B · Custom widgets config (Command Center)
+export const getWidgetsConfig = () => j('/api/asesor/dashboard/widgets-config');
+export const patchWidgetsConfig = (b) => patch('/api/asesor/dashboard/widgets-config', b);
+
+// P5.B · Recent items (visto recientemente · TTL 30d)
+export const trackRecent = (b) => post('/api/asesor/recent', b);
+export const getRecent = (limit = 5) => j(`/api/asesor/recent?limit=${limit}`);
+
 // P3.A · Agent Workforce (consume endpoints P2 · agent_workforce diff=0)
 export const getAgents = () => j('/api/agent-workforce/agents');
 export const getAgentWorkforceStatus = () => j('/api/agent-workforce/status');

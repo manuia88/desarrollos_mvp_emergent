@@ -40,6 +40,10 @@ import esMXAsesorSidebarV2 from './locales/es-MX/asesor_sidebar_v2.json';
 import esMXCommandCenter from './locales/es-MX/command_center.json';
 // P3.A — Agentes IA Workforce namespace (separado · no toca common.json)
 import esMXAgentsWorkforce from './locales/es-MX/agents_workforce.json';
+// P5.A — Auto-pilot namespace (separado · no toca common.json)
+import esMXAutopilot from './locales/es-MX/autopilot.json';
+// P5.B — UX bundle (Bulk/Pin/Widgets/Recent) namespace separado
+import esMXP5Ux from './locales/es-MX/p5_ux.json';
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -60,6 +64,8 @@ i18n.use(initReactI18next).init({
       asesor_sidebar_v2: esMXAsesorSidebarV2,
       command_center: esMXCommandCenter,
       agents_workforce: esMXAgentsWorkforce,
+      autopilot: esMXAutopilot,
+      p5_ux: esMXP5Ux,
     },
 
     // Namespaced en-US
@@ -79,7 +85,7 @@ i18n.use(initReactI18next).init({
   defaultNS: 'translation',
 
   // Available namespaces
-  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost', 'conversation_ab_testing', 'conversation_confidence', 'conversation_drift', 'asesor_sidebar_v2', 'command_center', 'agents_workforce'],
+  ns: ['translation', 'common', 'conversation_round1', 'conversation_round2_ui', 'conversation_cost', 'conversation_ab_testing', 'conversation_confidence', 'conversation_drift', 'asesor_sidebar_v2', 'command_center', 'agents_workforce', 'autopilot', 'p5_ux'],
 
   interpolation: {
     escapeValue: false,  // React already escapes
