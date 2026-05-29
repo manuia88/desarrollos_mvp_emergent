@@ -49,7 +49,7 @@ async def test_prospector_returns_actions(mock_db):
     now = _now()
     await mock_db.asesor_contactos.insert_one({
         "id": "c1", "owner_id": "asesor1", "first_name": "Ana", "last_name": "López",
-        "emails": ["ana@x.com"], "created_at": now.isoformat(),
+        "emails": ["ana@x.com"], "created_at": now,
     })
     # Cuenta + buyer_score hot → tier visible (sin compute / sin LLM)
     await mock_db.users.insert_one({"user_id": "u_ana", "email": "ana@x.com"})
@@ -73,7 +73,7 @@ async def test_nurturer_returns_actions(mock_db):
     now = _now()
     await mock_db.asesor_contactos.insert_one({
         "id": "c2", "owner_id": "asesor1", "first_name": "Beto", "last_name": "Ruiz",
-        "emails": ["beto@x.com"], "created_at": (now - timedelta(days=40)).isoformat(),
+        "emails": ["beto@x.com"], "created_at": (now - timedelta(days=40)),
     })
     # Último contacto hace 10 días (> NO_CONTACT_DAYS=5)
     await mock_db.asesor_contacto_timeline.insert_one({
@@ -90,7 +90,7 @@ async def test_nurturer_returns_actions(mock_db):
     # Lead reciente CON contacto fresco NO se reactiva
     await mock_db.asesor_contactos.insert_one({
         "id": "c3", "owner_id": "asesor1", "first_name": "Cyn", "emails": ["cyn@x.com"],
-        "created_at": now.isoformat(),
+        "created_at": now,
     })
     await mock_db.asesor_contacto_timeline.insert_one({
         "contacto_id": "c3", "ts": now.isoformat(),
@@ -106,7 +106,7 @@ async def test_orchestrator_upsert_no_duplicate_on_rerun(mock_db):
     now = _now()
     await mock_db.asesor_contactos.insert_one({
         "id": "c1", "owner_id": "asesor1", "first_name": "Ana", "emails": ["ana@x.com"],
-        "created_at": now.isoformat(),
+        "created_at": now,
     })
     await mock_db.users.insert_one({"user_id": "u_ana", "email": "ana@x.com"})
     await mock_db.buyer_scores.insert_one({"user_id": "u_ana", "tier": "warm"})
@@ -132,7 +132,7 @@ async def test_orchestrator_cap_per_agent(mock_db, monkeypatch):
     now = _now()
     docs = [{
         "id": f"c{i}", "owner_id": "asesor1", "first_name": f"L{i}",
-        "emails": [f"l{i}@x.com"], "created_at": now.isoformat(),
+        "emails": [f"l{i}@x.com"], "created_at": now,
     } for i in range(AGENT_DAILY_CAP_PER_TENANT + 10)]
     await mock_db.asesor_contactos.insert_many(docs)
 
@@ -198,7 +198,7 @@ async def test_rerun_does_not_resurrect_dismissed(mock_db):
     now = _now()
     await mock_db.asesor_contactos.insert_one({
         "id": "c1", "owner_id": "asesor1", "first_name": "Ana", "emails": ["ana@x.com"],
-        "created_at": now.isoformat(),
+        "created_at": now,
     })
     await orchestrator.run_all_agents(mock_db, "asesor1", "tenantA")
     # El asesor descarta la acción

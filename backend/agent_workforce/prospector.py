@@ -39,7 +39,10 @@ async def run_prospector(db, user_id: str, tenant_id: Optional[str]) -> List[Dic
         return []
     actions: List[Dict[str, Any]] = []
     try:
-        since = (_now() - timedelta(days=NEW_LEAD_WINDOW_DAYS)).isoformat()
+        # created_at se guarda como BSON Date (advisor.py _now()) → comparar contra
+        # datetime, NO isoformat string (con string, $gte nunca matchea el Date en
+        # Mongo real y Prospector quedaría inerte · mismo bug clase C.2 del Coach).
+        since = _now() - timedelta(days=NEW_LEAD_WINDOW_DAYS)
         # Leads recientes del owner (no borrados).
         leads = await db.asesor_contactos.find(
             {"owner_id": user_id, "deleted_at": {"$exists": False},
