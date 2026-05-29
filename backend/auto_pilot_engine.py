@@ -52,8 +52,12 @@ def _today_iso() -> str:
 
 
 def _is_never_auto(action: Dict[str, Any]) -> bool:
-    """True si la acción matchea la denylist irreversible (type/title/subtitle)."""
-    blob = " ".join(str(action.get(k, "")) for k in ("type", "title", "subtitle", "cta_actions")).lower()
+    """True si la acción matchea la denylist irreversible. Escanea TODOS los campos
+    que llegan a un executor — incluido el cuerpo del WhatsApp (autopilot_body) y la
+    etapa destino (target_stage), no solo title/subtitle — para que un mensaje con
+    'pago/comisión/contrato' nunca se envíe aunque venga por autopilot_body."""
+    fields = ("type", "title", "subtitle", "cta_actions", "autopilot_body", "target_stage")
+    blob = " ".join(str(action.get(k, "")) for k in fields).lower()
     return any(s in blob for s in NEVER_AUTO_SUBSTR)
 
 

@@ -79,10 +79,13 @@ async def test_never_auto_money(mock_db):
                   title="Cobrar comisión del cierre", confidence=99)
     await _action(mock_db, "a1", id="m2", type="recordatorio",
                   title="Firmar contrato", subtitle="pago final", confidence=99)
+    # defensa en profundidad: el cuerpo del WhatsApp (autopilot_body) también se escanea
+    await _action(mock_db, "a1", id="m3", type="followup_whatsapp", title="Seguimiento",
+                  subtitle="Hola", autopilot_body="Confirma tu pago de comisión", confidence=99)
     res = await ap.run_autopilot(mock_db, "a1", "tA")
     assert res["executed"] == 0
-    assert res["reasons"].get("never_auto_denylist") == 2
-    assert (await mock_db.command_center_actions.find_one({"id": "m1"}))["status"] == "pending"
+    assert res["reasons"].get("never_auto_denylist") == 3
+    assert (await mock_db.command_center_actions.find_one({"id": "m3"}))["status"] == "pending"
 
 
 # ─── 4 · confidence gate (< min → skip) ──────────────────────────────────────

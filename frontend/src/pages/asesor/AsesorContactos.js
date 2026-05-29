@@ -82,7 +82,8 @@ export default function AsesorContactos({ user, onLogout }) {
     setSearchParams(params, { replace: true });
   }, [scoreMin, smartList, sourceFilter]); // eslint-disable-line
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [q, tipo, temp, scoreMin, sortBy, smartList, sourceFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [q, tipo, temp, scoreMin, sortBy, smartList, sourceFilter]);
 
   useEffect(() => {
     if (id) {
