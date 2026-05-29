@@ -37,6 +37,10 @@ NEVER_AUTO_SUBSTR = (
     "money", "dinero", "pago", "payment", "cobr", "comision", "comisión",
     "contrato", "contract", "cierre", "firmar contrato",
     "delete", "eliminar", "borrar", "factura", "invoice",
+    # Estados TERMINALES/ganado/pagado de pipeline: el piloto NO debe auto-mover un
+    # lead a un cierre/won/pagado (sesga métricas + transición sensible). Stems que
+    # capturan cerrado/cerrada/cerrado_pagado · ganada/ganado · pagado/pagada.
+    "cerrad", "ganad", "pagad",
 )
 
 AUTOPILOT_CONFIDENCE_MIN = int(os.environ.get("AUTOPILOT_CONFIDENCE_MIN", "70"))
