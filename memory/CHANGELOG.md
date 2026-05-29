@@ -1,6 +1,39 @@
 # DesarrollosMX — CHANGELOG
 
 
+## Asesor Redesign P5 · Auto-pilot + UX · MEGA-PLAN P1→P5 100% AUDITADO x2 — 2026-05-29
+
+🤖 **P5 Auto-pilot + UX bundle (SHA edf40940) + auditorías completas de TODO el mega-plan.**
+
+### P5 · Auto-pilot + UX
+
+- **Auto-pilot mode**: agente ejecuta acciones aprobadas (cron 07:20) · 7 guardrails: whitelist [followup_whatsapp/recordatorio/reasignar_etapa] + denylist defense-in-depth (dinero/contrato/cierre/pago sobre type+title+subtitle+body+target_stage) + confidence≥70 + opt-in por tipo (default off) + kill switch + cap diario 20 + audit + FAIL-OPEN rollback · **inerte hasta que founder active tipos seguros**
+- **Bulk leads**: selección múltiple → mover/asignar/archivar (update_many owner_id filter · cap 200)
+- **Pinned** (clavar VIP) · **Custom widgets** (mostrar/ocultar/reordenar paneles) · **Recent** (últimos 5 · TTL 30d)
+- REUSA workflow execute + WAEngine.send_message · advisor.py puro append
+
+### AUDITORÍAS COMPLETAS · mega-plan P1→P5 con DOBLE RIGOR
+
+Tras founder detectar gaps (P2 sin audit · P4 sin 2do recheck), se completó audit forense + 2do recheck independiente de TODAS las fases:
+
+| Fase | Audit | 2do recheck | Gemelo cazado en recheck |
+|---|---|---|---|
+| F1+F1.5 | ✅ | ✅ | F-1 onLogout + freelance |
+| P1 | ✅ | ✅ | dedup + escala (blindaje pre-P2) |
+| P2 | ✅ (C.2 cap Coach inerte) | ✅ | **Prospector string-vs-datetime INERTE** (nunca encontraba leads) |
+| P3 | ✅ | ✅ | TTL sintéticas + supresión escala |
+| P4 | ✅ (NO-ORPHANS) | ✅ | silent cap 5000 (regla no-silent-caps) |
+| P5 | ✅ (A.2 denylist body bypass) | ✅ | **A.4 etapas terminales** (cerrado_pagado evadía denylist) |
+
+**Hallazgo clave del patrón:** el 2do recheck independiente cazó bugs reales que el 1er audit dejó pasar en **5 de 6 fases**. Los más graves: P2 Prospector silenciosamente inerte (string-vs-datetime · nunca habría funcionado en prod) y P5 etapas terminales evadiendo el denylist del auto-pilot. **Los 2dos rechecks NO son redundantes · son la red de seguridad real.**
+
+SHAs auditorías: P2 962825df+785a5d30 · P4 e4aa94eb+46ba41e6 · P5 90f5cb7a+10e49e3e
+
+### MEGA-PLAN ASESOR P1→P5 CERRADO + BLINDADO
+
+DMX asesor = "asesor con equipo de IA 24/7" · 40+ cycle-closers · 0 standalone · ~16 auditorías · 0 deuda seguridad. Pendiente: **P6 (último · design tokens + skeleton + tour + mobile + WCAG a11y)**.
+
+
 ## Asesor Redesign P4 · Voice + Digest SHIPPED · MEGA-PLAN CORE CERRADO — 2026-05-26
 
 🔊📲 **P4 Voice Briefing + Smart Digest (SHA 02ac3d29 + audit fix e4aa94eb).** Cierra el core del mega-plan asesor (P1→P4).
