@@ -264,10 +264,15 @@ async def send_digest(db, user_id: str, tenant_id: Optional[str] = None,
 async def run_cron_all(db) -> Dict[str, Any]:
     """Envía el digest a cada asesor con asesor_digest_enabled=True. FAIL-OPEN por asesor."""
     sent = 0
+    CRON_BATCH_LIMIT = 5000
     try:
         enabled = await db.notification_preferences.find(
             {"asesor_digest_enabled": True}, {"_id": 0, "user_id": 1},
-        ).to_list(5000)
+        ).to_list(CRON_BATCH_LIMIT)
+        # NO silent cap: si llegamos al límite, avisar (puede haber asesores sin digest).
+        if len(enabled) >= CRON_BATCH_LIMIT:
+            log.warning(f"[digest] cron alcanzó el límite de {CRON_BATCH_LIMIT} asesores · "
+                        f"puede haber enabled sin procesar este run")
     except Exception as e:
         log.warning(f"[digest] cron find enabled: {e}")
         enabled = []
