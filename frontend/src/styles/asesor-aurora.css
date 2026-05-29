@@ -1,0 +1,173 @@
+/* asesor-aurora.css
+ * Identidad visual PROPIA del portal del asesor — CSS-only.
+ *
+ * Scope: TODAS las reglas viven bajo `.portal-asesor`, un wrapper que SOLO
+ * monta la pantalla nueva de Leads (detrás del flag REACT_APP_LEADS_V2). Ningún
+ * otro portal/página monta este wrapper → cero fugas. NO usa `.portal-superadmin`
+ * ni importa superadmin-aurora.css: toma de él la TÉCNICA (aurora de fondo,
+ * glassmorphism, hover translateY, scrollbar), no el código ni el color.
+ *
+ * Color de marca = aurora indigo→pink por defecto, tomado de var(--theme) y
+ * var(--theme-3) (definidos en :root de index.css). Nunca se hardcodea un color.
+ *
+ * Rollback: borrar este archivo + quitar el import de index.js. La pantalla
+ * vieja de Leads (flag off) nunca toca este scope.
+ */
+
+/* ── Raíz del scope ──────────────────────────────────────────────────── */
+.portal-asesor {
+  position: relative;
+  isolation: isolate;            /* contiene el stacking de las auroras */
+  --t-fast: 200ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Aurora ambiental: 3 radial-gradients tenues con el color de marca.
+ * Contenida dentro del wrapper (absolute, no fixed) para no invadir sidebar
+ * ni otras pantallas. */
+.portal-asesor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 80% 50% at 18% 4%,  rgba(var(--theme-rgb), 0.11), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 92% 88%, rgba(var(--theme-rgb), 0.07), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(var(--theme-rgb), 0.04), transparent 60%);
+}
+
+/* Capa de grid sutil con máscara radial (profundidad, no decoración chillona). */
+.portal-asesor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 78%);
+          mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 78%);
+}
+
+/* El contenido vive por encima de las auroras. */
+.portal-asesor > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Card premium glassmorphism ──────────────────────────────────────── */
+.portal-asesor .asr-premium {
+  position: relative;
+  background: rgba(13, 16, 23, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+          backdrop-filter: blur(24px) saturate(160%);
+  transition: border-color var(--t-fast) var(--ease),
+              transform var(--t-fast) var(--ease),
+              background var(--t-fast) var(--ease);
+}
+
+.portal-asesor .asr-premium--hover:hover {
+  border-color: rgba(var(--theme-rgb), 0.40);
+  background: rgba(18, 22, 31, 0.94);
+  transform: translateY(-2px);
+}
+
+/* Card en arrastre (kanban): se levanta apenas, sin rotar ni escalar. */
+.portal-asesor .asr-premium--dragging {
+  border-color: rgba(var(--theme-rgb), 0.55);
+  transform: translateY(-2px);
+  opacity: 0.92;
+}
+
+/* Columna kanban activa al pasar una card por encima. */
+.portal-asesor .asr-kanban-col--over {
+  border-color: rgba(var(--theme-rgb), 0.40);
+  background: rgba(var(--theme-rgb), 0.05);
+}
+
+/* ── Botón segmentado (ViewToggle) ───────────────────────────────────── */
+.portal-asesor .asr-seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+.portal-asesor .asr-seg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--cream-3);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-seg__btn:hover { color: var(--cream); }
+.portal-asesor .asr-seg__btn--active {
+  color: var(--cream);
+  background: rgba(var(--theme-rgb), 0.16);
+}
+
+/* ── Input/Select dentro del scope ───────────────────────────────────── */
+.portal-asesor .asr-field {
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--cream-2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-field:focus {
+  border-color: rgba(var(--theme-rgb), 0.45);
+}
+
+/* ── ScoreBar (riel + relleno aurora) ────────────────────────────────── */
+.portal-asesor .asr-scorebar__track {
+  position: relative;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.portal-asesor .asr-scorebar__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 9999px;
+  background: var(--grad);
+  transition: width 600ms var(--ease);
+}
+
+/* ── Scrollbar propia del scope ──────────────────────────────────────── */
+.portal-asesor *::-webkit-scrollbar { width: 8px; height: 8px; }
+.portal-asesor *::-webkit-scrollbar-track { background: transparent; }
+.portal-asesor *::-webkit-scrollbar-thumb {
+  background: rgba(var(--theme-rgb), 0.22);
+  border-radius: 9999px;
+}
+.portal-asesor *::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--theme-rgb), 0.38);
+}
+
+/* Respeta usuarios con reduce-motion. */
+@media (prefers-reduced-motion: reduce) {
+  .portal-asesor .asr-premium,
+  .portal-asesor .asr-premium--hover:hover,
+  .portal-asesor .asr-scorebar__fill,
+  .portal-asesor .asr-seg__btn { transition: none; transform: none; }
+}

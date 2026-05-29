@@ -5,6 +5,7 @@ import './styles/density.css';
 import './styles/presentation.css';
 import './styles/a11y.css';
 import './styles/superadmin-aurora.css';
+import './styles/asesor-aurora.css';
 import './i18n';
 import { initPostHog } from './lib/posthog';
 import { initObservability } from './observability';

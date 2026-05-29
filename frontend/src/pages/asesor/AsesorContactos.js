@@ -2,9 +2,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Pin, Archive, ListPlus, Thermometer } from 'lucide-react';
+import { Pin, Archive, ListPlus, Thermometer, Flame, Eye, Check, X as XIcon } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
-import { PageHeader, Card, Badge, Empty, Drawer, Toast } from '../../components/advisor/primitives';
+import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
 import { Search, Sparkle, MessageSquare, ArrowRight } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
@@ -12,6 +12,15 @@ import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
 import SmartListsSidebar from '../../components/asesor/SmartListsSidebar';
 import SourceBadge from '../../components/asesor/SourceBadge';
 import { getLeadsInPreset } from '../../api/smart_lists';
+// F0 · Sistema de Diseño asesor
+import {
+  ActionBar, ViewToggle, StatusDot, TemperaturePill, ScoreBar,
+  QuickActions, PremiumCard, Ficha360, TEMP, TEMP_ORDER, tempMeta, PRIORITY_RGB,
+} from '../../components/asesor/design';
+
+// Flag de rollout · V2 = rediseño Leads (Sistema de Diseño asesor). OFF por
+// defecto (incluso sin la env var); ON en .env.local mientras se valida.
+const LEADS_V2 = process.env.REACT_APP_LEADS_V2 === 'true';
 
 const TIPOS = ['comprador', 'vendedor', 'propietario', 'inversor', 'broker'];
 const TEMPS = ['frio', 'tibio', 'caliente', 'cliente'];
@@ -22,7 +31,13 @@ const SOURCE_LABELS = {
   landing: 'Landing', manual: 'Manual',
 };
 
-export default function AsesorContactos({ user, onLogout }) {
+// Default export: elige V2 (rediseño) o la pantalla clásica según el flag.
+// La versión vieja queda INTACTA debajo hasta validar V2.
+export default function AsesorContactos(props) {
+  return LEADS_V2 ? <AsesorContactosV2 {...props} /> : <AsesorContactosLegacy {...props} />;
+}
+
+function AsesorContactosLegacy({ user, onLogout }) {
   const { t } = useTranslation('p5_ux');
   const { id } = useParams();
   const nav = useNavigate();
@@ -703,5 +718,487 @@ function ArgumentarioForm({ contact, devs, onDone }) {
         </Card>
       )}
     </div>
+  );
+}
+
+// ============================================================================
+// F1a · AsesorContactosV2 — rediseño de Leads con el Sistema de Diseño asesor.
+// Conserva TODA la función de la pantalla vieja (lista, abrir lead, notas, bulk,
+// pin, filtros, smart lists, archivados, crear) y suma: ActionBar, franja "Foco
+// de hoy" (IA · action_queue de getDashboard), pipeline kanban con drag (patrón
+// de AsesorBusquedas, dimensión = temperatura), cards premium y Ficha360.
+// Datos: SOLO el contrato advisor.js (cero endpoints nuevos).
+// ============================================================================
+function avatarInitials(c) {
+  return `${(c?.first_name || '').charAt(0)}${(c?.last_name || '').charAt(0)}`.toUpperCase() || '·';
+}
+
+function AsesorContactosV2({ user, onLogout }) {
+  const { t } = useTranslation('p5_ux');
+  const { id } = useParams();
+  const nav = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [list, setList] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [showArchived, setShowArchived] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMode, setBulkMode] = useState(null);
+  const [q, setQ] = useState('');
+  const [tipo, setTipo] = useState('');
+  const [temp, setTemp] = useState('');
+  const [scoreMin, setScoreMin] = useState(() => parseInt(searchParams.get('score_min') || '0', 10));
+  const [sortBy, setSortBy] = useState('score');
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [showArg, setShowArg] = useState(false);
+  const [devs, setDevs] = useState([]);
+  const [smartList, setSmartList] = useState(() => searchParams.get('smart_list') || null);
+  const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
+  // V2
+  const [view, setView] = useState('pipeline');
+  const [dragging, setDragging] = useState(null);
+  const [dragOverCol, setDragOverCol] = useState(null);
+  const [foco, setFoco] = useState([]);
+  const [noteBusy, setNoteBusy] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      if (smartList) {
+        const r = await getLeadsInPreset(smartList, { limit: 200 });
+        let items = r.items || [];
+        if (sortBy === 'score') items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
+        setList(items);
+      } else {
+        const params = { q, tipo, temp };
+        if (scoreMin > 0) params.score_min = scoreMin;
+        if (sourceFilter) params.source = sourceFilter;
+        const items = await api.listContactos(params);
+        if (sortBy === 'score') items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
+        setList(items);
+      }
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    const params = {};
+    if (scoreMin > 0 && !smartList) params.score_min = String(scoreMin);
+    if (smartList) params.smart_list = smartList;
+    if (sourceFilter) params.source = sourceFilter;
+    setSearchParams(params, { replace: true });
+  }, [scoreMin, smartList, sourceFilter]); // eslint-disable-line
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [q, tipo, temp, scoreMin, sortBy, smartList, sourceFilter]);
+
+  useEffect(() => {
+    if (id) api.getContacto(id).then(setSelected).catch(() => {});
+    else setSelected(null);
+  }, [id]);
+
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs).catch(() => {});
+  }, []);
+
+  // Foco de hoy · la cola priorizada por la IA (action_queue) · FAIL-OPEN.
+  useEffect(() => {
+    api.getDashboard()
+      .then((d) => setFoco((d?.action_queue || []).slice(0, 3)))
+      .catch(() => setFoco([]));
+  }, []);
+
+  const openContact = (c) => {
+    if (c._smart_list_lead) {
+      setToast({ kind: 'info', text: 'Este es un lead del pipeline · ábrelo desde el Kanban' });
+      return;
+    }
+    api.trackRecent({
+      entity_type: 'lead', entity_id: c.id,
+      label: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Lead',
+      url: `/asesor/contactos/${c.id}`,
+    }).catch(() => {});
+    nav(`/asesor/contactos/${c.id}`);
+  };
+  const closeDetail = () => nav('/asesor/contactos');
+
+  const display = useMemo(() => {
+    const arr = list.filter((c) => (showArchived ? true : !c.archived));
+    return [...arr].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  }, [list, showArchived]);
+
+  const toggleSelect = (cid) => setSelectedIds((prev) => {
+    const next = new Set(prev);
+    next.has(cid) ? next.delete(cid) : next.add(cid);
+    return next;
+  });
+  const allVisibleSelected = display.length > 0 && display.every((c) => selectedIds.has(c.id));
+  const toggleSelectAll = () => setSelectedIds(() => (allVisibleSelected ? new Set() : new Set(display.map((c) => c.id))));
+  const clearSelection = () => { setSelectedIds(new Set()); setBulkMode(null); };
+
+  const togglePin = async (c) => {
+    setList((prev) => prev.map((x) => (x.id === c.id ? { ...x, pinned: !x.pinned } : x)));
+    try { await api.pinContacto(c.id); } catch (_) { load(); }
+  };
+
+  const runBulk = async (action, payload) => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      const r = await api.bulkContactos(ids, action, payload);
+      setToast({ kind: 'success', text: t('bulk.done', { count: r.affected ?? ids.length }) });
+      clearSelection();
+      await load();
+    } catch (e) {
+      setToast({ kind: 'error', text: e.message || 'No se pudo aplicar' });
+    } finally { setBulkBusy(false); }
+  };
+
+  // Kanban: arrastrar un lead a otra columna actualiza su temperatura (patchContacto).
+  const onDropTemp = async (tempKey) => {
+    setDragOverCol(null);
+    const cid = dragging;
+    setDragging(null);
+    if (!cid) return;
+    const item = list.find((x) => x.id === cid);
+    if (!item || item.temperatura === tempKey) return;
+    setList((prev) => prev.map((x) => (x.id === cid ? { ...x, temperatura: tempKey } : x)));
+    try {
+      await api.patchContacto(cid, { temperatura: tempKey });
+      setToast({ kind: 'success', text: `Movido a ${tempMeta(tempKey).label}` });
+    } catch (e) {
+      setToast({ kind: 'error', text: 'No se pudo mover' });
+      load();
+    }
+  };
+
+  // Foco de hoy · CTAs consumen completeAction / dismissAction.
+  const focoCTA = async (cta, action) => {
+    if (cta === 'ver') { if (action.lead_id) nav(`/asesor/contactos/${action.lead_id}`); else nav('/asesor/contactos'); return; }
+    try {
+      if (cta === 'completar') await api.completeAction(action.id, action);
+      else if (cta === 'descartar') await api.dismissAction(action.id, action);
+      setFoco((prev) => prev.filter((a) => a.id !== action.id));
+      setToast({ kind: 'success', text: cta === 'completar' ? 'Acción completada' : 'Acción descartada' });
+    } catch (_) { setToast({ kind: 'error', text: 'No se pudo aplicar' }); }
+  };
+
+  const addNoteFromFicha = async (text) => {
+    if (!selected) return;
+    setNoteBusy(true);
+    try {
+      await api.addTimelineEntry(selected.id, { kind: 'nota', body: text });
+      const c = await api.getContacto(selected.id);
+      setSelected(c);
+      setToast({ kind: 'success', text: 'Nota registrada' });
+    } catch (_) { setToast({ kind: 'error', text: 'No se pudo guardar la nota' }); }
+    finally { setNoteBusy(false); }
+  };
+
+  const filters = (
+    <>
+      <select data-testid="filter-tipo" value={tipo} onChange={e => setTipo(e.target.value)} className="asr-field">
+        <option value="">Tipo · todos</option>
+        {TIPOS.map(x => <option key={x} value={x}>{x}</option>)}
+      </select>
+      <select data-testid="filter-temp" value={temp} onChange={e => setTemp(e.target.value)} className="asr-field">
+        <option value="">Temperatura · todas</option>
+        {TEMPS.map(x => <option key={x} value={x}>{tempMeta(x).label}</option>)}
+      </select>
+      <select data-testid="filter-source" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="asr-field">
+        <option value="">Fuente · todas</option>
+        {SOURCES.map(s => <option key={s} value={s}>{SOURCE_LABELS[s]}</option>)}
+      </select>
+      {!smartList && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 170 }}>
+          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>
+            Score min: <strong style={{ color: scoreMin > 0 ? 'rgb(134,239,172)' : 'var(--cream-2)' }}>{scoreMin > 0 ? scoreMin : 'cualquiera'}</strong>
+          </span>
+          <input data-testid="score-min-slider" type="range" min={0} max={100} step={5}
+            value={scoreMin} onChange={e => setScoreMin(Number(e.target.value))}
+            style={{ flex: 1, cursor: 'pointer', accentColor: 'var(--theme)' }} />
+        </div>
+      )}
+      {smartList && (
+        <div data-testid="smart-list-active-badge" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9999,
+          background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.32)',
+          color: 'var(--indigo-3)', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
+        }}>
+          Smart list: {smartList}
+          <button data-testid="smart-list-inline-clear" onClick={() => setSmartList(null)}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
+        </div>
+      )}
+    </>
+  );
+
+  const sortControl = (
+    <select data-testid="sort-by-select" value={sortBy} onChange={e => setSortBy(e.target.value)} className="asr-field">
+      <option value="score">Ordenar · score</option>
+      <option value="created_at">Ordenar · fecha</option>
+    </select>
+  );
+
+  const renderCard = (c, { draggable } = {}) => (
+    <LeadCardV2
+      key={c.id}
+      c={c}
+      isSelected={selectedIds.has(c.id)}
+      onToggleSelect={() => toggleSelect(c.id)}
+      onPin={() => togglePin(c)}
+      onOpen={() => openContact(c)}
+      draggable={!!draggable}
+      isDragging={dragging === c.id}
+      onDragStart={() => setDragging(c.id)}
+      onDragEnd={() => setDragging(null)}
+      t={t}
+    />
+  );
+
+  return (
+    <AdvisorLayout user={user} onLogout={onLogout}>
+      <div className="portal-asesor">
+        <PageHeader
+          eyebrow="LEADS"
+          title="Tus leads"
+          sub="Arrastra cada lead entre etapas, abre su ficha 360° y deja que el Foco de hoy te diga a quién contactar primero."
+        />
+
+        <div data-testid="contactos-layout" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }} className="contactos-layout-v2">
+          <SmartListsSidebar activePreset={smartList} onSelectPreset={(k) => setSmartList(k)} onClear={() => setSmartList(null)} />
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <ActionBar
+              onNew={() => setShowCreate(true)}
+              newLabel="Nuevo lead"
+              search={q}
+              onSearch={setQ}
+              searchPlaceholder="Buscar por nombre o teléfono…"
+              filters={filters}
+              sort={sortControl}
+              view={<ViewToggle value={view} onChange={setView} />}
+            />
+
+            {/* Foco de hoy · prioridades de la IA */}
+            {foco.length > 0 && (
+              <div data-testid="asr-foco-hoy" style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <Flame size={16} color="rgb(248,113,113)" />
+                  <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>Foco de hoy</span>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>· lo que la IA priorizó</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+                  {foco.map((a) => <FocoCardV2 key={a.id} action={a} onCTA={focoCTA} />)}
+                </div>
+              </div>
+            )}
+
+            {/* Bulk bar (selección) */}
+            {selectedIds.size > 0 && (
+              <Card data-testid="bulk-bar" style={{ marginBottom: 12, padding: 12, borderColor: 'rgba(var(--theme-rgb),0.4)', background: 'rgba(var(--theme-rgb),0.08)' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <strong data-testid="bulk-count" style={{ color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13 }}>
+                    {t('bulk.selected', { count: selectedIds.size })}
+                  </strong>
+                  <div style={{ flex: 1 }} />
+                  {bulkMode === 'temp' ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>{t('bulk.pick_temp', 'Elige temperatura')}:</span>
+                      {TEMPS.map((x) => (
+                        <button key={x} disabled={bulkBusy} data-testid={`bulk-temp-${x}`} className="btn btn-glass btn-sm"
+                          onClick={() => runBulk('set_temp', { temperatura: x })}>{tempMeta(x).label}</button>
+                      ))}
+                      <button className="btn btn-glass btn-sm" onClick={() => setBulkMode(null)}>{t('bulk.cancel', 'Cancelar')}</button>
+                    </div>
+                  ) : bulkMode === 'task' ? (
+                    <BulkTaskForm busy={bulkBusy} onCancel={() => setBulkMode(null)} onSubmit={(pl) => runBulk('assign_task', pl)} t={t} />
+                  ) : (
+                    <>
+                      <button disabled={bulkBusy} data-testid="bulk-move-stage" className="btn btn-glass btn-sm" onClick={() => setBulkMode('temp')}>
+                        <Thermometer size={13} /> {t('bulk.move_stage', 'Mover temperatura')}
+                      </button>
+                      <button disabled={bulkBusy} data-testid="bulk-assign-task" className="btn btn-glass btn-sm" onClick={() => setBulkMode('task')}>
+                        <ListPlus size={13} /> {t('bulk.assign_task', 'Asignar tarea')}
+                      </button>
+                      <button disabled={bulkBusy} data-testid="bulk-archive" className="btn btn-glass btn-sm" onClick={() => runBulk('archive')}>
+                        <Archive size={13} /> {t('bulk.archive', 'Archivar')}
+                      </button>
+                      <button disabled={bulkBusy} data-testid="bulk-clear" className="btn btn-glass btn-sm" onClick={clearSelection}>
+                        {t('bulk.clear', 'Limpiar selección')}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Toolbar mini: seleccionar todo + archivados */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10, flexWrap: 'wrap' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
+                <input type="checkbox" data-testid="bulk-select-all" checked={allVisibleSelected} onChange={toggleSelectAll} style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
+                Seleccionar todo {display.length > 0 && `(${display.length})`}
+              </label>
+              <button data-testid="toggle-archived" className="btn btn-glass btn-sm" onClick={() => setShowArchived((s) => !s)}>
+                {showArchived ? t('hide_archived', 'Ocultar archivados') : t('show_archived', 'Ver archivados')}
+              </button>
+            </div>
+
+            {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
+              : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin leads'} sub={smartList ? 'Prueba con otra smart list o limpia el filtro.' : 'Crea tu primer lead o ajusta filtros.'} />
+              : view === 'pipeline' ? (
+                <div data-testid="leads-kanban" style={{ display: 'grid', gridTemplateColumns: `repeat(${TEMP_ORDER.length}, minmax(240px, 1fr))`, gap: 10, overflowX: 'auto' }}>
+                  {TEMP_ORDER.map((tk) => {
+                    const meta = TEMP[tk];
+                    const col = display.filter((c) => (c.temperatura || 'frio') === tk);
+                    return (
+                      <div key={tk} data-testid={`col-${tk}`}
+                        className={`asr-kanban-col${dragOverCol === tk ? ' asr-kanban-col--over' : ''}`}
+                        onDragOver={(e) => { e.preventDefault(); setDragOverCol(tk); }}
+                        onDragLeave={() => setDragOverCol((p) => (p === tk ? null : p))}
+                        onDrop={() => onDropTemp(tk)}
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 10, minHeight: 420, transition: 'border-color 200ms, background 200ms' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 12px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                            <StatusDot temp={tk} />
+                            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{meta.label}</span>
+                          </span>
+                          <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream-2)' }}>{col.length}</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {col.map((c) => renderCard(c, { draggable: true }))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div data-testid="leads-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 12 }}>
+                  {display.map((c) => renderCard(c, { draggable: false }))}
+                </div>
+              )}
+          </div>
+        </div>
+
+        <Drawer open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo lead">
+          <CreateContactForm onCreated={(c) => { setShowCreate(false); setToast({ kind: 'success', text: 'Lead creado' }); load(); nav(`/asesor/contactos/${c.id}`); }} onError={(tx) => setToast({ kind: 'error', text: tx })} />
+        </Drawer>
+
+        <Ficha360
+          open={!!selected}
+          onClose={closeDetail}
+          contact={selected}
+          onOpenArg={() => setShowArg(true)}
+          onAgendar={() => nav('/asesor/citas')}
+          onAddNote={addNoteFromFicha}
+          busyNote={noteBusy}
+        />
+
+        <Drawer open={showArg} onClose={() => setShowArg(false)} title="Plan venta IA · Claude" width={560}>
+          {selected && <ArgumentarioForm contact={selected} devs={devs} onDone={() => setToast({ kind: 'success', text: 'Mensaje generado' })} />}
+        </Drawer>
+
+        {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
+
+        <style>{`
+          .portal-asesor .asr-field option { color: var(--bg); }
+          @media (max-width: 768px) { .contactos-layout-v2 { flex-direction: column; } }
+        `}</style>
+      </div>
+    </AdvisorLayout>
+  );
+}
+
+// Card de lead premium · usada en pipeline (draggable) y en lista.
+function LeadCardV2({ c, isSelected, onToggleSelect, onPin, onOpen, draggable, isDragging, onDragStart, onDragEnd, t }) {
+  const zona = c.zona || c.colonia || c.zona_interes || (Array.isArray(c.zonas_interes) ? c.zonas_interes[0] : null);
+  const precio = c.presupuesto_max || c.presupuesto || c.precio_max || c.budget_max;
+  const tags = (c.tags || []).slice(0, 3);
+  return (
+    <PremiumCard
+      hover
+      dragging={isDragging}
+      draggable={draggable}
+      onDragStart={draggable ? onDragStart : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
+      onClick={onOpen}
+      data-testid={`lead-card-${c.id}`}
+      style={{ padding: 14, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column', gap: 10 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input type="checkbox" data-testid={`bulk-select-${c.id}`} checked={isSelected}
+          onClick={(e) => e.stopPropagation()} onChange={onToggleSelect}
+          style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
+        <div style={{ width: 36, height: 36, borderRadius: 9999, flexShrink: 0, background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--bg)' }}>
+          {avatarInitials(c)}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {c.first_name} {c.last_name || ''}
+          </div>
+          {c.tipo && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'capitalize' }}>{c.tipo}</div>}
+        </div>
+        <button data-testid={`pin-${c.id}`} title={c.pinned ? t('pin.unpin', 'Quitar de fijados') : t('pin.pin', 'Fijar arriba')}
+          onClick={(e) => { e.stopPropagation(); onPin(); }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}>
+          <Pin size={14} color={c.pinned ? 'var(--indigo-3)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--indigo-3)' : 'none'} />
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <TemperaturePill temp={c.temperatura} size="sm" />
+        <ScoreBar score={c.buyer_score?.value} width={72} />
+      </div>
+
+      {(zona || precio) && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
+          {zona || ''}{zona && precio ? ' · ' : ''}{precio ? fmtMXN(precio) : ''}
+        </div>
+      )}
+
+      {tags.length > 0 && (
+        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{tags.join(' · ')}</div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+        <QuickActions phone={c.phones?.[0]} name={c.first_name} size="sm" />
+        <SourceBadge source={c.source} date={c.created_at} />
+      </div>
+    </PremiumCard>
+  );
+}
+
+// Card de "Foco de hoy" · una acción priorizada por la IA.
+function FocoCardV2({ action, onCTA }) {
+  return (
+    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <StatusDot rgb={PRIORITY_RGB[action.priority] || PRIORITY_RGB[3]} />
+        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {action.title}
+        </span>
+        {action.source_agent && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.16)', color: 'var(--indigo-3)', fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600 }}>
+            <Sparkle size={10} /> {action.source_agent}
+          </span>
+        )}
+      </div>
+      {action.subtitle && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.4 }}>{action.subtitle}</div>}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+        {action.lead_id && (
+          <button data-testid={`foco-ver-${action.id}`} className="btn btn-glass btn-sm" style={{ borderRadius: 9999 }} onClick={() => onCTA('ver', action)}>
+            <Eye size={12} /> Ver
+          </button>
+        )}
+        <button data-testid={`foco-completar-${action.id}`} className="btn btn-primary btn-sm" style={{ borderRadius: 9999 }} onClick={() => onCTA('completar', action)}>
+          <Check size={12} /> Listo
+        </button>
+        <button data-testid={`foco-descartar-${action.id}`} className="btn btn-glass btn-sm" style={{ borderRadius: 9999 }} onClick={() => onCTA('descartar', action)}>
+          <XIcon size={12} /> Descartar
+        </button>
+      </div>
+    </PremiumCard>
   );
 }
