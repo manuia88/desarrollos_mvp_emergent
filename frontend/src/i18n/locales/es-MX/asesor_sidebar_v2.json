@@ -16,6 +16,8 @@
     "children": {
       "contactos": "Lista de leads",
       "busquedas": "Búsquedas guardadas",
+      "alertas": "Alertas predictivas",
+      "outbound": "Captura proactiva",
       "lead-aliases": "Conectar fuentes"
     }
   },
@@ -80,13 +82,14 @@
     "label": "Mi Performance",
     "description": "Comisiones · ranking · SOC · análisis comparativo",
     "children": {
+      "metricas": "Métricas",
       "comisiones": "Comisiones",
-      "ranking": "Ranking equipo",
+      "operaciones": "Operaciones",
       "soc": "SOC Certificación",
       "cma": "CMA · Análisis",
-      "briefings": "Briefings PDF",
+      "briefings": "Briefings",
       "briefing-traffic": "Tráfico + Clima",
-      "operaciones": "Métricas equipo",
+      "ranking": "Ranking equipo",
       "links-tracking": "Links tracking"
     }
   }

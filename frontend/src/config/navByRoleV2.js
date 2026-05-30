@@ -28,7 +28,7 @@ import {
   Building2, Briefcase, Store, Megaphone, MessageCircle, MessageSquare,
   GitMerge, Layers, Sparkles, Package, FolderOpen, FolderUp, Video,
   Share2, BarChart3, DollarSign, Trophy, ShieldCheck, FileText, MapPin,
-  Activity, Link, Bot,
+  Activity, Link, Bot, Bell, Radar, LineChart,
 } from 'lucide-react';
 
 /** @type {NavGroupV2[]} */
@@ -43,9 +43,11 @@ export const ASESOR_NAV_V2 = [
     key: 'mis-leads', to: '/asesor/contactos', label: 'Mis Leads', Icon: Users,
     description: 'Todos tus prospectos · filtros · scoring',
     children: [
-      { key: 'contactos',    to: '/asesor/contactos',    label: 'Lista de leads',       Icon: Users, badge_source: 'asesor_contacts_new' },
-      { key: 'busquedas',    to: '/asesor/busquedas',    label: 'Búsquedas guardadas',  Icon: Search },
-      { key: 'lead-aliases', to: '/asesor/lead-aliases', label: 'Conectar fuentes',     Icon: Plug },
+      { key: 'contactos',    to: '/asesor/contactos',        label: 'Lista de leads',       Icon: Users, badge_source: 'asesor_contacts_new' },
+      { key: 'busquedas',    to: '/asesor/busquedas',        label: 'Búsquedas guardadas',  Icon: Search },
+      { key: 'alertas',      to: '/portal/asesor/alertas',   label: 'Alertas predictivas',  Icon: Bell },
+      { key: 'outbound',     to: '/asesor/outbound',         label: 'Captura proactiva',    Icon: Radar },
+      { key: 'lead-aliases', to: '/asesor/lead-aliases',     label: 'Conectar fuentes',     Icon: Plug },
     ],
   },
   // 3 · Agenda
@@ -118,13 +120,13 @@ export const ASESOR_NAV_V2 = [
     key: 'performance', to: '/asesor/comisiones', label: 'Mi Performance', Icon: BarChart3,
     description: 'Comisiones · ranking · SOC · análisis comparativo',
     children: [
+      { key: 'metricas',         to: '/asesor/metricas',       label: 'Métricas',          Icon: LineChart },
       { key: 'comisiones',       to: '/asesor/comisiones',     label: 'Comisiones',        Icon: DollarSign },
-      { key: 'ranking',          to: '/asesor/ranking',        label: 'Ranking equipo',    Icon: Trophy },
+      { key: 'operaciones',      to: '/asesor/operaciones',    label: 'Operaciones',       Icon: Activity },
       { key: 'soc',              to: '/portal/asesor/soc',     label: 'SOC Certificación', Icon: ShieldCheck },
       { key: 'cma',              to: '/asesor/cma',            label: 'CMA · Análisis',    Icon: BarChart3 },
-      { key: 'briefings',        to: '/asesor/briefings',      label: 'Briefings PDF',     Icon: FileText },
+      { key: 'briefings',        to: '/asesor/briefings',      label: 'Briefings',         Icon: FileText },
       { key: 'briefing-traffic', to: '/asesor/briefing',       label: 'Tráfico + Clima',   Icon: MapPin },
-      { key: 'operaciones',      to: '/asesor/operaciones',    label: 'Métricas equipo',   Icon: Activity },
       { key: 'links-tracking',   to: '/asesor/links-tracking', label: 'Links tracking',    Icon: Link },
     ],
   },
