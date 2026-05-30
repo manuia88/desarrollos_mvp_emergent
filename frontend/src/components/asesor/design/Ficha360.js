@@ -50,6 +50,23 @@ function relWhen(ts) {
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
 }
 
+// Texto legible de un factor de close_probability (filtra los vacíos · evita viñetas
+// en blanco). close_probability devuelve objetos {factor, value, reason?} heterogéneos.
+function factorText(f) {
+  if (!f) return '';
+  if (typeof f === 'string') return f.trim();
+  if (f.reason) return String(f.reason).trim();
+  if (f.label) return String(f.label).trim();
+  if (f.text) return String(f.text).trim();
+  const map = {
+    buyer_score: f.value != null ? `Score de comprador ${Math.round(Number(f.value))}/100` : '',
+    temperatura: f.value ? `Temperatura ${f.value}` : '',
+    stage: f.value ? `Etapa de búsqueda: ${f.value}` : '',
+    ofertas: f.value != null ? `${f.value} oferta(s) registrada(s)` : '',
+  };
+  return (map[f.factor] || '').trim();
+}
+
 // color del dot del timeline por tipo de evento.
 function eventDot(source, kind) {
   if (kind === 'cita' || kind === 'visit' || source === 'busqueda') return 'var(--cold)';
@@ -139,10 +156,17 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   const digits = phone.replace(/\D/g, '');
   const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (c.first_name || '') + ', ')}` : null;
 
-  const probPct = prob && (prob.prob !== undefined && prob.prob !== null)
-    ? Math.round(Number(prob.prob) * (Number(prob.prob) <= 1 ? 100 : 1))
+  // close_probability devuelve prob en 0-100 (no 0-1).
+  const probPct = prob && prob.prob != null
+    ? Math.max(0, Math.min(100, Math.round(Number(prob.prob))))
     : null;
   const probReasons = prob?.factors || prob?.reasons || prob?.drivers || [];
+  // Líneas legibles (sin vacíos) + frase de cierre según el %.
+  const readyLines = (Array.isArray(probReasons) ? probReasons.map(factorText) : []).filter(Boolean).slice(0, 3);
+  const readyCta = probPct == null ? ''
+    : probPct >= 70 ? 'Vale la pena darle seguimiento hoy.'
+    : probPct >= 45 ? 'Buen momento para nutrirlo y avanzar.'
+    : 'Aún frío: nútrelo antes de empujar.';
   const firstBusq = busquedas[0] || null;
 
   // Mover temperatura (estado) desde los chips del header.
@@ -235,7 +259,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
 
           {/* Chips de estado (mueven temperatura via patchContacto) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginRight: 4 }}>Estado</span>
+            <span style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginRight: 4 }}>Temperatura</span>
             {TEMP_ORDER.map((tk) => (
               <button
                 key={tk}
@@ -306,13 +330,14 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                 <div style={{ display: 'flex', alignItems: 'center', gap: 22, border: '1px solid var(--border)', borderLeft: '3px solid var(--theme)', borderRadius: 12, padding: '18px 20px', background: 'var(--surface)' }}>
                   <ScoreRing value={probPct} />
                   <div style={{ fontSize: 15, color: 'var(--cream-2)', lineHeight: 1.55, borderLeft: '1px solid var(--border)', paddingLeft: 22 }}>
-                    {Array.isArray(probReasons) && probReasons.length > 0
-                      ? probReasons.slice(0, 3).map((r, i) => (
-                          <div key={i}>· {typeof r === 'string' ? r : (r.label || r.text || r.reason || '')}</div>
-                        ))
-                      : probPct !== null
-                        ? <span>El modelo estima <b style={{ color: 'var(--cream)' }}>{probPct}%</b> de probabilidad de cierre con el historial del lead.</span>
-                        : <span>Calculando con el historial del lead…</span>}
+                    {probPct == null ? (
+                      <span>Calculando con el historial del lead…</span>
+                    ) : (
+                      <>
+                        {readyLines.length > 0 && <span>{readyLines.join(' · ')}. </span>}
+                        <b style={{ color: 'var(--cream)' }}>{readyCta}</b>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -332,14 +357,10 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                 </div>
               )}
 
-              {/* Pendientes (tareas del contacto · completar) */}
-              <div>
-                <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--warm)' }} />Pendientes <span className="asr-muted">· tareas en proceso</span></div>
-                {tareas.length === 0 ? (
-                  <div style={{ padding: '18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13, border: '1px dashed var(--border-2)', borderRadius: 11 }}>
-                    Sin pendientes para este lead.
-                  </div>
-                ) : (
+              {/* Pendientes (tareas del contacto · completar) · se OCULTA si no hay */}
+              {tareas.length > 0 && (
+                <div>
+                  <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--warm)' }} />Pendientes <span className="asr-muted">· tareas en proceso</span></div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {tareas.map((t) => (
                       <div className="asr-pend" key={t.id} data-testid={`asr-pend-${t.id}`}>
@@ -356,8 +377,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Plan venta IA (reusa Argumentario) */}
               <div style={{ marginTop: 22 }}>

@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Pin, Archive, ListPlus, Thermometer, Flame, Eye, Check, X as XIcon } from 'lucide-react';
+import { Pin, Archive, ListPlus, Thermometer, Eye, Check, X as XIcon, MessageCircle } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
 import * as api from '../../api/advisor';
@@ -11,11 +11,11 @@ import { Z } from '../../styles/zIndex';
 import BuyerScoreBadge from '../../components/asesor/BuyerScoreBadge';
 import SmartListsSidebar from '../../components/asesor/SmartListsSidebar';
 import SourceBadge from '../../components/asesor/SourceBadge';
-import { getLeadsInPreset } from '../../api/smart_lists';
-// F0 · Sistema de Diseño asesor
+import { getLeadsInPreset, getSmartListPresets, getSmartListCounts } from '../../api/smart_lists';
+// Sistema de Diseño asesor (tema claro)
 import {
-  ActionBar, ViewToggle, StatusDot, TemperaturePill, ScoreBar,
-  QuickActions, PremiumCard, Ficha360, TEMP, TEMP_ORDER, tempMeta, PRIORITY_RGB,
+  ActionBar, ViewToggle, StatusDot, ScoreBar,
+  PremiumCard, Ficha360, TEMP, TEMP_ORDER, tempMeta, PRIORITY_RGB,
 } from '../../components/asesor/design';
 
 // Flag de rollout · V2 = rediseño Leads (Sistema de Diseño asesor). OFF por
@@ -733,20 +733,75 @@ function avatarInitials(c) {
   return `${(c?.first_name || '').charAt(0)}${(c?.last_name || '').charAt(0)}`.toUpperCase() || '·';
 }
 
+function isToday(iso) {
+  if (!iso) return false;
+  const d = new Date(iso); const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
+
+// Antigüedad legible es-MX para la card (entró hoy · ayer · Nd · fecha).
+function agingText(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days <= 0) return 'entró hoy';
+  if (days === 1) return 'ayer';
+  if (days < 30) return `${days}d`;
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+}
+
+// Encabezado de sección estilo mockup (.secline): eyebrow violeta + nota + regla.
+function SecLine({ em, lab, note }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 13, margin: '0 0 16px' }}>
+      {em && <span style={{ fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--theme-2)', fontWeight: 700 }}>{em}</span>}
+      {lab && <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)' }}>{lab}</span>}
+      {note && <span style={{ fontSize: 13.5, color: 'var(--cream-3)' }}>{note}</span>}
+      <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+    </div>
+  );
+}
+
+// Chips de filtro horizontales (reemplazan el rail vertical de Smart Lists).
+// "Todos" + los 5 presets reales con sus counts. Cero emoji.
+function LeadFilterChips({ presets, counts, total, active, onSelect }) {
+  const Chip = ({ k, label, count, dotRgb, on }) => (
+    <button
+      data-testid={`lead-chip-${k}`}
+      onClick={() => onSelect(k)}
+      className={`asr-chip${on ? ' asr-chip--on' : ''}`}
+    >
+      {dotRgb && <span style={{ width: 8, height: 8, borderRadius: '50%', background: `rgb(${dotRgb})` }} />}
+      {label}
+      {count != null && <span className="asr-chip__cn">{count}</span>}
+    </button>
+  );
+  // Etiqueta es-MX de cada preset alineada al mockup.
+  const LABELS = { hot_leads: 'Calientes' };
+  const DOTS = { hot_leads: '242, 99, 91' };
+  return (
+    <div className="asr-chips" data-testid="lead-chips">
+      <Chip k={null} label="Todos" count={total || null} on={!active} />
+      {presets.map((p) => (
+        <Chip
+          key={p.key}
+          k={p.key}
+          label={LABELS[p.key] || p.label}
+          dotRgb={DOTS[p.key]}
+          count={counts[p.key] ?? 0}
+          on={active === p.key}
+        />
+      ))}
+    </div>
+  );
+}
+
 function AsesorContactosV2({ user, onLogout }) {
   const { t } = useTranslation('p5_ux');
   const { id } = useParams();
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [showArchived, setShowArchived] = useState(false);
-  const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkMode, setBulkMode] = useState(null);
-  const [q, setQ] = useState('');
-  const [tipo, setTipo] = useState('');
-  const [temp, setTemp] = useState('');
-  const [scoreMin, setScoreMin] = useState(() => parseInt(searchParams.get('score_min') || '0', 10));
   const [sortBy, setSortBy] = useState('score');
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -755,42 +810,41 @@ function AsesorContactosV2({ user, onLogout }) {
   const [showArg, setShowArg] = useState(false);
   const [devs, setDevs] = useState([]);
   const [smartList, setSmartList] = useState(() => searchParams.get('smart_list') || null);
-  const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
-  // V2
   const [view, setView] = useState('pipeline');
   const [dragging, setDragging] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [foco, setFoco] = useState([]);
+  // Chips de filtro = presets reales de smart-lists + total para "Todos".
+  const [presets, setPresets] = useState([]);
+  const [counts, setCounts] = useState({});
+  const [totalContactos, setTotalContactos] = useState(0);
+  // Enriquecimiento REAL de cada card (sin inventar): zona/precio/Nprops desde
+  // las búsquedas del lead, y "próxima acción" desde el action_queue por lead_id.
+  const [busqByContact, setBusqByContact] = useState({});
+  const [actionByLead, setActionByLead] = useState({});
 
   const load = async () => {
     setLoading(true);
     try {
+      let items;
       if (smartList) {
         const r = await getLeadsInPreset(smartList, { limit: 200 });
-        let items = r.items || [];
-        if (sortBy === 'score') items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
-        setList(items);
+        items = r.items || [];
       } else {
-        const params = { q, tipo, temp };
-        if (scoreMin > 0) params.score_min = scoreMin;
-        if (sourceFilter) params.source = sourceFilter;
-        const items = await api.listContactos(params);
-        if (sortBy === 'score') items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
-        setList(items);
+        items = await api.listContactos({});
       }
+      if (sortBy === 'score') items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
+      setList(items);
     } finally { setLoading(false); }
   };
 
+  // Sincroniza el chip activo en la URL (?smart_list=).
   useEffect(() => {
-    const params = {};
-    if (scoreMin > 0 && !smartList) params.score_min = String(scoreMin);
-    if (smartList) params.smart_list = smartList;
-    if (sourceFilter) params.source = sourceFilter;
-    setSearchParams(params, { replace: true });
-  }, [scoreMin, smartList, sourceFilter]); // eslint-disable-line
+    setSearchParams(smartList ? { smart_list: smartList } : {}, { replace: true });
+  }, [smartList]); // eslint-disable-line
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [q, tipo, temp, scoreMin, sortBy, smartList, sourceFilter]);
+  useEffect(() => { load(); }, [sortBy, smartList]);
 
   useEffect(() => {
     if (id) api.getContacto(id).then(setSelected).catch(() => {});
@@ -801,11 +855,49 @@ function AsesorContactosV2({ user, onLogout }) {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs).catch(() => {});
   }, []);
 
-  // Foco de hoy · la cola priorizada por la IA (action_queue) · FAIL-OPEN.
+  // Chips de filtro: presets + counts reales (FAIL-OPEN).
+  useEffect(() => {
+    getSmartListPresets().then((r) => setPresets(r?.presets || [])).catch(() => setPresets([]));
+    getSmartListCounts().then((r) => setCounts(r?.counts || {})).catch(() => setCounts({}));
+  }, []);
+
+  // Foco de hoy + total de leads + próxima acción por lead (todo del dashboard · FAIL-OPEN).
+  // DEDUPE: el coach repite "Tip…"; tomamos las 3 acciones DISTINTAS de mayor prioridad.
   useEffect(() => {
     api.getDashboard()
-      .then((d) => setFoco((d?.action_queue || []).slice(0, 3)))
-      .catch(() => setFoco([]));
+      .then((d) => {
+        const q = d?.action_queue || [];
+        const seen = new Set();
+        const distinct = [...q]
+          .sort((a, b) => (a.priority || 9) - (b.priority || 9))
+          .filter((a) => {
+            const key = a.lead_id || (a.title || '').toLowerCase().trim();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        setFoco(distinct.slice(0, 3));
+        // mapa lead_id → acción de mayor prioridad (próxima acción de la card).
+        const m = {};
+        for (const a of distinct) { if (a.lead_id && !m[a.lead_id]) m[a.lead_id] = a; }
+        setActionByLead(m);
+        if (d?.counts?.contactos != null) setTotalContactos(d.counts.contactos);
+      })
+      .catch(() => { setFoco([]); setActionByLead({}); });
+  }, []);
+
+  // Mapa contacto_id → búsquedas (zona/precio/Nprops reales de la card · 1 sola llamada).
+  useEffect(() => {
+    api.listBusquedas()
+      .then((all) => {
+        const m = {};
+        for (const b of (all || [])) {
+          if (!b.contacto_id) continue;
+          (m[b.contacto_id] = m[b.contacto_id] || []).push(b);
+        }
+        setBusqByContact(m);
+      })
+      .catch(() => setBusqByContact({}));
   }, []);
 
   const openContact = (c) => {
@@ -823,36 +915,13 @@ function AsesorContactosV2({ user, onLogout }) {
   const closeDetail = () => nav('/asesor/contactos');
 
   const display = useMemo(() => {
-    const arr = list.filter((c) => (showArchived ? true : !c.archived));
+    const arr = list.filter((c) => !c.archived);
     return [...arr].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-  }, [list, showArchived]);
-
-  const toggleSelect = (cid) => setSelectedIds((prev) => {
-    const next = new Set(prev);
-    next.has(cid) ? next.delete(cid) : next.add(cid);
-    return next;
-  });
-  const allVisibleSelected = display.length > 0 && display.every((c) => selectedIds.has(c.id));
-  const toggleSelectAll = () => setSelectedIds(() => (allVisibleSelected ? new Set() : new Set(display.map((c) => c.id))));
-  const clearSelection = () => { setSelectedIds(new Set()); setBulkMode(null); };
+  }, [list]);
 
   const togglePin = async (c) => {
     setList((prev) => prev.map((x) => (x.id === c.id ? { ...x, pinned: !x.pinned } : x)));
     try { await api.pinContacto(c.id); } catch (_) { load(); }
-  };
-
-  const runBulk = async (action, payload) => {
-    const ids = [...selectedIds];
-    if (!ids.length) return;
-    setBulkBusy(true);
-    try {
-      const r = await api.bulkContactos(ids, action, payload);
-      setToast({ kind: 'success', text: t('bulk.done', { count: r.affected ?? ids.length }) });
-      clearSelection();
-      await load();
-    } catch (e) {
-      setToast({ kind: 'error', text: e.message || 'No se pudo aplicar' });
-    } finally { setBulkBusy(false); }
   };
 
   // Kanban: arrastrar un lead a otra columna actualiza su temperatura (patchContacto).
@@ -892,44 +961,6 @@ function AsesorContactosV2({ user, onLogout }) {
     setSelected((prev) => (prev ? { ...prev, temperatura: tk } : prev));
   };
 
-  const filters = (
-    <>
-      <select data-testid="filter-tipo" value={tipo} onChange={e => setTipo(e.target.value)} className="asr-field">
-        <option value="">Tipo · todos</option>
-        {TIPOS.map(x => <option key={x} value={x}>{x}</option>)}
-      </select>
-      <select data-testid="filter-temp" value={temp} onChange={e => setTemp(e.target.value)} className="asr-field">
-        <option value="">Temperatura · todas</option>
-        {TEMPS.map(x => <option key={x} value={x}>{tempMeta(x).label}</option>)}
-      </select>
-      <select data-testid="filter-source" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="asr-field">
-        <option value="">Fuente · todas</option>
-        {SOURCES.map(s => <option key={s} value={s}>{SOURCE_LABELS[s]}</option>)}
-      </select>
-      {!smartList && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 170 }}>
-          <span style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', whiteSpace: 'nowrap' }}>
-            Score min: <strong style={{ color: scoreMin > 0 ? 'rgb(134,239,172)' : 'var(--cream-2)' }}>{scoreMin > 0 ? scoreMin : 'cualquiera'}</strong>
-          </span>
-          <input data-testid="score-min-slider" type="range" min={0} max={100} step={5}
-            value={scoreMin} onChange={e => setScoreMin(Number(e.target.value))}
-            style={{ flex: 1, cursor: 'pointer', accentColor: 'var(--theme)' }} />
-        </div>
-      )}
-      {smartList && (
-        <div data-testid="smart-list-active-badge" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 9999,
-          background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.32)',
-          color: 'var(--indigo-3)', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600,
-        }}>
-          Smart list: {smartList}
-          <button data-testid="smart-list-inline-clear" onClick={() => setSmartList(null)}
-            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
-        </div>
-      )}
-    </>
-  );
-
   const sortControl = (
     <select data-testid="sort-by-select" value={sortBy} onChange={e => setSortBy(e.target.value)} className="asr-field">
       <option value="score">Ordenar · score</option>
@@ -941,8 +972,8 @@ function AsesorContactosV2({ user, onLogout }) {
     <LeadCardV2
       key={c.id}
       c={c}
-      isSelected={selectedIds.has(c.id)}
-      onToggleSelect={() => toggleSelect(c.id)}
+      busquedas={busqByContact[c.id]}
+      nextAction={actionByLead[c.id]}
       onPin={() => togglePin(c)}
       onOpen={() => openContact(c)}
       draggable={!!draggable}
@@ -956,130 +987,91 @@ function AsesorContactosV2({ user, onLogout }) {
   return (
     <AdvisorLayout user={user} onLogout={onLogout}>
       <div className="portal-asesor">
-        <PageHeader
-          eyebrow="LEADS"
-          title="Tus leads"
-          sub="Arrastra cada lead entre etapas, abre su ficha 360° y deja que el Foco de hoy te diga a quién contactar primero."
+        {/* Head · igual al mockup: título + subtítulo · tools a la derecha */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
+          <div>
+            <h1 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 'clamp(28px, 3.4vw, 38px)', letterSpacing: '-0.6px', color: 'var(--cream)', margin: 0, lineHeight: 1 }}>Leads</h1>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 15, color: 'var(--cream-2)', margin: '8px 0 0' }}>
+              Tu embudo de prospectos · ordenado por quién está más listo.
+            </p>
+          </div>
+          <ActionBar
+            sort={sortControl}
+            view={<ViewToggle value={view} onChange={setView} />}
+            onNew={() => setShowCreate(true)}
+            newLabel="Nuevo lead"
+          />
+        </div>
+
+        {/* Chips de filtro horizontales (presets reales · reemplazan el rail) */}
+        <LeadFilterChips
+          presets={presets}
+          counts={counts}
+          total={totalContactos}
+          active={smartList}
+          onSelect={(k) => setSmartList(k)}
         />
 
-        <div data-testid="contactos-layout" style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }} className="contactos-layout-v2">
-          <SmartListsSidebar activePreset={smartList} onSelectPreset={(k) => setSmartList(k)} onClear={() => setSmartList(null)} />
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <ActionBar
-              onNew={() => setShowCreate(true)}
-              newLabel="Nuevo lead"
-              search={q}
-              onSearch={setQ}
-              searchPlaceholder="Buscar por nombre o teléfono…"
-              filters={filters}
-              sort={sortControl}
-              view={<ViewToggle value={view} onChange={setView} />}
-            />
-
-            {/* Foco de hoy · prioridades de la IA */}
-            {foco.length > 0 && (
-              <div data-testid="asr-foco-hoy" style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <Flame size={16} color="rgb(248,113,113)" />
-                  <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>Foco de hoy</span>
-                  <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>· lo que la IA priorizó</span>
-                </div>
-                <div style={{
-                  display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12,
-                  background: 'linear-gradient(180deg, rgba(var(--theme-rgb),0.10), transparent 90%)',
-                  border: '1px solid var(--border)', borderRadius: 16, padding: 16,
-                }}>
-                  {foco.map((a) => <FocoCardV2 key={a.id} action={a} onCTA={focoCTA} />)}
-                </div>
-              </div>
-            )}
-
-            {/* Bulk bar (selección) */}
-            {selectedIds.size > 0 && (
-              <Card data-testid="bulk-bar" style={{ marginBottom: 12, padding: 12, borderColor: 'rgba(var(--theme-rgb),0.4)', background: 'rgba(var(--theme-rgb),0.08)' }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <strong data-testid="bulk-count" style={{ color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13 }}>
-                    {t('bulk.selected', { count: selectedIds.size })}
-                  </strong>
-                  <div style={{ flex: 1 }} />
-                  {bulkMode === 'temp' ? (
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>{t('bulk.pick_temp', 'Elige temperatura')}:</span>
-                      {TEMPS.map((x) => (
-                        <button key={x} disabled={bulkBusy} data-testid={`bulk-temp-${x}`} className="btn btn-glass btn-sm"
-                          onClick={() => runBulk('set_temp', { temperatura: x })}>{tempMeta(x).label}</button>
-                      ))}
-                      <button className="btn btn-glass btn-sm" onClick={() => setBulkMode(null)}>{t('bulk.cancel', 'Cancelar')}</button>
-                    </div>
-                  ) : bulkMode === 'task' ? (
-                    <BulkTaskForm busy={bulkBusy} onCancel={() => setBulkMode(null)} onSubmit={(pl) => runBulk('assign_task', pl)} t={t} />
-                  ) : (
-                    <>
-                      <button disabled={bulkBusy} data-testid="bulk-move-stage" className="btn btn-glass btn-sm" onClick={() => setBulkMode('temp')}>
-                        <Thermometer size={13} /> {t('bulk.move_stage', 'Mover temperatura')}
-                      </button>
-                      <button disabled={bulkBusy} data-testid="bulk-assign-task" className="btn btn-glass btn-sm" onClick={() => setBulkMode('task')}>
-                        <ListPlus size={13} /> {t('bulk.assign_task', 'Asignar tarea')}
-                      </button>
-                      <button disabled={bulkBusy} data-testid="bulk-archive" className="btn btn-glass btn-sm" onClick={() => runBulk('archive')}>
-                        <Archive size={13} /> {t('bulk.archive', 'Archivar')}
-                      </button>
-                      <button disabled={bulkBusy} data-testid="bulk-clear" className="btn btn-glass btn-sm" onClick={clearSelection}>
-                        {t('bulk.clear', 'Limpiar selección')}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {/* Toolbar mini: seleccionar todo + archivados */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10, flexWrap: 'wrap' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
-                <input type="checkbox" data-testid="bulk-select-all" checked={allVisibleSelected} onChange={toggleSelectAll} style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
-                Seleccionar todo {display.length > 0 && `(${display.length})`}
-              </label>
-              <button data-testid="toggle-archived" className="btn btn-glass btn-sm" onClick={() => setShowArchived((s) => !s)}>
-                {showArchived ? t('hide_archived', 'Ocultar archivados') : t('show_archived', 'Ver archivados')}
-              </button>
+        {/* Foco de hoy · 3 acciones DISTINTAS priorizadas por la IA */}
+        {foco.length > 0 && (
+          <div data-testid="asr-foco-hoy" style={{ marginBottom: 34 }}>
+            <SecLine em="Foco de hoy" note="la IA priorizó esto para ti" />
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14,
+              background: 'linear-gradient(180deg, rgba(var(--theme-rgb),0.10), transparent 90%)',
+              border: '1px solid var(--border)', borderRadius: 16, padding: 16,
+            }} className="asr-foco-grid">
+              {foco.map((a) => (
+                <FocoCardV2 key={a.id} action={a} lead={list.find((x) => x.id === a.lead_id)} onCTA={focoCTA} />
+              ))}
             </div>
-
-            {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
-              : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin leads'} sub={smartList ? 'Prueba con otra smart list o limpia el filtro.' : 'Crea tu primer lead o ajusta filtros.'} />
-              : view === 'pipeline' ? (
-                <div data-testid="leads-kanban" style={{ display: 'grid', gridTemplateColumns: `repeat(${TEMP_ORDER.length}, minmax(240px, 1fr))`, gap: 10, overflowX: 'auto' }}>
-                  {TEMP_ORDER.map((tk) => {
-                    const meta = TEMP[tk];
-                    const col = display.filter((c) => (c.temperatura || 'frio') === tk);
-                    return (
-                      <div key={tk} data-testid={`col-${tk}`}
-                        className={`asr-kanban-col${dragOverCol === tk ? ' asr-kanban-col--over' : ''}`}
-                        onDragOver={(e) => { e.preventDefault(); setDragOverCol(tk); }}
-                        onDragLeave={() => setDragOverCol((p) => (p === tk ? null : p))}
-                        onDrop={() => onDropTemp(tk)}
-                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, minHeight: 420, transition: 'border-color 200ms, background 200ms' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 12px' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                            <StatusDot temp={tk} />
-                            <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{meta.label}</span>
-                          </span>
-                          <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream-2)' }}>{col.length}</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {col.map((c) => renderCard(c, { draggable: true }))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div data-testid="leads-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 12 }}>
-                  {display.map((c) => renderCard(c, { draggable: false }))}
-                </div>
-              )}
           </div>
-        </div>
+        )}
+
+        {/* Embudo */}
+        <SecLine lab="Tu embudo de leads" note="arrastra conforme avanzan" />
+
+        {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
+          : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin leads'} sub={smartList ? 'Prueba con otro chip o vuelve a "Todos".' : 'Crea tu primer lead con "+ Nuevo lead".'} />
+          : view === 'pipeline' ? (
+            <div data-testid="leads-kanban" style={{ display: 'grid', gridTemplateColumns: `repeat(${TEMP_ORDER.length}, minmax(232px, 1fr))`, gap: 14, alignItems: 'start', overflowX: 'auto' }}>
+              {TEMP_ORDER.map((tk) => {
+                const meta = TEMP[tk];
+                const col = display.filter((c) => (c.temperatura || 'frio') === tk);
+                const nuevosHoy = col.filter((c) => isToday(c.created_at)).length;
+                return (
+                  <div key={tk} data-testid={`col-${tk}`}
+                    className={`asr-kanban-col${dragOverCol === tk ? ' asr-kanban-col--over' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverCol(tk); }}
+                    onDragLeave={() => setDragOverCol((p) => (p === tk ? null : p))}
+                    onDrop={() => onDropTemp(tk)}
+                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, minHeight: 120, transition: 'border-color 200ms, background 200ms' }}>
+                    <div style={{ marginBottom: 12, padding: '0 2px 11px', borderBottom: '2px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                        <StatusDot temp={tk} />
+                        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{meta.label}</span>
+                        <span className="asr-num" style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)' }}>{col.length}</span>
+                      </div>
+                      {nuevosHoy > 0 && (
+                        <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>
+                          {nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {col.length === 0
+                        ? <div className="asr-empty-col">Sin leads en esta etapa</div>
+                        : col.map((c) => renderCard(c, { draggable: true }))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div data-testid="leads-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 14 }}>
+              {display.map((c) => renderCard(c, { draggable: false }))}
+            </div>
+          )}
 
         <Drawer open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo lead">
           <CreateContactForm onCreated={(c) => { setShowCreate(false); setToast({ kind: 'success', text: 'Lead creado' }); load(); nav(`/asesor/contactos/${c.id}`); }} onError={(tx) => setToast({ kind: 'error', text: tx })} />
@@ -1100,20 +1092,27 @@ function AsesorContactosV2({ user, onLogout }) {
         </Drawer>
 
         {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
-
-        <style>{`
-          @media (max-width: 768px) { .contactos-layout-v2 { flex-direction: column; } }
-        `}</style>
       </div>
     </AdvisorLayout>
   );
 }
 
-// Card de lead premium · usada en pipeline (draggable) y en lista.
-function LeadCardV2({ c, isSelected, onToggleSelect, onPin, onOpen, draggable, isDragging, onDragStart, onDragEnd, t }) {
-  const zona = c.zona || c.colonia || c.zona_interes || (Array.isArray(c.zonas_interes) ? c.zonas_interes[0] : null);
-  const precio = c.presupuesto_max || c.presupuesto || c.precio_max || c.budget_max;
-  const tags = (c.tags || []).slice(0, 3);
+// Card de lead premium · idéntica al mockup (.lead): avatar térmico, nombre+fuente,
+// scorerow (Score + temp + número), barra, zona·precio, próxima acción, N propiedades +
+// antigüedad, WhatsApp + Abrir. Donde no hay dato real → "—"/oculto (nunca card vacía).
+function LeadCardV2({ c, busquedas, nextAction, onPin, onOpen, draggable, isDragging, onDragStart, onDragEnd, t }) {
+  const meta = tempMeta(c.temperatura);
+  const score = c.buyer_score?.value;
+  const bq = (busquedas && busquedas[0]) || null;
+  const zona = bq && (bq.colonias || [])[0];
+  const precio = bq && bq.precio_max;
+  const nProps = busquedas ? busquedas.length : 0;
+  const fuente = c.fuente || c.source;
+  const phone = (c.phones || [])[0];
+  const digits = (phone || '').replace(/\D/g, '');
+  const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (c.first_name || '') + ', ')}` : null;
+  const aging = agingText(c.created_at);
+  const actText = nextAction && (nextAction.title || nextAction.subtitle);
   return (
     <PremiumCard
       hover
@@ -1123,78 +1122,109 @@ function LeadCardV2({ c, isSelected, onToggleSelect, onPin, onOpen, draggable, i
       onDragEnd={draggable ? onDragEnd : undefined}
       onClick={onOpen}
       data-testid={`lead-card-${c.id}`}
-      style={{ padding: 14, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column', gap: 10 }}
+      style={{ padding: 15, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <input type="checkbox" data-testid={`bulk-select-${c.id}`} checked={isSelected}
-          onClick={(e) => e.stopPropagation()} onChange={onToggleSelect}
-          style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
-        <div style={{ width: 40, height: 40, borderRadius: 9999, flexShrink: 0, background: 'linear-gradient(135deg, rgba(109,74,255,0.30), rgba(120,150,255,0.28))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--theme-2)' }}>
+      {/* avatar + nombre + fuente + pin */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: `rgb(${meta.rgb})` }}>
           {avatarInitials(c)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.first_name} {c.last_name || ''}
           </div>
-          {c.tipo && <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'capitalize' }}>{c.tipo}</div>}
+          <div style={{ color: 'var(--cream-3)', fontSize: 12.5, marginTop: 2, textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</div>
         </div>
         <button data-testid={`pin-${c.id}`} title={c.pinned ? t('pin.unpin', 'Quitar de fijados') : t('pin.pin', 'Fijar arriba')}
           onClick={(e) => { e.stopPropagation(); onPin(); }}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}>
-          <Pin size={14} color={c.pinned ? 'var(--indigo-3)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--indigo-3)' : 'none'} />
+          <Pin size={14} color={c.pinned ? 'var(--theme-2)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--theme-2)' : 'none'} />
         </button>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <TemperaturePill temp={c.temperatura} size="sm" />
-        <ScoreBar score={c.buyer_score?.value} width={72} />
+      {/* scorerow + barra */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+        <span style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'inline-flex', gap: 6 }}>
+          Score <span style={{ color: `rgb(${meta.rgb})` }}>{meta.label}</span>
+        </span>
+        <span className="asr-num" style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 24, color: 'var(--theme-2)' }}>
+          {score != null ? Math.round(score) : '—'}
+        </span>
+      </div>
+      <ScoreBar score={score} showNumber={false} width="100%" />
+
+      {/* zona · precio (de su búsqueda) */}
+      <div style={{ color: 'var(--cream-2)', fontSize: 13.5, margin: '11px 0 9px' }}>
+        {zona || precio
+          ? `${zona || ''}${zona && precio ? ' · ' : ''}${precio ? 'hasta ' + fmtMXN(precio) : ''}`
+          : 'Sin búsqueda registrada'}
       </div>
 
-      {(zona || precio) && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-2)' }}>
-          {zona || ''}{zona && precio ? ' · ' : ''}{precio ? fmtMXN(precio) : ''}
+      {/* próxima acción (del action_queue · solo si existe) */}
+      {actText && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, color: 'var(--cream)', fontWeight: 600, marginBottom: 9 }}>
+          <ArrowRight size={13} color="var(--theme-2)" />
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nextAction.title || nextAction.subtitle}</span>
         </div>
       )}
 
-      {tags.length > 0 && (
-        <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)' }}>{tags.join(' · ')}</div>
-      )}
+      {/* propiedades + antigüedad */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, fontSize: 12 }}>
+        <span style={{ color: 'var(--cream-2)' }}>{nProps > 0 ? `${nProps} ${nProps === 1 ? 'propiedad' : 'propiedades'}` : 'Sin propiedades aún'}</span>
+        {aging && <span style={{ color: 'var(--cream-3)' }}>{aging}</span>}
+      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-        <QuickActions phone={c.phones?.[0]} name={c.first_name} size="sm" />
-        <SourceBadge source={c.source} date={c.created_at} />
+      {/* WhatsApp + Abrir */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        {waUrl && (
+          <a href={waUrl} target="_blank" rel="noreferrer" data-testid={`wa-${c.id}`} title="WhatsApp"
+            onClick={(e) => e.stopPropagation()} className="asr-qbtn">
+            <MessageCircle size={14} />
+          </a>
+        )}
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--cream-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          Abrir <ArrowRight size={12} />
+        </span>
       </div>
     </PremiumCard>
   );
 }
 
-// Card de "Foco de hoy" · una acción priorizada por la IA.
-function FocoCardV2({ action, onCTA }) {
+// Card de "Foco de hoy" · idéntica al mockup (.fcard): dot de prioridad + quién +
+// tag + razón + WhatsApp / Ver perfil (+ completar/descartar la acción).
+function FocoCardV2({ action, lead, onCTA }) {
+  const rgb = PRIORITY_RGB[action.priority] || PRIORITY_RGB[3];
+  const phone = (lead?.phones || [])[0];
+  const digits = (phone || '').replace(/\D/g, '');
+  const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (lead?.first_name || '') + ', ')}` : null;
   return (
-    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <StatusDot rgb={PRIORITY_RGB[action.priority] || PRIORITY_RGB[3]} />
-        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {action.title}
+    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: `rgb(${rgb})`, flexShrink: 0 }} />
+        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {action.title || 'Acción'}
         </span>
         {action.source_agent && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.16)', color: 'var(--indigo-3)', fontFamily: 'DM Sans', fontSize: 10, fontWeight: 600 }}>
-            <Sparkle size={10} /> {action.source_agent}
-          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--theme-2)', textTransform: 'uppercase' }}>{action.source_agent}</span>
         )}
       </div>
-      {action.subtitle && <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.4 }}>{action.subtitle}</div>}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+      {action.subtitle && <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>{action.subtitle}</div>}
+      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
+        {waUrl && (
+          <a href={waUrl} target="_blank" rel="noreferrer" className="asr-mini asr-mini--go" data-testid={`foco-wa-${action.id}`}>
+            <MessageCircle size={13} /> WhatsApp
+          </a>
+        )}
         {action.lead_id && (
-          <button data-testid={`foco-ver-${action.id}`} className="btn btn-glass btn-sm" style={{ borderRadius: 9999 }} onClick={() => onCTA('ver', action)}>
-            <Eye size={12} /> Ver
+          <button data-testid={`foco-ver-${action.id}`} className="asr-mini" onClick={() => onCTA('ver', action)}>
+            <Eye size={13} /> Ver perfil
           </button>
         )}
-        <button data-testid={`foco-completar-${action.id}`} className="btn btn-primary btn-sm" style={{ borderRadius: 9999 }} onClick={() => onCTA('completar', action)}>
-          <Check size={12} /> Listo
+        <button data-testid={`foco-completar-${action.id}`} className="asr-mini" title="Marcar como hecho" onClick={() => onCTA('completar', action)}>
+          <Check size={13} />
         </button>
-        <button data-testid={`foco-descartar-${action.id}`} className="btn btn-glass btn-sm" style={{ borderRadius: 9999 }} onClick={() => onCTA('descartar', action)}>
-          <XIcon size={12} /> Descartar
+        <button data-testid={`foco-descartar-${action.id}`} className="asr-mini" title="Descartar" onClick={() => onCTA('descartar', action)}>
+          <XIcon size={13} />
         </button>
       </div>
     </PremiumCard>

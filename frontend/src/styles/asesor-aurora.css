@@ -357,6 +357,54 @@
 /* Números tabulares en todo el scope donde aplica. */
 .portal-asesor .asr-num { font-variant-numeric: tabular-nums; }
 
+/* ── Chips de filtro horizontales (reemplazan el rail vertical de smart lists) ── */
+.portal-asesor .asr-chips {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin-bottom: 26px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+}
+.portal-asesor .asr-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--cream-2); font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-chip:hover { border-color: var(--border-2); color: var(--cream); }
+.portal-asesor .asr-chip--on { background: rgba(var(--theme-rgb), 0.10); color: var(--cream); border-color: transparent; }
+.portal-asesor .asr-chip__cn { font-family: 'Outfit', sans-serif; font-size: 13px; color: var(--cream-3); font-variant-numeric: tabular-nums; }
+
+/* WhatsApp quick button de la card (.qbtn del mockup) */
+.portal-asesor .asr-qbtn {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface);
+  display: grid; place-items: center; color: var(--cream-2); cursor: pointer; text-decoration: none;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-qbtn:hover { color: #25A050; border-color: rgba(37, 211, 102, 0.34); background: rgba(37, 211, 102, 0.05); }
+
+/* Mini-botón del Foco (.mini del mockup) */
+.portal-asesor .asr-mini {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--cream);
+  font-family: 'DM Sans', sans-serif; text-decoration: none;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-mini:hover { border-color: var(--border-2); }
+.portal-asesor .asr-mini--go { background: var(--grad); border-color: transparent; color: #fff; }  /* hero */
+
+/* Columna kanban vacía (estado con gracia, no en blanco) */
+.portal-asesor .asr-empty-col {
+  padding: 18px 12px; text-align: center; color: var(--cream-3); font-size: 12.5px;
+  border: 1px dashed var(--border-2); border-radius: 11px;
+}
+
+/* Foco: 3 columnas en desktop, apila en pantallas chicas. */
+@media (max-width: 920px) {
+  .portal-asesor .asr-foco-grid { grid-template-columns: 1fr !important; }
+}
+
 /* ── Scrollbar clara del scope ───────────────────────────────────────────── */
 .portal-asesor *::-webkit-scrollbar { width: 8px; height: 8px; }
 .portal-asesor *::-webkit-scrollbar-track { background: transparent; }
