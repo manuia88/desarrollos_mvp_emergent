@@ -37,6 +37,8 @@ export const createContacto = (b) => post('/api/asesor/contactos', b);
 export const getContacto = (id) => j(`/api/asesor/contactos/${id}`);
 export const patchContacto = (id, b) => patch(`/api/asesor/contactos/${id}`, b);
 export const addTimelineEntry = (id, b) => post(`/api/asesor/contactos/${id}/timeline`, b);
+// B1 · Agregador de actividad del lead (timeline unificado · alimenta el tab Actividad del perfil-hub).
+export const getContactoOverview = (id) => j(`/api/asesor/contactos/${id}/overview`);
 
 // Búsquedas
 export const listBusquedas = () => j('/api/asesor/busquedas');
@@ -52,8 +54,13 @@ export const createCaptacion = (b) => post('/api/asesor/captaciones', b);
 export const moveCaptacion = (id, stage, payload) => patch(`/api/asesor/captaciones/${id}/stage`, { stage, payload });
 export const getCaptacion = (id) => j(`/api/asesor/captaciones/${id}`);
 
-// Tareas
-export const listTareas = (scope) => j(`/api/asesor/tareas${scope ? `?scope=${scope}` : ''}`);
+// Tareas · scope (comportamiento previo) o contacto_id (perfil-hub · additive)
+export const listTareas = (arg) => {
+  // Compat: listTareas('client') sigue funcionando; listTareas({ contacto_id }) filtra por lead.
+  const params = typeof arg === 'string' ? { scope: arg } : (arg || {});
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+  return j(`/api/asesor/tareas${qs ? `?${qs}` : ''}`);
+};
 export const createTarea = (b) => post('/api/asesor/tareas', b);
 export const completeTarea = (id) => patch(`/api/asesor/tareas/${id}/done`);
 export const deleteTarea = (id) => del(`/api/asesor/tareas/${id}`);
@@ -112,6 +119,9 @@ export const runAgentsNow = () => post('/api/agent-workforce/run-now');
 
 // P3.A · Close probability por lead (reusa close_probability P2 · endpoint advisor nuevo · FAIL-OPEN)
 export const getCloseProbability = (id) => j(`/api/asesor/contactos/${id}/close-probability`);
+
+// B1 · Conversaciones IA del lead (reusa /api/conversation · alimenta el tab Conversaciones del perfil-hub)
+export const getLeadConversations = (id) => j(`/api/conversation/lead/${id}/conversations`);
 
 // Leaderboard + perfil público
 export const getLeaderboard = () => j('/api/asesor/leaderboard');

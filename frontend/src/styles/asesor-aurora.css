@@ -1,30 +1,73 @@
 /* asesor-aurora.css
- * Identidad visual PROPIA del portal del asesor — CSS-only.
+ * Identidad visual PROPIA del portal del asesor — TEMA CLARO violeta · CSS-only.
  *
- * Scope: TODAS las reglas viven bajo `.portal-asesor`, un wrapper que SOLO
- * monta la pantalla nueva de Leads (detrás del flag REACT_APP_LEADS_V2). Ningún
- * otro portal/página monta este wrapper → cero fugas. NO usa `.portal-superadmin`
- * ni importa superadmin-aurora.css: toma de él la TÉCNICA (aurora de fondo,
- * glassmorphism, hover translateY, scrollbar), no el código ni el color.
+ * Scope: TODAS las reglas viven bajo `.portal-asesor`, un wrapper que SOLO monta
+ * la pantalla nueva de Leads (detrás del flag REACT_APP_LEADS_V2). Ningún otro
+ * portal/página monta este wrapper → cero fugas.
  *
- * Color de marca = aurora indigo→pink por defecto, tomado de var(--theme) y
- * var(--theme-3) (definidos en :root de index.css). Nunca se hardcodea un color.
+ * TÉCNICA CLAVE (cero leak · cero duplicación): el módulo del asesor redefine los
+ * tokens semánticos (--bg, --surface, --cream*, --border*, --theme*, --grad) DENTRO
+ * de `.portal-asesor`. Como los componentes (PremiumCard, ScoreBar, ActionBar…) y los
+ * primitives usan esos tokens vía var(), heredan el tema claro automáticamente sin
+ * tocar el :root global (los demás portales siguen en su tema oscuro intactos).
  *
- * Rollback: borrar este archivo + quitar el import de index.js. La pantalla
- * vieja de Leads (flag off) nunca toca este scope.
+ * Color de marca = violeta #6D4AFF. El degradado violeta→rosa (--grad) se usa SOLO
+ * en momentos hero (botón primario, anillo de score, orbe/íconos IA). El relleno de
+ * la barra de score y los avatares NO usan el degradado hero (violeta sólido / suave).
+ *
+ * Rollback: este archivo + el import en index.js. La pantalla vieja (flag off) no monta
+ * `.portal-asesor`, así que nunca ve este scope.
  */
 
-/* ── Raíz del scope ──────────────────────────────────────────────────── */
+/* ── Raíz del scope · tokens del tema claro (override local, no toca :root) ─── */
 .portal-asesor {
   position: relative;
-  isolation: isolate;            /* contiene el stacking de las auroras */
+  isolation: isolate;
   --t-fast: 200ms;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* superficies */
+  --bg: #FAFAFB;
+  --bg-2: #FFFFFF;
+  --bg-3: #F1F2F6;
+  --surface: #FFFFFF;
+  --surface-2: #F1F2F6;
+
+  /* texto (los componentes usan --cream* como tinta principal/secundaria/terciaria) */
+  --cream: #1E2230;
+  --cream-2: #5A6172;
+  --cream-3: #969CAB;
+
+  /* líneas */
+  --border: #E6E8EE;
+  --border-2: #D5D8E2;
+
+  /* marca violeta */
+  --theme: #6D4AFF;
+  --theme-rgb: 109, 74, 255;
+  --theme-2: #5B37E0;
+  --theme-3: #C63FAE;
+  --indigo: #6D4AFF;
+  --indigo-2: #5B37E0;
+  --indigo-3: #5B37E0;
+  --grad: linear-gradient(120deg, #6D4AFF, #C63FAE);   /* SOLO hero */
+
+  /* estados semánticos (alineados al mockup) */
+  --hot: #F2635B;
+  --warm: #E2982E;
+  --cold: #3B82F6;
+  --ok: #1FA06A;
+
+  /* sombras suaves del tema claro */
+  --asr-shadow: 0 1px 2px rgba(20, 25, 45, 0.05), 0 6px 16px rgba(20, 25, 45, 0.08);
+  --asr-shadow-lg: 0 14px 34px rgba(20, 25, 45, 0.16);
+
+  background: var(--bg);
+  color: var(--cream);
+  min-height: 100%;
 }
 
-/* Aurora ambiental: 3 radial-gradients tenues con el color de marca.
- * Contenida dentro del wrapper (absolute, no fixed) para no invadir sidebar
- * ni otras pantallas. */
+/* Glow violeta tenue arriba (profundidad sutil, sin invadir otras pantallas). */
 .portal-asesor::before {
   content: '';
   position: absolute;
@@ -33,71 +76,54 @@
   pointer-events: none;
   border-radius: inherit;
   background:
-    radial-gradient(ellipse 80% 50% at 18% 4%,  rgba(var(--theme-rgb), 0.11), transparent 60%),
-    radial-gradient(ellipse 70% 60% at 92% 88%, rgba(var(--theme-rgb), 0.07), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(var(--theme-rgb), 0.04), transparent 60%);
+    radial-gradient(680px 460px at 2% -8%,  rgba(109, 74, 255, 0.10), transparent 56%),
+    radial-gradient(720px 520px at 102% -4%, rgba(120, 150, 255, 0.10), transparent 60%);
 }
 
-/* Capa de grid sutil con máscara radial (profundidad, no decoración chillona). */
-.portal-asesor::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.4;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-  background-size: 44px 44px;
-  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 78%);
-          mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 78%);
-}
-
-/* El contenido vive por encima de las auroras. */
+/* El contenido vive por encima del glow. */
 .portal-asesor > * {
   position: relative;
   z-index: 1;
 }
 
-/* ── Card premium glassmorphism ──────────────────────────────────────── */
+/* ── Card premium · blanca con borde + sombra que se eleva al hover ───────── */
 .portal-asesor .asr-premium {
   position: relative;
-  background: rgba(13, 16, 23, 0.92);
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-          backdrop-filter: blur(24px) saturate(160%);
+  border-radius: 14px;
+  box-shadow: var(--asr-shadow);
   transition: border-color var(--t-fast) var(--ease),
               transform var(--t-fast) var(--ease),
-              background var(--t-fast) var(--ease);
+              box-shadow var(--t-fast) var(--ease);
 }
 
 .portal-asesor .asr-premium--hover:hover {
-  border-color: rgba(var(--theme-rgb), 0.40);
-  background: rgba(18, 22, 31, 0.94);
+  border-color: var(--theme);
+  box-shadow: var(--asr-shadow-lg);
   transform: translateY(-2px);
 }
 
-/* Card en arrastre (kanban): se levanta apenas, sin rotar ni escalar. */
+/* Card en arrastre (kanban): se levanta apenas. */
 .portal-asesor .asr-premium--dragging {
-  border-color: rgba(var(--theme-rgb), 0.55);
+  border-color: var(--theme);
+  box-shadow: var(--asr-shadow-lg);
   transform: translateY(-2px);
-  opacity: 0.92;
+  opacity: 0.96;
 }
 
 /* Columna kanban activa al pasar una card por encima. */
 .portal-asesor .asr-kanban-col--over {
-  border-color: rgba(var(--theme-rgb), 0.40);
-  background: rgba(var(--theme-rgb), 0.05);
+  border-color: var(--theme);
+  background: rgba(var(--theme-rgb), 0.06);
 }
 
-/* ── Botón segmentado (ViewToggle) ───────────────────────────────────── */
+/* ── Botón segmentado (ViewToggle) ───────────────────────────────────────── */
 .portal-asesor .asr-seg {
   display: inline-flex;
   padding: 3px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 9px;
+  background: var(--surface);
   border: 1px solid var(--border);
 }
 .portal-asesor .asr-seg__btn {
@@ -106,7 +132,7 @@
   gap: 6px;
   padding: 6px 14px;
   border: none;
-  border-radius: 9999px;
+  border-radius: 7px;
   background: transparent;
   color: var(--cream-3);
   font-family: 'DM Sans', sans-serif;
@@ -117,15 +143,15 @@
 }
 .portal-asesor .asr-seg__btn:hover { color: var(--cream); }
 .portal-asesor .asr-seg__btn--active {
-  color: var(--cream);
-  background: rgba(var(--theme-rgb), 0.16);
+  color: #fff;
+  background: var(--grad);          /* hero */
 }
 
-/* ── Input/Select dentro del scope ───────────────────────────────────── */
+/* ── Input/Select dentro del scope ───────────────────────────────────────── */
 .portal-asesor .asr-field {
   padding: 8px 14px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 9px;
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--cream-2);
   font-family: 'DM Sans', sans-serif;
@@ -133,41 +159,215 @@
   outline: none;
   transition: border-color var(--t-fast) var(--ease);
 }
-.portal-asesor .asr-field:focus {
-  border-color: rgba(var(--theme-rgb), 0.45);
-}
+.portal-asesor .asr-field:focus { border-color: var(--theme); }
+.portal-asesor .asr-field option { color: #1E2230; }
 
-/* ── ScoreBar (riel + relleno aurora) ────────────────────────────────── */
+/* ── ScoreBar (riel claro + relleno violeta SÓLIDO, no hero) ──────────────── */
 .portal-asesor .asr-scorebar__track {
   position: relative;
   height: 6px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2);
   overflow: hidden;
 }
 .portal-asesor .asr-scorebar__fill {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 9999px;
-  background: var(--grad);
+  background: var(--theme);
   transition: width 600ms var(--ease);
 }
 
-/* ── Scrollbar propia del scope ──────────────────────────────────────── */
+/* ── Botones base re-vestidos para el tema claro (scoped · no toca otros portales) ── */
+.portal-asesor .btn-primary { background: var(--grad); color: #fff; }   /* hero */
+.portal-asesor .btn-glass {
+  background: var(--surface);
+  color: var(--cream);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
+}
+.portal-asesor .btn-glass:hover { background: var(--surface-2); border-color: var(--border-2); }
+.portal-asesor .btn-icon-circle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--cream-2);
+  backdrop-filter: none;
+}
+.portal-asesor .btn-icon-circle:hover { background: var(--surface-2); color: var(--cream); }
+.portal-asesor .eyebrow { color: var(--theme-2); }
+
+/* ── Drawer compartido (Nuevo lead / Plan venta IA): panel claro dentro del scope ──
+ * El primitive Drawer trae estilos inline oscuros; aquí los pisamos SOLO bajo
+ * `.portal-asesor` (cero leak). Los demás portales conservan su Drawer oscuro. */
+.portal-asesor [data-testid="drawer"] {
+  background: var(--surface) !important;
+  border-left: 1px solid var(--border) !important;
+  color: var(--cream);
+}
+.portal-asesor [data-testid="drawer"] input,
+.portal-asesor [data-testid="drawer"] select,
+.portal-asesor [data-testid="drawer"] textarea {
+  background: var(--surface-2) !important;
+  border-color: var(--border) !important;
+  color: var(--cream) !important;
+}
+
+/* ── Perfil-hub modal central (4 tabs) ───────────────────────────────────── */
+.portal-asesor .asr-modal-scrim {
+  position: fixed; inset: 0;
+  background: rgba(26, 34, 48, 0.34);
+  backdrop-filter: blur(2px);
+  display: grid; place-items: center;
+  padding: 24px;
+}
+.portal-asesor .asr-modal {
+  width: min(1000px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 30px 90px rgba(26, 34, 48, 0.25);
+}
+.portal-asesor .asr-modal__wrap { padding: 28px 30px 36px; }
+
+.portal-asesor .asr-hbtn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 15px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--cream);
+  font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13.5px;
+  cursor: pointer; transition: border-color var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-hbtn:hover { border-color: var(--border-2); }
+.portal-asesor .asr-hbtn--key { background: var(--grad); border-color: transparent; color: #fff; }  /* hero */
+
+/* Tab bar */
+.portal-asesor .asr-tabbar {
+  display: flex; gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 22px;
+}
+.portal-asesor .asr-tab {
+  border: 0; background: transparent;
+  color: var(--cream-3);
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+  padding: 11px 16px; cursor: pointer;
+  border-bottom: 2.5px solid transparent; margin-bottom: -1px;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-tab:hover { color: var(--cream-2); background: var(--surface-2); }
+.portal-asesor .asr-tab--on { color: var(--cream); border-bottom-color: var(--theme); }
+.portal-asesor .asr-tab__count {
+  margin-left: 6px; font-size: 11px; font-weight: 700;
+  background: var(--theme); color: #fff; border-radius: 9999px; padding: 0 7px;
+  font-variant-numeric: tabular-nums;
+}
+.portal-asesor .asr-pane { animation: asrPaneFade 0.3s ease-out; }
+@keyframes asrPaneFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+/* Sección dentro del perfil */
+.portal-asesor .asr-sec-h {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--cream-3); font-weight: 700; margin-bottom: 12px;
+}
+.portal-asesor .asr-sec-h .asr-sdot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.portal-asesor .asr-sec-h .asr-muted { text-transform: none; font-weight: 400; font-style: italic; color: var(--cream-3); }
+
+/* Anillo de probabilidad de cierre (hero · conic violeta→rosa) */
+.portal-asesor .asr-ring {
+  position: relative; width: 94px; height: 94px; border-radius: 50%;
+  background: conic-gradient(#6D4AFF, #C63FAE calc(var(--p) * 1%), #E7E9F2 0);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.portal-asesor .asr-ring::before {
+  content: ''; position: absolute; width: 72px; height: 72px; border-radius: 50%;
+  background: var(--surface);
+}
+.portal-asesor .asr-ring span {
+  position: relative; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 26px;
+  color: var(--theme-2); font-variant-numeric: tabular-nums; line-height: 1;
+}
+.portal-asesor .asr-ring span small { font-size: 14px; }
+
+/* Chips de etapa (header del perfil) */
+.portal-asesor .asr-stchip {
+  border: 1px solid var(--border); background: var(--surface); color: var(--cream-2);
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+  padding: 7px 13px; border-radius: 9999px; cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-stchip:hover { border-color: var(--theme); }
+.portal-asesor .asr-stchip--on { background: var(--grad); border-color: transparent; color: #fff; }  /* hero */
+.portal-asesor .asr-stchip:disabled { opacity: 0.6; cursor: default; }
+
+/* Tarjeta "qué busca" / "datos" en grilla */
+.portal-asesor .asr-criterios {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface);
+}
+.portal-asesor .asr-cr { padding: 15px 16px; border-right: 1px solid var(--border); }
+.portal-asesor .asr-cr:last-child { border-right: 0; }
+.portal-asesor .asr-crl { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream-3); margin-bottom: 7px; }
+.portal-asesor .asr-crv { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; color: var(--cream); font-variant-numeric: tabular-nums; }
+
+/* Pendientes */
+.portal-asesor .asr-pend {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid var(--border); border-left: 3px solid var(--warm); border-radius: 11px;
+  padding: 13px 15px; background: var(--surface);
+}
+.portal-asesor .asr-pend__dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.portal-asesor .asr-donebtn {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--cream); font-family: 'DM Sans', sans-serif;
+  font-weight: 600; font-size: 12.5px; cursor: pointer; transition: all var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-donebtn:hover { background: var(--grad); border-color: transparent; color: #fff; }
+
+/* Timeline (tab Actividad) */
+.portal-asesor .asr-tl { border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; background: var(--surface); }
+.portal-asesor .asr-tlrow {
+  display: flex; align-items: center; gap: 12px; padding: 13px 0;
+  border-bottom: 1px solid var(--border); font-size: 14px; color: var(--cream-2);
+}
+.portal-asesor .asr-tlrow:last-child { border-bottom: 0; }
+.portal-asesor .asr-tlrow__dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.portal-asesor .asr-tlrow b { color: var(--cream); font-weight: 700; }
+.portal-asesor .asr-tlrow .asr-when { margin-left: auto; color: var(--cream-3); font-size: 12.5px; white-space: nowrap; }
+
+/* Botón contextual (Nota en Actividad) */
+.portal-asesor .asr-ctxbtn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 16px; border-radius: 9999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--cream); font-family: 'DM Sans', sans-serif;
+  font-weight: 600; font-size: 13.5px; cursor: pointer; box-shadow: var(--asr-shadow);
+  transition: all var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-ctxbtn:hover { border-color: var(--theme); background: rgba(var(--theme-rgb), 0.06); transform: translateY(-1px); }
+
+/* Mini-tarjeta de propiedad (tab Propiedades · read-only) */
+.portal-asesor .asr-prop {
+  border-radius: 10px; border: 1px solid var(--border); background: var(--surface);
+  overflow: hidden; box-shadow: var(--asr-shadow); transition: all var(--t-fast) var(--ease);
+}
+.portal-asesor .asr-prop:hover { transform: translateY(-2px); box-shadow: var(--asr-shadow-lg); border-color: var(--border-2); }
+
+/* Números tabulares en todo el scope donde aplica. */
+.portal-asesor .asr-num { font-variant-numeric: tabular-nums; }
+
+/* ── Scrollbar clara del scope ───────────────────────────────────────────── */
 .portal-asesor *::-webkit-scrollbar { width: 8px; height: 8px; }
 .portal-asesor *::-webkit-scrollbar-track { background: transparent; }
-.portal-asesor *::-webkit-scrollbar-thumb {
-  background: rgba(var(--theme-rgb), 0.22);
-  border-radius: 9999px;
-}
-.portal-asesor *::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--theme-rgb), 0.38);
-}
+.portal-asesor *::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 9999px; }
+.portal-asesor *::-webkit-scrollbar-thumb:hover { background: var(--cream-3); }
 
 /* Respeta usuarios con reduce-motion. */
 @media (prefers-reduced-motion: reduce) {
   .portal-asesor .asr-premium,
   .portal-asesor .asr-premium--hover:hover,
   .portal-asesor .asr-scorebar__fill,
-  .portal-asesor .asr-seg__btn { transition: none; transform: none; }
+  .portal-asesor .asr-pane,
+  .portal-asesor .asr-seg__btn { transition: none; transform: none; animation: none; }
 }

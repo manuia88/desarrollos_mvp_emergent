@@ -32,7 +32,7 @@ export default function ScoreBar({ score, label, showNumber = true, width = 96 }
         <span className="asr-scorebar__fill" style={{ width: `${v}%` }} />
       </span>
       {showNumber && (
-        <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 13, color: 'var(--cream)', minWidth: 22, textAlign: 'right' }}>
+        <span className="asr-num" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 13, color: 'var(--theme-2, var(--cream))', minWidth: 22, textAlign: 'right' }}>
           {v}
         </span>
       )}
@@ -42,11 +42,11 @@ export default function ScoreBar({ score, label, showNumber = true, width = 96 }
           style={{
             position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
             width: 220, padding: '8px 11px', borderRadius: 10, zIndex: 50,
-            background: 'rgba(10, 13, 22, 0.97)',
-            border: '1px solid rgba(var(--theme-rgb), 0.4)',
+            background: 'var(--surface, #fff)',
+            border: '1px solid var(--border, #E6E8EE)',
             color: 'var(--cream-2)', fontFamily: 'DM Sans, sans-serif',
             fontSize: 11, lineHeight: 1.5,
-            boxShadow: '0 12px 36px rgba(0, 0, 0, 0.45)',
+            boxShadow: '0 12px 36px rgba(20, 25, 45, 0.18)',
           }}
         >
           {tip}

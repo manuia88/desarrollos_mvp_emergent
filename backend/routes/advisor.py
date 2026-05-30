@@ -763,6 +763,115 @@ async def get_close_probability(cid: str, request: Request):
         return {"prob": None, "factors": [], "confidence": "BAJA"}
 
 
+def _ts_iso(ts) -> str:
+    """Normaliza un ts (datetime|str|None) a string ISO comparable para ordenar."""
+    if isinstance(ts, datetime):
+        t = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+        return t.isoformat()
+    return str(ts or "")
+
+
+@router.get("/contactos/{cid}/overview")
+async def get_contacto_overview(cid: str, request: Request):
+    """B1 · Agregador de actividad del lead (alimenta el tab Actividad del perfil-hub).
+
+    Fan-out a las fuentes que ya existen (timeline propio + búsquedas + operaciones +
+    client_insights del comprador) y las normaliza a UN timeline unificado ordenado
+    por ts (desc). FAIL-OPEN por fuente: si una falla, el resto responde igual. No crea
+    colecciones ni datos — solo lee e indexa. Aislamiento: owner_id == user.user_id.
+    """
+    user = await require_advisor(request)
+    db = get_db(request)
+    # Aislamiento: el contacto debe pertenecer al asesor (si no, 404).
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1})
+    if not c:
+        raise HTTPException(404, "No encontrado")
+
+    events: List[dict] = []
+    sources: dict = {}
+
+    # 1) Timeline propio (notas/visitas/llamadas/mensajes registrados).
+    try:
+        tl = await db.asesor_contacto_timeline.find(
+            {"contacto_id": cid, "owner_id": user.user_id}, {"_id": 0},
+        ).sort("ts", -1).limit(100).to_list(100)
+        for e in tl:
+            events.append({
+                "ts": _ts_iso(e.get("ts")),
+                "source": "timeline",
+                "kind": e.get("kind", "nota"),
+                "title": e.get("kind", "nota"),
+                "body": e.get("body", ""),
+            })
+        sources["timeline"] = "ok"
+    except Exception:
+        sources["timeline"] = "error"
+
+    # 2) Búsquedas del contacto (alta + etapa del pipeline de búsqueda).
+    try:
+        bs = await db.asesor_busquedas.find(
+            {"contacto_id": cid, "owner_id": user.user_id}, {"_id": 0},
+        ).sort("created_at", -1).limit(50).to_list(50)
+        for b in bs:
+            colonias = ", ".join(b.get("colonias", []) or []) or "sin zona definida"
+            events.append({
+                "ts": _ts_iso(b.get("created_at")),
+                "source": "busqueda",
+                "kind": "busqueda",
+                "title": "Búsqueda registrada",
+                "body": f"{colonias} · etapa {b.get('stage', 'pendiente')}",
+            })
+        sources["busquedas"] = "ok"
+    except Exception:
+        sources["busquedas"] = "error"
+
+    # 3) Operaciones del contacto (alta + status).
+    try:
+        ops = await db.asesor_operaciones.find(
+            {"contacto_id": cid, "owner_id": user.user_id}, {"_id": 0},
+        ).sort("created_at", -1).limit(50).to_list(50)
+        for o in ops:
+            label = f"{o.get('status', 'propuesta')} · {o.get('op_code', '')}".strip(" ·")
+            events.append({
+                "ts": _ts_iso(o.get("created_at")),
+                "source": "operacion",
+                "kind": "operacion",
+                "title": "Operación",
+                "body": label,
+            })
+        sources["operaciones"] = "ok"
+    except Exception:
+        sources["operaciones"] = "error"
+
+    # 4) Client insights del comprador (best-effort · actividad 30d en el marketplace).
+    insights = None
+    try:
+        from services.client_insights import compute_client_insights
+        insights = await compute_client_insights(db, cid, user.user_id)
+        for ev in (insights.get("timeline") or [])[:50]:
+            events.append({
+                "ts": _ts_iso(ev.get("ts")),
+                "source": "insights",
+                "kind": ev.get("type", "actividad"),
+                "title": ev.get("label", "Actividad"),
+                "body": ev.get("label", ""),
+            })
+        sources["insights"] = "ok"
+    except Exception:
+        sources["insights"] = "error"
+
+    events.sort(key=lambda e: e.get("ts") or "", reverse=True)
+
+    next_action = insights.get("next_action") if isinstance(insights, dict) else None
+    return {
+        "contacto_id": cid,
+        "count": len(events),
+        "timeline": events,
+        "sources": sources,
+        "next_action": next_action,
+    }
+
+
 @router.patch("/contactos/{cid}")
 async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
     user = await require_advisor(request)
@@ -1022,7 +1131,7 @@ async def get_captacion(cid: str, request: Request):
 
 # ─── Tareas ───────────────────────────────────────────────────────────────────
 @router.get("/tareas")
-async def list_tareas(request: Request, scope: Optional[str] = None):
+async def list_tareas(request: Request, scope: Optional[str] = None, contacto_id: Optional[str] = None):
     user = await require_advisor(request)
     db = get_db(request)
     flt = {"owner_id": user.user_id, "done": {"$ne": True}}
@@ -1030,6 +1139,10 @@ async def list_tareas(request: Request, scope: Optional[str] = None):
         # scope group: property|capture|search → property; client|lead → client; general → general
         groups = {"property": ["property", "capture", "search"], "client": ["client", "lead"], "general": ["general"]}
         if scope in groups: flt["tipo"] = {"$in": groups[scope]}
+    # B1 · filtro additive por contacto (perfil-hub · Pendientes). Default sin
+    # contacto_id = comportamiento actual. La tarea liga el lead via entity_id.
+    if contacto_id:
+        flt["entity_id"] = contacto_id
     items = await db.asesor_tareas.find(flt, {"_id": 0}).sort("due_at", 1).limit(500).to_list(500)
     return items
 

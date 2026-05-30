@@ -9,6 +9,7 @@ export { default as ViewToggle } from './ViewToggle';
 export { default as StatusDot } from './StatusDot';
 export { default as TemperaturePill } from './TemperaturePill';
 export { default as ScoreBar } from './ScoreBar';
+export { default as ScoreRing } from './ScoreRing';
 export { default as QuickActions } from './QuickActions';
 export { default as PremiumCard } from './PremiumCard';
 export { default as Ficha360 } from './Ficha360';

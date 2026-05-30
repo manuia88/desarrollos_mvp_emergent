@@ -24,8 +24,9 @@ export default function ActionBar({
       style={{
         display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
         padding: 12, marginBottom: 16,
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid var(--border)', borderRadius: 16,
+        background: 'var(--surface)',
+        border: '1px solid var(--border)', borderRadius: 12,
+        boxShadow: 'var(--asr-shadow)',
       }}
     >
       {onNew && (
@@ -43,8 +44,8 @@ export default function ActionBar({
       {onSearch && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 200,
-          padding: '8px 14px', background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid var(--border)', borderRadius: 9999,
+          padding: '8px 14px', background: 'var(--surface-2)',
+          border: '1px solid var(--border)', borderRadius: 9,
         }}>
           <Search size={14} color="var(--cream-3)" />
           <input

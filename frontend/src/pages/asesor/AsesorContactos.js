@@ -761,7 +761,6 @@ function AsesorContactosV2({ user, onLogout }) {
   const [dragging, setDragging] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [foco, setFoco] = useState([]);
-  const [noteBusy, setNoteBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -885,16 +884,12 @@ function AsesorContactosV2({ user, onLogout }) {
     } catch (_) { setToast({ kind: 'error', text: 'No se pudo aplicar' }); }
   };
 
-  const addNoteFromFicha = async (text) => {
+  // El perfil-hub mueve la temperatura (estado) desde sus chips · reflejamos el
+  // cambio en el kanban y en la ficha abierta sin recargar todo.
+  const handleStageChange = (tk) => {
     if (!selected) return;
-    setNoteBusy(true);
-    try {
-      await api.addTimelineEntry(selected.id, { kind: 'nota', body: text });
-      const c = await api.getContacto(selected.id);
-      setSelected(c);
-      setToast({ kind: 'success', text: 'Nota registrada' });
-    } catch (_) { setToast({ kind: 'error', text: 'No se pudo guardar la nota' }); }
-    finally { setNoteBusy(false); }
+    setList((prev) => prev.map((x) => (x.id === selected.id ? { ...x, temperatura: tk } : x)));
+    setSelected((prev) => (prev ? { ...prev, temperatura: tk } : prev));
   };
 
   const filters = (
@@ -990,7 +985,11 @@ function AsesorContactosV2({ user, onLogout }) {
                   <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)' }}>Foco de hoy</span>
                   <span style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)' }}>· lo que la IA priorizó</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12,
+                  background: 'linear-gradient(180deg, rgba(var(--theme-rgb),0.10), transparent 90%)',
+                  border: '1px solid var(--border)', borderRadius: 16, padding: 16,
+                }}>
                   {foco.map((a) => <FocoCardV2 key={a.id} action={a} onCTA={focoCTA} />)}
                 </div>
               </div>
@@ -1059,7 +1058,7 @@ function AsesorContactosV2({ user, onLogout }) {
                         onDragOver={(e) => { e.preventDefault(); setDragOverCol(tk); }}
                         onDragLeave={() => setDragOverCol((p) => (p === tk ? null : p))}
                         onDrop={() => onDropTemp(tk)}
-                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 10, minHeight: 420, transition: 'border-color 200ms, background 200ms' }}>
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, minHeight: 420, transition: 'border-color 200ms, background 200ms' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 12px' }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                             <StatusDot temp={tk} />
@@ -1092,8 +1091,8 @@ function AsesorContactosV2({ user, onLogout }) {
           contact={selected}
           onOpenArg={() => setShowArg(true)}
           onAgendar={() => nav('/asesor/citas')}
-          onAddNote={addNoteFromFicha}
-          busyNote={noteBusy}
+          onStageChange={handleStageChange}
+          onToast={(kind, text) => setToast({ kind, text })}
         />
 
         <Drawer open={showArg} onClose={() => setShowArg(false)} title="Plan venta IA · Claude" width={560}>
@@ -1103,7 +1102,6 @@ function AsesorContactosV2({ user, onLogout }) {
         {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
 
         <style>{`
-          .portal-asesor .asr-field option { color: var(--bg); }
           @media (max-width: 768px) { .contactos-layout-v2 { flex-direction: column; } }
         `}</style>
       </div>
@@ -1131,7 +1129,7 @@ function LeadCardV2({ c, isSelected, onToggleSelect, onPin, onOpen, draggable, i
         <input type="checkbox" data-testid={`bulk-select-${c.id}`} checked={isSelected}
           onClick={(e) => e.stopPropagation()} onChange={onToggleSelect}
           style={{ cursor: 'pointer', accentColor: 'var(--theme)' }} />
-        <div style={{ width: 36, height: 36, borderRadius: 9999, flexShrink: 0, background: 'var(--grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: 'var(--bg)' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 9999, flexShrink: 0, background: 'linear-gradient(135deg, rgba(109,74,255,0.30), rgba(120,150,255,0.28))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--theme-2)' }}>
           {avatarInitials(c)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

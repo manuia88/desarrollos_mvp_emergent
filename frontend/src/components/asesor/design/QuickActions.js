@@ -9,8 +9,8 @@ import { Phone, MessageCircle } from 'lucide-react';
 const circle = (sm) => ({
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   width: sm ? 30 : 36, height: sm ? 30 : 36,
-  borderRadius: 9999,
-  background: 'rgba(255, 255, 255, 0.05)',
+  borderRadius: 8,
+  background: 'var(--surface)',
   border: '1px solid var(--border)',
   color: 'var(--cream-2)',
   cursor: 'pointer', textDecoration: 'none',
