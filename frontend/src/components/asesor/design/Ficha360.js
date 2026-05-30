@@ -23,6 +23,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Calendar, Sparkles, X, Phone as PhoneIcon, Mail, Globe, Check,
   MessageCircle, MessageSquare, Pencil, Building2, ThumbsUp, ThumbsDown, ArrowLeftRight,
+  ListChecks, Mic,
 } from 'lucide-react';
 import * as api from '../../../api/advisor';
 import { fmtMXN } from '../../advisor/primitives';
@@ -102,6 +103,10 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   const [note, setNote] = useState('');
   const [noteBusy, setNoteBusy] = useState(false);
   const [stageBusy, setStageBusy] = useState(false);
+  // Tab Actividad · botones Nota/Tarea (inline) del mockup.
+  const [actMode, setActMode] = useState(null);  // null | 'nota' | 'tarea'
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDue, setTaskDue] = useState('');
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -218,6 +223,41 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
       toast('success', 'Nota registrada');
     } catch (_) { toast('error', 'No se pudo guardar la nota'); }
     finally { setNoteBusy(false); }
+  };
+
+  // Tarea desde el tab Actividad (createTarea real · scopeada al contacto).
+  const submitTarea = async () => {
+    const titulo = taskTitle.trim();
+    if (!titulo) return;
+    if (demo) { setTaskTitle(''); setTaskDue(''); setActMode(null); toast('success', 'Tarea creada'); return; }
+    try {
+      await api.createTarea({
+        titulo, tipo: 'client', entity_id: cid,
+        entity_label: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Lead',
+        due_at: taskDue ? new Date(taskDue).toISOString() : undefined,
+        prioridad: 'media',
+      });
+      setTaskTitle(''); setTaskDue(''); setActMode(null);
+      toast('success', 'Tarea creada');
+      api.listTareas({ contacto_id: cid }).then((t) => setTareas(t || [])).catch(() => {});
+      const o = await api.getContactoOverview(cid).catch(() => null);
+      if (o) setOverview(o);
+    } catch (_) { toast('error', 'No se pudo crear la tarea'); }
+  };
+
+  // Nota por voz · dictado nativo del navegador (Web Speech API · es-MX) hacia la nota.
+  const startVoice = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setActMode('nota');
+    if (!SR) { toast('info', 'Dictado no disponible en este navegador · escribe la nota'); return; }
+    try {
+      const rec = new SR();
+      rec.lang = 'es-MX'; rec.interimResults = false; rec.maxAlternatives = 1;
+      rec.onresult = (ev) => setNote((p) => (p ? p + ' ' : '') + (ev.results?.[0]?.[0]?.transcript || ''));
+      rec.onerror = () => toast('error', 'No se pudo dictar');
+      rec.start();
+      toast('info', 'Escuchando… habla ahora');
+    } catch (_) { toast('error', 'No se pudo iniciar el dictado'); }
   };
 
   // Bloques de IA del perfil · demo (vista llena) O motor real (intel) · null = se oculta.
@@ -702,38 +742,62 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
           {/* ── Pane: Actividad (timeline unificado /overview + nota) ── */}
           {tab === 'act' && (
             <div className="asr-pane" data-testid="asr-ficha360-pane-act">
-              {/* Agregar nota */}
-              <div style={{ display: 'flex', gap: 9, marginBottom: 18 }}>
-                <input
-                  data-testid="add-note-input"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') submitNote(); }}
-                  placeholder="Agregar una nota…"
-                  style={{ flex: 1, padding: '11px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 14, outline: 'none' }}
-                />
-                <button className="asr-ctxbtn" data-testid="asr-ficha360-note-save" onClick={submitNote} disabled={noteBusy || !note.trim()} style={{ opacity: (noteBusy || !note.trim()) ? 0.6 : 1 }}>
-                  <Pencil size={14} /> Nota
-                </button>
+              {/* 4 acciones del mockup: Nota · Tarea · Cita · Nota por voz */}
+              <div className="asr-actbtns" style={{ display: 'flex', gap: 9, marginBottom: 18, flexWrap: 'wrap' }}>
+                <button className="asr-ctxbtn" data-testid="asr-act-nota" onClick={() => setActMode((m) => (m === 'nota' ? null : 'nota'))}><Pencil size={15} /> Nota</button>
+                <button className="asr-ctxbtn" data-testid="asr-act-tarea" onClick={() => setActMode((m) => (m === 'tarea' ? null : 'tarea'))}><ListChecks size={15} /> Tarea</button>
+                <button className="asr-ctxbtn" data-testid="asr-act-cita" onClick={() => { if (onAgendar) onAgendar(); }}><Calendar size={15} /> Cita</button>
+                <button className="asr-ctxbtn" data-testid="asr-act-voz" onClick={startVoice}><Mic size={15} /> Nota por voz</button>
               </div>
 
-              {actLoading ? (
-                <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando actividad…</div>
-              ) : !overview || (overview.timeline || []).length === 0 ? (
-                <div style={{ padding: '34px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13.5, border: '1px dashed var(--border-2)', borderRadius: 12 }}>
-                  Sin actividad registrada aún. Tu primera nota aparecerá aquí.
-                </div>
-              ) : (
-                <div className="asr-tl">
-                  {(overview.timeline || []).slice(0, 40).map((e, i) => (
-                    <div className="asr-tlrow" key={i} data-testid="asr-tlrow">
-                      <span className="asr-tlrow__dot" style={{ background: eventDot(e.source, e.kind) }} />
-                      <span><b style={{ textTransform: 'capitalize' }}>{e.title || e.kind}</b>{e.body && e.body !== e.title ? ` · ${e.body}` : ''}</span>
-                      <span className="asr-when">{relWhen(e.ts)}</span>
-                    </div>
-                  ))}
+              {/* Form inline · Nota */}
+              {actMode === 'nota' && (
+                <div style={{ display: 'flex', gap: 9, marginBottom: 18 }}>
+                  <input data-testid="add-note-input" value={note} autoFocus
+                    onChange={(e) => setNote(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') submitNote(); }}
+                    placeholder="Escribe la nota…"
+                    style={{ flex: 1, padding: '11px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 14, outline: 'none' }} />
+                  <button className="asr-hbtn asr-hbtn--key" data-testid="asr-ficha360-note-save" onClick={submitNote} disabled={noteBusy || !note.trim()} style={{ opacity: (noteBusy || !note.trim()) ? 0.6 : 1 }}>Guardar</button>
                 </div>
               )}
+
+              {/* Form inline · Tarea */}
+              {actMode === 'tarea' && (
+                <div style={{ display: 'flex', gap: 9, marginBottom: 18, flexWrap: 'wrap' }}>
+                  <input value={taskTitle} autoFocus onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder="Título de la tarea…"
+                    style={{ flex: '1 1 200px', padding: '11px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 14, outline: 'none' }} />
+                  <input type="datetime-local" value={taskDue} onChange={(e) => setTaskDue(e.target.value)}
+                    style={{ padding: '11px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
+                  <button className="asr-hbtn asr-hbtn--key" data-testid="asr-act-tarea-save" onClick={submitTarea} disabled={!taskTitle.trim()} style={{ opacity: taskTitle.trim() ? 1 : 0.6 }}>Crear tarea</button>
+                </div>
+              )}
+
+              {/* Timeline · demo (mockup) o real (/overview) */}
+              {(() => {
+                const rows = demo?.activity
+                  || (overview?.timeline || []).map((e) => ({ kind: e.kind, source: e.source, title: e.title || e.kind, body: (e.body && e.body !== e.title) ? e.body : '', when: relWhen(e.ts) }));
+                if (!demo && actLoading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando actividad…</div>;
+                if (!rows.length) return (
+                  <div style={{ padding: '34px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13.5, border: '1px dashed var(--border-2)', borderRadius: 12 }}>
+                    Sin actividad registrada aún. Tu primera nota aparecerá aquí.
+                  </div>
+                );
+                return (
+                  <div className="asr-tl">
+                    {rows.slice(0, 40).map((r, i) => (
+                      <div className="asr-tlrow" key={i} data-testid="asr-tlrow">
+                        <span className="asr-tlrow__dot" style={{ background: eventDot(r.source, r.kind) }} />
+                        <span><b style={{ textTransform: 'capitalize' }}>{r.title}</b>{r.body ? ` · ${r.body}` : ''}
+                          {r.badge && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 9999, background: 'rgba(var(--theme-rgb),0.12)', color: 'var(--theme-2)' }}>{r.badge}</span>}
+                        </span>
+                        <span className="asr-when">{r.when}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

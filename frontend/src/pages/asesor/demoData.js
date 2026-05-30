@@ -111,6 +111,14 @@ export const DEMO_PERFIL = {
         items: [{ price: '$9,100,000', title: 'Depto en Lomas', addr: 'Sierra Madre 615', specs: ['3 rec', '3 baños', '2 est', '180 m²'], note: 'precio alto', thumb: 'down', tone: 'hot', dim: true }] },
     ],
     tinder: { title: 'Enviar link de propiedades a María', sub: 'Un link · desliza 👍/👎 y busca más en la Bolsa sin salir. Cada deslizada vuelve aquí.', cta: 'Crear y enviar' },
+    // Tab Actividad · timeline del mockup (Tarea/Cita/Nota + eventos del sistema).
+    activity: [
+      { kind: 'task', title: 'Tarea', body: 'enviar comparativo de Polanco', badge: 'pendiente', when: 'vence hoy' },
+      { kind: 'cita', title: 'Cita', body: 'visita Reforma 350 · viernes 4 pm', when: 'en 2 días' },
+      { kind: 'nota', title: 'Nota', body: 'crédito aprobado y presupuesto confirmados', when: 'hace 2 días' },
+      { kind: 'sys', title: 'Cambió a etapa Negociación', when: 'hace 3 días' },
+      { kind: 'sys', title: 'Visita registrada · Depto Reforma', when: 'hace 5 días' },
+    ],
   },
 };
 
