@@ -18,6 +18,10 @@ import {
   PremiumCard, Ficha360, tempMeta, PRIORITY_RGB,
   ETAPA, ETAPA_ORDER, etapaMeta,
 } from '../../components/asesor/design';
+// Modo demo (?demo=1) · datos hardcodeados espejo del mockup para EVALUAR el diseño.
+import {
+  DEMO_LEADS, DEMO_BUSQ, DEMO_ACTION, DEMO_META, DEMO_COL, DEMO_FOCO, DEMO_PERFIL, demoLeadById,
+} from './demoData';
 
 // Flag de rollout · V2 = rediseño Leads (Sistema de Diseño asesor). OFF por
 // defecto (incluso sin la env var); ON en .env.local mientras se valida.
@@ -810,6 +814,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const { id } = useParams();
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const demoMode = searchParams.get('demo') === '1';
   const [list, setList] = useState([]);
   const [sortBy, setSortBy] = useState('score');
   const [loading, setLoading] = useState(true);
@@ -833,6 +838,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const [actionByLead, setActionByLead] = useState({});
 
   const load = async () => {
+    if (demoMode) { setList(DEMO_LEADS); setLoading(false); return; }
     setLoading(true);
     try {
       let items;
@@ -847,32 +853,45 @@ function AsesorContactosV2({ user, onLogout }) {
     } finally { setLoading(false); }
   };
 
-  // Sincroniza el chip activo en la URL (?smart_list=).
+  // Sincroniza el chip activo en la URL (?smart_list=) · preserva ?demo=1.
   useEffect(() => {
-    setSearchParams(smartList ? { smart_list: smartList } : {}, { replace: true });
-  }, [smartList]); // eslint-disable-line
+    const next = {};
+    if (demoMode) next.demo = '1';
+    if (smartList) next.smart_list = smartList;
+    setSearchParams(next, { replace: true });
+  }, [smartList, demoMode]); // eslint-disable-line
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [sortBy, smartList]);
 
   useEffect(() => {
-    if (id) api.getContacto(id).then(setSelected).catch(() => {});
-    else setSelected(null);
-  }, [id]);
+    if (!id) { setSelected(null); return; }
+    if (demoMode) { setSelected(demoLeadById(id)); return; }
+    api.getContacto(id).then(setSelected).catch(() => {});
+  }, [id, demoMode]);
 
   useEffect(() => {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs).catch(() => {});
   }, []);
 
-  // Chips de filtro: presets + counts reales (FAIL-OPEN).
+  // Chips de filtro: presets + counts reales (FAIL-OPEN). En demo, counts del mockup.
   useEffect(() => {
+    if (demoMode) {
+      setCounts({ hot_leads: 3, sin_contactar_48h: 5, sin_actividad_14d: 8, visita_pendiente: 2, en_negociacion: 4 });
+      setTotalContactos(14);
+    }
     getSmartListPresets().then((r) => setPresets(r?.presets || [])).catch(() => setPresets([]));
-    getSmartListCounts().then((r) => setCounts(r?.counts || {})).catch(() => setCounts({}));
-  }, []);
+    if (!demoMode) getSmartListCounts().then((r) => setCounts(r?.counts || {})).catch(() => setCounts({}));
+  }, [demoMode]);
 
   // Foco de hoy + total de leads + próxima acción por lead (todo del dashboard · FAIL-OPEN).
   // DEDUPE: el coach repite "Tip…"; tomamos las 3 acciones DISTINTAS de mayor prioridad.
   useEffect(() => {
+    if (demoMode) {
+      setFoco(DEMO_FOCO);
+      setActionByLead(DEMO_ACTION);
+      return;
+    }
     api.getDashboard()
       .then((d) => {
         const q = d?.action_queue || [];
@@ -893,10 +912,11 @@ function AsesorContactosV2({ user, onLogout }) {
         if (d?.counts?.contactos != null) setTotalContactos(d.counts.contactos);
       })
       .catch(() => { setFoco([]); setActionByLead({}); });
-  }, []);
+  }, [demoMode]);
 
   // Mapa contacto_id → búsquedas (zona/precio/Nprops reales de la card · 1 sola llamada).
   useEffect(() => {
+    if (demoMode) { setBusqByContact(DEMO_BUSQ); return; }
     api.listBusquedas()
       .then((all) => {
         const m = {};
@@ -907,13 +927,16 @@ function AsesorContactosV2({ user, onLogout }) {
         setBusqByContact(m);
       })
       .catch(() => setBusqByContact({}));
-  }, []);
+  }, [demoMode]);
 
+  const qs = demoMode ? '?demo=1' : '';
   const openContact = (c) => {
+    if (!c) return;
     if (c._smart_list_lead) {
       setToast({ kind: 'info', text: 'Este es un lead del pipeline · ábrelo desde el Kanban' });
       return;
     }
+    if (demoMode) { nav(`/asesor/contactos/${c.id}${qs}`); return; }
     api.trackRecent({
       entity_type: 'lead', entity_id: c.id,
       label: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Lead',
@@ -921,7 +944,7 @@ function AsesorContactosV2({ user, onLogout }) {
     }).catch(() => {});
     nav(`/asesor/contactos/${c.id}`);
   };
-  const closeDetail = () => nav('/asesor/contactos');
+  const closeDetail = () => nav(`/asesor/contactos${qs}`);
 
   const display = useMemo(() => {
     const arr = list.filter((c) => !c.archived);
@@ -983,6 +1006,7 @@ function AsesorContactosV2({ user, onLogout }) {
       c={c}
       busquedas={busqByContact[c.id]}
       nextAction={actionByLead[c.id]}
+      metaOverride={demoMode ? DEMO_META[c.id] : undefined}
       onPin={() => togglePin(c)}
       onOpen={() => openContact(c)}
       draggable={!!draggable}
@@ -1030,15 +1054,19 @@ function AsesorContactosV2({ user, onLogout }) {
               background: 'linear-gradient(180deg, rgba(var(--theme-rgb),0.10), transparent 90%)',
               border: '1px solid var(--border)', borderRadius: 16, padding: 16,
             }} className="asr-foco-grid">
-              {foco.map((a) => (
-                <FocoCardV2
-                  key={a.id}
-                  action={a}
-                  lead={list.find((x) => x.id === a.lead_id)}
-                  onCTA={focoCTA}
-                  style={{ flex: '1 1 280px', maxWidth: foco.length === 1 ? 460 : 'none' }}
-                />
-              ))}
+              {demoMode
+                ? foco.map((f) => (
+                    <FocoDemoCard key={f.id} f={f} onOpen={() => openContact(demoLeadById(f.lead_id))} />
+                  ))
+                : foco.map((a) => (
+                    <FocoCardV2
+                      key={a.id}
+                      action={a}
+                      lead={list.find((x) => x.id === a.lead_id)}
+                      onCTA={focoCTA}
+                      style={{ flex: '1 1 280px', maxWidth: foco.length === 1 ? 460 : 'none' }}
+                    />
+                  ))}
             </div>
           </div>
         )}
@@ -1053,10 +1081,13 @@ function AsesorContactosV2({ user, onLogout }) {
               {ETAPA_ORDER.map((ek) => {
                 const meta = ETAPA[ek];
                 const col = display.filter((c) => (c.etapa || 'nuevo') === ek);
-                // Intel de columna (solo dato REAL · sin inventar): "Nuevo" muestra los
-                // que entraron hoy; "Cerrado" la suma de comisión si la traen los leads.
+                // Intel + conteo de columna. En demo, los del mockup; en real, solo dato
+                // verdadero ("N entraron hoy" en Nuevo).
+                const dcol = demoMode ? DEMO_COL[ek] : null;
                 const nuevosHoy = ek === 'nuevo' ? col.filter((c) => isToday(c.created_at)).length : 0;
-                const intel = nuevosHoy > 0 ? (nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`) : null;
+                const intel = dcol ? dcol.intel
+                  : nuevosHoy > 0 ? (nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`) : null;
+                const headCount = dcol ? dcol.count : col.length;
                 return (
                   <div key={ek} data-testid={`col-${ek}`}
                     className={`asr-kanban-col${dragOverCol === ek ? ' asr-kanban-col--over' : ''}`}
@@ -1067,15 +1098,15 @@ function AsesorContactosV2({ user, onLogout }) {
                     <div style={{ marginBottom: 12, padding: '0 2px 11px', borderBottom: '2px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{meta.label}</span>
-                        <span className="asr-num" style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)' }}>{col.length}</span>
+                        <span className="asr-num" style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)' }}>{headCount}</span>
                       </div>
                       {intel && (
-                        <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>{intel}</div>
+                        <div style={{ fontSize: 12, color: dcol?.accent ? 'var(--theme-2)' : 'var(--cream-3)', marginTop: 4, fontWeight: dcol?.accent ? 600 : 400 }}>{intel}</div>
                       )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {col.length === 0
-                        ? <div className="asr-empty-col">Sin leads en esta etapa</div>
+                        ? <div className="asr-empty-col">{dcol?.empty || 'Sin leads en esta etapa'}</div>
                         : col.map((c) => renderCard(c, { draggable: true }))}
                     </div>
                   </div>
@@ -1096,6 +1127,7 @@ function AsesorContactosV2({ user, onLogout }) {
           open={!!selected}
           onClose={closeDetail}
           contact={selected}
+          demo={demoMode && selected ? DEMO_PERFIL[selected.id] : undefined}
           onOpenArg={() => setShowArg(true)}
           onAgendar={() => nav('/asesor/citas')}
           onStageChange={handleEtapaChange}
@@ -1115,7 +1147,7 @@ function AsesorContactosV2({ user, onLogout }) {
 // Card de lead premium · idéntica al mockup (.lead): avatar térmico, nombre+fuente,
 // scorerow (Score + temp + número), barra, zona·precio, próxima acción, N propiedades +
 // antigüedad, WhatsApp + Abrir. Donde no hay dato real → "—"/oculto (nunca card vacía).
-function LeadCardV2({ c, busquedas, nextAction, onPin, onOpen, draggable, isDragging, onDragStart, onDragEnd, t }) {
+function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, draggable, isDragging, onDragStart, onDragEnd, t }) {
   const meta = tempMeta(c.temperatura);
   const score = c.buyer_score?.value;
   const bq = (busquedas && busquedas[0]) || null;
@@ -1183,10 +1215,16 @@ function LeadCardV2({ c, busquedas, nextAction, onPin, onOpen, draggable, isDrag
         </div>
       )}
 
-      {/* propiedades + antigüedad */}
+      {/* propiedades + antigüedad (metaOverride = texto exacto del mockup en demo) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, fontSize: 12 }}>
-        <span style={{ color: 'var(--cream-2)' }}>{nProps > 0 ? `${nProps} ${nProps === 1 ? 'propiedad' : 'propiedades'}` : 'Sin propiedades aún'}</span>
-        {aging && <span style={{ color: 'var(--cream-3)' }}>{aging}</span>}
+        <span style={{ color: 'var(--cream-2)' }}>
+          {metaOverride ? metaOverride.props : (nProps > 0 ? `${nProps} ${nProps === 1 ? 'propiedad' : 'propiedades'}` : 'Sin propiedades aún')}
+        </span>
+        {(metaOverride ? metaOverride.aging : aging) && (
+          <span style={{ color: metaOverride?.agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: metaOverride?.agingWarn ? 600 : 400 }}>
+            {metaOverride ? metaOverride.aging : aging}
+          </span>
+        )}
       </div>
 
       {/* WhatsApp + Abrir */}
@@ -1200,6 +1238,30 @@ function LeadCardV2({ c, busquedas, nextAction, onPin, onOpen, draggable, isDrag
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--cream-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           Abrir <ArrowRight size={12} />
         </span>
+      </div>
+    </PremiumCard>
+  );
+}
+
+// Card de "Foco de hoy" en modo DEMO · espejo EXACTO del mockup (.fcard):
+// dot por tono + quién + tag + frase bold + razón + 2 botones.
+const FOCO_TONE = { hot: 'var(--hot)', warm: 'var(--warm)', ok: 'var(--ok)' };
+function FocoDemoCard({ f, onOpen }) {
+  return (
+    <PremiumCard hover data-testid={`asr-foco-card-${f.id}`} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', flex: '1 1 280px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: FOCO_TONE[f.tone] || 'var(--ok)', flexShrink: 0 }} />
+        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.who}</span>
+        <span className="asr-foco__tag">{f.tag}</span>
+      </div>
+      <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
+        <b className="asr-foco__bold">{f.bold}</b> {f.body}
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
+        {f.actions.includes('wa') && <button className="asr-mini asr-mini--go"><MessageCircle size={13} /> WhatsApp</button>}
+        {f.actions.includes('perfil') && <button className="asr-mini" onClick={onOpen}><Eye size={13} /> Ver perfil</button>}
+        {f.actions.includes('cita') && <button className="asr-mini asr-mini--go">Ver cita</button>}
+        {f.actions.includes('comparativo') && <button className="asr-mini">Comparativo</button>}
       </div>
     </PremiumCard>
   );

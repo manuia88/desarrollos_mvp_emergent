@@ -82,7 +82,7 @@ const TABS = [
   { key: 'act', label: 'Actividad' },
 ];
 
-export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar, onStageChange, onToast }) {
+export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar, onStageChange, onToast, demo }) {
   const [tab, setTab] = useState('resumen');
   const [prob, setProb] = useState(null);
   const [tareas, setTareas] = useState([]);
@@ -110,21 +110,23 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   }, [open, onClose]);
 
   // Al abrir un lead: reset tab + carga lo del Resumen (prob, tareas, búsquedas).
+  // En modo DEMO no se llama a la API — todo viene del objeto `demo` hardcodeado.
   useEffect(() => {
     if (!open || !cid) return;
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
     setOverview(null); setConvos(null);
+    if (demo) return;
     api.getCloseProbability(cid).then(setProb).catch(() => setProb(null));
     api.listTareas({ contacto_id: cid }).then((t) => setTareas(t || [])).catch(() => setTareas([]));
     api.listBusquedas()
       .then((all) => setBusquedas((all || []).filter((b) => b.contacto_id === cid)))
       .catch(() => setBusquedas([]));
-  }, [open, cid]);
+  }, [open, cid, demo]);
 
   // Lazy-load por tab.
   useEffect(() => {
-    if (!open || !cid) return;
+    if (!open || !cid || demo) return;
     if (tab === 'act' && overview === null && !actLoading) {
       setActLoading(true);
       api.getContactoOverview(cid)
@@ -156,14 +158,15 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   const digits = phone.replace(/\D/g, '');
   const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (c.first_name || '') + ', ')}` : null;
 
-  // close_probability devuelve prob en 0-100 (no 0-1).
-  const probPct = prob && prob.prob != null
-    ? Math.max(0, Math.min(100, Math.round(Number(prob.prob))))
-    : null;
+  // close_probability devuelve prob en 0-100 (no 0-1). En demo viene de `demo.ready`.
+  const probPct = demo ? demo.ready.pct
+    : (prob && prob.prob != null ? Math.max(0, Math.min(100, Math.round(Number(prob.prob)))) : null);
   const probReasons = prob?.factors || prob?.reasons || prob?.drivers || [];
   // Líneas legibles (sin vacíos) + frase de cierre según el %.
-  const readyLines = (Array.isArray(probReasons) ? probReasons.map(factorText) : []).filter(Boolean).slice(0, 3);
-  const readyCta = probPct == null ? ''
+  const readyLines = demo ? [demo.ready.why]
+    : (Array.isArray(probReasons) ? probReasons.map(factorText) : []).filter(Boolean).slice(0, 3);
+  const readyCta = demo ? demo.ready.cta
+    : probPct == null ? ''
     : probPct >= 70 ? 'Vale la pena darle seguimiento hoy.'
     : probPct >= 45 ? 'Buen momento para nutrirlo y avanzar.'
     : 'Aún frío: nútrelo antes de empujar.';
@@ -206,13 +209,19 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
     finally { setNoteBusy(false); }
   };
 
-  // Criterios "qué busca" derivados de la primera búsqueda (datos reales).
-  const criterios = firstBusq ? [
+  // Criterios "qué busca" · demo o derivados de la primera búsqueda (datos reales).
+  const criterios = demo ? demo.criterios : (firstBusq ? [
     { l: 'Presupuesto', v: firstBusq.precio_max ? `Hasta ${fmtMXN(firstBusq.precio_max)}` : (firstBusq.precio_min ? `Desde ${fmtMXN(firstBusq.precio_min)}` : '—') },
     { l: 'Zona', v: (firstBusq.colonias || []).join(', ') || '—' },
     { l: 'Recámaras', v: firstBusq.recamaras_min ? `${firstBusq.recamaras_min}+` : '—' },
     { l: 'Urgencia', v: firstBusq.urgencia || 'media' },
-  ] : [];
+  ] : []);
+  // Pendientes · demo o tareas reales.
+  const pendientes = demo ? demo.pendientes : tareas.map((t) => ({
+    kind: 'task', title: t.titulo, id: t.id,
+    sub: `Tarea${t.due_at ? ` · ${new Date(t.due_at).toLocaleDateString('es-MX')}` : ''}${t.prioridad ? ` · ${t.prioridad}` : ''}`,
+    cta: 'Completar', tid: t.id,
+  }));
 
   return (
     <div className="asr-modal-scrim" role="presentation" onClick={onClose} style={{ zIndex: Z.DROPDOWN }}>
@@ -242,6 +251,9 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                 <TemperaturePill temp={c.temperatura} size="sm" />
                 <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)' }}>· {etapaMeta(etapaActual).label}</span>
                 {c.tipo && <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)', textTransform: 'capitalize' }}>· {c.tipo}</span>}
+                {demo?.assignedToYou && (
+                  <span className="asr-assignee">· <span className="asr-assignee__av">TÚ</span> Asignada a ti</span>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -275,10 +287,31 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
             ))}
           </div>
 
+          {/* Brief IA (demo · cuando esté el motor, se alimenta de la API) */}
+          {demo?.brief && (
+            <div className="asr-brief">
+              <div className="asr-brief__i">IA</div>
+              <div className="asr-brief__t">
+                <b>{demo.brief.strong}</b>{demo.brief.rest} <span className="asr-falta">{demo.brief.falta}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Co-piloto contextual */}
+          {demo?.copilot && (
+            <div className="asr-copilot">
+              <div className="asr-copilot__i">IA</div>
+              <input className="asr-copilot__in" placeholder={`Pregúntale a la IA sobre ${c.first_name}…`} readOnly />
+              {demo.copilot.map((cp) => <button key={cp} className="asr-cpchip">{cp}</button>)}
+            </div>
+          )}
+
           {/* Tab bar */}
           <div className="asr-tabbar" role="tablist">
             {TABS.map((tb) => {
-              const count = tb.key === 'props' ? busquedas.length
+              const count = demo
+                ? (tb.key === 'conv' ? demo.convCount : tb.key === 'act' ? demo.actCount : null)
+                : tb.key === 'props' ? busquedas.length
                 : tb.key === 'conv' ? (Array.isArray(convos) ? convos.length : null)
                 : tb.key === 'act' ? (overview?.count ?? null)
                 : null;
@@ -301,30 +334,69 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
           {/* ── Pane: Resumen ── */}
           {tab === 'resumen' && (
             <div className="asr-pane" data-testid="asr-ficha360-pane-resumen">
-              {/* Datos del cliente */}
+              {/* Datos del cliente (+ enriquecimiento de redes en demo) */}
               <div style={{ marginBottom: 24 }}>
                 <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--cold)' }} />Datos del cliente</div>
-                <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid var(--cold)', borderRadius: 12, background: 'var(--surface)', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {(c.phones || []).map((p) => (
-                    <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--cream)', padding: '6px 0' }}>
-                      <PhoneIcon size={15} color="var(--cream-3)" /> {p}
+                {demo?.redes ? (
+                  <div className="asr-datos">
+                    <div className="asr-datos__col">
+                      <div className="asr-drow"><MessageCircle size={15} color="var(--cream-3)" /> {demo.datos.phone}</div>
+                      <div className="asr-drow"><Mail size={15} color="var(--cream-3)" /> {demo.datos.email}</div>
+                      <div className="asr-drow"><Globe size={15} color="var(--cream-3)" /> {demo.datos.source}</div>
+                      {demo.datos.consent && (
+                        <div className="asr-consent"><Check size={13} /> Consentimiento para mensajear · registrado</div>
+                      )}
                     </div>
-                  ))}
-                  {(c.emails || []).map((e) => (
-                    <div key={e} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--cream)', padding: '6px 0' }}>
-                      <Mail size={15} color="var(--cream-3)" /> {e}
+                    <div className="asr-datos__col asr-datos__col--enrich">
+                      <div className="asr-enrich-h">Redes sociales<span className="asr-enrich-h__src"><Check size={13} /> verificadas</span></div>
+                      {demo.redes.map((r) => (
+                        <div className="asr-erow" key={r.text}>
+                          <span className="asr-erow__dot" style={{ background: r.color }} />
+                          {r.text}
+                          <Check className="asr-erow__chk" size={14} />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--cream)', padding: '6px 0' }}>
-                    <Globe size={15} color="var(--cream-3)" />
-                    {c.fuente || c.source ? `Llegó por ${c.fuente || c.source}` : 'Alta manual'}
-                    {c.created_at ? ` · ${new Date(c.created_at).toLocaleDateString('es-MX')}` : ''}
                   </div>
-                  {(c.tags || []).length > 0 && (
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', paddingTop: 4 }}>{c.tags.join(' · ')}</div>
-                  )}
-                </div>
+                ) : (
+                  <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid var(--cold)', borderRadius: 12, background: 'var(--surface)', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {(c.phones || []).map((p) => (
+                      <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--cream)', padding: '6px 0' }}>
+                        <PhoneIcon size={15} color="var(--cream-3)" /> {p}
+                      </div>
+                    ))}
+                    {(c.emails || []).map((e) => (
+                      <div key={e} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--cream)', padding: '6px 0' }}>
+                        <Mail size={15} color="var(--cream-3)" /> {e}
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--cream)', padding: '6px 0' }}>
+                      <Globe size={15} color="var(--cream-3)" />
+                      {c.fuente || c.source ? `Llegó por ${c.fuente || c.source}` : 'Alta manual'}
+                      {c.created_at ? ` · ${new Date(c.created_at).toLocaleDateString('es-MX')}` : ''}
+                    </div>
+                    {(c.tags || []).length > 0 && (
+                      <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-3)', paddingTop: 4 }}>{c.tags.join(' · ')}</div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Cómo tratarla · DISC (demo) */}
+              {demo?.disc && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h"><span className="asr-sdot" style={{ background: '#7C4DFF' }} />Cómo tratarla <span className="asr-muted">· estilo de comunicación</span></div>
+                  <div className="asr-disc">
+                    <div className="asr-disc__type">
+                      <span className="asr-disc__big">{demo.disc.letter}</span>
+                      <div><b className="asr-disc__name">{demo.disc.name}</b><span className="asr-disc__sub">{demo.disc.sub}</span></div>
+                    </div>
+                    <div className="asr-disc__tips">
+                      {demo.disc.tips.map((tp) => <div key={tp}>· {tp}</div>)}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Qué tan listo está · anillo % cierre */}
               <div style={{ marginBottom: 24 }}>
@@ -344,6 +416,22 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                 </div>
               </div>
 
+              {/* Señales IA (demo) */}
+              {demo?.signals && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--ok)' }} />Señales IA</div>
+                  <div className="asr-signals">
+                    {demo.signals.map((s) => (
+                      <div className={`asr-signal${s.warn ? ' asr-signal--warn' : ''}`} key={s.label}>
+                        <div className="asr-signal__l">{s.label}</div>
+                        <div className="asr-signal__v">{s.value}</div>
+                        <div className="asr-signal__s">{s.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Qué busca el cliente (criterios de su búsqueda) */}
               {criterios.length > 0 && (
                 <div style={{ marginBottom: 24 }}>
@@ -359,26 +447,56 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                 </div>
               )}
 
-              {/* Pendientes (tareas del contacto · completar) · se OCULTA si no hay */}
-              {tareas.length > 0 && (
-                <div>
-                  <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--warm)' }} />Pendientes <span className="asr-muted">· tareas en proceso</span></div>
+              {/* Pendientes (demo o tareas reales · completar) · se OCULTA si no hay */}
+              {pendientes.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--warm)' }} />Pendientes <span className="asr-muted">· tareas y citas en proceso</span></div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {tareas.map((t) => (
-                      <div className="asr-pend" key={t.id} data-testid={`asr-pend-${t.id}`}>
-                        <span className="asr-pend__dot" style={{ background: 'var(--warm)' }} />
+                    {pendientes.map((p, i) => (
+                      <div className="asr-pend" key={p.id || p.title || i} data-testid={`asr-pend-${p.tid || i}`}
+                        style={{ borderLeft: `3px solid ${p.kind === 'cita' ? 'var(--cold)' : 'var(--warm)'}` }}>
+                        <span className="asr-pend__dot" style={{ background: p.kind === 'cita' ? 'var(--cold)' : 'var(--warm)' }} />
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <b style={{ fontSize: 14.5, color: 'var(--cream)', fontWeight: 700 }}>{t.titulo}</b>
-                          <span style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>
-                            Tarea{t.due_at ? ` · ${new Date(t.due_at).toLocaleDateString('es-MX')}` : ''}{t.prioridad ? ` · ${t.prioridad}` : ''}
-                          </span>
+                          <b style={{ fontSize: 14.5, color: 'var(--cream)', fontWeight: 700 }}>{p.title}</b>
+                          <span style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 2 }}>{p.sub}</span>
                         </div>
-                        <button className="asr-donebtn" data-testid={`asr-pend-done-${t.id}`} onClick={() => completeTarea(t.id)}>
-                          <Check size={13} /> Completar
+                        <button className="asr-donebtn" data-testid={`asr-pend-done-${p.tid || i}`}
+                          onClick={() => { if (p.tid) completeTarea(p.tid); }}>
+                          {p.cta === 'Ver' ? null : <Check size={13} />} {p.cta || 'Completar'}
                         </button>
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Automatización del lead (demo · toggle) */}
+              {demo?.auto && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--ok)' }} />Automatización del lead</div>
+                  <div className="asr-autorow">
+                    <div className="asr-autorow__i"><Sparkles size={16} /></div>
+                    <div className="asr-autorow__t"><b>{demo.auto.title}</b><span>{demo.auto.sub}</span></div>
+                    <div className="asr-switch" aria-hidden="true" />
+                  </div>
+                </div>
+              )}
+
+              {/* Avance al cierre + oferta sugerida (demo) */}
+              {demo?.avance && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h">Avance al cierre <span className="asr-muted">· en negociación</span></div>
+                  <div className="asr-criterios">
+                    {demo.avance.map((a) => (
+                      <div className="asr-cr" key={a.l}><div className="asr-crl">{a.l}</div><div className="asr-crv">{a.v}</div></div>
+                    ))}
+                  </div>
+                  {demo.oferta && (
+                    <div className="asr-offsugg">
+                      <Sparkles size={15} />
+                      <span><b>{demo.oferta.split(' · ')[0]}</b> · {demo.oferta.split(' · ').slice(1).join(' · ')}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
