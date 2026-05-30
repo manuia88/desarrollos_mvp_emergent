@@ -138,6 +138,16 @@ export default function AsesorCitas({ user, onLogout }) {
   const [showModal, setShowModal] = useState(false);
   const [selectedApt, setSelectedApt] = useState(null);
   const [filters, setFilters] = useState({ status: '', from: '', to: '' });
+  // B2 fix · antes projects=[] hardcodeado → el select de proyecto salía vacío y nunca dejaba agendar.
+  const [projects, setProjects] = useState([]);
+
+  // Desarrollos reales para el select del modal de "Nueva cita".
+  useEffect(() => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => setProjects(Array.isArray(d) ? d : (d?.items || [])))
+      .catch(() => setProjects([]));
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -268,7 +278,7 @@ export default function AsesorCitas({ user, onLogout }) {
         {showModal && (
           <NewCitaModal
             user={user}
-            projects={[]}
+            projects={projects}
             onClose={() => setShowModal(false)}
             onSuccess={() => { setShowModal(false); load(); }}
           />
