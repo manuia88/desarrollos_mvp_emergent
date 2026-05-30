@@ -88,6 +88,14 @@ const TABS = [
 // Color por estatus del tablero de propiedades (demo · mockup).
 const DOTC = { cold: 'var(--cold)', warm: 'var(--warm)', ok: 'var(--ok)', hot: 'var(--hot)' };
 const TONEC = { muted: 'var(--cream-3)', ok: 'var(--ok)', hot: 'var(--hot)' };
+// B5.1 · columnas del tablero de propiedades real (mismas etiquetas/dots que el demo).
+const BOARD_STATUS = ['dispo', 'enviada', 'gusto', 'descartada'];
+const BOARD_META = {
+  dispo:      { label: 'Preguntando dispo.', dot: 'cold' },
+  enviada:    { label: 'Enviada al cliente', dot: 'warm' },
+  gusto:      { label: 'Le gustó / cita',    dot: 'ok' },
+  descartada: { label: 'Descartada',          dot: 'hot' },
+};
 
 export default function Ficha360({ open, onClose, contact, onOpenArg, onStageChange, onToast, demo, user }) {
   const [tab, setTab] = useState('resumen');
@@ -112,6 +120,9 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [convChan, setConvChan] = useState('all');   // filtro de canal de la bandeja
   const [showCita, setShowCita] = useState(false);      // B4 · modal de cita inline
   const [citaProjects, setCitaProjects] = useState([]); // desarrollos para el dropdown del modal
+  const [board, setBoard] = useState(null);             // B5.1 · tablero real {items, engagement}
+  const [boardLoading, setBoardLoading] = useState(false);
+  const [dragId, setDragId] = useState(null);           // id de la propiedad que se arrastra
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -131,7 +142,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     if (!open || !cid) return;
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
-    setOverview(null); setConvos(null); setIntel(null); setConvIntel(null);
+    setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null);
     if (demo) return;
     api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
     api.getCloseProbability(cid).then(setProb).catch(() => setProb(null));
@@ -159,6 +170,13 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
         .finally(() => setConvLoading(false));
       // Ánimo del cliente (sentiment real · client_insights) · FAIL-OPEN.
       api.getLeadInsights(cid).then(setConvIntel).catch(() => setConvIntel(null));
+    }
+    if (tab === 'props' && board === null && !boardLoading) {
+      setBoardLoading(true);
+      api.getLeadBoard(cid)
+        .then((b) => setBoard(b || { items: [], engagement: {} }))
+        .catch(() => setBoard({ items: [], engagement: {} }))
+        .finally(() => setBoardLoading(false));
     }
     if (tab === 'props' && busquedas.length > 0 && Object.keys(matches).length === 0 && !propsLoading) {
       setPropsLoading(true);
@@ -220,6 +238,39 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const openCita = () => {
     if (demo) { toast('success', 'La agenda usa datos reales · apaga el modo ejemplo'); return; }
     setShowCita(true);
+  };
+
+  // B5.1 · Arrastrar una propiedad a otra columna (cambia su estatus · optimista).
+  const moveBoard = async (id, status) => {
+    setDragId(null);
+    if (!id || !board) return;
+    const it = (board.items || []).find((x) => x.id === id);
+    if (!it || it.status === status) return;
+    setBoard((b) => ({ ...b, items: b.items.map((x) => (x.id === id ? { ...x, status } : x)) }));
+    try { await api.patchLeadBoardItem(id, { status }); }
+    catch (_) { toast('error', 'No se pudo mover'); api.getLeadBoard(cid).then(setBoard).catch(() => {}); }
+  };
+
+  // B5.1 · Agregar una coincidencia de búsqueda al tablero (columna 'dispo').
+  const addToBoard = async (m) => {
+    try {
+      const created = await api.addLeadBoardItem(cid, {
+        dev_id: m.dev_id, name: m.name || '', price: m.price_from || null,
+        colonia: m.colonia || '', addr: m.address || '', specs: m.specs || [], status: 'dispo',
+      });
+      setBoard((b) => {
+        const items = (b?.items || []).filter((x) => x.dev_id !== created.dev_id);
+        return { ...(b || { engagement: {} }), items: [created, ...items] };
+      });
+      toast('success', 'Agregada al tablero');
+    } catch (_) { toast('error', 'No se pudo agregar'); }
+  };
+
+  // B5.1 · Quitar una propiedad del tablero (optimista · revierte si falla).
+  const removeBoard = async (id) => {
+    setBoard((b) => ({ ...b, items: (b?.items || []).filter((x) => x.id !== id) }));
+    try { await api.deleteLeadBoardItem(id); }
+    catch (_) { toast('error', 'No se pudo quitar'); api.getLeadBoard(cid).then(setBoard).catch(() => {}); }
   };
 
   const completeTarea = async (tid) => {
@@ -662,48 +713,106 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                     </div>
                   )}
                 </>
-              ) : busquedas.length === 0 ? (
-                <div style={{ padding: '40px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13.5, border: '1px dashed var(--border-2)', borderRadius: 12 }}>
-                  Este lead aún no tiene una búsqueda con propiedades.
-                </div>
-              ) : propsLoading ? (
+              ) : boardLoading && board === null ? (
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando propiedades…</div>
               ) : (
-                busquedas.map((b) => {
-                  const ms = matches[b.id] || [];
-                  return (
-                    <div key={b.id} style={{ marginBottom: 24 }}>
-                      <div className="asr-sec-h">
-                        <Building2 size={14} color="var(--cream-3)" />
-                        {(b.colonias || []).join(', ') || 'Búsqueda'} <span className="asr-muted">· etapa {b.stage || 'pendiente'}</span>
+                <>
+                  {/* Engagement del link · real (se llena con los swipes del Tinder · B5.2) */}
+                  {board?.engagement?.views > 0 && (
+                    <div className="asr-engage">
+                      <span className="asr-engage__lv" />
+                      <div className="asr-engage__t"><b>Link de propiedades</b> · actividad del cliente</div>
+                      <div className="asr-engage__es">
+                        <span className="vw">{board.engagement.views} vistas</span>
+                        <span className="up"><ThumbsUp size={12} /> {board.engagement.up}</span>
+                        <span className="dn"><ThumbsDown size={12} /> {board.engagement.down}</span>
                       </div>
-                      {ms.length === 0 ? (
-                        <div style={{ padding: '16px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 12.5, border: '1px dashed var(--border-2)', borderRadius: 11 }}>
-                          Sin coincidencias para esta búsqueda todavía.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
-                          {ms.slice(0, 8).map((m) => (
-                            <div className="asr-prop" key={m.dev_id} data-testid={`asr-prop-${m.dev_id}`}>
-                              <div style={{ height: 56, background: 'var(--surface-2)', position: 'relative', borderBottom: '1px solid var(--border)' }}>
-                                <span style={{ position: 'absolute', left: 9, bottom: 6, fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--theme-2)' }} className="asr-num">
-                                  {m.price_from ? fmtMXN(m.price_from) : ''}
-                                </span>
-                              </div>
-                              <div style={{ padding: '9px 11px' }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{m.name}</div>
-                                <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>{m.colonia}</div>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 10.5, fontWeight: 700, color: 'var(--theme-2)' }} className="asr-num">
-                                  {m.score}% fit
-                                </div>
+                    </div>
+                  )}
+
+                  {/* Tablero por estatus · arrastra las tarjetas entre columnas */}
+                  <div className="asr-pk">
+                    {BOARD_STATUS.map((st) => {
+                      const meta = BOARD_META[st];
+                      const col = (board?.items || []).filter((it) => it.status === st);
+                      return (
+                        <div className="asr-pkcol" key={st} data-testid={`asr-board-col-${st}`}
+                          onDragOver={(e) => e.preventDefault()} onDrop={() => moveBoard(dragId, st)}>
+                          <div className="asr-pkh"><span className="pd" style={{ background: DOTC[meta.dot] }} />{meta.label}<span className="pc">{col.length}</span></div>
+                          {col.map((p) => (
+                            <div className="asr-pcard" key={p.id} draggable data-testid={`asr-board-card-${p.id}`}
+                              onDragStart={() => setDragId(p.id)} onDragEnd={() => setDragId(null)}
+                              style={{ position: 'relative', opacity: dragId === p.id ? 0.45 : (p.status === 'descartada' ? 0.6 : 1), cursor: 'grab' }}>
+                              <button onClick={(e) => { e.stopPropagation(); removeBoard(p.id); }} data-testid={`asr-board-remove-${p.id}`} title="Quitar del tablero"
+                                style={{ position: 'absolute', top: 3, right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 14, lineHeight: 1, padding: 2, zIndex: 1 }}>×</button>
+                              <div className="asr-pcard__ph"><span className="asr-pcard__pp">{p.price ? fmtMXN(p.price) : ''}</span></div>
+                              <div className="asr-pcard__pb">
+                                <div className="asr-pcard__pt">{p.name}</div>
+                                {p.addr && <div className="asr-pcard__paddr">{p.addr}</div>}
+                                {(p.specs || []).length > 0 && <div className="asr-pcard__specs">{p.specs.map((s) => <span key={s}>{s}</span>)}</div>}
+                                {(p.thumb || p.note) && (
+                                  <div className="asr-pcard__note">
+                                    {p.thumb === 'up' && <ThumbsUp size={11} />}{p.thumb === 'down' && <ThumbsDown size={11} />}{p.note}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
                         </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Fuente: coincidencias de las búsquedas del lead → agregar al tablero */}
+                  {busquedas.length > 0 && (
+                    <div style={{ marginTop: 18 }}>
+                      <div className="asr-sec-h" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                        <Building2 size={14} color="var(--cream-3)" /> Coincidencias <span className="asr-muted">· agrégalas al tablero</span>
+                      </div>
+                      {propsLoading && Object.keys(matches).length === 0 ? (
+                        <div style={{ padding: 18, textAlign: 'center', color: 'var(--cream-3)', fontSize: 12.5 }}>Buscando coincidencias…</div>
+                      ) : (
+                        busquedas.map((b) => {
+                          const ms = matches[b.id] || [];
+                          if (!ms.length) return null;
+                          return (
+                            <div key={b.id} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12, marginBottom: 12 }}>
+                              {ms.slice(0, 8).map((m) => {
+                                const already = (board?.items || []).some((it) => it.dev_id === m.dev_id);
+                                return (
+                                  <div className="asr-prop" key={m.dev_id} data-testid={`asr-prop-${m.dev_id}`}>
+                                    <div style={{ height: 56, background: 'var(--surface-2)', position: 'relative', borderBottom: '1px solid var(--border)' }}>
+                                      <span style={{ position: 'absolute', left: 9, bottom: 6, fontFamily: 'Outfit', fontWeight: 700, fontSize: 12, color: 'var(--theme-2)' }} className="asr-num">
+                                        {m.price_from ? fmtMXN(m.price_from) : ''}
+                                      </span>
+                                    </div>
+                                    <div style={{ padding: '9px 11px' }}>
+                                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--cream)' }}>{m.name}</div>
+                                      <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 2 }}>{m.colonia}</div>
+                                      <button onClick={() => addToBoard(m)} disabled={already} data-testid={`asr-board-add-${m.dev_id}`}
+                                        style={{ marginTop: 8, width: '100%', padding: '6px 0', borderRadius: 8, border: '1px solid var(--border)',
+                                          cursor: already ? 'default' : 'pointer', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 700,
+                                          background: already ? 'transparent' : 'rgba(var(--theme-rgb),0.10)', color: already ? 'var(--cream-3)' : 'var(--theme-2)' }}>
+                                        {already ? '✓ En tablero' : '+ Tablero'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
-                  );
-                })
+                  )}
+
+                  {/* Vacío total: ni tablero ni búsquedas */}
+                  {(board?.items || []).length === 0 && busquedas.length === 0 && (
+                    <div style={{ padding: '34px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13.5, border: '1px dashed var(--border-2)', borderRadius: 12, marginTop: 14 }}>
+                      Este lead aún no tiene propiedades ni búsquedas. Cuando tenga una búsqueda, sus coincidencias aparecerán aquí para armar el tablero.
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

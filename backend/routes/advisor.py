@@ -34,6 +34,11 @@ PRIORITY       = ["alta", "media", "baja"]
 # (frío/tibio/caliente) que es la señal de calor del lead, no su posición en el embudo.
 ETAPA_CONTACTO = ["nuevo", "contactado", "visita", "negociacion", "cerrado"]
 
+# B5.1 · Estatus de cada propiedad DENTRO del tablero de un lead (Tab Propiedades del
+# perfil-hub). Es el destino donde aterrizan los swipes del link Tinder (B5.2):
+# 👍 del cliente → "gusto", 👎 → "descartada". El asesor también mueve arrastrando.
+BOARD_STATUS = ["dispo", "enviada", "gusto", "descartada"]
+
 
 # ─── Pydantic models ──────────────────────────────────────────────────────────
 class ContactoIn(BaseModel):
@@ -135,6 +140,21 @@ class AsesorProfilePatch(BaseModel):
     languages: Optional[List[str]] = None
     bio: Optional[str] = None
     phone: Optional[str] = None
+
+# B5.1 · Tablero de propiedades por lead
+class BoardItemIn(BaseModel):
+    dev_id: str
+    name: Optional[str] = ""
+    price: Optional[float] = None
+    colonia: Optional[str] = ""
+    addr: Optional[str] = ""
+    specs: List[str] = []
+    status: str = "dispo"
+    note: Optional[str] = ""
+
+class BoardItemPatch(BaseModel):
+    status: Optional[str] = None
+    note: Optional[str] = None
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -249,6 +269,8 @@ async def ensure_command_center_indexes(db):
         await db.command_center_actions.create_index([("user_id", 1), ("status", 1), ("source_agent", 1)])
         # TTL: documentos con expires_at se borran automáticamente al vencer.
         await db.command_center_actions.create_index("expires_at", expireAfterSeconds=0)
+        # B5.1 · Tablero de propiedades por lead: lectura por dueño + lead.
+        await db.asesor_lead_properties.create_index([("owner_id", 1), ("contacto_id", 1), ("updated_at", -1)])
     except Exception as _e:
         import logging
         logging.getLogger("dmx.advisor").warning(f"[command_center] ensure_indexes: {_e}")
@@ -1091,6 +1113,92 @@ async def add_timeline(cid: str, payload: TimelineIn, request: Request):
     await db.asesor_contacto_timeline.insert_one(dict(entry))
     entry.pop("_id", None)
     return entry
+
+
+# ─── B5.1 · Tablero de propiedades por lead (Tab Propiedades del perfil-hub) ─────
+# Estatus de cada propiedad para un lead, en columnas arrastrables. Aislamiento por
+# owner_id. Es la BASE donde el link Tinder (B5.2) escribirá los swipes del cliente
+# (👍 → "gusto", 👎 → "descartada"). El asesor mueve arrastrando o desde las coincidencias.
+
+@router.get("/contactos/{cid}/board")
+async def get_lead_board(cid: str, request: Request):
+    """Tablero de propiedades del lead: items con estatus + resumen de engagement.
+    Aislamiento owner_id. Vacío (sin error) si el lead aún no tiene propiedades."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    if not await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(404, "No encontrado")
+    items = await db.asesor_lead_properties.find(
+        {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}
+    ).sort("updated_at", -1).to_list(200)
+    up = sum(1 for it in items if it.get("thumb") == "up")
+    down = sum(1 for it in items if it.get("thumb") == "down")
+    views = sum(int(it.get("views") or 0) for it in items)
+    return {"items": items, "statuses": BOARD_STATUS,
+            "engagement": {"views": views, "up": up, "down": down}}
+
+
+@router.post("/contactos/{cid}/board")
+async def add_lead_board_item(cid: str, payload: BoardItemIn, request: Request):
+    """Agrega una propiedad al tablero del lead (default columna 'dispo'). Si la
+    propiedad (dev_id) ya está en el tablero del lead, solo actualiza su estatus."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    if not await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(404, "No encontrado")
+    if payload.status not in BOARD_STATUS:
+        raise HTTPException(400, "status inválido")
+    existing = await db.asesor_lead_properties.find_one(
+        {"owner_id": user.user_id, "contacto_id": cid, "dev_id": payload.dev_id}, {"_id": 0})
+    if existing:
+        await db.asesor_lead_properties.update_one(
+            {"id": existing["id"]}, {"$set": {"status": payload.status, "updated_at": _now()}})
+        existing.update({"status": payload.status, "updated_at": _now()})
+        return existing
+    item = {
+        "id": _uid("lprop"),
+        "owner_id": user.user_id,
+        "contacto_id": cid,
+        "created_at": _now(),
+        "updated_at": _now(),
+        "thumb": None,
+        "views": 0,
+        "source": "manual",
+        **payload.model_dump(),
+    }
+    await db.asesor_lead_properties.insert_one(dict(item))
+    item.pop("_id", None)
+    return item
+
+
+@router.patch("/board/{item_id}")
+async def patch_lead_board_item(item_id: str, payload: BoardItemPatch, request: Request):
+    """Mueve la propiedad de columna (status) o edita la nota. Es el endpoint del
+    arrastrar-y-soltar del tablero. Aislamiento owner_id."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    patch = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if "status" in patch and patch["status"] not in BOARD_STATUS:
+        raise HTTPException(400, "status inválido")
+    if not patch:
+        raise HTTPException(400, "Nada que actualizar")
+    patch["updated_at"] = _now()
+    res = await db.asesor_lead_properties.update_one(
+        {"id": item_id, "owner_id": user.user_id}, {"$set": patch})
+    if not res.matched_count:
+        raise HTTPException(404, "No encontrado")
+    return await db.asesor_lead_properties.find_one({"id": item_id}, {"_id": 0})
+
+
+@router.delete("/board/{item_id}")
+async def delete_lead_board_item(item_id: str, request: Request):
+    """Quita una propiedad del tablero del lead. Aislamiento owner_id."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    res = await db.asesor_lead_properties.delete_one({"id": item_id, "owner_id": user.user_id})
+    if not res.deleted_count:
+        raise HTTPException(404, "No encontrado")
+    return {"ok": True}
 
 
 # ─── Búsquedas (Kanban) ───────────────────────────────────────────────────────

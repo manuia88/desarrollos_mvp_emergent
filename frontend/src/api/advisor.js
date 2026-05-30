@@ -52,6 +52,12 @@ export const registerVisit = (id) => post(`/api/asesor/busquedas/${id}/visit`);
 export const registerOffer = (id) => post(`/api/asesor/busquedas/${id}/offer`);
 export const getMatches = (id) => j(`/api/asesor/busquedas/${id}/matches`);
 
+// B5.1 · Tablero de propiedades por lead (Tab Propiedades del perfil-hub)
+export const getLeadBoard = (cid) => j(`/api/asesor/contactos/${cid}/board`);
+export const addLeadBoardItem = (cid, b) => post(`/api/asesor/contactos/${cid}/board`, b);
+export const patchLeadBoardItem = (itemId, b) => patch(`/api/asesor/board/${itemId}`, b);
+export const deleteLeadBoardItem = (itemId) => del(`/api/asesor/board/${itemId}`);
+
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');
 export const createCaptacion = (b) => post('/api/asesor/captaciones', b);
