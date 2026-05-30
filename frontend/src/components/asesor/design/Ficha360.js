@@ -314,12 +314,21 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
             </div>
           )}
 
-          {/* Co-piloto contextual */}
-          {demo?.copilot && (
+          {/* Co-piloto contextual · en real, los chips abren el Plan venta IA (argumentario
+              RAG con Claude · motor real). En demo es vista (sin lead real en backend). */}
+          {(demo?.copilot || !demo) && (
             <div className="asr-copilot">
               <div className="asr-copilot__i">IA</div>
-              <input className="asr-copilot__in" placeholder={`Pregúntale a la IA sobre ${c.first_name}…`} readOnly />
-              {demo.copilot.map((cp) => <button key={cp} className="asr-cpchip">{cp}</button>)}
+              <input
+                className="asr-copilot__in"
+                placeholder={`Pregúntale a la IA sobre ${c.first_name || 'el lead'}…`}
+                readOnly={!!demo}
+                onKeyDown={(e) => { if (!demo && e.key === 'Enter' && onOpenArg) onOpenArg(); }}
+              />
+              {(demo?.copilot || ['Resumir', 'Redactar seguimiento', '¿Qué le ofrezco?']).map((cp) => (
+                <button key={cp} className="asr-cpchip" data-testid={`asr-copilot-${cp}`}
+                  onClick={() => { if (!demo && onOpenArg) onOpenArg(); }}>{cp}</button>
+              ))}
             </div>
           )}
 
