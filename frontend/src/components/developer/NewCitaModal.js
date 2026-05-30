@@ -59,10 +59,10 @@ const inputStyle = {
   outline: 'none', boxSizing: 'border-box',
 };
 
-export default function NewCitaModal({ user, prefilledProject, projects = [], onClose, onSuccess }) {
+export default function NewCitaModal({ user, prefilledProject, prefilledContact, projects = [], onClose, onSuccess }) {
   const [open, setOpen] = useState({ cliente: true, cita: false, presupuesto: false, asesor: false, consent: false });
   const [form, setForm] = useState({
-    nombre: '', celular: '+52', correo: '',
+    nombre: prefilledContact?.name || '', celular: prefilledContact?.phone || '+52', correo: prefilledContact?.email || '',
     project_id: prefilledProject?.id || '',
     fecha: '', hora: '', modalidad: 'presencial',
     presupuesto_min: '', presupuesto_max: '',

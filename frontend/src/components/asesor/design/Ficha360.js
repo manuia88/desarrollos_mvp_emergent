@@ -17,8 +17,9 @@
 // las columnas del kanban mueven `temperatura` (vía patchContacto). Cuando exista un
 // campo de etapa, se reemplaza aquí sin tocar backend.
 //
-// Props: open · onClose · contact (de getContacto) · onOpenArg() · onAgendar() ·
-//        onStageChange(temp) (avisa al kanban del cambio) · onToast(kind,text).
+// Props: open · onClose · contact (de getContacto) · user (para el modal de cita) ·
+//        onOpenArg() · onStageChange(temp) (avisa al kanban) · onToast(kind,text).
+//        B4: "Agendar" abre NewCitaModal inline (prellenado), ya no navega a /citas.
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Calendar, Sparkles, X, Phone as PhoneIcon, Mail, Globe, Check,
@@ -31,6 +32,7 @@ import { Z } from '../../../styles/zIndex';
 import TemperaturePill from './TemperaturePill';
 import ScoreRing from './ScoreRing';
 import { ETAPA, ETAPA_ORDER, etapaMeta } from './palette';
+import NewCitaModal from '../../developer/NewCitaModal';
 
 const initials = (c) =>
   `${(c?.first_name || '').charAt(0)}${(c?.last_name || '').charAt(0)}`.toUpperCase() || '·';
@@ -87,7 +89,7 @@ const TABS = [
 const DOTC = { cold: 'var(--cold)', warm: 'var(--warm)', ok: 'var(--ok)', hot: 'var(--hot)' };
 const TONEC = { muted: 'var(--cream-3)', ok: 'var(--ok)', hot: 'var(--hot)' };
 
-export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar, onStageChange, onToast, demo }) {
+export default function Ficha360({ open, onClose, contact, onOpenArg, onStageChange, onToast, demo, user }) {
   const [tab, setTab] = useState('resumen');
   const [prob, setProb] = useState(null);
   const [intel, setIntel] = useState(null);   // B2 · DISC/riesgo/brief reales (FAIL-OPEN)
@@ -108,6 +110,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDue, setTaskDue] = useState('');
   const [convChan, setConvChan] = useState('all');   // filtro de canal de la bandeja
+  const [showCita, setShowCita] = useState(false);      // B4 · modal de cita inline
+  const [citaProjects, setCitaProjects] = useState([]); // desarrollos para el dropdown del modal
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -166,6 +170,15 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
     }
   }, [tab, open, cid, busquedas]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // B4 · Carga los desarrollos (dropdown del modal de cita) la 1a vez que se abre.
+  useEffect(() => {
+    if (!showCita || citaProjects.length) return;
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => setCitaProjects(Array.isArray(d) ? d : (d?.items || [])))
+      .catch(() => setCitaProjects([]));
+  }, [showCita, citaProjects.length]);
+
   if (!open || !contact) return null;
 
   const c = contact;
@@ -201,6 +214,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
     } catch (_) {
       toast('error', 'No se pudo mover');
     } finally { setStageBusy(false); }
+  };
+
+  // B4 · Abre el modal de cita prellenado con el lead (sin salir del perfil).
+  const openCita = () => {
+    if (demo) { toast('success', 'La agenda usa datos reales · apaga el modo ejemplo'); return; }
+    setShowCita(true);
   };
 
   const completeTarea = async (tid) => {
@@ -327,7 +346,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                   <MessageCircle size={14} /> WhatsApp
                 </a>
               )}
-              <button onClick={onAgendar} data-testid="asr-ficha360-agendar" className="asr-hbtn">
+              <button onClick={openCita} data-testid="asr-ficha360-agendar" className="asr-hbtn">
                 <Calendar size={14} /> Agendar
               </button>
             </div>
@@ -803,7 +822,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
               <div className="asr-actbtns" style={{ display: 'flex', gap: 9, marginBottom: 18, flexWrap: 'wrap' }}>
                 <button className="asr-ctxbtn" data-testid="asr-act-nota" onClick={() => setActMode((m) => (m === 'nota' ? null : 'nota'))}><Pencil size={15} /> Nota</button>
                 <button className="asr-ctxbtn" data-testid="asr-act-tarea" onClick={() => setActMode((m) => (m === 'tarea' ? null : 'tarea'))}><ListChecks size={15} /> Tarea</button>
-                <button className="asr-ctxbtn" data-testid="asr-act-cita" onClick={() => { if (onAgendar) onAgendar(); }}><Calendar size={15} /> Cita</button>
+                <button className="asr-ctxbtn" data-testid="asr-act-cita" onClick={openCita}><Calendar size={15} /> Cita</button>
                 <button className="asr-ctxbtn" data-testid="asr-act-voz" onClick={startVoice}><Mic size={15} /> Nota por voz</button>
               </div>
 
@@ -859,6 +878,21 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
           )}
         </div>
       </div>
+
+      {/* B4 · Agendar cita inline · mismo modal que la página de Citas, prellenado con el lead */}
+      {showCita && (
+        <NewCitaModal
+          user={user}
+          prefilledContact={{
+            name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+            phone: c.phones?.[0] || '',
+            email: c.emails?.[0] || '',
+          }}
+          projects={citaProjects}
+          onClose={() => setShowCita(false)}
+          onSuccess={() => toast('success', 'Cita agendada')}
+        />
+      )}
     </div>
   );
 }

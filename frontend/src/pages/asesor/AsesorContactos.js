@@ -1153,9 +1153,9 @@ function AsesorContactosV2({ user, onLogout }) {
           open={!!selected}
           onClose={closeDetail}
           contact={selected}
+          user={user}
           demo={demoMode && selected ? DEMO_PERFIL[selected.id] : undefined}
           onOpenArg={() => setShowArg(true)}
-          onAgendar={() => nav('/asesor/citas')}
           onStageChange={handleEtapaChange}
           onToast={(kind, text) => setToast({ kind, text })}
         />
