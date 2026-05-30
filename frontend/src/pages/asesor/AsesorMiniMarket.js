@@ -269,7 +269,15 @@ export default function AsesorMiniMarket({ user, onLogout }) {
         getMyWhitelistRequests().catch(() => ({ items: [] })),
       ]);
 
-      const items = Array.isArray(devs) ? devs : (devs.items || devs.developments || []);
+      const raw = Array.isArray(devs) ? devs : (devs.items || devs.developments || []);
+      // B3 fix (A4) · el catálogo trae price_from/price_to/colonia_id; la UI leía
+      // price_min/price_max/colonia → precios "—" y zona vacía. Normalizamos los campos.
+      const items = raw.map((p) => ({
+        ...p,
+        price_min: p.price_min ?? p.price_from,
+        price_max: p.price_max ?? p.price_to,
+        colonia: p.colonia || p.neighborhood || p.colonia_id,
+      }));
       setProjects(items);
 
       // Build authMap: dev_org_id → { status, doc }

@@ -27,8 +27,8 @@ import {
   Home, Users, Search, Plug, CalendarDays, ClipboardList,
   Building2, Briefcase, Store, Megaphone, MessageCircle, MessageSquare,
   GitMerge, Layers, Sparkles, Package, FolderOpen, FolderUp, Video,
-  Share2, BarChart3, DollarSign, Trophy, ShieldCheck, FileText, MapPin,
-  Activity, Link, Bot, Bell, Radar, LineChart,
+  Share2, BarChart3, DollarSign, ShieldCheck, FileText, MapPin,
+  Activity, Link, Bot, Bell, Radar, LineChart, Wrench,
 } from 'lucide-react';
 
 /** @type {NavGroupV2[]} */
@@ -44,9 +44,10 @@ export const ASESOR_NAV_V2 = [
     description: 'Todos tus prospectos · filtros · scoring',
     children: [
       { key: 'contactos',    to: '/asesor/contactos',        label: 'Lista de leads',       Icon: Users, badge_source: 'asesor_contacts_new' },
-      { key: 'busquedas',    to: '/asesor/busquedas',        label: 'Búsquedas guardadas',  Icon: Search },
+      { key: 'busquedas',    to: '/asesor/busquedas',        label: 'Pipeline',             Icon: Search },
       { key: 'alertas',      to: '/portal/asesor/alertas',   label: 'Alertas predictivas',  Icon: Bell },
       { key: 'outbound',     to: '/asesor/outbound',         label: 'Captura proactiva',    Icon: Radar },
+      { key: 'leads-dev',    to: '/asesor/leads-dev',        label: 'Leads de developers',  Icon: Megaphone },
       { key: 'lead-aliases', to: '/asesor/lead-aliases',     label: 'Conectar fuentes',     Icon: Plug },
     ],
   },
@@ -68,7 +69,6 @@ export const ASESOR_NAV_V2 = [
       { key: 'desarrollos', to: '/asesor/desarrollos', label: 'Desarrollos',          Icon: Building2 },
       { key: 'captaciones', to: '/asesor/captaciones', label: 'Mis captaciones',      Icon: Briefcase },
       { key: 'mini-market', to: '/asesor/mini-market', label: 'Mini Market',          Icon: Store },
-      { key: 'leads-dev',   to: '/asesor/leads-dev',   label: 'Leads de developers',  Icon: Megaphone },
     ],
   },
   // 5 · Conversaciones IA
@@ -95,27 +95,17 @@ export const ASESOR_NAV_V2 = [
     key: 'studio', to: '/asesor/studio', label: 'Studio Marketing', Icon: Sparkles,
     description: 'Crea videos · carruseles · landings · brand kit con IA',
     children: [
-      { key: 'studio-director',         to: '/asesor/studio',                    label: 'Director IA',         Icon: Sparkles },
-      { key: 'studio-brand-kit',        to: '/portal/studio/brand-kit',          label: 'Brand Kit',           Icon: Package },
-      { key: 'studio-assets',           to: '/portal/studio/assets',             label: 'Assets · Mood Board', Icon: FolderOpen },
-      { key: 'studio-import',           to: '/portal/studio/import',             label: 'Importar Listing',    Icon: FolderUp },
-      { key: 'studio-video',            to: '/portal/asesor/studio-video',       label: 'Videos',              Icon: Video },
-      { key: 'studio-video-standalone', to: '/portal/asesor/video-standalone',   label: 'Video Standalone',    Icon: Video },
-      { key: 'studio-carruseles',       to: '/portal/studio/carruseles',         label: 'Carruseles',          Icon: Sparkles },
+      { key: 'studio-director',         to: '/asesor/studio',                    label: 'Director IA',          Icon: Sparkles },
+      { key: 'studio-brand-kit',        to: '/portal/studio/brand-kit',          label: 'Brand Kit',            Icon: Package },
+      { key: 'studio-assets',           to: '/portal/studio/assets',             label: 'Biblioteca de Assets', Icon: FolderOpen },
+      { key: 'studio-import',           to: '/portal/studio/import',             label: 'Importar Listing',     Icon: FolderUp },
+      { key: 'studio-video-standalone', to: '/portal/asesor/video-standalone',   label: 'Video',                Icon: Video },
+      { key: 'studio-carruseles',       to: '/portal/studio/carruseles',         label: 'Carruseles',           Icon: Sparkles },
       { key: 'studio-auto-content',     to: '/portal/studio/auto-content',       label: 'Auto-Content',        Icon: Megaphone },
       { key: 'studio-landings',         to: '/portal/studio/landings',           label: 'Landing Pages',       Icon: Layers },
     ],
   },
-  // 8 · Anuncios Meta
-  {
-    key: 'anuncios', to: '/portal/asesor/social-ads', label: 'Anuncios Meta', Icon: Megaphone,
-    description: 'Campañas FB + IG · presupuesto IA · ROI',
-    children: [
-      { key: 'social-ads-connect',   to: '/portal/asesor/social-ads',           label: 'Conectar cuenta', Icon: Plug },
-      { key: 'social-ads-campaigns', to: '/portal/asesor/social-ads/campaigns', label: 'Campañas',        Icon: Share2 },
-    ],
-  },
-  // 9 · Mi Performance
+  // 8 · Mi Performance
   {
     key: 'performance', to: '/asesor/comisiones', label: 'Mi Performance', Icon: BarChart3,
     description: 'Comisiones · ranking · SOC · análisis comparativo',
@@ -126,8 +116,17 @@ export const ASESOR_NAV_V2 = [
       { key: 'soc',              to: '/portal/asesor/soc',     label: 'SOC Certificación', Icon: ShieldCheck },
       { key: 'cma',              to: '/asesor/cma',            label: 'CMA · Análisis',    Icon: BarChart3 },
       { key: 'briefings',        to: '/asesor/briefings',      label: 'Briefings',         Icon: FileText },
-      { key: 'briefing-traffic', to: '/asesor/briefing',       label: 'Tráfico + Clima',   Icon: MapPin },
       { key: 'links-tracking',   to: '/asesor/links-tracking', label: 'Links tracking',    Icon: Link },
+    ],
+  },
+  // 9 · Herramientas (tools secundarios + Anuncios diferido)
+  {
+    key: 'herramientas', to: '/asesor/briefing', label: 'Herramientas', Icon: Wrench,
+    description: 'Tráfico + clima pre-visita · anuncios Meta',
+    children: [
+      { key: 'briefing-traffic',     to: '/asesor/briefing',                    label: 'Tráfico + Clima', Icon: MapPin },
+      { key: 'social-ads-connect',   to: '/portal/asesor/social-ads',           label: 'Anuncios Meta',   Icon: Megaphone },
+      { key: 'social-ads-campaigns', to: '/portal/asesor/social-ads/campaigns', label: 'Campañas Meta',   Icon: Share2 },
     ],
   },
 ];

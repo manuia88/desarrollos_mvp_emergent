@@ -15,9 +15,10 @@
     "description": "Todos tus prospectos · filtros · scoring",
     "children": {
       "contactos": "Lista de leads",
-      "busquedas": "Búsquedas guardadas",
+      "busquedas": "Pipeline",
       "alertas": "Alertas predictivas",
       "outbound": "Captura proactiva",
+      "leads-dev": "Leads de developers",
       "lead-aliases": "Conectar fuentes"
     }
   },
@@ -35,8 +36,7 @@
     "children": {
       "desarrollos": "Desarrollos",
       "captaciones": "Mis captaciones",
-      "mini-market": "Mini Market",
-      "leads-dev": "Leads de developers"
+      "mini-market": "Mini Market"
     }
   },
   "conversaciones-ia": {
@@ -61,26 +61,17 @@
     "children": {
       "studio-director": "Director IA",
       "studio-brand-kit": "Brand Kit",
-      "studio-assets": "Assets · Mood Board",
+      "studio-assets": "Biblioteca de Assets",
       "studio-import": "Importar Listing",
-      "studio-video": "Videos",
-      "studio-video-standalone": "Video Standalone",
+      "studio-video-standalone": "Video",
       "studio-carruseles": "Carruseles",
       "studio-auto-content": "Auto-Content",
       "studio-landings": "Landing Pages"
     }
   },
-  "anuncios": {
-    "label": "Anuncios Meta",
-    "description": "Campañas FB + IG · presupuesto IA · ROI",
-    "children": {
-      "social-ads-connect": "Conectar cuenta",
-      "social-ads-campaigns": "Campañas"
-    }
-  },
   "performance": {
     "label": "Mi Performance",
-    "description": "Comisiones · ranking · SOC · análisis comparativo",
+    "description": "Métricas · comisiones · SOC · análisis comparativo",
     "children": {
       "metricas": "Métricas",
       "comisiones": "Comisiones",
@@ -88,9 +79,16 @@
       "soc": "SOC Certificación",
       "cma": "CMA · Análisis",
       "briefings": "Briefings",
-      "briefing-traffic": "Tráfico + Clima",
-      "ranking": "Ranking equipo",
       "links-tracking": "Links tracking"
+    }
+  },
+  "herramientas": {
+    "label": "Herramientas",
+    "description": "Tráfico + clima pre-visita · anuncios Meta",
+    "children": {
+      "briefing-traffic": "Tráfico + Clima",
+      "social-ads-connect": "Anuncios Meta",
+      "social-ads-campaigns": "Campañas Meta"
     }
   }
 }
