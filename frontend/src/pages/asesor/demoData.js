@@ -97,6 +97,20 @@ export const DEMO_PERFIL = {
     oferta: 'Oferta sugerida: $7.4M · 82% de probabilidad de aceptación (según cierres comparables)',
     convCount: 2,
     actCount: 2,
+    // Tab Propiedades · tablero por estatus + engagement del link + Tinder (mockup).
+    engage: { text: 'Abrió el link hace 2h · sigue activa', views: 8, up: 3, down: 2 },
+    board: [
+      { key: 'dispo', label: 'Preguntando dispo.', dot: 'cold', count: 2,
+        items: [{ price: '$7,800,000', title: 'Depto en Polanco', addr: 'Av. Horacio 1020', specs: ['2 rec', '2 baños', '1 est', '120 m²'], note: 'broker sin responder · 1d', tone: 'muted' }],
+        reco: '+ IA sugiere 3 en Polanco (92%)' },
+      { key: 'enviada', label: 'Enviada al cliente', dot: 'warm', count: 1,
+        items: [{ price: '$6,900,000', title: 'Depto en Anzures', addr: 'Leibnitz 240', specs: ['2 rec', '1 baño', '1 est', '98 m²'] }] },
+      { key: 'gusto', label: 'Le gustó / cita', dot: 'ok', count: 1,
+        items: [{ price: '$8,000,000', title: 'Depto en Reforma', addr: 'Reforma 350', specs: ['2 rec', '2 baños', '2 est', '110 m²'], note: 'cita vie 4pm', thumb: 'up', tone: 'ok' }] },
+      { key: 'descartada', label: 'Descartada', dot: 'hot', count: 1,
+        items: [{ price: '$9,100,000', title: 'Depto en Lomas', addr: 'Sierra Madre 615', specs: ['3 rec', '3 baños', '2 est', '180 m²'], note: 'precio alto', thumb: 'down', tone: 'hot', dim: true }] },
+    ],
+    tinder: { title: 'Enviar link de propiedades a María', sub: 'Un link · desliza 👍/👎 y busca más en la Bolsa sin salir. Cada deslizada vuelve aquí.', cta: 'Crear y enviar' },
   },
 };
 

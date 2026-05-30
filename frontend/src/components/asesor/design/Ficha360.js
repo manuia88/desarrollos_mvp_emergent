@@ -22,7 +22,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Calendar, Sparkles, X, Phone as PhoneIcon, Mail, Globe, Check,
-  MessageCircle, MessageSquare, Pencil, Building2,
+  MessageCircle, MessageSquare, Pencil, Building2, ThumbsUp, ThumbsDown, ArrowLeftRight,
 } from 'lucide-react';
 import * as api from '../../../api/advisor';
 import { fmtMXN } from '../../advisor/primitives';
@@ -81,6 +81,10 @@ const TABS = [
   { key: 'conv', label: 'Conversaciones' },
   { key: 'act', label: 'Actividad' },
 ];
+
+// Color por estatus del tablero de propiedades (demo · mockup).
+const DOTC = { cold: 'var(--cold)', warm: 'var(--warm)', ok: 'var(--ok)', hot: 'var(--hot)' };
+const TONEC = { muted: 'var(--cream-3)', ok: 'var(--ok)', hot: 'var(--hot)' };
 
 export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar, onStageChange, onToast, demo }) {
   const [tab, setTab] = useState('resumen');
@@ -512,7 +516,52 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
           {/* ── Pane: Propiedades (read-only · búsquedas + matches) ── */}
           {tab === 'props' && (
             <div className="asr-pane" data-testid="asr-ficha360-pane-props">
-              {busquedas.length === 0 ? (
+              {demo?.board ? (
+                <>
+                  <div className="asr-sec-h" style={{ fontSize: 13, marginBottom: 14 }}>Propiedades de {c.first_name} <span className="asr-muted">· disponibilidad y avance</span></div>
+                  {demo.engage && (
+                    <div className="asr-engage">
+                      <span className="asr-engage__lv" />
+                      <div className="asr-engage__t"><b>{demo.engage.text.split(' · ')[0]}</b> · {demo.engage.text.split(' · ').slice(1).join(' · ')}</div>
+                      <div className="asr-engage__es">
+                        <span className="vw">{demo.engage.views} vistas</span>
+                        <span className="up"><ThumbsUp size={12} /> {demo.engage.up}</span>
+                        <span className="dn"><ThumbsDown size={12} /> {demo.engage.down}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="asr-pk">
+                    {demo.board.map((bcol) => (
+                      <div className="asr-pkcol" key={bcol.key}>
+                        <div className="asr-pkh"><span className="pd" style={{ background: DOTC[bcol.dot] }} />{bcol.label}<span className="pc">{bcol.count}</span></div>
+                        {bcol.items.map((p, i) => (
+                          <div className="asr-pcard" key={i} style={{ opacity: p.dim ? 0.6 : 1 }}>
+                            <div className="asr-pcard__ph"><span className="asr-pcard__pp">{p.price}</span></div>
+                            <div className="asr-pcard__pb">
+                              <div className="asr-pcard__pt">{p.title}</div>
+                              <div className="asr-pcard__paddr">{p.addr}</div>
+                              <div className="asr-pcard__specs">{p.specs.map((s) => <span key={s}>{s}</span>)}</div>
+                              {p.note && (
+                                <div className="asr-pcard__note" style={{ color: TONEC[p.tone] || 'var(--cream-3)', fontWeight: p.tone ? 600 : 400 }}>
+                                  {p.thumb === 'up' && <ThumbsUp size={11} />}{p.thumb === 'down' && <ThumbsDown size={11} />}{p.note}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {bcol.reco && <div className="asr-reco">{bcol.reco}</div>}
+                      </div>
+                    ))}
+                  </div>
+                  {demo.tinder && (
+                    <div className="asr-tinder">
+                      <div className="asr-tinder__i"><ArrowLeftRight size={19} /></div>
+                      <div className="asr-tinder__tx"><b>{demo.tinder.title}</b><p>{demo.tinder.sub}</p></div>
+                      <button className="asr-tinder__btn">{demo.tinder.cta}</button>
+                    </div>
+                  )}
+                </>
+              ) : busquedas.length === 0 ? (
                 <div style={{ padding: '40px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13.5, border: '1px dashed var(--border-2)', borderRadius: 12 }}>
                   Este lead aún no tiene una búsqueda con propiedades.
                 </div>

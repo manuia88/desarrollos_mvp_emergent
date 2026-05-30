@@ -965,6 +965,7 @@ function AsesorContactosV2({ user, onLogout }) {
     const item = list.find((x) => x.id === cid);
     if (!item || (item.etapa || 'nuevo') === etapaKey) return;
     setList((prev) => prev.map((x) => (x.id === cid ? { ...x, etapa: etapaKey } : x)));
+    if (demoMode) { setToast({ kind: 'success', text: `Movido a ${etapaMeta(etapaKey).label}` }); return; }
     try {
       await api.patchContacto(cid, { etapa: etapaKey });
       setToast({ kind: 'success', text: `Movido a ${etapaMeta(etapaKey).label}` });
@@ -1028,12 +1029,30 @@ function AsesorContactosV2({ user, onLogout }) {
               Tu embudo de prospectos · ordenado por quién está más listo.
             </p>
           </div>
-          <ActionBar
-            sort={sortControl}
-            view={<ViewToggle value={view} onChange={setView} />}
-            onNew={() => setShowCreate(true)}
-            newLabel="Nuevo lead"
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {/* Toggle visible de datos de ejemplo (evita tener que escribir ?demo=1) */}
+            <button
+              data-testid="asr-demo-toggle"
+              onClick={() => setSearchParams(demoMode ? {} : { demo: '1' }, { replace: true })}
+              title="Muestra el diseño con datos de ejemplo para evaluarlo"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px',
+                borderRadius: 9, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                border: demoMode ? '1px solid transparent' : '1px solid var(--border)',
+                background: demoMode ? 'var(--grad)' : 'var(--surface)',
+                color: demoMode ? '#fff' : 'var(--cream-2)',
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: demoMode ? '#fff' : 'var(--cream-3)' }} />
+              {demoMode ? 'Datos de ejemplo · salir' : 'Ver con datos de ejemplo'}
+            </button>
+            <ActionBar
+              sort={sortControl}
+              view={<ViewToggle value={view} onChange={setView} />}
+              onNew={() => setShowCreate(true)}
+              newLabel="Nuevo lead"
+            />
+          </div>
         </div>
 
         {/* Chips de filtro horizontales (presets reales · reemplazan el rail) */}
@@ -1091,10 +1110,10 @@ function AsesorContactosV2({ user, onLogout }) {
                 return (
                   <div key={ek} data-testid={`col-${ek}`}
                     className={`asr-kanban-col${dragOverCol === ek ? ' asr-kanban-col--over' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); setDragOverCol(ek); }}
-                    onDragLeave={() => setDragOverCol((p) => (p === ek ? null : p))}
-                    onDrop={() => onDropEtapa(ek)}
-                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, minHeight: 120, transition: 'border-color 200ms, background 200ms' }}>
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverCol !== ek) setDragOverCol(ek); }}
+                    onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverCol((p) => (p === ek ? null : p)); }}
+                    onDrop={(e) => { e.preventDefault(); onDropEtapa(ek); }}
+                    style={{ display: 'flex', flexDirection: 'column', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, minHeight: 440, transition: 'border-color 200ms, background 200ms' }}>
                     <div style={{ marginBottom: 12, padding: '0 2px 11px', borderBottom: '2px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{meta.label}</span>
@@ -1104,9 +1123,10 @@ function AsesorContactosV2({ user, onLogout }) {
                         <div style={{ fontSize: 12, color: dcol?.accent ? 'var(--theme-2)' : 'var(--cream-3)', marginTop: 4, fontWeight: dcol?.accent ? 600 : 400 }}>{intel}</div>
                       )}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* lista = zona de drop que llena la columna (arrastra a cualquier parte) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 80 }}>
                       {col.length === 0
-                        ? <div className="asr-empty-col">{dcol?.empty || 'Sin leads en esta etapa'}</div>
+                        ? <div className="asr-empty-col" style={{ flex: 1, display: 'grid', placeItems: 'center' }}>{dcol?.empty || 'Suelta un lead aquí'}</div>
                         : col.map((c) => renderCard(c, { draggable: true }))}
                     </div>
                   </div>
