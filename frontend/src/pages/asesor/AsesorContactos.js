@@ -1064,8 +1064,9 @@ function AsesorContactosV2({ user, onLogout }) {
           onSelect={(k) => setSmartList(k)}
         />
 
-        {/* Foco de hoy · 3 acciones DISTINTAS priorizadas por la IA */}
-        {foco.length > 0 && (
+        {/* Foco de hoy · 3 acciones priorizadas. En demo se renderiza DIRECTO de DEMO_FOCO
+            (no del estado `foco` que sincroniza con retraso) → evita el race al prender el demo. */}
+        {(demoMode ? DEMO_FOCO : foco).length > 0 && (
           <div data-testid="asr-foco-hoy" style={{ marginBottom: 34 }}>
             <SecLine em="Foco de hoy" note="la IA priorizó esto para ti" />
             <div style={{
@@ -1074,7 +1075,7 @@ function AsesorContactosV2({ user, onLogout }) {
               border: '1px solid var(--border)', borderRadius: 16, padding: 16,
             }} className="asr-foco-grid">
               {demoMode
-                ? foco.map((f) => (
+                ? DEMO_FOCO.map((f) => (
                     <FocoDemoCard key={f.id} f={f} onOpen={() => openContact(demoLeadById(f.lead_id))} />
                   ))
                 : foco.map((a) => (
@@ -1267,21 +1268,25 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
 // dot por tono + quién + tag + frase bold + razón + 2 botones.
 const FOCO_TONE = { hot: 'var(--hot)', warm: 'var(--warm)', ok: 'var(--ok)' };
 function FocoDemoCard({ f, onOpen }) {
+  // Blindado: si algún campo llega vacío (HMR/estado mezclado), no truena.
+  const acts = f.actions || ['perfil'];
   return (
     <PremiumCard hover data-testid={`asr-foco-card-${f.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', flex: '1 1 280px', cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: FOCO_TONE[f.tone] || 'var(--ok)', flexShrink: 0 }} />
-        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.who}</span>
-        <span className="asr-foco__tag">{f.tag}</span>
+        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.who || f.title || 'Acción'}</span>
+        {f.tag && <span className="asr-foco__tag">{f.tag}</span>}
       </div>
-      <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
-        <b className="asr-foco__bold">{f.bold}</b> {f.body}
-      </div>
+      {(f.bold || f.body) && (
+        <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
+          {f.bold && <b className="asr-foco__bold">{f.bold}</b>} {f.body}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
-        {f.actions.includes('wa') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}><MessageCircle size={13} /> WhatsApp</button>}
-        {f.actions.includes('perfil') && <button className="asr-mini" onClick={(e) => { e.stopPropagation(); onOpen(); }}><Eye size={13} /> Ver perfil</button>}
-        {f.actions.includes('cita') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}>Ver cita</button>}
-        {f.actions.includes('comparativo') && <button className="asr-mini" onClick={(e) => e.stopPropagation()}>Comparativo</button>}
+        {acts.includes('wa') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}><MessageCircle size={13} /> WhatsApp</button>}
+        {acts.includes('perfil') && <button className="asr-mini" onClick={(e) => { e.stopPropagation(); onOpen(); }}><Eye size={13} /> Ver perfil</button>}
+        {acts.includes('cita') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}>Ver cita</button>}
+        {acts.includes('comparativo') && <button className="asr-mini" onClick={(e) => e.stopPropagation()}>Comparativo</button>}
       </div>
     </PremiumCard>
   );
