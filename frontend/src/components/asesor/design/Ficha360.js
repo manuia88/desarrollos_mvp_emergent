@@ -180,6 +180,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   const etapaActual = c.etapa || 'nuevo';
   const moveEtapa = async (ek) => {
     if (stageBusy || ek === etapaActual) return;
+    // En demo no hay lead real en backend → mover solo en memoria (sin API).
+    if (demo) { if (onStageChange) onStageChange(ek); toast('success', `Movido a ${etapaMeta(ek).label}`); return; }
     setStageBusy(true);
     try {
       await api.patchContacto(cid, { etapa: ek });
