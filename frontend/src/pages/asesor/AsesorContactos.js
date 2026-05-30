@@ -15,7 +15,7 @@ import { getLeadsInPreset, getSmartListPresets, getSmartListCounts } from '../..
 // Sistema de Diseño asesor (tema claro)
 import {
   ActionBar, ViewToggle, ScoreBar,
-  PremiumCard, Ficha360, tempMeta, PRIORITY_RGB,
+  PremiumCard, Ficha360, tempMeta,
   ETAPA, ETAPA_ORDER, etapaMeta,
 } from '../../components/asesor/design';
 // Modo demo (?demo=1) · datos hardcodeados espejo del mockup para EVALUAR el diseño.
@@ -1076,17 +1076,20 @@ function AsesorContactosV2({ user, onLogout }) {
             }} className="asr-foco-grid">
               {demoMode
                 ? DEMO_FOCO.map((f) => (
-                    <FocoDemoCard key={f.id} f={f} onOpen={() => openContact(demoLeadById(f.lead_id))} />
+                    <FocoCard key={f.id} item={f} onOpen={() => openContact(demoLeadById(f.lead_id))} />
                   ))
-                : foco.map((a) => (
-                    <FocoCardV2
-                      key={a.id}
-                      action={a}
-                      lead={list.find((x) => x.id === a.lead_id)}
-                      onCTA={focoCTA}
-                      style={{ flex: '1 1 280px', maxWidth: foco.length === 1 ? 460 : 'none' }}
-                    />
-                  ))}
+                : foco.map((a) => {
+                    const lead = list.find((x) => x.id === a.lead_id);
+                    return (
+                      <FocoCard
+                        key={a.id}
+                        item={realFoco(a, lead)}
+                        onOpen={() => (a.lead_id ? focoCTA('ver', a) : null)}
+                        onComplete={() => focoCTA('completar', a)}
+                        onDismiss={() => focoCTA('descartar', a)}
+                      />
+                    );
+                  })}
             </div>
           </div>
         )}
@@ -1264,78 +1267,60 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   );
 }
 
-// Card de "Foco de hoy" en modo DEMO · espejo EXACTO del mockup (.fcard):
-// dot por tono + quién + tag + frase bold + razón + 2 botones.
+// ── Foco de hoy · UNA sola tarjeta (mismo diseño del mockup para demo Y real) ──────
+// dot por tono + quién + tag + frase bold + razón + botones. Los datos reales se
+// normalizan a esta misma forma (realFoco) → el diseño NO depende de si hay demo.
 const FOCO_TONE = { hot: 'var(--hot)', warm: 'var(--warm)', ok: 'var(--ok)' };
-function FocoDemoCard({ f, onOpen }) {
-  // Blindado: si algún campo llega vacío (HMR/estado mezclado), no truena.
-  const acts = f.actions || ['perfil'];
-  return (
-    <PremiumCard hover data-testid={`asr-foco-card-${f.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', flex: '1 1 280px', cursor: 'pointer' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: FOCO_TONE[f.tone] || 'var(--ok)', flexShrink: 0 }} />
-        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.who || f.title || 'Acción'}</span>
-        {f.tag && <span className="asr-foco__tag">{f.tag}</span>}
-      </div>
-      {(f.bold || f.body) && (
-        <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
-          {f.bold && <b className="asr-foco__bold">{f.bold}</b>} {f.body}
-        </div>
-      )}
-      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
-        {acts.includes('wa') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}><MessageCircle size={13} /> WhatsApp</button>}
-        {acts.includes('perfil') && <button className="asr-mini" onClick={(e) => { e.stopPropagation(); onOpen(); }}><Eye size={13} /> Ver perfil</button>}
-        {acts.includes('cita') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}>Ver cita</button>}
-        {acts.includes('comparativo') && <button className="asr-mini" onClick={(e) => e.stopPropagation()}>Comparativo</button>}
-      </div>
-    </PremiumCard>
-  );
-}
+const TONE_BY_PRIORITY = { 1: 'hot', 2: 'warm', 3: 'ok' };
+const ETAPA_TAG = { nuevo: 'contactar', contactado: 'seguir', visita: 'cita', negociacion: 'cerrar', cerrado: '' };
 
-// Card de "Foco de hoy" · idéntica al mockup (.fcard): dot de prioridad + quién +
-// tag + razón + WhatsApp / Ver perfil (+ completar/descartar la acción).
-function FocoCardV2({ action, lead, onCTA, style }) {
-  const rgb = PRIORITY_RGB[action.priority] || PRIORITY_RGB[3];
+// Normaliza una acción real del action_queue a la forma de la tarjeta del mockup.
+function realFoco(a, lead) {
   const phone = (lead?.phones || [])[0];
   const digits = (phone || '').replace(/\D/g, '');
-  const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (lead?.first_name || '') + ', ')}` : null;
-  // Quién = el lead si la acción lo trae; si no, el título limpio (sin emoji).
-  const who = lead ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() : stripEmoji(action.title) || 'Acción';
+  const who = lead ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() : (stripEmoji(a.title) || 'Acción');
+  // Cuerpo = la acción a realizar (sin repetir el nombre que ya va arriba).
+  const sub = stripEmoji(a.subtitle || '');
+  const title = stripEmoji(a.title || '');
+  const body = lead ? ((sub && sub !== who) ? sub : title) : sub;
+  return {
+    id: a.id,
+    tone: TONE_BY_PRIORITY[a.priority] || 'ok',
+    who,
+    tag: (lead && ETAPA_TAG[lead.etapa || 'nuevo']) || (a.source_agent ? stripEmoji(a.source_agent) : ''),
+    bold: '',
+    body,
+    lead_id: a.lead_id,
+    actions: ['wa', 'perfil'],
+    waUrl: digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (lead?.first_name || '') + ', ')}` : null,
+    canComplete: true, canDismiss: true,
+  };
+}
+
+function FocoCard({ item, onOpen, onComplete, onDismiss }) {
+  const acts = item.actions || ['perfil'];
+  const stop = (e) => e.stopPropagation();
   return (
-    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`}
-      onClick={action.lead_id ? () => onCTA('ver', action) : undefined}
-      style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', cursor: action.lead_id ? 'pointer' : 'default', ...(style || {}) }}>
+    <PremiumCard hover data-testid={`asr-foco-card-${item.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', flex: '1 1 280px', cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: `rgb(${rgb})`, flexShrink: 0 }} />
-        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {who}
-        </span>
-        {action.source_agent && (
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--theme-2)', textTransform: 'uppercase' }}>{stripEmoji(action.source_agent)}</span>
-        )}
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: FOCO_TONE[item.tone] || 'var(--ok)', flexShrink: 0 }} />
+        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.who || 'Acción'}</span>
+        {item.tag && <span className="asr-foco__tag">{item.tag}</span>}
       </div>
-      {(action.subtitle || (lead && action.title)) && (
+      {(item.bold || item.body) && (
         <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
-          {stripEmoji(action.subtitle || action.title)}
+          {item.bold && <b className="asr-foco__bold">{item.bold}</b>} {item.body}
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
-        {waUrl && (
-          <a href={waUrl} target="_blank" rel="noreferrer" className="asr-mini asr-mini--go" data-testid={`foco-wa-${action.id}`} onClick={(e) => e.stopPropagation()}>
-            <MessageCircle size={13} /> WhatsApp
-          </a>
-        )}
-        {action.lead_id && (
-          <button data-testid={`foco-ver-${action.id}`} className="asr-mini" onClick={(e) => { e.stopPropagation(); onCTA('ver', action); }}>
-            <Eye size={13} /> Ver perfil
-          </button>
-        )}
-        <button data-testid={`foco-completar-${action.id}`} className="asr-mini" title="Marcar como hecho" onClick={(e) => { e.stopPropagation(); onCTA('completar', action); }}>
-          <Check size={13} />
-        </button>
-        <button data-testid={`foco-descartar-${action.id}`} className="asr-mini" title="Descartar" onClick={(e) => { e.stopPropagation(); onCTA('descartar', action); }}>
-          <XIcon size={13} />
-        </button>
+        {acts.includes('wa') && (item.waUrl
+          ? <a href={item.waUrl} target="_blank" rel="noreferrer" className="asr-mini asr-mini--go" onClick={stop}><MessageCircle size={13} /> WhatsApp</a>
+          : <button className="asr-mini asr-mini--go" onClick={stop}><MessageCircle size={13} /> WhatsApp</button>)}
+        {acts.includes('perfil') && <button className="asr-mini" onClick={(e) => { stop(e); onOpen(); }}><Eye size={13} /> Ver perfil</button>}
+        {acts.includes('cita') && <button className="asr-mini asr-mini--go" onClick={stop}>Ver cita</button>}
+        {acts.includes('comparativo') && <button className="asr-mini" onClick={stop}>Comparativo</button>}
+        {onComplete && <button className="asr-mini" title="Marcar como hecho" onClick={(e) => { stop(e); onComplete(); }}><Check size={13} /></button>}
+        {onDismiss && <button className="asr-mini" title="Descartar" onClick={(e) => { stop(e); onDismiss(); }}><XIcon size={13} /></button>}
       </div>
     </PremiumCard>
   );
