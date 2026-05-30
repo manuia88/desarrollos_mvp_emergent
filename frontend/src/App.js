@@ -87,7 +87,6 @@ const SuperadminReviewsResidents = lazy(() => import('./pages/superadmin/Superad
 // W6.MOV.2 — Gov Data MX External Sources (Superadmin)
 const SuperadminGovDataMx = lazy(() => import('./pages/superadmin/SuperadminGovDataMx'));
 // W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin)
-const SocFranchisePage = lazy(() => import('./pages/portal/asesor/SocFranchisePage'));
 const SuperadminSocFranchise = lazy(() => import('./pages/superadmin/SuperadminSocFranchise'));
 // W6.AS.1 — Workflow Builder Visual (Asesor)
 const WorkflowBuilderPage = lazy(() => import('./pages/portal/asesor/WorkflowBuilderPage'));
@@ -669,7 +668,6 @@ function AppRouter() {
       {/* W6.MOV.5 — Construction Quality (Superadmin) */}
       <Route path="/superadmin/construction-quality" element={<SuperadminRoute Page={SuperadminConstructionQuality} />} />
       {/* W6.MOV.1 — SOC Franchise (Asesor self + Superadmin admin) */}
-      <Route path="/portal/asesor/soc" element={<AdvisorRoute Page={SocFranchisePage} />} />
       <Route path="/superadmin/soc-franchise" element={<SuperadminRoute Page={SuperadminSocFranchise} />} />
       {/* W6.MOV.3 — Reviews Residentes (Superadmin) */}
       <Route path="/superadmin/reviews-residents" element={<SuperadminRoute Page={SuperadminReviewsResidents} />} />

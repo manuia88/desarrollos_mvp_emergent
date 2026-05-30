@@ -102,7 +102,6 @@ const ASESOR_NAV = [
     items: [
       { key: 'comisiones',   to: '/asesor/comisiones',                   label: 'Comisiones',       Icon: DollarSign },
       { key: 'ranking',      to: '/asesor/ranking',                      label: 'Ranking',          Icon: Trophy },
-      { key: 'soc-asesor',   to: '/portal/asesor/soc',                   label: 'SOC Certificación', Icon: Trophy },
       { key: 'studio',       to: '/asesor/studio',                       label: 'Studio · Director IA', Icon: Sparkles },
       { key: 'studio-video', to: '/portal/asesor/studio-video',          label: 'Studio · Video',   Icon: Video },
       { key: 'studio-brand-kit', to: '/portal/studio/brand-kit',         label: 'Studio · Brand Kit', Icon: Package },
