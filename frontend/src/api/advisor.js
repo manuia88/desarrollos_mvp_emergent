@@ -41,6 +41,8 @@ export const addTimelineEntry = (id, b) => post(`/api/asesor/contactos/${id}/tim
 export const getContactoOverview = (id) => j(`/api/asesor/contactos/${id}/overview`);
 // B2 · Inteligencia del lead (DISC · riesgo de enfriamiento · brief) desde motores reales · FAIL-OPEN.
 export const getContactoIntel = (id) => j(`/api/asesor/contactos/${id}/intel`);
+// B2 · Insights de conversación (ánimo/sentiment + próxima acción) · reusa compute_client_insights.
+export const getLeadInsights = (id) => j(`/api/asesor/lead/${id}/insights`);
 
 // Búsquedas
 export const listBusquedas = () => j('/api/asesor/busquedas');

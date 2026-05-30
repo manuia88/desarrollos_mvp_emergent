@@ -95,6 +95,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   const [matches, setMatches] = useState({});      // bid → [matches]
   const [overview, setOverview] = useState(null);
   const [convos, setConvos] = useState(null);
+  const [convIntel, setConvIntel] = useState(null);   // B2 · ánimo/sentiment real (client_insights)
   const [convLoading, setConvLoading] = useState(false);
   const [actLoading, setActLoading] = useState(false);
   const [propsLoading, setPropsLoading] = useState(false);
@@ -120,7 +121,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
     if (!open || !cid) return;
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
-    setOverview(null); setConvos(null); setIntel(null);
+    setOverview(null); setConvos(null); setIntel(null); setConvIntel(null);
     if (demo) return;
     api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
     api.getCloseProbability(cid).then(setProb).catch(() => setProb(null));
@@ -146,6 +147,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
         .then((r) => setConvos(r?.conversations || []))
         .catch(() => setConvos([]))
         .finally(() => setConvLoading(false));
+      // Ánimo del cliente (sentiment real · client_insights) · FAIL-OPEN.
+      api.getLeadInsights(cid).then(setConvIntel).catch(() => setConvIntel(null));
     }
     if (tab === 'props' && busquedas.length > 0 && Object.keys(matches).length === 0 && !propsLoading) {
       setPropsLoading(true);
@@ -648,6 +651,24 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
           {/* ── Pane: Conversaciones (hilo real o empty) ── */}
           {tab === 'conv' && (
             <div className="asr-pane" data-testid="asr-ficha360-pane-conv">
+              {/* Ánimo del cliente (sentiment REAL · client_insights) · solo si hay señal */}
+              {convIntel?.sentiment && convIntel.sentiment !== 'neutral' && (
+                <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 11, overflow: 'hidden', marginBottom: 16, background: 'var(--surface)' }}>
+                  <div style={{ flex: 1, padding: '11px 15px', borderRight: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--cream-3)', display: 'block', marginBottom: 5 }}>Ánimo del cliente</span>
+                    <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6, color: convIntel.sentiment === 'positivo' ? 'var(--ok)' : 'var(--hot)' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: convIntel.sentiment === 'positivo' ? 'var(--ok)' : 'var(--hot)' }} />
+                      {convIntel.sentiment === 'positivo' ? 'Positivo' : 'Negativo'}
+                    </span>
+                  </div>
+                  {convIntel.next_action?.text && (
+                    <div style={{ flex: 1, padding: '11px 15px' }}>
+                      <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--cream-3)', display: 'block', marginBottom: 5 }}>Próximo paso (IA)</span>
+                      <span style={{ fontSize: 13, color: 'var(--cream-2)' }}>{convIntel.next_action.text}</span>
+                    </div>
+                  )}
+                </div>
+              )}
               {convLoading ? (
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando conversaciones…</div>
               ) : !convos || convos.length === 0 ? (
