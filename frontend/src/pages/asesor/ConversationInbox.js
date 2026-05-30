@@ -49,13 +49,14 @@ function ConversationInboxBody() {
       const qs = new URLSearchParams();
       if (fSentiment) qs.set('sentiment', fSentiment);
       if (fStatus) qs.set('status', fStatus);
-      if (fAsesor) qs.set('asesor_id', fAsesor);
-      const res = await fetch(`${API}/api/superadmin/conversations/list?${qs.toString()}`, { headers: authHeaders() });
+      // B2 fix · la bandeja del asesor usa el endpoint asesor-scoped (antes pegaba al de
+      // superadmin → 403 → siempre vacía). El backend fuerza asesor_id = usuario actual.
+      const res = await fetch(`${API}/api/conversation/asesor/inbox?${qs.toString()}`, { headers: authHeaders(), credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setList(Array.isArray(data.conversations) ? data.conversations : []);
       } else {
-        setList([]); // 403 (asesor) o error → bandeja vacía, sin romper
+        setList([]);
       }
     } catch {
       setList([]);
