@@ -27,7 +27,7 @@ import {
   Home, Users, Search, Plug, CalendarDays, ClipboardList,
   Building2, Briefcase, Store, Megaphone, MessageCircle, MessageSquare,
   GitMerge, Layers, Sparkles, Package, FolderOpen, FolderUp, Video,
-  Share2, BarChart3, DollarSign, ShieldCheck, FileText, MapPin,
+  Share2, BarChart3, DollarSign, FileText, MapPin,
   Activity, Link, Bot, Bell, Radar, LineChart, Wrench,
 } from 'lucide-react';
 
@@ -113,7 +113,6 @@ export const ASESOR_NAV_V2 = [
       { key: 'metricas',         to: '/asesor/metricas',       label: 'Métricas',          Icon: LineChart },
       { key: 'comisiones',       to: '/asesor/comisiones',     label: 'Comisiones',        Icon: DollarSign },
       { key: 'operaciones',      to: '/asesor/operaciones',    label: 'Operaciones',       Icon: Activity },
-      { key: 'soc',              to: '/portal/asesor/soc',     label: 'SOC Certificación', Icon: ShieldCheck },
       { key: 'cma',              to: '/asesor/cma',            label: 'CMA · Análisis',    Icon: BarChart3 },
       { key: 'briefings',        to: '/asesor/briefings',      label: 'Briefings',         Icon: FileText },
       { key: 'links-tracking',   to: '/asesor/links-tracking', label: 'Links tracking',    Icon: Link },
