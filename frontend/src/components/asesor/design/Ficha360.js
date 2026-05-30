@@ -220,10 +220,15 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   // Bloques de IA del perfil · demo (vista llena) O motor real (intel) · null = se oculta.
   const discData = demo?.disc || intel?.disc || null;
   const briefData = demo?.brief || intel?.brief || null;          // demo: {strong,rest,falta} · real: {text,falta}
-  const signalsData = demo?.signals
-    || (intel?.churn
-        ? [{ label: 'Riesgo de enfriamiento', value: intel.churn.level, sub: intel.churn.reason, warn: intel.churn.level !== 'Bajo' }]
-        : null);
+  // Señales = demo O motor real (mejor hora + riesgo de enfriamiento). Solo las que existan.
+  let signalsData = demo?.signals || null;
+  if (!signalsData && intel) {
+    const arr = [];
+    if (intel.best_time) arr.push({ label: 'Mejor momento', value: intel.best_time.value, sub: intel.best_time.sub });
+    if (intel.churn) arr.push({ label: 'Riesgo de enfriamiento', value: intel.churn.level, sub: intel.churn.reason, warn: intel.churn.level !== 'Bajo' });
+    signalsData = arr.length ? arr : null;
+  }
+  const offerData = demo ? null : (intel?.offer || null);   // oferta AVM real (demo usa su bloque avance)
 
   // Criterios "qué busca" · demo o derivados de la primera búsqueda (datos reales).
   const criterios = demo ? demo.criterios : (firstBusq ? [
@@ -469,6 +474,17 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                         <div className="asr-crv">{cr.v}</div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Oferta sugerida · valuación AVM REAL de la zona (estimación honesta) */}
+              {offerData && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h">Oferta sugerida <span className="asr-muted">· estimación AVM de la zona</span></div>
+                  <div className="asr-offsugg">
+                    <Sparkles size={15} />
+                    <span><b>{fmtMXN(offerData.value)}</b> · {offerData.basis} · {offerData.colonia}</span>
                   </div>
                 </div>
               )}

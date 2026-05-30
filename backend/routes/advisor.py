@@ -951,12 +951,55 @@ async def get_contacto_intel(cid: str, request: Request):
         except Exception:
             churn = None
 
+    # Búsqueda más reciente del lead (la usan brief + oferta).
+    busq = await db.asesor_busquedas.find_one(
+        {"contacto_id": cid, "owner_id": user.user_id}, {"_id": 0}, sort=[("created_at", -1)])
+
+    # Mejor hora de contacto (señal REAL · histograma de la hora de SUS mensajes).
+    best_time = None
+    try:
+        threads = await db.chat_threads.find({"buyer_id": cid}, {"_id": 0, "thread_id": 1}).to_list(50)
+        tids = [t.get("thread_id") for t in threads if t.get("thread_id")]
+        if tids:
+            msgs = await db.chat_messages.find(
+                {"thread_id": {"$in": tids}, "sender_role": "buyer"},
+                {"_id": 0, "sent_at": 1}).limit(500).to_list(500)
+            hours = [m["sent_at"].hour for m in msgs if isinstance(m.get("sent_at"), datetime)]
+            if hours:
+                from collections import Counter
+                top = Counter(hours).most_common(1)[0][0]
+                best_time = {"value": f"{top}:00–{(top + 2) % 24}:00",
+                             "sub": f"cuando más responde · {len(hours)} mensajes"}
+    except Exception:
+        best_time = None
+
+    # Oferta sugerida (valuación AVM REAL de la zona de su búsqueda). HONESTO: es una
+    # estimación de zona, NO una oferta de propiedad específica con prob. de aceptación.
+    offer = None
+    try:
+        cols = (busq or {}).get("colonias") or []
+        if cols:
+            from avm_public_engine import avm_quick_async
+            rec = int((busq or {}).get("recamaras_min") or 2)
+            colonia = str(cols[0]).lower().replace(" ", "-")
+            avm = await avm_quick_async(db, colonia, m2=float(65 + rec * 15),
+                                        recamaras=rec, banos=max(1, rec - 1), antiguedad_anos=5)
+            val = (avm or {}).get("precio_estimado")
+            if avm and not avm.get("error") and val:
+                offer = {"value": int(val), "colonia": (avm.get("colonia_name") or cols[0]),
+                         "confidence": avm.get("confidence"),
+                         "basis": f"valuación AVM de zona ~{int((65 + rec * 15))}m² {rec} rec · estimado"}
+    except Exception:
+        offer = None
+
+    # Enriquecimiento (redes): HONESTO · hoy no hay fuente síncrona de perfiles sociales
+    # resueltos (el motor es un pipeline async que no persiste perfiles legibles) → null.
+    enrichment = None
+
     # Brief determinístico desde datos REALES del lead (sin LLM · siempre disponible
     # si el lead tiene búsqueda/probabilidad). No inventa: solo resume lo que ya hay.
     brief = None
     try:
-        busq = await db.asesor_busquedas.find_one(
-            {"contacto_id": cid, "owner_id": user.user_id}, {"_id": 0}, sort=[("created_at", -1)])
         prob = None
         try:
             from close_probability import close_probability
@@ -990,7 +1033,8 @@ async def get_contacto_intel(cid: str, request: Request):
     except Exception:
         brief = None
 
-    return {"disc": disc, "churn": churn, "brief": brief, "has_user": bool(uid)}
+    return {"disc": disc, "churn": churn, "best_time": best_time, "offer": offer,
+            "enrichment": enrichment, "brief": brief, "has_user": bool(uid)}
 
 
 @router.patch("/contactos/{cid}")
