@@ -886,6 +886,113 @@ async def get_contacto_overview(cid: str, request: Request):
     }
 
 
+# DISC del prospecto (letra) → etiqueta + cómo tratarlo (es-MX). Estático y derivado
+# del motor real (resolve_disc deriva del tier de buyer_score). NO se inventa el DISC:
+# si el motor no tiene señal, este bloque viene null y la UI lo oculta.
+_DISC_LABELS = {
+    "D": {"name": "Dominante", "sub": "directo · decidido · orientado a resultados",
+          "tips": ["Ve al grano, sin rodeos", "Enfócate en resultados y retorno", "Dale el control de la decisión"]},
+    "I": {"name": "Influyente", "sub": "cálido · social · decide con emoción",
+          "tips": ["Sé cercano y entusiasta, evita lo técnico", "Usa historias y testimonios, no solo números", "Dale opciones y hazlo sentir especial"]},
+    "S": {"name": "Estable", "sub": "tranquilo · leal · evita el riesgo",
+          "tips": ["Genera confianza sin presionar", "Da garantías y pasos claros", "Respeta su ritmo, no lo apures"]},
+    "C": {"name": "Concienzudo", "sub": "analítico · detallista · pide datos",
+          "tips": ["Dale datos, fichas y comparativos", "Sé preciso, evita exagerar", "Documenta todo por escrito"]},
+}
+
+
+async def _contacto_user_id(db, contacto: dict) -> Optional[str]:
+    """Resuelve el user_id del comprador detrás de un contacto (vía email).
+    Los motores de IA (buyer_score/DISC/churn) operan por user_id; un contacto
+    alta-manual sin cuenta de comprador no resuelve → None (bloques se ocultan)."""
+    email = (contacto.get("emails") or [None])[0]
+    if not email:
+        return None
+    u = await db.users.find_one({"email": email}, {"_id": 0, "user_id": 1})
+    return (u or {}).get("user_id")
+
+
+@router.get("/contactos/{cid}/intel")
+async def get_contacto_intel(cid: str, request: Request):
+    """B2 · Inteligencia del lead para el perfil-hub (DISC · riesgo de enfriamiento ·
+    brief). Fan-out FAIL-OPEN a los motores REALES; cada bloque = null si el motor no
+    tiene señal (la UI lo oculta · cero pintura falsa). Aislado por owner_id."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
+    if not c:
+        raise HTTPException(404, "No encontrado")
+
+    uid = await _contacto_user_id(db, c)
+
+    # DISC del prospecto (motor real · derivado de buyer_score tier).
+    disc = None
+    if uid:
+        try:
+            from conversation_disc_adapter import resolve_disc
+            letter = (await resolve_disc(db, uid) or "").strip().upper()[:1]
+            if letter in _DISC_LABELS:
+                disc = {"letter": letter, **_DISC_LABELS[letter]}
+        except Exception:
+            disc = None
+
+    # Riesgo de enfriamiento (motor real · churn_prediction sobre behavioral_events).
+    churn = None
+    if uid:
+        try:
+            from churn_prediction_engine import compute_churn_risk
+            r = await compute_churn_risk(db, uid)
+            score = int((r or {}).get("churn_risk_score", 0) or 0)
+            has_signal = bool((r or {}).get("has_data") or score > 0 or (r or {}).get("last_active"))
+            if has_signal:
+                level = "Alto" if score >= 60 else "Medio" if score >= 30 else "Bajo"
+                churn = {"score": score, "level": level,
+                         "reason": "lleva días sin actividad" if score >= 30 else "actividad reciente estable"}
+        except Exception:
+            churn = None
+
+    # Brief determinístico desde datos REALES del lead (sin LLM · siempre disponible
+    # si el lead tiene búsqueda/probabilidad). No inventa: solo resume lo que ya hay.
+    brief = None
+    try:
+        busq = await db.asesor_busquedas.find_one(
+            {"contacto_id": cid, "owner_id": user.user_id}, {"_id": 0}, sort=[("created_at", -1)])
+        prob = None
+        try:
+            from close_probability import close_probability
+            pr = await close_probability(db, cid)
+            if pr and pr.get("prob") is not None:
+                prob = max(0, min(100, int(round(float(pr["prob"])))))
+        except Exception:
+            prob = None
+        bits = []
+        if busq:
+            seg = []
+            if busq.get("recamaras_min"):
+                seg.append(f"{busq['recamaras_min']} rec")
+            cols = busq.get("colonias") or []
+            if cols:
+                seg.append("en " + ", ".join(cols[:2]))
+            if busq.get("precio_max"):
+                seg.append(f"hasta ${busq['precio_max']/1_000_000:.0f}M")
+            if seg:
+                bits.append("Busca " + " ".join(seg))
+        if prob is not None:
+            bits.append(f"{prob}% probabilidad de cierre")
+        etapa = c.get("etapa", "nuevo")
+        falta = {"nuevo": "contactar y calificar", "contactado": "dar seguimiento",
+                 "visita": "confirmar la visita", "negociacion": "meter la oferta",
+                 "cerrado": ""}.get(etapa, "")
+        if bits:
+            nombre = c.get("first_name", "El lead")
+            brief = {"text": f"{nombre} · " + " · ".join(bits) + ".",
+                     "falta": (f"Falta: {falta}." if falta else "")}
+    except Exception:
+        brief = None
+
+    return {"disc": disc, "churn": churn, "brief": brief, "has_user": bool(uid)}
+
+
 @router.patch("/contactos/{cid}")
 async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
     user = await require_advisor(request)

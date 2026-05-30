@@ -39,6 +39,8 @@ export const patchContacto = (id, b) => patch(`/api/asesor/contactos/${id}`, b);
 export const addTimelineEntry = (id, b) => post(`/api/asesor/contactos/${id}/timeline`, b);
 // B1 · Agregador de actividad del lead (timeline unificado · alimenta el tab Actividad del perfil-hub).
 export const getContactoOverview = (id) => j(`/api/asesor/contactos/${id}/overview`);
+// B2 · Inteligencia del lead (DISC · riesgo de enfriamiento · brief) desde motores reales · FAIL-OPEN.
+export const getContactoIntel = (id) => j(`/api/asesor/contactos/${id}/intel`);
 
 // Búsquedas
 export const listBusquedas = () => j('/api/asesor/busquedas');

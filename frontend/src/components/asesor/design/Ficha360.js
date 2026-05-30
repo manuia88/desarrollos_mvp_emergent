@@ -89,6 +89,7 @@ const TONEC = { muted: 'var(--cream-3)', ok: 'var(--ok)', hot: 'var(--hot)' };
 export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar, onStageChange, onToast, demo }) {
   const [tab, setTab] = useState('resumen');
   const [prob, setProb] = useState(null);
+  const [intel, setIntel] = useState(null);   // B2 · DISC/riesgo/brief reales (FAIL-OPEN)
   const [tareas, setTareas] = useState([]);
   const [busquedas, setBusquedas] = useState([]);
   const [matches, setMatches] = useState({});      // bid → [matches]
@@ -119,8 +120,9 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
     if (!open || !cid) return;
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
-    setOverview(null); setConvos(null);
+    setOverview(null); setConvos(null); setIntel(null);
     if (demo) return;
+    api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
     api.getCloseProbability(cid).then(setProb).catch(() => setProb(null));
     api.listTareas({ contacto_id: cid }).then((t) => setTareas(t || [])).catch(() => setTareas([]));
     api.listBusquedas()
@@ -215,6 +217,14 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
     finally { setNoteBusy(false); }
   };
 
+  // Bloques de IA del perfil · demo (vista llena) O motor real (intel) · null = se oculta.
+  const discData = demo?.disc || intel?.disc || null;
+  const briefData = demo?.brief || intel?.brief || null;          // demo: {strong,rest,falta} · real: {text,falta}
+  const signalsData = demo?.signals
+    || (intel?.churn
+        ? [{ label: 'Riesgo de enfriamiento', value: intel.churn.level, sub: intel.churn.reason, warn: intel.churn.level !== 'Bajo' }]
+        : null);
+
   // Criterios "qué busca" · demo o derivados de la primera búsqueda (datos reales).
   const criterios = demo ? demo.criterios : (firstBusq ? [
     { l: 'Presupuesto', v: firstBusq.precio_max ? `Hasta ${fmtMXN(firstBusq.precio_max)}` : (firstBusq.precio_min ? `Desde ${fmtMXN(firstBusq.precio_min)}` : '—') },
@@ -293,12 +303,13 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
             ))}
           </div>
 
-          {/* Brief IA (demo · cuando esté el motor, se alimenta de la API) */}
-          {demo?.brief && (
+          {/* Brief IA · demo (vista llena) o real (intel.brief determinístico) */}
+          {briefData && (
             <div className="asr-brief">
               <div className="asr-brief__i">IA</div>
               <div className="asr-brief__t">
-                <b>{demo.brief.strong}</b>{demo.brief.rest} <span className="asr-falta">{demo.brief.falta}</span>
+                {briefData.strong ? <><b>{briefData.strong}</b>{briefData.rest}</> : briefData.text}
+                {briefData.falta ? <> <span className="asr-falta">{briefData.falta}</span></> : null}
               </div>
             </div>
           )}
@@ -388,17 +399,17 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                 )}
               </div>
 
-              {/* Cómo tratarla · DISC (demo) */}
-              {demo?.disc && (
+              {/* Cómo tratarla · DISC · demo o motor real (conversation_disc_adapter) */}
+              {discData && (
                 <div style={{ marginBottom: 24 }}>
                   <div className="asr-sec-h"><span className="asr-sdot" style={{ background: '#7C4DFF' }} />Cómo tratarla <span className="asr-muted">· estilo de comunicación</span></div>
                   <div className="asr-disc">
                     <div className="asr-disc__type">
-                      <span className="asr-disc__big">{demo.disc.letter}</span>
-                      <div><b className="asr-disc__name">{demo.disc.name}</b><span className="asr-disc__sub">{demo.disc.sub}</span></div>
+                      <span className="asr-disc__big">{discData.letter}</span>
+                      <div><b className="asr-disc__name">{discData.name}</b><span className="asr-disc__sub">{discData.sub}</span></div>
                     </div>
                     <div className="asr-disc__tips">
-                      {demo.disc.tips.map((tp) => <div key={tp}>· {tp}</div>)}
+                      {discData.tips.map((tp) => <div key={tp}>· {tp}</div>)}
                     </div>
                   </div>
                 </div>
@@ -422,12 +433,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                 </div>
               </div>
 
-              {/* Señales IA (demo) */}
-              {demo?.signals && (
+              {/* Señales IA · demo o motor real (churn_prediction · riesgo de enfriamiento) */}
+              {signalsData && (
                 <div style={{ marginBottom: 24 }}>
                   <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--ok)' }} />Señales IA</div>
                   <div className="asr-signals">
-                    {demo.signals.map((s) => (
+                    {signalsData.map((s) => (
                       <div className={`asr-signal${s.warn ? ' asr-signal--warn' : ''}`} key={s.label}>
                         <div className="asr-signal__l">{s.label}</div>
                         <div className="asr-signal__v">{s.value}</div>
