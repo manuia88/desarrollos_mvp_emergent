@@ -1268,7 +1268,7 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
 const FOCO_TONE = { hot: 'var(--hot)', warm: 'var(--warm)', ok: 'var(--ok)' };
 function FocoDemoCard({ f, onOpen }) {
   return (
-    <PremiumCard hover data-testid={`asr-foco-card-${f.id}`} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', flex: '1 1 280px' }}>
+    <PremiumCard hover data-testid={`asr-foco-card-${f.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', flex: '1 1 280px', cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: FOCO_TONE[f.tone] || 'var(--ok)', flexShrink: 0 }} />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.who}</span>
@@ -1278,10 +1278,10 @@ function FocoDemoCard({ f, onOpen }) {
         <b className="asr-foco__bold">{f.bold}</b> {f.body}
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
-        {f.actions.includes('wa') && <button className="asr-mini asr-mini--go"><MessageCircle size={13} /> WhatsApp</button>}
-        {f.actions.includes('perfil') && <button className="asr-mini" onClick={onOpen}><Eye size={13} /> Ver perfil</button>}
-        {f.actions.includes('cita') && <button className="asr-mini asr-mini--go">Ver cita</button>}
-        {f.actions.includes('comparativo') && <button className="asr-mini">Comparativo</button>}
+        {f.actions.includes('wa') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}><MessageCircle size={13} /> WhatsApp</button>}
+        {f.actions.includes('perfil') && <button className="asr-mini" onClick={(e) => { e.stopPropagation(); onOpen(); }}><Eye size={13} /> Ver perfil</button>}
+        {f.actions.includes('cita') && <button className="asr-mini asr-mini--go" onClick={(e) => e.stopPropagation()}>Ver cita</button>}
+        {f.actions.includes('comparativo') && <button className="asr-mini" onClick={(e) => e.stopPropagation()}>Comparativo</button>}
       </div>
     </PremiumCard>
   );
@@ -1297,7 +1297,9 @@ function FocoCardV2({ action, lead, onCTA, style }) {
   // Quién = el lead si la acción lo trae; si no, el título limpio (sin emoji).
   const who = lead ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() : stripEmoji(action.title) || 'Acción';
   return (
-    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', ...(style || {}) }}>
+    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`}
+      onClick={action.lead_id ? () => onCTA('ver', action) : undefined}
+      style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', cursor: action.lead_id ? 'pointer' : 'default', ...(style || {}) }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: `rgb(${rgb})`, flexShrink: 0 }} />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1314,19 +1316,19 @@ function FocoCardV2({ action, lead, onCTA, style }) {
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
         {waUrl && (
-          <a href={waUrl} target="_blank" rel="noreferrer" className="asr-mini asr-mini--go" data-testid={`foco-wa-${action.id}`}>
+          <a href={waUrl} target="_blank" rel="noreferrer" className="asr-mini asr-mini--go" data-testid={`foco-wa-${action.id}`} onClick={(e) => e.stopPropagation()}>
             <MessageCircle size={13} /> WhatsApp
           </a>
         )}
         {action.lead_id && (
-          <button data-testid={`foco-ver-${action.id}`} className="asr-mini" onClick={() => onCTA('ver', action)}>
+          <button data-testid={`foco-ver-${action.id}`} className="asr-mini" onClick={(e) => { e.stopPropagation(); onCTA('ver', action); }}>
             <Eye size={13} /> Ver perfil
           </button>
         )}
-        <button data-testid={`foco-completar-${action.id}`} className="asr-mini" title="Marcar como hecho" onClick={() => onCTA('completar', action)}>
+        <button data-testid={`foco-completar-${action.id}`} className="asr-mini" title="Marcar como hecho" onClick={(e) => { e.stopPropagation(); onCTA('completar', action); }}>
           <Check size={13} />
         </button>
-        <button data-testid={`foco-descartar-${action.id}`} className="asr-mini" title="Descartar" onClick={() => onCTA('descartar', action)}>
+        <button data-testid={`foco-descartar-${action.id}`} className="asr-mini" title="Descartar" onClick={(e) => { e.stopPropagation(); onCTA('descartar', action); }}>
           <XIcon size={13} />
         </button>
       </div>
