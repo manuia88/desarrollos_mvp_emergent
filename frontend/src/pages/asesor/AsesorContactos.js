@@ -862,11 +862,13 @@ function AsesorContactosV2({ user, onLogout }) {
   }, [smartList, demoMode]); // eslint-disable-line
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [sortBy, smartList]);
+  useEffect(() => { load(); }, [sortBy, smartList, demoMode]);  // recarga al prender/apagar demo
 
   useEffect(() => {
     if (!id) { setSelected(null); return; }
     if (demoMode) { setSelected(demoLeadById(id)); return; }
+    // URL con un id demo viejo pero el demo está apagado → no existe en backend · limpia.
+    if (id.startsWith('demo-')) { setSelected(null); nav('/asesor/contactos', { replace: true }); return; }
     api.getContacto(id).then(setSelected).catch(() => {});
   }, [id, demoMode]);
 
