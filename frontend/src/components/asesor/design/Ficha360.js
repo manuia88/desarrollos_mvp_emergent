@@ -29,7 +29,7 @@ import { fmtMXN } from '../../advisor/primitives';
 import { Z } from '../../../styles/zIndex';
 import TemperaturePill from './TemperaturePill';
 import ScoreRing from './ScoreRing';
-import { TEMP, TEMP_ORDER, tempMeta } from './palette';
+import { ETAPA, ETAPA_ORDER, etapaMeta } from './palette';
 
 const initials = (c) =>
   `${(c?.first_name || '').charAt(0)}${(c?.last_name || '').charAt(0)}`.toUpperCase() || '·';
@@ -169,14 +169,15 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
     : 'Aún frío: nútrelo antes de empujar.';
   const firstBusq = busquedas[0] || null;
 
-  // Mover temperatura (estado) desde los chips del header.
-  const moveTemp = async (tk) => {
-    if (stageBusy || tk === c.temperatura) return;
+  // Mover la ETAPA del pipeline desde los chips del header (como el mockup).
+  const etapaActual = c.etapa || 'nuevo';
+  const moveEtapa = async (ek) => {
+    if (stageBusy || ek === etapaActual) return;
     setStageBusy(true);
     try {
-      await api.patchContacto(cid, { temperatura: tk });
-      if (onStageChange) onStageChange(tk);
-      toast('success', `Movido a ${tempMeta(tk).label}`);
+      await api.patchContacto(cid, { etapa: ek });
+      if (onStageChange) onStageChange(ek);
+      toast('success', `Movido a ${etapaMeta(ek).label}`);
     } catch (_) {
       toast('error', 'No se pudo mover');
     } finally { setStageBusy(false); }
@@ -239,7 +240,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 6, flexWrap: 'wrap' }}>
                 <TemperaturePill temp={c.temperatura} size="sm" />
-                {c.tipo && <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)', textTransform: 'capitalize' }}>{c.tipo}</span>}
+                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)' }}>· {etapaMeta(etapaActual).label}</span>
+                {c.tipo && <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--cream-2)', textTransform: 'capitalize' }}>· {c.tipo}</span>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -257,18 +259,18 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
             </button>
           </div>
 
-          {/* Chips de estado (mueven temperatura via patchContacto) */}
+          {/* Chips de etapa del pipeline (mueven `etapa` via patchContacto · como el mockup) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 20, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginRight: 4 }}>Temperatura</span>
-            {TEMP_ORDER.map((tk) => (
+            <span style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginRight: 4 }}>Etapa</span>
+            {ETAPA_ORDER.map((ek) => (
               <button
-                key={tk}
-                data-testid={`asr-ficha360-stage-${tk}`}
-                className={`asr-stchip${c.temperatura === tk ? ' asr-stchip--on' : ''}`}
+                key={ek}
+                data-testid={`asr-ficha360-stage-${ek}`}
+                className={`asr-stchip${etapaActual === ek ? ' asr-stchip--on' : ''}`}
                 disabled={stageBusy}
-                onClick={() => moveTemp(tk)}
+                onClick={() => moveEtapa(ek)}
               >
-                {TEMP[tk].label}
+                {ETAPA[ek].label}
               </button>
             ))}
           </div>

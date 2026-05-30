@@ -36,7 +36,30 @@
   --sh-elev:   0 24px 80px rgba(0,0,0,0.45);
   --focus-ring: 2px solid var(--indigo);
   --focus-ring-offset: 2px;
+
+  /* ── Marco del portal (sidebar · topbar · root) ──────────────────────────
+   * Tokens del "caparazón" compartido por todos los portales. El DEFAULT es el
+   * look OSCURO actual → broker/superadmin/developer quedan idénticos (cero cambio).
+   * Solo se sobrescriben bajo `.frame-light` (que PortalLayout monta SOLO para el
+   * rol asesor), para que el marco combine con el mockup claro de Leads. */
+  --frame-bg:      #06080F;          /* fondo del root/main */
+  --frame-panel:   #0b0e18;          /* sidebar + topbar */
+  --frame-pop:     13, 16, 23;       /* dropdowns (rgba) */
+  --frame-fg:      240, 235, 224;    /* texto/bordes/hover del marco (rgba cream) */
+  --frame-primary: var(--cream);     /* texto principal del marco */
 }
+
+/* Marco CLARO · solo asesor. Repinta el caparazón al tema del mockup
+ * (superficie blanca, tinta #1E2230) sin tocar el contenido (.portal-asesor
+ * trae sus propios tokens) ni los demás portales. */
+.frame-light {
+  --frame-bg:      #FAFAFB;
+  --frame-panel:   #FFFFFF;
+  --frame-pop:     255, 255, 255;
+  --frame-fg:      30, 34, 48;
+  --frame-primary: #1E2230;
+}
+.frame-light [data-testid="portal-main"] { background: var(--frame-bg); }
 
 /* ── Global ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }

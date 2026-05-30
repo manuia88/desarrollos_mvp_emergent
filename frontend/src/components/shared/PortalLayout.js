@@ -79,24 +79,24 @@ function NavItem({ item, collapsed, badge }) {
       className={({ isActive: ia }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 relative group
         ${ia
-          ? 'bg-[rgba(var(--theme-rgb),0.18)] text-[var(--cream)] font-semibold shadow-[inset_3px_0_0_var(--theme)]'
-          : 'font-medium text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)]'}`
+          ? 'bg-[rgba(var(--theme-rgb),0.18)] text-[var(--frame-primary)] font-semibold shadow-[inset_3px_0_0_var(--theme)]'
+          : 'font-medium text-[rgba(var(--frame-fg),0.65)] hover:text-[var(--frame-primary)] hover:bg-[rgba(var(--frame-fg),0.06)]'}`
       }
     >
       <item.Icon size={17} className="shrink-0" />
       {!collapsed && <span className="truncate">{item.label}</span>}
       {!collapsed && badge > 0 && (
-        <span className="ml-auto min-w-[20px] h-5 px-1 rounded-full bg-[var(--cream)] text-[var(--navy)] text-[10px] font-bold flex items-center justify-center">
+        <span className="ml-auto min-w-[20px] h-5 px-1 rounded-full bg-[var(--frame-primary)] text-[var(--frame-bg)] text-[10px] font-bold flex items-center justify-center">
           {badge > 99 ? '99+' : badge}
         </span>
       )}
       {collapsed && badge > 0 && (
-        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--cream)] text-[var(--navy)] text-[9px] font-bold flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[var(--frame-primary)] text-[var(--frame-bg)] text-[9px] font-bold flex items-center justify-center">
           {badge > 9 ? '9+' : badge}
         </span>
       )}
       {collapsed && (
-        <span className="absolute left-full ml-2 px-2 py-1 rounded bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] text-[var(--cream)] text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 backdrop-blur-[24px]">
+        <span className="absolute left-full ml-2 px-2 py-1 rounded bg-[rgba(var(--frame-pop),0.92)] border border-[rgba(255,255,255,0.16)] text-[var(--frame-primary)] text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 backdrop-blur-[24px]">
           {item.label}
         </span>
       )}
@@ -112,7 +112,7 @@ function NavTier({ tier, collapsed, badges }) {
         <button
           onClick={() => setOpen(o => !o)}
           data-section-key={tier.section_key || undefined}
-          className="nav-tier-label w-full flex items-center gap-2 px-3 py-1 text-[10px] font-semibold tracking-widest uppercase text-[rgba(240,235,224,0.35)] hover:text-[rgba(240,235,224,0.55)] transition-colors"
+          className="nav-tier-label w-full flex items-center gap-2 px-3 py-1 text-[10px] font-semibold tracking-widest uppercase text-[rgba(var(--frame-fg),0.35)] hover:text-[rgba(var(--frame-fg),0.55)] transition-colors"
         >
           {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
           {tier.label}
@@ -270,18 +270,18 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
   const defaultSidebarContent = (
     <>
       {/* Logo area */}
-      <div className={`flex items-center ${collapsed ? 'justify-center px-2' : 'px-4'} py-5 border-b border-[rgba(240,235,224,0.08)] mb-3`}>
+      <div className={`flex items-center ${collapsed ? 'justify-center px-2' : 'px-4'} py-5 border-b border-[rgba(var(--frame-fg),0.08)] mb-3`}>
         {!collapsed ? (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[var(--cream)] font-bold text-lg tracking-tight">DMX</span>
-            <span className="text-[rgba(240,235,224,0.4)] text-xs truncate">{ROLE_LABELS[role] || role}</span>
+            <span className="text-[var(--frame-primary)] font-bold text-lg tracking-tight">DMX</span>
+            <span className="text-[rgba(var(--frame-fg),0.4)] text-xs truncate">{ROLE_LABELS[role] || role}</span>
           </div>
         ) : (
-          <span className="text-[var(--cream)] font-bold text-sm">D</span>
+          <span className="text-[var(--frame-primary)] font-bold text-sm">D</span>
         )}
         <button
           onClick={() => setCollapsed(c => !c)}
-          className="ml-auto text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] transition-colors hidden md:flex"
+          className="ml-auto text-[rgba(var(--frame-fg),0.4)] hover:text-[var(--frame-primary)] transition-colors hidden md:flex"
           data-testid="sidebar-collapse-btn"
           aria-label={collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'}
         >
@@ -297,21 +297,21 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
       </nav>
 
       {/* User section */}
-      <div className={`mt-auto border-t border-[rgba(240,235,224,0.08)] p-2 ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`mt-auto border-t border-[rgba(var(--frame-fg),0.08)] p-2 ${collapsed ? 'flex justify-center' : ''}`}>
         {!collapsed ? (
-          <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-[rgba(240,235,224,0.06)] transition-colors">
-            <div className="w-8 h-8 rounded-full bg-[rgba(240,235,224,0.15)] flex items-center justify-center text-[var(--cream)] text-xs font-bold shrink-0">
+          <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-[rgba(var(--frame-fg),0.06)] transition-colors">
+            <div className="w-8 h-8 rounded-full bg-[rgba(var(--frame-fg),0.15)] flex items-center justify-center text-[var(--frame-primary)] text-xs font-bold shrink-0">
               {user?.picture
                 ? <img src={user.picture} alt="" className="w-8 h-8 rounded-full object-cover" />
                 : (user?.name?.[0] || 'U')}
             </div>
             <div className="min-w-0">
-              <p className="text-[var(--cream)] text-xs font-medium truncate">{user?.name || 'Usuario'}</p>
-              <p className="text-[rgba(240,235,224,0.4)] text-[10px] truncate">{user?.email || ''}</p>
+              <p className="text-[var(--frame-primary)] text-xs font-medium truncate">{user?.name || 'Usuario'}</p>
+              <p className="text-[rgba(var(--frame-fg),0.4)] text-[10px] truncate">{user?.email || ''}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="ml-auto text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] transition-colors"
+              className="ml-auto text-[rgba(var(--frame-fg),0.4)] hover:text-[var(--frame-primary)] transition-colors"
               title="Cerrar sesión"
               data-testid="sidebar-logout-btn"
             >
@@ -321,7 +321,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
         ) : (
           <button
             onClick={handleLogout}
-            className="text-[rgba(240,235,224,0.4)] hover:text-[var(--cream)] transition-colors p-1"
+            className="text-[rgba(var(--frame-fg),0.4)] hover:text-[var(--frame-primary)] transition-colors p-1"
             title="Cerrar sesión"
           >
             <LogOut size={14} />
@@ -340,7 +340,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
         : defaultSidebarContent);
 
   return (
-    <div className="flex h-screen bg-[var(--navy)] overflow-hidden" data-testid="portal-layout">
+    <div className={`flex h-screen bg-[var(--frame-bg)] overflow-hidden${ASESOR_ROLES.has(role) ? ' frame-light' : ''}`} data-testid="portal-layout">
       {/* Presentation Mode Badge */}
       {isPresentationMode && (
         <div className="presentation-badge" data-testid="presentation-badge">
@@ -361,7 +361,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
 
       {/* Desktop sidebar */}
       <aside
-        className={`sidebar-portal hidden md:flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)] transition-all duration-200 ease-in-out ${(useAsesorV2 || renderSidebar) ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
+        className={`sidebar-portal hidden md:flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)] transition-all duration-200 ease-in-out ${(useAsesorV2 || renderSidebar) ? 'w-[244px]' : (collapsed ? 'w-[56px]' : 'w-[220px]')}`}
         data-testid="portal-sidebar"
         aria-label="Barra lateral de navegación"
       >
@@ -375,7 +375,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-[260px] flex flex-col bg-[#0b0e18] border-r border-[rgba(240,235,224,0.08)]">
+          <aside className="absolute left-0 top-0 bottom-0 w-[260px] flex flex-col bg-[var(--frame-panel)] border-r border-[rgba(var(--frame-fg),0.08)]">
             {sidebarContent}
           </aside>
         </div>
@@ -385,10 +385,10 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <ImpersonationBanner />
         {/* Topbar */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(240,235,224,0.08)] bg-[#0b0e18] shrink-0" data-testid="portal-topbar" role="banner">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-[rgba(var(--frame-fg),0.08)] bg-[var(--frame-panel)] shrink-0" data-testid="portal-topbar" role="banner">
           {/* Mobile hamburger */}
           <button
-            className="md:hidden text-[rgba(240,235,224,0.6)] hover:text-[var(--cream)] transition-colors"
+            className="md:hidden text-[rgba(var(--frame-fg),0.6)] hover:text-[var(--frame-primary)] transition-colors"
             onClick={() => setMobileOpen(o => !o)}
             data-testid="mobile-menu-btn"
             aria-label={mobileOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
@@ -418,12 +418,12 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
           {/* Search trigger */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.1)] text-[rgba(240,235,224,0.5)] hover:text-[var(--cream)] hover:border-[rgba(240,235,224,0.2)] transition-all text-sm"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(var(--frame-fg),0.06)] border border-[rgba(var(--frame-fg),0.1)] text-[rgba(var(--frame-fg),0.5)] hover:text-[var(--frame-primary)] hover:border-[rgba(var(--frame-fg),0.2)] transition-all text-sm"
             data-testid="search-trigger-btn"
           >
             <Search size={14} />
             <span className="hidden sm:inline text-xs">Buscar…</span>
-            <kbd className="hidden sm:inline ml-auto text-[9px] px-1 rounded bg-[rgba(240,235,224,0.1)]">⌘K</kbd>
+            <kbd className="hidden sm:inline ml-auto text-[9px] px-1 rounded bg-[rgba(var(--frame-fg),0.1)]">⌘K</kbd>
           </button>
 
           <div className="flex-1" />
@@ -435,7 +435,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(o => !o)}
-              className="w-8 h-8 rounded-full bg-[rgba(240,235,224,0.12)] flex items-center justify-center text-[var(--cream)] text-xs font-bold hover:bg-[rgba(240,235,224,0.2)] transition-colors"
+              className="w-8 h-8 rounded-full bg-[rgba(var(--frame-fg),0.12)] flex items-center justify-center text-[var(--frame-primary)] text-xs font-bold hover:bg-[rgba(var(--frame-fg),0.2)] transition-colors"
               data-testid="user-menu-btn"
               aria-label="Menú de usuario"
               aria-expanded={userMenuOpen}
@@ -445,15 +445,15 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
                 : <User size={14} />}
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-44 rounded-xl bg-[rgba(13,16,23,0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] py-1 z-50">
-                <div className="px-3 py-2 border-b border-[rgba(240,235,224,0.08)]">
-                  <p className="text-[var(--cream)] text-xs font-medium truncate">{user?.name}</p>
-                  <p className="text-[rgba(240,235,224,0.4)] text-[10px] truncate">{user?.email}</p>
+              <div className="absolute right-0 top-full mt-2 w-44 rounded-xl bg-[rgba(var(--frame-pop),0.92)] border border-[rgba(255,255,255,0.16)] backdrop-blur-[24px] py-1 z-50">
+                <div className="px-3 py-2 border-b border-[rgba(var(--frame-fg),0.08)]">
+                  <p className="text-[var(--frame-primary)] text-xs font-medium truncate">{user?.name}</p>
+                  <p className="text-[rgba(var(--frame-fg),0.4)] text-[10px] truncate">{user?.email}</p>
                 </div>
                 <Link
                   to="/configuracion/preferencias"
                   onClick={() => setUserMenuOpen(false)}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(var(--frame-fg),0.65)] hover:text-[var(--frame-primary)] hover:bg-[rgba(var(--frame-fg),0.06)] transition-colors text-sm"
                   data-testid="topbar-preferences-link"
                 >
                   <Settings size={14} />
@@ -465,7 +465,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
                     if (tid) startTour(tid);
                     setUserMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(var(--frame-fg),0.65)] hover:text-[var(--frame-primary)] hover:bg-[rgba(var(--frame-fg),0.06)] transition-colors text-sm"
                   data-testid="restart-tour-btn"
                 >
                   <RotateCcw size={14} />
@@ -473,7 +473,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(240,235,224,0.65)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.06)] transition-colors text-sm"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[rgba(var(--frame-fg),0.65)] hover:text-[var(--frame-primary)] hover:bg-[rgba(var(--frame-fg),0.06)] transition-colors text-sm"
                   data-testid="topbar-logout-btn"
                 >
                   <LogOut size={14} />

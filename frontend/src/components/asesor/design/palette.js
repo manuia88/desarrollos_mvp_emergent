@@ -23,11 +23,28 @@ export const TEMP = {
   cliente:  { key: 'cliente',  label: 'Cliente',  rgb: '31, 160, 106' }, // ok
 };
 
-// Orden canónico del pipeline (izquierda → derecha) = el "embudo" de Leads.
+// Orden canónico de temperatura (frío → cliente). Se usa para el color del score.
 export const TEMP_ORDER = ['frio', 'tibio', 'caliente', 'cliente'];
 
 // Helper: devuelve la entrada de paleta para una temperatura (fallback frío).
 export const tempMeta = (t) => TEMP[t] || TEMP.frio;
+
+// Etapa del pipeline del LEAD = las columnas del kanban "Tu embudo de leads" del
+// mockup (Nuevo → Cerrado). Es la posición en el embudo, distinta de la temperatura.
+// `key` casa con el backend (ContactoPatch.etapa · ETAPA_CONTACTO).
+export const ETAPA = {
+  nuevo:       { key: 'nuevo',       label: 'Nuevo' },
+  contactado:  { key: 'contactado',  label: 'Contactado' },
+  visita:      { key: 'visita',      label: 'Visita' },
+  negociacion: { key: 'negociacion', label: 'Negociación' },
+  cerrado:     { key: 'cerrado',     label: 'Cerrado' },
+};
+
+// Orden de columnas izquierda → derecha (el embudo).
+export const ETAPA_ORDER = ['nuevo', 'contactado', 'visita', 'negociacion', 'cerrado'];
+
+// Helper: entrada de etapa (fallback 'nuevo' para contactos previos sin campo).
+export const etapaMeta = (e) => ETAPA[e] || ETAPA.nuevo;
 
 // Estilos derivados de un rgb semántico (bg suave + borde + texto claro).
 export const tone = (rgb) => ({

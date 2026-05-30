@@ -14,8 +14,9 @@ import SourceBadge from '../../components/asesor/SourceBadge';
 import { getLeadsInPreset, getSmartListPresets, getSmartListCounts } from '../../api/smart_lists';
 // Sistema de Diseño asesor (tema claro)
 import {
-  ActionBar, ViewToggle, StatusDot, ScoreBar,
-  PremiumCard, Ficha360, TEMP, TEMP_ORDER, tempMeta, PRIORITY_RGB,
+  ActionBar, ViewToggle, ScoreBar,
+  PremiumCard, Ficha360, tempMeta, PRIORITY_RGB,
+  ETAPA, ETAPA_ORDER, etapaMeta,
 } from '../../components/asesor/design';
 
 // Flag de rollout · V2 = rediseño Leads (Sistema de Diseño asesor). OFF por
@@ -750,6 +751,14 @@ function agingText(iso) {
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
 }
 
+// Quita emoji/símbolos que algunos agentes IA anteponen al texto (p.ej. el coach
+// manda "📚 Tip de tu coach"). El mockup es CERO emoji → limpiamos en el render.
+const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}]/gu;
+function stripEmoji(s) {
+  if (!s) return s;
+  return String(s).replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 // Encabezado de sección estilo mockup (.secline): eyebrow violeta + nota + regla.
 function SecLine({ em, lab, note }) {
   return (
@@ -924,18 +933,18 @@ function AsesorContactosV2({ user, onLogout }) {
     try { await api.pinContacto(c.id); } catch (_) { load(); }
   };
 
-  // Kanban: arrastrar un lead a otra columna actualiza su temperatura (patchContacto).
-  const onDropTemp = async (tempKey) => {
+  // Kanban: arrastrar un lead a otra columna mueve su ETAPA del pipeline (patchContacto).
+  const onDropEtapa = async (etapaKey) => {
     setDragOverCol(null);
     const cid = dragging;
     setDragging(null);
     if (!cid) return;
     const item = list.find((x) => x.id === cid);
-    if (!item || item.temperatura === tempKey) return;
-    setList((prev) => prev.map((x) => (x.id === cid ? { ...x, temperatura: tempKey } : x)));
+    if (!item || (item.etapa || 'nuevo') === etapaKey) return;
+    setList((prev) => prev.map((x) => (x.id === cid ? { ...x, etapa: etapaKey } : x)));
     try {
-      await api.patchContacto(cid, { temperatura: tempKey });
-      setToast({ kind: 'success', text: `Movido a ${tempMeta(tempKey).label}` });
+      await api.patchContacto(cid, { etapa: etapaKey });
+      setToast({ kind: 'success', text: `Movido a ${etapaMeta(etapaKey).label}` });
     } catch (e) {
       setToast({ kind: 'error', text: 'No se pudo mover' });
       load();
@@ -953,12 +962,12 @@ function AsesorContactosV2({ user, onLogout }) {
     } catch (_) { setToast({ kind: 'error', text: 'No se pudo aplicar' }); }
   };
 
-  // El perfil-hub mueve la temperatura (estado) desde sus chips · reflejamos el
+  // El perfil-hub mueve la ETAPA del pipeline desde sus chips · reflejamos el
   // cambio en el kanban y en la ficha abierta sin recargar todo.
-  const handleStageChange = (tk) => {
+  const handleEtapaChange = (ek) => {
     if (!selected) return;
-    setList((prev) => prev.map((x) => (x.id === selected.id ? { ...x, temperatura: tk } : x)));
-    setSelected((prev) => (prev ? { ...prev, temperatura: tk } : prev));
+    setList((prev) => prev.map((x) => (x.id === selected.id ? { ...x, etapa: ek } : x)));
+    setSelected((prev) => (prev ? { ...prev, etapa: ek } : prev));
   };
 
   const sortControl = (
@@ -1017,12 +1026,18 @@ function AsesorContactosV2({ user, onLogout }) {
           <div data-testid="asr-foco-hoy" style={{ marginBottom: 34 }}>
             <SecLine em="Foco de hoy" note="la IA priorizó esto para ti" />
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14,
+              display: 'flex', flexWrap: 'wrap', gap: 14,
               background: 'linear-gradient(180deg, rgba(var(--theme-rgb),0.10), transparent 90%)',
               border: '1px solid var(--border)', borderRadius: 16, padding: 16,
             }} className="asr-foco-grid">
               {foco.map((a) => (
-                <FocoCardV2 key={a.id} action={a} lead={list.find((x) => x.id === a.lead_id)} onCTA={focoCTA} />
+                <FocoCardV2
+                  key={a.id}
+                  action={a}
+                  lead={list.find((x) => x.id === a.lead_id)}
+                  onCTA={focoCTA}
+                  style={{ flex: '1 1 280px', maxWidth: foco.length === 1 ? 460 : 'none' }}
+                />
               ))}
             </div>
           </div>
@@ -1034,28 +1049,28 @@ function AsesorContactosV2({ user, onLogout }) {
         {loading ? <div style={{ padding: 60, color: 'var(--cream-3)', textAlign: 'center' }}>Cargando…</div>
           : display.length === 0 ? <Empty title={smartList ? 'Sin leads en este filtro' : 'Sin leads'} sub={smartList ? 'Prueba con otro chip o vuelve a "Todos".' : 'Crea tu primer lead con "+ Nuevo lead".'} />
           : view === 'pipeline' ? (
-            <div data-testid="leads-kanban" style={{ display: 'grid', gridTemplateColumns: `repeat(${TEMP_ORDER.length}, minmax(232px, 1fr))`, gap: 14, alignItems: 'start', overflowX: 'auto' }}>
-              {TEMP_ORDER.map((tk) => {
-                const meta = TEMP[tk];
-                const col = display.filter((c) => (c.temperatura || 'frio') === tk);
-                const nuevosHoy = col.filter((c) => isToday(c.created_at)).length;
+            <div data-testid="leads-kanban" style={{ display: 'grid', gridTemplateColumns: `repeat(${ETAPA_ORDER.length}, minmax(232px, 1fr))`, gap: 14, alignItems: 'start', overflowX: 'auto' }}>
+              {ETAPA_ORDER.map((ek) => {
+                const meta = ETAPA[ek];
+                const col = display.filter((c) => (c.etapa || 'nuevo') === ek);
+                // Intel de columna (solo dato REAL · sin inventar): "Nuevo" muestra los
+                // que entraron hoy; "Cerrado" la suma de comisión si la traen los leads.
+                const nuevosHoy = ek === 'nuevo' ? col.filter((c) => isToday(c.created_at)).length : 0;
+                const intel = nuevosHoy > 0 ? (nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`) : null;
                 return (
-                  <div key={tk} data-testid={`col-${tk}`}
-                    className={`asr-kanban-col${dragOverCol === tk ? ' asr-kanban-col--over' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); setDragOverCol(tk); }}
-                    onDragLeave={() => setDragOverCol((p) => (p === tk ? null : p))}
-                    onDrop={() => onDropTemp(tk)}
+                  <div key={ek} data-testid={`col-${ek}`}
+                    className={`asr-kanban-col${dragOverCol === ek ? ' asr-kanban-col--over' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverCol(ek); }}
+                    onDragLeave={() => setDragOverCol((p) => (p === ek ? null : p))}
+                    onDrop={() => onDropEtapa(ek)}
                     style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, minHeight: 120, transition: 'border-color 200ms, background 200ms' }}>
                     <div style={{ marginBottom: 12, padding: '0 2px 11px', borderBottom: '2px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <StatusDot temp={tk} />
                         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{meta.label}</span>
                         <span className="asr-num" style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)' }}>{col.length}</span>
                       </div>
-                      {nuevosHoy > 0 && (
-                        <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>
-                          {nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`}
-                        </div>
+                      {intel && (
+                        <div style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 4 }}>{intel}</div>
                       )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1083,7 +1098,7 @@ function AsesorContactosV2({ user, onLogout }) {
           contact={selected}
           onOpenArg={() => setShowArg(true)}
           onAgendar={() => nav('/asesor/citas')}
-          onStageChange={handleStageChange}
+          onStageChange={handleEtapaChange}
           onToast={(kind, text) => setToast({ kind, text })}
         />
 
@@ -1153,18 +1168,18 @@ function LeadCardV2({ c, busquedas, nextAction, onPin, onOpen, draggable, isDrag
       </div>
       <ScoreBar score={score} showNumber={false} width="100%" />
 
-      {/* zona · precio (de su búsqueda) */}
+      {/* zona · precio (de su búsqueda) · sin contradecir el conteo de propiedades */}
       <div style={{ color: 'var(--cream-2)', fontSize: 13.5, margin: '11px 0 9px' }}>
         {zona || precio
           ? `${zona || ''}${zona && precio ? ' · ' : ''}${precio ? 'hasta ' + fmtMXN(precio) : ''}`
-          : 'Sin búsqueda registrada'}
+          : nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada'}
       </div>
 
-      {/* próxima acción (del action_queue · solo si existe) */}
+      {/* próxima acción (del action_queue · solo si existe · sin emoji) */}
       {actText && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, color: 'var(--cream)', fontWeight: 600, marginBottom: 9 }}>
           <ArrowRight size={13} color="var(--theme-2)" />
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nextAction.title || nextAction.subtitle}</span>
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stripEmoji(nextAction.title || nextAction.subtitle)}</span>
         </div>
       )}
 
@@ -1192,23 +1207,29 @@ function LeadCardV2({ c, busquedas, nextAction, onPin, onOpen, draggable, isDrag
 
 // Card de "Foco de hoy" · idéntica al mockup (.fcard): dot de prioridad + quién +
 // tag + razón + WhatsApp / Ver perfil (+ completar/descartar la acción).
-function FocoCardV2({ action, lead, onCTA }) {
+function FocoCardV2({ action, lead, onCTA, style }) {
   const rgb = PRIORITY_RGB[action.priority] || PRIORITY_RGB[3];
   const phone = (lead?.phones || [])[0];
   const digits = (phone || '').replace(/\D/g, '');
   const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (lead?.first_name || '') + ', ')}` : null;
+  // Quién = el lead si la acción lo trae; si no, el título limpio (sin emoji).
+  const who = lead ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() : stripEmoji(action.title) || 'Acción';
   return (
-    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column' }}>
+    <PremiumCard hover data-testid={`asr-foco-card-${action.id}`} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', ...(style || {}) }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: `rgb(${rgb})`, flexShrink: 0 }} />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {action.title || 'Acción'}
+          {who}
         </span>
         {action.source_agent && (
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--theme-2)', textTransform: 'uppercase' }}>{action.source_agent}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--theme-2)', textTransform: 'uppercase' }}>{stripEmoji(action.source_agent)}</span>
         )}
       </div>
-      {action.subtitle && <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>{action.subtitle}</div>}
+      {(action.subtitle || (lead && action.title)) && (
+        <div style={{ color: 'var(--cream-2)', fontSize: 14, lineHeight: 1.5, marginBottom: 14 }}>
+          {stripEmoji(action.subtitle || action.title)}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto', flexWrap: 'wrap' }}>
         {waUrl && (
           <a href={waUrl} target="_blank" rel="noreferrer" className="asr-mini asr-mini--go" data-testid={`foco-wa-${action.id}`}>

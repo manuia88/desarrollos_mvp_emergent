@@ -28,6 +28,12 @@ TIPO_CONTACTO  = ["comprador", "vendedor", "propietario", "inversor", "broker"]
 TEMP_CONTACTO  = ["frio", "tibio", "caliente", "cliente"]
 PRIORITY       = ["alta", "media", "baja"]
 
+# Etapa del pipeline del LEAD (kanban "Tu embudo de leads" del mockup). Aditivo:
+# los contactos previos sin este campo se leen como "nuevo". El asesor lo mueve
+# arrastrando la tarjeta o con los chips del perfil-hub. Distinto de la temperatura
+# (frío/tibio/caliente) que es la señal de calor del lead, no su posición en el embudo.
+ETAPA_CONTACTO = ["nuevo", "contactado", "visita", "negociacion", "cerrado"]
+
 
 # ─── Pydantic models ──────────────────────────────────────────────────────────
 class ContactoIn(BaseModel):
@@ -37,6 +43,7 @@ class ContactoIn(BaseModel):
     emails: List[str] = []
     tipo: str = "comprador"
     temperatura: str = "frio"
+    etapa: str = "nuevo"
     tags: List[str] = []
     fuente: Optional[str] = "manual"
     notas: Optional[str] = ""
@@ -48,6 +55,7 @@ class ContactoPatch(BaseModel):
     emails: Optional[List[str]] = None
     tipo: Optional[str] = None
     temperatura: Optional[str] = None
+    etapa: Optional[str] = None
     tags: Optional[List[str]] = None
     notas: Optional[str] = None
 
@@ -670,6 +678,10 @@ async def list_contactos(
         ]
     items = await db.asesor_contactos.find(flt, {"_id": 0}).sort("created_at", -1).limit(500).to_list(500)
 
+    # Etapa del pipeline · default 'nuevo' para contactos previos sin el campo.
+    for c in items:
+        c.setdefault("etapa", "nuevo")
+
     # W5.4 Sub-B — JOIN buyer_scores vía email → user_id
     try:
         all_emails = list({(c.get("emails") or [None])[0] for c in items if (c.get("emails") or [None])[0]})
@@ -718,6 +730,7 @@ async def create_contacto(payload: ContactoIn, request: Request):
     db = get_db(request)
     if payload.tipo not in TIPO_CONTACTO: raise HTTPException(400, "tipo inválido")
     if payload.temperatura not in TEMP_CONTACTO: raise HTTPException(400, "temperatura inválida")
+    if payload.etapa not in ETAPA_CONTACTO: raise HTTPException(400, "etapa inválida")
     phones_norm = [_norm_phone(p) for p in payload.phones if p]
     # dedupe check
     if phones_norm:
@@ -742,6 +755,7 @@ async def get_contacto(cid: str, request: Request):
     db = get_db(request)
     c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
     if not c: raise HTTPException(404, "No encontrado")
+    c.setdefault("etapa", "nuevo")
     timeline = await db.asesor_contacto_timeline.find({"contacto_id": cid}, {"_id": 0}).sort("ts", -1).limit(100).to_list(100)
     c["timeline"] = timeline
     return c
@@ -877,6 +891,10 @@ async def patch_contacto(cid: str, payload: ContactoPatch, request: Request):
     user = await require_advisor(request)
     db = get_db(request)
     patch = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if "etapa" in patch and patch["etapa"] not in ETAPA_CONTACTO:
+        raise HTTPException(400, "etapa inválida")
+    if "temperatura" in patch and patch["temperatura"] not in TEMP_CONTACTO:
+        raise HTTPException(400, "temperatura inválida")
     if "phones" in patch:
         patch["phones_norm"] = [_norm_phone(p) for p in patch["phones"]]
     old_c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
@@ -1777,12 +1795,12 @@ async def seed_demo(request: Request):
     )
 
     demo_contactos = [
-        {"first_name": "Laura", "last_name": "Martínez", "phones": ["+525512345100"], "emails": ["laura.m@demo.mx"], "tipo": "comprador", "temperatura": "caliente", "tags": ["Polanco", "Premium"]},
-        {"first_name": "Ricardo", "last_name": "Ortiz", "phones": ["+525512345101"], "emails": ["r.ortiz@demo.mx"], "tipo": "inversor", "temperatura": "tibio", "tags": ["Preventa", "Santa Fe"]},
-        {"first_name": "Mariana", "last_name": "López", "phones": ["+525512345102"], "emails": ["m.lopez@demo.mx"], "tipo": "comprador", "temperatura": "frio", "tags": ["Primera vivienda"]},
-        {"first_name": "Carlos", "last_name": "Vázquez", "phones": ["+525512345103"], "emails": ["carlos.v@demo.mx"], "tipo": "vendedor", "temperatura": "cliente", "tags": ["Condesa", "Depto 120m²"]},
-        {"first_name": "Sofía", "last_name": "Ramírez", "phones": ["+525512345104"], "emails": ["sofia.r@demo.mx"], "tipo": "comprador", "temperatura": "caliente", "tags": ["Roma Norte", "Pet friendly"]},
-        {"first_name": "Alejandro", "last_name": "Flores", "phones": ["+525512345105"], "emails": ["a.flores@demo.mx"], "tipo": "inversor", "temperatura": "tibio", "tags": ["Yield"]},
+        {"first_name": "Laura", "last_name": "Martínez", "phones": ["+525512345100"], "emails": ["laura.m@demo.mx"], "tipo": "comprador", "temperatura": "caliente", "etapa": "visita", "tags": ["Polanco", "Premium"]},
+        {"first_name": "Ricardo", "last_name": "Ortiz", "phones": ["+525512345101"], "emails": ["r.ortiz@demo.mx"], "tipo": "inversor", "temperatura": "tibio", "etapa": "contactado", "tags": ["Preventa", "Santa Fe"]},
+        {"first_name": "Mariana", "last_name": "López", "phones": ["+525512345102"], "emails": ["m.lopez@demo.mx"], "tipo": "comprador", "temperatura": "frio", "etapa": "nuevo", "tags": ["Primera vivienda"]},
+        {"first_name": "Carlos", "last_name": "Vázquez", "phones": ["+525512345103"], "emails": ["carlos.v@demo.mx"], "tipo": "vendedor", "temperatura": "cliente", "etapa": "cerrado", "tags": ["Condesa", "Depto 120m²"]},
+        {"first_name": "Sofía", "last_name": "Ramírez", "phones": ["+525512345104"], "emails": ["sofia.r@demo.mx"], "tipo": "comprador", "temperatura": "caliente", "etapa": "negociacion", "tags": ["Roma Norte", "Pet friendly"]},
+        {"first_name": "Alejandro", "last_name": "Flores", "phones": ["+525512345105"], "emails": ["a.flores@demo.mx"], "tipo": "inversor", "temperatura": "tibio", "etapa": "nuevo", "tags": ["Yield"]},
     ]
     ids_contactos = []
     for c in demo_contactos:
