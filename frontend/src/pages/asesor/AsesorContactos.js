@@ -1070,7 +1070,7 @@ function AsesorContactosV2({ user, onLogout }) {
           <div data-testid="asr-foco-hoy" style={{ marginBottom: 34 }}>
             <SecLine em="Foco de hoy" note="la IA priorizó esto para ti" />
             <div style={{
-              display: 'flex', flexWrap: 'wrap', gap: 14,
+              display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14,
               background: 'linear-gradient(180deg, rgba(var(--theme-rgb),0.10), transparent 90%)',
               border: '1px solid var(--border)', borderRadius: 16, padding: 16,
             }} className="asr-foco-grid">
@@ -1301,7 +1301,7 @@ function FocoCard({ item, onOpen, onComplete, onDismiss }) {
   const acts = item.actions || ['perfil'];
   const stop = (e) => e.stopPropagation();
   return (
-    <PremiumCard hover data-testid={`asr-foco-card-${item.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', flex: '1 1 280px', cursor: 'pointer' }}>
+    <PremiumCard hover data-testid={`asr-foco-card-${item.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', minWidth: 0, cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: FOCO_TONE[item.tone] || 'var(--ok)', flexShrink: 0 }} />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.who || 'Acción'}</span>
