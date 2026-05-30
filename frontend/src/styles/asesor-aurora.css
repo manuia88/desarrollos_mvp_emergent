@@ -520,3 +520,35 @@
 .portal-asesor .asr-tinder__tx b { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 14.5px; display: block; color: var(--cream); }
 .portal-asesor .asr-tinder__tx p { color: var(--cream-2); font-size: 12.5px; margin-top: 3px; line-height: 1.45; }
 .portal-asesor .asr-tinder__btn { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; padding: 10px 17px; border-radius: 9px; border: 0; background: var(--grad); color: #fff; font-weight: 700; font-size: 13.5px; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+
+/* ── Tab Conversaciones · bandeja (ánimo + estado + objeción + multicanal + hilo) ──── */
+.portal-asesor .asr-convhint { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--cream-3); margin-bottom: 14px; }
+.portal-asesor .asr-convmeta { display: flex; border: 1px solid var(--border); border-radius: 11px; overflow: hidden; margin-bottom: 16px; background: var(--surface); }
+.portal-asesor .asr-convmeta .cm { flex: 1; padding: 11px 15px; border-right: 1px solid var(--border); } .portal-asesor .asr-convmeta .cm:last-child { border-right: 0; }
+.portal-asesor .asr-convmeta .cml { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--cream-3); display: block; margin-bottom: 5px; }
+.portal-asesor .asr-convmeta .cmv { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+.portal-asesor .asr-convmeta .cmh { display: block; font-size: 11.5px; color: var(--cream-3); margin-top: 4px; font-weight: 400; }
+.portal-asesor .asr-objbar { display: flex; align-items: center; gap: 10px; border: 1px solid rgba(242,99,91,0.4); background: rgba(242,99,91,0.08); border-radius: 10px; padding: 11px 14px; margin-bottom: 14px; font-size: 13.5px; color: var(--cream); }
+.portal-asesor .asr-objbar b { font-weight: 700; } .portal-asesor .asr-objbar .obfix { margin-left: auto; color: var(--theme-2); font-weight: 700; cursor: pointer; white-space: nowrap; }
+.portal-asesor .asr-chanfilter { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; }
+.portal-asesor .asr-chanfilter button { border: 1px solid var(--border); background: var(--surface); color: var(--cream-2); font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 9999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.portal-asesor .asr-chanfilter button.on { background: rgba(var(--theme-rgb),0.10); color: var(--cream); border-color: transparent; }
+.portal-asesor .asr-thread { display: flex; flex-direction: column; gap: 13px; max-height: 340px; overflow-y: auto; padding: 2px 4px 6px; }
+.portal-asesor .asr-msg { max-width: 78%; display: flex; flex-direction: column; gap: 5px; } .portal-asesor .asr-msg.in { align-self: flex-start; } .portal-asesor .asr-msg.out { align-self: flex-end; align-items: flex-end; }
+.portal-asesor .asr-bubble { padding: 11px 15px; border-radius: 15px; font-size: 14.5px; line-height: 1.55; }
+.portal-asesor .asr-msg.in .asr-bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 5px; }
+.portal-asesor .asr-msg.out .asr-bubble { background: rgba(var(--theme-rgb),0.10); border: 1px solid rgba(var(--theme-rgb),0.5); border-bottom-right-radius: 5px; }
+.portal-asesor .asr-mmeta { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--cream-3); }
+.portal-asesor .asr-sysline { align-self: center; font-size: 12px; color: var(--cream-3); font-style: italic; padding: 3px 0; text-align: center; }
+.portal-asesor .asr-propmsg { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); width: 230px; }
+.portal-asesor .asr-propmsg .pmh { height: 56px; background: var(--surface-2); position: relative; } .portal-asesor .asr-propmsg .pmh .pp { position: absolute; left: 9px; bottom: 7px; font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--theme-2); font-size: 13px; }
+.portal-asesor .asr-propmsg .pmb { padding: 9px 11px; } .portal-asesor .asr-propmsg .pmt { font-size: 13px; font-weight: 700; color: var(--cream); } .portal-asesor .asr-propmsg .pms { font-size: 11px; color: var(--cream-2); margin-top: 3px; font-weight: 600; }
+.portal-asesor .asr-aisugg { display: flex; align-items: center; gap: 11px; border: 1px solid rgba(var(--theme-rgb),0.55); background: rgba(var(--theme-rgb),0.10); border-radius: 10px; padding: 11px 14px; margin: 14px 0 11px; }
+.portal-asesor .asr-aisugg__i { width: 26px; height: 26px; border-radius: 7px; background: var(--grad); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.portal-asesor .asr-aisugg span { font-size: 13px; color: var(--cream); line-height: 1.4; } .portal-asesor .asr-aisugg b { font-weight: 700; color: var(--theme-2); }
+.portal-asesor .asr-usebtn { margin-left: auto; flex-shrink: 0; border: 0; background: var(--grad); color: #fff; font-family: inherit; font-weight: 700; font-size: 12.5px; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+.portal-asesor .asr-compose { margin-top: 6px; display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.portal-asesor .asr-attachbtn { display: inline-flex; align-items: center; gap: 7px; padding: 11px 13px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--cream); font-family: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
+.portal-asesor .asr-replyon { font-size: 12.5px; color: var(--cream-2); font-weight: 600; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.portal-asesor .asr-rchan { display: inline-flex; align-items: center; gap: 6px; background: rgba(var(--theme-rgb),0.10); border: 1px solid rgba(var(--theme-rgb),0.55); border-radius: 9999px; padding: 5px 11px; font-weight: 700; color: var(--cream); }
+.portal-asesor .asr-compose input { flex: 1; min-width: 160px; padding: 12px 14px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--cream); font-family: inherit; font-size: 14.5px; outline: none; }

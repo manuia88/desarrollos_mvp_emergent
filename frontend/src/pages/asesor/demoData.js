@@ -119,6 +119,31 @@ export const DEMO_PERFIL = {
       { kind: 'sys', title: 'Cambió a etapa Negociación', when: 'hace 3 días' },
       { kind: 'sys', title: 'Visita registrada · Depto Reforma', when: 'hace 5 días' },
     ],
+    // Tab Conversaciones · bandeja del mockup (ánimo + estado + objeción + multicanal + hilo + sugerencia).
+    conversation: {
+      hint: 'Solo aparecen los canales donde María te ha escrito · responde por el mismo o agrega otro con "+ canal"',
+      mood: { label: 'Positivo', sub: 'contenta · lista para avanzar', tone: 'ok' },
+      estado: { label: 'Te toca responder', sub: 'te escribió hace 1 h', tone: 'warm' },
+      objection: 'le preocupa el precio',
+      channels: [
+        { key: 'all', label: 'Todos' },
+        { key: 'wa', label: 'WhatsApp', color: '#25D366' },
+        { key: 'ig', label: 'Instagram', color: '#E1306C' },
+        { key: 'fb', label: 'Facebook', color: '#1877F2' },
+        { key: 'li', label: 'LinkedIn', color: '#0A66C2' },
+      ],
+      thread: [
+        { sys: 'Llegó por la web · 12 may' },
+        { dir: 'in', ch: 'fb', meta: 'Facebook · 12 may', dot: '#1877F2', text: 'Hola, vi su anuncio de Polanco. ¿Sigue disponible?' },
+        { dir: 'out', ch: 'wa', meta: 'Tú · WhatsApp · hace 4 días', text: '¡Hola María! Sí, sigue disponible. Te comparto 3 opciones en Polanco que encajan con tu presupuesto y zona.' },
+        { dir: 'out', ch: 'wa', meta: 'Tú · enviada por WhatsApp · hace 4 días', prop: { price: '$8,000,000', title: 'Depto en Reforma 350', specs: '2 rec · 2 baños · 110 m²' } },
+        { dir: 'in', ch: 'ig', meta: 'Instagram · hace 3 h', dot: '#E1306C', text: 'vi tu story de Polanco, me interesa muchísimo' },
+        { dir: 'in', ch: 'li', meta: 'LinkedIn · hace 2 h', dot: '#0A66C2', text: 'Te escribo también por aquí — ¿podemos agendar la visita el viernes?' },
+        { dir: 'in', ch: 'wa', meta: 'WhatsApp · hace 1 h', dot: '#25D366', text: '¿Sigue disponible la de Reforma?' },
+      ],
+      suggestion: 'Hola María, la de Reforma sigue disponible. ¿Te late el viernes 4 pm para la visita?',
+      replyChannel: { label: 'WhatsApp', color: '#25D366' },
+    },
   },
 };
 

@@ -23,7 +23,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Calendar, Sparkles, X, Phone as PhoneIcon, Mail, Globe, Check,
   MessageCircle, MessageSquare, Pencil, Building2, ThumbsUp, ThumbsDown, ArrowLeftRight,
-  ListChecks, Mic,
+  ListChecks, Mic, AlertTriangle, Send,
 } from 'lucide-react';
 import * as api from '../../../api/advisor';
 import { fmtMXN } from '../../advisor/primitives';
@@ -107,6 +107,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
   const [actMode, setActMode] = useState(null);  // null | 'nota' | 'tarea'
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDue, setTaskDue] = useState('');
+  const [convChan, setConvChan] = useState('all');   // filtro de canal de la bandeja
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -691,8 +692,64 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
           {/* ── Pane: Conversaciones (hilo real o empty) ── */}
           {tab === 'conv' && (
             <div className="asr-pane" data-testid="asr-ficha360-pane-conv">
+              {/* Bandeja DEMO (espejo del mockup) · multicanal + ánimo + objeción + hilo + sugerencia */}
+              {demo?.conversation && (() => {
+                const cv = demo.conversation;
+                const ch = convChan;
+                const visible = cv.thread.filter((m) => m.sys || ch === 'all' || m.ch === ch);
+                return (
+                  <>
+                    <div className="asr-convhint"><MessageSquare size={14} /> {cv.hint}</div>
+                    <div className="asr-convmeta">
+                      <div className="cm"><span className="cml">Ánimo del cliente</span>
+                        <span className="cmv" style={{ color: 'var(--ok)' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ok)' }} />{cv.mood.label}</span>
+                        <span className="cmh">{cv.mood.sub}</span></div>
+                      <div className="cm"><span className="cml">Estado</span>
+                        <span className="cmv"><span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--warm)' }} />{cv.estado.label}</span>
+                        <span className="cmh">{cv.estado.sub}</span></div>
+                    </div>
+                    {cv.objection && (
+                      <div className="asr-objbar"><AlertTriangle size={16} color="var(--hot)" />
+                        <span><b>Objeción detectada:</b> {cv.objection}</span><span className="obfix">Cómo responder →</span></div>
+                    )}
+                    <div className="asr-chanfilter">
+                      {cv.channels.map((c) => (
+                        <button key={c.key} className={ch === c.key ? 'on' : ''} onClick={() => setConvChan(c.key)}>
+                          {c.color && <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color }} />}{c.label}
+                        </button>
+                      ))}
+                      <button style={{ borderStyle: 'dashed' }}>+ canal</button>
+                    </div>
+                    <div className="asr-thread">
+                      {visible.map((m, i) => m.sys ? (
+                        <div className="asr-sysline" key={i}>— {m.sys} —</div>
+                      ) : (
+                        <div className={`asr-msg ${m.dir}`} key={i}>
+                          {m.prop ? (
+                            <div className="asr-propmsg"><div className="pmh"><span className="pp">{m.prop.price}</span></div>
+                              <div className="pmb"><div className="pmt">{m.prop.title}</div><div className="pms">{m.prop.specs}</div></div></div>
+                          ) : <div className="asr-bubble">{m.text}</div>}
+                          <div className="asr-mmeta">{m.dot && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.dot }} />}{m.meta}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {cv.suggestion && (
+                      <div className="asr-aisugg"><div className="asr-aisugg__i"><Sparkles size={15} /></div>
+                        <span><b>Sugerencia:</b> "{cv.suggestion}"</span><button className="asr-usebtn">Usar</button></div>
+                    )}
+                    <div className="asr-compose">
+                      <button className="asr-attachbtn"><Building2 size={15} /> Propiedad</button>
+                      <button className="asr-attachbtn"><MessageSquare size={15} /> Plantillas</button>
+                      <span className="asr-replyon">Respondes por <span className="asr-rchan"><span style={{ width: 8, height: 8, borderRadius: '50%', background: cv.replyChannel.color }} />{cv.replyChannel.label}</span></span>
+                      <input placeholder="Escribe tu respuesta…" readOnly />
+                      <button className="asr-hbtn asr-hbtn--key"><Send size={14} /> Enviar</button>
+                    </div>
+                  </>
+                );
+              })()}
+
               {/* Ánimo del cliente (sentiment REAL · client_insights) · solo si hay señal */}
-              {convIntel?.sentiment && convIntel.sentiment !== 'neutral' && (
+              {!demo && convIntel?.sentiment && convIntel.sentiment !== 'neutral' && (
                 <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 11, overflow: 'hidden', marginBottom: 16, background: 'var(--surface)' }}>
                   <div style={{ flex: 1, padding: '11px 15px', borderRight: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--cream-3)', display: 'block', marginBottom: 5 }}>Ánimo del cliente</span>
@@ -709,7 +766,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                   )}
                 </div>
               )}
-              {convLoading ? (
+              {!demo?.conversation && (convLoading ? (
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando conversaciones…</div>
               ) : !convos || convos.length === 0 ? (
                 <div style={{ padding: '40px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13.5, border: '1px dashed var(--border-2)', borderRadius: 12 }}>
@@ -735,7 +792,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onAgendar,
                     </div>
                   ))}
                 </div>
-              )}
+              ))}
             </div>
           )}
 
