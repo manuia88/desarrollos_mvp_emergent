@@ -141,7 +141,7 @@
   .abtn.star{color:#fff;background:linear-gradient(135deg,#f5a524,#ff7a45)}
   .abtn.like{background:var(--grad);color:#fff}
 
-  .mini{position:absolute;left:0;right:0;bottom:0;z-index:42;background:var(--surf);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px 20px;box-shadow:0 -10px 30px rgba(20,16,60,.16);transform:translateY(118%);transition:.3s;max-height:92%;overflow-y:auto}
+  .mini{position:absolute;left:0;right:0;bottom:0;z-index:80;background:var(--surf);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px 20px;box-shadow:0 -10px 30px rgba(20,16,60,.16);transform:translateY(118%);transition:.3s;max-height:92%;overflow-y:auto}
   .mini.show{transform:translateY(0)}
   .mini .mh{font-family:'Outfit';font-weight:700;font-size:14px;color:var(--ink);margin-bottom:3px}
   .mini .mhs{font-size:11.5px;color:var(--ink3);margin-bottom:12px}
@@ -333,7 +333,11 @@
   function fmtPrice(v){return v?('$'+Number(v).toLocaleString('en-US')):'';}
   function gcls(p){return fb[(((p&&p.t)||'x').charCodeAt(0)||0)%4];}
   function mapItem(it){const sp=(it.specs||[]).map(s=>typeof s==='string'?s:(Array.isArray(s)?s.join(' '):'')).filter(Boolean);
-    return {id:it.id,dev_id:it.dev_id,t:it.name||'Propiedad',zona:it.colonia||'',a:it.addr||'',p:fmtPrice(it.price),m2:(sp.find(s=>/m²|m2/i.test(s))||''),specs:sp,status:it.status,thumb:it.thumb};}
+    return {id:it.id,dev_id:it.dev_id,t:it.name||'Propiedad',zona:it.colonia||'',a:it.addr||'',
+      p:fmtPrice(it.price),m2:(sp.find(s=>/m²|m2/i.test(s))||''),specs:sp,
+      photos:(it.photos||[]),vibes:(it.amenities||[]),story:it.description||'',
+      preventa:!!it.preventa,delivery:it.delivery||'',units:it.units_available,
+      status:it.status,thumb:it.thumb};}
   function api(path,body){try{return fetch(`${API}/api/swipe/${TOKEN}${path}`,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined).catch(()=>{});}catch(_){}}
   function postVote(p,thumb){if(p&&p.id)api('/vote',{item_id:p.id,thumb});}
   function postProfile(){api('/profile',{answers:ANSWERS});}
@@ -372,14 +376,23 @@
     document.getElementById('undo').style.opacity=history.length?'1':'.35';updPf();
   }
   function renderProp(p,k){
-    const specs=(p.specs||[]).map(s=>`<div><span class="si">•</span>${s}</div>`).join('');
+    if(slide[k]==null)slide[k]=0;
+    const imgs=(p.photos&&p.photos.length)?p.photos:[];
+    const slides=imgs.length?imgs.map((u,i)=>`<div class="slide ${i===slide[k]?'on':''}" style="${bg(u)}"></div>`).join('')
+      :`<div class="slide ${gcls(p)} on"></div>`;
+    const dots=imgs.length>1?`<div class="dots">${imgs.map((_,i)=>`<i class="${i===slide[k]?'on':''}"></i>`).join('')}</div>`:'';
+    const arrows=imgs.length>1?`<button class="arrow l" onclick="event.stopPropagation();slideMove(${k},-1)">‹</button><button class="arrow r" onclick="event.stopPropagation();slideMove(${k},1)">›</button>`:'';
+    const tb=p.preventa?'<span class="typeb dev">🏗️ Preventa</span>':'';
+    const specs=(p.specs||[]).map(s=>`<div>${s}</div>`).join('');
+    const vibes=(p.vibes||[]).slice(0,3).map(v=>`<span>${v}</span>`).join('');
     return `<div class="photo">
-        <div class="slide ${gcls(p)} on"></div><div class="grad-top"></div><div class="grad-bot"></div>
-        <div class="pbot"><div class="price">${p.p}${p.m2?`<span class="pm2">· ${p.m2}</span>`:''}</div></div>
+        ${slides}<div class="grad-top"></div><div class="grad-bot"></div>${dots}${arrows}
+        ${tb?`<div class="ptop">${tb}<span></span></div>`:''}
+        <div class="pbot">${vibes?`<div class="vchips">${vibes}</div>`:''}<div class="price">${p.p}${p.m2?`<span class="pm2">· ${p.m2.replace('📐 ','')}</span>`:''}</div></div>
       </div>
       <div class="body">
         <div class="ttl">${p.t}</div>
-        <div class="addr">📍 ${p.a||''}${p.zona?` · ${p.zona}`:''}${p.a?`<a href="${gmaps(p)}" target="_blank" onclick="event.stopPropagation()">Ver mapa →</a>`:''}</div>
+        <div class="addr">📍 ${p.a||''}${p.zona?` · ${p.zona}`:''}${(p.a||p.zona)?`<a href="${gmaps(p)}" target="_blank" onclick="event.stopPropagation()">Ver mapa →</a>`:''}</div>
         ${specs?`<div class="specs">${specs}</div>`:''}
         <div class="cardacts">
           <button onclick="openAgendar('${p.id}')">📅 Agendar</button><button onclick="openNota('${p.id}')">📝 Nota</button><button class="det" onclick="openSheet('${p.id}')">Ver detalle →</button>
@@ -390,7 +403,9 @@
   function renderQ(q){return `<div class="kick">✨ Para mandarte mejores opciones</div><div class="q">${q.q}</div>
     <div class="qopts">${q.opts.map((o,i)=>`<button onclick="answer(${i})">${o[0]} ${o[1]}</button>`).join('')}</div>
     <div class="qfoot">No frena nada — tu selección sigue ahí 👇</div>`;}
-  function slideMove(){} // fotos reales = B5.3
+  function slideMove(k,d){const p=deckArr[k].d,n=(p.photos||[]).length;if(n<2)return;slide[k]=((slide[k]||0)+d+n)%n;
+    const el=deck.querySelector('.pcard');if(!el)return;
+    el.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on',i===slide[k]));el.querySelectorAll('.dots i').forEach((dd,i)=>dd.classList.toggle('on',i===slide[k]));}
   function attachDrag(card){
     let sx=0,dx=0,drag=false;const like=card.querySelector('.stamp.like'),nope=card.querySelector('.stamp.nope');
     const down=e=>{if(e.target.closest('.arrow')||e.target.closest('.cardacts')||e.target.closest('a'))return;drag=true;const t=e.touches?e.touches[0]:e;sx=t.clientX;card.style.transition='none';};
@@ -467,15 +482,25 @@
     else f.innerHTML=`<button class="sec" onclick="openAgendar('${id}')" title="Agendar">📅</button><button class="sec" onclick="openNota('${id}')" title="Nota">📝</button><button class="no" onclick="closeSheet();swipe('no')">👎</button><button class="like" style="flex:1.4" onclick="closeSheet();swipe('like')">👍 Me gusta</button>`;}
   function renderSheet(){
     const p=curProp;
-    const specs=(p.specs||[]).map(s=>`<div><span class="si">•</span>${s}</div>`).join('');
+    const imgs=(p.photos&&p.photos.length)?p.photos:[];
+    const slides=imgs.length?imgs.map((u,i)=>`<div class="slide ${i===gIdx?'on':''}" style="${bg(u)}"></div>`).join('')
+      :`<div class="slide ${gcls(p)} on"></div>`;
+    const dots=imgs.length>1?`<div class="dots">${imgs.map((_,i)=>`<i class="${i===gIdx?'on':''}"></i>`).join('')}</div>`:'';
+    const arrows=imgs.length>1?`<button class="arrow l" onclick="galMove(-1)">‹</button><button class="arrow r" onclick="galMove(1)">›</button>`:'';
+    const specs=(p.specs||[]).map(s=>`<div>${s}</div>`).join('');
+    const vibes=(p.vibes||[]).map(v=>`<span>${v}</span>`).join('');
+    const preventa=p.preventa?`<div class="seclbl">🏗️ Preventa</div><div class="devbox"><div class="dh">🏗️ Es preventa</div><div class="devgrid">${p.delivery?`<div><b>${p.delivery}</b><span>Entrega estimada</span></div>`:''}${(p.units!=null)?`<div><b>${p.units}</b><span>Unidades disponibles</span></div>`:''}</div><div class="devnote">✓ Desarrolladora verificada por DMX</div></div>`:'';
     document.getElementById('sh-ttl').textContent=p.t;
     document.getElementById('sh-body').innerHTML=`
-      <div class="gal"><div class="slide ${gcls(p)} on"></div><div class="gb"></div><div class="pp">${p.p}${p.m2?` <span style="font-size:13px;font-weight:600;opacity:.9">· ${p.m2}</span>`:''}</div></div>
+      <div class="gal">${slides}<div class="gb"></div>${arrows}${dots}<div class="pp">${p.p}${p.m2?` <span style="font-size:13px;font-weight:600;opacity:.9">· ${p.m2.replace('📐 ','')}</span>`:''}</div></div>
       ${specs?`<div class="seclbl">🏠 Lo básico</div><div class="specs" style="border:none;padding:0">${specs}</div>`:''}
+      ${vibes?`<div class="seclbl">🏷️ Amenidades</div><div class="vibes">${vibes}</div>`:''}
+      ${p.story?`<div class="seclbl">📖 Sobre la propiedad</div><div class="story">${p.story}</div>`:''}
+      ${preventa}
       <div class="seclbl">📍 Ubicación</div>
       <div class="map"><div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="pin">📍</div><a href="${gmaps(p)}" target="_blank">Ver en Google Maps →</a></div>`;
   }
-  function galMove(){} // galería de fotos = B5.3
+  function galMove(d){const p=curProp,n=(p.photos||[]).length;if(n<2)return;gIdx=(gIdx+d+n)%n;const g=document.querySelector('#sh-body .gal');g.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on',i===gIdx));g.querySelectorAll('.dots i').forEach((dd,i)=>dd.classList.toggle('on',i===gIdx));}
   function backSheet(){if(fromSaved){closeSheet();openSaved();}else closeSheet();}
   function closeSheet(){document.getElementById('sheet').classList.remove('show');}
   // Acciones del plan (recorrido / crédito / comparar)

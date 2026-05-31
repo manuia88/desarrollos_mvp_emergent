@@ -18,6 +18,11 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+try:
+    from data_developments import DEVELOPMENTS_BY_ID  # catálogo (misma fuente que /api/developments)
+except Exception:
+    DEVELOPMENTS_BY_ID = {}
+
 router = APIRouter(tags=["swipe-public"])
 
 BOARD_STATUS = ["dispo", "enviada", "gusto", "descartada"]
@@ -39,18 +44,45 @@ async def _resolve(db, token: str) -> dict:
     return lk
 
 
-def _card(it: dict) -> dict:
-    """Proyección segura para el cliente (sin owner_id ni datos internos)."""
+def _rng(r):
+    """[2,4] → '2-4' · [2] → '2'."""
+    if not r:
+        return None
+    a = r[0]
+    b = r[-1] if len(r) > 1 else a
+    return str(a) if a == b else f"{a}-{b}"
+
+
+def _specs_from_dev(dev: dict) -> list:
+    out = []
+    if dev.get("bedrooms_range"):  out.append(f"🛏 {_rng(dev['bedrooms_range'])} rec")
+    if dev.get("bathrooms_range"): out.append(f"🛁 {_rng(dev['bathrooms_range'])} baños")
+    if dev.get("m2_range"):        out.append(f"📐 {_rng(dev['m2_range'])} m²")
+    if dev.get("parking_range"):   out.append(f"🚗 {_rng(dev['parking_range'])} est")
+    return out
+
+
+def _card(it: dict, dev: dict = None) -> dict:
+    """Proyección segura para el cliente (sin owner_id), enriquecida con el development."""
+    dev = dev or {}
     return {
         "id": it.get("id"),
         "dev_id": it.get("dev_id"),
-        "name": it.get("name"),
-        "price": it.get("price"),
-        "colonia": it.get("colonia"),
-        "addr": it.get("addr"),
-        "specs": it.get("specs", []),
+        "name": it.get("name") or dev.get("name") or "Propiedad",
+        "price": it.get("price") or dev.get("price_from"),
+        "colonia": it.get("colonia") or dev.get("colonia") or dev.get("alcaldia") or "",
+        "addr": it.get("addr") or dev.get("address_full") or dev.get("street") or "",
+        "photos": (dev.get("photos") or [])[:6],
+        "specs": _specs_from_dev(dev) or it.get("specs", []),
+        "amenities": (dev.get("amenities") or [])[:6],
+        "description": dev.get("description") or "",
+        "preventa": (dev.get("stage") or "").lower() in ("preventa", "pre-venta", "pre venta", "en_construccion"),
+        "delivery": dev.get("delivery_estimate") or "",
+        "units_available": dev.get("units_available"),
         "status": it.get("status"),
         "thumb": it.get("thumb"),
+        "client_cita": it.get("client_cita") or "",
+        "client_note": it.get("client_note") or "",
     }
 
 
@@ -66,12 +98,14 @@ async def swipe_view(token: str, request: Request):
     items = await db.asesor_lead_properties.find(
         {"owner_id": lk["owner_id"], "contacto_id": lk["contacto_id"]}, {"_id": 0}
     ).sort("updated_at", -1).to_list(200)
+    # Enriquecer con el catálogo de developments (fotos, specs, amenidades, descripción, preventa).
+    devs = DEVELOPMENTS_BY_ID or {}
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")
     return {
         "asesor_name": lk.get("asesor_name") or "Tu asesor",
         "lead_name": lk.get("lead_name") or "",
-        "items": [_card(it) for it in items],
+        "items": [_card(it, devs.get(it.get("dev_id"))) for it in items],
         "engagement": {"views": int(lk.get("views") or 0), "up": up, "down": down},
     }
 

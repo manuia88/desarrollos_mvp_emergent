@@ -783,11 +783,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                       const col = (board?.items || []).filter((it) => it.status === st);
                       return (
                         <div className="asr-pkcol" key={st} data-testid={`asr-board-col-${st}`}
-                          onDragOver={(e) => e.preventDefault()} onDrop={() => moveBoard(dragId, st)}>
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => { e.preventDefault(); moveBoard(e.dataTransfer.getData('text/plain') || dragId, st); }}>
                           <div className="asr-pkh"><span className="pd" style={{ background: DOTC[meta.dot] }} />{meta.label}<span className="pc">{col.length}</span></div>
                           {col.map((p) => (
                             <div className="asr-pcard" key={p.id} draggable data-testid={`asr-board-card-${p.id}`}
-                              onDragStart={() => setDragId(p.id)} onDragEnd={() => setDragId(null)}
+                              onDragStart={(e) => { setDragId(p.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', p.id); }} onDragEnd={() => setDragId(null)}
                               style={{ position: 'relative', opacity: dragId === p.id ? 0.45 : (p.status === 'descartada' ? 0.6 : 1), cursor: 'grab' }}>
                               <button onClick={(e) => { e.stopPropagation(); removeBoard(p.id); }} data-testid={`asr-board-remove-${p.id}`} title="Quitar del tablero"
                                 style={{ position: 'absolute', top: 3, right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 14, lineHeight: 1, padding: 2, zIndex: 1 }}>×</button>
