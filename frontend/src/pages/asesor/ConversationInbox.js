@@ -199,8 +199,11 @@ function ConversationInboxBody() {
     let l = list;
     if (segment === 'sin_responder') l = l.filter((c) => c.needs_reply);
     else if (segment === 'atencion') l = l.filter((c) => c.sentiment === 'negative');
+    else if (segment === 'calientes') l = l.filter((c) => ['hot', 'caliente'].includes(String(c.temperatura || '').toLowerCase()));
     else if (segment === 'whatsapp') l = l.filter((c) => c.channel === 'whatsapp');
-    else if (segment === 'ia') l = l.filter((c) => c.channel !== 'whatsapp');
+    else if (segment === 'messenger') l = l.filter((c) => c.channel === 'messenger');
+    else if (segment === 'instagram') l = l.filter((c) => c.channel === 'instagram');
+    else if (segment === 'ia') l = l.filter((c) => !['whatsapp', 'messenger', 'instagram'].includes(c.channel));
     const q = search.trim().toLowerCase();
     if (q) l = l.filter((c) =>
       `${c.lead_name || ''} ${c.lead_id || ''} ${c.last_message || ''} ${c.asesor_id || ''}`.toLowerCase().includes(q));
@@ -235,37 +238,28 @@ function ConversationInboxBody() {
         </button>
       </div>
 
-      {/* B7+ · pulse del buzón (estado de un vistazo) */}
-      {stats && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-          {[
-            { k: 'total', label: 'Conversaciones', val: stats.total, color: 'var(--cream)' },
-            { k: 'sin', label: 'Sin responder', val: stats.sin_responder, color: '#E2982E' },
-            { k: 'neg', label: 'Necesitan atención', val: stats.negativo, color: '#F2635B' },
-            { k: 'wa', label: 'WhatsApp', val: stats.whatsapp, color: '#1FA06A' },
-          ].map((s) => (
-            <div key={s.k} style={{ flex: '1 1 130px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
-              <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 23, color: s.color, lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* B7+ · segmentos de 1 clic (triage instantáneo) */}
-      <div style={{ display: 'flex', gap: 7, marginBottom: 12, flexWrap: 'wrap' }}>
+      {/* B7+ · UNA fila de filtros con contador (clic = filtra · cada chip revela un estado) */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         {[
-          { k: 'todas', label: 'Todas' },
-          { k: 'sin_responder', label: 'Sin responder' },
-          { k: 'atencion', label: 'Necesitan atención' },
-          { k: 'whatsapp', label: '💬 WhatsApp' },
-          { k: 'ia', label: '🤖 IA' },
-        ].map((s) => (
-          <button key={s.k} type="button" onClick={() => setSegment(s.k)}
-            style={{ padding: '6px 12px', borderRadius: 9, border: `1px solid ${segment === s.k ? 'var(--theme-2)' : 'var(--border)'}`, background: segment === s.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface)', color: segment === s.k ? 'var(--theme-2)' : 'var(--cream-2)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
-            {s.label}
-          </button>
-        ))}
+          { k: 'todas', label: 'Todas', n: stats?.total, accent: 'var(--theme-2)' },
+          { k: 'sin_responder', label: 'Sin responder', n: stats?.sin_responder, accent: '#E2982E' },
+          { k: 'atencion', label: 'Necesitan atención', n: stats?.atencion, accent: '#F2635B' },
+          { k: 'calientes', label: '🔥 Calientes', n: stats?.calientes, accent: '#F2635B' },
+          { k: 'whatsapp', label: '💬 WhatsApp', n: stats?.whatsapp, accent: '#1FA06A' },
+          { k: 'messenger', label: '📘 Messenger', n: stats?.messenger, accent: '#0084FF' },
+          { k: 'instagram', label: '📷 Instagram', n: stats?.instagram, accent: '#C13584' },
+          { k: 'ia', label: '🤖 IA', n: stats?.ia, accent: 'var(--theme-2)' },
+        ].map((s) => {
+          const on = segment === s.k;
+          return (
+            <button key={s.k} type="button" onClick={() => setSegment(s.k)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700,
+                border: `1px solid ${on ? s.accent : 'var(--border)'}`, background: on ? 'var(--surface)' : 'var(--surface)', color: on ? s.accent : 'var(--cream-2)', boxShadow: on ? `inset 0 0 0 1px ${s.accent}` : 'none' }}>
+              {s.label}
+              <span style={{ minWidth: 18, textAlign: 'center', fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: on ? s.accent : 'var(--surface-2)', color: on ? '#fff' : 'var(--cream-3)' }}>{s.n ?? 0}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* filters + search */}
@@ -278,7 +272,7 @@ function ConversationInboxBody() {
       </div>
 
       {/* 3 columns · altura acotada para que la caja de escribir entre sin scroll de página */}
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr 300px', gap: 14, height: 'calc(100dvh - 330px)', minHeight: 360 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr 320px', gap: 14, height: 'calc(100dvh - 250px)', minHeight: 380 }}>
         {/* col 1 · threads */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflowY: 'auto' }}>
           {loading ? (

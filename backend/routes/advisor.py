@@ -1589,13 +1589,19 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
         return s
 
     out.sort(key=lambda c: (_prio(c), _ts_key(c)), reverse=True)
-    # B7+ · pulse: estado del buzón de un vistazo
+    # B7+ · métricas/estados para los filtros clickeables (cada chip = contador + filtro)
+    _HOT = {"hot", "caliente"}
+    def _ch(c):
+        return c.get("channel") or "ai"
     stats = {
         "total": len(out),
         "sin_responder": sum(1 for c in out if c.get("needs_reply")),
-        "whatsapp": sum(1 for c in out if c.get("channel") == "whatsapp"),
-        "ia": sum(1 for c in out if c.get("channel") != "whatsapp"),
-        "negativo": sum(1 for c in out if c.get("sentiment") == "negative"),
+        "atencion": sum(1 for c in out if c.get("sentiment") == "negative"),
+        "calientes": sum(1 for c in out if str(c.get("temperatura") or "").lower() in _HOT),
+        "whatsapp": sum(1 for c in out if _ch(c) == "whatsapp"),
+        "messenger": sum(1 for c in out if _ch(c) == "messenger"),
+        "instagram": sum(1 for c in out if _ch(c) == "instagram"),
+        "ia": sum(1 for c in out if _ch(c) in ("ai", "web")),
     }
     return {"conversations": out, "count": len(out), "stats": stats}
 
