@@ -145,9 +145,11 @@ async def swipe_cita(token: str, payload: CitaIn, request: Request):
     db = _db(request)
     lk = await _resolve(db, token)
     when = (payload.when or "")[:80]
+    # Pedir visita = intención fuerte → auto-mueve la tarjeta a "Cita / visita".
+    # (El asesor confirma el día y puede arrastrar a otra etapa si quiere.)
     res = await db.asesor_lead_properties.update_one(
         {"id": payload.item_id, "owner_id": lk["owner_id"], "contacto_id": lk["contacto_id"]},
-        {"$set": {"client_cita": when, "updated_at": _now()}},
+        {"$set": {"client_cita": when, "status": "cita", "thumb": "up", "updated_at": _now()}},
     )
     if not res.matched_count:
         raise HTTPException(404, "Propiedad no encontrada")
