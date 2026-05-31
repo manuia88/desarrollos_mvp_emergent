@@ -1201,6 +1201,40 @@ async def delete_lead_board_item(item_id: str, request: Request):
     return {"ok": True}
 
 
+@router.post("/contactos/{cid}/swipe-link")
+async def create_swipe_link(cid: str, request: Request):
+    """B5.2 · Crea (o reusa) el link Tinder público del lead + mensaje de WhatsApp.
+    Lo llama el botón "Crear y enviar" del tab Propiedades. Token estable por lead
+    (reusa el mismo link si ya existe). Los endpoints públicos viven en swipe_public.py."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one(
+        {"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1, "first_name": 1})
+    if not c:
+        raise HTTPException(404, "No encontrado")
+    link = await db.asesor_property_links.find_one(
+        {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
+    if not link:
+        link = {
+            "id": _uid("plink"),
+            "token": "swp_" + uuid.uuid4().hex[:14],
+            "owner_id": user.user_id,
+            "contacto_id": cid,
+            "asesor_name": user.name or "Tu asesor",
+            "lead_name": c.get("first_name") or "",
+            "created_at": _now(),
+            "views": 0,
+        }
+        await db.asesor_property_links.insert_one(dict(link))
+        link.pop("_id", None)
+    base = (os.environ.get("FRONTEND_URL") or os.environ.get("PUBLIC_URL") or "").rstrip("/")
+    url = f"{base}/p/{link['token']}" if base else f"/p/{link['token']}"
+    first = c.get("first_name") or ""
+    wa_text = (f"Hola {first}, te preparé una selección de propiedades pensadas en lo que buscas. "
+               f"Entra y dime cuáles te laten (deslizas 👍/👎, toma 1 min) 👉 {url}")
+    return {"token": link["token"], "url": url, "wa_text": wa_text}
+
+
 # ─── Búsquedas (Kanban) ───────────────────────────────────────────────────────
 @router.get("/busquedas")
 async def list_busquedas(request: Request):

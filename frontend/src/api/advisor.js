@@ -57,6 +57,8 @@ export const getLeadBoard = (cid) => j(`/api/asesor/contactos/${cid}/board`);
 export const addLeadBoardItem = (cid, b) => post(`/api/asesor/contactos/${cid}/board`, b);
 export const patchLeadBoardItem = (itemId, b) => patch(`/api/asesor/board/${itemId}`, b);
 export const deleteLeadBoardItem = (itemId) => del(`/api/asesor/board/${itemId}`);
+// B5.2 · Crea/reusa el link Tinder público del lead (+ texto WhatsApp)
+export const createSwipeLink = (cid) => post(`/api/asesor/contactos/${cid}/swipe-link`);
 
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');

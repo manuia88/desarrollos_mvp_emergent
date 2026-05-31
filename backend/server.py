@@ -46,6 +46,10 @@ app.state.db = db
 from routes.advisor import router as advisor_router
 app.include_router(advisor_router)
 
+# B5.2 · Link Tinder de propiedades — endpoints públicos (sin login, por token)
+from routes.swipe_public import router as swipe_public_router
+app.include_router(swipe_public_router)
+
 # P2 · Agent Workforce (orchestrator + prospector + nurturer · 4 endpoints)
 from routes.agent_workforce import router as agent_workforce_router
 app.include_router(agent_workforce_router)

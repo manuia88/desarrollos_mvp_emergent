@@ -123,6 +123,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [board, setBoard] = useState(null);             // B5.1 · tablero real {items, engagement}
   const [boardLoading, setBoardLoading] = useState(false);
   const [dragId, setDragId] = useState(null);           // id de la propiedad que se arrastra
+  const [linkInfo, setLinkInfo] = useState(null);       // B5.2 · link Tinder creado {url, wa_text}
+  const [linkBusy, setLinkBusy] = useState(false);
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -142,7 +144,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     if (!open || !cid) return;
     setTab('resumen');
     setProb(null); setTareas([]); setBusquedas([]); setMatches({});
-    setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null);
+    setOverview(null); setConvos(null); setIntel(null); setConvIntel(null); setBoard(null); setLinkInfo(null);
     if (demo) return;
     api.getContactoIntel(cid).then(setIntel).catch(() => setIntel(null));
     api.getCloseProbability(cid).then(setProb).catch(() => setProb(null));
@@ -271,6 +273,18 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setBoard((b) => ({ ...b, items: (b?.items || []).filter((x) => x.id !== id) }));
     try { await api.deleteLeadBoardItem(id); }
     catch (_) { toast('error', 'No se pudo quitar'); api.getLeadBoard(cid).then(setBoard).catch(() => {}); }
+  };
+
+  // B5.2 · Crear el link Tinder del cliente (sus swipes vuelven a este tablero).
+  const createLink = async () => {
+    setLinkBusy(true);
+    try { setLinkInfo(await api.createSwipeLink(cid)); }
+    catch (_) { toast('error', 'No se pudo crear el link'); }
+    finally { setLinkBusy(false); }
+  };
+  const waLink = (li) => {
+    const ph = (c.phones?.[0] || '').replace(/\D/g, '');
+    return `https://wa.me/${ph}?text=${encodeURIComponent(li.wa_text || li.url)}`;
   };
 
   const completeTarea = async (tid) => {
@@ -762,6 +776,25 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                       );
                     })}
                   </div>
+
+                  {/* B5.2 · Crear y enviar el link Tinder al cliente (sus swipes vuelven aquí) */}
+                  {(board?.items || []).length > 0 && (
+                    linkInfo ? (
+                      <div className="asr-tinder" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+                        <div className="asr-tinder__tx"><b>Link listo para {c.first_name}</b><p style={{ wordBreak: 'break-all' }}>{linkInfo.url}</p></div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <a href={waLink(linkInfo)} target="_blank" rel="noopener noreferrer" className="asr-tinder__btn" style={{ flex: 1, textDecoration: 'none', textAlign: 'center', justifyContent: 'center', marginLeft: 0 }}>Enviar por WhatsApp</a>
+                          <button className="asr-hbtn" onClick={() => { try { navigator.clipboard.writeText(linkInfo.url); } catch (_) {} toast('success', 'Link copiado'); }}>Copiar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="asr-tinder">
+                        <div className="asr-tinder__i"><ArrowLeftRight size={19} /></div>
+                        <div className="asr-tinder__tx"><b>Enviar link de propiedades a {c.first_name}</b><p>Un link · el cliente desliza 👍/👎 · cada deslizada vuelve a este tablero.</p></div>
+                        <button className="asr-tinder__btn" onClick={createLink} disabled={linkBusy}>{linkBusy ? '…' : 'Crear y enviar'}</button>
+                      </div>
+                    )
+                  )}
 
                   {/* Fuente: coincidencias de las búsquedas del lead → agregar al tablero */}
                   {busquedas.length > 0 && (
