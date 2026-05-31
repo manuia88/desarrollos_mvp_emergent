@@ -1734,6 +1734,34 @@ async def request_channel_connect(key: str, payload: ChannelConnectIn, request: 
     return {"ok": True, "channel": key, "status": "requested", "already": False}
 
 
+# Objeciones comunes del cliente → ángulo de respuesta sugerido (heurístico · stub-aware)
+_OBJECIONES = [
+    ("precio", ["caro", "carisimo", "carísimo", "muy alto", "presupuesto", "no me alcanza", "elevado", "fuera de mi", "mas barato", "más barato", "descuento", "rebaja", "bajar el precio"],
+     "Precio / presupuesto", "Reconoce el presupuesto y reencuadra en valor: plusvalía, ubicación y costo por m². Ofrece opciones dentro de su rango."),
+    ("ubicacion", ["lejos", "retirado", "no me queda", "trafico", "tráfico", "lejano", "muy lejos"],
+     "Ubicación", "Conecta la zona con su día a día: tiempos reales a trabajo/escuela y servicios cerca. Propón colonias que sí le acomoden."),
+    ("financiamiento", ["credito", "crédito", "hipoteca", "infonavit", "enganche", "mensualidad", "financi", "banco", "cuanto pagaria", "cuánto pagaría"],
+     "Financiamiento", "Aterriza los números: enganche, mensualidad estimada y opciones de crédito. Ofrécele una simulación rápida."),
+    ("tiempo", ["lo pienso", "pensarlo", "despues", "después", "mas adelante", "más adelante", "no es momento", "ocupado", "luego", "tiempo"],
+     "No es el momento", "No presiones: ofrece un paso pequeño (una visita o más info) y agenda un recordatorio para retomar."),
+    ("competencia", ["otra opcion", "otra opción", "otro asesor", "otra inmobiliaria", "vi otro", "comparando", "otra propiedad"],
+     "Está comparando", "Diferénciate: resalta lo único de tu propiedad/servicio y pregunta qué está comparando para responder con datos."),
+    ("duda", ["no se", "no sé", "no estoy seguro", "dudo", "convencido", "inseguro", "no estoy convencido"],
+     "Tiene dudas", "Haz una pregunta abierta para descubrir la duda real y responde con un caso de éxito parecido."),
+]
+
+
+def _detect_objection(text: str):
+    """Detecta la objeción más probable en el mensaje del cliente y sugiere cómo manejarla."""
+    t = (text or "").lower()
+    if not t:
+        return None
+    for key, kws, label, suggestion in _OBJECIONES:
+        if any(k in t for k in kws):
+            return {"type": key, "label": label, "suggestion": suggestion}
+    return None
+
+
 @router.get("/contactos/{cid}/conversation-ai")
 async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp"):
     """Pieza 1 · IA EN VIVO en la conversación (rescate): ánimo del cliente (del último
@@ -1743,16 +1771,19 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
     db = get_db(request)
     if not await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1}):
         raise HTTPException(404, "Contacto no encontrado")
-    # Ánimo: del último mensaje ENTRANTE del hilo (reusa el extractor de B5.5.3).
+    # Ánimo + objeción: del último mensaje ENTRANTE del hilo (reusa el extractor de B5.5.3).
     animo = None
+    objecion = None
     try:
         last_in = await db.whatsapp_messages.find_one(
             {"org_id": user.user_id, "lead_id": cid, "direction": "inbound", **_channel_q((channel or "whatsapp").lower())},
             {"_id": 0, "body_text": 1}, sort=[("created_at", -1)])
         if last_in:
             from taste_profile import extract_text_signals
-            sent = extract_text_signals(last_in.get("body_text") or "").get("sentiment", "neutral")
+            _txt = last_in.get("body_text") or ""
+            sent = extract_text_signals(_txt).get("sentiment", "neutral")
             animo = {"sentiment": sent, "label": {"positivo": "Positivo", "negativo": "Negativo"}.get(sent, "Neutral")}
+            objecion = _detect_objection(_txt)
     except Exception:
         pass
     # Recomendación: top propiedad por match para este lead (reusa el recomendador).
@@ -1790,7 +1821,25 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
                    "match": m["score"], "reason": r0, "price_from": d.get("price_from")}
     except Exception:
         rec = None
-    return {"animo": animo, "recomendacion": rec}
+    # Siguiente mejor acción · QUÉ HACER ahora (no siempre es una propiedad). Heurístico priorizado.
+    try:
+        board_count = len(items)
+    except NameError:
+        board_count = 0
+    if objecion:
+        nba = {"action_type": "objecion", "title": f"Maneja la objeción: {objecion['label']}",
+               "why": objecion["suggestion"], "cta": "Responder", "urgency": "alta"}
+    elif board_count == 0:
+        nba = {"action_type": "afinar_gusto", "title": "Conoce su gusto",
+               "why": "Aún no tiene propiedades en su tablero. Mándale la Galería para aprender qué le late.",
+               "cta": "Enviar Galería", "urgency": "media"}
+    elif rec:
+        nba = {"action_type": "recomendar", "title": "Mándale una propiedad a su medida",
+               "why": f"{rec['name']} encaja {rec['match']}% con lo que busca.", "cta": "Ver propuestas", "urgency": "media"}
+    else:
+        nba = {"action_type": "seguimiento", "title": "Dale seguimiento",
+               "why": "Mantén viva la conversación con un mensaje breve.", "cta": "Escribir", "urgency": "baja"}
+    return {"animo": animo, "recomendacion": rec, "objecion": objecion, "nba": nba}
 
 
 _DIA_RX = {"hoy": 0, "mañana": 1, "manana": 1, "lunes": None, "martes": None, "miércoles": None,

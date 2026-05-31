@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, RefreshCw, Loader2, Search, AlertTriangle, User } from 'lucide-react';
+import { MessageSquare, RefreshCw, Loader2, Search, AlertTriangle, User, CalendarDays, ClipboardList, FileText } from 'lucide-react';
 import SentimentHeatmap from '../../components/conversation/SentimentHeatmap';
 import SuggestedReplies from '../../components/conversation/SuggestedReplies';
 import LiveTakeover from '../../components/conversation/LiveTakeover';
@@ -148,7 +148,7 @@ function ConversationInboxBody({ user }) {
   const [search, setSearch] = useState('');
   const [curConv, setCurConv] = useState(null);    // B6 · conv seleccionada (canal + lead_id)
   const [ctx, setCtx] = useState(null);            // B6 · contexto del lead (gusto + siguiente paso)
-  const [convAI, setConvAI] = useState(null);      // Pieza 1 · IA en vivo (ánimo + recomendación)
+  const [convAI, setConvAI] = useState(null);      // Pieza 1 · IA en vivo (ánimo + objeción + recomendación + NBA)
   const [composeSeed, setComposeSeed] = useState(null); // Pieza 1 · "Usar" llena la caja de escribir
   const [propPicker, setPropPicker] = useState(null);   // Adjuntar propiedad · catálogo {loading, items}
   const [atlaxCh, setAtlaxCh] = useState({});           // Pieza 2 · Atlax auto por canal {whatsapp:true,...}
@@ -156,6 +156,7 @@ function ConversationInboxBody({ user }) {
   const [aiSug, setAiSug] = useState(false);            // ✨ sugerencia IA cargando
   const [remind, setRemind] = useState(false);          // recordatorio en tarea/cita
   const [galBusy, setGalBusy] = useState(false);        // 📸 enviando Galería Personalizada
+  const [agentsBusy, setAgentsBusy] = useState(false);  // ↻ corriendo los agentes ahora
   const [addForm, setAddForm] = useState(null);         // null | 'tarea' | 'nota' | 'cita'
   const [addText, setAddText] = useState('');
   const [addDate, setAddDate] = useState('');
@@ -386,6 +387,40 @@ function ConversationInboxBody({ user }) {
     } catch { /* no-op */ } finally { setGalBusy(false); }
   }, [detail, curConv]);
 
+  // Correr los 5 agentes ahora (revisan todos los leads y dejan pendientes) → refresca este lead
+  const runAgents = useCallback(async () => {
+    setAgentsBusy(true);
+    try {
+      await fetch(`${API}/api/agent-workforce/run-now`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include' });
+      const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+      if (lid) await reloadCtx(lid);
+    } catch { /* no-op */ } finally { setAgentsBusy(false); }
+  }, [detail, curConv, reloadCtx]);
+
+  // Convierte la sugerencia de un agente en una tarea (queda registrada y rastreable)
+  const doAgentAction = useCallback((a) => {
+    setCol3Tab('acciones'); setAddForm('tarea'); setAddText(a.title || ''); setAddDate('');
+  }, []);
+
+  // Ejecuta la "siguiente mejor acción" del Copiloto según su tipo (no siempre es una propiedad)
+  const doNba = useCallback((action_type) => {
+    const first = (ctx?.name || '').split(' ')[0] || '';
+    switch (action_type) {
+      case 'afinar_gusto': sendGaleria(); break;
+      case 'recomendar': openPropPicker(); break;
+      case 'cerrar':
+      case 'coordinar_visita': setCol3Tab('acciones'); setAddForm('cita'); setAddText(''); setAddDate(''); break;
+      case 'reactivar': setComposeSeed(`Hola ${first}! Hace un tiempo no platicamos — ¿sigues en la búsqueda? Tengo un par de opciones que te pueden interesar. 🙌`); break;
+      case 'seguimiento':
+      default: setComposeSeed(`Hola ${first}! ¿Cómo vas? Quedo al pendiente para ayudarte con el siguiente paso. 🙌`); break;
+    }
+  }, [sendGaleria, openPropPicker, ctx]);
+
+  // Wizard de fecha/hora (founder: cero escribir a mano · botones de día y hora)
+  const toLocalISO = (d) => { const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+  const pickDay = (offset) => { const cur = addDate ? new Date(addDate) : null; const nd = new Date(); nd.setDate(nd.getDate() + offset); nd.setHours(cur ? cur.getHours() : 11, cur ? cur.getMinutes() : 0, 0, 0); setAddDate(toLocalISO(nd)); };
+  const pickTime = (h) => { const nd = addDate ? new Date(addDate) : new Date(); nd.setHours(h, 0, 0, 0); setAddDate(toLocalISO(nd)); };
+
   const filtered = useMemo(() => {
     let l = list;
     if (segment === 'sin_responder') l = l.filter((c) => c.needs_reply);
@@ -548,28 +583,39 @@ function ConversationInboxBody({ user }) {
               </div>
               {DM.includes(detail.channel) ? (
                 <>
-                  {/* Pieza 1 · IA EN VIVO: ánimo del cliente (de sus mensajes) + propiedad más afín */}
-                  {convAI && (convAI.animo || convAI.recomendacion) && (
+                  {/* Pieza 1 · COPILOTO EN VIVO: ánimo + qué hacer ahora (objeción/galería/propiedad/cierre) + propiedad afín */}
+                  {convAI && (convAI.animo || convAI.nba || convAI.recomendacion) && (
                     <div style={{ marginBottom: 8, borderRadius: 12, background: 'rgba(109,74,255,0.05)', border: '1px solid rgba(109,74,255,0.18)', overflow: 'hidden' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderBottom: '1px solid rgba(109,74,255,0.12)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--theme-2)' }}>
                         <FaRobot size={11} /> Copiloto en vivo
                       </div>
-                      <div style={{ padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 9 }}>
                         {convAI.animo && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                             <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.animo.sentiment === 'negativo' ? '😟' : convAI.animo.sentiment === 'positivo' ? '😊' : '😐'}</span>
-                            <span style={{ color: 'var(--cream-2)' }}>El cliente suena <b style={{ color: convAI.animo.sentiment === 'negativo' ? '#F2635B' : convAI.animo.sentiment === 'positivo' ? '#1FA06A' : 'var(--cream)' }}>{convAI.animo.label.toLowerCase()}</b><span style={{ color: 'var(--cream-3)' }}> · según sus últimos mensajes</span></span>
+                            <span style={{ color: 'var(--cream-2)' }}>El cliente suena <b style={{ color: convAI.animo.sentiment === 'negativo' ? '#F2635B' : convAI.animo.sentiment === 'positivo' ? '#1FA06A' : 'var(--cream)' }}>{convAI.animo.label.toLowerCase()}</b><span style={{ color: 'var(--cream-3)' }}> · según sus mensajes</span></span>
                           </div>
                         )}
-                        {convAI.recomendacion && (
+                        {convAI.nba && (
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.07)' : 'rgba(99,102,241,0.07)', border: `1px solid ${convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.20)' : 'rgba(99,102,241,0.18)'}` }}>
+                            <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.nba.action_type === 'objecion' ? '🛡️' : '🧭'}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ color: 'var(--cream)', fontWeight: 700 }}>{convAI.nba.title}{convAI.nba.urgency === 'alta' && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: '#F2635B', background: 'rgba(242,99,91,0.14)', padding: '1px 6px', borderRadius: 999 }}>urgente</span>}</div>
+                              <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.nba.why}</div>
+                            </div>
+                            <button type="button" onClick={() => doNba(convAI.nba.action_type)}
+                              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(109,74,255,0.28)' }}>{convAI.nba.cta}</button>
+                          </div>
+                        )}
+                        {convAI.recomendacion && convAI.nba && convAI.nba.action_type !== 'afinar_gusto' && (
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
                             <span style={{ fontSize: 15, lineHeight: 1 }}>🎯</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: 'var(--cream-2)' }}>Mándale <b style={{ color: 'var(--cream)' }}>{convAI.recomendacion.name}</b> <span style={{ color: 'var(--theme-2)', fontWeight: 800 }}>{convAI.recomendacion.match}% afín</span></div>
-                              <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.recomendacion.reason || 'Según el gusto y presupuesto que ha mostrado el cliente.'}</div>
+                              <div style={{ color: 'var(--cream-2)' }}>Propiedad más afín: <b style={{ color: 'var(--cream)' }}>{convAI.recomendacion.name}</b> <span style={{ color: 'var(--theme-2)', fontWeight: 800 }}>{convAI.recomendacion.match}%</span></div>
+                              <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.recomendacion.reason || 'Por su gusto y presupuesto.'}</div>
                             </div>
                             <button type="button" onClick={() => setComposeSeed(`Hola! Creo que ${convAI.recomendacion.name}${convAI.recomendacion.colonia ? ` en ${convAI.recomendacion.colonia}` : ''} te va a encantar — va con lo que buscas. ¿Te la mando? 🙌`)}
-                              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(109,74,255,0.28)' }}>Enviar</button>
+                              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Enviar</button>
                           </div>
                         )}
                       </div>
@@ -625,9 +671,9 @@ function ConversationInboxBody({ user }) {
               {col3Tab === 'acciones' && (<>
               {/* Fila de CREAR (founder: poder agregar tareas/notas/citas) */}
               <div style={{ display: 'flex', gap: 6, marginBottom: addForm ? 8 : 12, flexWrap: 'wrap' }}>
-                {[{ k: 'tarea', l: '+ Tarea' }, { k: 'nota', l: '+ Nota' }, { k: 'cita', l: '+ Cita' }].map((b) => (
+                {[{ k: 'tarea', l: 'Tarea', Icon: ClipboardList }, { k: 'nota', l: 'Nota', Icon: FileText }, { k: 'cita', l: 'Cita', Icon: CalendarDays }].map((b) => (
                   <button key={b.k} type="button" onClick={() => { setAddForm(addForm === b.k ? null : b.k); setAddText(''); setAddDate(''); }}
-                    style={{ flex: '1 1 0', padding: '7px 4px', borderRadius: 8, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, border: `1px solid ${addForm === b.k ? 'var(--theme-2)' : 'var(--border)'}`, background: addForm === b.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface)', color: addForm === b.k ? 'var(--theme-2)' : 'var(--cream-2)' }}>{b.l}</button>
+                    style={{ flex: '1 1 0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 4px', borderRadius: 8, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, border: `1px solid ${addForm === b.k ? 'var(--theme-2)' : 'var(--border)'}`, background: addForm === b.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface)', color: addForm === b.k ? 'var(--theme-2)' : 'var(--cream-2)' }}><b.Icon size={13} /> {b.l}</button>
                 ))}
                 <button type="button" onClick={() => dispatchCopilotToggle('open')} title="Pregúntale al Copiloto"
                   style={{ flexShrink: 0, padding: '7px 9px', borderRadius: 8, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.10)', color: 'var(--theme-primary, #818CF8)', display: 'inline-flex', alignItems: 'center' }}><FaRobot size={14} /></button>
@@ -636,8 +682,8 @@ function ConversationInboxBody({ user }) {
                 <div style={{ marginBottom: 14, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 10px 28px rgba(20,16,60,0.10)', overflow: 'hidden' }}>
                   {/* Header del formulario · estilo móvil (icono + título + IA) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, rgba(109,74,255,0.10), rgba(255,92,168,0.06))' }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', fontSize: 16, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                      {addForm === 'tarea' ? '✅' : addForm === 'nota' ? '📝' : '📅'}
+                    <span style={{ width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--theme-2)' }}>
+                      {(() => { const I = addForm === 'tarea' ? ClipboardList : addForm === 'nota' ? FileText : CalendarDays; return <I size={17} />; })()}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 14.5, color: 'var(--cream)' }}>
@@ -677,17 +723,42 @@ function ConversationInboxBody({ user }) {
                             ))}
                           </div>
                         )}
-                        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--cream-3)', margin: '13px 0 7px' }}>{addForm === 'cita' ? 'Fecha y hora' : 'Vence'}</div>
-                        <input type={addForm === 'cita' ? 'datetime-local' : 'date'} value={addDate} onChange={(e) => setAddDate(e.target.value)}
-                          style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
-                        {addForm === 'cita' && (
-                          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                            {[{ l: 'Hoy', d: 0 }, { l: 'Mañana', d: 1 }].map((q) => (
-                              <button key={q.l} type="button" onClick={() => { const dt = new Date(Date.now() + q.d * 86400000); dt.setHours(11, 0, 0, 0); setAddDate(dt.toISOString().slice(0, 16)); }}
-                                style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>{q.l} · 11am</button>
-                            ))}
+                        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--cream-3)', margin: '13px 0 7px' }}>{addForm === 'cita' ? 'Día' : 'Vence'}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                        {[0, 1, 2, 3, 4, 5].map((off) => {
+                          const dd = new Date(); dd.setDate(dd.getDate() + off); dd.setHours(0, 0, 0, 0);
+                          const sel = addDate && new Date(addDate).toDateString() === dd.toDateString();
+                          const lab = off === 0 ? 'Hoy' : off === 1 ? 'Mañana' : dd.toLocaleDateString('es-MX', { weekday: 'short' });
+                          const sub = dd.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+                          return (
+                            <button key={off} type="button" onClick={() => pickDay(off)}
+                              style={{ padding: '8px 4px', borderRadius: 10, cursor: 'pointer', border: `1px solid ${sel ? 'var(--theme-2)' : 'var(--border)'}`, background: sel ? 'rgba(99,102,241,0.12)' : 'var(--surface)', color: sel ? 'var(--theme-2)' : 'var(--cream-2)', textAlign: 'center', lineHeight: 1.2 }}>
+                              <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'capitalize' }}>{lab}</div>
+                              <div style={{ fontSize: 9, color: sel ? 'var(--theme-2)' : 'var(--cream-3)' }}>{sub}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {addForm === 'cita' && (
+                        <>
+                          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--cream-3)', margin: '11px 0 7px' }}>Hora</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                            {[9, 10, 11, 12, 13, 16, 17, 18].map((h) => {
+                              const sel = addDate && new Date(addDate).getHours() === h;
+                              const lab = h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`;
+                              return (
+                                <button key={h} type="button" onClick={() => pickTime(h)}
+                                  style={{ padding: '7px 2px', borderRadius: 9, cursor: 'pointer', border: `1px solid ${sel ? 'var(--theme-2)' : 'var(--border)'}`, background: sel ? 'rgba(99,102,241,0.12)' : 'var(--surface)', color: sel ? 'var(--theme-2)' : 'var(--cream-2)', fontSize: 11, fontWeight: 700 }}>{lab}</button>
+                              );
+                            })}
                           </div>
-                        )}
+                        </>
+                      )}
+                      {addDate && (
+                        <div style={{ marginTop: 10, padding: '8px 11px', borderRadius: 10, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)', fontSize: 11.5, color: 'var(--cream)', display: 'flex', alignItems: 'center', gap: 7, textTransform: 'capitalize' }}>
+                          <CalendarDays size={14} color="var(--theme-2)" /> {new Date(addDate).toLocaleString('es-MX', addForm === 'cita' ? { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' } : { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </div>
+                      )}
                         <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, padding: '10px 12px', borderRadius: 12, background: (addForm === 'cita' || remind) ? 'rgba(99,102,241,0.08)' : 'var(--surface-2)', border: `1px solid ${(addForm === 'cita' || remind) ? 'rgba(99,102,241,0.30)' : 'var(--border)'}`, fontSize: 12, color: 'var(--cream-2)', cursor: addForm === 'cita' ? 'default' : 'pointer' }}>
                           <input type="checkbox" checked={addForm === 'cita' ? true : remind} disabled={addForm === 'cita'} onChange={(e) => setRemind(e.target.checked)} style={{ accentColor: 'var(--theme-2)', width: 16, height: 16 }} />
                           <span>🔔 Recordatorio <span style={{ color: 'var(--cream-3)', fontSize: 10.5 }}>{addForm === 'cita' ? '· automático 24h y 2h antes' : '· te aviso 24h antes'}</span></span>
@@ -755,20 +826,30 @@ function ConversationInboxBody({ user }) {
 
               {/* ═══ TAB: IA ═══ */}
               {col3Tab === 'ia' && (<>
-              {/* Pieza 3 · lo que sugieren los 5 AGENTES para este lead */}
-              {(ctx?.agent_actions || []).length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>🤖 Tus agentes sugieren</div>
+              {/* Pieza 3 · los 5 AGENTES (autónomos · dejan pendientes aquí y en tu Inicio) */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)' }}>🤖 Tus agentes sugieren</div>
+                  <button type="button" onClick={runAgents} disabled={agentsBusy} style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 9px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface)', color: agentsBusy ? 'var(--cream-3)' : 'var(--theme-2)', cursor: agentsBusy ? 'default' : 'pointer' }}>{agentsBusy ? 'Corriendo…' : '↻ Correr'}</button>
+                </div>
+                {(ctx?.agent_actions || []).length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {ctx.agent_actions.map((a) => (
                       <div key={a.id} style={{ padding: '8px 10px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.18)' }}>
                         <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 2 }}>{a.agent_label}</div>
                         <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.4 }}>{a.title}</div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
+                          <button type="button" onClick={() => doAgentAction(a)} style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 7, border: 'none', background: 'var(--theme-2)', color: '#fff', cursor: 'pointer' }}>Convertir en tarea</button>
+                          <button type="button" onClick={() => dispatchCopilotToggle('open')} style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', cursor: 'pointer' }}>Copiloto</button>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div style={{ fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.45, padding: '8px 10px', borderRadius: 9, background: 'var(--surface-2)', border: '1px dashed var(--border)' }}>Sin pendientes de los agentes para este lead. Corren solos cada pocas horas; toca ↻ Correr para revisarlo ahora.</div>
+                )}
+                <div style={{ fontSize: 10, color: 'var(--cream-3)', marginTop: 7, lineHeight: 1.4 }}>Tus 5 agentes (prospección, seguimiento, cierre, análisis y coach) revisan tus leads en automático y dejan pendientes aquí y en tu <b>Inicio</b>.</div>
+              </div>
 
               {/* B6 · contexto del lead: siguiente paso + perfil de gusto (B5.4) */}
               {ctx?.brief?.next_step && (
