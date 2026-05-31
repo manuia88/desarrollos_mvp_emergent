@@ -124,10 +124,10 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} disabled={disabled}
-          placeholder="Escribe tu mensaje…"
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} disabled={disabled}
+          placeholder="Escribe tu mensaje…  (Enter envía · Shift+Enter salto de línea)"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          style={{ flex: 1, resize: 'none', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
+          style={{ flex: 1, resize: 'vertical', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, lineHeight: 1.5, outline: 'none', minHeight: 76, maxHeight: 220 }} />
         <button type="button" onClick={send} disabled={disabled || (!text.trim() && !attached)}
           style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: '#0b1f12', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || (!text.trim() && !attached)) ? 'default' : 'pointer', opacity: (disabled || (!text.trim() && !attached)) ? 0.5 : 1 }}>
           Enviar →
@@ -862,6 +862,53 @@ function ConversationInboxBody({ user }) {
 
               {/* ═══ TAB: PERFIL ═══ */}
               {col3Tab === 'perfil' && (<>
+              {/* Datos del contacto · siempre presentes (founder: el tab no debe verse vacío) */}
+              <div style={{ marginTop: 4 }}>
+                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Datos del contacto</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {ctx?.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+                      <span style={{ fontSize: 13 }}>📱</span>
+                      <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--cream)', textDecoration: 'none' }}>{ctx.phone}</a>
+                    </div>
+                  )}
+                  {ctx?.email && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+                      <span style={{ fontSize: 13 }}>✉️</span>
+                      <span style={{ color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ctx.email}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                    {ctx?.tipo && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'var(--surface-2)', color: 'var(--cream-2)', textTransform: 'capitalize' }}>{ctx.tipo}</span>}
+                    {ctx?.fuente && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'var(--surface-2)', color: 'var(--cream-2)', textTransform: 'capitalize' }}>vía {ctx.fuente}</span>}
+                    {(ctx?.tags || []).map((tg) => (
+                      <span key={tg} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'rgba(99,102,241,0.12)', color: 'var(--theme-2)', textTransform: 'capitalize' }}>{tg}</span>
+                    ))}
+                  </div>
+                  {!ctx?.phone && !ctx?.email && (ctx?.tags || []).length === 0 && !ctx?.tipo && !ctx?.fuente && (
+                    <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Sin datos de contacto aún.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Lo que busca · de su búsqueda activa (presupuesto + zonas + recámaras) */}
+              {ctx?.busqueda && (ctx.busqueda.precio_max || (ctx.busqueda.colonias || []).length > 0 || ctx.busqueda.recamaras_min) && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Lo que busca</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, color: 'var(--cream-2)' }}>
+                    {(ctx.busqueda.precio_min || ctx.busqueda.precio_max) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 13 }}>💰</span> <span>Presupuesto: <b style={{ color: 'var(--cream)' }}>{ctx.busqueda.precio_min ? fmtMXNlocal(ctx.busqueda.precio_min) : '—'}{ctx.busqueda.precio_max ? ` a ${fmtMXNlocal(ctx.busqueda.precio_max)}` : ''}</b></span></div>
+                    )}
+                    {(ctx.busqueda.colonias || []).length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}><span style={{ fontSize: 13 }}>📍</span> <span style={{ textTransform: 'capitalize' }}>Zonas: <b style={{ color: 'var(--cream)' }}>{ctx.busqueda.colonias.slice(0, 4).join(', ').replace(/-/g, ' ')}</b></span></div>
+                    )}
+                    {ctx.busqueda.recamaras_min ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 13 }}>🛏️</span> <span>Recámaras: <b style={{ color: 'var(--cream)' }}>{ctx.busqueda.recamaras_min}+</b></span></div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
               {ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
                 <div style={{ marginTop: 12 }}>
                   <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>

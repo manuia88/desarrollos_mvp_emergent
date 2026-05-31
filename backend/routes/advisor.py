@@ -1941,7 +1941,8 @@ async def lead_context(cid: str, request: Request):
     db = get_db(request)
     c = await db.asesor_contactos.find_one(
         {"id": cid, "owner_id": user.user_id},
-        {"_id": 0, "first_name": 1, "last_name": 1, "phones": 1, "temperatura": 1})
+        {"_id": 0, "first_name": 1, "last_name": 1, "phones": 1, "emails": 1,
+         "temperatura": 1, "tipo": 1, "fuente": 1, "tags": 1, "created_at": 1})
     if not c:
         raise HTTPException(404, "Contacto no encontrado")
     items = await db.asesor_lead_properties.find(
@@ -1999,8 +2000,24 @@ async def lead_context(cid: str, request: Request):
                                   "title": a.get("title")})
     except Exception:
         pass
+    # Datos del perfil (tab Perfil) + búsqueda activa (lo que pidió: presupuesto/zonas/recámaras)
+    created_at = c.get("created_at")
+    if hasattr(created_at, "isoformat"):
+        created_at = created_at.isoformat()
+    busqueda = None
+    try:
+        b = await db.asesor_busquedas.find_one(
+            {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}, sort=[("created_at", -1)])
+        if b:
+            busqueda = {"precio_min": b.get("precio_min"), "precio_max": b.get("precio_max"),
+                        "colonias": b.get("colonias") or [], "recamaras_min": b.get("recamaras_min"),
+                        "tipo": b.get("tipo"), "urgencia": b.get("urgencia")}
+    except Exception:
+        busqueda = None
     return {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
-            "phone": (c.get("phones") or [None])[0], "temperatura": c.get("temperatura"),
+            "phone": (c.get("phones") or [None])[0], "email": (c.get("emails") or [None])[0],
+            "tipo": c.get("tipo"), "fuente": c.get("fuente"), "tags": c.get("tags") or [],
+            "created_at": created_at, "busqueda": busqueda, "temperatura": c.get("temperatura"),
             "taste": taste, "brief": brief, "board_count": len(items),
             "board": board, "close_probability": close_prob,
             "tareas": tareas, "proxima_cita": proxima_cita, "agent_actions": agent_actions}
