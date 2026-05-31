@@ -29,6 +29,10 @@ const STATUS_COLOR = {
   closed: 'var(--theme-muted-dark, #64748B)',
 };
 
+const AMEN_LABEL = { pet: 'Pet friendly', roof: 'Roof garden', gym: 'Gym', alberca: 'Alberca', seguridad: 'Seguridad', concierge: 'Concierge', spa: 'Spa', cava: 'Cava', sky_lounge: 'Sky lounge', salon_eventos: 'Salón de eventos', business_center: 'Business center', terraza: 'Terraza' };
+const AMEN_OPTS = ['pet', 'roof', 'gym', 'alberca', 'seguridad', 'concierge', 'terraza'];
+const editInput = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' };
+
 function authHeaders() {
   const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
   return tk ? { Authorization: `Bearer ${tk}` } : {};
@@ -157,6 +161,9 @@ function ConversationInboxBody({ user }) {
   const [remind, setRemind] = useState(false);          // recordatorio en tarea/cita
   const [galBusy, setGalBusy] = useState(false);        // 📸 enviando Galería Personalizada
   const [agentsBusy, setAgentsBusy] = useState(false);  // ↻ corriendo los agentes ahora
+  const [editBusq, setEditBusq] = useState(null);       // modal editar búsqueda {form}
+  const [editSaving, setEditSaving] = useState(false);
+  const [editRecs, setEditRecs] = useState(null);       // recomendaciones IA tras guardar
   const [addForm, setAddForm] = useState(null);         // null | 'tarea' | 'nota' | 'cita'
   const [addText, setAddText] = useState('');
   const [addDate, setAddDate] = useState('');
@@ -415,6 +422,50 @@ function ConversationInboxBody({ user }) {
       default: setComposeSeed(`Hola ${first}! ¿Cómo vas? Quedo al pendiente para ayudarte con el siguiente paso. 🙌`); break;
     }
   }, [sendGaleria, openPropPicker, ctx]);
+
+  // Editar perfil de búsqueda (founder: el cliente sube presupuesto / amplía zona)
+  const openEditBusqueda = useCallback(() => {
+    const b = ctx?.busqueda || {};
+    setEditRecs(null);
+    setEditBusq({
+      precio_min: b.precio_min || '', precio_max: b.precio_max || '',
+      recamaras_min: b.recamaras_min || 1, banos_min: b.banos_min || 1,
+      estacionamientos_min: b.estacionamientos_min || 0, m2_min: b.m2_min || '',
+      colonias: (b.colonias || []).join(', '),
+      amenidades: b.amenidades || [], mascotas: !!b.mascotas,
+      no_negociables: (b.no_negociables || []).join('\n'), urgencia: b.urgencia || 'media',
+    });
+  }, [ctx]);
+
+  const saveBusqueda = useCallback(async () => {
+    const bid = ctx?.busqueda?.id;
+    if (!bid || !editBusq) return;
+    setEditSaving(true);
+    const body = {
+      precio_min: editBusq.precio_min ? Number(editBusq.precio_min) : null,
+      precio_max: editBusq.precio_max ? Number(editBusq.precio_max) : null,
+      recamaras_min: Number(editBusq.recamaras_min) || 1,
+      banos_min: Number(editBusq.banos_min) || 1,
+      estacionamientos_min: Number(editBusq.estacionamientos_min) || 0,
+      m2_min: editBusq.m2_min ? Number(editBusq.m2_min) : null,
+      colonias: editBusq.colonias.split(',').map((s) => s.trim().toLowerCase().replace(/\s+/g, '-')).filter(Boolean),
+      amenidades: editBusq.amenidades, mascotas: editBusq.mascotas,
+      no_negociables: editBusq.no_negociables.split('\n').map((s) => s.trim()).filter(Boolean),
+      urgencia: editBusq.urgencia,
+    };
+    try {
+      const r = await fetch(`${API}/api/asesor/busquedas/${bid}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setEditRecs(d);
+        const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+        if (lid) await reloadCtx(lid);
+      }
+    } catch { /* no-op */ } finally { setEditSaving(false); }
+  }, [ctx, editBusq, detail, curConv, reloadCtx]);
 
   // Wizard de fecha/hora (founder: cero escribir a mano · botones de día y hora)
   const toLocalISO = (d) => { const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -891,21 +942,66 @@ function ConversationInboxBody({ user }) {
                 </div>
               </div>
 
-              {/* Lo que busca · de su búsqueda activa (presupuesto + zonas + recámaras) */}
-              {ctx?.busqueda && (ctx.busqueda.precio_max || (ctx.busqueda.colonias || []).length > 0 || ctx.busqueda.recamaras_min) && (
+              {/* Lo que busca · perfil COMPLETO de la búsqueda activa + editar (founder) */}
+              {ctx?.busqueda && (
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Lo que busca</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, color: 'var(--cream-2)' }}>
-                    {(ctx.busqueda.precio_min || ctx.busqueda.precio_max) && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 13 }}>💰</span> <span>Presupuesto: <b style={{ color: 'var(--cream)' }}>{ctx.busqueda.precio_min ? fmtMXNlocal(ctx.busqueda.precio_min) : '—'}{ctx.busqueda.precio_max ? ` a ${fmtMXNlocal(ctx.busqueda.precio_max)}` : ''}</b></span></div>
-                    )}
-                    {(ctx.busqueda.colonias || []).length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}><span style={{ fontSize: 13 }}>📍</span> <span style={{ textTransform: 'capitalize' }}>Zonas: <b style={{ color: 'var(--cream)' }}>{ctx.busqueda.colonias.slice(0, 4).join(', ').replace(/-/g, ' ')}</b></span></div>
-                    )}
-                    {ctx.busqueda.recamaras_min ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 13 }}>🛏️</span> <span>Recámaras: <b style={{ color: 'var(--cream)' }}>{ctx.busqueda.recamaras_min}+</b></span></div>
-                    ) : null}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)' }}>Lo que busca</div>
+                    <button type="button" onClick={openEditBusqueda}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--theme-2)', cursor: 'pointer' }}>✏️ Editar</button>
                   </div>
+                  {/* grid de criterios · estético */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                    {[
+                      { ic: '💰', lb: 'Presupuesto', v: (ctx.busqueda.precio_min || ctx.busqueda.precio_max) ? `${ctx.busqueda.precio_min ? fmtMXNlocal(ctx.busqueda.precio_min) : '—'}${ctx.busqueda.precio_max ? ` – ${fmtMXNlocal(ctx.busqueda.precio_max)}` : ''}` : null, full: true },
+                      { ic: '🛏️', lb: 'Recámaras', v: ctx.busqueda.recamaras_min ? `${ctx.busqueda.recamaras_min}+` : null },
+                      { ic: '🛁', lb: 'Baños', v: ctx.busqueda.banos_min ? `${ctx.busqueda.banos_min}+` : null },
+                      { ic: '🚗', lb: 'Estac.', v: (ctx.busqueda.estacionamientos_min != null) ? `${ctx.busqueda.estacionamientos_min}+` : null },
+                      { ic: '📐', lb: 'm²', v: ctx.busqueda.m2_min ? `${ctx.busqueda.m2_min}+ m²` : null },
+                    ].filter((x) => x.v).map((x) => (
+                      <div key={x.lb} style={{ gridColumn: x.full ? '1 / -1' : 'auto', padding: '8px 10px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 1 }}>{x.ic} {x.lb}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cream)' }}>{x.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* zonas */}
+                  {(ctx.busqueda.colonias || []).length > 0 && (
+                    <div style={{ marginTop: 9 }}>
+                      <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 5 }}>📍 Zonas</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {ctx.busqueda.colonias.map((cl) => (
+                          <span key={cl} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'rgba(99,102,241,0.12)', color: 'var(--theme-2)', textTransform: 'capitalize' }}>{cl.replace(/-/g, ' ')}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* mascotas + amenidades */}
+                  {(ctx.busqueda.mascotas || (ctx.busqueda.amenidades || []).length > 0) && (
+                    <div style={{ marginTop: 9 }}>
+                      <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 5 }}>✨ Imprescindibles</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {ctx.busqueda.mascotas && <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'var(--surface-2)', color: 'var(--cream-2)' }}>🐾 Pet friendly</span>}
+                        {(ctx.busqueda.amenidades || []).map((am) => (
+                          <span key={am} style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: 'var(--surface-2)', color: 'var(--cream-2)', textTransform: 'capitalize' }}>{AMEN_LABEL[am] || am}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* no negociables */}
+                  {(ctx.busqueda.no_negociables || []).length > 0 && (
+                    <div style={{ marginTop: 9 }}>
+                      <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 5 }}>🚫 No negociables</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {ctx.busqueda.no_negociables.map((nn) => (
+                          <div key={nn} style={{ fontSize: 12, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ color: '#F2635B' }}>•</span> {nn}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {ctx.busqueda.urgencia && (
+                    <div style={{ marginTop: 9, fontSize: 11.5, color: 'var(--cream-3)' }}>⏱️ Urgencia: <b style={{ color: ctx.busqueda.urgencia === 'alta' ? '#F2635B' : 'var(--cream-2)', textTransform: 'capitalize' }}>{ctx.busqueda.urgencia}</b></div>
+                  )}
                 </div>
               )}
 
@@ -1051,6 +1147,99 @@ function ConversationInboxBody({ user }) {
                   <span style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme-2)', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700 }}>Adjuntar</span>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Editar perfil de búsqueda + recomendaciones IA al guardar (founder) */}
+      {editBusq && (
+        <div onClick={() => { setEditBusq(null); setEditRecs(null); }} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.5)', zIndex: 95, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 460, maxHeight: '88vh', borderRadius: 18, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 16, color: 'var(--cream)' }}>Editar lo que busca{ctx?.name ? ` · ${ctx.name.split(' ')[0]}` : ''}</b>
+              <button type="button" onClick={() => { setEditBusq(null); setEditRecs(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 20, lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {editRecs && (editRecs.recomendaciones || []).length > 0 && (
+                <div style={{ borderRadius: 12, background: 'rgba(109,74,255,0.06)', border: '1px solid rgba(109,74,255,0.2)', padding: 12 }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}><FaRobot size={11} /> La IA detectó el cambio</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {editRecs.recomendaciones.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+                        <span style={{ fontSize: 14 }}>{r.icon}</span>
+                        <div><b style={{ color: 'var(--cream)' }}>{r.title}.</b> <span style={{ color: 'var(--cream-2)' }}>{r.detail}</span></div>
+                      </div>
+                    ))}
+                  </div>
+                  {(editRecs.nuevas_props || []).length > 0 && (
+                    <div style={{ marginTop: 9, paddingTop: 9, borderTop: '1px solid rgba(109,74,255,0.15)' }}>
+                      <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 5 }}>Nuevas coincidencias</div>
+                      {editRecs.nuevas_props.map((p, i) => (
+                        <div key={i} style={{ fontSize: 12, color: 'var(--cream-2)', display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}><span style={{ textTransform: 'capitalize' }}>{p.name} · {p.colonia}</span><b style={{ color: 'var(--theme-2)' }}>{p.score}%</b></div>
+                      ))}
+                      <button type="button" onClick={() => { setEditBusq(null); setEditRecs(null); setCol3Tab('acciones'); sendGaleria(); }}
+                        style={{ width: '100%', marginTop: 8, padding: '9px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}>📸 Mandarle Galería con lo nuevo</button>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 6 }}>💰 Presupuesto (MXN)</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="number" value={editBusq.precio_min} onChange={(e) => setEditBusq((s) => ({ ...s, precio_min: e.target.value }))} placeholder="Mínimo" style={editInput} />
+                  <input type="number" value={editBusq.precio_max} onChange={(e) => setEditBusq((s) => ({ ...s, precio_max: e.target.value }))} placeholder="Máximo" style={editInput} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {[
+                  { k: 'recamaras_min', lb: '🛏️ Recámaras (mín)' },
+                  { k: 'banos_min', lb: '🛁 Baños (mín)' },
+                  { k: 'estacionamientos_min', lb: '🚗 Estac. (mín)' },
+                  { k: 'm2_min', lb: '📐 m² (mín)' },
+                ].map((f) => (
+                  <div key={f.k}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 6 }}>{f.lb}</div>
+                    <input type="number" value={editBusq[f.k]} onChange={(e) => setEditBusq((s) => ({ ...s, [f.k]: e.target.value }))} style={editInput} />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 6 }}>📍 Zonas (separadas por coma)</div>
+                <input value={editBusq.colonias} onChange={(e) => setEditBusq((s) => ({ ...s, colonias: e.target.value }))} placeholder="Polanco, Condesa, Roma Norte" style={editInput} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: 'var(--cream-2)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={editBusq.mascotas} onChange={(e) => setEditBusq((s) => ({ ...s, mascotas: e.target.checked }))} style={{ accentColor: 'var(--theme-2)', width: 16, height: 16 }} /> 🐾 Necesita que acepten mascotas
+              </label>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 6 }}>✨ Amenidades deseadas</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {AMEN_OPTS.map((am) => {
+                    const on = editBusq.amenidades.includes(am);
+                    return (
+                      <button key={am} type="button" onClick={() => setEditBusq((s) => ({ ...s, amenidades: on ? s.amenidades.filter((x) => x !== am) : [...s.amenidades, am] }))}
+                        style={{ fontSize: 11.5, fontWeight: 700, padding: '6px 11px', borderRadius: 999, cursor: 'pointer', border: `1px solid ${on ? 'var(--theme-2)' : 'var(--border)'}`, background: on ? 'rgba(99,102,241,0.12)' : 'var(--surface)', color: on ? 'var(--theme-2)' : 'var(--cream-2)' }}>{AMEN_LABEL[am] || am}</button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 6 }}>🚫 No negociables (uno por línea)</div>
+                <textarea value={editBusq.no_negociables} onChange={(e) => setEditBusq((s) => ({ ...s, no_negociables: e.target.value }))} rows={3} placeholder={'Cocina amplia\nEstacionamiento techado'} style={{ ...editInput, resize: 'vertical', lineHeight: 1.5 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-2)', marginBottom: 6 }}>⏱️ Urgencia</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['baja', 'media', 'alta'].map((u) => (
+                    <button key={u} type="button" onClick={() => setEditBusq((s) => ({ ...s, urgencia: u }))}
+                      style={{ flex: 1, padding: '8px', borderRadius: 10, cursor: 'pointer', textTransform: 'capitalize', fontSize: 12, fontWeight: 700, border: `1px solid ${editBusq.urgencia === u ? 'var(--theme-2)' : 'var(--border)'}`, background: editBusq.urgencia === u ? 'rgba(99,102,241,0.12)' : 'var(--surface)', color: editBusq.urgencia === u ? 'var(--theme-2)' : 'var(--cream-2)' }}>{u}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
+              <button type="button" onClick={() => { setEditBusq(null); setEditRecs(null); }} style={{ flex: '0 0 auto', padding: '11px 18px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{editRecs ? 'Cerrar' : 'Cancelar'}</button>
+              <button type="button" onClick={saveBusqueda} disabled={editSaving} style={{ flex: 1, padding: '11px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 13, fontWeight: 800, cursor: editSaving ? 'default' : 'pointer', opacity: editSaving ? 0.6 : 1 }}>{editSaving ? 'Guardando…' : '💾 Guardar y recalcular'}</button>
             </div>
           </div>
         </div>

@@ -74,13 +74,34 @@ class BusquedaIn(BaseModel):
     contacto_id: str
     tipos: List[str] = ["dept"]
     recamaras_min: int = 1
+    banos_min: int = 1
+    estacionamientos_min: int = 0
+    m2_min: Optional[int] = None
     colonias: List[str] = []
     precio_min: Optional[int] = None
     precio_max: Optional[int] = None
     amenidades: List[str] = []
+    mascotas: bool = False
+    no_negociables: List[str] = []
     urgencia: str = "media"
     fuente: str = "referido"
     notas: Optional[str] = ""
+
+class BusquedaPatch(BaseModel):
+    """Edición del perfil de búsqueda (founder: el cliente sube presupuesto / amplía zona)."""
+    tipos: Optional[List[str]] = None
+    recamaras_min: Optional[int] = None
+    banos_min: Optional[int] = None
+    estacionamientos_min: Optional[int] = None
+    m2_min: Optional[int] = None
+    colonias: Optional[List[str]] = None
+    precio_min: Optional[int] = None
+    precio_max: Optional[int] = None
+    amenidades: Optional[List[str]] = None
+    mascotas: Optional[bool] = None
+    no_negociables: Optional[List[str]] = None
+    urgencia: Optional[str] = None
+    notas: Optional[str] = None
 
 class BusquedaStage(BaseModel):
     stage: str
@@ -2009,9 +2030,13 @@ async def lead_context(cid: str, request: Request):
         b = await db.asesor_busquedas.find_one(
             {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}, sort=[("created_at", -1)])
         if b:
-            busqueda = {"precio_min": b.get("precio_min"), "precio_max": b.get("precio_max"),
+            busqueda = {"id": b.get("id"), "precio_min": b.get("precio_min"), "precio_max": b.get("precio_max"),
                         "colonias": b.get("colonias") or [], "recamaras_min": b.get("recamaras_min"),
-                        "tipo": b.get("tipo"), "urgencia": b.get("urgencia")}
+                        "banos_min": b.get("banos_min"), "estacionamientos_min": b.get("estacionamientos_min"),
+                        "m2_min": b.get("m2_min"), "tipos": b.get("tipos") or [],
+                        "amenidades": b.get("amenidades") or [], "mascotas": b.get("mascotas"),
+                        "no_negociables": b.get("no_negociables") or [],
+                        "urgencia": b.get("urgencia"), "notas": b.get("notas") or ""}
     except Exception:
         busqueda = None
     return {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
@@ -2125,7 +2150,8 @@ async def register_offer(bid: str, request: Request):
 
 @router.get("/busquedas/{bid}/matches")
 async def busqueda_matches(bid: str, request: Request):
-    """Deterministic 5-dim matcher: price 30% + zone 25% + amenities 20% + beds 15% + urgency 10%."""
+    """Matcher determinista: precio 28 + zona 22 + amenidades 16 + recámaras 12 + baños 8
+    + estacionamiento 6 + m² 4 + urgencia 4. Honra mascotas y no-negociables."""
     from data_developments import DEVELOPMENTS
     user = await require_advisor(request)
     db = get_db(request)
@@ -2136,30 +2162,45 @@ async def busqueda_matches(bid: str, request: Request):
     for d in DEVELOPMENTS:
         score = 0
         rationale = []
+        max_beds = (d.get("bedrooms_range") or [0, 0])[1]
+        max_baths = (d.get("bathrooms_range") or [0, 0])[1]
+        max_parking = (d.get("parking_range") or [0, 0])[1]
+        max_m2 = (d.get("m2_range") or [0, 0])[1]
         # price
         pmin = b.get("precio_min") or 0
         pmax = b.get("precio_max") or 10**9
         if pmin <= d["price_from"] <= pmax or pmin <= d["price_to"] <= pmax:
-            score += 30; rationale.append("Dentro de rango de precio")
+            score += 28; rationale.append("Dentro de rango de precio")
         # zone (colonia)
         if b.get("colonias") and d["colonia_id"] in b["colonias"]:
-            score += 25; rationale.append(f"Colonia preferida: {d['colonia']}")
-        # amenities overlap
+            score += 22; rationale.append(f"Colonia preferida: {d['colonia']}")
+        # amenities overlap (mascotas se trata como amenidad 'pet')
         want_amen = set(b.get("amenidades", []))
+        if b.get("mascotas"):
+            want_amen.add("pet")
         have_amen = set(d.get("amenities", []))
         if want_amen:
             overlap = len(want_amen & have_amen)
             pct = overlap / max(1, len(want_amen))
-            score += int(pct * 20)
+            score += int(pct * 16)
             if overlap: rationale.append(f"{overlap} amenidades coincidentes")
         # beds
-        if b.get("recamaras_min", 0) <= d["bedrooms_range"][1]:
-            score += 15; rationale.append(f"Ofrece {d['bedrooms_range'][0]}-{d['bedrooms_range'][1]} recámaras")
+        if b.get("recamaras_min", 0) <= max_beds:
+            score += 12; rationale.append(f"Hasta {max_beds} recámaras")
+        # baths
+        if b.get("banos_min", 0) <= max_baths:
+            score += 8
+        # parking
+        if b.get("estacionamientos_min", 0) <= max_parking:
+            score += 6
+        # m2
+        if not b.get("m2_min") or b.get("m2_min", 0) <= max_m2:
+            score += 4
         # urgency/stage alignment
         if b.get("urgencia") == "alta" and d["stage"] in ("entrega_inmediata", "en_construccion"):
-            score += 10; rationale.append("Entrega acelerada alineada con urgencia")
+            score += 4; rationale.append("Entrega acelerada alineada con urgencia")
         elif b.get("urgencia") != "alta":
-            score += 5
+            score += 2
 
         if score > 0:
             out.append({
@@ -2174,6 +2215,100 @@ async def busqueda_matches(bid: str, request: Request):
             })
     out.sort(key=lambda x: -x["score"])
     return out[:12]
+
+
+def _fmt_mxn(n):
+    try:
+        return f"${int(n)/1_000_000:.1f}M".replace(".0M", "M")
+    except Exception:
+        return str(n)
+
+
+@router.patch("/busquedas/{bid}")
+async def update_busqueda(bid: str, payload: BusquedaPatch, request: Request):
+    """Edita el perfil de búsqueda del lead. Detecta los cambios (sube presupuesto / amplía
+    zona / +recámaras…) y devuelve recomendaciones con IA + cuántas propiedades nuevas
+    desbloquea el cambio (re-corre el matcher). FAIL-OPEN."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    b = await db.asesor_busquedas.find_one({"id": bid, "owner_id": user.user_id}, {"_id": 0})
+    if not b:
+        raise HTTPException(404, "Búsqueda no encontrada")
+    changes = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
+    if not changes:
+        return {"ok": True, "changed": [], "recomendaciones": [], "matches_delta": 0}
+
+    # matches ANTES del cambio
+    try:
+        before = await busqueda_matches(bid, request)
+        before_ids = {m["dev_id"] for m in before}
+        before_top = before[0]["score"] if before else 0
+    except Exception:
+        before, before_ids, before_top = [], set(), 0
+
+    # detectar QUÉ cambió (en lenguaje llano) para las recomendaciones
+    diffs = []
+    if "precio_max" in changes and (b.get("precio_max") or 0) != changes["precio_max"]:
+        up = (changes["precio_max"] or 0) > (b.get("precio_max") or 0)
+        diffs.append(("presupuesto_up" if up else "presupuesto_down",
+                      f"{'subió' if up else 'bajó'} el presupuesto a {_fmt_mxn(changes['precio_max'])}"))
+    if "colonias" in changes and set(changes["colonias"] or []) != set(b.get("colonias") or []):
+        nuevas = [c for c in (changes["colonias"] or []) if c not in (b.get("colonias") or [])]
+        if nuevas:
+            diffs.append(("zona_amplia", f"amplió zona: +{', '.join(n.replace('-', ' ') for n in nuevas)}"))
+        else:
+            diffs.append(("zona_cambia", "ajustó las zonas de interés"))
+    if "recamaras_min" in changes and (b.get("recamaras_min") or 0) != changes["recamaras_min"]:
+        diffs.append(("recamaras", f"ahora busca {changes['recamaras_min']}+ recámaras"))
+    if "banos_min" in changes and (b.get("banos_min") or 0) != changes["banos_min"]:
+        diffs.append(("banos", f"ahora pide {changes['banos_min']}+ baños"))
+    if "amenidades" in changes and set(changes["amenidades"] or []) != set(b.get("amenidades") or []):
+        diffs.append(("amenidades", "cambió las amenidades deseadas"))
+
+    await db.asesor_busquedas.update_one({"id": bid}, {"$set": {**changes, "updated_at": _now()}})
+
+    # matches DESPUÉS del cambio → cuántas propiedades nuevas desbloqueó
+    try:
+        after = await busqueda_matches(bid, request)
+        after_ids = {m["dev_id"] for m in after}
+        after_top = after[0]["score"] if after else 0
+        nuevas_props = [m for m in after if m["dev_id"] not in before_ids][:5]
+    except Exception:
+        after, after_ids, after_top, nuevas_props = [], set(), 0, []
+    matches_delta = len(after_ids - before_ids)
+
+    # Recomendaciones IA/ML según el cambio (heurístico stub-aware · FAIL-OPEN)
+    recs = []
+    for key, _txt in diffs:
+        if key == "presupuesto_up":
+            recs.append({"icon": "📈", "title": "Subió el presupuesto",
+                         "detail": f"Se abren {matches_delta} propiedades nuevas en su rango. Mándale las mejores hoy mientras está caliente."})
+        elif key == "presupuesto_down":
+            recs.append({"icon": "📉", "title": "Bajó el presupuesto",
+                         "detail": "Reordené el tablero a lo que sí le cuadra. Evita mostrarle lo que ya quedó fuera de rango."})
+        elif key == "zona_amplia":
+            recs.append({"icon": "📍", "title": "Amplió la zona",
+                         "detail": f"{matches_delta} opciones nuevas en las colonias agregadas. Buen momento para una Galería fresca."})
+        elif key == "recamaras":
+            recs.append({"icon": "🛏️", "title": "Cambió recámaras",
+                         "detail": "Filtré el inventario a lo que ahora pide. Revisa el match% actualizado."})
+        elif key == "amenidades":
+            recs.append({"icon": "✨", "title": "Nuevas amenidades",
+                         "detail": "Re-prioricé por amenidades. Las que ya tenía en tablero conservan su lugar."})
+    if after_top > before_top + 5:
+        recs.append({"icon": "🎯", "title": "Mejor match disponible",
+                     "detail": f"Con el cambio, tu mejor coincidencia sube a {after_top}%."})
+    if not recs and changes:
+        recs.append({"icon": "✅", "title": "Perfil actualizado",
+                     "detail": "Guardé los cambios y volví a calcular las coincidencias."})
+
+    return {
+        "ok": True,
+        "changed": [t for _k, t in diffs],
+        "matches_delta": matches_delta,
+        "nuevas_props": [{"name": m["name"], "colonia": m["colonia"], "score": m["score"]} for m in nuevas_props],
+        "recomendaciones": recs,
+    }
 
 
 @router.get("/busquedas/{bid}/op-prefill")
