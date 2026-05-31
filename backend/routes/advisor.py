@@ -1138,6 +1138,32 @@ async def get_lead_board(cid: str, request: Request):
     ).sort("updated_at", -1).to_list(200)
     for it in items:  # normaliza estatus viejos (dispo/gusto → nuevos)
         it["status"] = BOARD_STATUS_ALIAS.get(it.get("status"), it.get("status"))
+    # B5.2-D · AVM (oferta-backing): solo para items en "oferta" · FAIL-OPEN.
+    oferta_items = [it for it in items if it.get("status") == "oferta" and not it.get("avm")]
+    if oferta_items:
+        try:
+            from avm_public_engine import avm_quick_async
+            from data_developments import DEVELOPMENTS_BY_ID as _DEVS
+            for it in oferta_items:
+                dev = _DEVS.get(it.get("dev_id")) or {}
+                col = dev.get("colonia_id") or dev.get("colonia")
+                if not col:
+                    continue
+                m2 = (dev.get("m2_range") or [90])[0]
+                rec = (dev.get("bedrooms_range") or [2])[0]
+                ban = (dev.get("bathrooms_range") or [2])[0]
+                try:
+                    avm = await avm_quick_async(db, col, float(m2), int(rec), int(ban), 5)
+                    est = (avm or {}).get("precio_estimado")
+                    if est and not (avm or {}).get("error"):
+                        listado = it.get("price") or est
+                        it["avm"] = {"estimado": int(est),
+                                     "sugerido": int(round(min(est, listado) * 0.97)),
+                                     "arriba": bool(listado and listado > est * 1.02)}
+                except Exception:
+                    pass
+        except Exception:
+            pass
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")
     views = sum(int(it.get("views") or 0) for it in items)

@@ -101,6 +101,16 @@ const BOARD_META = {
 };
 // Normaliza estatus viejos por si el backend manda alguno sin migrar.
 const NORM_STATUS = (s) => ({ dispo: 'por_verificar', gusto: 'le_gusto' }[s] || s);
+// B5.2-D · "Siguiente paso" prescriptivo: detecta propiedades atoradas por tiempo-en-etapa.
+const DAYS_IN = (item) => (item.updated_at ? Math.floor((Date.now() - new Date(item.updated_at).getTime()) / 86400000) : 0);
+const STAGE_NUDGE = (item) => {
+  const st = NORM_STATUS(item.status); const d = DAYS_IN(item);
+  if (st === 'por_verificar' && d >= 2) return { t: `Esperando dispo. ${d}d · pregúntale al broker`, u: true };
+  if (st === 'enviada' && d >= 3) return { t: `${d}d sin reacción · reenvía el link`, u: true };
+  if (st === 'cita' && !item.cita_confirmada) return { t: 'Cuadra el horario de la visita', u: false };
+  if (st === 'oferta' && d >= 5) return { t: `En oferta ${d}d · da seguimiento`, u: true };
+  return null;
+};
 const FB_LABEL = { encanto: 'Le encantó', gusto: 'Le gustó', no: 'No le convenció' };
 
 // B5.2-B · Captura de feedback de visita (se abre al mover una propiedad a "Visitada").
@@ -912,6 +922,19 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                     </div>
                   </div>
 
+                  {/* B5.2-D · Resumen prescriptivo: qué propiedades están atoradas */}
+                  {(() => {
+                    const nd = (board?.items || []).map((it) => STAGE_NUDGE(it)).filter(Boolean);
+                    if (!nd.length) return null;
+                    const urg = nd.filter((n) => n.u).length;
+                    return (
+                      <div data-testid="asr-board-nudge-summary" style={{ display: 'flex', alignItems: 'center', gap: 9, background: urg ? 'rgba(232,147,12,0.10)' : 'rgba(var(--theme-rgb),0.08)', border: `1px solid ${urg ? 'rgba(232,147,12,0.32)' : 'rgba(var(--theme-rgb),0.25)'}`, borderRadius: 11, padding: '9px 13px', marginBottom: 13, fontSize: 12.5, color: 'var(--cream-2)' }}>
+                        <span style={{ fontSize: 15 }}>🔔</span>
+                        <span><b style={{ color: 'var(--cream)' }}>{nd.length} {nd.length > 1 ? 'propiedades' : 'propiedad'} por atender</b> · {nd[0].t}{nd.length > 1 ? ` · +${nd.length - 1} más` : ''}</span>
+                      </div>
+                    );
+                  })()}
+
                   {/* Engagement del link · real (se llena con los swipes del Tinder · B5.2) */}
                   {board?.engagement?.views > 0 && (
                     <div className="asr-engage">
@@ -954,6 +977,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                                 {p.client_cita && <div className="asr-pcard__note" style={{ color: 'var(--theme-2)', fontWeight: 600 }}>📅 Pidió: {p.client_cita}</div>}
                                 {p.client_note && <div className="asr-pcard__note" style={{ color: 'var(--cream-2)' }}>📝 {p.client_note}</div>}
                                 {p.visit_feedback && <div className="asr-pcard__note" style={{ color: '#10b981', fontWeight: 600 }}>✓ {FB_LABEL[p.visit_feedback.salio] || 'Visitada'}{p.visit_feedback.nota ? ` · ${p.visit_feedback.nota}` : ''}</div>}
+                                {(() => { const n = STAGE_NUDGE(p); return n ? <div className="asr-pcard__note" style={{ color: n.u ? '#e8930c' : 'var(--theme-2)', fontWeight: 700 }}>{n.u ? '⏳ ' : '📅 '}{n.t}</div> : null; })()}
+                                {p.avm && <div className="asr-pcard__note" style={{ color: 'var(--ok)', fontWeight: 700 }}>💰 Sugiere ofertar {fmtMXN(p.avm.sugerido)}{p.avm.arriba ? ' · la listan arriba del estimado' : ''}</div>}
                               </div>
                             </div>
                           ))}
