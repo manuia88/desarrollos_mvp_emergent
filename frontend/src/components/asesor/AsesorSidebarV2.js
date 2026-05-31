@@ -146,21 +146,19 @@ export default function AsesorSidebarV2({ user, onLogout, badges = {} }) {
         <span className="text-[rgba(var(--frame-fg),0.4)] text-xs">Asesor</span>
       </Link>
 
-      {/* Búsqueda inline */}
+      {/* Búsqueda global · abre el palette ⌘K (founder: el buscador global vive aquí, no en el topbar) */}
       <div className="px-3 py-3 shrink-0">
-        <div className="flex items-center gap-2 px-3 h-9 rounded-full bg-[rgba(var(--frame-fg),0.06)] border border-[rgba(var(--frame-fg),0.1)] focus-within:border-[rgba(var(--theme-rgb),0.5)] transition-colors">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('dmx:open-search'))}
+          aria-label={t('search_placeholder')}
+          data-testid="sidebar-v2-search"
+          className="w-full flex items-center gap-2 px-3 h-9 rounded-full bg-[rgba(var(--frame-fg),0.06)] border border-[rgba(var(--frame-fg),0.1)] hover:border-[rgba(var(--theme-rgb),0.5)] transition-colors text-left"
+        >
           <Search size={15} className="text-[rgba(var(--frame-fg),0.5)] shrink-0" />
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={onSearchKeyDown}
-            placeholder={t('search_placeholder')}
-            aria-label={t('search_placeholder')}
-            data-testid="sidebar-v2-search"
-            className="flex-1 min-w-0 bg-transparent outline-none text-[var(--frame-primary)] text-sm placeholder:text-[rgba(var(--frame-fg),0.4)]"
-          />
-        </div>
+          <span className="flex-1 min-w-0 truncate text-sm text-[rgba(var(--frame-fg),0.4)]">{t('search_placeholder')}</span>
+          <kbd className="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(var(--frame-fg),0.1)] text-[rgba(var(--frame-fg),0.5)]">⌘K</kbd>
+        </button>
       </div>
 
       {/* Navegación */}

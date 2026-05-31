@@ -192,6 +192,7 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
 
   const tiers = navByRole[role] || navByRole['buyer'] || [];
   const isSuperadmin = role === 'superadmin';
+  const isAsesor = ASESOR_ROLES.has(role);  // asesor: el buscador global vive en el sidebar, no en el topbar
 
   // Load badge counts
   useEffect(() => {
@@ -230,6 +231,13 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+  }, [isSuperadmin]);
+
+  // Abrir el buscador global desde otros componentes (ej. el sidebar del asesor) vía evento.
+  useEffect(() => {
+    const open = () => { if (isSuperadmin) setCmdPaletteOpen(true); else setSearchOpen(true); };
+    window.addEventListener('dmx:open-search', open);
+    return () => window.removeEventListener('dmx:open-search', open);
   }, [isSuperadmin]);
 
   // Close user menu on outside click
@@ -415,16 +423,18 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
             </div>
           )}
 
-          {/* Search trigger */}
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(var(--frame-fg),0.06)] border border-[rgba(var(--frame-fg),0.1)] text-[rgba(var(--frame-fg),0.5)] hover:text-[var(--frame-primary)] hover:border-[rgba(var(--frame-fg),0.2)] transition-all text-sm"
-            data-testid="search-trigger-btn"
-          >
-            <Search size={14} />
-            <span className="hidden sm:inline text-xs">Buscar…</span>
-            <kbd className="hidden sm:inline ml-auto text-[9px] px-1 rounded bg-[rgba(var(--frame-fg),0.1)]">⌘K</kbd>
-          </button>
+          {/* Search trigger · en el asesor vive en el sidebar (se evita duplicar y amontonar) */}
+          {!isAsesor && (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[rgba(var(--frame-fg),0.06)] border border-[rgba(var(--frame-fg),0.1)] text-[rgba(var(--frame-fg),0.5)] hover:text-[var(--frame-primary)] hover:border-[rgba(var(--frame-fg),0.2)] transition-all text-sm"
+              data-testid="search-trigger-btn"
+            >
+              <Search size={14} />
+              <span className="hidden sm:inline text-xs">Buscar…</span>
+              <kbd className="hidden sm:inline ml-auto text-[9px] px-1 rounded bg-[rgba(var(--frame-fg),0.1)]">⌘K</kbd>
+            </button>
+          )}
 
           <div className="flex-1" />
 
