@@ -125,6 +125,9 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [dragId, setDragId] = useState(null);           // id de la propiedad que se arrastra
   const [linkInfo, setLinkInfo] = useState(null);       // B5.2 · link Tinder creado {url, wa_text}
   const [linkBusy, setLinkBusy] = useState(false);
+  const [showAddProp, setShowAddProp] = useState(false); // B5.2b · buscador para agregar propiedad
+  const [allDevs, setAllDevs] = useState(null);
+  const [devQ, setDevQ] = useState('');
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -267,6 +270,25 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
       toast('success', 'Agregada al tablero');
     } catch (_) { toast('error', 'No se pudo agregar'); }
   };
+
+  // B5.2b · Buscador de inventario para agregar CUALQUIER propiedad (no solo coincidencias).
+  const openAddProp = () => {
+    setShowAddProp(true);
+    if (allDevs === null) {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' })
+        .then((r) => r.json())
+        .then((d) => setAllDevs(Array.isArray(d) ? d : (d?.items || [])))
+        .catch(() => setAllDevs([]));
+    }
+  };
+  const addDevToBoard = (d) => addToBoard({
+    dev_id: d.id || d._id,
+    name: d.name || d.title || 'Propiedad',
+    price_from: d.price_from ?? d.price_min ?? d.price ?? null,
+    colonia: d.colonia || d.neighborhood || d.colonia_id || '',
+    address: d.address || d.direccion || '',
+    specs: d.specs || [],
+  });
 
   // B5.1 · Quitar una propiedad del tablero (optimista · revierte si falla).
   const removeBoard = async (id) => {
@@ -731,6 +753,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando propiedades…</div>
               ) : (
                 <>
+                  {/* B5.2b · Header: agregar propiedad directo (no solo desde búsquedas) */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
+                    <div className="asr-sec-h" style={{ fontSize: 13, margin: 0 }}>Propiedades de {c.first_name} <span className="asr-muted">· arrastra entre columnas</span></div>
+                    <button onClick={openAddProp} data-testid="asr-board-addprop" className="asr-hbtn asr-hbtn--key" style={{ flexShrink: 0 }}>+ Agregar propiedad</button>
+                  </div>
+
                   {/* Engagement del link · real (se llena con los swipes del Tinder · B5.2) */}
                   {board?.engagement?.views > 0 && (
                     <div className="asr-engage">
@@ -842,7 +870,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   {/* Vacío total: ni tablero ni búsquedas */}
                   {(board?.items || []).length === 0 && busquedas.length === 0 && (
                     <div style={{ padding: '34px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13.5, border: '1px dashed var(--border-2)', borderRadius: 12, marginTop: 14 }}>
-                      Este lead aún no tiene propiedades ni búsquedas. Cuando tenga una búsqueda, sus coincidencias aparecerán aquí para armar el tablero.
+                      Aún no hay propiedades en el tablero. Usa <b>+ Agregar propiedad</b> (arriba) para buscarlas en el inventario, o cuando el lead tenga una búsqueda sus coincidencias aparecerán aquí.
                     </div>
                   )}
                 </>
@@ -1034,6 +1062,49 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
           onClose={() => setShowCita(false)}
           onSuccess={() => toast('success', 'Cita agendada')}
         />
+      )}
+
+      {/* B5.2b · Buscador de inventario para agregar propiedad al tablero */}
+      {showAddProp && (
+        <div onClick={() => setShowAddProp(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: Z.MODAL, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 560, maxHeight: '82vh', borderRadius: '18px 18px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ padding: '15px 18px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, color: 'var(--cream)' }}>Agregar propiedad al tablero</b>
+              <button onClick={() => setShowAddProp(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', padding: 2 }}><X size={18} /></button>
+            </div>
+            <div style={{ padding: '12px 18px' }}>
+              <input autoFocus value={devQ} onChange={(e) => setDevQ(e.target.value)} placeholder="Buscar por nombre o colonia…"
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ overflowY: 'auto', padding: '0 14px 16px' }}>
+              {allDevs === null ? (
+                <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Cargando inventario…</div>
+              ) : (() => {
+                const onBoard = new Set((board?.items || []).map((it) => it.dev_id));
+                const q = devQ.trim().toLowerCase();
+                const list = (allDevs || []).filter((d) => !q || `${d.name || d.title || ''} ${d.colonia || d.neighborhood || ''}`.toLowerCase().includes(q));
+                if (!list.length) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Sin resultados.</div>;
+                return list.slice(0, 40).map((d) => {
+                  const did = d.id || d._id;
+                  const already = onBoard.has(did);
+                  const price = d.price_from ?? d.price_min ?? d.price;
+                  return (
+                    <div key={did} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 4px', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13.5, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name || d.title || 'Propiedad'}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>{d.colonia || d.neighborhood || 'CDMX'}{price ? ` · ${fmtMXN(price)}` : ''}</div>
+                      </div>
+                      <button onClick={() => addDevToBoard(d)} disabled={already} data-testid={`asr-addprop-${did}`}
+                        style={{ flexShrink: 0, padding: '7px 13px', borderRadius: 8, border: '1px solid var(--border)', cursor: already ? 'default' : 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700, background: already ? 'transparent' : 'rgba(var(--theme-rgb),0.10)', color: already ? 'var(--cream-3)' : 'var(--theme-2)' }}>
+                        {already ? '✓ En tablero' : '+ Agregar'}
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
