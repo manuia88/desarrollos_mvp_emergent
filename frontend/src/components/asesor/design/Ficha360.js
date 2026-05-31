@@ -304,9 +304,13 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     catch (_) { toast('error', 'No se pudo crear el link'); }
     finally { setLinkBusy(false); }
   };
+  // Link absoluto con el ORIGEN actual (mismo protocolo/host con el que entró el asesor) —
+  // así no depende de FRONTEND_URL del backend ni Chrome fuerza https sobre un host http.
+  const linkUrl = (li) => `${window.location.origin}/p/${li.token}`;
   const waLink = (li) => {
     const ph = (c.phones?.[0] || '').replace(/\D/g, '');
-    return `https://wa.me/${ph}?text=${encodeURIComponent(li.wa_text || li.url)}`;
+    const txt = `Hola ${c.first_name || ''}, te preparé una selección de propiedades. Entra y dime cuáles te laten (deslizas 👍/👎, toma 1 min) 👉 ${linkUrl(li)}`;
+    return `https://wa.me/${ph}?text=${encodeURIComponent(txt)}`;
   };
 
   const completeTarea = async (tid) => {
@@ -809,10 +813,11 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   {(board?.items || []).length > 0 && (
                     linkInfo ? (
                       <div className="asr-tinder" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-                        <div className="asr-tinder__tx"><b>Link listo para {c.first_name}</b><p style={{ wordBreak: 'break-all' }}>{linkInfo.url}</p></div>
+                        <div className="asr-tinder__tx"><b>Link listo para {c.first_name}</b><p style={{ wordBreak: 'break-all' }}>{linkUrl(linkInfo)}</p></div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <a href={waLink(linkInfo)} target="_blank" rel="noopener noreferrer" className="asr-tinder__btn" style={{ flex: 1, textDecoration: 'none', textAlign: 'center', justifyContent: 'center', marginLeft: 0 }}>Enviar por WhatsApp</a>
-                          <button className="asr-hbtn" onClick={() => { try { navigator.clipboard.writeText(linkInfo.url); } catch (_) {} toast('success', 'Link copiado'); }}>Copiar</button>
+                          <a href={linkUrl(linkInfo)} target="_blank" rel="noopener noreferrer" className="asr-hbtn" style={{ textDecoration: 'none' }}>Abrir</a>
+                          <button className="asr-hbtn" onClick={() => { try { navigator.clipboard.writeText(linkUrl(linkInfo)); } catch (_) {} toast('success', 'Link copiado'); }}>Copiar</button>
                         </div>
                       </div>
                     ) : (
