@@ -430,7 +430,7 @@ function ConversationInboxBody() {
               <InfoRow label={t('inbox.channel')} value={CHANNEL_LABEL[detail.channel] || detail.channel || '—'} />
               <InfoRow label={t('inbox.filter_status')} value={t(`status.${detail.status}`, detail.status)}
                 color={STATUS_COLOR[detail.status]} />
-              {detail.sentiment && detail.channel !== 'whatsapp' && (
+              {detail.sentiment && !DM.includes(detail.channel) && (
                 <InfoRow label={t('inbox.filter_sentiment')} value={t(`sentiment.${detail.sentiment}`, detail.sentiment)}
                   color={SENTIMENT_COLOR[detail.sentiment]} />
               )}
