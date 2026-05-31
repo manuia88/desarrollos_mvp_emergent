@@ -136,6 +136,11 @@ function ConversationInboxBody({ user }) {
   }, []);
 
   useEffect(() => { loadList(); }, [loadList]);
+  // Auto-refresco de la lista cada 25s (la lista, no el hilo abierto → no estorba al escribir)
+  useEffect(() => {
+    const id = setInterval(() => { loadList(); }, 25000);
+    return () => clearInterval(id);
+  }, [loadList]);
 
   // B6 · mapea el hilo de mensajería al shape del detalle del inbox
   const _waToDetail = (leadId, ch, d) => ({
