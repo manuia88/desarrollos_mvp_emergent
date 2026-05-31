@@ -44,8 +44,17 @@ function timeAgo(ts) {
 }
 const TEMP_COLOR = { hot: '#F2635B', caliente: '#F2635B', warm: '#E2982E', tibio: '#E2982E', cold: '#3B82F6', frio: '#3B82F6' };
 const BOARD_LABEL = { por_verificar: 'Por verificar', enviada: 'Enviada', le_gusto: 'Le gustó', cita: 'Cita', visitada: 'Visitada', oferta: 'Oferta', descartada: 'Descartada' };
-const DM = ['whatsapp', 'messenger', 'instagram'];  // omnicanal · mensajería directa (mismo store)
-const CHANNEL_LABEL = { whatsapp: '💬 WhatsApp', messenger: '📘 Messenger', instagram: '📷 Instagram', ai: '🤖 Chat IA', web: '🤖 Chat IA' };
+// omnicanal · canales de mensajería directa (mismo store) · alineado al registro del backend
+const DM = ['whatsapp', 'messenger', 'instagram', 'linkedin', 'tiktok', 'youtube'];
+const CHANNEL_LABEL = {
+  whatsapp: '💬 WhatsApp', messenger: '📘 Messenger', instagram: '📷 Instagram',
+  linkedin: '💼 LinkedIn', tiktok: '🎵 TikTok', youtube: '▶️ YouTube',
+  ai: '🤖 Chat IA', web: '🤖 Chat IA',
+};
+const CHANNEL_ACCENT = {
+  whatsapp: '#1FA06A', messenger: '#0084FF', instagram: '#C13584',
+  linkedin: '#0A66C2', tiktok: '#111111', youtube: '#FF0000', ai: 'var(--theme-2)',
+};
 
 // B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
 function WaCompose({ onSend, onDraft, drafting, disabled }) {
@@ -202,10 +211,8 @@ function ConversationInboxBody() {
     if (segment === 'sin_responder') l = l.filter((c) => c.needs_reply);
     else if (segment === 'atencion') l = l.filter((c) => c.sentiment === 'negative');
     else if (segment === 'calientes') l = l.filter((c) => ['hot', 'caliente'].includes(String(c.temperatura || '').toLowerCase()));
-    else if (segment === 'whatsapp') l = l.filter((c) => c.channel === 'whatsapp');
-    else if (segment === 'messenger') l = l.filter((c) => c.channel === 'messenger');
-    else if (segment === 'instagram') l = l.filter((c) => c.channel === 'instagram');
-    else if (segment === 'ia') l = l.filter((c) => !['whatsapp', 'messenger', 'instagram'].includes(c.channel));
+    else if (segment === 'ia') l = l.filter((c) => !DM.includes(c.channel));
+    else if (DM.includes(segment)) l = l.filter((c) => c.channel === segment);
     const q = search.trim().toLowerCase();
     if (q) l = l.filter((c) =>
       `${c.lead_name || ''} ${c.lead_id || ''} ${c.last_message || ''} ${c.asesor_id || ''}`.toLowerCase().includes(q));
@@ -247,10 +254,9 @@ function ConversationInboxBody() {
           { k: 'sin_responder', label: 'Sin responder', n: stats?.sin_responder, accent: '#E2982E' },
           { k: 'atencion', label: 'Necesitan atención', n: stats?.atencion, accent: '#F2635B' },
           { k: 'calientes', label: '🔥 Calientes', n: stats?.calientes, accent: '#F2635B' },
-          { k: 'whatsapp', label: '💬 WhatsApp', n: stats?.whatsapp, accent: '#1FA06A' },
-          { k: 'messenger', label: '📘 Messenger', n: stats?.messenger, accent: '#0084FF' },
-          { k: 'instagram', label: '📷 Instagram', n: stats?.instagram, accent: '#C13584' },
-          { k: 'ia', label: '🤖 IA', n: stats?.ia, accent: 'var(--theme-2)' },
+          // un chip por canal de mensajería (data-driven · alineado al registro) + IA
+          ...DM.map((ck) => ({ k: ck, label: CHANNEL_LABEL[ck], n: stats?.[ck], accent: CHANNEL_ACCENT[ck] })),
+          { k: 'ia', label: CHANNEL_LABEL.ai, n: stats?.ia, accent: 'var(--theme-2)' },
         ].map((s) => {
           const on = segment === s.k;
           return (
@@ -387,6 +393,38 @@ function ConversationInboxBody() {
                 <User size={16} />
                 <span style={{ fontWeight: 700, fontSize: 13 }}>{t('inbox.lead_info')}</span>
               </div>
+
+              {/* Botón prominente a la ficha completa (founder: más visible) */}
+              {(detail.lead_id || curConv?.lead_id) && (
+                <button type="button" onClick={() => navigate(`/asesor/contactos/${detail.lead_id || curConv?.lead_id}`)}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: 11, border: 'none', background: 'var(--theme-2)', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: 13.5, fontWeight: 800, cursor: 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(var(--theme-rgb),0.3)' }}>
+                  👤 Ver ficha completa →
+                </button>
+              )}
+
+              {/* Práctico del día: próxima cita + tareas pendientes (founder) */}
+              {ctx?.proxima_cita && (
+                <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(31,160,106,0.08)', border: '1px solid rgba(31,160,106,0.25)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: '#1FA06A', marginBottom: 3 }}>📅 Próxima cita</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>{ctx.proxima_cita.titulo}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 2 }}>{(ctx.proxima_cita.datetime || '').replace('T', ' · ').slice(0, 19)}</div>
+                </div>
+              )}
+              {(ctx?.tareas || []).length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>✅ Tareas pendientes ({ctx.tareas.length})</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {ctx.tareas.map((tk) => (
+                      <div key={tk.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 9, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--theme-2)', flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: 'var(--cream)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tk.titulo}</span>
+                        {tk.due_at && <span style={{ fontSize: 10.5, color: 'var(--cream-3)', flexShrink: 0 }}>{String(tk.due_at).slice(5, 10)}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <InfoRow label="Lead" value={ctx?.name || detail.lead_id || t('inbox.no_lead')} />
               {ctx?.temperatura && <InfoRow label="Temperatura" value={ctx.temperatura} color={TEMP_COLOR[String(ctx.temperatura).toLowerCase()]} />}
               <InfoRow label={t('inbox.channel')} value={CHANNEL_LABEL[detail.channel] || detail.channel || '—'} />
@@ -450,10 +488,6 @@ function ConversationInboxBody() {
               {/* B7+ · acciones rápidas */}
               {(detail.lead_id || curConv?.lead_id) && (
                 <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  <button type="button" onClick={() => navigate(`/asesor/contactos/${detail.lead_id || curConv?.lead_id}`)}
-                    style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
-                    👤 Ver ficha completa
-                  </button>
                   {ctx?.phone && (detail.channel === 'whatsapp' || !DM.includes(detail.channel)) && (
                     <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                       style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'block' }}>

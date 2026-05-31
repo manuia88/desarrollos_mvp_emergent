@@ -1352,8 +1352,11 @@ class WAMessageIn(BaseModel):
     channel: Optional[str] = "whatsapp"  # omnicanal · whatsapp | messenger | instagram
 
 
-# Canales de mensajería directa que viven en whatsapp_messages (omnicanal · 2026-05-31)
-DM_CHANNELS = ("whatsapp", "messenger", "instagram")
+# Canales de mensajería directa que viven en whatsapp_messages (omnicanal · del registro central)
+try:
+    from conversation_channels.registry import DM_CHANNEL_KEYS as DM_CHANNELS
+except Exception:
+    DM_CHANNELS = ["whatsapp", "messenger", "instagram", "linkedin", "tiktok", "youtube"]
 
 
 def _channel_q(channel: str) -> dict:
@@ -1564,7 +1567,7 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
                             "temp": c.get("temperatura")}
 
     # 1) Hilos de mensajería directa (omnicanal: WhatsApp/Messenger/Instagram) · agrupados por (lead, canal)
-    if channel in ("", "whatsapp", "messenger", "instagram"):
+    if channel == "" or channel in DM_CHANNELS:
         try:
             pipe = [
                 {"$match": {"org_id": user.user_id}},
@@ -1638,12 +1641,23 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
         "sin_responder": sum(1 for c in out if c.get("needs_reply")),
         "atencion": sum(1 for c in out if c.get("sentiment") == "negative"),
         "calientes": sum(1 for c in out if str(c.get("temperatura") or "").lower() in _HOT),
-        "whatsapp": sum(1 for c in out if _ch(c) == "whatsapp"),
-        "messenger": sum(1 for c in out if _ch(c) == "messenger"),
-        "instagram": sum(1 for c in out if _ch(c) == "instagram"),
         "ia": sum(1 for c in out if _ch(c) in ("ai", "web")),
     }
+    # conteo por canal de mensajería (data-driven desde el registro)
+    for ck in DM_CHANNELS:
+        stats[ck] = sum(1 for c in out if _ch(c) == ck)
     return {"conversations": out, "count": len(out), "stats": stats}
+
+
+@router.get("/channels")
+async def list_channels(request: Request):
+    """Omnicanal · registro de canales + estado de conexión (para los chips y 'Conectar')."""
+    await require_advisor(request)
+    try:
+        from conversation_channels.registry import public_channels
+        return {"channels": public_channels()}
+    except Exception:
+        return {"channels": []}
 
 
 @router.get("/contactos/{cid}/context")
@@ -1681,10 +1695,30 @@ async def lead_context(cid: str, request: Request):
         close_prob = (cp or {}).get("prob") if isinstance(cp, dict) else None
     except Exception:
         close_prob = None
+    # Práctico para el día a día (founder): tareas pendientes + próxima cita de ESTE lead.
+    tareas = []
+    try:
+        tdocs = await db.asesor_tareas.find(
+            {"owner_id": user.user_id, "contacto_id": cid, "done": False},
+            {"_id": 0, "id": 1, "titulo": 1, "title": 1, "due_at": 1}).sort("due_at", 1).limit(5).to_list(5)
+        tareas = [{"id": t.get("id"), "titulo": t.get("titulo") or t.get("title") or "Tarea", "due_at": t.get("due_at")} for t in tdocs]
+    except Exception:
+        pass
+    proxima_cita = None
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        cdoc = await db.appointments.find_one(
+            {"asesor_id": user.user_id, "lead_id": cid, "datetime": {"$gte": now_iso}, "status": {"$nin": ["cancelada"]}},
+            {"_id": 0, "titulo": 1, "datetime": 1, "status": 1}, sort=[("datetime", 1)])
+        if cdoc:
+            proxima_cita = {"titulo": cdoc.get("titulo") or "Cita", "datetime": cdoc.get("datetime"), "status": cdoc.get("status")}
+    except Exception:
+        pass
     return {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
             "phone": (c.get("phones") or [None])[0], "temperatura": c.get("temperatura"),
             "taste": taste, "brief": brief, "board_count": len(items),
-            "board": board, "close_probability": close_prob}
+            "board": board, "close_probability": close_prob,
+            "tareas": tareas, "proxima_cita": proxima_cita}
 
 
 @router.post("/contactos/{cid}/swipe-link")
