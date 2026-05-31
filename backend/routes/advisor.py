@@ -1147,6 +1147,13 @@ async def get_lead_board(cid: str, request: Request):
         taste["summary"] = taste_summary_line(taste)
     except Exception:
         taste = None
+    # B5.4 Capa 5 · brief de venta (la acción #1 según la etapa del pipeline) · FAIL-OPEN.
+    brief = None
+    try:
+        from taste_profile import build_brief
+        brief = build_brief(items, taste)
+    except Exception:
+        brief = None
     # B5.3+B5.4 · match explicable por item (zona/precio/cuestionario + gusto visual) · FAIL-OPEN.
     try:
         from lead_match import aggregate_signals, match_for
@@ -1200,7 +1207,7 @@ async def get_lead_board(cid: str, request: Request):
     views = sum(int(it.get("views") or 0) for it in items)
     return {"items": items, "statuses": BOARD_STATUS,
             "engagement": {"views": views, "up": up, "down": down},
-            "taste": taste}
+            "taste": taste, "brief": brief}
 
 
 @router.post("/contactos/{cid}/board")

@@ -158,6 +158,44 @@ async def build_taste_profile(db, owner_id: str, contacto_id: str, persist: bool
     return profile
 
 
+def build_brief(items: list, taste: dict) -> dict:
+    """B5.4 Capa 5 · Brief de venta — convierte el modelo en la acción #1 del asesor.
+    No es un % más: es 'qué hacer ahora' según en qué etapa está el pipeline del lead."""
+    by = defaultdict(int)
+    for it in (items or []):
+        by[_st(it)] += 1
+    oferta, cita, visitada = by["oferta"], by["cita"], by["visitada"]
+    liked, enviada, por_ver = by["le_gusto"], by["enviada"], by["por_verificar"]
+    total = sum(by.values())
+
+    if oferta:
+        step = {"text": f"Tienes {oferta} en oferta — respáldala con el precio sugerido y cierra.", "cta": "oferta"}
+    elif cita:
+        step = {"text": f"Confirma horario de {cita} cita(s) con propietario/broker y arma el recorrido.", "cta": "recorrido"}
+    elif visitada:
+        step = {"text": "Ya visitó — recoge su feedback y empuja a oferta lo que le gustó.", "cta": "oferta"}
+    elif liked:
+        step = {"text": f"Le gustaron {liked} — agéndale visita a las de mayor match.", "cta": "agendar"}
+    elif enviada:
+        step = {"text": "Link enviado — espera sus swipes o mándale un recordatorio por WhatsApp.", "cta": "wa"}
+    elif por_ver:
+        step = {"text": f"Verifica disponibilidad de {por_ver} y mándale el link para que deslice.", "cta": "link"}
+    elif total == 0:
+        step = {"text": "Agrega 3-5 propiedades y manda el link Tinder para empezar a aprender su gusto.", "cta": "addprop"}
+    else:
+        step = {"text": "Manda el link de propiedades para que el cliente empiece a deslizar.", "cta": "link"}
+
+    head = (taste or {}).get("summary") or ""
+    avoid = []
+    z = (taste or {}).get("zone", {}).get("rejected") or []
+    if z:
+        avoid.append("zonas " + ", ".join(z[:2]))
+    ceil = (taste or {}).get("price", {}).get("ceiling")
+    if ceil:
+        avoid.append(f"arriba de ${ceil:,.0f}".replace(",", ","))
+    return {"next_step": step, "headline": head, "avoid": avoid}
+
+
 def taste_summary_line(profile: dict) -> str:
     """Una línea en español llano para el asesor: lo que le importa al lead."""
     if not profile:

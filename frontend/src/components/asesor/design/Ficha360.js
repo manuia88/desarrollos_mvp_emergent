@@ -921,6 +921,27 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                     </div>
                   </div>
 
+                  {/* B5.4 Capa 5 · Brief de venta — la acción #1 según la etapa del pipeline */}
+                  {board?.brief?.next_step && (
+                    <div data-testid="asr-board-brief" style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.14), rgba(var(--theme-rgb),0.05))', border: '1px solid rgba(var(--theme-rgb),0.3)', borderRadius: 12, padding: '11px 14px', marginBottom: 13 }}>
+                      <span style={{ fontSize: 17, flexShrink: 0 }}>🧭</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 2 }}>Siguiente paso</div>
+                        <div style={{ fontSize: 13, color: 'var(--cream)', lineHeight: 1.45 }}>{board.brief.next_step.text}</div>
+                        {(board.brief.avoid || []).length > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--cold, #ef6b6b)', marginTop: 3 }}>⚠ Evítale: {board.brief.avoid.join(' · ')}</div>
+                        )}
+                      </div>
+                      {['addprop', 'link', 'recorrido'].includes(board.brief.next_step.cta) && (
+                        <button
+                          onClick={() => { const cta = board.brief.next_step.cta; if (cta === 'recorrido') setShowRecorrido(true); else if (cta === 'link') createLink(); else openAddProp(); }}
+                          className="asr-hbtn asr-hbtn--key" style={{ flexShrink: 0 }}>
+                          {board.brief.next_step.cta === 'recorrido' ? '🗺️ Recorrido' : board.brief.next_step.cta === 'link' ? '📲 Crear link' : '+ Agregar'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* B5.2-D · Resumen prescriptivo: qué propiedades están atoradas */}
                   {(() => {
                     const nd = (board?.items || []).map((it) => STAGE_NUDGE(it)).filter(Boolean);
