@@ -1347,6 +1347,59 @@ async def prospect_intel(request: Request):
                 "by_development": [], "reject_reasons": [], "totals": {"likes": 0, "dislikes": 0}, "insights": []}
 
 
+class WAMessageIn(BaseModel):
+    text: str
+
+
+@router.get("/contactos/{cid}/whatsapp")
+async def lead_whatsapp_thread(cid: str, request: Request):
+    """B5.5 · Hilo de WhatsApp con ESTE lead (aislado por asesor). Reusa whatsapp_messages
+    del WAEngine, keyeado org_id=user_id (asesor) + lead_id=cid. FAIL-OPEN si no hay nada."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one(
+        {"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1, "first_name": 1, "phones": 1})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    msgs = await db.whatsapp_messages.find(
+        {"org_id": user.user_id, "lead_id": cid}).sort("created_at", 1).to_list(500)
+    out = [{"id": str(m.get("_id")), "direction": m.get("direction"), "text": m.get("body_text"),
+            "status": m.get("status"), "ts": (m.get("created_at") or m.get("sent_at"))} for m in msgs]
+    phone = (c.get("phones") or [None])[0]
+    return {"messages": out, "phone": phone, "ready": bool(phone)}
+
+
+@router.post("/contactos/{cid}/whatsapp")
+async def lead_whatsapp_send(cid: str, body: WAMessageIn, request: Request):
+    """B5.5 · Envía WhatsApp al lead vía WAEngine (stub persiste · provider real si está
+    configurado + tier on). Aislado org_id=user_id. Registra en el timeline."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one(
+        {"id": cid, "owner_id": user.user_id}, {"_id": 0, "first_name": 1, "phones": 1})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    text = (body.text or "").strip()
+    if not text:
+        raise HTTPException(400, "Mensaje vacío")
+    phone = (c.get("phones") or [None])[0]
+    if not phone:
+        raise HTTPException(400, "El contacto no tiene teléfono")
+    try:
+        from whatsapp_engine import WAEngine
+        eng = WAEngine(db, org_id=user.user_id)
+        res = await eng.send_message(to_number=phone, body=text, lead_id=cid)
+    except Exception:
+        raise HTTPException(500, "No se pudo enviar el mensaje")
+    try:
+        await db.asesor_contacto_timeline.insert_one({
+            "id": "tl_" + uuid.uuid4().hex[:10], "contacto_id": cid, "owner_id": user.user_id,
+            "kind": "whatsapp_out", "body": f"WhatsApp enviado: {text[:120]}", "ts": datetime.now(timezone.utc)})
+    except Exception:
+        pass
+    return {"ok": True, "msg_id": res.get("msg_id"), "status": res.get("status")}
+
+
 @router.post("/contactos/{cid}/swipe-link")
 async def create_swipe_link(cid: str, request: Request):
     """B5.2 · Crea (o reusa) el link Tinder público del lead + mensaje de WhatsApp.

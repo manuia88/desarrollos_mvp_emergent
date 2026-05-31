@@ -230,6 +230,60 @@ function RecorridoModal({ items, leadName, onConfirm, onClose }) {
   );
 }
 
+// B5.5 · Panel de WhatsApp real con el lead (hilo + enviar · vía WAEngine, aislado por asesor).
+function WhatsAppPanel({ cid, lead, toast }) {
+  const [thread, setThread] = useState(null);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const load = React.useCallback(() => {
+    api.getLeadWhatsapp(cid).then(setThread).catch(() => setThread({ messages: [], ready: false }));
+  }, [cid]);
+  useEffect(() => { load(); }, [load]);
+  const send = async () => {
+    const t = text.trim();
+    if (!t || sending) return;
+    setSending(true);
+    try { await api.sendLeadWhatsapp(cid, t); setText(''); await load(); }
+    catch (e) { toast?.('error', e?.message || 'No se pudo enviar'); }
+    finally { setSending(false); }
+  };
+  const msgs = thread?.messages || [];
+  const ready = thread?.ready;
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', borderBottom: '1px solid var(--border)', background: 'rgba(37,211,102,0.07)' }}>
+        <span style={{ fontSize: 15 }}>💬</span>
+        <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 13, color: 'var(--cream)' }}>WhatsApp con {lead.first_name}</b>
+        {thread?.phone && <span style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>{thread.phone}</span>}
+      </div>
+      <div data-testid="asr-wa-thread" style={{ maxHeight: 280, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--surface-2)' }}>
+        {thread === null ? (
+          <div style={{ textAlign: 'center', color: 'var(--cream-3)', fontSize: 12.5, padding: 16 }}>Cargando…</div>
+        ) : msgs.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'var(--cream-3)', fontSize: 12.5, padding: 16 }}>Aún no hay mensajes. Escríbele abajo 👇</div>
+        ) : msgs.map((m) => {
+          const out = m.direction === 'outbound';
+          return (
+            <div key={m.id} style={{ alignSelf: out ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+              <div style={{ padding: '8px 12px', borderRadius: 12, fontSize: 13, lineHeight: 1.45, background: out ? 'rgba(37,211,102,0.16)' : 'var(--surface)', border: '1px solid var(--border)', color: 'var(--cream)', borderBottomRightRadius: out ? 3 : 12, borderBottomLeftRadius: out ? 12 : 3 }}>{m.text}</div>
+              <div style={{ fontSize: 10, color: 'var(--cream-3)', marginTop: 2, textAlign: out ? 'right' : 'left' }}>{out ? (m.status === 'queued' ? 'enviado' : m.status || 'enviado') : 'recibido'}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderTop: '1px solid var(--border)', alignItems: 'flex-end' }}>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder={ready ? 'Escribe tu mensaje…' : 'El contacto no tiene teléfono'} disabled={!ready}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          data-testid="asr-wa-input"
+          style={{ flex: 1, resize: 'none', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
+        <button onClick={send} disabled={!ready || sending || !text.trim()} data-testid="asr-wa-send" className="asr-hbtn asr-hbtn--key" style={{ flexShrink: 0, opacity: (!ready || !text.trim()) ? 0.5 : 1 }}>
+          <Send size={14} /> {sending ? '…' : 'Enviar'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Ficha360({ open, onClose, contact, onOpenArg, onStageChange, onToast, demo, user }) {
   const [tab, setTab] = useState('resumen');
   const [prob, setProb] = useState(null);
@@ -1110,6 +1164,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
           {/* ── Pane: Conversaciones (hilo real o empty) ── */}
           {tab === 'conv' && (
             <div className="asr-pane" data-testid="asr-ficha360-pane-conv">
+              {/* B5.5 · WhatsApp REAL con el lead (modo real · no demo) */}
+              {!demo?.conversation && <WhatsAppPanel cid={cid} lead={c} toast={toast} />}
               {/* Bandeja DEMO (espejo del mockup) · multicanal + ánimo + objeción + hilo + sugerencia */}
               {demo?.conversation && (() => {
                 const cv = demo.conversation;

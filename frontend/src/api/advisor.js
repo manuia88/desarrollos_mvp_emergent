@@ -63,6 +63,9 @@ export const createSwipeLink = (cid) => post(`/api/asesor/contactos/${cid}/swipe
 export const getLeadSuggestions = (cid) => j(`/api/asesor/contactos/${cid}/suggestions`);
 // B5.4 Capa 6 · El norte — inteligencia agregada de prospectos (gusto/rechazos/conversión por dev)
 export const getProspectIntel = () => j('/api/asesor/intel/prospects');
+// B5.5 · WhatsApp real con el lead (hilo + enviar · aislado por asesor vía WAEngine)
+export const getLeadWhatsapp = (cid) => j(`/api/asesor/contactos/${cid}/whatsapp`);
+export const sendLeadWhatsapp = (cid, text) => post(`/api/asesor/contactos/${cid}/whatsapp`, { text });
 
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');
