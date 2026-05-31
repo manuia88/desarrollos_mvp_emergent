@@ -1512,6 +1512,109 @@ async def lead_whatsapp_inbound(cid: str, body: WAMessageIn, request: Request):
     return {"ok": True, "learned": learned, "sentiment": sentiment, "nudge": nudge}
 
 
+@router.get("/conversations/unified")
+async def unified_inbox(request: Request, channel: str = "", q: str = ""):
+    """B6 · Bandeja global UNIFICADA — hilos de WhatsApp (B5.5) + chats IA en una sola
+    lista, con NOMBRE del lead + canal + qué urge responder. Aislado por asesor
+    (WhatsApp org_id=user_id · IA asesor_id=user_id). FAIL-OPEN por canal."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    out = []
+    name_by = {}
+    async for c in db.asesor_contactos.find(
+            {"owner_id": user.user_id}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}):
+        name_by[c["id"]] = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+
+    # 1) Hilos de WhatsApp (agrupados por lead)
+    if channel in ("", "whatsapp"):
+        try:
+            pipe = [
+                {"$match": {"org_id": user.user_id}},
+                {"$sort": {"created_at": 1}},
+                {"$group": {"_id": "$lead_id", "count": {"$sum": 1},
+                            "last": {"$last": "$body_text"}, "last_dir": {"$last": "$direction"},
+                            "last_ts": {"$last": "$created_at"}}},
+            ]
+            for t in await db.whatsapp_messages.aggregate(pipe).to_list(500):
+                cid = t.get("_id")
+                out.append({
+                    "conversation_id": "wa_" + str(cid), "channel": "whatsapp",
+                    "lead_id": cid, "lead_name": name_by.get(cid) or "WhatsApp",
+                    "message_count": t.get("count", 0), "last_message": (t.get("last") or "")[:90],
+                    "last_ts": t.get("last_ts"), "needs_reply": t.get("last_dir") == "inbound",
+                    "status": "active", "sentiment": "neutral",
+                })
+        except Exception:
+            pass
+
+    # 2) Chats IA (reusa el motor de conversación · scope al asesor)
+    if channel in ("", "ai"):
+        try:
+            from conversation_engine import ConversationEngine
+            eng = ConversationEngine(db)
+            ai = await eng.superadmin_list(asesor_id=user.user_id, limit=100,
+                                           caller_tenant_id=None, is_superadmin=False)
+            for conv in ai:
+                lid = conv.get("lead_id")
+                conv["channel"] = conv.get("channel") or "ai"
+                conv["lead_name"] = name_by.get(lid) or lid or "Chat IA"
+                conv["needs_reply"] = conv.get("status") in ("handoff", "taken_over")
+                conv["last_ts"] = conv.get("last_message_at") or conv.get("updated_at")
+                out.append(conv)
+        except Exception:
+            pass
+
+    # 3) Filtro de texto
+    if q:
+        ql = q.lower()
+        out = [c for c in out if ql in (str(c.get("lead_name", "")) + " " + str(c.get("last_message") or "")).lower()]
+
+    # 4) Prioridad: lo que urge responder arriba (sin responder + negativo + reciente)
+    def _ts_key(c):
+        v = c.get("last_ts")
+        try:
+            return v.isoformat() if hasattr(v, "isoformat") else str(v or "")
+        except Exception:
+            return ""
+
+    def _prio(c):
+        s = 0
+        if c.get("needs_reply"):
+            s += 100
+        if c.get("sentiment") == "negative":
+            s += 50
+        return s
+
+    out.sort(key=lambda c: (_prio(c), _ts_key(c)), reverse=True)
+    return {"conversations": out, "count": len(out)}
+
+
+@router.get("/contactos/{cid}/context")
+async def lead_context(cid: str, request: Request):
+    """B6 · Contexto ligero del lead para la columna derecha de la bandeja:
+    perfil de gusto (B5.4) + siguiente paso (brief). FAIL-OPEN."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one(
+        {"id": cid, "owner_id": user.user_id},
+        {"_id": 0, "first_name": 1, "last_name": 1, "phones": 1, "temperatura": 1})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    items = await db.asesor_lead_properties.find(
+        {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}).to_list(300)
+    taste, brief = None, None
+    try:
+        from taste_profile import build_taste_profile, taste_summary_line, build_brief
+        taste = await build_taste_profile(db, user.user_id, cid)
+        taste["summary"] = taste_summary_line(taste)
+        brief = build_brief(items, taste)
+    except Exception:
+        pass
+    return {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
+            "phone": (c.get("phones") or [None])[0], "temperatura": c.get("temperatura"),
+            "taste": taste, "brief": brief, "board_count": len(items)}
+
+
 @router.post("/contactos/{cid}/swipe-link")
 async def create_swipe_link(cid: str, request: Request):
     """B5.2 · Crea (o reusa) el link Tinder público del lead + mensaje de WhatsApp.

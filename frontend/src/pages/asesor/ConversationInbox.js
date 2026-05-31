@@ -30,6 +30,31 @@ function authHeaders() {
   return tk ? { Authorization: `Bearer ${tk}` } : {};
 }
 
+// B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
+function WaCompose({ onSend, onDraft, drafting, disabled }) {
+  const [text, setText] = useState('');
+  const send = async () => { const tt = text.trim(); if (!tt) return; await onSend(tt); setText(''); };
+  const draft = async () => { const d = await onDraft(); if (d) setText(d); };
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+      <button type="button" onClick={draft} disabled={drafting}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', marginBottom: 8, borderRadius: 7, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.12)', color: 'var(--theme-primary, #818CF8)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, cursor: drafting ? 'default' : 'pointer' }}>
+        ✨ {drafting ? 'Redactando…' : 'Redactar con IA'}
+      </button>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} disabled={disabled}
+          placeholder="Escribe por WhatsApp…"
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          style={{ flex: 1, resize: 'none', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.04)', color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
+        <button type="button" onClick={send} disabled={disabled || !text.trim()}
+          style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: '#0b1f12', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || !text.trim()) ? 'default' : 'pointer', opacity: (disabled || !text.trim()) ? 0.5 : 1 }}>
+          Enviar →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ConversationInboxBody() {
   const { t } = useTranslation(['conversation_round2_ui', 'conversation_confidence']);
   const [list, setList] = useState([]);
@@ -40,18 +65,19 @@ function ConversationInboxBody() {
   const [confSummary, setConfSummary] = useState(null); // W7.AS.3.H · confidence-history del hilo
   const [fSentiment, setFSentiment] = useState('');
   const [fStatus, setFStatus] = useState('');
-  const [fAsesor, setFAsesor] = useState('');
+  const [fChannel, setFChannel] = useState('');   // B6 · WhatsApp / IA
   const [search, setSearch] = useState('');
+  const [curConv, setCurConv] = useState(null);    // B6 · conv seleccionada (canal + lead_id)
+  const [ctx, setCtx] = useState(null);            // B6 · contexto del lead (gusto + siguiente paso)
+  const [drafting, setDrafting] = useState(false); // B6 · draft IA (reusa B5.5.2)
 
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams();
-      if (fSentiment) qs.set('sentiment', fSentiment);
-      if (fStatus) qs.set('status', fStatus);
-      // B2 fix · la bandeja del asesor usa el endpoint asesor-scoped (antes pegaba al de
-      // superadmin → 403 → siempre vacía). El backend fuerza asesor_id = usuario actual.
-      const res = await fetch(`${API}/api/conversation/asesor/inbox?${qs.toString()}`, { headers: authHeaders(), credentials: 'include' });
+      if (fChannel) qs.set('channel', fChannel);
+      // B6 · bandeja UNIFICADA — WhatsApp (B5.5) + chats IA en una lista, con nombre + canal.
+      const res = await fetch(`${API}/api/asesor/conversations/unified?${qs.toString()}`, { headers: authHeaders(), credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setList(Array.isArray(data.conversations) ? data.conversations : []);
@@ -63,59 +89,107 @@ function ConversationInboxBody() {
     } finally {
       setLoading(false);
     }
-  }, [fSentiment, fStatus, fAsesor]);
+  }, [fChannel]);
 
   useEffect(() => { loadList(); }, [loadList]);
 
+  // B6 · mapea el hilo de WhatsApp (B5.5) al shape del detalle del inbox
+  const _waToDetail = (leadId, d) => ({
+    channel: 'whatsapp', lead_id: leadId, status: 'active',
+    messages: (d.messages || []).map((m) => ({ role: m.direction === 'outbound' ? 'asesor' : 'user', content: m.text })),
+  });
+
   const openThread = useCallback(async (conv) => {
     setSelected(conv.conversation_id);
+    setCurConv(conv);
     setDetail(null);
     setConfSummary(null);
+    setCtx(null);
     setDetailLoading(true);
+    const isWa = conv.channel === 'whatsapp';
     try {
-      const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { headers: authHeaders() });
-      if (res.ok) setDetail(await res.json());
+      if (isWa) {
+        const r = await fetch(`${API}/api/asesor/contactos/${conv.lead_id}/whatsapp`, { headers: authHeaders(), credentials: 'include' });
+        if (r.ok) setDetail(_waToDetail(conv.lead_id, await r.json()));
+      } else {
+        const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { headers: authHeaders() });
+        if (res.ok) setDetail(await res.json());
+      }
     } catch {
       /* no-op */
     } finally {
       setDetailLoading(false);
     }
-    // W7.AS.3.H · resumen de confianza IA del hilo (owner endpoint · best-effort)
-    try {
-      const cr = await fetch(`${API}/api/conversation/${conv.conversation_id}/confidence-history`, { headers: authHeaders() });
-      if (cr.ok) {
-        const cd = await cr.json();
-        if (cd && cd.count > 0) setConfSummary(cd);
-      }
-    } catch { /* no-op */ }
+    // confianza IA del hilo (solo chats IA · best-effort)
+    if (!isWa) {
+      try {
+        const cr = await fetch(`${API}/api/conversation/${conv.conversation_id}/confidence-history`, { headers: authHeaders() });
+        if (cr.ok) { const cd = await cr.json(); if (cd && cd.count > 0) setConfSummary(cd); }
+      } catch { /* no-op */ }
+    }
+    // B6 · contexto del lead (perfil de gusto + siguiente paso) para la columna derecha
+    if (conv.lead_id) {
+      try {
+        const xr = await fetch(`${API}/api/asesor/contactos/${conv.lead_id}/context`, { headers: authHeaders(), credentials: 'include' });
+        if (xr.ok) setCtx(await xr.json());
+      } catch { /* no-op */ }
+    }
   }, []);
 
   const refreshDetail = useCallback(async () => {
-    if (!selected) return;
+    if (!curConv) return;
     try {
-      const res = await fetch(`${API}/api/conversation/${selected}`, { headers: authHeaders() });
-      if (res.ok) setDetail(await res.json());
+      if (curConv.channel === 'whatsapp') {
+        const r = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp`, { headers: authHeaders(), credentials: 'include' });
+        if (r.ok) setDetail(_waToDetail(curConv.lead_id, await r.json()));
+      } else {
+        const res = await fetch(`${API}/api/conversation/${curConv.conversation_id}`, { headers: authHeaders() });
+        if (res.ok) setDetail(await res.json());
+      }
     } catch { /* no-op */ }
-  }, [selected]);
+  }, [curConv]);
 
   const sendAsAsesor = useCallback(async (text) => {
-    if (!selected || !text) return;
+    if (!curConv || !text) return;
     try {
-      const res = await fetch(`${API}/api/conversation/message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ conversation_id: selected, message: text, role: 'asesor' }),
-      });
-      if (res.ok) await refreshDetail();
+      if (curConv.channel === 'whatsapp') {
+        const res = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+          body: JSON.stringify({ text }),
+        });
+        if (res.ok) await refreshDetail();
+      } else {
+        const res = await fetch(`${API}/api/conversation/message`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ conversation_id: curConv.conversation_id, message: text, role: 'asesor' }),
+        });
+        if (res.ok) await refreshDetail();
+      }
     } catch { /* no-op */ }
-  }, [selected, refreshDetail]);
+  }, [curConv, refreshDetail]);
+
+  // B6 · draft IA del mensaje (reusa B5.5.2 · solo hilos con lead_id)
+  const draftReply = useCallback(async () => {
+    if (!curConv?.lead_id || drafting) return null;
+    setDrafting(true);
+    try {
+      const r = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp/draft`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+      });
+      if (r.ok) { const d = await r.json(); return d.text || null; }
+    } catch { /* no-op */ } finally { setDrafting(false); }
+    return null;
+  }, [curConv, drafting]);
 
   const filtered = useMemo(() => {
+    let l = list;
+    if (fSentiment) l = l.filter((c) => c.sentiment === fSentiment);
+    if (fStatus) l = l.filter((c) => c.status === fStatus);
     const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((c) =>
-      `${c.lead_id || ''} ${c.asesor_id || ''} ${c.conversation_id || ''}`.toLowerCase().includes(q));
-  }, [list, search]);
+    if (q) l = l.filter((c) =>
+      `${c.lead_name || ''} ${c.lead_id || ''} ${c.last_message || ''} ${c.asesor_id || ''}`.toLowerCase().includes(q));
+    return l;
+  }, [list, search, fSentiment, fStatus]);
 
   const lastUserMessage = useMemo(() => {
     const msgs = (detail && detail.messages) || [];
@@ -152,7 +226,11 @@ function ConversationInboxBody() {
           <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
             style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream, #F0EBE0)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
         </div>
-        <input placeholder={t('inbox.filter_asesor')} value={fAsesor} onChange={(e) => setFAsesor(e.target.value)} style={selectStyle} />
+        <select value={fChannel} onChange={(e) => setFChannel(e.target.value)} style={selectStyle}>
+          <option value="">Canal: todos</option>
+          <option value="whatsapp">💬 WhatsApp</option>
+          <option value="ai">🤖 Chat IA</option>
+        </select>
         <select value={fSentiment} onChange={(e) => setFSentiment(e.target.value)} style={selectStyle}>
           <option value="">{t('inbox.filter_sentiment')}: {t('inbox.all')}</option>
           <option value="positive">{t('sentiment.positive')}</option>
@@ -186,22 +264,26 @@ function ConversationInboxBody() {
                 padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
               }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.lead_id || (c.conversation_id || '').slice(0, 14)}
+                <span style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span title={c.channel === 'whatsapp' ? 'WhatsApp' : 'Chat IA'}>{c.channel === 'whatsapp' ? '💬' : '🤖'}</span>
+                  {c.lead_name || c.lead_id || (c.conversation_id || '').slice(0, 14)}
                 </span>
                 <span style={{ display: 'flex', gap: 5, alignItems: 'center', flex: '0 0 auto' }}>
+                  {c.needs_reply && (
+                    <span style={{ fontSize: 9.5, fontWeight: 800, padding: '1px 6px', borderRadius: 5, background: 'rgba(232,147,12,0.18)', color: '#e8930c' }}>RESPONDER</span>
+                  )}
                   {(c.disc_tier || c.disc_tone) && (
                     <span style={{ fontSize: 10, fontWeight: 800, padding: '1px 5px', borderRadius: 4, background: 'rgba(99,102,241,0.2)', color: 'var(--theme-primary, #818CF8)' }}>
                       {c.disc_tier || c.disc_tone}
                     </span>
                   )}
-                  <span style={{ fontSize: 10.5, padding: '2px 7px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', color: STATUS_COLOR[c.status] || SENTIMENT_COLOR.neutral }}>
-                    {t(`status.${c.status}`, c.status)}
-                  </span>
                 </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'rgba(240,235,224,0.5)' }}>
-                <span>{c.asesor_id || '—'}</span>
+              {c.last_message && (
+                <div style={{ fontSize: 11.5, color: 'rgba(240,235,224,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message}</div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+                <span>{c.channel === 'whatsapp' ? 'WhatsApp' : (c.asesor_id || 'Chat IA')}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {c.status === 'handoff' && <AlertTriangle size={12} style={{ color: STATUS_COLOR.handoff }} />}
                   <span style={{ color: SENTIMENT_COLOR[c.sentiment] || SENTIMENT_COLOR.neutral }}>●</span>
@@ -240,8 +322,12 @@ function ConversationInboxBody() {
                   </div>
                 ))}
               </div>
-              <SuggestedReplies lastUserMessage={lastUserMessage} onSend={sendAsAsesor}
-                disabled={detail.status === 'closed'} />
+              {detail.channel === 'whatsapp' ? (
+                <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} />
+              ) : (
+                <SuggestedReplies lastUserMessage={lastUserMessage} onSend={sendAsAsesor}
+                  disabled={detail.status === 'closed'} />
+              )}
             </>
           )}
         </div>
@@ -264,6 +350,30 @@ function ConversationInboxBody() {
               <InfoRow label={t('inbox.filter_sentiment')} value={t(`sentiment.${detail.sentiment}`, detail.sentiment)}
                 color={SENTIMENT_COLOR[detail.sentiment]} />
               {detail.taken_over_by && <InfoRow label={t('inbox.taken_over_by')} value={detail.taken_over_by} />}
+
+              {/* B6 · contexto del lead: siguiente paso + perfil de gusto (B5.4) */}
+              {ctx?.brief?.next_step && (
+                <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--theme-primary, #818CF8)', marginBottom: 3 }}>🧭 Siguiente paso</div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--cream, #F0EBE0)' }}>{ctx.brief.next_step.text}</div>
+                </div>
+              )}
+              {ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(240,235,224,0.5)', marginBottom: 7 }}>
+                    Perfil de gusto {ctx.taste.confidence_label ? `· confianza ${ctx.taste.confidence_label}` : ''}
+                  </div>
+                  {ctx.taste.summary && <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.8)', marginBottom: 8, lineHeight: 1.45 }}>{ctx.taste.summary}</div>}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {(ctx.taste.rooms || []).slice(0, 4).map((r) => (
+                      <span key={r.room} style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.14)', color: 'var(--theme-primary, #818CF8)' }}>{r.label} {r.score}%</span>
+                    ))}
+                    {(ctx.taste.features || []).slice(0, 3).map((f) => (
+                      <span key={f.key} style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', color: 'rgba(240,235,224,0.75)' }}>{f.label}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* W7.AS.3.H · resumen de confianza IA del hilo (confidence-history) */}
               {confSummary && (
