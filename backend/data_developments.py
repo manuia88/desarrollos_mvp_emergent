@@ -427,7 +427,12 @@ DEVELOPMENTS_RAW = [
 
 
 def _photo_urls(dev: dict) -> List[str]:
-    """Return 6 Unsplash Source URLs varied by keyword — stable per dev via seed hash."""
+    """Return 6 photo URLs varied by keyword — stable per dev via seed hash.
+    Fuente: loremflickr (carga real + respeta las keywords → la foto coincide con el
+    cuarto, p.ej. bedroom→recámara). Reemplazó source.unsplash.com (API muerta → gradientes).
+    Las keywords se preservan en el path para que el auto-tag (B5.4 Capa 2) siga funcionando.
+    PRODUCCIÓN: cuando el asesor suba fotos reales, estas URLs se reemplazan y la visión IA
+    (tag_with_vision) las etiqueta con precisión."""
     themes = [
         ["modern", "apartment", "architecture"],
         ["luxury", "condo", "interior"],
@@ -446,8 +451,8 @@ def _photo_urls(dev: dict) -> List[str]:
     for i in range(6):
         idx = offsets[i] % len(themes)
         keywords = ",".join(themes[idx])
-        # Static seed per dev+index keeps image stable across renders
-        urls.append(f"https://source.unsplash.com/featured/1200x800/?{keywords}&sig={dev['id']}{i}")
+        lock = (offsets[i] * 7 + i) % 600 + 1  # imagen estable por dev+índice
+        urls.append(f"https://loremflickr.com/1200/800/{keywords}?lock={lock}")
     return urls
 
 
