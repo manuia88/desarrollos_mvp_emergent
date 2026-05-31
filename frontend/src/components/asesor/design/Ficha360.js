@@ -86,16 +86,20 @@ const TABS = [
 ];
 
 // Color por estatus del tablero de propiedades (demo · mockup).
-const DOTC = { cold: 'var(--cold)', warm: 'var(--warm)', ok: 'var(--ok)', hot: 'var(--hot)' };
+const DOTC = { cold: 'var(--cold)', warm: 'var(--warm)', ok: 'var(--ok)', hot: 'var(--hot)', theme: 'var(--theme)', gold: '#f5a524' };
 const TONEC = { muted: 'var(--cream-3)', ok: 'var(--ok)', hot: 'var(--hot)' };
-// B5.1 · columnas del tablero de propiedades real (mismas etiquetas/dots que el demo).
-const BOARD_STATUS = ['dispo', 'enviada', 'gusto', 'descartada'];
+// B5.2-A · pipeline de la propiedad dentro del lead (6 etapas · arrastrables).
+const BOARD_STATUS = ['por_verificar', 'enviada', 'le_gusto', 'cita', 'oferta', 'descartada'];
 const BOARD_META = {
-  dispo:      { label: 'Preguntando dispo.', dot: 'cold' },
-  enviada:    { label: 'Enviada al cliente', dot: 'warm' },
-  gusto:      { label: 'Le gustó / cita',    dot: 'ok' },
-  descartada: { label: 'Descartada',          dot: 'hot' },
+  por_verificar: { label: 'Por verificar',       dot: 'cold' },
+  enviada:       { label: 'Enviada al cliente',  dot: 'warm' },
+  le_gusto:      { label: 'Le gustó',            dot: 'ok' },
+  cita:          { label: 'Cita / visita',       dot: 'theme' },
+  oferta:        { label: 'En oferta',           dot: 'gold' },
+  descartada:    { label: 'Descartada',          dot: 'hot' },
 };
+// Normaliza estatus viejos por si el backend manda alguno sin migrar.
+const NORM_STATUS = (s) => ({ dispo: 'por_verificar', gusto: 'le_gusto' }[s] || s);
 
 export default function Ficha360({ open, onClose, contact, onOpenArg, onStageChange, onToast, demo, user }) {
   const [tab, setTab] = useState('resumen');
@@ -780,7 +784,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   <div className="asr-pk">
                     {BOARD_STATUS.map((st) => {
                       const meta = BOARD_META[st];
-                      const col = (board?.items || []).filter((it) => it.status === st);
+                      const col = (board?.items || []).filter((it) => NORM_STATUS(it.status) === st);
                       return (
                         <div className="asr-pkcol" key={st} data-testid={`asr-board-col-${st}`}
                           onDragOver={(e) => e.preventDefault()}

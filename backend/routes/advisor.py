@@ -37,7 +37,9 @@ ETAPA_CONTACTO = ["nuevo", "contactado", "visita", "negociacion", "cerrado"]
 # B5.1 · Estatus de cada propiedad DENTRO del tablero de un lead (Tab Propiedades del
 # perfil-hub). Es el destino donde aterrizan los swipes del link Tinder (B5.2):
 # 👍 del cliente → "gusto", 👎 → "descartada". El asesor también mueve arrastrando.
-BOARD_STATUS = ["dispo", "enviada", "gusto", "descartada"]
+BOARD_STATUS = ["por_verificar", "enviada", "le_gusto", "cita", "oferta", "descartada"]
+# Compat: ítems viejos (B5.1) usaban dispo/gusto → se normalizan al leer.
+BOARD_STATUS_ALIAS = {"dispo": "por_verificar", "gusto": "le_gusto"}
 
 
 # ─── Pydantic models ──────────────────────────────────────────────────────────
@@ -149,7 +151,7 @@ class BoardItemIn(BaseModel):
     colonia: Optional[str] = ""
     addr: Optional[str] = ""
     specs: List[str] = []
-    status: str = "dispo"
+    status: str = "por_verificar"
     note: Optional[str] = ""
 
 class BoardItemPatch(BaseModel):
@@ -1131,6 +1133,8 @@ async def get_lead_board(cid: str, request: Request):
     items = await db.asesor_lead_properties.find(
         {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}
     ).sort("updated_at", -1).to_list(200)
+    for it in items:  # normaliza estatus viejos (dispo/gusto → nuevos)
+        it["status"] = BOARD_STATUS_ALIAS.get(it.get("status"), it.get("status"))
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")
     views = sum(int(it.get("views") or 0) for it in items)

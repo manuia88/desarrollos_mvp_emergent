@@ -572,7 +572,7 @@
     const items=(DATA.items||[]).map(mapItem);
     BYID={};items.forEach(p=>{BYID[p.id]=p;});
     items.forEach(p=>{if(p.thumb==='up')liked.push(p);});
-    const deckItems=items.filter(p=>p.status==='dispo'||p.status==='enviada');
+    const deckItems=items.filter(p=>p.status==='por_verificar'||p.status==='enviada'||p.status==='dispo');
     deckArr=buildDeck(deckItems);show('s-swipe');render();
     if(!deckItems.length)finish();
   }

@@ -25,7 +25,8 @@ except Exception:
 
 router = APIRouter(tags=["swipe-public"])
 
-BOARD_STATUS = ["dispo", "enviada", "gusto", "descartada"]
+BOARD_STATUS = ["por_verificar", "enviada", "le_gusto", "cita", "oferta", "descartada"]
+BOARD_STATUS_ALIAS = {"dispo": "por_verificar", "gusto": "le_gusto"}
 
 
 def _db(request: Request):
@@ -79,7 +80,7 @@ def _card(it: dict, dev: dict = None) -> dict:
         "preventa": (dev.get("stage") or "").lower() in ("preventa", "pre-venta", "pre venta", "en_construccion"),
         "delivery": dev.get("delivery_estimate") or "",
         "units_available": dev.get("units_available"),
-        "status": it.get("status"),
+        "status": BOARD_STATUS_ALIAS.get(it.get("status"), it.get("status")),
         "thumb": it.get("thumb"),
         "client_cita": it.get("client_cita") or "",
         "client_note": it.get("client_note") or "",
@@ -122,7 +123,7 @@ async def swipe_vote(token: str, payload: VoteIn, request: Request):
     lk = await _resolve(db, token)
     if payload.thumb not in ("up", "down"):
         raise HTTPException(400, "thumb inválido")
-    status = "gusto" if payload.thumb == "up" else "descartada"
+    status = "le_gusto" if payload.thumb == "up" else "descartada"
     res = await db.asesor_lead_properties.update_one(
         {"id": payload.item_id, "owner_id": lk["owner_id"], "contacto_id": lk["contacto_id"]},
         {"$set": {"status": status, "thumb": payload.thumb, "source": "swipe", "updated_at": _now()},
