@@ -12,6 +12,7 @@ import SuggestedReplies from '../../components/conversation/SuggestedReplies';
 import LiveTakeover from '../../components/conversation/LiveTakeover';
 import ConfidenceIndicator from '../../components/conversation/ConfidenceIndicator';
 import PortalLayout from '../../components/shared/PortalLayout';
+import Ficha360 from '../../components/asesor/design/Ficha360';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const SENTIMENT_COLOR = {
@@ -49,7 +50,7 @@ const DM = ['whatsapp', 'messenger', 'instagram', 'linkedin', 'tiktok', 'youtube
 const CHANNEL_LABEL = {
   whatsapp: '💬 WhatsApp', messenger: '📘 Messenger', instagram: '📷 Instagram',
   linkedin: '💼 LinkedIn', tiktok: '🎵 TikTok', youtube: '▶️ YouTube',
-  ai: '🤖 Chat IA', web: '🤖 Chat IA',
+  ai: '🤖 Atlax', web: '🤖 Atlax',
 };
 const CHANNEL_ACCENT = {
   whatsapp: '#1FA06A', messenger: '#0084FF', instagram: '#C13584',
@@ -81,7 +82,7 @@ function WaCompose({ onSend, onDraft, drafting, disabled }) {
   );
 }
 
-function ConversationInboxBody() {
+function ConversationInboxBody({ user }) {
   const { t } = useTranslation(['conversation_round2_ui', 'conversation_confidence']);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +97,7 @@ function ConversationInboxBody() {
   const [stats, setStats] = useState(null);        // B7+ · pulse del buzón
   const [segment, setSegment] = useState('todas'); // B7+ · segmento activo
   const navigate = useNavigate();
+  const [fichaContact, setFichaContact] = useState(null);  // ficha como modal EN SU LUGAR (sin cambiar de tab)
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -234,7 +236,7 @@ function ConversationInboxBody() {
   const canTakeover = detail && detail.status !== 'taken_over' && detail.status !== 'closed';
 
   return (
-    <div style={{ padding: 24, color: 'var(--cream)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
+    <div style={{ padding: '16px 24px', color: 'var(--cream)', fontFamily: 'DM Sans, system-ui, sans-serif', height: 'calc(100dvh - 60px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
         <MessageSquare size={22} />
         <div style={{ flex: 1 }}>
@@ -280,7 +282,7 @@ function ConversationInboxBody() {
       </div>
 
       {/* 3 columns · altura acotada para que la caja de escribir entre sin scroll de página */}
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr 320px', gap: 14, height: 'calc(100dvh - 250px)', minHeight: 380 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr 320px', gap: 14, flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* col 1 · threads */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflowY: 'auto' }}>
           {loading ? (
@@ -394,9 +396,13 @@ function ConversationInboxBody() {
                 <span style={{ fontWeight: 700, fontSize: 13 }}>{t('inbox.lead_info')}</span>
               </div>
 
-              {/* Botón prominente a la ficha completa (founder: más visible) */}
+              {/* Botón prominente a la ficha — abre el MODAL en su lugar (sin sacarte de la bandeja) */}
               {(detail.lead_id || curConv?.lead_id) && (
-                <button type="button" onClick={() => navigate(`/asesor/contactos/${detail.lead_id || curConv?.lead_id}`)}
+                <button type="button" onClick={() => {
+                  const lid = detail.lead_id || curConv?.lead_id;
+                  const nm = (ctx?.name || '').split(' ');
+                  setFichaContact({ id: lid, first_name: nm[0] || '', last_name: nm.slice(1).join(' ') });
+                }}
                   style={{ width: '100%', padding: '11px 14px', borderRadius: 11, border: 'none', background: 'var(--theme-2)', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: 13.5, fontWeight: 800, cursor: 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(var(--theme-rgb),0.3)' }}>
                   👤 Ver ficha completa →
                 </button>
@@ -529,6 +535,12 @@ function ConversationInboxBody() {
           )}
         </div>
       </div>
+
+      {/* Ficha completa como MODAL en su lugar (founder: sin sacarte de la bandeja) */}
+      {fichaContact && (
+        <Ficha360 open contact={fichaContact} user={user}
+          onClose={() => setFichaContact(null)} onToast={() => {}} />
+      )}
     </div>
   );
 }

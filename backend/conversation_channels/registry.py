@@ -20,7 +20,7 @@ CHANNELS: List[Dict[str, Any]] = [
     {"key": "linkedin",  "label": "LinkedIn",  "emoji": "💼", "color": "#0A66C2", "dm": True,  "mod": linkedin},
     {"key": "tiktok",    "label": "TikTok",    "emoji": "🎵", "color": "#111111", "dm": True,  "mod": tiktok},
     {"key": "youtube",   "label": "YouTube",   "emoji": "▶️", "color": "#FF0000", "dm": True,  "mod": youtube},
-    {"key": "ai",        "label": "Chat IA",   "emoji": "🤖", "color": "#5B37E0", "dm": False, "mod": None},
+    {"key": "ai",        "label": "Atlax",     "emoji": "🤖", "color": "#5B37E0", "dm": False, "mod": None},
 ]
 
 # canales de mensajería directa (sus mensajes viven en whatsapp_messages con campo `channel`)
