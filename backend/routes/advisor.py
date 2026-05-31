@@ -158,6 +158,8 @@ class BoardItemPatch(BaseModel):
     status: Optional[str] = None
     note: Optional[str] = None
     visit_feedback: Optional[dict] = None  # B5.2-B · {salio, nota} de la visita
+    cita_confirmada: Optional[str] = None  # B5.2-C · ISO datetime confirmado por el asesor
+    cita_confirm: Optional[dict] = None    # B5.2-C · {cliente, propietario, agenda} (bool)
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

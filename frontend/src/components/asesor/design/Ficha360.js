@@ -129,6 +129,97 @@ function VisitFeedbackForm({ item, onSave, onClose }) {
   );
 }
 
+// B5.2-C · Armar recorrido — vista VIVA: ordena por horario confirmado + cercanía,
+// avisa conflictos de traslado, y se reordena sola cuando cambia un horario.
+const _rcInp = { flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' };
+const _rcChip = (on) => ({ padding: '6px 11px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, border: `1.5px solid ${on ? '#16b364' : 'var(--border)'}`, background: on ? 'rgba(22,179,100,0.10)' : 'var(--surface-2)', color: on ? '#16b364' : 'var(--cream-2)' });
+const _fmtHora = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+const _sameDay = (a, b) => a && b && new Date(a).toDateString() === new Date(b).toDateString();
+const _travelMin = (a, b) => ((a.colonia || '').toLowerCase() === (b.colonia || '').toLowerCase() && a.colonia) ? 15 : 35;
+
+function ConfirmVisitRow({ item, onConfirm }) {
+  const had = item.cita_confirmada ? new Date(item.cita_confirmada) : null;
+  const [date, setDate] = useState(had && !isNaN(had) ? had.toISOString().slice(0, 10) : '');
+  const [time, setTime] = useState(had && !isNaN(had) ? had.toTimeString().slice(0, 5) : '');
+  const cf = item.cita_confirm || {};
+  const [parties, setParties] = useState({ cliente: !!cf.cliente, propietario: !!cf.propietario, agenda: !!cf.agenda });
+  const tgl = (k) => setParties((p) => ({ ...p, [k]: !p[k] }));
+  const ready = date && time && parties.cliente && parties.propietario && parties.agenda;
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, marginBottom: 9 }}>
+      <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)' }}>{item.name}</div>
+      <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 9 }}>{item.colonia || ''}{item.client_cita ? ` · cliente pidió: ${item.client_cita}` : ''}</div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 9 }}>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={_rcInp} />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} style={_rcInp} />
+      </div>
+      <div style={{ display: 'flex', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
+        {[['cliente', 'Cliente'], ['propietario', 'Propietario / broker'], ['agenda', 'Mi agenda']].map(([k, label]) => (
+          <button key={k} onClick={() => tgl(k)} style={_rcChip(parties[k])}>{parties[k] ? '✓ ' : ''}{label}</button>
+        ))}
+      </div>
+      <button onClick={() => onConfirm(item.id, new Date(`${date}T${time}`).toISOString(), parties)} disabled={!date || !time}
+        style={{ width: '100%', padding: 9, borderRadius: 9, border: 'none', background: ready ? 'var(--grad)' : (date && time ? 'rgba(var(--theme-rgb),0.55)' : 'var(--border)'), color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 12.5, cursor: (date && time) ? 'pointer' : 'not-allowed' }}>
+        {ready ? '✓ Confirmar y poner en la ruta' : 'Falta cuadrar las 3 partes'}
+      </button>
+    </div>
+  );
+}
+
+function RecorridoModal({ items, leadName, onConfirm, onClose }) {
+  const confirmadas = items.filter((i) => i.cita_confirmada).sort((a, b) => new Date(a.cita_confirmada) - new Date(b.cita_confirmada));
+  const tentativas = items.filter((i) => !i.cita_confirmada);
+  const secLbl = { fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 12.5, color: 'var(--cream)', margin: '4px 0 10px' };
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: Z.MODAL, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 480, maxHeight: '86vh', borderRadius: 16, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ padding: '15px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, color: 'var(--cream)' }}>🗺️ Recorrido de {leadName}</b>
+          <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', padding: 2 }}><X size={18} /></button>
+        </div>
+        <div style={{ overflowY: 'auto', padding: '14px 16px' }}>
+          {confirmadas.length === 0 && tentativas.length === 0 && (
+            <div style={{ padding: 28, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Cuando tengas propiedades en "Cita" o "Visitada", arma aquí la ruta del día.</div>
+          )}
+          {confirmadas.length > 0 && (
+            <>
+              <div style={secLbl}>Ruta confirmada · {confirmadas.length}</div>
+              {confirmadas.map((it, i) => {
+                const next = confirmadas[i + 1];
+                const gapMin = next ? (new Date(next.cita_confirmada) - new Date(it.cita_confirmada)) / 60000 : null;
+                const conflict = next && _sameDay(it.cita_confirmada, next.cita_confirmada) && gapMin < _travelMin(it, next);
+                return (
+                  <div key={it.id}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 12px', marginBottom: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--grad)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 13, flexShrink: 0 }}>{i + 1}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 13, color: 'var(--cream)' }}>{it.name}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>{it.colonia || ''}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 13.5, color: 'var(--theme-2)' }}>{(_fmtHora(it.cita_confirmada).split(' ').slice(-1)[0]) || ''}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>{_fmtHora(it.cita_confirmada).split(',')[0]}</div>
+                      </div>
+                    </div>
+                    {conflict && <div style={{ fontSize: 11.5, color: '#8a5a00', background: 'rgba(245,165,36,0.12)', border: '1px solid rgba(245,165,36,0.35)', borderRadius: 9, padding: '7px 10px', margin: '-2px 0 9px' }}>⚠️ De {it.colonia} a {next.colonia} no alcanzas en {Math.round(gapMin)} min · ajusta el horario de la #{i + 2}</div>}
+                  </div>
+                );
+              })}
+            </>
+          )}
+          {items.length > 0 && (
+            <>
+              <div style={{ ...secLbl, marginTop: confirmadas.length ? 16 : 4 }}>{confirmadas.length ? 'Ajustar horarios' : 'Cuadrar visitas'} · {items.length}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 11, lineHeight: 1.5 }}>Cuadra cada visita con las 3 partes (cliente · propietario/broker · tu agenda). Cambia una hora y la ruta de arriba se <b style={{ color: 'var(--cream-2)' }}>reordena sola</b>.</div>
+              {items.map((it) => <ConfirmVisitRow key={it.id} item={it} onConfirm={onConfirm} />)}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Ficha360({ open, onClose, contact, onOpenArg, onStageChange, onToast, demo, user }) {
   const [tab, setTab] = useState('resumen');
   const [prob, setProb] = useState(null);
@@ -161,6 +252,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [allDevs, setAllDevs] = useState(null);
   const [devQ, setDevQ] = useState('');
   const [feedbackItem, setFeedbackItem] = useState(null); // B5.2-B · prop en captura de feedback de visita
+  const [showRecorrido, setShowRecorrido] = useState(false); // B5.2-C · modal de recorrido del día
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -299,6 +391,13 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setFeedbackItem(null);
     try { await api.patchLeadBoardItem(it.id, { visit_feedback: fb }); toast('success', 'Feedback guardado'); }
     catch (_) { toast('error', 'No se pudo guardar'); }
+  };
+
+  // B5.2-C · Confirma el horario de una visita (tras coordinar) → entra a la ruta y se reordena sola.
+  const confirmVisita = async (id, iso, parties) => {
+    setBoard((b) => ({ ...b, items: (b?.items || []).map((x) => (x.id === id ? { ...x, cita_confirmada: iso, cita_confirm: parties } : x)) }));
+    try { await api.patchLeadBoardItem(id, { cita_confirmada: iso, cita_confirm: parties }); toast('success', 'Visita confirmada'); }
+    catch (_) { toast('error', 'No se pudo confirmar'); }
   };
 
   // B5.1 · Agregar una coincidencia de búsqueda al tablero (columna 'dispo').
@@ -805,7 +904,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   {/* B5.2b · Header: agregar propiedad directo (no solo desde búsquedas) */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
                     <div className="asr-sec-h" style={{ fontSize: 13, margin: 0 }}>Propiedades de {c.first_name} <span className="asr-muted">· arrastra entre columnas</span></div>
-                    <button onClick={openAddProp} data-testid="asr-board-addprop" className="asr-hbtn asr-hbtn--key" style={{ flexShrink: 0 }}>+ Agregar propiedad</button>
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      {(board?.items || []).some((it) => ['cita', 'visitada'].includes(NORM_STATUS(it.status))) && (
+                        <button onClick={() => setShowRecorrido(true)} data-testid="asr-board-recorrido" className="asr-hbtn">🗺️ Recorrido</button>
+                      )}
+                      <button onClick={openAddProp} data-testid="asr-board-addprop" className="asr-hbtn asr-hbtn--key">+ Agregar propiedad</button>
+                    </div>
                   </div>
 
                   {/* Engagement del link · real (se llena con los swipes del Tinder · B5.2) */}
@@ -1123,6 +1227,16 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
         <div onClick={() => setFeedbackItem(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: Z.MODAL, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <VisitFeedbackForm item={feedbackItem} onSave={saveFeedback} onClose={() => setFeedbackItem(null)} />
         </div>
+      )}
+
+      {/* B5.2-C · Armar recorrido (vista viva del día) */}
+      {showRecorrido && (
+        <RecorridoModal
+          items={(board?.items || []).filter((it) => ['cita', 'visitada'].includes(NORM_STATUS(it.status)))}
+          leadName={c.first_name}
+          onConfirm={confirmVisita}
+          onClose={() => setShowRecorrido(false)}
+        />
       )}
 
       {/* B5.2b · Buscador de inventario para agregar propiedad al tablero */}
