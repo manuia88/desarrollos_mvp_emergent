@@ -339,7 +339,7 @@
       preventa:!!it.preventa,delivery:it.delivery||'',units:it.units_available,
       status:it.status,thumb:it.thumb};}
   function api(path,body){try{return fetch(`${API}/api/swipe/${TOKEN}${path}`,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined).catch(()=>{});}catch(_){}}
-  function postVote(p,thumb){if(p&&p.id)api('/vote',{item_id:p.id,thumb});}
+  function postVote(p,thumb,reason){if(p&&p.id)api('/vote',{item_id:p.id,thumb,reason:reason||''});}
   function postProfile(){api('/profile',{answers:ANSWERS});}
   function applyGreeting(){const hi=document.querySelector('.intro .hi');if(hi)hi.textContent=LEADNAME?`Hola ${LEADNAME} 👋`:'Hola 👋';const an=document.querySelector('.card-asesor b');if(an)an.textContent=ASESOR;const sub=document.querySelector('.card-asesor span');if(sub)sub.textContent='DesarrollosMX';}
   async function init(){try{const r=await fetch(`${API}/api/swipe/${TOKEN}`);if(r.ok)DATA=await r.json();}catch(_){}if(DATA){ASESOR=DATA.asesor_name||'Tu asesor';LEADNAME=DATA.lead_name||'';applyGreeting();}}
@@ -468,7 +468,7 @@
     setTimeout(()=>doCommit(dir),200);
   }
   function doCommit(dir){const p=deckArr[idx].d;history.push({idx,dir});seen++;
-    postVote(p, dir==='no'?'down':'up');
+    postVote(p, dir==='no'?'down':'up', dir==='no'?passSel:'');
     if(dir==='like'){liked.push(p);profile=Math.min(100,profile+8);}
     if(dir==='super'){liked.push(p);fav.push(p);profile=Math.min(100,profile+12);toast('★ Guardada como favorita');}
     idx++;if(idx>=deckArr.length){endBatch();return;}render();}

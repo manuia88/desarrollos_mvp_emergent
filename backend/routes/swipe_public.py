@@ -115,6 +115,7 @@ async def swipe_view(token: str, request: Request):
 class VoteIn(BaseModel):
     item_id: str
     thumb: str  # up | down
+    reason: Optional[str] = ""  # B5.3 · razón de descarte (combustible del recalibrado)
 
 
 @router.post("/api/swipe/{token}/vote")
@@ -124,10 +125,12 @@ async def swipe_vote(token: str, payload: VoteIn, request: Request):
     if payload.thumb not in ("up", "down"):
         raise HTTPException(400, "thumb inválido")
     status = "le_gusto" if payload.thumb == "up" else "descartada"
+    setd = {"status": status, "thumb": payload.thumb, "source": "swipe", "updated_at": _now()}
+    if payload.thumb == "down" and payload.reason:
+        setd["pass_reason"] = payload.reason[:80]
     res = await db.asesor_lead_properties.update_one(
         {"id": payload.item_id, "owner_id": lk["owner_id"], "contacto_id": lk["contacto_id"]},
-        {"$set": {"status": status, "thumb": payload.thumb, "source": "swipe", "updated_at": _now()},
-         "$inc": {"views": 1}},
+        {"$set": setd, "$inc": {"views": 1}},
     )
     if not res.matched_count:
         raise HTTPException(404, "Propiedad no encontrada")
