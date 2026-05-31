@@ -328,7 +328,7 @@ def build_brief(items: list, taste: dict) -> dict:
     elif por_ver:
         step = {"text": f"Verifica disponibilidad de {por_ver} y mándale el link para que deslice.", "cta": "link"}
     elif total == 0:
-        step = {"text": "Agrega 3-5 propiedades y manda el link Tinder para empezar a aprender su gusto.", "cta": "addprop"}
+        step = {"text": "Agrega 3-5 propiedades y manda la Galería Personalizada para empezar a aprender su gusto.", "cta": "addprop"}
     else:
         step = {"text": "Manda el link de propiedades para que el cliente empiece a deslizar.", "cta": "link"}
 

@@ -1139,7 +1139,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   {(board?.items || []).length > 0 && (
                     linkInfo ? (
                       <div className="asr-tinder" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-                        <div className="asr-tinder__tx"><b>Link listo para {c.first_name}</b><p style={{ wordBreak: 'break-all' }}>{linkUrl(linkInfo)}</p></div>
+                        <div className="asr-tinder__tx"><b>Galería lista para {c.first_name}</b><p style={{ wordBreak: 'break-all' }}>{linkUrl(linkInfo)}</p></div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <a href={waLink(linkInfo)} target="_blank" rel="noopener noreferrer" className="asr-tinder__btn" style={{ flex: 1, textDecoration: 'none', textAlign: 'center', justifyContent: 'center', marginLeft: 0 }}>Enviar por WhatsApp</a>
                           <a href={linkUrl(linkInfo)} target="_blank" rel="noopener noreferrer" className="asr-hbtn" style={{ textDecoration: 'none' }}>Abrir</a>
@@ -1149,7 +1149,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                     ) : (
                       <div className="asr-tinder">
                         <div className="asr-tinder__i"><ArrowLeftRight size={19} /></div>
-                        <div className="asr-tinder__tx"><b>Enviar link de propiedades a {c.first_name}</b><p>Un link · el cliente desliza 👍/👎 · cada deslizada vuelve a este tablero.</p></div>
+                        <div className="asr-tinder__tx"><b>Enviar Galería Personalizada a {c.first_name}</b><p>El cliente desliza 👍/👎 · cada deslizada vuelve a este tablero y afina su gusto.</p></div>
                         <button className="asr-tinder__btn" onClick={createLink} disabled={linkBusy}>{linkBusy ? '…' : 'Crear y enviar'}</button>
                       </div>
                     )

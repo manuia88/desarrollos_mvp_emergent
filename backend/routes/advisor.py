@@ -1676,7 +1676,7 @@ async def create_swipe_link(cid: str, request: Request):
     base = (os.environ.get("FRONTEND_URL") or os.environ.get("PUBLIC_URL") or "").rstrip("/")
     url = f"{base}/p/{link['token']}" if base else f"/p/{link['token']}"
     first = c.get("first_name") or ""
-    wa_text = (f"Hola {first}, te preparé una selección de propiedades pensadas en lo que buscas. "
+    wa_text = (f"Hola {first}, te preparé tu Galería Personalizada con propiedades pensadas en lo que buscas. "
                f"Entra y dime cuáles te laten (deslizas 👍/👎, toma 1 min) 👉 {url}")
     return {"token": link["token"], "url": url, "wa_text": wa_text}
 
