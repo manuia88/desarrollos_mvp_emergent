@@ -1649,6 +1649,41 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
     return {"conversations": out, "count": len(out), "stats": stats}
 
 
+class AtlaxToggleIn(BaseModel):
+    channel: str
+    auto: bool
+
+
+@router.get("/atlax-settings")
+async def get_atlax_settings(request: Request):
+    """Por asesor: en qué canales Atlax contesta en automático. {whatsapp: true, ...}"""
+    user = await require_advisor(request)
+    db = get_db(request)
+    doc = await db.asesor_atlax_settings.find_one({"owner_id": user.user_id}, {"_id": 0, "channels": 1})
+    return {"channels": (doc or {}).get("channels", {})}
+
+
+@router.post("/atlax-settings")
+async def set_atlax_settings(body: AtlaxToggleIn, request: Request):
+    """Prender/apagar el piloto de Atlax para un canal (founder: cómo activo Atlax).
+    Guarda la intención · cuando el canal esté conectado, Atlax contesta solo si está en Auto."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    ch = (body.channel or "").lower()
+    await db.asesor_atlax_settings.update_one(
+        {"owner_id": user.user_id},
+        {"$set": {f"channels.{ch}": bool(body.auto), "owner_id": user.user_id, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True)
+    # ¿está conectado ese canal? (para decirle al asesor si ya contesta o solo queda listo)
+    connected = False
+    try:
+        from conversation_channels.registry import public_channels
+        connected = next((c["connected"] for c in public_channels() if c["key"] == ch), False)
+    except Exception:
+        pass
+    return {"ok": True, "channel": ch, "auto": bool(body.auto), "connected": connected}
+
+
 @router.get("/channels")
 async def list_channels(request: Request):
     """Omnicanal · registro de canales + estado de conexión (para los chips y 'Conectar')."""

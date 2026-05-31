@@ -46,6 +46,7 @@ function timeAgo(ts) {
   return `${Math.floor(s / 86400)} d`;
 }
 const TEMP_COLOR = { hot: '#F2635B', caliente: '#F2635B', warm: '#E2982E', tibio: '#E2982E', cold: '#3B82F6', frio: '#3B82F6' };
+function fmtMXNlocal(n) { try { return '$' + Number(n).toLocaleString('es-MX'); } catch { return '$' + n; } }
 const BOARD_LABEL = { por_verificar: 'Por verificar', enviada: 'Enviada', le_gusto: 'Le gustó', cita: 'Cita', visitada: 'Visitada', oferta: 'Oferta', descartada: 'Descartada' };
 // omnicanal · canales de mensajería directa (mismo store) · alineado al registro del backend
 const DM = ['whatsapp', 'messenger', 'instagram', 'linkedin', 'tiktok', 'youtube'];
@@ -73,7 +74,7 @@ function ChannelLogo({ ch, size = 15 }) {
 }
 
 // B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
-function WaCompose({ onSend, onDraft, drafting, disabled, seed, recProp }) {
+function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty }) {
   const [text, setText] = useState('');
   const [attached, setAttached] = useState(null);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -89,11 +90,7 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, recProp }) {
   const draft = async () => { const d = await onDraft(); if (d) setText(d); };
   const pickFile = (accept) => { acceptRef.current = accept; setAttachOpen(false); if (fileRef.current) { fileRef.current.accept = accept; fileRef.current.click(); } };
   const onFile = (e) => { const f = e.target.files && e.target.files[0]; if (f) setAttached({ name: f.name }); e.target.value = ''; };
-  const attachProperty = () => {
-    setAttachOpen(false);
-    if (recProp) setText(`Te recomiendo ${recProp.name}${recProp.colonia ? ` en ${recProp.colonia}` : ''} — creo que te va a encantar. ¿Te la mando? 🙌`);
-    else setText((t) => (t ? t + ' ' : '') + '[propiedad] ');
-  };
+  const attachProperty = () => { setAttachOpen(false); if (onAttachProperty) onAttachProperty(); };
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
       <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={onFile} />
@@ -153,6 +150,8 @@ function ConversationInboxBody({ user }) {
   const [ctx, setCtx] = useState(null);            // B6 · contexto del lead (gusto + siguiente paso)
   const [convAI, setConvAI] = useState(null);      // Pieza 1 · IA en vivo (ánimo + recomendación)
   const [composeSeed, setComposeSeed] = useState(null); // Pieza 1 · "Usar" llena la caja de escribir
+  const [propPicker, setPropPicker] = useState(null);   // Adjuntar propiedad · catálogo {loading, items}
+  const [atlaxCh, setAtlaxCh] = useState({});           // Pieza 2 · Atlax auto por canal {whatsapp:true,...}
   const [drafting, setDrafting] = useState(false); // B6 · draft IA (reusa B5.5.2)
   const [stats, setStats] = useState(null);        // B7+ · pulse del buzón
   const [segment, setSegment] = useState('todas'); // B7+ · segmento activo
@@ -179,6 +178,21 @@ function ConversationInboxBody({ user }) {
   }, []);
 
   useEffect(() => { loadList(); }, [loadList]);
+  // Pieza 2 · settings de Atlax (en qué canales contesta solo)
+  useEffect(() => {
+    fetch(`${API}/api/asesor/atlax-settings`, { headers: authHeaders(), credentials: 'include' })
+      .then((r) => r.ok ? r.json() : null).then((d) => { if (d) setAtlaxCh(d.channels || {}); }).catch(() => {});
+  }, []);
+  const toggleAtlax = useCallback(async (channel) => {
+    const next = !atlaxCh[channel];
+    setAtlaxCh((s) => ({ ...s, [channel]: next }));
+    try {
+      await fetch(`${API}/api/asesor/atlax-settings`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+        body: JSON.stringify({ channel, auto: next }),
+      });
+    } catch { /* no-op */ }
+  }, [atlaxCh]);
   // Auto-refresco de la lista cada 25s (la lista, no el hilo abierto → no estorba al escribir)
   useEffect(() => {
     const id = setInterval(() => { loadList(); }, 25000);
@@ -280,6 +294,33 @@ function ConversationInboxBody({ user }) {
     } catch { /* no-op */ } finally { setDrafting(false); }
     return null;
   }, [curConv, drafting]);
+
+  // Adjuntar propiedad · abre el CATÁLOGO rankeado (reusa el recomendador) en vez de una default
+  const openPropPicker = useCallback(async () => {
+    const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+    if (!lid) return;
+    setPropPicker({ loading: true, items: [] });
+    try {
+      const r = await fetch(`${API}/api/asesor/contactos/${lid}/suggestions`, { headers: authHeaders(), credentials: 'include' });
+      const d = r.ok ? await r.json() : {};
+      setPropPicker({ loading: false, items: Array.isArray(d.items) ? d.items : [] });
+    } catch { setPropPicker({ loading: false, items: [] }); }
+  }, [detail, curConv]);
+
+  // Seleccionar propiedad → la sube al tablero (aparece en la ficha · tab Propiedades) + llena la caja
+  const attachProp = useCallback(async (p) => {
+    const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+    setPropPicker(null);
+    if (lid) {
+      try {
+        await fetch(`${API}/api/asesor/contactos/${lid}/board`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+          body: JSON.stringify({ dev_id: p.id, name: p.name, price_from: p.price_from, colonia: p.colonia }),
+        });
+      } catch { /* no-op */ }
+    }
+    setComposeSeed(`Te recomiendo ${p.name}${p.colonia ? ` en ${p.colonia}` : ''} — creo que te va a encantar. ¿Te la mando? 🙌`);
+  }, [detail, curConv]);
 
   const filtered = useMemo(() => {
     let l = list;
@@ -460,7 +501,7 @@ function ConversationInboxBody({ user }) {
                       )}
                     </div>
                   )}
-                  <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} seed={composeSeed} recProp={convAI?.recomendacion} />
+                  <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} seed={composeSeed} onAttachProperty={openPropPicker} />
                 </>
               ) : (
                 <SuggestedReplies lastUserMessage={lastUserMessage} onSend={sendAsAsesor}
@@ -648,8 +689,21 @@ function ConversationInboxBody({ user }) {
                     </div>
                   )
                 ) : (
-                  <div style={{ fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.5 }}>
-                    Esta conversación de <b style={{ color: 'var(--cream-2)' }}>{CHANNEL_NAME[detail.channel] || detail.channel}</b> la llevas tú. Cuando conectes que Atlax atienda este canal, podrá contestar en automático aquí.
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: atlaxCh[detail.channel] ? '#1FA06A' : '#E2982E' }} />
+                      <b style={{ color: 'var(--cream)' }}>{atlaxCh[detail.channel] ? 'Auto' : 'Manual'}</b> · {atlaxCh[detail.channel] ? `Atlax atiende ${CHANNEL_NAME[detail.channel]} en automático` : 'la llevas tú'}
+                    </div>
+                    <button type="button" onClick={() => toggleAtlax(detail.channel)}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700,
+                        background: atlaxCh[detail.channel] ? 'var(--surface-2)' : '#5B37E0', color: atlaxCh[detail.channel] ? 'var(--cream-2)' : '#fff', border: atlaxCh[detail.channel] ? '1px solid var(--border)' : 'none' }}>
+                      {atlaxCh[detail.channel] ? 'Pasar a Manual' : '⚡ Activar Atlax (Auto)'}
+                    </button>
+                    <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 6, lineHeight: 1.45 }}>
+                      {atlaxCh[detail.channel]
+                        ? `Atlax contestará solo en ${CHANNEL_NAME[detail.channel]} en cuanto conectes el canal (Herramientas → Conectar canales).`
+                        : `Actívalo y Atlax atenderá ${CHANNEL_NAME[detail.channel]} por ti cuando el canal esté conectado.`}
+                    </div>
                   </div>
                 )}
               </div>
@@ -662,6 +716,41 @@ function ConversationInboxBody({ user }) {
       {fichaContact && (
         <Ficha360 open contact={fichaContact} user={user}
           onClose={() => setFichaContact(null)} onToast={() => {}} />
+      )}
+
+      {/* Adjuntar propiedad · catálogo rankeado (se sube al tablero/ficha al elegir) */}
+      {propPicker && (
+        <div onClick={() => setPropPicker(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 560, maxHeight: '78vh', borderRadius: '18px 18px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+              <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, color: 'var(--cream)' }}>Adjuntar propiedad</b>
+              <div style={{ fontSize: 11.5, color: 'var(--theme-2)', marginTop: 2 }}>Ordenadas por lo que le encaja · al elegir, se suma a su tablero y a la ficha</div>
+            </div>
+            <div style={{ overflowY: 'auto', padding: '6px 12px 14px' }}>
+              {propPicker.loading ? (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Cargando catálogo…</div>
+              ) : (propPicker.items || []).length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Sin opciones nuevas (ya tiene todo en el tablero).</div>
+              ) : propPicker.items.map((p) => (
+                <button key={p.id} type="button" onClick={() => attachProp(p)}
+                  style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 11, padding: '10px 6px', borderBottom: '1px solid var(--border)', background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: 'pointer' }}>
+                  {p.match?.score != null && (
+                    <div style={{ flexShrink: 0, width: 42, textAlign: 'center' }}>
+                      <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 14.5, color: p.match.score >= 80 ? '#10b981' : p.match.score >= 65 ? 'var(--theme-2)' : 'var(--cream-3)', lineHeight: 1 }}>{p.match.score}%</div>
+                      <div style={{ fontSize: 8.5, color: 'var(--cream-3)', letterSpacing: 0.3, marginTop: 2 }}>MATCH</div>
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13.5, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>{p.colonia || 'CDMX'}{p.price_from ? ` · ${fmtMXNlocal(p.price_from)}` : ''}</div>
+                    {p.match?.reasons?.[0] && <div style={{ fontSize: 11, color: 'var(--theme-2)', marginTop: 2 }}>✓ {p.match.reasons[0].t}</div>}
+                  </div>
+                  <span style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.10)', color: 'var(--theme-2)', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700 }}>Adjuntar</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
