@@ -43,8 +43,11 @@ def aggregate_signals(board_items: List[dict]) -> Dict[str, Any]:
     }
 
 
-def match_for(profile: Optional[dict], signals: Dict[str, Any], dev: dict, listed_price=None) -> Dict[str, Any]:
-    """→ {score:0-100, reasons:[{ok|warn, text}]} match explicable. dev = development."""
+def match_for(profile: Optional[dict], signals: Dict[str, Any], dev: dict, listed_price=None,
+              taste: Optional[dict] = None, dev_tags: Optional[list] = None) -> Dict[str, Any]:
+    """→ {score:0-100, reasons:[{ok|warn, text}], confidence?} match explicable. dev = development.
+    B5.4: si hay `taste` (perfil de gusto aprendido) + `dev_tags` (cuartos/características de las
+    fotos del dev), suma el match VISUAL — las características que al lead le han llamado."""
     answers = (profile or {}).get("answers", {}) if profile else {}
     must = " ".join(str(v) for v in answers.values()).lower()
     reasons: List[Dict[str, str]] = []
@@ -89,5 +92,21 @@ def match_for(profile: Optional[dict], signals: Dict[str, Any], dev: dict, liste
     if "invertir" in must and stage in ("preventa", "pre-venta", "pre venta", "en_construccion"):
         score += 7; reasons.append({"k": "ok", "t": "Preventa: entras al mejor precio para invertir"})
 
+    # B5.4 Capa 4 · gusto VISUAL aprendido — características de las fotos que le han llamado.
+    if taste and dev_tags:
+        lead_feats = {f.get("key"): f.get("label") for f in (taste.get("features") or [])[:3]}
+        dev_feats = set()
+        for t in (dev_tags or []):
+            for f in (t.get("features") or []):
+                dev_feats.add(f)
+        overlap = [k for k in lead_feats if k in dev_feats]
+        if overlap:
+            score += 9
+            reasons.insert(0, {"k": "ok", "t": f"Tiene {lead_feats[overlap[0]]}, que te ha llamado en las fotos"})
+
     score = max(45, min(97, int(round(score))))
-    return {"score": score, "reasons": reasons[:4]}
+    out = {"score": score, "reasons": reasons[:4]}
+    if taste:
+        out["confidence"] = taste.get("confidence")
+        out["confidence_label"] = taste.get("confidence_label")
+    return out

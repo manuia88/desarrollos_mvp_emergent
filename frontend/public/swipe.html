@@ -514,7 +514,8 @@
     const vibes=(p.vibes||[]).map(v=>`<span>${v}</span>`).join('');
     const preventa=p.preventa?`<div class="seclbl">🏗️ Preventa</div><div class="devbox"><div class="dh">🏗️ Es preventa</div><div class="devgrid">${p.delivery?`<div><b>${p.delivery}</b><span>Entrega estimada</span></div>`:''}${(p.units!=null)?`<div><b>${p.units}</b><span>Unidades disponibles</span></div>`:''}</div><div class="devnote">✓ Desarrolladora verificada por DMX</div></div>`:'';
     const m=p.match;
-    const verdict=m?`<div class="verdict"><div class="vt"><div class="vp">${m.score}%</div><div class="vl"><b>${m.score>=80?'Encaja muy bien contigo':m.score>=65?'Buena opción para ti':'Échale un ojo'}</b><span>según lo que nos dijiste + tus swipes</span></div></div>${(m.reasons&&m.reasons.length)?`<div class="rlist">${m.reasons.map(r=>`<div class="r ${r.k==='warn'?'warn':'ok'}"><span class="ic">${r.k==='warn'?'!':'✓'}</span><span>${r.t}</span></div>`).join('')}</div>`:''}</div>`:'';
+    const confNote=(m&&m.confidence!=null&&m.confidence<40)?'apenas te conocemos — desliza más y le atino mejor':'según lo que nos dijiste + tus swipes';
+    const verdict=m?`<div class="verdict"><div class="vt"><div class="vp">${m.score}%</div><div class="vl"><b>${m.score>=80?'Encaja muy bien contigo':m.score>=65?'Buena opción para ti':'Échale un ojo'}</b><span>${confNote}</span></div></div>${(m.reasons&&m.reasons.length)?`<div class="rlist">${m.reasons.map(r=>`<div class="r ${r.k==='warn'?'warn':'ok'}"><span class="ic">${r.k==='warn'?'!':'✓'}</span><span>${r.t}</span></div>`).join('')}</div>`:''}</div>`:'';
     document.getElementById('sh-ttl').textContent=p.t;
     document.getElementById('sh-body').innerHTML=`
       <div class="gal">${slides}<div class="gb"></div>${arrows}${dots}${roomTag(p,gIdx)}<div class="pp">${p.p}${p.m2?` <span style="font-size:13px;font-weight:600;opacity:.9">· ${p.m2.replace('📐 ','')}</span>`:''}</div></div>

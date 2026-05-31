@@ -1138,17 +1138,33 @@ async def get_lead_board(cid: str, request: Request):
     ).sort("updated_at", -1).to_list(200)
     for it in items:  # normaliza estatus viejos (dispo/gusto → nuevos)
         it["status"] = BOARD_STATUS_ALIAS.get(it.get("status"), it.get("status"))
-    # B5.3 · match explicable por item (señales de swipes + cuestionario) · FAIL-OPEN.
+    # B5.4 Capa 3 · perfil de gusto (eventos + cuartos + swipes) · FAIL-OPEN. Va ANTES del match
+    # porque la Capa 4 lo usa para el gusto visual aprendido.
+    taste = None
+    try:
+        from taste_profile import build_taste_profile, taste_summary_line
+        taste = await build_taste_profile(db, user.user_id, cid)
+        taste["summary"] = taste_summary_line(taste)
+    except Exception:
+        taste = None
+    # B5.3+B5.4 · match explicable por item (zona/precio/cuestionario + gusto visual) · FAIL-OPEN.
     try:
         from lead_match import aggregate_signals, match_for
         from data_developments import DEVELOPMENTS_BY_ID as _MDEVS
         _sig = aggregate_signals(items)
         _prof = await db.asesor_swipe_profiles.find_one({"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
+        # tags de fotos por dev (para el gusto visual de la Capa 4)
+        _devids = list({it.get("dev_id") for it in items if it.get("dev_id")})
+        _tags_by = {}
+        if _devids:
+            async for _t in db.asesor_photo_tags.find({"dev_id": {"$in": _devids}}, {"_id": 0}):
+                _tags_by.setdefault(_t.get("dev_id"), []).append(_t)
         for it in items:
             dev = _MDEVS.get(it.get("dev_id")) or {}
             if dev:
                 try:
-                    it["match"] = match_for(_prof, _sig, dev, listed_price=it.get("price"))
+                    it["match"] = match_for(_prof, _sig, dev, listed_price=it.get("price"),
+                                            taste=taste, dev_tags=_tags_by.get(it.get("dev_id")))
                 except Exception:
                     pass
     except Exception:
@@ -1182,14 +1198,6 @@ async def get_lead_board(cid: str, request: Request):
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")
     views = sum(int(it.get("views") or 0) for it in items)
-    # B5.4 Capa 3 · perfil de gusto (eventos + cuartos + swipes) · FAIL-OPEN.
-    taste = None
-    try:
-        from taste_profile import build_taste_profile, taste_summary_line
-        taste = await build_taste_profile(db, user.user_id, cid)
-        taste["summary"] = taste_summary_line(taste)
-    except Exception:
-        taste = None
     return {"items": items, "statuses": BOARD_STATUS,
             "engagement": {"views": views, "up": up, "down": down},
             "taste": taste}
@@ -1282,11 +1290,26 @@ async def lead_suggestions(cid: str, request: Request):
         sig = aggregate_signals(items)
         prof = await db.asesor_swipe_profiles.find_one(
             {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
+        # B5.4 · perfil de gusto + tags de fotos del catálogo (para el gusto visual aprendido)
+        taste = None
+        try:
+            from taste_profile import build_taste_profile
+            taste = await build_taste_profile(db, user.user_id, cid, persist=False)
+        except Exception:
+            taste = None
+        tags_by = {}
+        try:
+            from photo_tagger import tag_from_url
+            for _d in DEVELOPMENTS:
+                tags_by[_d.get("id")] = [tag_from_url(u) for u in (_d.get("photos") or [])[:6]]
+        except Exception:
+            pass
         for d in DEVELOPMENTS:
             if d.get("id") in on_board:
                 continue
             try:
-                m = match_for(prof, sig, d, listed_price=d.get("price_from"))
+                m = match_for(prof, sig, d, listed_price=d.get("price_from"),
+                              taste=taste, dev_tags=tags_by.get(d.get("id")))
             except Exception:
                 continue
             out.append({

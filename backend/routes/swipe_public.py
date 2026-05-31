@@ -111,6 +111,13 @@ async def swipe_view(token: str, request: Request):
         aggregate_signals = match_for = None
         signals = {}
         profile = None
+    # B5.4 Capa 3 · perfil de gusto aprendido (para el gusto visual de la Capa 4) · FAIL-OPEN.
+    taste = None
+    try:
+        from taste_profile import build_taste_profile
+        taste = await build_taste_profile(db, lk["owner_id"], lk["contacto_id"], persist=False)
+    except Exception:
+        taste = None
     # B5.4 Capa 2 · entender las fotos (cuarto + características por foto, cacheado).
     try:
         from photo_tagger import ensure_tags
@@ -120,17 +127,20 @@ async def swipe_view(token: str, request: Request):
     for it in items:
         dev = devs.get(it.get("dev_id")) or {}
         c = _card(it, dev)
-        if match_for:
-            try:
-                c["match"] = match_for(profile, signals, dev, listed_price=it.get("price"))
-            except Exception:
-                pass
+        dev_tags = None
         if ensure_tags:
             try:
                 tags = await ensure_tags(db, it.get("dev_id"), (dev.get("photos") or [])[:6])
+                dev_tags = tags
                 c["photo_tags"] = [{"room": t["room"], "room_label": t["room_label"], "features": t["features"]} for t in tags]
             except Exception:
                 c["photo_tags"] = []
+        if match_for:
+            try:
+                c["match"] = match_for(profile, signals, dev, listed_price=it.get("price"),
+                                       taste=taste, dev_tags=dev_tags)
+            except Exception:
+                pass
         cards.append(c)
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")
