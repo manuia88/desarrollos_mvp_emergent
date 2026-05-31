@@ -14,6 +14,7 @@ import ConfidenceIndicator from '../../components/conversation/ConfidenceIndicat
 import PortalLayout from '../../components/shared/PortalLayout';
 import Ficha360 from '../../components/asesor/design/Ficha360';
 import { FaWhatsapp, FaFacebookMessenger, FaInstagram, FaLinkedinIn, FaTiktok, FaYoutube, FaRobot } from 'react-icons/fa6';
+import { dispatchCopilotToggle } from '../../hooks/useAICopilot';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const SENTIMENT_COLOR = {
@@ -513,6 +514,29 @@ function ConversationInboxBody({ user }) {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Pieza 3 · lo que sugieren los 5 AGENTES para este lead */}
+              {(ctx?.agent_actions || []).length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>🤖 Tus agentes sugieren</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {ctx.agent_actions.map((a) => (
+                      <div key={a.id} style={{ padding: '8px 10px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.18)' }}>
+                        <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 2 }}>{a.agent_label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.4 }}>{a.title}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pieza 5 · Copiloto contextual */}
+              {(detail.lead_id || curConv?.lead_id) && (
+                <button type="button" onClick={() => dispatchCopilotToggle('open')}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.10)', color: 'var(--theme-primary, #818CF8)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                  <FaRobot size={14} /> Pregúntale al Copiloto {ctx?.name ? `sobre ${ctx.name.split(' ')[0]}` : ''}
+                </button>
               )}
 
               <InfoRow label="Lead" value={ctx?.name || detail.lead_id || t('inbox.no_lead')} />

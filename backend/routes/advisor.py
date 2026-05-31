@@ -1773,11 +1773,23 @@ async def lead_context(cid: str, request: Request):
             proxima_cita = {"titulo": cdoc.get("titulo") or "Cita", "datetime": cdoc.get("datetime"), "status": cdoc.get("status")}
     except Exception:
         pass
+    # Pieza 3 · lo que sugieren los 5 AGENTES para ESTE lead (command_center_actions · rescate)
+    AGENT_LABELS = {"prospector": "Prospector", "nurturer": "Nurturer", "closer": "Closer", "analyst": "Analyst", "coach": "Coach"}
+    agent_actions = []
+    try:
+        async for a in db.command_center_actions.find(
+                {"user_id": user.user_id, "lead_id": cid, "status": "pending", "source_agent": {"$ne": None}},
+                {"_id": 0, "id": 1, "title": 1, "source_agent": 1}).limit(4):
+            agent_actions.append({"id": a.get("id"), "agent": a.get("source_agent"),
+                                  "agent_label": AGENT_LABELS.get(a.get("source_agent"), a.get("source_agent")),
+                                  "title": a.get("title")})
+    except Exception:
+        pass
     return {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
             "phone": (c.get("phones") or [None])[0], "temperatura": c.get("temperatura"),
             "taste": taste, "brief": brief, "board_count": len(items),
             "board": board, "close_probability": close_prob,
-            "tareas": tareas, "proxima_cita": proxima_cita}
+            "tareas": tareas, "proxima_cita": proxima_cita, "agent_actions": agent_actions}
 
 
 @router.post("/contactos/{cid}/swipe-link")
