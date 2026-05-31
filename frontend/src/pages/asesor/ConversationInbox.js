@@ -152,6 +152,11 @@ function ConversationInboxBody({ user }) {
   const [composeSeed, setComposeSeed] = useState(null); // Pieza 1 · "Usar" llena la caja de escribir
   const [propPicker, setPropPicker] = useState(null);   // Adjuntar propiedad · catálogo {loading, items}
   const [atlaxCh, setAtlaxCh] = useState({});           // Pieza 2 · Atlax auto por canal {whatsapp:true,...}
+  const [col3Tab, setCol3Tab] = useState('dia');        // redISeño col3 · pestañas (sin scroll)
+  const [addForm, setAddForm] = useState(null);         // null | 'tarea' | 'nota' | 'cita'
+  const [addText, setAddText] = useState('');
+  const [addDate, setAddDate] = useState('');
+  const [showMore, setShowMore] = useState(false);      // col3 · "Más" (gusto/tablero/confianza) colapsado
   const [drafting, setDrafting] = useState(false); // B6 · draft IA (reusa B5.5.2)
   const [stats, setStats] = useState(null);        // B7+ · pulse del buzón
   const [segment, setSegment] = useState('todas'); // B7+ · segmento activo
@@ -321,6 +326,35 @@ function ConversationInboxBody({ user }) {
     }
     setComposeSeed(`Te recomiendo ${p.name}${p.colonia ? ` en ${p.colonia}` : ''} — creo que te va a encantar. ¿Te la mando? 🙌`);
   }, [detail, curConv]);
+
+  // Recargar el contexto del lead (tras crear tarea/nota/cita)
+  const reloadCtx = useCallback(async (lid) => {
+    try {
+      const xr = await fetch(`${API}/api/asesor/contactos/${lid}/context`, { headers: authHeaders(), credentials: 'include' });
+      if (xr.ok) setCtx(await xr.json());
+    } catch { /* no-op */ }
+  }, []);
+
+  // Crear tarea / nota / cita desde la columna (founder: no veía cómo agregarlas)
+  const submitAdd = useCallback(async () => {
+    const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+    if (!lid || !addText.trim()) return;
+    const name = ctx?.name || '';
+    try {
+      if (addForm === 'tarea') {
+        await fetch(`${API}/api/asesor/tareas`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+          body: JSON.stringify({ titulo: addText.trim(), tipo: 'lead', entity_id: lid, entity_label: name, due_at: addDate ? new Date(addDate).toISOString() : new Date().toISOString() }) });
+      } else if (addForm === 'nota') {
+        await fetch(`${API}/api/asesor/contactos/${lid}/timeline`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+          body: JSON.stringify({ kind: 'nota', body: addText.trim() }) });
+      } else if (addForm === 'cita') {
+        await fetch(`${API}/api/asesor/contactos/${lid}/cita`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+          body: JSON.stringify({ titulo: addText.trim(), datetime: addDate ? new Date(addDate).toISOString() : new Date(Date.now() + 86400000).toISOString() }) });
+      }
+    } catch { /* no-op */ }
+    setAddForm(null); setAddText(''); setAddDate('');
+    reloadCtx(lid);
+  }, [addForm, addText, addDate, detail, curConv, ctx, reloadCtx]);
 
   const filtered = useMemo(() => {
     let l = list;
@@ -517,21 +551,57 @@ function ConversationInboxBody({ user }) {
             <div style={{ color: 'var(--cream-3)', fontSize: 13 }}>{t('inbox.col_info')}</div>
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <User size={16} />
-                <span style={{ fontWeight: 700, fontSize: 13 }}>{t('inbox.lead_info')}</span>
+              {/* Header compacto: nombre + chips (temp · canal · estado) → sin las InfoRows largas */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 16.5, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ctx?.name || detail.lead_id || 'Lead'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 11.5, color: 'var(--cream-3)', flexWrap: 'wrap' }}>
+                  {ctx?.temperatura && <span style={{ color: TEMP_COLOR[String(ctx.temperatura).toLowerCase()] || 'var(--cream-2)', fontWeight: 700 }}>● {ctx.temperatura}</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><ChannelLogo ch={detail.channel} size={12} /> {CHANNEL_NAME[detail.channel] || detail.channel}</span>
+                  <span style={{ color: STATUS_COLOR[detail.status] || 'var(--cream-2)' }}>● {t(`status.${detail.status}`, detail.status)}</span>
+                  {ctx?.close_probability != null && <span style={{ color: 'var(--cream-2)', fontWeight: 700 }}>· cierre {Math.round(ctx.close_probability)}%</span>}
+                </div>
               </div>
 
-              {/* Botón prominente a la ficha — abre el MODAL en su lugar (sin sacarte de la bandeja) */}
               {(detail.lead_id || curConv?.lead_id) && (
                 <button type="button" onClick={() => {
                   const lid = detail.lead_id || curConv?.lead_id;
                   const nm = (ctx?.name || '').split(' ');
                   setFichaContact({ id: lid, first_name: nm[0] || '', last_name: nm.slice(1).join(' ') });
                 }}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 11, border: 'none', background: 'var(--theme-2)', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: 13.5, fontWeight: 800, cursor: 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(var(--theme-rgb),0.3)' }}>
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: 'none', background: 'var(--theme-2)', color: '#fff', fontFamily: 'Outfit, sans-serif', fontSize: 13, fontWeight: 800, cursor: 'pointer', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   👤 Ver ficha completa →
                 </button>
+              )}
+
+              {/* Fila de CREAR (founder: poder agregar tareas/notas/citas) + Copiloto */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: addForm ? 8 : 12, flexWrap: 'wrap' }}>
+                {[{ k: 'tarea', l: '+ Tarea' }, { k: 'nota', l: '+ Nota' }, { k: 'cita', l: '+ Cita' }].map((b) => (
+                  <button key={b.k} type="button" onClick={() => { setAddForm(addForm === b.k ? null : b.k); setAddText(''); setAddDate(''); }}
+                    style={{ flex: '1 1 0', padding: '7px 4px', borderRadius: 8, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, border: `1px solid ${addForm === b.k ? 'var(--theme-2)' : 'var(--border)'}`, background: addForm === b.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface)', color: addForm === b.k ? 'var(--theme-2)' : 'var(--cream-2)' }}>{b.l}</button>
+                ))}
+                <button type="button" onClick={() => dispatchCopilotToggle('open')} title="Pregúntale al Copiloto"
+                  style={{ flexShrink: 0, padding: '7px 9px', borderRadius: 8, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.10)', color: 'var(--theme-primary, #818CF8)', display: 'inline-flex', alignItems: 'center' }}><FaRobot size={14} /></button>
+              </div>
+              {addForm && (
+                <div style={{ marginBottom: 12, padding: '10px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                  {addForm === 'nota' ? (
+                    <textarea value={addText} onChange={(e) => setAddText(e.target.value)} rows={2} autoFocus placeholder="Escribe la nota…"
+                      style={{ width: '100%', boxSizing: 'border-box', resize: 'none', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none' }} />
+                  ) : (
+                    <>
+                      <input value={addText} onChange={(e) => setAddText(e.target.value)} autoFocus placeholder={addForm === 'cita' ? 'Título de la cita…' : 'Qué hay que hacer…'}
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none', marginBottom: 6 }} />
+                      <input type={addForm === 'cita' ? 'datetime-local' : 'date'} value={addDate} onChange={(e) => setAddDate(e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none' }} />
+                    </>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    <button type="button" onClick={() => { setAddForm(null); setAddText(''); }} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+                    <button type="button" onClick={submitAdd} disabled={!addText.trim()} style={{ flex: 1, padding: '7px', borderRadius: 8, border: 'none', background: 'var(--theme-2)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: addText.trim() ? 'pointer' : 'default', opacity: addText.trim() ? 1 : 0.5 }}>
+                      {addForm === 'cita' ? 'Agendar' : addForm === 'nota' ? 'Guardar' : 'Crear'}
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Práctico del día: próxima cita + tareas pendientes (founder) */}
@@ -572,25 +642,6 @@ function ConversationInboxBody({ user }) {
                 </div>
               )}
 
-              {/* Pieza 5 · Copiloto contextual */}
-              {(detail.lead_id || curConv?.lead_id) && (
-                <button type="button" onClick={() => dispatchCopilotToggle('open')}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.10)', color: 'var(--theme-primary, #818CF8)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-                  <FaRobot size={14} /> Pregúntale al Copiloto {ctx?.name ? `sobre ${ctx.name.split(' ')[0]}` : ''}
-                </button>
-              )}
-
-              <InfoRow label="Lead" value={ctx?.name || detail.lead_id || t('inbox.no_lead')} />
-              {ctx?.temperatura && <InfoRow label="Temperatura" value={ctx.temperatura} color={TEMP_COLOR[String(ctx.temperatura).toLowerCase()]} />}
-              <InfoRow label={t('inbox.channel')} value={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ChannelLogo ch={detail.channel} size={14} /> {CHANNEL_NAME[detail.channel] || detail.channel || '—'}</span>} />
-              <InfoRow label={t('inbox.filter_status')} value={t(`status.${detail.status}`, detail.status)}
-                color={STATUS_COLOR[detail.status]} />
-              {detail.sentiment && !DM.includes(detail.channel) && (
-                <InfoRow label={t('inbox.filter_sentiment')} value={t(`sentiment.${detail.sentiment}`, detail.sentiment)}
-                  color={SENTIMENT_COLOR[detail.sentiment]} />
-              )}
-              {detail.taken_over_by && <InfoRow label={t('inbox.taken_over_by')} value={detail.taken_over_by} />}
-
               {/* B6 · contexto del lead: siguiente paso + perfil de gusto (B5.4) */}
               {ctx?.brief?.next_step && (
                 <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)' }}>
@@ -598,7 +649,12 @@ function ConversationInboxBody({ user }) {
                   <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--cream)' }}>{ctx.brief.next_step.text}</div>
                 </div>
               )}
-              {ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
+              {/* "Más" colapsable: gusto + cierre + tablero (founder: sin scroll por defecto) */}
+              <button type="button" onClick={() => setShowMore((v) => !v)}
+                style={{ width: '100%', marginTop: 14, padding: '6px', borderRadius: 8, border: '1px dashed var(--border)', background: 'none', color: 'var(--cream-3)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                {showMore ? '▴ Ocultar gusto · cierre · tablero' : '▾ Ver gusto · cierre · tablero'}
+              </button>
+              {showMore && ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
                 <div style={{ marginTop: 12 }}>
                   <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>
                     Perfil de gusto {ctx.taste.confidence_label ? `· confianza ${ctx.taste.confidence_label}` : ''}
@@ -616,7 +672,7 @@ function ConversationInboxBody({ user }) {
               )}
 
               {/* B7+ · probabilidad de cierre (reusa close_probability) */}
-              {ctx?.close_probability != null && (
+              {showMore && ctx?.close_probability != null && (
                 <div style={{ marginTop: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--cream-3)', marginBottom: 5 }}>
                     <span style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Probabilidad de cierre</span>
@@ -629,7 +685,7 @@ function ConversationInboxBody({ user }) {
               )}
 
               {/* B7+ · estado del tablero de propiedades */}
-              {ctx?.board && Object.keys(ctx.board).length > 0 && (
+              {showMore && ctx?.board && Object.keys(ctx.board).length > 0 && (
                 <div style={{ marginTop: 14 }}>
                   <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Tablero · {ctx.board_count} propiedades</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -653,7 +709,7 @@ function ConversationInboxBody({ user }) {
               )}
 
               {/* W7.AS.3.H · resumen de confianza IA del hilo (confidence-history) */}
-              {confSummary && (
+              {showMore && confSummary && (
                 <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
                   <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 8 }}>
                     {t('conversation_confidence:history.title', 'Confianza IA del hilo')}

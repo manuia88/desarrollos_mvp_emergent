@@ -1754,6 +1754,30 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
     return {"animo": animo, "recomendacion": rec}
 
 
+class LeadCitaIn(BaseModel):
+    titulo: str
+    datetime: str  # ISO
+
+
+@router.post("/contactos/{cid}/cita")
+async def create_lead_cita(cid: str, body: LeadCitaIn, request: Request):
+    """Cita rápida para el lead desde la bandeja (appointment ligero · sin wizard de proyecto)."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "first_name": 1, "last_name": 1})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    apt = {"id": "apt_" + uuid.uuid4().hex[:10], "asesor_id": user.user_id, "lead_id": cid,
+           "titulo": (body.titulo or "Cita").strip()[:120], "datetime": body.datetime,
+           "status": "agendada", "lead": {"contact": f"{c.get('first_name','')} {c.get('last_name','')}".strip()},
+           "created_at": datetime.now(timezone.utc)}
+    try:
+        await db.appointments.insert_one(apt)
+    except Exception:
+        raise HTTPException(500, "No se pudo crear la cita")
+    return {"ok": True, "id": apt["id"]}
+
+
 @router.get("/contactos/{cid}/context")
 async def lead_context(cid: str, request: Request):
     """B6 · Contexto ligero del lead para la columna derecha de la bandeja:
