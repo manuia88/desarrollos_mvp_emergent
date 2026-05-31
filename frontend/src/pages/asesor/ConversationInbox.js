@@ -58,8 +58,9 @@ const CHANNEL_ACCENT = {
 };
 
 // B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
-function WaCompose({ onSend, onDraft, drafting, disabled }) {
+function WaCompose({ onSend, onDraft, drafting, disabled, seed }) {
   const [text, setText] = useState('');
+  useEffect(() => { if (seed) setText(seed); }, [seed]);  // "Usar" desde la IA en vivo llena la caja
   const send = async () => { const tt = text.trim(); if (!tt) return; await onSend(tt); setText(''); };
   const draft = async () => { const d = await onDraft(); if (d) setText(d); };
   return (
@@ -93,6 +94,8 @@ function ConversationInboxBody({ user }) {
   const [search, setSearch] = useState('');
   const [curConv, setCurConv] = useState(null);    // B6 · conv seleccionada (canal + lead_id)
   const [ctx, setCtx] = useState(null);            // B6 · contexto del lead (gusto + siguiente paso)
+  const [convAI, setConvAI] = useState(null);      // Pieza 1 · IA en vivo (ánimo + recomendación)
+  const [composeSeed, setComposeSeed] = useState(null); // Pieza 1 · "Usar" llena la caja de escribir
   const [drafting, setDrafting] = useState(false); // B6 · draft IA (reusa B5.5.2)
   const [stats, setStats] = useState(null);        // B7+ · pulse del buzón
   const [segment, setSegment] = useState('todas'); // B7+ · segmento activo
@@ -132,6 +135,7 @@ function ConversationInboxBody({ user }) {
     setDetail(null);
     setConfSummary(null);
     setCtx(null);
+    setConvAI(null);
     setDetailLoading(true);
     const isDM = DM.includes(conv.channel);
     try {
@@ -160,6 +164,13 @@ function ConversationInboxBody({ user }) {
         const xr = await fetch(`${API}/api/asesor/contactos/${conv.lead_id}/context`, { headers: authHeaders(), credentials: 'include' });
         if (xr.ok) setCtx(await xr.json());
       } catch { /* no-op */ }
+      // Pieza 1 · IA en vivo de la conversación (ánimo + recomendación) · solo canales de mensajería
+      if (isDM) {
+        try {
+          const ar = await fetch(`${API}/api/asesor/contactos/${conv.lead_id}/conversation-ai?channel=${conv.channel}`, { headers: authHeaders(), credentials: 'include' });
+          if (ar.ok) setConvAI(await ar.json());
+        } catch { /* no-op */ }
+      }
     }
   }, []);
 
@@ -374,7 +385,26 @@ function ConversationInboxBody({ user }) {
                 ))}
               </div>
               {DM.includes(detail.channel) ? (
-                <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} />
+                <>
+                  {/* Pieza 1 · IA EN VIVO: ánimo del cliente + recomendación de propiedad */}
+                  {convAI && (convAI.animo || convAI.recomendacion) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', padding: '8px 10px', marginBottom: 8, borderRadius: 10, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)' }}>
+                      {convAI.animo && (
+                        <span style={{ fontSize: 11.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5, color: convAI.animo.sentiment === 'negativo' ? '#F2635B' : convAI.animo.sentiment === 'positivo' ? '#1FA06A' : 'var(--cream-2)' }}>
+                          {convAI.animo.sentiment === 'negativo' ? '😟' : convAI.animo.sentiment === 'positivo' ? '😊' : '😐'} Ánimo: {convAI.animo.label}
+                        </span>
+                      )}
+                      {convAI.recomendacion && (
+                        <span style={{ fontSize: 11.5, color: 'var(--cream-2)', display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          🎯 Sugiérele <b style={{ color: 'var(--cream)' }}>{convAI.recomendacion.name}</b> <span style={{ color: 'var(--theme-2)', fontWeight: 800 }}>{convAI.recomendacion.match}%</span>
+                          <button type="button" onClick={() => setComposeSeed(`Hola! Creo que ${convAI.recomendacion.name}${convAI.recomendacion.colonia ? ` en ${convAI.recomendacion.colonia}` : ''} te va a encantar — va con lo que buscas. ¿Te la mando? 🙌`)}
+                            style={{ padding: '3px 9px', borderRadius: 7, border: 'none', background: 'var(--theme-2)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Usar</button>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} seed={composeSeed} />
+                </>
               ) : (
                 <SuggestedReplies lastUserMessage={lastUserMessage} onSend={sendAsAsesor}
                   disabled={detail.status === 'closed'} />

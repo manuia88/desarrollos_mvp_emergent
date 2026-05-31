@@ -1660,6 +1660,65 @@ async def list_channels(request: Request):
         return {"channels": []}
 
 
+@router.get("/contactos/{cid}/conversation-ai")
+async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp"):
+    """Pieza 1 · IA EN VIVO en la conversación (rescate): ánimo del cliente (del último
+    mensaje entrante) + recomendación de propiedad (top match no-en-tablero). La sugerencia
+    de respuesta la da el botón 'Redactar con IA' (draft). FAIL-OPEN."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    if not await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(404, "Contacto no encontrado")
+    # Ánimo: del último mensaje ENTRANTE del hilo (reusa el extractor de B5.5.3).
+    animo = None
+    try:
+        last_in = await db.whatsapp_messages.find_one(
+            {"org_id": user.user_id, "lead_id": cid, "direction": "inbound", **_channel_q((channel or "whatsapp").lower())},
+            {"_id": 0, "body_text": 1}, sort=[("created_at", -1)])
+        if last_in:
+            from taste_profile import extract_text_signals
+            sent = extract_text_signals(last_in.get("body_text") or "").get("sentiment", "neutral")
+            animo = {"sentiment": sent, "label": {"positivo": "Positivo", "negativo": "Negativo"}.get(sent, "Neutral")}
+    except Exception:
+        pass
+    # Recomendación: top propiedad por match para este lead (reusa el recomendador).
+    rec = None
+    try:
+        from lead_match import aggregate_signals, match_for
+        from data_developments import DEVELOPMENTS
+        from photo_tagger import tag_from_url
+        items = await db.asesor_lead_properties.find(
+            {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}).to_list(300)
+        on_board = {it.get("dev_id") for it in items if it.get("dev_id")}
+        sig = aggregate_signals(items)
+        prof = await db.asesor_swipe_profiles.find_one({"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
+        taste = None
+        try:
+            from taste_profile import build_taste_profile
+            taste = await build_taste_profile(db, user.user_id, cid, persist=False)
+        except Exception:
+            taste = None
+        best = None
+        for d in DEVELOPMENTS:
+            if d.get("id") in on_board:
+                continue
+            try:
+                dev_tags = [tag_from_url(u) for u in (d.get("photos") or [])[:6]]
+                m = match_for(prof, sig, d, listed_price=d.get("price_from"), taste=taste, dev_tags=dev_tags)
+            except Exception:
+                continue
+            if best is None or m["score"] > best[1]["score"]:
+                best = (d, m)
+        if best:
+            d, m = best
+            r0 = (m.get("reasons") or [{}])[0].get("t", "")
+            rec = {"id": d.get("id"), "name": d.get("name"), "colonia": d.get("colonia"),
+                   "match": m["score"], "reason": r0, "price_from": d.get("price_from")}
+    except Exception:
+        rec = None
+    return {"animo": animo, "recomendacion": rec}
+
+
 @router.get("/contactos/{cid}/context")
 async def lead_context(cid: str, request: Request):
     """B6 · Contexto ligero del lead para la columna derecha de la bandeja:
