@@ -66,6 +66,8 @@ export const getProspectIntel = () => j('/api/asesor/intel/prospects');
 // B5.5 · WhatsApp real con el lead (hilo + enviar · aislado por asesor vía WAEngine)
 export const getLeadWhatsapp = (cid) => j(`/api/asesor/contactos/${cid}/whatsapp`);
 export const sendLeadWhatsapp = (cid, text) => post(`/api/asesor/contactos/${cid}/whatsapp`, { text });
+// B5.5 Upgrade A · el mensaje se escribe solo (perfil de gusto + brief → WhatsApp personalizado)
+export const draftLeadWhatsapp = (cid) => post(`/api/asesor/contactos/${cid}/whatsapp/draft`);
 
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');

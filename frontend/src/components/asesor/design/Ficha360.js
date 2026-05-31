@@ -235,10 +235,18 @@ function WhatsAppPanel({ cid, lead, toast }) {
   const [thread, setThread] = useState(null);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const load = React.useCallback(() => {
     api.getLeadWhatsapp(cid).then(setThread).catch(() => setThread({ messages: [], ready: false }));
   }, [cid]);
   useEffect(() => { load(); }, [load]);
+  const draft = async () => {
+    if (drafting) return;
+    setDrafting(true);
+    try { const r = await api.draftLeadWhatsapp(cid); if (r?.text) setText(r.text); }
+    catch (e) { toast?.('error', 'No se pudo redactar'); }
+    finally { setDrafting(false); }
+  };
   const send = async () => {
     const t = text.trim();
     if (!t || sending) return;
@@ -271,7 +279,16 @@ function WhatsAppPanel({ cid, lead, toast }) {
           );
         })}
       </div>
-      <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderTop: '1px solid var(--border)', alignItems: 'flex-end' }}>
+      {ready && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 0' }}>
+          <button onClick={draft} disabled={drafting} data-testid="asr-wa-draft"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: 8, border: '1px solid rgba(var(--theme-rgb),0.3)', background: 'rgba(var(--theme-rgb),0.08)', color: 'var(--theme-2)', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700, cursor: drafting ? 'default' : 'pointer' }}>
+            <Sparkles size={13} /> {drafting ? 'Redactando…' : 'Redactar con IA'}
+          </button>
+          <span style={{ fontSize: 10.5, color: 'var(--cream-3)' }}>usa lo que aprendiste de él · edítalo antes de enviar</span>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8, padding: '10px 12px', borderTop: 'none', alignItems: 'flex-end' }}>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder={ready ? 'Escribe tu mensaje…' : 'El contacto no tiene teléfono'} disabled={!ready}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           data-testid="asr-wa-input"

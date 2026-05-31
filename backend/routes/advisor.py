@@ -1400,6 +1400,66 @@ async def lead_whatsapp_send(cid: str, body: WAMessageIn, request: Request):
     return {"ok": True, "msg_id": res.get("msg_id"), "status": res.get("status")}
 
 
+@router.post("/contactos/{cid}/whatsapp/draft")
+async def lead_whatsapp_draft(cid: str, request: Request):
+    """B5.5 Upgrade A · El mensaje se escribe solo desde el modelo de gusto + brief.
+    Redacta un WhatsApp personalizado ("te separé 3 con cocina amplia y luz como te late").
+    El asesor lo revisa/edita antes de enviar. FAIL-OPEN a plantilla si el LLM no responde."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one(
+        {"id": cid, "owner_id": user.user_id}, {"_id": 0, "first_name": 1})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    nombre = c.get("first_name") or ""
+    items = await db.asesor_lead_properties.find(
+        {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}).to_list(300)
+    _ALIAS = {"dispo": "por_verificar", "gusto": "le_gusto"}
+    _POS = {"le_gusto", "cita", "visitada", "oferta"}
+    liked = [it.get("name") for it in items if _ALIAS.get(it.get("status"), it.get("status")) in _POS and it.get("name")][:3]
+
+    summary, nextstep = "", ""
+    try:
+        from taste_profile import build_taste_profile, taste_summary_line, build_brief
+        _t = await build_taste_profile(db, user.user_id, cid)
+        _t["summary"] = taste_summary_line(_t)
+        summary = _t.get("summary") or ""
+        nextstep = (build_brief(items, _t) or {}).get("next_step", {}).get("text", "")
+    except Exception:
+        pass
+
+    props_txt = (", ".join(liked)) if liked else "algunas opciones nuevas"
+    prompt = f"""Eres un asesor inmobiliario mexicano escribiendo un WhatsApp corto y cálido (es-MX) a un cliente.
+
+Cliente: {nombre}
+Lo que le importa (de su comportamiento real): {summary or 'aún lo estamos conociendo'}
+Propiedades que le interesaron: {props_txt}
+Siguiente paso recomendado: {nextstep or 'proponer ver opciones'}
+
+Escribe UN mensaje de WhatsApp (máximo 60 palabras, 1 emoji sutil máximo, NADA de marketing vacío).
+Menciona de forma natural lo que le gusta (si lo sabemos) y propón el siguiente paso con una pregunta clara.
+Tono de un asesor real que ya lo conoce, no plantilla. Solo el mensaje, sin comillas."""
+
+    text = None
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        chat = LlmChat(api_key=os.environ.get("EMERGENT_LLM_KEY"), session_id=f"wadraft_{cid}",
+                       system_message="Eres un asesor inmobiliario mexicano cercano y eficaz.")
+        chat.with_model("anthropic", "claude-sonnet-4-5-20250929")
+        text = (await chat.send_message(UserMessage(text=prompt))).strip().strip('"')
+    except Exception:
+        text = None
+    if not text:
+        base = f"Hola {nombre}! "
+        if liked:
+            base += f"Te aparté {props_txt} que te latieron. "
+        elif summary:
+            base += f"Tengo opciones que van con lo que buscas ({summary}). "
+        base += "¿Te late que agendemos para verlas esta semana? 🙌"
+        text = base
+    return {"text": text, "used": {"taste": summary, "next_step": nextstep, "properties": liked}}
+
+
 @router.post("/contactos/{cid}/swipe-link")
 async def create_swipe_link(cid: str, request: Request):
     """B5.2 · Crea (o reusa) el link Tinder público del lead + mensaje de WhatsApp.
