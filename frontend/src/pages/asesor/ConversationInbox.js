@@ -152,7 +152,9 @@ function ConversationInboxBody({ user }) {
   const [composeSeed, setComposeSeed] = useState(null); // Pieza 1 · "Usar" llena la caja de escribir
   const [propPicker, setPropPicker] = useState(null);   // Adjuntar propiedad · catálogo {loading, items}
   const [atlaxCh, setAtlaxCh] = useState({});           // Pieza 2 · Atlax auto por canal {whatsapp:true,...}
-  const [col3Tab, setCol3Tab] = useState('dia');        // redISeño col3 · pestañas (sin scroll)
+  const [col3Tab, setCol3Tab] = useState('acciones');   // col3 · pestañas: acciones | ia | perfil
+  const [aiSug, setAiSug] = useState(false);            // ✨ sugerencia IA cargando
+  const [remind, setRemind] = useState(false);          // recordatorio en tarea/cita
   const [addForm, setAddForm] = useState(null);         // null | 'tarea' | 'nota' | 'cita'
   const [addText, setAddText] = useState('');
   const [addDate, setAddDate] = useState('');
@@ -343,7 +345,7 @@ function ConversationInboxBody({ user }) {
     try {
       if (addForm === 'tarea') {
         await fetch(`${API}/api/asesor/tareas`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
-          body: JSON.stringify({ titulo: addText.trim(), tipo: 'lead', entity_id: lid, entity_label: name, due_at: addDate ? new Date(addDate).toISOString() : new Date().toISOString() }) });
+          body: JSON.stringify({ titulo: addText.trim(), tipo: 'lead', entity_id: lid, entity_label: name, due_at: addDate ? new Date(addDate).toISOString() : new Date().toISOString(), reminder: remind }) });
       } else if (addForm === 'nota') {
         await fetch(`${API}/api/asesor/contactos/${lid}/timeline`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
           body: JSON.stringify({ kind: 'nota', body: addText.trim() }) });
@@ -352,9 +354,21 @@ function ConversationInboxBody({ user }) {
           body: JSON.stringify({ titulo: addText.trim(), datetime: addDate ? new Date(addDate).toISOString() : new Date(Date.now() + 86400000).toISOString() }) });
       }
     } catch { /* no-op */ }
-    setAddForm(null); setAddText(''); setAddDate('');
+    setAddForm(null); setAddText(''); setAddDate(''); setRemind(false);
     reloadCtx(lid);
-  }, [addForm, addText, addDate, detail, curConv, ctx, reloadCtx]);
+  }, [addForm, addText, addDate, remind, detail, curConv, ctx, reloadCtx]);
+
+  // ✨ Auto-redactar la tarea/nota/cita desde la conversación
+  const aiSuggest = useCallback(async () => {
+    const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+    if (!lid || !addForm) return;
+    setAiSug(true);
+    try {
+      const ch = (curConv && curConv.channel) || 'whatsapp';
+      const r = await fetch(`${API}/api/asesor/contactos/${lid}/ai-suggest?type=${addForm}&channel=${ch}`, { headers: authHeaders(), credentials: 'include' });
+      if (r.ok) { const d = await r.json(); if (d.text) setAddText(d.text); if (d.date) setAddDate(String(d.date).slice(0, 16)); }
+    } catch { /* no-op */ } finally { setAiSug(false); }
+  }, [detail, curConv, addForm]);
 
   const filtered = useMemo(() => {
     let l = list;
@@ -573,7 +587,17 @@ function ConversationInboxBody({ user }) {
                 </button>
               )}
 
-              {/* Fila de CREAR (founder: poder agregar tareas/notas/citas) + Copiloto */}
+              {/* Tabs (founder: 3 pestañas para no encimar) */}
+              <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: 'var(--surface-2)', borderRadius: 10, padding: 3 }}>
+                {[{ k: 'acciones', l: '⚡ Acciones' }, { k: 'ia', l: '🤖 IA' }, { k: 'perfil', l: '👤 Perfil' }].map((tb) => (
+                  <button key={tb.k} type="button" onClick={() => setCol3Tab(tb.k)}
+                    style={{ flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, background: col3Tab === tb.k ? 'var(--surface)' : 'transparent', color: col3Tab === tb.k ? 'var(--theme-2)' : 'var(--cream-3)', boxShadow: col3Tab === tb.k ? '0 1px 3px rgba(20,16,40,0.1)' : 'none' }}>{tb.l}</button>
+                ))}
+              </div>
+
+              {/* ═══ TAB: ACCIONES ═══ */}
+              {col3Tab === 'acciones' && (<>
+              {/* Fila de CREAR (founder: poder agregar tareas/notas/citas) */}
               <div style={{ display: 'flex', gap: 6, marginBottom: addForm ? 8 : 12, flexWrap: 'wrap' }}>
                 {[{ k: 'tarea', l: '+ Tarea' }, { k: 'nota', l: '+ Nota' }, { k: 'cita', l: '+ Cita' }].map((b) => (
                   <button key={b.k} type="button" onClick={() => { setAddForm(addForm === b.k ? null : b.k); setAddText(''); setAddDate(''); }}
@@ -584,19 +608,51 @@ function ConversationInboxBody({ user }) {
               </div>
               {addForm && (
                 <div style={{ marginBottom: 12, padding: '10px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                  {/* ✨ auto-redactar desde la conversación */}
+                  <button type="button" onClick={aiSuggest} disabled={aiSug}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', marginBottom: 8, borderRadius: 7, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.10)', color: 'var(--theme-primary, #818CF8)', fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, cursor: aiSug ? 'default' : 'pointer' }}>
+                    ✨ {aiSug ? 'Pensando…' : addForm === 'nota' ? 'Resumir conversación' : addForm === 'cita' ? 'Detectar horario' : 'Sugerir tarea'}
+                  </button>
                   {addForm === 'nota' ? (
-                    <textarea value={addText} onChange={(e) => setAddText(e.target.value)} rows={2} autoFocus placeholder="Escribe la nota…"
-                      style={{ width: '100%', boxSizing: 'border-box', resize: 'none', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none' }} />
+                    <>
+                      <textarea value={addText} onChange={(e) => setAddText(e.target.value)} rows={2} placeholder="Escribe la nota…"
+                        style={{ width: '100%', boxSizing: 'border-box', resize: 'none', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none' }} />
+                      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+                        {['Objeción', 'Presupuesto', 'Listo para cerrar'].map((tg) => (
+                          <button key={tg} type="button" onClick={() => setAddText((x) => `[${tg}] ${x || ''}`.trim())}
+                            style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-3)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>{tg}</button>
+                        ))}
+                      </div>
+                    </>
                   ) : (
                     <>
-                      <input value={addText} onChange={(e) => setAddText(e.target.value)} autoFocus placeholder={addForm === 'cita' ? 'Título de la cita…' : 'Qué hay que hacer…'}
+                      <input value={addText} onChange={(e) => setAddText(e.target.value)} placeholder={addForm === 'cita' ? 'Título de la cita…' : 'Qué hay que hacer…'}
                         style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none', marginBottom: 6 }} />
+                      {addForm === 'tarea' && (
+                        <div style={{ display: 'flex', gap: 5, marginBottom: 6, flexWrap: 'wrap' }}>
+                          {['Llamar', 'Enviar info', 'Dar seguimiento'].map((pp) => (
+                            <button key={pp} type="button" onClick={() => setAddText(pp)} style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-3)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>{pp}</button>
+                          ))}
+                        </div>
+                      )}
                       <input type={addForm === 'cita' ? 'datetime-local' : 'date'} value={addDate} onChange={(e) => setAddDate(e.target.value)}
                         style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none' }} />
+                      {addForm === 'cita' && (
+                        <div style={{ display: 'flex', gap: 5, marginTop: 6 }}>
+                          {[{ l: 'Hoy', d: 0 }, { l: 'Mañana', d: 1 }].map((q) => (
+                            <button key={q.l} type="button" onClick={() => { const dt = new Date(Date.now() + q.d * 86400000); dt.setHours(11, 0, 0, 0); setAddDate(dt.toISOString().slice(0, 16)); }}
+                              style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-3)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>{q.l} 11am</button>
+                          ))}
+                        </div>
+                      )}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, fontSize: 11.5, color: 'var(--cream-2)', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={addForm === 'cita' ? true : remind} disabled={addForm === 'cita'} onChange={(e) => setRemind(e.target.checked)} style={{ accentColor: 'var(--theme-2)' }} />
+                        🔔 Recordatorio {addForm === 'cita' ? '(automático 24h y 2h antes)' : '(avísame 24h antes)'}
+                      </label>
                     </>
                   )}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                    <button type="button" onClick={() => { setAddForm(null); setAddText(''); }} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                    <button type="button" onClick={() => { setAddForm(null); setAddText(''); setAddDate(''); }} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
                     <button type="button" onClick={submitAdd} disabled={!addText.trim()} style={{ flex: 1, padding: '7px', borderRadius: 8, border: 'none', background: 'var(--theme-2)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: addText.trim() ? 'pointer' : 'default', opacity: addText.trim() ? 1 : 0.5 }}>
                       {addForm === 'cita' ? 'Agendar' : addForm === 'nota' ? 'Guardar' : 'Crear'}
                     </button>
@@ -627,6 +683,23 @@ function ConversationInboxBody({ user }) {
                 </div>
               )}
 
+              {/* Accesos directos: enviar Galería · adjuntar propiedad · WhatsApp */}
+              {(detail.lead_id || curConv?.lead_id) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {DM.includes(detail.channel) && (
+                    <button type="button" onClick={openPropPicker}
+                      style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>🏠 Adjuntar / enviar propiedad</button>
+                  )}
+                  {ctx?.phone && (
+                    <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                      style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'block' }}>📲 Abrir WhatsApp del cliente</a>
+                  )}
+                </div>
+              )}
+              </>)}
+
+              {/* ═══ TAB: IA ═══ */}
+              {col3Tab === 'ia' && (<>
               {/* Pieza 3 · lo que sugieren los 5 AGENTES para este lead */}
               {(ctx?.agent_actions || []).length > 0 && (
                 <div style={{ marginBottom: 12 }}>
@@ -649,12 +722,11 @@ function ConversationInboxBody({ user }) {
                   <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--cream)' }}>{ctx.brief.next_step.text}</div>
                 </div>
               )}
-              {/* "Más" colapsable: gusto + cierre + tablero (founder: sin scroll por defecto) */}
-              <button type="button" onClick={() => setShowMore((v) => !v)}
-                style={{ width: '100%', marginTop: 14, padding: '6px', borderRadius: 8, border: '1px dashed var(--border)', background: 'none', color: 'var(--cream-3)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
-                {showMore ? '▴ Ocultar gusto · cierre · tablero' : '▾ Ver gusto · cierre · tablero'}
-              </button>
-              {showMore && ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
+              </>)}
+
+              {/* ═══ TAB: PERFIL ═══ */}
+              {col3Tab === 'perfil' && (<>
+              {ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
                 <div style={{ marginTop: 12 }}>
                   <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>
                     Perfil de gusto {ctx.taste.confidence_label ? `· confianza ${ctx.taste.confidence_label}` : ''}
@@ -672,7 +744,7 @@ function ConversationInboxBody({ user }) {
               )}
 
               {/* B7+ · probabilidad de cierre (reusa close_probability) */}
-              {showMore && ctx?.close_probability != null && (
+              {ctx?.close_probability != null && (
                 <div style={{ marginTop: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--cream-3)', marginBottom: 5 }}>
                     <span style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Probabilidad de cierre</span>
@@ -685,7 +757,7 @@ function ConversationInboxBody({ user }) {
               )}
 
               {/* B7+ · estado del tablero de propiedades */}
-              {showMore && ctx?.board && Object.keys(ctx.board).length > 0 && (
+              {ctx?.board && Object.keys(ctx.board).length > 0 && (
                 <div style={{ marginTop: 14 }}>
                   <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Tablero · {ctx.board_count} propiedades</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -695,21 +767,12 @@ function ConversationInboxBody({ user }) {
                   </div>
                 </div>
               )}
+              </>)}
 
-              {/* B7+ · acciones rápidas */}
-              {(detail.lead_id || curConv?.lead_id) && (
-                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {ctx?.phone && (detail.channel === 'whatsapp' || !DM.includes(detail.channel)) && (
-                    <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                      style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'block' }}>
-                      📲 Abrir WhatsApp del cliente
-                    </a>
-                  )}
-                </div>
-              )}
-
+              {/* IA (cont.) · confianza del hilo + interruptor Atlax */}
+              {col3Tab === 'ia' && (<>
               {/* W7.AS.3.H · resumen de confianza IA del hilo (confidence-history) */}
-              {showMore && confSummary && (
+              {confSummary && (
                 <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
                   <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 8 }}>
                     {t('conversation_confidence:history.title', 'Confianza IA del hilo')}
@@ -763,6 +826,7 @@ function ConversationInboxBody({ user }) {
                   </div>
                 )}
               </div>
+              </>)}
             </>
           )}
         </div>

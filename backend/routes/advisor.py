@@ -112,6 +112,7 @@ class TareaIn(BaseModel):
     due_at: str  # ISO
     prioridad: str = "media"
     notas: Optional[str] = ""
+    reminder: bool = False  # recordatorio (el cron de tareas lo recoge)
 
 class OperacionIn(BaseModel):
     side: str  # ambos|vendedor|comprador
@@ -1752,6 +1753,73 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
     except Exception:
         rec = None
     return {"animo": animo, "recomendacion": rec}
+
+
+_DIA_RX = {"hoy": 0, "mañana": 1, "manana": 1, "lunes": None, "martes": None, "miércoles": None,
+           "miercoles": None, "jueves": None, "viernes": None, "sábado": None, "sabado": None, "domingo": None}
+_DOW = {"lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2, "jueves": 3, "viernes": 4,
+        "sábado": 5, "sabado": 5, "domingo": 6}
+
+
+@router.get("/contactos/{cid}/ai-suggest")
+async def ai_suggest(cid: str, request: Request, type: str = "nota", channel: str = "whatsapp"):
+    """✨ Auto-redacta tarea/nota/cita desde la conversación + el brief (la IA ya lee el hilo).
+    Heurístico (sin depender del LLM) · FAIL-OPEN. Para cita, también sugiere fecha si el
+    cliente mencionó un día."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "first_name": 1})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    nombre = c.get("first_name") or "el cliente"
+    msgs = await db.whatsapp_messages.find(
+        {"org_id": user.user_id, "lead_id": cid, **_channel_q((channel or "whatsapp").lower())},
+        {"_id": 0, "direction": 1, "body_text": 1}).sort("created_at", 1).to_list(60)
+    inbound = [m.get("body_text", "") for m in msgs if m.get("direction") == "inbound"]
+    last_in = inbound[-1] if inbound else ""
+    out = {"text": "", "date": None}
+
+    if type == "nota":
+        try:
+            from taste_profile import extract_text_signals
+            sent = extract_text_signals(last_in).get("sentiment", "neutral") if last_in else "neutral"
+        except Exception:
+            sent = "neutral"
+        partes = [f"Conversación por {channel} con {nombre} · ánimo {sent}."]
+        if last_in:
+            partes.append(f'Último mensaje: "{last_in[:120]}".')
+        out["text"] = " ".join(partes)
+
+    elif type == "tarea":
+        # del brief (siguiente paso) si existe, si no genérica
+        try:
+            items = await db.asesor_lead_properties.find({"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}).to_list(300)
+            from taste_profile import build_taste_profile, build_brief
+            taste = await build_taste_profile(db, user.user_id, cid, persist=False)
+            step = (build_brief(items, taste) or {}).get("next_step", {}).get("text", "")
+        except Exception:
+            step = ""
+        out["text"] = step or f"Dar seguimiento a {nombre}"
+
+    elif type == "cita":
+        out["text"] = f"Visita con {nombre}"
+        # detectar día mencionado en los mensajes del cliente
+        blob = " ".join(inbound).lower()
+        now = datetime.now(timezone.utc)
+        target = None
+        if "mañana" in blob or "manana" in blob:
+            target = now + timedelta(days=1)
+        elif "hoy" in blob:
+            target = now
+        else:
+            for d, dow in _DOW.items():
+                if d in blob:
+                    delta = (dow - now.weekday()) % 7
+                    target = now + timedelta(days=delta or 7)
+                    break
+        if target:
+            out["date"] = target.replace(hour=11, minute=0, second=0, microsecond=0).isoformat()
+    return out
 
 
 class LeadCitaIn(BaseModel):
