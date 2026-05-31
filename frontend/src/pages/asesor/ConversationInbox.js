@@ -78,9 +78,6 @@ function ConversationInboxBody() {
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [confSummary, setConfSummary] = useState(null); // W7.AS.3.H · confidence-history del hilo
-  const [fSentiment, setFSentiment] = useState('');
-  const [fStatus, setFStatus] = useState('');
-  const [fChannel, setFChannel] = useState('');   // B6 · WhatsApp / IA
   const [search, setSearch] = useState('');
   const [curConv, setCurConv] = useState(null);    // B6 · conv seleccionada (canal + lead_id)
   const [ctx, setCtx] = useState(null);            // B6 · contexto del lead (gusto + siguiente paso)
@@ -92,10 +89,8 @@ function ConversationInboxBody() {
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = new URLSearchParams();
-      if (fChannel) qs.set('channel', fChannel);
-      // B6 · bandeja UNIFICADA — WhatsApp (B5.5) + chats IA en una lista, con nombre + canal.
-      const res = await fetch(`${API}/api/asesor/conversations/unified?${qs.toString()}`, { headers: authHeaders(), credentials: 'include' });
+      // B6 · bandeja UNIFICADA — WhatsApp (B5.5) + chats IA en una lista (los segmentos filtran en cliente).
+      const res = await fetch(`${API}/api/asesor/conversations/unified`, { headers: authHeaders(), credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setList(Array.isArray(data.conversations) ? data.conversations : []);
@@ -108,13 +103,13 @@ function ConversationInboxBody() {
     } finally {
       setLoading(false);
     }
-  }, [fChannel]);
+  }, []);
 
   useEffect(() => { loadList(); }, [loadList]);
 
   // B6 · mapea el hilo de WhatsApp (B5.5) al shape del detalle del inbox
   const _waToDetail = (leadId, d) => ({
-    channel: 'whatsapp', lead_id: leadId, status: 'active',
+    channel: 'whatsapp', lead_id: leadId, status: 'active', sentiment: 'neutral',
     messages: (d.messages || []).map((m) => ({ role: m.direction === 'outbound' ? 'asesor' : 'user', content: m.text })),
   });
 
@@ -206,13 +201,11 @@ function ConversationInboxBody() {
     else if (segment === 'atencion') l = l.filter((c) => c.sentiment === 'negative');
     else if (segment === 'whatsapp') l = l.filter((c) => c.channel === 'whatsapp');
     else if (segment === 'ia') l = l.filter((c) => c.channel !== 'whatsapp');
-    if (fSentiment) l = l.filter((c) => c.sentiment === fSentiment);
-    if (fStatus) l = l.filter((c) => c.status === fStatus);
     const q = search.trim().toLowerCase();
     if (q) l = l.filter((c) =>
       `${c.lead_name || ''} ${c.lead_id || ''} ${c.last_message || ''} ${c.asesor_id || ''}`.toLowerCase().includes(q));
     return l;
-  }, [list, search, fSentiment, fStatus, segment]);
+  }, [list, search, segment]);
 
   const lastUserMessage = useMemo(() => {
     const msgs = (detail && detail.messages) || [];
@@ -282,27 +275,10 @@ function ConversationInboxBody() {
           <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
             style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
         </div>
-        <select value={fChannel} onChange={(e) => setFChannel(e.target.value)} style={selectStyle}>
-          <option value="">Canal: todos</option>
-          <option value="whatsapp">💬 WhatsApp</option>
-          <option value="ai">🤖 Chat IA</option>
-        </select>
-        <select value={fSentiment} onChange={(e) => setFSentiment(e.target.value)} style={selectStyle}>
-          <option value="">{t('inbox.filter_sentiment')}: {t('inbox.all')}</option>
-          <option value="positive">{t('sentiment.positive')}</option>
-          <option value="neutral">{t('sentiment.neutral')}</option>
-          <option value="negative">{t('sentiment.negative')}</option>
-        </select>
-        <select value={fStatus} onChange={(e) => setFStatus(e.target.value)} style={selectStyle}>
-          <option value="">{t('inbox.filter_status')}: {t('inbox.all')}</option>
-          <option value="active">{t('status.active')}</option>
-          <option value="handoff">{t('status.handoff')}</option>
-          <option value="closed">{t('status.closed')}</option>
-        </select>
       </div>
 
-      {/* 3 columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr 300px', gap: 14, height: 'calc(100vh - 270px)' }}>
+      {/* 3 columns · altura acotada para que la caja de escribir entre sin scroll de página */}
+      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr 300px', gap: 14, height: 'calc(100dvh - 330px)', minHeight: 360 }}>
         {/* col 1 · threads */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflowY: 'auto' }}>
           {loading ? (
@@ -420,8 +396,10 @@ function ConversationInboxBody() {
               <InfoRow label={t('inbox.channel')} value={detail.channel === 'whatsapp' ? 'WhatsApp' : (detail.channel || '—')} />
               <InfoRow label={t('inbox.filter_status')} value={t(`status.${detail.status}`, detail.status)}
                 color={STATUS_COLOR[detail.status]} />
-              <InfoRow label={t('inbox.filter_sentiment')} value={t(`sentiment.${detail.sentiment}`, detail.sentiment)}
-                color={SENTIMENT_COLOR[detail.sentiment]} />
+              {detail.sentiment && detail.channel !== 'whatsapp' && (
+                <InfoRow label={t('inbox.filter_sentiment')} value={t(`sentiment.${detail.sentiment}`, detail.sentiment)}
+                  color={SENTIMENT_COLOR[detail.sentiment]} />
+              )}
               {detail.taken_over_by && <InfoRow label={t('inbox.taken_over_by')} value={detail.taken_over_by} />}
 
               {/* B6 · contexto del lead: siguiente paso + perfil de gusto (B5.4) */}
