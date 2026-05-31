@@ -45,7 +45,7 @@ function WaCompose({ onSend, onDraft, drafting, disabled }) {
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} disabled={disabled}
           placeholder="Escribe por WhatsApp…"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          style={{ flex: 1, resize: 'none', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.04)', color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
+          style={{ flex: 1, resize: 'none', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
         <button type="button" onClick={send} disabled={disabled || !text.trim()}
           style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: '#0b1f12', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || !text.trim()) ? 'default' : 'pointer', opacity: (disabled || !text.trim()) ? 0.5 : 1 }}>
           Enviar →
@@ -200,18 +200,18 @@ function ConversationInboxBody() {
   }, [detail]);
 
   const selectStyle = {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 8,
-    color: 'var(--cream, #F0EBE0)', padding: '6px 10px', fontSize: 12.5, outline: 'none',
+    background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8,
+    color: 'var(--cream)', padding: '6px 10px', fontSize: 12.5, outline: 'none',
   };
   const canTakeover = detail && detail.status !== 'taken_over' && detail.status !== 'closed';
 
   return (
-    <div style={{ padding: 24, color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
+    <div style={{ padding: 24, color: 'var(--cream)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
         <MessageSquare size={22} />
         <div style={{ flex: 1 }}>
           <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 22, margin: 0 }}>{t('inbox.title')}</h1>
-          <p style={{ margin: 0, fontSize: 13, color: 'rgba(240,235,224,0.55)' }}>{t('inbox.subtitle')}</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)' }}>{t('inbox.subtitle')}</p>
         </div>
         <button type="button" onClick={loadList}
           style={{ ...selectStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -222,9 +222,9 @@ function ConversationInboxBody() {
       {/* filters + search */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...selectStyle, padding: '0 10px', flex: '1 1 220px' }}>
-          <Search size={14} style={{ color: 'rgba(240,235,224,0.5)' }} />
+          <Search size={14} style={{ color: 'var(--cream-3)' }} />
           <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
-            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream, #F0EBE0)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
+            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
         </div>
         <select value={fChannel} onChange={(e) => setFChannel(e.target.value)} style={selectStyle}>
           <option value="">Canal: todos</option>
@@ -248,19 +248,19 @@ function ConversationInboxBody() {
       {/* 3 columns */}
       <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr 300px', gap: 14, height: 'calc(100vh - 270px)' }}>
         {/* col 1 · threads */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14, overflowY: 'auto' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflowY: 'auto' }}>
           {loading ? (
-            <div style={{ padding: 24, color: 'rgba(240,235,224,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ padding: 24, color: 'var(--cream-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> …
             </div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 24, color: 'rgba(240,235,224,0.4)', fontSize: 13 }}>{t('inbox.empty')}</div>
+            <div style={{ padding: 24, color: 'var(--cream-3)', fontSize: 13 }}>{t('inbox.empty')}</div>
           ) : filtered.map((c) => (
             <button key={c.conversation_id} type="button" onClick={() => openThread(c)}
               style={{
                 width: '100%', textAlign: 'left',
                 background: selected === c.conversation_id ? 'rgba(99,102,241,0.14)' : 'transparent',
-                border: 'none', borderBottom: '1px solid var(--border)', color: 'var(--cream, #F0EBE0)',
+                border: 'none', borderBottom: '1px solid var(--border)', color: 'var(--cream)',
                 padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
               }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
@@ -280,9 +280,9 @@ function ConversationInboxBody() {
                 </span>
               </div>
               {c.last_message && (
-                <div style={{ fontSize: 11.5, color: 'rgba(240,235,224,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--cream-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message}</div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(240,235,224,0.45)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--cream-3)' }}>
                 <span>{c.channel === 'whatsapp' ? 'WhatsApp' : (c.asesor_id || 'Chat IA')}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {c.status === 'handoff' && <AlertTriangle size={12} style={{ color: STATUS_COLOR.handoff }} />}
@@ -295,11 +295,11 @@ function ConversationInboxBody() {
         </div>
 
         {/* col 2 · thread */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {!selected ? (
-            <div style={{ margin: 'auto', color: 'rgba(240,235,224,0.4)', fontSize: 13 }}>{t('inbox.select_hint')}</div>
+            <div style={{ margin: 'auto', color: 'var(--cream-3)', fontSize: 13 }}>{t('inbox.select_hint')}</div>
           ) : detailLoading || !detail ? (
-            <div style={{ margin: 'auto', color: 'rgba(240,235,224,0.5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ margin: 'auto', color: 'var(--cream-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> …
             </div>
           ) : (
@@ -309,7 +309,7 @@ function ConversationInboxBody() {
                 {(detail.messages || []).map((m, i) => (
                   <div key={i} style={{
                     alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '78%',
-                    background: m.role === 'user' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.06)',
+                    background: m.role === 'user' ? 'rgba(99,102,241,0.2)' : 'var(--surface-2)',
                     borderRadius: 12, padding: '9px 12px', fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap',
                   }}>
                     {m.content}
@@ -333,9 +333,9 @@ function ConversationInboxBody() {
         </div>
 
         {/* col 3 · lead info + actions */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, overflowY: 'auto' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, overflowY: 'auto' }}>
           {!detail ? (
-            <div style={{ color: 'rgba(240,235,224,0.4)', fontSize: 13 }}>{t('inbox.col_info')}</div>
+            <div style={{ color: 'var(--cream-3)', fontSize: 13 }}>{t('inbox.col_info')}</div>
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -355,21 +355,21 @@ function ConversationInboxBody() {
               {ctx?.brief?.next_step && (
                 <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)' }}>
                   <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--theme-primary, #818CF8)', marginBottom: 3 }}>🧭 Siguiente paso</div>
-                  <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--cream, #F0EBE0)' }}>{ctx.brief.next_step.text}</div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--cream)' }}>{ctx.brief.next_step.text}</div>
                 </div>
               )}
               {ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(240,235,224,0.5)', marginBottom: 7 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>
                     Perfil de gusto {ctx.taste.confidence_label ? `· confianza ${ctx.taste.confidence_label}` : ''}
                   </div>
-                  {ctx.taste.summary && <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.8)', marginBottom: 8, lineHeight: 1.45 }}>{ctx.taste.summary}</div>}
+                  {ctx.taste.summary && <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, lineHeight: 1.45 }}>{ctx.taste.summary}</div>}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {(ctx.taste.rooms || []).slice(0, 4).map((r) => (
                       <span key={r.room} style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: 'rgba(99,102,241,0.14)', color: 'var(--theme-primary, #818CF8)' }}>{r.label} {r.score}%</span>
                     ))}
                     {(ctx.taste.features || []).slice(0, 3).map((f) => (
-                      <span key={f.key} style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', color: 'rgba(240,235,224,0.75)' }}>{f.label}</span>
+                      <span key={f.key} style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--cream-2)' }}>{f.label}</span>
                     ))}
                   </div>
                 </div>
@@ -378,7 +378,7 @@ function ConversationInboxBody() {
               {/* W7.AS.3.H · resumen de confianza IA del hilo (confidence-history) */}
               {confSummary && (
                 <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                  <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(240,235,224,0.5)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 8 }}>
                     {t('conversation_confidence:history.title', 'Confianza IA del hilo')}
                   </div>
                   <InfoRow label={t('conversation_confidence:history.avg', 'Promedio')}
@@ -394,13 +394,13 @@ function ConversationInboxBody() {
               )}
 
               <div style={{ marginTop: 18, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'rgba(240,235,224,0.5)', marginBottom: 10 }}>
+                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 10 }}>
                   {t('inbox.suggested_actions')}
                 </div>
                 {canTakeover ? (
                   <LiveTakeover conversationId={detail.conversation_id} onTakenOver={() => { loadList(); refreshDetail(); }} />
                 ) : (
-                  <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.4)' }}>—</div>
+                  <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>—</div>
                 )}
               </div>
             </>
@@ -414,8 +414,8 @@ function ConversationInboxBody() {
 function InfoRow({ label, value, color }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '5px 0', fontSize: 12.5 }}>
-      <span style={{ color: 'rgba(240,235,224,0.5)' }}>{label}</span>
-      <span style={{ color: color || 'var(--cream, #F0EBE0)', fontWeight: 600, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
+      <span style={{ color: 'var(--cream-3)' }}>{label}</span>
+      <span style={{ color: color || 'var(--cream)', fontWeight: 600, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
     </div>
   );
 }
@@ -424,7 +424,10 @@ function InfoRow({ label, value, color }) {
 export default function ConversationInbox(props) {
   return (
     <PortalLayout role={props.user?.role} user={props.user} onLogout={props.onLogout}>
-      <ConversationInboxBody {...props} />
+      {/* B7 · marco claro (.portal-asesor) → los tokens resuelven al tema claro */}
+      <div className="portal-asesor">
+        <ConversationInboxBody {...props} />
+      </div>
     </PortalLayout>
   );
 }
