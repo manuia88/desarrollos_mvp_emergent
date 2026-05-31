@@ -215,6 +215,53 @@ async def swipe_nota(token: str, payload: NotaIn, request: Request):
     return {"ok": True}
 
 
+# ─── B5.4 Capa 1 · Captura conductual (señales implícitas del swipe) ─────────────
+# El cliente NO dice "me gustó la sala"; lo REVELA con el tiempo que pasa en cada
+# foto, si regresa a una, si hace zoom, si abre el detalle y qué tan rápido decide.
+# swipe.html manda estos eventos en lote (1 POST por tarjeta para no saturar).
+# FAIL-CLOSED por token. Cada evento queda aislado por owner_id+contacto_id.
+ALLOWED_EVENTS = {"photo_view", "photo_return", "photo_zoom", "detail_open", "detail_dwell", "decision"}
+
+
+class SwipeEvent(BaseModel):
+    item_id: str
+    dev_id: Optional[str] = ""
+    type: str
+    photo_idx: Optional[int] = None
+    dwell_ms: Optional[int] = None
+    thumb: Optional[str] = None  # solo en 'decision'
+
+
+class EventsIn(BaseModel):
+    events: List[SwipeEvent] = []
+
+
+@router.post("/api/swipe/{token}/events")
+async def swipe_events(token: str, payload: EventsIn, request: Request):
+    db = _db(request)
+    lk = await _resolve(db, token)
+    docs = []
+    for e in (payload.events or [])[:60]:  # cap defensivo
+        if e.type not in ALLOWED_EVENTS:
+            continue
+        dwell = e.dwell_ms
+        if dwell is not None:
+            dwell = max(0, min(int(dwell), 600000))  # 0..10min, anti-ruido
+        docs.append({
+            "id": "ev_" + uuid.uuid4().hex[:12],
+            "owner_id": lk["owner_id"], "contacto_id": lk["contacto_id"],
+            "item_id": e.item_id, "dev_id": e.dev_id or "",
+            "type": e.type, "photo_idx": e.photo_idx, "dwell_ms": dwell,
+            "thumb": e.thumb, "ts": _now(),
+        })
+    if docs:
+        try:
+            await db.asesor_swipe_events.insert_many(docs, ordered=False)
+        except Exception:
+            pass
+    return {"ok": True, "stored": len(docs)}
+
+
 # ─── Respuestas del cuestionario (perfilado · alimenta ML futuro B5.3) ───────────
 class ProfileIn(BaseModel):
     answers: Dict[str, Any] = {}

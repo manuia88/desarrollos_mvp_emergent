@@ -340,6 +340,21 @@
       status:it.status,thumb:it.thumb};}
   function api(path,body){try{return fetch(`${API}/api/swipe/${TOKEN}${path}`,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined).catch(()=>{});}catch(_){}}
   function postVote(p,thumb,reason){if(p&&p.id)api('/vote',{item_id:p.id,thumb,reason:reason||''});}
+  /* B5.4 Capa 1 · Captura conductual: el cliente NO dice "me gustó la sala", lo REVELA
+     con el tiempo en cada foto, si regresa, si abre el detalle y qué tan rápido decide.
+     Se manda en lote (1 POST por tarjeta) al cerrar cada decisión. Ruido <250ms se ignora. */
+  const EV={buf:[],cardT:0,phT:0,phIdx:0,phSeen:null,curId:'',curDev:'',shT:0,dphT:0,dphIdx:0,
+    now(){return Date.now();},
+    _card(){return {item_id:this.curId,dev_id:this.curDev};},
+    cardStart(p){this.flush();this.curId=(p&&p.id)||'';this.curDev=(p&&p.dev_id)||'';this.cardT=this.now();this.phT=this.now();this.phIdx=(slide[idx]||0);this.phSeen=new Set([this.phIdx]);},
+    _closePhoto(){if(!this.curId||!this.phT)return;const d=this.now()-this.phT;if(d>250)this.buf.push(Object.assign(this._card(),{type:'photo_view',photo_idx:this.phIdx,dwell_ms:d}));this.phT=0;},
+    photo(ni){if(!this.curId)return;this._closePhoto();if(this.phSeen&&this.phSeen.has(ni))this.buf.push(Object.assign(this._card(),{type:'photo_return',photo_idx:ni}));this.phIdx=ni;this.phT=this.now();if(this.phSeen)this.phSeen.add(ni);},
+    detailOpen(p){this._closePhoto();const c={item_id:(p&&p.id)||this.curId,dev_id:(p&&p.dev_id)||this.curDev};this.buf.push(Object.assign({},c,{type:'detail_open'}));this.shT=this.now();this.dphT=this.now();this.dphIdx=0;this._dc=c;},
+    detailPhoto(ni){if(!this.shT)return;const d=this.now()-this.dphT;if(d>250)this.buf.push(Object.assign({},this._dc,{type:'photo_view',photo_idx:this.dphIdx,dwell_ms:d}));this.dphIdx=ni;this.dphT=this.now();},
+    detailClose(){if(!this.shT)return;const dd=this.now()-this.dphT;if(dd>250)this.buf.push(Object.assign({},this._dc,{type:'photo_view',photo_idx:this.dphIdx,dwell_ms:dd}));this.buf.push(Object.assign({},this._dc,{type:'detail_dwell',dwell_ms:this.now()-this.shT}));this.shT=0;this.phT=this.now();/* reanuda timer de la tarjeta */},
+    decision(p,thumb){this._closePhoto();this.buf.push(Object.assign(this._card(),{type:'decision',thumb:thumb,dwell_ms:this.cardT?this.now()-this.cardT:null}));this.curId='';this.flush();},
+    flush(){if(!this.buf.length)return;const ev=this.buf;this.buf=[];api('/events',{events:ev});}
+  };
   function postProfile(){api('/profile',{answers:ANSWERS});}
   function applyGreeting(){const hi=document.querySelector('.intro .hi');if(hi)hi.textContent=LEADNAME?`Hola ${LEADNAME} 👋`:'Hola 👋';const an=document.querySelector('.card-asesor b');if(an)an.textContent=ASESOR;const sub=document.querySelector('.card-asesor span');if(sub)sub.textContent='DesarrollosMX';}
   async function init(){try{const r=await fetch(`${API}/api/swipe/${TOKEN}`);if(r.ok)DATA=await r.json();}catch(_){}if(DATA){ASESOR=DATA.asesor_name||'Tu asesor';LEADNAME=DATA.lead_name||'';applyGreeting();}}
@@ -370,7 +385,7 @@
       const it=deckArr[k],depth=k-idx,el=document.createElement('div');
       el.style.position='absolute';el.style.inset='0';el.style.transform=`scale(${1-depth*.035}) translateY(${depth*9}px)`;el.style.zIndex=String(10-depth);
       if(it.type==='q'){el.className='qcard';el.innerHTML=renderQ(it.d);}
-      else{el.className='pcard';el.innerHTML=renderProp(it.d,k);if(depth===0)attachDrag(el);}
+      else{el.className='pcard';el.innerHTML=renderProp(it.d,k);if(depth===0){attachDrag(el);EV.cardStart(it.d);}}
       deck.appendChild(el);
     }
     document.getElementById('undo').style.opacity=history.length?'1':'.35';updPf();
@@ -404,6 +419,7 @@
     <div class="qopts">${q.opts.map((o,i)=>`<button onclick="answer(${i})">${o[0]} ${o[1]}</button>`).join('')}</div>
     <div class="qfoot">No frena nada — tu selección sigue ahí 👇</div>`;}
   function slideMove(k,d){const p=deckArr[k].d,n=(p.photos||[]).length;if(n<2)return;slide[k]=((slide[k]||0)+d+n)%n;
+    if(k===idx)EV.photo(slide[k]);
     const el=deck.querySelector('.pcard');if(!el)return;
     el.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on',i===slide[k]));el.querySelectorAll('.dots i').forEach((dd,i)=>dd.classList.toggle('on',i===slide[k]));}
   function attachDrag(card){
@@ -468,6 +484,7 @@
     setTimeout(()=>doCommit(dir),200);
   }
   function doCommit(dir){const p=deckArr[idx].d;history.push({idx,dir});seen++;
+    EV.decision(p, dir==='no'?'down':'up');
     postVote(p, dir==='no'?'down':'up', dir==='no'?passSel:'');
     if(dir==='like'){liked.push(p);profile=Math.min(100,profile+8);}
     if(dir==='super'){liked.push(p);fav.push(p);profile=Math.min(100,profile+12);toast('★ Guardada como favorita');}
@@ -476,7 +493,7 @@
   function moreBatch(){phase='bolsa';const slice=BOLSA.slice(bolsaAt,bolsaAt+BATCH);bolsaAt+=slice.length;deckArr=buildDeck(slice);idx=0;history=[];slide={};show('s-swipe');render();}
   function undo(){if(!history.length)return;const last=history.pop();seen--;if(last.dir==='like'){liked.pop();}if(last.dir==='super'){liked.pop();fav.pop();}idx=last.idx;render();}
 
-  function openSheet(id,saved){curProp=BYID[id];fromSaved=!!saved;gIdx=0;renderSheet();setSheetFoot();document.getElementById('sh-body').scrollTop=0;document.getElementById('sheet').classList.add('show');}
+  function openSheet(id,saved){curProp=BYID[id];fromSaved=!!saved;gIdx=0;EV.detailOpen(curProp);renderSheet();setSheetFoot();document.getElementById('sh-body').scrollTop=0;document.getElementById('sheet').classList.add('show');}
   function setSheetFoot(){const f=document.getElementById('sheetfoot'),id=curProp.id;
     if(fromSaved)f.innerHTML=`<button class="sec" onclick="openAgendar('${id}')" title="Agendar">📅</button><button class="sec" onclick="openNota('${id}')" title="Nota">📝</button><button class="like" style="flex:1" onclick="closeSheet();openSaved()">← Volver a mis guardados</button>`;
     else f.innerHTML=`<button class="sec" onclick="openAgendar('${id}')" title="Agendar">📅</button><button class="sec" onclick="openNota('${id}')" title="Nota">📝</button><button class="no" onclick="closeSheet();swipe('no')">👎</button><button class="like" style="flex:1.4" onclick="closeSheet();swipe('like')">👍 Me gusta</button>`;}
@@ -503,9 +520,9 @@
       <div class="seclbl">📍 Ubicación</div>
       <div class="map"><div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="pin">📍</div><a href="${gmaps(p)}" target="_blank">Ver en Google Maps →</a></div>`;
   }
-  function galMove(d){const p=curProp,n=(p.photos||[]).length;if(n<2)return;gIdx=(gIdx+d+n)%n;const g=document.querySelector('#sh-body .gal');g.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on',i===gIdx));g.querySelectorAll('.dots i').forEach((dd,i)=>dd.classList.toggle('on',i===gIdx));}
+  function galMove(d){const p=curProp,n=(p.photos||[]).length;if(n<2)return;gIdx=(gIdx+d+n)%n;EV.detailPhoto(gIdx);const g=document.querySelector('#sh-body .gal');g.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on',i===gIdx));g.querySelectorAll('.dots i').forEach((dd,i)=>dd.classList.toggle('on',i===gIdx));}
   function backSheet(){if(fromSaved){closeSheet();openSaved();}else closeSheet();}
-  function closeSheet(){document.getElementById('sheet').classList.remove('show');}
+  function closeSheet(){EV.detailClose();document.getElementById('sheet').classList.remove('show');}
   // Acciones del plan (recorrido / crédito / comparar)
   function bkbar(t){return `<button onclick="openSaved()" style="background:var(--surf2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;margin-bottom:13px">← Volver</button><div class="seclbl" style="margin-top:0">${t}</div>`;}
   function actRecorrido(){const b=document.getElementById('saved-body');
@@ -579,7 +596,7 @@
     deckArr=buildDeck(deckItems);show('s-swipe');render();
     if(!deckItems.length)finish();
   }
-  function finish(){document.getElementById('done-sub').textContent=`Viste ${seen}. Esto es lo que guardaste — toca cualquiera para verla o abre tu plan abajo.`;document.getElementById('done-saved').innerHTML=savedHtml(false);show('s-done');}
+  function finish(){EV.flush();document.getElementById('done-sub').textContent=`Viste ${seen}. Esto es lo que guardaste — toca cualquiera para verla o abre tu plan abajo.`;document.getElementById('done-saved').innerHTML=savedHtml(false);show('s-done');}
   function reset(){deckArr=[];idx=0;liked=[];fav=[];citas=[];notas=[];history=[];seen=0;bolsaAt=0;phase='curada';profile=20;savedFilter=null;onbIdx=0;document.getElementById('pfbar').style.display='none';document.getElementById('savedbtn').style.display='none';show('s-intro');}
   function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));document.getElementById(id).classList.add('show');}
   init();
