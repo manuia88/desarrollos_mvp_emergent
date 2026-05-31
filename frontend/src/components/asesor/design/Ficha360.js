@@ -969,6 +969,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                                 <div className="asr-pcard__pt">{p.name}</div>
                                 {p.addr && <div className="asr-pcard__paddr">{p.addr}</div>}
                                 {(p.specs || []).length > 0 && <div className="asr-pcard__specs">{p.specs.map((s) => <span key={s}>{s}</span>)}</div>}
+                                {p.match && <div className="asr-pcard__note" style={{ color: 'var(--theme-2)', fontWeight: 700 }}>🎯 {p.match.score}% match{p.match.reasons?.[0] ? ` · ${p.match.reasons[0].t}` : ''}</div>}
                                 {(p.thumb || p.note) && (
                                   <div className="asr-pcard__note">
                                     {p.thumb === 'up' && <ThumbsUp size={11} />}{p.thumb === 'down' && <ThumbsDown size={11} />}{p.note}

@@ -1138,6 +1138,21 @@ async def get_lead_board(cid: str, request: Request):
     ).sort("updated_at", -1).to_list(200)
     for it in items:  # normaliza estatus viejos (dispo/gusto → nuevos)
         it["status"] = BOARD_STATUS_ALIAS.get(it.get("status"), it.get("status"))
+    # B5.3 · match explicable por item (señales de swipes + cuestionario) · FAIL-OPEN.
+    try:
+        from lead_match import aggregate_signals, match_for
+        from data_developments import DEVELOPMENTS_BY_ID as _MDEVS
+        _sig = aggregate_signals(items)
+        _prof = await db.asesor_swipe_profiles.find_one({"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
+        for it in items:
+            dev = _MDEVS.get(it.get("dev_id")) or {}
+            if dev:
+                try:
+                    it["match"] = match_for(_prof, _sig, dev, listed_price=it.get("price"))
+                except Exception:
+                    pass
+    except Exception:
+        pass
     # B5.2-D · AVM (oferta-backing): solo para items en "oferta" · FAIL-OPEN.
     oferta_items = [it for it in items if it.get("status") == "oferta" and not it.get("avm")]
     if oferta_items:

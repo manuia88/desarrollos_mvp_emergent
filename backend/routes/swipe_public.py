@@ -101,12 +101,32 @@ async def swipe_view(token: str, request: Request):
     ).sort("updated_at", -1).to_list(200)
     # Enriquecer con el catálogo de developments (fotos, specs, amenidades, descripción, preventa).
     devs = DEVELOPMENTS_BY_ID or {}
+    # B5.3 · match explicable (señales de swipes + cuestionario del lead).
+    try:
+        from lead_match import aggregate_signals, match_for
+        signals = aggregate_signals(items)
+        profile = await db.asesor_swipe_profiles.find_one(
+            {"owner_id": lk["owner_id"], "contacto_id": lk["contacto_id"]}, {"_id": 0})
+    except Exception:
+        aggregate_signals = match_for = None
+        signals = {}
+        profile = None
+    cards = []
+    for it in items:
+        dev = devs.get(it.get("dev_id")) or {}
+        c = _card(it, dev)
+        if match_for:
+            try:
+                c["match"] = match_for(profile, signals, dev, listed_price=it.get("price"))
+            except Exception:
+                pass
+        cards.append(c)
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")
     return {
         "asesor_name": lk.get("asesor_name") or "Tu asesor",
         "lead_name": lk.get("lead_name") or "",
-        "items": [_card(it, devs.get(it.get("dev_id"))) for it in items],
+        "items": cards,
         "engagement": {"views": int(lk.get("views") or 0), "up": up, "down": down},
     }
 
