@@ -717,38 +717,68 @@ async def continue_execution(
 
 # ─── Dispatch entry (called from event hooks) ────────────────────────────────
 
+async def _audit_block(db, event: Dict[str, Any], reason: str, workflow_id: str = None) -> None:
+    """B5.6 · Rastro forense de cada dispatch bloqueado por aislamiento (FAIL-CLOSED / mismatch).
+    Nunca rompe el flujo (best-effort)."""
+    try:
+        await db.workflow_audit.insert_one({
+            "id": "wfaudit_" + hashlib.sha1(
+                f"{event.get('lead_id')}|{reason}|{workflow_id}|{_now().isoformat()}".encode()).hexdigest()[:16],
+            "kind": "dispatch_blocked", "reason": reason,
+            "lead_id": event.get("lead_id"), "event_type": event.get("type"),
+            "owner_in_event": event.get("owner_user_id") or event.get("owner_id"),
+            "workflow_id": workflow_id, "ts": _now(),
+        })
+    except Exception:
+        pass
+
+
 async def dispatch_event(db, event: Dict[str, Any]) -> Dict[str, Any]:
     """Llama desde producers (lead.new, pipeline transitions, custom hooks).
 
     Encuentra workflows con status=active + trigger matcheando event,
     los ejecuta secuencialmente. Idempotency via execution_id derivada.
 
-    Audit forense G.90 fix · CRÍTICO tenant isolation:
-    Resuelve el tenant_id del lead PRIMERO · solo dispara workflows del mismo tenant
-    (workflow Tenant A NUNCA debe ejecutarse sobre lead Tenant B).
+    B5.6 · Aislamiento por OWNER (FAIL-CLOSED, defensa en profundidad):
+    Los workflows se poseen por `owner_user_id` (routes/workflows.py), NO por tenant_id.
+    Resuelve el owner del lead PRIMERO (db.leads → asesor_contactos → contexto del evento);
+    si NO se puede establecer el owner → NO dispara nada (jamás query sin filtro de aislamiento).
+    Workflow del owner A NUNCA debe ejecutarse sobre lead del owner B.
     """
     fired: List[Dict[str, Any]] = []
     lead_id = event.get("lead_id")
 
-    # G.90 fix · resolver tenant_id del lead para isolation cross-tenant
-    lead_tenant_id = None
-    if lead_id:
+    # B5.6 · resolver el OWNER (llave real de aislamiento) + tenant (secundario) de múltiples fuentes
+    owner = event.get("owner_user_id") or event.get("owner_id")
+    tenant = event.get("tenant_id") or event.get("dev_org_id")
+    if lead_id and not owner:
         try:
             lead_doc = await db.leads.find_one(
-                {"id": lead_id},
-                {"_id": 0, "tenant_id": 1, "dev_org_id": 1},
-            )
+                {"id": lead_id}, {"_id": 0, "owner_user_id": 1, "tenant_id": 1, "dev_org_id": 1})
             if lead_doc:
-                lead_tenant_id = lead_doc.get("tenant_id") or lead_doc.get("dev_org_id")
+                owner = lead_doc.get("owner_user_id")
+                tenant = tenant or lead_doc.get("tenant_id") or lead_doc.get("dev_org_id")
+            else:
+                # fallback: contacto del asesor (aislado por owner_id, vive en otra colección)
+                ac = await db.asesor_contactos.find_one(
+                    {"id": lead_id}, {"_id": 0, "owner_id": 1})
+                if ac:
+                    owner = ac.get("owner_id")
         except Exception as exc:
-            log.warning(f"[workflow_engine] dispatch tenant resolve failed: {exc}")
-            # FAIL-CLOSED: si no podemos resolver tenant, no disparar (security > availability)
-            return {"ok": False, "error": "tenant_resolve_failed", "fired": 0}
+            log.warning(f"[workflow_engine] dispatch owner resolve failed: {exc}")
+            await _audit_block(db, event, "owner_resolve_failed")
+            # FAIL-CLOSED: si no podemos resolver, no disparar (security > availability)
+            return {"ok": False, "error": "owner_resolve_failed", "fired": 0}
 
-    # Query con tenant_id filter cuando aplica · fallback si lead sin tenant
-    query: Dict[str, Any] = {"status": "active", "deleted_at": None}
-    if lead_tenant_id:
-        query["tenant_id"] = lead_tenant_id
+    # FAIL-CLOSED: sin owner NO se dispara — nunca se consulta workflows sin filtro de aislamiento
+    if not owner:
+        await _audit_block(db, event, "no_owner_isolation")
+        return {"ok": False, "error": "no_owner_isolation", "fired": 0}
+
+    # Query SIEMPRE owner-filtrada (+ tenant como filtro secundario cuando existe)
+    query: Dict[str, Any] = {"status": "active", "deleted_at": None, "owner_user_id": owner}
+    if tenant:
+        query["tenant_id"] = tenant
     try:
         cursor = db.workflows.find(query, {"_id": 0})
         wfs = await cursor.to_list(length=500)
@@ -757,6 +787,10 @@ async def dispatch_event(db, event: Dict[str, Any]) -> Dict[str, Any]:
         return {"ok": False, "error": str(exc), "fired": 0}
 
     for wf in wfs:
+        # Defensa en profundidad: revalida el dueño en CADA workflow antes de ejecutar
+        if wf.get("owner_user_id") != owner:
+            await _audit_block(db, event, "owner_mismatch", workflow_id=wf.get("id"))
+            continue
         if not evaluate_trigger(wf, event):
             continue
         # exec_id determinístico = wf+lead+event_type+date(min granular)
@@ -782,6 +816,8 @@ async def ensure_indexes(db) -> None:
         await db.workflow_runs.create_index("execution_id", unique=False, background=True)
         # TTL 90d en started_at (Mongo TTL requires datetime BSON, started_at es datetime)
         await db.workflow_runs.create_index("started_at", expireAfterSeconds=90 * 86400, background=True, name="ttl_wfrun_90d")
+        # B5.6 · audit de dispatches bloqueados (TTL 180d · rastro forense de aislamiento)
+        await db.workflow_audit.create_index("ts", expireAfterSeconds=180 * 86400, background=True, name="ttl_wfaudit_180d")
         log.info("[workflow_engine] indexes OK")
     except Exception as exc:
         log.warning(f"[workflow_engine] ensure_indexes warning: {exc}")
