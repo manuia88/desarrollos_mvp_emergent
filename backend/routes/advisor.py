@@ -1520,10 +1520,11 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
     user = await require_advisor(request)
     db = get_db(request)
     out = []
-    name_by = {}
+    meta_by = {}
     async for c in db.asesor_contactos.find(
-            {"owner_id": user.user_id}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1}):
-        name_by[c["id"]] = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+            {"owner_id": user.user_id}, {"_id": 0, "id": 1, "first_name": 1, "last_name": 1, "temperatura": 1}):
+        meta_by[c["id"]] = {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
+                            "temp": c.get("temperatura")}
 
     # 1) Hilos de WhatsApp (agrupados por lead)
     if channel in ("", "whatsapp"):
@@ -1539,7 +1540,8 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
                 cid = t.get("_id")
                 out.append({
                     "conversation_id": "wa_" + str(cid), "channel": "whatsapp",
-                    "lead_id": cid, "lead_name": name_by.get(cid) or "WhatsApp",
+                    "lead_id": cid, "lead_name": (meta_by.get(cid) or {}).get("name") or "WhatsApp",
+                    "temperatura": (meta_by.get(cid) or {}).get("temp"),
                     "message_count": t.get("count", 0), "last_message": (t.get("last") or "")[:90],
                     "last_ts": t.get("last_ts"), "needs_reply": t.get("last_dir") == "inbound",
                     "status": "active", "sentiment": "neutral",
@@ -1557,7 +1559,8 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
             for conv in ai:
                 lid = conv.get("lead_id")
                 conv["channel"] = conv.get("channel") or "ai"
-                conv["lead_name"] = name_by.get(lid) or lid or "Chat IA"
+                conv["lead_name"] = (meta_by.get(lid) or {}).get("name") or lid or "Chat IA"
+                conv["temperatura"] = (meta_by.get(lid) or {}).get("temp")
                 conv["needs_reply"] = conv.get("status") in ("handoff", "taken_over")
                 conv["last_ts"] = conv.get("last_message_at") or conv.get("updated_at")
                 out.append(conv)
@@ -1586,7 +1589,15 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
         return s
 
     out.sort(key=lambda c: (_prio(c), _ts_key(c)), reverse=True)
-    return {"conversations": out, "count": len(out)}
+    # B7+ · pulse: estado del buzón de un vistazo
+    stats = {
+        "total": len(out),
+        "sin_responder": sum(1 for c in out if c.get("needs_reply")),
+        "whatsapp": sum(1 for c in out if c.get("channel") == "whatsapp"),
+        "ia": sum(1 for c in out if c.get("channel") != "whatsapp"),
+        "negativo": sum(1 for c in out if c.get("sentiment") == "negative"),
+    }
+    return {"conversations": out, "count": len(out), "stats": stats}
 
 
 @router.get("/contactos/{cid}/context")
@@ -1610,9 +1621,24 @@ async def lead_context(cid: str, request: Request):
         brief = build_brief(items, taste)
     except Exception:
         pass
+    # B7+ · estado del tablero (cuántas propiedades por etapa) para la columna derecha
+    _ALIAS = {"dispo": "por_verificar", "gusto": "le_gusto"}
+    board = {}
+    for it in items:
+        st = _ALIAS.get(it.get("status"), it.get("status")) or "por_verificar"
+        board[st] = board.get(st, 0) + 1
+    # B7+ · probabilidad de cierre (reusa close_probability · FAIL-OPEN)
+    close_prob = None
+    try:
+        from close_probability import close_probability
+        cp = await close_probability(db, cid)
+        close_prob = (cp or {}).get("prob") if isinstance(cp, dict) else None
+    except Exception:
+        close_prob = None
     return {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
             "phone": (c.get("phones") or [None])[0], "temperatura": c.get("temperatura"),
-            "taste": taste, "brief": brief, "board_count": len(items)}
+            "taste": taste, "brief": brief, "board_count": len(items),
+            "board": board, "close_probability": close_prob}
 
 
 @router.post("/contactos/{cid}/swipe-link")

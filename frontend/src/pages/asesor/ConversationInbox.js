@@ -5,6 +5,7 @@
 // Degrada con elegancia: lista vacía si DB sin conversaciones o sin permiso.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { MessageSquare, RefreshCw, Loader2, Search, AlertTriangle, User } from 'lucide-react';
 import SentimentHeatmap from '../../components/conversation/SentimentHeatmap';
 import SuggestedReplies from '../../components/conversation/SuggestedReplies';
@@ -29,6 +30,20 @@ function authHeaders() {
   const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
   return tk ? { Authorization: `Bearer ${tk}` } : {};
 }
+
+// B7+ · "hace cuánto" en español llano
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return '';
+  const s = Math.max(0, (Date.now() - d.getTime()) / 1000);
+  if (s < 60) return 'ahora';
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h`;
+  return `${Math.floor(s / 86400)} d`;
+}
+const TEMP_COLOR = { hot: '#F2635B', caliente: '#F2635B', warm: '#E2982E', tibio: '#E2982E', cold: '#3B82F6', frio: '#3B82F6' };
+const BOARD_LABEL = { por_verificar: 'Por verificar', enviada: 'Enviada', le_gusto: 'Le gustó', cita: 'Cita', visitada: 'Visitada', oferta: 'Oferta', descartada: 'Descartada' };
 
 // B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
 function WaCompose({ onSend, onDraft, drafting, disabled }) {
@@ -70,6 +85,9 @@ function ConversationInboxBody() {
   const [curConv, setCurConv] = useState(null);    // B6 · conv seleccionada (canal + lead_id)
   const [ctx, setCtx] = useState(null);            // B6 · contexto del lead (gusto + siguiente paso)
   const [drafting, setDrafting] = useState(false); // B6 · draft IA (reusa B5.5.2)
+  const [stats, setStats] = useState(null);        // B7+ · pulse del buzón
+  const [segment, setSegment] = useState('todas'); // B7+ · segmento activo
+  const navigate = useNavigate();
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -81,11 +99,12 @@ function ConversationInboxBody() {
       if (res.ok) {
         const data = await res.json();
         setList(Array.isArray(data.conversations) ? data.conversations : []);
+        setStats(data.stats || null);
       } else {
-        setList([]);
+        setList([]); setStats(null);
       }
     } catch {
-      setList([]);
+      setList([]); setStats(null);
     } finally {
       setLoading(false);
     }
@@ -183,13 +202,17 @@ function ConversationInboxBody() {
 
   const filtered = useMemo(() => {
     let l = list;
+    if (segment === 'sin_responder') l = l.filter((c) => c.needs_reply);
+    else if (segment === 'atencion') l = l.filter((c) => c.sentiment === 'negative');
+    else if (segment === 'whatsapp') l = l.filter((c) => c.channel === 'whatsapp');
+    else if (segment === 'ia') l = l.filter((c) => c.channel !== 'whatsapp');
     if (fSentiment) l = l.filter((c) => c.sentiment === fSentiment);
     if (fStatus) l = l.filter((c) => c.status === fStatus);
     const q = search.trim().toLowerCase();
     if (q) l = l.filter((c) =>
       `${c.lead_name || ''} ${c.lead_id || ''} ${c.last_message || ''} ${c.asesor_id || ''}`.toLowerCase().includes(q));
     return l;
-  }, [list, search, fSentiment, fStatus]);
+  }, [list, search, fSentiment, fStatus, segment]);
 
   const lastUserMessage = useMemo(() => {
     const msgs = (detail && detail.messages) || [];
@@ -217,6 +240,39 @@ function ConversationInboxBody() {
           style={{ ...selectStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
           <RefreshCw size={14} /> {t('inbox.refresh')}
         </button>
+      </div>
+
+      {/* B7+ · pulse del buzón (estado de un vistazo) */}
+      {stats && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+          {[
+            { k: 'total', label: 'Conversaciones', val: stats.total, color: 'var(--cream)' },
+            { k: 'sin', label: 'Sin responder', val: stats.sin_responder, color: '#E2982E' },
+            { k: 'neg', label: 'Necesitan atención', val: stats.negativo, color: '#F2635B' },
+            { k: 'wa', label: 'WhatsApp', val: stats.whatsapp, color: '#1FA06A' },
+          ].map((s) => (
+            <div key={s.k} style={{ flex: '1 1 130px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 23, color: s.color, lineHeight: 1 }}>{s.val}</div>
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 3 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* B7+ · segmentos de 1 clic (triage instantáneo) */}
+      <div style={{ display: 'flex', gap: 7, marginBottom: 12, flexWrap: 'wrap' }}>
+        {[
+          { k: 'todas', label: 'Todas' },
+          { k: 'sin_responder', label: 'Sin responder' },
+          { k: 'atencion', label: 'Necesitan atención' },
+          { k: 'whatsapp', label: '💬 WhatsApp' },
+          { k: 'ia', label: '🤖 IA' },
+        ].map((s) => (
+          <button key={s.k} type="button" onClick={() => setSegment(s.k)}
+            style={{ padding: '6px 12px', borderRadius: 9, border: `1px solid ${segment === s.k ? 'var(--theme-2)' : 'var(--border)'}`, background: segment === s.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface)', color: segment === s.k ? 'var(--theme-2)' : 'var(--cream-2)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+            {s.label}
+          </button>
+        ))}
       </div>
 
       {/* filters + search */}
@@ -254,7 +310,23 @@ function ConversationInboxBody() {
               <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> …
             </div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 24, color: 'var(--cream-3)', fontSize: 13 }}>{t('inbox.empty')}</div>
+            <div style={{ padding: '32px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 30, marginBottom: 10 }}>💬</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--cream)', marginBottom: 6 }}>
+                {segment === 'todas' ? 'Aún no hay conversaciones' : 'Nada en este filtro'}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--cream-3)', lineHeight: 1.5, marginBottom: 14 }}>
+                {segment === 'todas'
+                  ? 'Manda un link de propiedades o escríbele por WhatsApp a un lead desde su ficha para empezar.'
+                  : 'Prueba con otro segmento o quita los filtros.'}
+              </div>
+              {segment === 'todas' && (
+                <button type="button" onClick={() => navigate('/asesor/contactos')}
+                  style={{ padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--theme-2)', color: '#fff', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                  Ir a Mis Leads →
+                </button>
+              )}
+            </div>
           ) : filtered.map((c) => (
             <button key={c.conversation_id} type="button" onClick={() => openThread(c)}
               style={{
@@ -265,6 +337,7 @@ function ConversationInboxBody() {
               }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {c.temperatura && <span title={`Temperatura: ${c.temperatura}`} style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, display: 'inline-block', background: TEMP_COLOR[String(c.temperatura).toLowerCase()] || 'var(--cream-3)' }} />}
                   <span title={c.channel === 'whatsapp' ? 'WhatsApp' : 'Chat IA'}>{c.channel === 'whatsapp' ? '💬' : '🤖'}</span>
                   {c.lead_name || c.lead_id || (c.conversation_id || '').slice(0, 14)}
                 </span>
@@ -283,12 +356,12 @@ function ConversationInboxBody() {
                 <div style={{ fontSize: 11.5, color: 'var(--cream-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_message}</div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--cream-3)' }}>
-                <span>{c.channel === 'whatsapp' ? 'WhatsApp' : (c.asesor_id || 'Chat IA')}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {c.status === 'handoff' && <AlertTriangle size={12} style={{ color: STATUS_COLOR.handoff }} />}
                   <span style={{ color: SENTIMENT_COLOR[c.sentiment] || SENTIMENT_COLOR.neutral }}>●</span>
                   {c.message_count || 0} {t('inbox.messages')}
                 </span>
+                {c.last_ts && <span>{timeAgo(c.last_ts)}</span>}
               </div>
             </button>
           ))}
@@ -342,9 +415,9 @@ function ConversationInboxBody() {
                 <User size={16} />
                 <span style={{ fontWeight: 700, fontSize: 13 }}>{t('inbox.lead_info')}</span>
               </div>
-              <InfoRow label="Lead" value={detail.lead_id || t('inbox.no_lead')} />
-              <InfoRow label="Asesor" value={detail.asesor_id || '—'} />
-              <InfoRow label={t('inbox.channel')} value={detail.channel || '—'} />
+              <InfoRow label="Lead" value={ctx?.name || detail.lead_id || t('inbox.no_lead')} />
+              {ctx?.temperatura && <InfoRow label="Temperatura" value={ctx.temperatura} color={TEMP_COLOR[String(ctx.temperatura).toLowerCase()]} />}
+              <InfoRow label={t('inbox.channel')} value={detail.channel === 'whatsapp' ? 'WhatsApp' : (detail.channel || '—')} />
               <InfoRow label={t('inbox.filter_status')} value={t(`status.${detail.status}`, detail.status)}
                 color={STATUS_COLOR[detail.status]} />
               <InfoRow label={t('inbox.filter_sentiment')} value={t(`sentiment.${detail.sentiment}`, detail.sentiment)}
@@ -372,6 +445,47 @@ function ConversationInboxBody() {
                       <span key={f.key} style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--cream-2)' }}>{f.label}</span>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* B7+ · probabilidad de cierre (reusa close_probability) */}
+              {ctx?.close_probability != null && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--cream-3)', marginBottom: 5 }}>
+                    <span style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Probabilidad de cierre</span>
+                    <b style={{ color: 'var(--cream)' }}>{Math.round(ctx.close_probability)}%</b>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 4, background: 'var(--surface-2)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, ctx.close_probability))}%`, background: ctx.close_probability >= 60 ? '#1FA06A' : ctx.close_probability >= 35 ? '#E2982E' : '#F2635B' }} />
+                  </div>
+                </div>
+              )}
+
+              {/* B7+ · estado del tablero de propiedades */}
+              {ctx?.board && Object.keys(ctx.board).length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Tablero · {ctx.board_count} propiedades</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {Object.entries(ctx.board).map(([st, n]) => (
+                      <span key={st} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--cream-2)' }}>{BOARD_LABEL[st] || st}: <b style={{ color: 'var(--cream)' }}>{n}</b></span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* B7+ · acciones rápidas */}
+              {(detail.lead_id || curConv?.lead_id) && (
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <button type="button" onClick={() => navigate(`/asesor/contactos/${detail.lead_id || curConv?.lead_id}`)}
+                    style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
+                    👤 Ver ficha completa
+                  </button>
+                  {ctx?.phone && (
+                    <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                      style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'block' }}>
+                      📲 Abrir WhatsApp del cliente
+                    </a>
+                  )}
                 </div>
               )}
 
