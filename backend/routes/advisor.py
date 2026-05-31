@@ -1213,12 +1213,14 @@ async def get_lead_board(cid: str, request: Request):
 
 @router.post("/contactos/{cid}/board")
 async def add_lead_board_item(cid: str, payload: BoardItemIn, request: Request):
-    """Agrega una propiedad al tablero del lead (default columna 'dispo'). Si la
-    propiedad (dev_id) ya está en el tablero del lead, solo actualiza su estatus."""
+    """Agrega una propiedad al tablero del lead (default columna 'por_verificar'). Si la
+    propiedad (dev_id) ya está en el tablero del lead, solo actualiza su estatus.
+    Acepta alias legacy (dispo→por_verificar, gusto→le_gusto)."""
     user = await require_advisor(request)
     db = get_db(request)
     if not await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1}):
         raise HTTPException(404, "No encontrado")
+    payload.status = BOARD_STATUS_ALIAS.get(payload.status, payload.status)
     if payload.status not in BOARD_STATUS:
         raise HTTPException(400, "status inválido")
     existing = await db.asesor_lead_properties.find_one(
@@ -1687,13 +1689,49 @@ async def set_atlax_settings(body: AtlaxToggleIn, request: Request):
 
 @router.get("/channels")
 async def list_channels(request: Request):
-    """Omnicanal · registro de canales + estado de conexión (para los chips y 'Conectar')."""
-    await require_advisor(request)
+    """Omnicanal · registro de canales + estado de conexión + si el asesor ya pidió conectarlo
+    (para los chips de la bandeja y la pantalla 'Conectar canales')."""
+    user = await require_advisor(request)
+    db = get_db(request)
     try:
         from conversation_channels.registry import public_channels
-        return {"channels": public_channels()}
+        chans = public_channels()
     except Exception:
-        return {"channels": []}
+        chans = []
+    try:
+        reqs = await db.asesor_channel_requests.find(
+            {"owner_id": user.user_id}, {"_id": 0, "channel": 1, "status": 1, "requested_at": 1}).to_list(50)
+        by = {r["channel"]: r for r in reqs}
+        for c in chans:
+            r = by.get(c["key"])
+            c["requested"] = bool(r) and not c.get("connected")
+            c["requested_at"] = (r or {}).get("requested_at")
+    except Exception:
+        pass
+    return {"channels": chans}
+
+
+class ChannelConnectIn(BaseModel):
+    note: Optional[str] = ""
+
+
+@router.post("/channels/{key}/connect-request")
+async def request_channel_connect(key: str, payload: ChannelConnectIn, request: Request):
+    """Registra la intención del asesor de conectar este canal. Atlax responderá ahí en cuanto
+    se active el proveedor (Meta/etc). Aún no hace OAuth — deja la solicitud lista para activación."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    from conversation_channels.registry import DM_CHANNEL_KEYS
+    if key not in DM_CHANNEL_KEYS:
+        raise HTTPException(400, "Canal no válido")
+    existing = await db.asesor_channel_requests.find_one(
+        {"owner_id": user.user_id, "channel": key}, {"_id": 0})
+    if existing:
+        return {"ok": True, "channel": key, "status": existing.get("status", "requested"), "already": True}
+    doc = {"id": _uid("chreq"), "owner_id": user.user_id, "channel": key,
+           "status": "requested", "note": (payload.note or "")[:300], "requested_at": _now()}
+    await db.asesor_channel_requests.insert_one(dict(doc))
+    return {"ok": True, "channel": key, "status": "requested", "already": False}
 
 
 @router.get("/contactos/{cid}/conversation-ai")

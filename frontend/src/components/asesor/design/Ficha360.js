@@ -512,12 +512,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     catch (_) { toast('error', 'No se pudo confirmar'); }
   };
 
-  // B5.1 · Agregar una coincidencia de búsqueda al tablero (columna 'dispo').
+  // B5.1 · Agregar una coincidencia de búsqueda al tablero (primera columna · 'por_verificar').
   const addToBoard = async (m) => {
     try {
       const created = await api.addLeadBoardItem(cid, {
         dev_id: m.dev_id, name: m.name || '', price: m.price_from || null,
-        colonia: m.colonia || '', addr: m.address || '', specs: m.specs || [], status: 'dispo',
+        colonia: m.colonia || '', addr: m.address || '', specs: m.specs || [], status: 'por_verificar',
       });
       setBoard((b) => {
         const items = (b?.items || []).filter((x) => x.dev_id !== created.dev_id);

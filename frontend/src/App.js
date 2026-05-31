@@ -114,6 +114,8 @@ const SuperadminConversations = lazy(() => import('./components/superadmin/Super
 const SuperadminAbTesting = lazy(() => import('./components/superadmin/SuperadminAbTesting'));
 // W7.AS.3.D — Round 2 · UI Advanced (Inbox asesor + KB Gaps superadmin)
 const ConversationInbox = lazy(() => import('./pages/asesor/ConversationInbox'));
+// Omnicanal · Conectar canales (asesor vincula WhatsApp/Meta/etc para que Atlax responda)
+const CanalesPage = lazy(() => import('./pages/portal/asesor/CanalesPage'));
 const SuperadminKbGaps = lazy(() => import('./components/superadmin/SuperadminKbGaps'));
 // W7.AS.3.F — Round 2 · Cost dashboard (Terminal F · post-merge activado).
 const SuperadminConversationCost = lazy(() => import('./components/superadmin/SuperadminConversationCost'));
@@ -710,6 +712,7 @@ function AppRouter() {
       <Route path="/superadmin/ab-testing" element={<SuperadminRoute Page={SuperadminAbTesting} />} />
       {/* W7.AS.3.D — Round 2 · Inbox avanzado + KB Gaps */}
       <Route path="/portal/asesor/conversation-inbox" element={<AdvisorRoute Page={ConversationInbox} />} />
+      <Route path="/portal/asesor/canales" element={<AdvisorRoute Page={CanalesPage} />} />
       <Route path="/superadmin/kb-gaps" element={<SuperadminRoute Page={SuperadminKbGaps} />} />
       {/* W7.AS.3.F — Round 2 · Cost dashboard */}
       <Route path="/superadmin/conversation-cost" element={<SuperadminRoute Page={SuperadminConversationCost} />} />

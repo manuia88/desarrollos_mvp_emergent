@@ -76,8 +76,9 @@ export const ASESOR_NAV_V2 = [
     key: 'conversaciones-ia', to: '/portal/asesor/conversation-playground', label: 'Conversaciones IA', Icon: MessageCircle,
     description: 'Agente IA califica leads · bandeja Slack-style · handoff',
     children: [
-      { key: 'playground', to: '/portal/asesor/conversation-playground', label: 'Playground IA', Icon: MessageCircle },
-      { key: 'inbox',      to: '/portal/asesor/conversation-inbox',      label: 'Bandeja IA',    Icon: MessageSquare },
+      { key: 'playground', to: '/portal/asesor/conversation-playground', label: 'Playground IA',    Icon: MessageCircle },
+      { key: 'inbox',      to: '/portal/asesor/conversation-inbox',      label: 'Bandeja IA',       Icon: MessageSquare },
+      { key: 'canales',    to: '/portal/asesor/canales',                label: 'Conectar canales', Icon: Share2 },
     ],
   },
   // 6 · Automatizaciones
