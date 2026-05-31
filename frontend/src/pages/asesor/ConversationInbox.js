@@ -13,6 +13,7 @@ import LiveTakeover from '../../components/conversation/LiveTakeover';
 import ConfidenceIndicator from '../../components/conversation/ConfidenceIndicator';
 import PortalLayout from '../../components/shared/PortalLayout';
 import Ficha360 from '../../components/asesor/design/Ficha360';
+import { FaWhatsapp, FaFacebookMessenger, FaInstagram, FaLinkedinIn, FaTiktok, FaYoutube, FaRobot } from 'react-icons/fa6';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 const SENTIMENT_COLOR = {
@@ -53,9 +54,22 @@ const CHANNEL_LABEL = {
   ai: '🤖 Atlax', web: '🤖 Atlax',
 };
 const CHANNEL_ACCENT = {
-  whatsapp: '#1FA06A', messenger: '#0084FF', instagram: '#C13584',
-  linkedin: '#0A66C2', tiktok: '#111111', youtube: '#FF0000', ai: 'var(--theme-2)',
+  whatsapp: '#25D366', messenger: '#0084FF', instagram: '#E1306C',
+  linkedin: '#0A66C2', tiktok: '#010101', youtube: '#FF0000', ai: '#5B37E0',
 };
+// Logos de marca reales (founder: logos originales, sin nombres · menos amontonado)
+const CHANNEL_ICON = {
+  whatsapp: FaWhatsapp, messenger: FaFacebookMessenger, instagram: FaInstagram,
+  linkedin: FaLinkedinIn, tiktok: FaTiktok, youtube: FaYoutube, ai: FaRobot, web: FaRobot,
+};
+const CHANNEL_NAME = {
+  whatsapp: 'WhatsApp', messenger: 'Messenger', instagram: 'Instagram',
+  linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube', ai: 'Atlax', web: 'Atlax',
+};
+function ChannelLogo({ ch, size = 15 }) {
+  const Icon = CHANNEL_ICON[ch] || FaRobot;
+  return <Icon size={size} style={{ color: CHANNEL_ACCENT[ch] || 'var(--cream-2)' }} title={CHANNEL_NAME[ch] || ch} />;
+}
 
 // B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
 function WaCompose({ onSend, onDraft, drafting, disabled, seed }) {
@@ -274,16 +288,16 @@ function ConversationInboxBody({ user }) {
           { k: 'sin_responder', label: 'Sin responder', n: stats?.sin_responder, accent: '#E2982E' },
           { k: 'atencion', label: 'Necesitan atención', n: stats?.atencion, accent: '#F2635B' },
           { k: 'calientes', label: '🔥 Calientes', n: stats?.calientes, accent: '#F2635B' },
-          // un chip por canal de mensajería (data-driven · alineado al registro) + IA
-          ...DM.map((ck) => ({ k: ck, label: CHANNEL_LABEL[ck], n: stats?.[ck], accent: CHANNEL_ACCENT[ck] })),
-          { k: 'ia', label: CHANNEL_LABEL.ai, n: stats?.ia, accent: 'var(--theme-2)' },
+          // canales: solo el LOGO de marca + contador (founder: sin nombres, menos amontonado)
+          ...DM.map((ck) => ({ k: ck, ch: ck, n: stats?.[ck], accent: CHANNEL_ACCENT[ck] })),
+          { k: 'ia', ch: 'ai', n: stats?.ia, accent: '#5B37E0' },
         ].map((s) => {
           const on = segment === s.k;
           return (
-            <button key={s.k} type="button" onClick={() => setSegment(s.k)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700,
-                border: `1px solid ${on ? s.accent : 'var(--border)'}`, background: on ? 'var(--surface)' : 'var(--surface)', color: on ? s.accent : 'var(--cream-2)', boxShadow: on ? `inset 0 0 0 1px ${s.accent}` : 'none' }}>
-              {s.label}
+            <button key={s.k} type="button" onClick={() => setSegment(s.k)} title={s.ch ? CHANNEL_NAME[s.ch] : s.label}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: s.ch ? '7px 11px' : '7px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700,
+                border: `1px solid ${on ? s.accent : 'var(--border)'}`, background: 'var(--surface)', color: on ? s.accent : 'var(--cream-2)', boxShadow: on ? `inset 0 0 0 1px ${s.accent}` : 'none' }}>
+              {s.ch ? <ChannelLogo ch={s.ch} size={16} /> : s.label}
               <span style={{ minWidth: 18, textAlign: 'center', fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: on ? s.accent : 'var(--surface-2)', color: on ? '#fff' : 'var(--cream-3)' }}>{s.n ?? 0}</span>
             </button>
           );
@@ -327,7 +341,7 @@ function ConversationInboxBody({ user }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {c.temperatura && <span title={`Temperatura: ${c.temperatura}`} style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, display: 'inline-block', background: TEMP_COLOR[String(c.temperatura).toLowerCase()] || 'var(--cream-3)' }} />}
-                  <span title={(CHANNEL_LABEL[c.channel] || '').replace(/^[^ ]+ /, '') || 'Chat IA'}>{(CHANNEL_LABEL[c.channel] || '🤖').split(' ')[0]}</span>
+                  <span style={{ display: 'inline-flex', flexShrink: 0 }}><ChannelLogo ch={c.channel} size={14} /></span>
                   {c.lead_name || c.lead_id || (c.conversation_id || '').slice(0, 14)}
                 </span>
                 <span style={{ display: 'flex', gap: 5, alignItems: 'center', flex: '0 0 auto' }}>
@@ -461,7 +475,7 @@ function ConversationInboxBody({ user }) {
 
               <InfoRow label="Lead" value={ctx?.name || detail.lead_id || t('inbox.no_lead')} />
               {ctx?.temperatura && <InfoRow label="Temperatura" value={ctx.temperatura} color={TEMP_COLOR[String(ctx.temperatura).toLowerCase()]} />}
-              <InfoRow label={t('inbox.channel')} value={CHANNEL_LABEL[detail.channel] || detail.channel || '—'} />
+              <InfoRow label={t('inbox.channel')} value={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ChannelLogo ch={detail.channel} size={14} /> {CHANNEL_NAME[detail.channel] || detail.channel || '—'}</span>} />
               <InfoRow label={t('inbox.filter_status')} value={t(`status.${detail.status}`, detail.status)}
                 color={STATUS_COLOR[detail.status]} />
               {detail.sentiment && !DM.includes(detail.channel) && (
