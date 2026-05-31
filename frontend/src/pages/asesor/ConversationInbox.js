@@ -249,6 +249,13 @@ function ConversationInboxBody({ user }) {
         </button>
       </div>
 
+      {/* Buscador compacto · arriba de los filtros (founder: chico, no ocupa toda la pantalla) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...selectStyle, padding: '0 10px', width: 280, maxWidth: '100%', marginBottom: 10 }}>
+        <Search size={14} style={{ color: 'var(--cream-3)' }} />
+        <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
+          style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
+      </div>
+
       {/* B7+ · UNA fila de filtros con contador (clic = filtra · cada chip revela un estado) */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         {[
@@ -270,15 +277,6 @@ function ConversationInboxBody({ user }) {
             </button>
           );
         })}
-      </div>
-
-      {/* filters + search */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...selectStyle, padding: '0 10px', flex: '1 1 220px' }}>
-          <Search size={14} style={{ color: 'var(--cream-3)' }} />
-          <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
-            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
-        </div>
       </div>
 
       {/* 3 columns · altura acotada para que la caja de escribir entre sin scroll de página */}
