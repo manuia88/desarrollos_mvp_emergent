@@ -3,7 +3,7 @@
 //   2) hilo abierto: timeline + SentimentHeatmap inline + SuggestedReplies (modo piloto)
 //   3) sidebar derecho: info del lead + acciones sugeridas + LiveTakeover
 // Degrada con elegancia: lista vacía si DB sin conversaciones o sin permiso.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, RefreshCw, Loader2, Search, AlertTriangle, User } from 'lucide-react';
@@ -72,24 +72,66 @@ function ChannelLogo({ ch, size = 15 }) {
 }
 
 // B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
-function WaCompose({ onSend, onDraft, drafting, disabled, seed }) {
+function WaCompose({ onSend, onDraft, drafting, disabled, seed, recProp }) {
   const [text, setText] = useState('');
+  const [attached, setAttached] = useState(null);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const fileRef = useRef(null);
+  const acceptRef = useRef('image/*');
   useEffect(() => { if (seed) setText(seed); }, [seed]);  // "Usar" desde la IA en vivo llena la caja
-  const send = async () => { const tt = text.trim(); if (!tt) return; await onSend(tt); setText(''); };
+  const send = async () => {
+    let tt = text.trim();
+    if (attached) tt = (tt ? tt + '\n' : '') + `📎 ${attached.name}`;
+    if (!tt) return;
+    await onSend(tt); setText(''); setAttached(null);
+  };
   const draft = async () => { const d = await onDraft(); if (d) setText(d); };
+  const pickFile = (accept) => { acceptRef.current = accept; setAttachOpen(false); if (fileRef.current) { fileRef.current.accept = accept; fileRef.current.click(); } };
+  const onFile = (e) => { const f = e.target.files && e.target.files[0]; if (f) setAttached({ name: f.name }); e.target.value = ''; };
+  const attachProperty = () => {
+    setAttachOpen(false);
+    if (recProp) setText(`Te recomiendo ${recProp.name}${recProp.colonia ? ` en ${recProp.colonia}` : ''} — creo que te va a encantar. ¿Te la mando? 🙌`);
+    else setText((t) => (t ? t + ' ' : '') + '[propiedad] ');
+  };
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-      <button type="button" onClick={draft} disabled={drafting}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', marginBottom: 8, borderRadius: 7, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.12)', color: 'var(--theme-primary, #818CF8)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, cursor: drafting ? 'default' : 'pointer' }}>
-        ✨ {drafting ? 'Redactando…' : 'Redactar con IA'}
-      </button>
+      <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={onFile} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, position: 'relative', flexWrap: 'wrap' }}>
+        <button type="button" onClick={draft} disabled={drafting}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.12)', color: 'var(--theme-primary, #818CF8)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, cursor: drafting ? 'default' : 'pointer' }}>
+          ✨ {drafting ? 'Redactando…' : 'Redactar con IA'}
+        </button>
+        <button type="button" onClick={() => setAttachOpen((o) => !o)} disabled={disabled} data-testid="asr-attach-btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+          📎 Adjuntar
+        </button>
+        {attachOpen && (
+          <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 6, zIndex: 30, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(20,16,40,0.15)', padding: 5, display: 'flex', flexDirection: 'column', minWidth: 160 }}>
+            {[
+              { label: '🏠 Propiedad', fn: attachProperty },
+              { label: '🖼️ Foto', fn: () => pickFile('image/*') },
+              { label: '🎬 Video', fn: () => pickFile('video/*') },
+              { label: '📄 Documento', fn: () => pickFile('.pdf,.doc,.docx,application/pdf') },
+            ].map((o) => (
+              <button key={o.label} type="button" onClick={o.fn}
+                style={{ textAlign: 'left', padding: '8px 10px', borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, cursor: 'pointer' }}>{o.label}</button>
+            ))}
+          </div>
+        )}
+      </div>
+      {attached && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 8, padding: '5px 10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--cream)' }}>
+          📎 {attached.name}
+          <button type="button" onClick={() => setAttached(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 14, lineHeight: 1 }}>×</button>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} disabled={disabled}
           placeholder="Escribe tu mensaje…"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           style={{ flex: 1, resize: 'none', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
-        <button type="button" onClick={send} disabled={disabled || !text.trim()}
-          style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: '#0b1f12', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || !text.trim()) ? 'default' : 'pointer', opacity: (disabled || !text.trim()) ? 0.5 : 1 }}>
+        <button type="button" onClick={send} disabled={disabled || (!text.trim() && !attached)}
+          style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: '#0b1f12', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || (!text.trim() && !attached)) ? 'default' : 'pointer', opacity: (disabled || (!text.trim() && !attached)) ? 0.5 : 1 }}>
           Enviar →
         </button>
       </div>
@@ -273,17 +315,12 @@ function ConversationInboxBody({ user }) {
           <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 22, margin: 0 }}>{t('inbox.title')}</h1>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-3)' }}>{t('inbox.subtitle')}</p>
         </div>
-        <button type="button" onClick={loadList}
-          style={{ ...selectStyle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <RefreshCw size={14} /> {t('inbox.refresh')}
-        </button>
-      </div>
-
-      {/* Buscador compacto · arriba de los filtros (founder: chico, no ocupa toda la pantalla) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...selectStyle, padding: '0 10px', width: 280, maxWidth: '100%', marginBottom: 10 }}>
-        <Search size={14} style={{ color: 'var(--cream-3)' }} />
-        <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
-          style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
+        {/* Buscador en el lugar de "Actualizar" (founder: ya refresca solo · liberamos la fila) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, ...selectStyle, padding: '0 10px', width: 280, maxWidth: '40vw' }}>
+          <Search size={14} style={{ color: 'var(--cream-3)' }} />
+          <input placeholder={t('inbox.search')} value={search} onChange={(e) => setSearch(e.target.value)}
+            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--cream)', fontSize: 12.5, padding: '7px 0', width: '100%' }} />
+        </div>
       </div>
 
       {/* B7+ · UNA fila de filtros con contador (clic = filtra · cada chip revela un estado) */}
@@ -422,7 +459,7 @@ function ConversationInboxBody({ user }) {
                       )}
                     </div>
                   )}
-                  <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} seed={composeSeed} />
+                  <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} seed={composeSeed} recProp={convAI?.recomendacion} />
                 </>
               ) : (
                 <SuggestedReplies lastUserMessage={lastUserMessage} onSend={sendAsAsesor}
