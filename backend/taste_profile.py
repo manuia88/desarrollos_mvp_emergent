@@ -1,0 +1,175 @@
+"""B5.4 Capa 3 · El perfil de gusto.
+
+Une las 3 fuentes en un retrato del cliente:
+  - Capa 1 (asesor_swipe_events): tiempo por foto, regresos, abrir detalle, velocidad de decisión.
+  - Capa 2 (asesor_photo_tags): qué cuarto/característica es cada foto.
+  - B5.3 (asesor_lead_properties): qué propiedades aceptó/rechazó + zona/precio.
+
+Salida (asesor_taste_profile): cuartos que le importan, características, zona, precio,
+en POSITIVO Y negativo, + nivel de confianza (no mostrar 92% con 1 swipe).
+
+Honestidad: el tiempo tiene ruido → SIEMPRE se combina con lo explícito (👍/👎 + motivo).
+El dwell de una foto cuenta como interés en ESE tipo de cuarto, amplificado si la
+propiedad terminó gustando, atenuado si se rechazó. Los regresos pesan más que el tiempo.
+"""
+
+from collections import defaultdict
+from datetime import datetime, timezone
+
+POSITIVE_STATUS = {"le_gusto", "cita", "visitada", "oferta"}
+STATUS_ALIAS = {"dispo": "por_verificar", "gusto": "le_gusto"}  # normaliza estatus viejos
+
+
+def _st(item):
+    return STATUS_ALIAS.get(item.get("status"), item.get("status")) if item else None
+
+FEATURE_ES = {
+    "luz_natural": "luz natural", "ventanal": "ventanales", "moderno": "estilo moderno",
+    "lujo": "acabados premium", "amplio": "espacios amplios", "vista_ciudad": "vista a la ciudad",
+    "madera": "madera", "verde": "áreas verdes",
+}
+ROOM_ES = {
+    "sala": "salas", "recamara": "recámaras", "cocina": "cocinas", "bano": "baños",
+    "comedor": "comedores", "terraza": "terrazas", "vista": "vistas", "amenidad": "amenidades",
+    "fachada": "fachadas", "interior": "interiores",
+}
+
+
+def _now():
+    return datetime.now(timezone.utc)
+
+
+def _norm(d: dict, cap: int = 100):
+    """dict {k:peso} → lista ordenada [{key,score 0-cap}] (relativo al máximo)."""
+    if not d:
+        return []
+    mx = max(d.values()) or 1
+    out = [{"key": k, "score": int(round(cap * v / mx))} for k, v in d.items()]
+    out.sort(key=lambda x: x["score"], reverse=True)
+    return out
+
+
+async def build_taste_profile(db, owner_id: str, contacto_id: str, persist: bool = True) -> dict:
+    """Construye (y persiste) el perfil de gusto del lead. Idempotente, recalcula cada vez."""
+    q = {"owner_id": owner_id, "contacto_id": contacto_id}
+
+    items = await db.asesor_lead_properties.find(q, {"_id": 0}).to_list(300)
+    items_by_id = {it.get("id"): it for it in items}
+    dev_ids = list({it.get("dev_id") for it in items if it.get("dev_id")})
+
+    # photo_tags de los devs en juego → (dev_id, photo_idx) → tag
+    tags_by = {}
+    if dev_ids:
+        async for t in db.asesor_photo_tags.find({"dev_id": {"$in": dev_ids}}, {"_id": 0}):
+            tags_by[(t.get("dev_id"), t.get("photo_idx"))] = t
+
+    events = await db.asesor_swipe_events.find(q, {"_id": 0}).to_list(2000)
+
+    rooms = defaultdict(float)
+    room_labels = {}
+    feats = defaultdict(float)
+    n_photo, n_return, n_detail, n_decision = 0, 0, 0, 0
+
+    def _item_mult(item):
+        if not item:
+            return 1.0
+        st = _st(item)
+        if st in POSITIVE_STATUS:
+            return 1.6   # lo que miró en algo que le gustó pesa más
+        if st == "descartada":
+            return 0.7   # lo que miró en algo que rechazó pesa menos (pero no cero: la foto le llamó)
+        return 1.0
+
+    for ev in events:
+        t = ev.get("type")
+        item = items_by_id.get(ev.get("item_id"))
+        mult = _item_mult(item)
+        dev_id = ev.get("dev_id") or (item.get("dev_id") if item else None)
+        tag = tags_by.get((dev_id, ev.get("photo_idx")))
+        if t == "photo_view":
+            n_photo += 1
+            secs = (ev.get("dwell_ms") or 0) / 1000.0
+            if tag and secs > 0:
+                rooms[tag["room"]] += secs * mult
+                room_labels[tag["room"]] = tag.get("room_label")
+                for f in (tag.get("features") or []):
+                    feats[f] += secs * 0.5 * mult
+        elif t == "photo_return":
+            n_return += 1
+            if tag:
+                rooms[tag["room"]] += 4.0 * mult   # regreso = señal fuerte
+                room_labels[tag["room"]] = tag.get("room_label")
+                for f in (tag.get("features") or []):
+                    feats[f] += 2.0 * mult
+        elif t in ("detail_open", "detail_dwell"):
+            n_detail += 1
+        elif t == "decision":
+            n_decision += 1
+
+    # Zona y precio (preferencia revelada de los swipes — reusa la lógica de B5.3)
+    liked_col, rejected_col, liked_prices = set(), set(), []
+    budget_ceiling = None
+    for it in items:
+        col = (it.get("colonia") or "").strip()
+        st = _st(it)
+        price = it.get("price")
+        if st in POSITIVE_STATUS:
+            if col:
+                liked_col.add(col)
+            if price:
+                liked_prices.append(int(price))
+        elif st == "descartada":
+            r = (it.get("pass_reason") or "").lower()
+            if "presupuesto" in r and price:
+                budget_ceiling = min(budget_ceiling, int(price)) if budget_ceiling else int(price)
+            if "colonia" in r and col:
+                rejected_col.add(col)
+
+    rooms_n = [{"room": x["key"], "label": room_labels.get(x["key"]) or ROOM_ES.get(x["key"], x["key"]).capitalize(),
+                "score": x["score"]} for x in _norm(rooms)][:4]
+    feats_n = [{"key": x["key"], "label": FEATURE_ES.get(x["key"], x["key"]), "score": x["score"]}
+               for x in _norm(feats)][:4]
+
+    # Confianza: cuánta señal real hay (no inflar con pocos datos)
+    signal = n_decision * 7 + n_photo * 1.5 + n_return * 4 + n_detail * 3 + len(liked_col) * 5
+    confidence = int(min(92, max(8, round(signal))))
+    conf_label = "alta" if confidence >= 70 else "media" if confidence >= 40 else "baja"
+
+    typical = sorted(liked_prices)[len(liked_prices) // 2] if liked_prices else None
+
+    profile = {
+        "owner_id": owner_id, "contacto_id": contacto_id,
+        "rooms": rooms_n, "features": feats_n,
+        "zone": {"liked": sorted(liked_col), "rejected": sorted(rejected_col)},
+        "price": {"ceiling": budget_ceiling, "typical": typical},
+        "confidence": confidence, "confidence_label": conf_label,
+        "signal_count": int(n_decision + n_photo + n_return + n_detail),
+        "counts": {"decisions": n_decision, "photo_views": n_photo, "returns": n_return, "details": n_detail},
+        "updated_at": _now(),
+    }
+
+    if persist:
+        try:
+            await db.asesor_taste_profile.update_one(
+                q, {"$set": profile}, upsert=True)
+        except Exception:
+            pass
+    profile.pop("_id", None)
+    return profile
+
+
+def taste_summary_line(profile: dict) -> str:
+    """Una línea en español llano para el asesor: lo que le importa al lead."""
+    if not profile:
+        return ""
+    bits = []
+    rooms = [r["label"].lower() for r in (profile.get("rooms") or [])[:2]]
+    feats = [f["label"] for f in (profile.get("features") or [])[:2]]
+    if rooms:
+        bits.append("se fija en " + " y ".join(rooms))
+    if feats:
+        bits.append("le importa " + " y ".join(feats))
+    z = profile.get("zone", {}).get("liked") or []
+    if z:
+        bits.append("zona " + ", ".join(z[:2]))
+    return " · ".join(bits)

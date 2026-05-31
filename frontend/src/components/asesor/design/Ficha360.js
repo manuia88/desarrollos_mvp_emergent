@@ -947,6 +947,31 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                     </div>
                   )}
 
+                  {/* B5.4 Capa 3 · Perfil de gusto — solo cuando hay señal real (no inflar) */}
+                  {board?.taste && ((board.taste.rooms || []).length > 0 || (board.taste.zone?.liked || []).length > 0) && (
+                    <div style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 12, background: 'rgba(var(--theme-rgb),0.06)', border: '1px solid rgba(var(--theme-rgb),0.18)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                        <Sparkles size={14} style={{ color: 'var(--theme-2)' }} />
+                        <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 13, color: 'var(--cream)' }}>Perfil de gusto de {c.first_name}</b>
+                        <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                          confianza {board.taste.confidence_label} · {board.taste.signal_count} señales
+                        </span>
+                      </div>
+                      {board.taste.summary && <div style={{ fontSize: 12.5, color: 'var(--cream-2, var(--cream))', marginBottom: 9, lineHeight: 1.5 }}>{board.taste.summary}</div>}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {(board.taste.rooms || []).map((r) => (
+                          <span key={r.room} style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 9px', borderRadius: 7, background: 'rgba(var(--theme-rgb),0.12)', color: 'var(--theme-2)' }}>{r.label} <span style={{ opacity: 0.7 }}>{r.score}%</span></span>
+                        ))}
+                        {(board.taste.features || []).slice(0, 3).map((f) => (
+                          <span key={f.key} style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 9px', borderRadius: 7, background: 'var(--surface-2)', color: 'var(--cream-2, var(--cream))', border: '1px solid var(--border)' }}>{f.label}</span>
+                        ))}
+                      </div>
+                      {(board.taste.zone?.rejected || []).length > 0 && (
+                        <div style={{ fontSize: 11, color: 'var(--cold, #ef6b6b)', marginTop: 8 }}>⚠ Evita: {board.taste.zone.rejected.join(', ')}</div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Tablero por estatus · arrastra las tarjetas entre columnas */}
                   <div className="asr-pk">
                     {BOARD_STATUS.map((st) => {

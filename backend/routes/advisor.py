@@ -1182,8 +1182,17 @@ async def get_lead_board(cid: str, request: Request):
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")
     views = sum(int(it.get("views") or 0) for it in items)
+    # B5.4 Capa 3 · perfil de gusto (eventos + cuartos + swipes) · FAIL-OPEN.
+    taste = None
+    try:
+        from taste_profile import build_taste_profile, taste_summary_line
+        taste = await build_taste_profile(db, user.user_id, cid)
+        taste["summary"] = taste_summary_line(taste)
+    except Exception:
+        taste = None
     return {"items": items, "statuses": BOARD_STATUS,
-            "engagement": {"views": views, "up": up, "down": down}}
+            "engagement": {"views": views, "up": up, "down": down},
+            "taste": taste}
 
 
 @router.post("/contactos/{cid}/board")
