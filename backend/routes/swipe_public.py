@@ -111,6 +111,11 @@ async def swipe_view(token: str, request: Request):
         aggregate_signals = match_for = None
         signals = {}
         profile = None
+    # B5.4 Capa 2 · entender las fotos (cuarto + características por foto, cacheado).
+    try:
+        from photo_tagger import ensure_tags
+    except Exception:
+        ensure_tags = None
     cards = []
     for it in items:
         dev = devs.get(it.get("dev_id")) or {}
@@ -120,6 +125,12 @@ async def swipe_view(token: str, request: Request):
                 c["match"] = match_for(profile, signals, dev, listed_price=it.get("price"))
             except Exception:
                 pass
+        if ensure_tags:
+            try:
+                tags = await ensure_tags(db, it.get("dev_id"), (dev.get("photos") or [])[:6])
+                c["photo_tags"] = [{"room": t["room"], "room_label": t["room_label"], "features": t["features"]} for t in tags]
+            except Exception:
+                c["photo_tags"] = []
         cards.append(c)
     up = sum(1 for it in items if it.get("thumb") == "up")
     down = sum(1 for it in items if it.get("thumb") == "down")

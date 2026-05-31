@@ -171,6 +171,8 @@
   .gal .gb{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.55),transparent 55%);z-index:1}
   .gal .pp{position:absolute;bottom:13px;left:14px;z-index:3;color:#fff;font-family:'Outfit';font-weight:800;font-size:22px;text-shadow:0 2px 10px rgba(0,0,0,.45)}
   .gal .dots{top:auto;bottom:11px;padding:0 14px}
+  .gal .rmtag{position:absolute;top:11px;left:12px;z-index:3;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:11px;padding:5px 11px;border-radius:20px;letter-spacing:.2px;display:flex;align-items:center;gap:5px}
+  .gal .rmtag b{font-weight:700;opacity:.75;font-size:10px}
   .verdict{background:linear-gradient(135deg,rgba(109,74,255,.1),rgba(255,92,168,.08));border:1px solid rgba(109,74,255,.22);border-radius:16px;padding:15px;margin-bottom:14px}
   .verdict .vt{display:flex;align-items:center;gap:11px;margin-bottom:11px}
   .verdict .vp{font-family:'Outfit';font-weight:800;font-size:30px;color:var(--theme);line-height:1}
@@ -337,7 +339,7 @@
       p:fmtPrice(it.price),m2:(sp.find(s=>/m²|m2/i.test(s))||''),specs:sp,
       photos:(it.photos||[]),vibes:(it.amenities||[]),story:it.description||'',
       preventa:!!it.preventa,delivery:it.delivery||'',units:it.units_available,match:it.match||null,
-      status:it.status,thumb:it.thumb};}
+      photo_tags:(it.photo_tags||[]),status:it.status,thumb:it.thumb};}
   function api(path,body){try{return fetch(`${API}/api/swipe/${TOKEN}${path}`,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:undefined).catch(()=>{});}catch(_){}}
   function postVote(p,thumb,reason){if(p&&p.id)api('/vote',{item_id:p.id,thumb,reason:reason||''});}
   /* B5.4 Capa 1 · Captura conductual: el cliente NO dice "me gustó la sala", lo REVELA
@@ -497,6 +499,10 @@
   function setSheetFoot(){const f=document.getElementById('sheetfoot'),id=curProp.id;
     if(fromSaved)f.innerHTML=`<button class="sec" onclick="openAgendar('${id}')" title="Agendar">📅</button><button class="sec" onclick="openNota('${id}')" title="Nota">📝</button><button class="like" style="flex:1" onclick="closeSheet();openSaved()">← Volver a mis guardados</button>`;
     else f.innerHTML=`<button class="sec" onclick="openAgendar('${id}')" title="Agendar">📅</button><button class="sec" onclick="openNota('${id}')" title="Nota">📝</button><button class="no" onclick="closeSheet();swipe('no')">👎</button><button class="like" style="flex:1.4" onclick="closeSheet();swipe('like')">👍 Me gusta</button>`;}
+  /* B5.4 Capa 2 · etiqueta del cuarto por foto (de photo_tags del API) */
+  const FEAT_ES={luz_natural:'con luz',ventanal:'ventanal',moderno:'moderno',lujo:'premium',amplio:'amplio',vista_ciudad:'vista ciudad',madera:'madera',verde:'áreas verdes'};
+  function roomTagInner(p,i){const t=(p.photo_tags||[])[i]||{};if(!t.room_label)return '';const f=(t.features||[])[0];return `${t.room_label}${f&&FEAT_ES[f]?` <b>· ${FEAT_ES[f]}</b>`:''}`;}
+  function roomTag(p,i){const inner=roomTagInner(p,i);return `<div class="rmtag" id="rmtag" style="${inner?'':'display:none'}">${inner}</div>`;}
   function renderSheet(){
     const p=curProp;
     const imgs=(p.photos&&p.photos.length)?p.photos:[];
@@ -511,7 +517,7 @@
     const verdict=m?`<div class="verdict"><div class="vt"><div class="vp">${m.score}%</div><div class="vl"><b>${m.score>=80?'Encaja muy bien contigo':m.score>=65?'Buena opción para ti':'Échale un ojo'}</b><span>según lo que nos dijiste + tus swipes</span></div></div>${(m.reasons&&m.reasons.length)?`<div class="rlist">${m.reasons.map(r=>`<div class="r ${r.k==='warn'?'warn':'ok'}"><span class="ic">${r.k==='warn'?'!':'✓'}</span><span>${r.t}</span></div>`).join('')}</div>`:''}</div>`:'';
     document.getElementById('sh-ttl').textContent=p.t;
     document.getElementById('sh-body').innerHTML=`
-      <div class="gal">${slides}<div class="gb"></div>${arrows}${dots}<div class="pp">${p.p}${p.m2?` <span style="font-size:13px;font-weight:600;opacity:.9">· ${p.m2.replace('📐 ','')}</span>`:''}</div></div>
+      <div class="gal">${slides}<div class="gb"></div>${arrows}${dots}${roomTag(p,gIdx)}<div class="pp">${p.p}${p.m2?` <span style="font-size:13px;font-weight:600;opacity:.9">· ${p.m2.replace('📐 ','')}</span>`:''}</div></div>
       ${verdict}
       ${specs?`<div class="seclbl">🏠 Lo básico</div><div class="specs" style="border:none;padding:0">${specs}</div>`:''}
       ${vibes?`<div class="seclbl">🏷️ Amenidades</div><div class="vibes">${vibes}</div>`:''}
@@ -520,7 +526,7 @@
       <div class="seclbl">📍 Ubicación</div>
       <div class="map"><div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="pin">📍</div><a href="${gmaps(p)}" target="_blank">Ver en Google Maps →</a></div>`;
   }
-  function galMove(d){const p=curProp,n=(p.photos||[]).length;if(n<2)return;gIdx=(gIdx+d+n)%n;EV.detailPhoto(gIdx);const g=document.querySelector('#sh-body .gal');g.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on',i===gIdx));g.querySelectorAll('.dots i').forEach((dd,i)=>dd.classList.toggle('on',i===gIdx));}
+  function galMove(d){const p=curProp,n=(p.photos||[]).length;if(n<2)return;gIdx=(gIdx+d+n)%n;EV.detailPhoto(gIdx);const g=document.querySelector('#sh-body .gal');g.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('on',i===gIdx));g.querySelectorAll('.dots i').forEach((dd,i)=>dd.classList.toggle('on',i===gIdx));const rt=document.getElementById('rmtag');if(rt){const inner=roomTagInner(p,gIdx);rt.innerHTML=inner;rt.style.display=inner?'':'none';}}
   function backSheet(){if(fromSaved){closeSheet();openSaved();}else closeSheet();}
   function closeSheet(){EV.detailClose();document.getElementById('sheet').classList.remove('show');}
   // Acciones del plan (recorrido / crédito / comparar)
