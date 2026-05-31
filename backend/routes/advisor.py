@@ -1249,6 +1249,50 @@ async def delete_lead_board_item(item_id: str, request: Request):
     return {"ok": True}
 
 
+@router.get("/contactos/{cid}/suggestions")
+async def lead_suggestions(cid: str, request: Request):
+    """B5.3 · Recomendador — inventario rankeado por match para ESTE lead.
+
+    El asesor abre "+ Agregar propiedad" y, en vez de ver el catálogo crudo, lo ve
+    ORDENADO por lo que le encaja al cliente (mismo motor explicable que las tarjetas).
+    Excluye lo que ya está en el tablero. Top-N con su % + la razón #1 (1 toque = agregar).
+    """
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one(
+        {"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    items = await db.asesor_lead_properties.find(
+        {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}).to_list(300)
+    on_board = {it.get("dev_id") for it in items if it.get("dev_id")}
+    out = []
+    try:
+        from lead_match import aggregate_signals, match_for
+        from data_developments import DEVELOPMENTS
+        sig = aggregate_signals(items)
+        prof = await db.asesor_swipe_profiles.find_one(
+            {"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0})
+        for d in DEVELOPMENTS:
+            if d.get("id") in on_board:
+                continue
+            try:
+                m = match_for(prof, sig, d, listed_price=d.get("price_from"))
+            except Exception:
+                continue
+            out.append({
+                "id": d.get("id"), "name": d.get("name"), "colonia": d.get("colonia"),
+                "price_from": d.get("price_from"),
+                "photo": (d.get("photos") or [None])[0],
+                "match": m,
+            })
+        out.sort(key=lambda x: x["match"]["score"], reverse=True)
+    except Exception:
+        out = []
+    return {"items": out[:24], "has_signals": bool(out and (
+        (items and any(it.get("status") in ("le_gusto", "cita", "visitada", "oferta", "descartada") for it in items))))}
+
+
 @router.post("/contactos/{cid}/swipe-link")
 async def create_swipe_link(cid: str, request: Request):
     """B5.2 · Crea (o reusa) el link Tinder público del lead + mensaje de WhatsApp.

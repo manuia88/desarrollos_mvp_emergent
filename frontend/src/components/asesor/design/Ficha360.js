@@ -425,13 +425,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     } catch (_) { toast('error', 'No se pudo agregar'); }
   };
 
-  // B5.2b · Buscador de inventario para agregar CUALQUIER propiedad (no solo coincidencias).
+  // B5.2b / B5.3 · Recomendador — inventario RANKEADO por lo que le encaja al lead (match%).
   const openAddProp = () => {
     setShowAddProp(true);
     if (allDevs === null) {
-      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' })
-        .then((r) => r.json())
-        .then((d) => setAllDevs(Array.isArray(d) ? d : (d?.items || [])))
+      api.getLeadSuggestions(cid)
+        .then((d) => setAllDevs(Array.isArray(d?.items) ? d.items : []))
         .catch(() => setAllDevs([]));
     }
   };
@@ -1270,7 +1269,12 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
         <div onClick={() => setShowAddProp(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: Z.MODAL, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 560, maxHeight: '82vh', borderRadius: '18px 18px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
             <div style={{ padding: '15px 18px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, color: 'var(--cream)' }}>Agregar propiedad al tablero</b>
+              <div style={{ minWidth: 0 }}>
+                <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, color: 'var(--cream)' }}>Agregar propiedad al tablero</b>
+                <div style={{ fontSize: 11.5, color: 'var(--theme-2)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Sparkles size={12} /> Ordenadas por lo que le encaja{c?.first_name ? ` a ${c.first_name}` : ''}
+                </div>
+              </div>
               <button onClick={() => setShowAddProp(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', padding: 2 }}><X size={18} /></button>
             </div>
             <div style={{ padding: '12px 18px' }}>
@@ -1289,11 +1293,21 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   const did = d.id || d._id;
                   const already = onBoard.has(did);
                   const price = d.price_from ?? d.price_min ?? d.price;
+                  const ms = d.match?.score;
+                  const mr = d.match?.reasons?.find((r) => r.k === 'ok') || d.match?.reasons?.[0];
+                  const mcol = ms >= 80 ? 'var(--emerald, #10b981)' : ms >= 65 ? 'var(--theme-2)' : 'var(--cream-3)';
                   return (
                     <div key={did} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 4px', borderBottom: '1px solid var(--border)' }}>
+                      {ms != null && (
+                        <div style={{ flexShrink: 0, width: 42, textAlign: 'center' }}>
+                          <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 14.5, color: mcol, lineHeight: 1 }}>{ms}%</div>
+                          <div style={{ fontSize: 8.5, color: 'var(--cream-3)', letterSpacing: 0.3, marginTop: 2 }}>MATCH</div>
+                        </div>
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13.5, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name || d.title || 'Propiedad'}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>{d.colonia || d.neighborhood || 'CDMX'}{price ? ` · ${fmtMXN(price)}` : ''}</div>
+                        {mr && <div style={{ fontSize: 11, color: mr.k === 'warn' ? 'var(--cold, #ef6b6b)' : 'var(--theme-2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mr.k === 'warn' ? '⚠ ' : '✓ '}{mr.t}</div>}
                       </div>
                       <button onClick={() => addDevToBoard(d)} disabled={already} data-testid={`asr-addprop-${did}`}
                         style={{ flexShrink: 0, padding: '7px 13px', borderRadius: 8, border: '1px solid var(--border)', cursor: already ? 'default' : 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700, background: already ? 'transparent' : 'rgba(var(--theme-rgb),0.10)', color: already ? 'var(--cream-3)' : 'var(--theme-2)' }}>

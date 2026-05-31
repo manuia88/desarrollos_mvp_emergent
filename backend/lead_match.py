@@ -58,6 +58,12 @@ def match_for(profile: Optional[dict], signals: Dict[str, Any], dev: dict, liste
     parking = (dev.get("parking_range") or [0])
     parking_min = parking[0] if parking else 0
 
+    # Zona (gustada vs descartada) — la señal MÁS personal → va primero en la lista de razones.
+    if col and col in signals.get("liked_colonias", set()):
+        score += 15; reasons.append({"k": "ok", "t": f"En {col_name}, zona que te ha gustado"})
+    elif col and col in signals.get("rejected_colonias", set()):
+        score -= 20; reasons.append({"k": "warn", "t": f"En {col_name}, zona que descartaste"})
+
     # Presupuesto (techo inferido de rechazos "fuera de presupuesto")
     bc = signals.get("budget_ceiling")
     if bc and price:
@@ -65,12 +71,6 @@ def match_for(profile: Optional[dict], signals: Dict[str, Any], dev: dict, liste
             score += 13; reasons.append({"k": "ok", "t": "Dentro de lo que has buscado"})
         else:
             score -= 18; reasons.append({"k": "warn", "t": "Arriba de tu presupuesto aparente"})
-
-    # Zona (gustada vs descartada)
-    if col and col in signals.get("liked_colonias", set()):
-        score += 15; reasons.append({"k": "ok", "t": f"En {col_name}, zona que te ha gustado"})
-    elif col and col in signals.get("rejected_colonias", set()):
-        score -= 20; reasons.append({"k": "warn", "t": f"En {col_name}, zona que descartaste"})
 
     # Qué NO puede faltar (del cuestionario)
     if "estacionamiento" in must and parking_min >= 1:
