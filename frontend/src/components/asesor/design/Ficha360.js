@@ -86,20 +86,48 @@ const TABS = [
 ];
 
 // Color por estatus del tablero de propiedades (demo · mockup).
-const DOTC = { cold: 'var(--cold)', warm: 'var(--warm)', ok: 'var(--ok)', hot: 'var(--hot)', theme: 'var(--theme)', gold: '#f5a524' };
+const DOTC = { cold: 'var(--cold)', warm: 'var(--warm)', ok: 'var(--ok)', hot: 'var(--hot)', theme: 'var(--theme)', gold: '#f5a524', emerald: '#10b981' };
 const TONEC = { muted: 'var(--cream-3)', ok: 'var(--ok)', hot: 'var(--hot)' };
 // B5.2-A · pipeline de la propiedad dentro del lead (6 etapas · arrastrables).
-const BOARD_STATUS = ['por_verificar', 'enviada', 'le_gusto', 'cita', 'oferta', 'descartada'];
+const BOARD_STATUS = ['por_verificar', 'enviada', 'le_gusto', 'cita', 'visitada', 'oferta', 'descartada'];
 const BOARD_META = {
   por_verificar: { label: 'Por verificar',       dot: 'cold' },
   enviada:       { label: 'Enviada al cliente',  dot: 'warm' },
   le_gusto:      { label: 'Le gustó',            dot: 'ok' },
   cita:          { label: 'Cita / visita',       dot: 'theme' },
+  visitada:      { label: 'Visitada',            dot: 'emerald' },
   oferta:        { label: 'En oferta',           dot: 'gold' },
   descartada:    { label: 'Descartada',          dot: 'hot' },
 };
 // Normaliza estatus viejos por si el backend manda alguno sin migrar.
 const NORM_STATUS = (s) => ({ dispo: 'por_verificar', gusto: 'le_gusto' }[s] || s);
+const FB_LABEL = { encanto: 'Le encantó', gusto: 'Le gustó', no: 'No le convenció' };
+
+// B5.2-B · Captura de feedback de visita (se abre al mover una propiedad a "Visitada").
+function VisitFeedbackForm({ item, onSave, onClose }) {
+  const [salio, setSalio] = useState('');
+  const [nota, setNota] = useState('');
+  const opts = [{ k: 'encanto', e: '😍' }, { k: 'gusto', e: '🙂' }, { k: 'no', e: '😕' }];
+  return (
+    <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 440, borderRadius: 16, border: '1px solid var(--border)', padding: 18, boxShadow: '0 24px 70px rgba(20,16,60,.28)' }}>
+      <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>¿Cómo salió la visita?</div>
+      <div style={{ fontSize: 12, color: 'var(--cream-3)', marginBottom: 13 }}>{item.name}</div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        {opts.map((o) => (
+          <button key={o.k} onClick={() => setSalio(o.k)} style={{ flex: 1, padding: '11px 4px', borderRadius: 11, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, border: `1.5px solid ${salio === o.k ? 'var(--theme)' : 'var(--border)'}`, background: salio === o.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface-2)', color: salio === o.k ? 'var(--theme-2)' : 'var(--cream-2)' }}>
+            <div style={{ fontSize: 19 }}>{o.e}</div>{FB_LABEL[o.k]}
+          </button>
+        ))}
+      </div>
+      <textarea value={nota} onChange={(e) => setNota(e.target.value)} placeholder="¿Qué dijo? ¿qué le faltó? (objeciones, precio, etc.)"
+        style={{ width: '100%', height: 70, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none', resize: 'none', boxSizing: 'border-box' }} />
+      <div style={{ display: 'flex', gap: 9, marginTop: 13 }}>
+        <button onClick={onClose} style={{ padding: '10px 16px', borderRadius: 10, background: 'none', border: '1px solid var(--border)', color: 'var(--cream-3)', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Después</button>
+        <button onClick={() => onSave(salio, nota)} disabled={!salio} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: salio ? 'var(--grad)' : 'var(--border)', color: '#fff', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 13.5, cursor: salio ? 'pointer' : 'not-allowed' }}>Guardar feedback</button>
+      </div>
+    </div>
+  );
+}
 
 export default function Ficha360({ open, onClose, contact, onOpenArg, onStageChange, onToast, demo, user }) {
   const [tab, setTab] = useState('resumen');
@@ -132,6 +160,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [showAddProp, setShowAddProp] = useState(false); // B5.2b · buscador para agregar propiedad
   const [allDevs, setAllDevs] = useState(null);
   const [devQ, setDevQ] = useState('');
+  const [feedbackItem, setFeedbackItem] = useState(null); // B5.2-B · prop en captura de feedback de visita
 
   const cid = contact?.id;
   const toast = useCallback((k, t) => { if (onToast) onToast(k, t); }, [onToast]);
@@ -258,6 +287,18 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     setBoard((b) => ({ ...b, items: b.items.map((x) => (x.id === id ? { ...x, status } : x)) }));
     try { await api.patchLeadBoardItem(id, { status }); }
     catch (_) { toast('error', 'No se pudo mover'); api.getLeadBoard(cid).then(setBoard).catch(() => {}); }
+    // B5.2-B · al marcar Visitada, capturar feedback de la visita.
+    if (status === 'visitada' && !it.visit_feedback) setFeedbackItem({ ...it, status });
+  };
+
+  // B5.2-B · Guarda el feedback de la visita en la propiedad.
+  const saveFeedback = async (salio, nota) => {
+    const it = feedbackItem; if (!it) return;
+    const fb = { salio, nota: (nota || '').slice(0, 300), ts: new Date().toISOString() };
+    setBoard((b) => ({ ...b, items: (b?.items || []).map((x) => (x.id === it.id ? { ...x, visit_feedback: fb } : x)) }));
+    setFeedbackItem(null);
+    try { await api.patchLeadBoardItem(it.id, { visit_feedback: fb }); toast('success', 'Feedback guardado'); }
+    catch (_) { toast('error', 'No se pudo guardar'); }
   };
 
   // B5.1 · Agregar una coincidencia de búsqueda al tablero (columna 'dispo').
@@ -806,6 +847,9 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                                     {p.thumb === 'up' && <ThumbsUp size={11} />}{p.thumb === 'down' && <ThumbsDown size={11} />}{p.note}
                                   </div>
                                 )}
+                                {p.client_cita && <div className="asr-pcard__note" style={{ color: 'var(--theme-2)', fontWeight: 600 }}>📅 Pidió: {p.client_cita}</div>}
+                                {p.client_note && <div className="asr-pcard__note" style={{ color: 'var(--cream-2)' }}>📝 {p.client_note}</div>}
+                                {p.visit_feedback && <div className="asr-pcard__note" style={{ color: '#10b981', fontWeight: 600 }}>✓ {FB_LABEL[p.visit_feedback.salio] || 'Visitada'}{p.visit_feedback.nota ? ` · ${p.visit_feedback.nota}` : ''}</div>}
                               </div>
                             </div>
                           ))}
@@ -1072,6 +1116,13 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
           onClose={() => setShowCita(false)}
           onSuccess={() => toast('success', 'Cita agendada')}
         />
+      )}
+
+      {/* B5.2-B · Feedback de visita (al mover a "Visitada") */}
+      {feedbackItem && (
+        <div onClick={() => setFeedbackItem(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: Z.MODAL, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <VisitFeedbackForm item={feedbackItem} onSave={saveFeedback} onClose={() => setFeedbackItem(null)} />
+        </div>
       )}
 
       {/* B5.2b · Buscador de inventario para agregar propiedad al tablero */}

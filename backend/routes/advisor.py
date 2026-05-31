@@ -37,7 +37,7 @@ ETAPA_CONTACTO = ["nuevo", "contactado", "visita", "negociacion", "cerrado"]
 # B5.1 · Estatus de cada propiedad DENTRO del tablero de un lead (Tab Propiedades del
 # perfil-hub). Es el destino donde aterrizan los swipes del link Tinder (B5.2):
 # 👍 del cliente → "gusto", 👎 → "descartada". El asesor también mueve arrastrando.
-BOARD_STATUS = ["por_verificar", "enviada", "le_gusto", "cita", "oferta", "descartada"]
+BOARD_STATUS = ["por_verificar", "enviada", "le_gusto", "cita", "visitada", "oferta", "descartada"]
 # Compat: ítems viejos (B5.1) usaban dispo/gusto → se normalizan al leer.
 BOARD_STATUS_ALIAS = {"dispo": "por_verificar", "gusto": "le_gusto"}
 
@@ -157,6 +157,7 @@ class BoardItemIn(BaseModel):
 class BoardItemPatch(BaseModel):
     status: Optional[str] = None
     note: Optional[str] = None
+    visit_feedback: Optional[dict] = None  # B5.2-B · {salio, nota} de la visita
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

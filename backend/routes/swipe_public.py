@@ -25,7 +25,7 @@ except Exception:
 
 router = APIRouter(tags=["swipe-public"])
 
-BOARD_STATUS = ["por_verificar", "enviada", "le_gusto", "cita", "oferta", "descartada"]
+BOARD_STATUS = ["por_verificar", "enviada", "le_gusto", "cita", "visitada", "oferta", "descartada"]
 BOARD_STATUS_ALIAS = {"dispo": "por_verificar", "gusto": "le_gusto"}
 
 
