@@ -1460,6 +1460,58 @@ Tono de un asesor real que ya lo conoce, no plantilla. Solo el mensaje, sin comi
     return {"text": text, "used": {"taste": summary, "next_step": nextstep, "properties": liked}}
 
 
+@router.post("/contactos/{cid}/whatsapp/inbound")
+async def lead_whatsapp_inbound(cid: str, body: WAMessageIn, request: Request):
+    """B5.5 Upgrade B · Lo que el cliente responde, el modelo lo aprende.
+    Registra el mensaje del cliente en el hilo + extrae preferencias (cuarto/feature/
+    polaridad) → las suma a su perfil de gusto + avisa qué aprendió. Funciona hoy (el
+    asesor pega lo que le dijeron); el webhook real lo llamará igual cuando haya provider."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    if not await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(404, "Contacto no encontrado")
+    text = (body.text or "").strip()
+    if not text:
+        raise HTTPException(400, "Mensaje vacío")
+    now = datetime.now(timezone.utc)
+    # 1) registrar el mensaje entrante en el hilo
+    try:
+        await db.whatsapp_messages.insert_one({
+            "_id": "wa_" + uuid.uuid4().hex[:14], "org_id": user.user_id, "lead_id": cid,
+            "direction": "inbound", "provider": "manual", "body_text": text,
+            "status": "received", "created_at": now, "sent_at": now,
+            "conversation_thread_id": cid})
+    except Exception:
+        pass
+    # 2) extraer preferencias + 3) persistir como señales que alimentan el gusto
+    learned, sentiment = [], "neutral"
+    try:
+        from taste_profile import extract_text_signals
+        ex = extract_text_signals(text)
+        learned, sentiment = ex.get("signals", []), ex.get("sentiment", "neutral")
+        if learned:
+            await db.asesor_text_signals.insert_one({
+                "id": "txt_" + uuid.uuid4().hex[:10], "owner_id": user.user_id, "contacto_id": cid,
+                "text": text[:400], "signals": learned, "sentiment": sentiment, "ts": now})
+    except Exception:
+        pass
+    # nudge en lenguaje llano
+    nudge = ""
+    if learned:
+        bits = []
+        for s in learned[:3]:
+            tag = "le importa" if s["polarity"] in ("pos", "wants") else "le molesta" if s["polarity"] == "neg" else "mencionó"
+            bits.append(f"{tag} {s['label']}")
+        nudge = "Aprendí: " + " · ".join(bits) + ". Ya lo sumé a su perfil."
+    try:
+        await db.asesor_contacto_timeline.insert_one({
+            "id": "tl_" + uuid.uuid4().hex[:10], "contacto_id": cid, "owner_id": user.user_id,
+            "kind": "whatsapp_in", "body": f"Cliente respondió: {text[:120]}", "ts": now})
+    except Exception:
+        pass
+    return {"ok": True, "learned": learned, "sentiment": sentiment, "nudge": nudge}
+
+
 @router.post("/contactos/{cid}/swipe-link")
 async def create_swipe_link(cid: str, request: Request):
     """B5.2 · Crea (o reusa) el link Tinder público del lead + mensaje de WhatsApp.

@@ -236,6 +236,8 @@ function WhatsAppPanel({ cid, lead, toast }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [drafting, setDrafting] = useState(false);
+  const [logging, setLogging] = useState(false);
+  const [inText, setInText] = useState('');
   const load = React.useCallback(() => {
     api.getLeadWhatsapp(cid).then(setThread).catch(() => setThread({ messages: [], ready: false }));
   }, [cid]);
@@ -246,6 +248,15 @@ function WhatsAppPanel({ cid, lead, toast }) {
     try { const r = await api.draftLeadWhatsapp(cid); if (r?.text) setText(r.text); }
     catch (e) { toast?.('error', 'No se pudo redactar'); }
     finally { setDrafting(false); }
+  };
+  const logInbound = async () => {
+    const t = inText.trim();
+    if (!t) return;
+    try {
+      const r = await api.logLeadWhatsappInbound(cid, t);
+      toast?.('success', r?.nudge || 'Registrado');
+      setInText(''); setLogging(false); await load();
+    } catch (e) { toast?.('error', 'No se pudo registrar'); }
   };
   const send = async () => {
     const t = text.trim();
@@ -296,6 +307,26 @@ function WhatsAppPanel({ cid, lead, toast }) {
         <button onClick={send} disabled={!ready || sending || !text.trim()} data-testid="asr-wa-send" className="asr-hbtn asr-hbtn--key" style={{ flexShrink: 0, opacity: (!ready || !text.trim()) ? 0.5 : 1 }}>
           <Send size={14} /> {sending ? '…' : 'Enviar'}
         </button>
+      </div>
+      {/* B5.5 Upgrade B · registrar lo que el cliente respondió (por fuera) → el modelo aprende */}
+      <div style={{ padding: '0 12px 11px' }}>
+        {!logging ? (
+          <button onClick={() => setLogging(true)} data-testid="asr-wa-loginbound"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, padding: '2px 0', textDecoration: 'underline' }}>
+            📥 ¿El cliente te respondió por fuera? Pégalo y el modelo aprende
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input value={inText} onChange={(e) => setInText(e.target.value)} autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') logInbound(); if (e.key === 'Escape') { setLogging(false); setInText(''); } }}
+              placeholder="Pega lo que te escribió el cliente…"
+              data-testid="asr-wa-inbound-input"
+              style={{ flex: 1, padding: '8px 11px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, outline: 'none' }} />
+            <button onClick={logInbound} disabled={!inText.trim()} className="asr-hbtn" style={{ flexShrink: 0, opacity: inText.trim() ? 1 : 0.5 }}>
+              <Sparkles size={13} /> Aprender
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

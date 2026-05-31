@@ -106,6 +106,22 @@ async def build_taste_profile(db, owner_id: str, contacto_id: str, persist: bool
         elif t == "decision":
             n_decision += 1
 
+    # B5.5 Upgrade B · señales de lo que el cliente ESCRIBIÓ por WhatsApp (asesor_text_signals).
+    n_text = 0
+    try:
+        async for ts in db.asesor_text_signals.find(q, {"_id": 0}):
+            for s in (ts.get("signals") or []):
+                n_text += 1
+                pol = s.get("polarity")
+                wt = 28 if pol in ("pos", "wants") else 14 if pol == "neu" else 8
+                if s.get("kind") == "room":
+                    rooms[s["value"]] += wt
+                    room_labels[s["value"]] = s.get("label") or room_labels.get(s["value"])
+                elif s.get("kind") == "feature":
+                    feats[s["value"]] += wt
+    except Exception:
+        pass
+
     # Zona y precio (preferencia revelada de los swipes — reusa la lógica de B5.3)
     liked_col, rejected_col, liked_prices = set(), set(), []
     budget_ceiling = None
@@ -131,7 +147,7 @@ async def build_taste_profile(db, owner_id: str, contacto_id: str, persist: bool
                for x in _norm(feats)][:4]
 
     # Confianza: cuánta señal real hay (no inflar con pocos datos)
-    signal = n_decision * 7 + n_photo * 1.5 + n_return * 4 + n_detail * 3 + len(liked_col) * 5
+    signal = n_decision * 7 + n_photo * 1.5 + n_return * 4 + n_detail * 3 + len(liked_col) * 5 + n_text * 6
     confidence = int(min(92, max(8, round(signal))))
     conf_label = "alta" if confidence >= 70 else "media" if confidence >= 40 else "baja"
 
@@ -143,7 +159,7 @@ async def build_taste_profile(db, owner_id: str, contacto_id: str, persist: bool
         "zone": {"liked": sorted(liked_col), "rejected": sorted(rejected_col)},
         "price": {"ceiling": budget_ceiling, "typical": typical},
         "confidence": confidence, "confidence_label": conf_label,
-        "signal_count": int(n_decision + n_photo + n_return + n_detail),
+        "signal_count": int(n_decision + n_photo + n_return + n_detail + n_text),
         "counts": {"decisions": n_decision, "photo_views": n_photo, "returns": n_return, "details": n_detail},
         "updated_at": _now(),
     }
@@ -156,6 +172,52 @@ async def build_taste_profile(db, owner_id: str, contacto_id: str, persist: bool
             pass
     profile.pop("_id", None)
     return profile
+
+
+# B5.5 Upgrade B · extraer preferencias de lo que el cliente ESCRIBE por WhatsApp.
+_ROOM_WORDS = {"cocina": "cocina", "sala": "sala", "recámara": "recamara", "recamara": "recamara",
+               "cuarto": "recamara", "baño": "bano", "bano": "bano", "terraza": "terraza",
+               "balcón": "terraza", "balcon": "terraza", "vista": "vista", "comedor": "comedor"}
+_POS_WORDS = ["encanta", "me gusta", "me late", "amo", "perfecto", "hermosa", "hermoso", "bonita",
+              "bonito", "amplia", "amplio", "grande", "luminos", "ideal", "espacioso", "me fascina"]
+_NEG_WORDS = ["chica", "chico", "pequeñ", "pequen", "oscura", "oscuro", "fea", "feo", "caro", "cara",
+              "lejos", "ruidos", "no me", "muy chico", "estrech"]
+
+
+def _polarity_near(t: str, idx: int, window: int = 32) -> str:
+    seg = t[max(0, idx - window): idx + window]
+    neg = any(n in seg for n in _NEG_WORDS)
+    pos = any(p in seg for p in _POS_WORDS)
+    return "neg" if neg and not pos else "pos" if pos and not neg else "neu"
+
+
+def extract_text_signals(text: str) -> dict:
+    """Heurística ligera: de un WhatsApp del cliente → preferencias {cuarto/feature, polaridad}.
+    Honesto: es heurístico (no NLP profundo); el asesor ve lo detectado y puede ignorar errores."""
+    t = (text or "").lower()
+    signals = []
+    seen = set()
+    for w, room in _ROOM_WORDS.items():
+        i = t.find(w)
+        if i >= 0 and room not in seen:
+            seen.add(room)
+            signals.append({"kind": "room", "value": room, "label": ROOM_ES.get(room, room),
+                            "polarity": _polarity_near(t, i)})
+    if any(x in t for x in ["luz", "luminos", "iluminad"]):
+        signals.append({"kind": "feature", "value": "luz_natural", "label": "luz natural",
+                        "polarity": "neg" if any(n in t for n in _NEG_WORDS[:8]) else "pos"})
+    if any(x in t for x in ["amplia", "amplio", "grande", "espacios", "espacioso"]):
+        signals.append({"kind": "feature", "value": "amplio", "label": "espacios amplios", "polarity": "pos"})
+    if any(x in t for x in ["chica", "chico", "pequeñ", "pequen", "estrech"]):
+        signals.append({"kind": "feature", "value": "amplio", "label": "espacios amplios", "polarity": "wants"})
+    if any(x in t for x in ["moderno", "moderna", "contemporán", "contemporan"]):
+        signals.append({"kind": "feature", "value": "moderno", "label": "estilo moderno", "polarity": "pos"})
+    if any(x in t for x in ["caro", "cara", "presupuesto", "precio", "carísim"]):
+        signals.append({"kind": "budget", "value": "precio", "label": "precio", "polarity": "neg"})
+    pos = sum(t.count(w) for w in _POS_WORDS)
+    neg = sum(t.count(w) for w in _NEG_WORDS)
+    sentiment = "positivo" if pos > neg else "negativo" if neg > pos else "neutral"
+    return {"signals": signals, "sentiment": sentiment}
 
 
 async def build_prospect_intel(db, owner_id: str) -> dict:

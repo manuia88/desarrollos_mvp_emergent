@@ -68,6 +68,8 @@ export const getLeadWhatsapp = (cid) => j(`/api/asesor/contactos/${cid}/whatsapp
 export const sendLeadWhatsapp = (cid, text) => post(`/api/asesor/contactos/${cid}/whatsapp`, { text });
 // B5.5 Upgrade A · el mensaje se escribe solo (perfil de gusto + brief → WhatsApp personalizado)
 export const draftLeadWhatsapp = (cid) => post(`/api/asesor/contactos/${cid}/whatsapp/draft`);
+// B5.5 Upgrade B · lo que el cliente responde, el modelo lo aprende (extrae preferencias)
+export const logLeadWhatsappInbound = (cid, text) => post(`/api/asesor/contactos/${cid}/whatsapp/inbound`, { text });
 
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');
