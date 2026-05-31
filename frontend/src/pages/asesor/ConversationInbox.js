@@ -629,14 +629,28 @@ function ConversationInboxBody({ user }) {
                 </div>
               )}
 
+              {/* Pieza 2 · interruptor de Atlax (piloto del agente) · scopeado al canal correcto */}
               <div style={{ marginTop: 18, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 10 }}>
-                  {t('inbox.suggested_actions')}
+                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <FaRobot size={13} style={{ color: '#5B37E0' }} /> Atlax · piloto del agente
                 </div>
-                {canTakeover ? (
-                  <LiveTakeover conversationId={detail.conversation_id} onTakenOver={() => { loadList(); refreshDetail(); }} />
+                {detail.channel === 'ai' ? (
+                  canTakeover ? (
+                    <>
+                      <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1FA06A' }} /> <b style={{ color: 'var(--cream)' }}>Auto</b> · Atlax está contestando solo
+                      </div>
+                      <LiveTakeover conversationId={detail.conversation_id} onTakenOver={() => { loadList(); refreshDetail(); }} />
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E2982E' }} /> <b style={{ color: 'var(--cream)' }}>Manual</b> · la llevas tú
+                    </div>
+                  )
                 ) : (
-                  <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>—</div>
+                  <div style={{ fontSize: 12, color: 'var(--cream-3)', lineHeight: 1.5 }}>
+                    Esta conversación de <b style={{ color: 'var(--cream-2)' }}>{CHANNEL_NAME[detail.channel] || detail.channel}</b> la llevas tú. Cuando conectes que Atlax atienda este canal, podrá contestar en automático aquí.
+                  </div>
                 )}
               </div>
             </>
