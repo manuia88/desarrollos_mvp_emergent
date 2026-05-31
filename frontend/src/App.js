@@ -604,6 +604,13 @@ function AppRouter() {
     return <AuthCallback />;
   }
 
+  // B5.2 · Link Tinder público del cliente (/p/:token) — página standalone (swipe.html en /public)
+  function SwipeLinkRoute() {
+    const { token } = useReactRouterParams();
+    const src = `/swipe.html?token=${encodeURIComponent(token || '')}&api=${encodeURIComponent(process.env.REACT_APP_BACKEND_URL || '')}`;
+    return <iframe title="Propiedades para ti" src={src} style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', border: 'none' }} />;
+  }
+
   return (
     <Suspense fallback={
       <div style={{ padding: 60, color: 'rgba(240,235,224,0.5)', textAlign: 'center', fontFamily: 'DM Sans', background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -613,6 +620,7 @@ function AppRouter() {
     }>
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/p/:token" element={<SwipeLinkRoute />} />
       <Route path="/marketplace" element={<MarketplaceRoute />} />
       <Route path="/propiedad/:id" element={<PropertyDetailRoute />} />
       <Route path="/desarrollo/:id" element={<DevelopmentDetailRoute />} />
