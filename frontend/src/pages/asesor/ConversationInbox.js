@@ -228,7 +228,7 @@ function ConversationInboxBody({ user }) {
         const r = await fetch(`${API}/api/asesor/contactos/${conv.lead_id}/whatsapp?channel=${conv.channel}`, { headers: authHeaders(), credentials: 'include' });
         if (r.ok) setDetail(_waToDetail(conv.lead_id, conv.channel, await r.json()));
       } else {
-        const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { headers: authHeaders() });
+        const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { headers: authHeaders(), credentials: 'include' });
         if (res.ok) setDetail(await res.json());
       }
     } catch {
@@ -239,7 +239,7 @@ function ConversationInboxBody({ user }) {
     // confianza IA del hilo (solo chats IA · best-effort)
     if (!isDM) {
       try {
-        const cr = await fetch(`${API}/api/conversation/${conv.conversation_id}/confidence-history`, { headers: authHeaders() });
+        const cr = await fetch(`${API}/api/conversation/${conv.conversation_id}/confidence-history`, { headers: authHeaders(), credentials: 'include' });
         if (cr.ok) { const cd = await cr.json(); if (cd && cd.count > 0) setConfSummary(cd); }
       } catch { /* no-op */ }
     }
@@ -266,7 +266,7 @@ function ConversationInboxBody({ user }) {
         const r = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp?channel=${curConv.channel}`, { headers: authHeaders(), credentials: 'include' });
         if (r.ok) setDetail(_waToDetail(curConv.lead_id, curConv.channel, await r.json()));
       } else {
-        const res = await fetch(`${API}/api/conversation/${curConv.conversation_id}`, { headers: authHeaders() });
+        const res = await fetch(`${API}/api/conversation/${curConv.conversation_id}`, { headers: authHeaders(), credentials: 'include' });
         if (res.ok) setDetail(await res.json());
       }
     } catch { /* no-op */ }
@@ -283,7 +283,7 @@ function ConversationInboxBody({ user }) {
         if (res.ok) await refreshDetail();
       } else {
         const res = await fetch(`${API}/api/conversation/message`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
           body: JSON.stringify({ conversation_id: curConv.conversation_id, message: text, role: 'asesor' }),
         });
         if (res.ok) await refreshDetail();
