@@ -44,6 +44,8 @@ function timeAgo(ts) {
 }
 const TEMP_COLOR = { hot: '#F2635B', caliente: '#F2635B', warm: '#E2982E', tibio: '#E2982E', cold: '#3B82F6', frio: '#3B82F6' };
 const BOARD_LABEL = { por_verificar: 'Por verificar', enviada: 'Enviada', le_gusto: 'Le gustó', cita: 'Cita', visitada: 'Visitada', oferta: 'Oferta', descartada: 'Descartada' };
+const DM = ['whatsapp', 'messenger', 'instagram'];  // omnicanal · mensajería directa (mismo store)
+const CHANNEL_LABEL = { whatsapp: '💬 WhatsApp', messenger: '📘 Messenger', instagram: '📷 Instagram', ai: '🤖 Chat IA', web: '🤖 Chat IA' };
 
 // B6 · Caja de respuesta para hilos de WhatsApp (con "Redactar con IA" · reusa B5.5.2)
 function WaCompose({ onSend, onDraft, drafting, disabled }) {
@@ -58,7 +60,7 @@ function WaCompose({ onSend, onDraft, drafting, disabled }) {
       </button>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={1} disabled={disabled}
-          placeholder="Escribe por WhatsApp…"
+          placeholder="Escribe tu mensaje…"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           style={{ flex: 1, resize: 'none', padding: '9px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' }} />
         <button type="button" onClick={send} disabled={disabled || !text.trim()}
@@ -107,9 +109,9 @@ function ConversationInboxBody() {
 
   useEffect(() => { loadList(); }, [loadList]);
 
-  // B6 · mapea el hilo de WhatsApp (B5.5) al shape del detalle del inbox
-  const _waToDetail = (leadId, d) => ({
-    channel: 'whatsapp', lead_id: leadId, status: 'active', sentiment: 'neutral',
+  // B6 · mapea el hilo de mensajería al shape del detalle del inbox
+  const _waToDetail = (leadId, ch, d) => ({
+    channel: ch, lead_id: leadId, status: 'active', sentiment: 'neutral',
     messages: (d.messages || []).map((m) => ({ role: m.direction === 'outbound' ? 'asesor' : 'user', content: m.text })),
   });
 
@@ -120,11 +122,11 @@ function ConversationInboxBody() {
     setConfSummary(null);
     setCtx(null);
     setDetailLoading(true);
-    const isWa = conv.channel === 'whatsapp';
+    const isDM = DM.includes(conv.channel);
     try {
-      if (isWa) {
-        const r = await fetch(`${API}/api/asesor/contactos/${conv.lead_id}/whatsapp`, { headers: authHeaders(), credentials: 'include' });
-        if (r.ok) setDetail(_waToDetail(conv.lead_id, await r.json()));
+      if (isDM) {
+        const r = await fetch(`${API}/api/asesor/contactos/${conv.lead_id}/whatsapp?channel=${conv.channel}`, { headers: authHeaders(), credentials: 'include' });
+        if (r.ok) setDetail(_waToDetail(conv.lead_id, conv.channel, await r.json()));
       } else {
         const res = await fetch(`${API}/api/conversation/${conv.conversation_id}`, { headers: authHeaders() });
         if (res.ok) setDetail(await res.json());
@@ -135,7 +137,7 @@ function ConversationInboxBody() {
       setDetailLoading(false);
     }
     // confianza IA del hilo (solo chats IA · best-effort)
-    if (!isWa) {
+    if (!isDM) {
       try {
         const cr = await fetch(`${API}/api/conversation/${conv.conversation_id}/confidence-history`, { headers: authHeaders() });
         if (cr.ok) { const cd = await cr.json(); if (cd && cd.count > 0) setConfSummary(cd); }
@@ -153,9 +155,9 @@ function ConversationInboxBody() {
   const refreshDetail = useCallback(async () => {
     if (!curConv) return;
     try {
-      if (curConv.channel === 'whatsapp') {
-        const r = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp`, { headers: authHeaders(), credentials: 'include' });
-        if (r.ok) setDetail(_waToDetail(curConv.lead_id, await r.json()));
+      if (DM.includes(curConv.channel)) {
+        const r = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp?channel=${curConv.channel}`, { headers: authHeaders(), credentials: 'include' });
+        if (r.ok) setDetail(_waToDetail(curConv.lead_id, curConv.channel, await r.json()));
       } else {
         const res = await fetch(`${API}/api/conversation/${curConv.conversation_id}`, { headers: authHeaders() });
         if (res.ok) setDetail(await res.json());
@@ -166,10 +168,10 @@ function ConversationInboxBody() {
   const sendAsAsesor = useCallback(async (text) => {
     if (!curConv || !text) return;
     try {
-      if (curConv.channel === 'whatsapp') {
+      if (DM.includes(curConv.channel)) {
         const res = await fetch(`${API}/api/asesor/contactos/${curConv.lead_id}/whatsapp`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, channel: curConv.channel }),
         });
         if (res.ok) await refreshDetail();
       } else {
@@ -308,7 +310,7 @@ function ConversationInboxBody() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
                   {c.temperatura && <span title={`Temperatura: ${c.temperatura}`} style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, display: 'inline-block', background: TEMP_COLOR[String(c.temperatura).toLowerCase()] || 'var(--cream-3)' }} />}
-                  <span title={c.channel === 'whatsapp' ? 'WhatsApp' : 'Chat IA'}>{c.channel === 'whatsapp' ? '💬' : '🤖'}</span>
+                  <span title={(CHANNEL_LABEL[c.channel] || '').replace(/^[^ ]+ /, '') || 'Chat IA'}>{(CHANNEL_LABEL[c.channel] || '🤖').split(' ')[0]}</span>
                   {c.lead_name || c.lead_id || (c.conversation_id || '').slice(0, 14)}
                 </span>
                 <span style={{ display: 'flex', gap: 5, alignItems: 'center', flex: '0 0 auto' }}>
@@ -365,7 +367,7 @@ function ConversationInboxBody() {
                   </div>
                 ))}
               </div>
-              {detail.channel === 'whatsapp' ? (
+              {DM.includes(detail.channel) ? (
                 <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} />
               ) : (
                 <SuggestedReplies lastUserMessage={lastUserMessage} onSend={sendAsAsesor}
@@ -387,7 +389,7 @@ function ConversationInboxBody() {
               </div>
               <InfoRow label="Lead" value={ctx?.name || detail.lead_id || t('inbox.no_lead')} />
               {ctx?.temperatura && <InfoRow label="Temperatura" value={ctx.temperatura} color={TEMP_COLOR[String(ctx.temperatura).toLowerCase()]} />}
-              <InfoRow label={t('inbox.channel')} value={detail.channel === 'whatsapp' ? 'WhatsApp' : (detail.channel || '—')} />
+              <InfoRow label={t('inbox.channel')} value={CHANNEL_LABEL[detail.channel] || detail.channel || '—'} />
               <InfoRow label={t('inbox.filter_status')} value={t(`status.${detail.status}`, detail.status)}
                 color={STATUS_COLOR[detail.status]} />
               {detail.sentiment && detail.channel !== 'whatsapp' && (
@@ -452,7 +454,7 @@ function ConversationInboxBody() {
                     style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
                     👤 Ver ficha completa
                   </button>
-                  {ctx?.phone && (
+                  {ctx?.phone && (detail.channel === 'whatsapp' || !DM.includes(detail.channel)) && (
                     <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                       style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'block' }}>
                       📲 Abrir WhatsApp del cliente

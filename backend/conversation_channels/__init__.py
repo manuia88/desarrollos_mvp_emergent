@@ -11,13 +11,15 @@ from __future__ import annotations
 
 from typing import Callable, Dict
 
-from . import web, email, inapp, whatsapp_stub
+from . import web, email, inapp, whatsapp_stub, messenger, instagram
 
 CHANNEL_ADAPTERS: Dict[str, Callable] = {
     "web": web.deliver,
     "email": email.deliver,
     "inapp": inapp.deliver,
     "whatsapp": whatsapp_stub.deliver,
+    "messenger": messenger.deliver,   # omnicanal · Facebook Messenger
+    "instagram": instagram.deliver,   # omnicanal · Instagram DM
 }
 
 
@@ -26,4 +28,5 @@ def get_adapter(channel: str) -> Callable:
     return CHANNEL_ADAPTERS.get((channel or "web").lower(), web.deliver)
 
 
-__all__ = ["CHANNEL_ADAPTERS", "get_adapter", "web", "email", "inapp", "whatsapp_stub"]
+__all__ = ["CHANNEL_ADAPTERS", "get_adapter", "web", "email", "inapp",
+           "whatsapp_stub", "messenger", "instagram"]

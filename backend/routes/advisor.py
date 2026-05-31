@@ -1349,30 +1349,45 @@ async def prospect_intel(request: Request):
 
 class WAMessageIn(BaseModel):
     text: str
+    channel: Optional[str] = "whatsapp"  # omnicanal · whatsapp | messenger | instagram
+
+
+# Canales de mensajería directa que viven en whatsapp_messages (omnicanal · 2026-05-31)
+DM_CHANNELS = ("whatsapp", "messenger", "instagram")
+
+
+def _channel_q(channel: str) -> dict:
+    """Filtro por canal · whatsapp incluye docs viejos sin campo channel (back-compat)."""
+    if channel == "whatsapp":
+        return {"$or": [{"channel": "whatsapp"}, {"channel": {"$exists": False}}, {"channel": None}]}
+    return {"channel": channel}
 
 
 @router.get("/contactos/{cid}/whatsapp")
-async def lead_whatsapp_thread(cid: str, request: Request):
-    """B5.5 · Hilo de WhatsApp con ESTE lead (aislado por asesor). Reusa whatsapp_messages
-    del WAEngine, keyeado org_id=user_id (asesor) + lead_id=cid. FAIL-OPEN si no hay nada."""
+async def lead_whatsapp_thread(cid: str, request: Request, channel: str = "whatsapp"):
+    """B5.5 + omnicanal · Hilo de mensajería con ESTE lead por canal (aislado por asesor).
+    whatsapp_messages es el store de DMs (WhatsApp/Messenger/Instagram) keyeado org_id+lead_id."""
     user = await require_advisor(request)
     db = get_db(request)
     c = await db.asesor_contactos.find_one(
         {"id": cid, "owner_id": user.user_id}, {"_id": 0, "id": 1, "first_name": 1, "phones": 1})
     if not c:
         raise HTTPException(404, "Contacto no encontrado")
-    msgs = await db.whatsapp_messages.find(
-        {"org_id": user.user_id, "lead_id": cid}).sort("created_at", 1).to_list(500)
+    ch = (channel or "whatsapp").lower()
+    q = {"org_id": user.user_id, "lead_id": cid, **_channel_q(ch)}
+    msgs = await db.whatsapp_messages.find(q).sort("created_at", 1).to_list(500)
     out = [{"id": str(m.get("_id")), "direction": m.get("direction"), "text": m.get("body_text"),
             "status": m.get("status"), "ts": (m.get("created_at") or m.get("sent_at"))} for m in msgs]
     phone = (c.get("phones") or [None])[0]
-    return {"messages": out, "phone": phone, "ready": bool(phone)}
+    # WhatsApp necesita teléfono; Messenger/Instagram se contestan sobre el hilo entrante.
+    ready = bool(phone) if ch == "whatsapp" else True
+    return {"messages": out, "phone": phone, "ready": ready, "channel": ch}
 
 
 @router.post("/contactos/{cid}/whatsapp")
 async def lead_whatsapp_send(cid: str, body: WAMessageIn, request: Request):
-    """B5.5 · Envía WhatsApp al lead vía WAEngine (stub persiste · provider real si está
-    configurado + tier on). Aislado org_id=user_id. Registra en el timeline."""
+    """B5.5 + omnicanal · Envía al lead por el canal indicado. WhatsApp → WAEngine;
+    Messenger/Instagram → adaptador (stub-aware) + persiste en el mismo store. Aislado por asesor."""
     user = await require_advisor(request)
     db = get_db(request)
     c = await db.asesor_contactos.find_one(
@@ -1382,22 +1397,44 @@ async def lead_whatsapp_send(cid: str, body: WAMessageIn, request: Request):
     text = (body.text or "").strip()
     if not text:
         raise HTTPException(400, "Mensaje vacío")
-    phone = (c.get("phones") or [None])[0]
-    if not phone:
-        raise HTTPException(400, "El contacto no tiene teléfono")
-    try:
-        from whatsapp_engine import WAEngine
-        eng = WAEngine(db, org_id=user.user_id)
-        res = await eng.send_message(to_number=phone, body=text, lead_id=cid)
-    except Exception:
-        raise HTTPException(500, "No se pudo enviar el mensaje")
+    ch = (body.channel or "whatsapp").lower()
+    if ch not in DM_CHANNELS:
+        raise HTTPException(400, "Canal inválido")
+    now = datetime.now(timezone.utc)
+    if ch == "whatsapp":
+        phone = (c.get("phones") or [None])[0]
+        if not phone:
+            raise HTTPException(400, "El contacto no tiene teléfono")
+        try:
+            from whatsapp_engine import WAEngine
+            eng = WAEngine(db, org_id=user.user_id)
+            res = await eng.send_message(to_number=phone, body=text, lead_id=cid)
+            msg_id, status = res.get("msg_id"), res.get("status")
+        except Exception:
+            raise HTTPException(500, "No se pudo enviar el mensaje")
+    else:
+        # Messenger / Instagram · adaptador stub-aware + persiste con su canal
+        try:
+            from conversation_channels import get_adapter
+            res = await get_adapter(ch)(db, {"lead_id": cid}, text)
+        except Exception:
+            res = {"delivered": False, "stub": True}
+        msg_id = "msg_" + uuid.uuid4().hex[:12]
+        status = "sent" if res.get("delivered") else "queued"
+        try:
+            await db.whatsapp_messages.insert_one({
+                "_id": msg_id, "org_id": user.user_id, "lead_id": cid, "channel": ch,
+                "direction": "outbound", "provider": ch, "body_text": text, "status": status,
+                "created_at": now, "sent_at": now, "conversation_thread_id": f"{ch}_{cid}"})
+        except Exception:
+            pass
     try:
         await db.asesor_contacto_timeline.insert_one({
             "id": "tl_" + uuid.uuid4().hex[:10], "contacto_id": cid, "owner_id": user.user_id,
-            "kind": "whatsapp_out", "body": f"WhatsApp enviado: {text[:120]}", "ts": datetime.now(timezone.utc)})
+            "kind": f"{ch}_out", "body": f"Mensaje {ch} enviado: {text[:120]}", "ts": now})
     except Exception:
         pass
-    return {"ok": True, "msg_id": res.get("msg_id"), "status": res.get("status")}
+    return {"ok": True, "msg_id": msg_id, "status": status, "channel": ch}
 
 
 @router.post("/contactos/{cid}/whatsapp/draft")
@@ -1526,21 +1563,24 @@ async def unified_inbox(request: Request, channel: str = "", q: str = ""):
         meta_by[c["id"]] = {"name": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip(),
                             "temp": c.get("temperatura")}
 
-    # 1) Hilos de WhatsApp (agrupados por lead)
-    if channel in ("", "whatsapp"):
+    # 1) Hilos de mensajería directa (omnicanal: WhatsApp/Messenger/Instagram) · agrupados por (lead, canal)
+    if channel in ("", "whatsapp", "messenger", "instagram"):
         try:
             pipe = [
                 {"$match": {"org_id": user.user_id}},
                 {"$sort": {"created_at": 1}},
-                {"$group": {"_id": "$lead_id", "count": {"$sum": 1},
-                            "last": {"$last": "$body_text"}, "last_dir": {"$last": "$direction"},
-                            "last_ts": {"$last": "$created_at"}}},
+                {"$group": {"_id": {"lead": "$lead_id", "ch": {"$ifNull": ["$channel", "whatsapp"]}},
+                            "count": {"$sum": 1}, "last": {"$last": "$body_text"},
+                            "last_dir": {"$last": "$direction"}, "last_ts": {"$last": "$created_at"}}},
             ]
-            for t in await db.whatsapp_messages.aggregate(pipe).to_list(500):
-                cid = t.get("_id")
+            for t in await db.whatsapp_messages.aggregate(pipe).to_list(800):
+                cid = (t.get("_id") or {}).get("lead")
+                ch = (t.get("_id") or {}).get("ch") or "whatsapp"
+                if channel and ch != channel:
+                    continue
                 out.append({
-                    "conversation_id": "wa_" + str(cid), "channel": "whatsapp",
-                    "lead_id": cid, "lead_name": (meta_by.get(cid) or {}).get("name") or "WhatsApp",
+                    "conversation_id": f"{ch}_{cid}", "channel": ch,
+                    "lead_id": cid, "lead_name": (meta_by.get(cid) or {}).get("name") or ch.capitalize(),
                     "temperatura": (meta_by.get(cid) or {}).get("temp"),
                     "message_count": t.get("count", 0), "last_message": (t.get("last") or "")[:90],
                     "last_ts": t.get("last_ts"), "needs_reply": t.get("last_dir") == "inbound",
