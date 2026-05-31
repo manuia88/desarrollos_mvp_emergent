@@ -1332,6 +1332,21 @@ async def lead_suggestions(cid: str, request: Request):
         (items and any(it.get("status") in ("le_gusto", "cita", "visitada", "oferta", "descartada") for it in items))))}
 
 
+@router.get("/intel/prospects")
+async def prospect_intel(request: Request):
+    """B5.4 Capa 6 · El NORTE — inteligencia agregada de TODOS los prospectos del asesor.
+    'El 70% se clava en las cocinas', 'preventa rechazada por el 40%', 'Altavista convierte 60%'.
+    Read-time sobre los perfiles de gusto + tableros del owner. FAIL-OPEN."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    try:
+        from taste_profile import build_prospect_intel
+        return await build_prospect_intel(db, user.user_id)
+    except Exception:
+        return {"signal_leads": 0, "top_rooms": [], "top_features": [],
+                "by_development": [], "reject_reasons": [], "totals": {"likes": 0, "dislikes": 0}, "insights": []}
+
+
 @router.post("/contactos/{cid}/swipe-link")
 async def create_swipe_link(cid: str, request: Request):
     """B5.2 · Crea (o reusa) el link Tinder público del lead + mensaje de WhatsApp.

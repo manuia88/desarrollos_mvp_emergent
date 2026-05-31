@@ -825,6 +825,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const [devs, setDevs] = useState([]);
   const [smartList, setSmartList] = useState(() => searchParams.get('smart_list') || null);
   const [view, setView] = useState('pipeline');
+  const [intel, setIntel] = useState(null);  // B5.4 Capa 6 · el norte (inteligencia de prospectos)
   const [dragging, setDragging] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [foco, setFoco] = useState([]);
@@ -884,6 +885,12 @@ function AsesorContactosV2({ user, onLogout }) {
     }
     getSmartListPresets().then((r) => setPresets(r?.presets || [])).catch(() => setPresets([]));
     if (!demoMode) getSmartListCounts().then((r) => setCounts(r?.counts || {})).catch(() => setCounts({}));
+  }, [demoMode]);
+
+  // B5.4 Capa 6 · El norte — inteligencia agregada de prospectos (gusto/rechazos/conversión) · FAIL-OPEN.
+  useEffect(() => {
+    if (demoMode) { setIntel(null); return; }
+    api.getProspectIntel().then(setIntel).catch(() => setIntel(null));
   }, [demoMode]);
 
   // Foco de hoy + total de leads + próxima acción por lead (todo del dashboard · FAIL-OPEN).
@@ -1056,6 +1063,36 @@ function AsesorContactosV2({ user, onLogout }) {
             />
           </div>
         </div>
+
+        {/* B5.4 Capa 6 · El norte — inteligencia agregada de prospectos. Solo con señal real. */}
+        {intel && intel.signal_leads > 0 && (intel.insights || []).length > 0 && (
+          <div data-testid="asr-prospect-intel" style={{ marginBottom: 18, padding: '14px 16px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.03))', border: '1px solid rgba(var(--theme-rgb),0.22)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 16 }}>🧭</span>
+              <b style={{ fontFamily: 'Outfit', fontSize: 14, color: 'var(--cream)' }}>Lo que aprendí de tus prospectos</b>
+              <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{intel.signal_leads} {intel.signal_leads === 1 ? 'lead con datos' : 'leads con datos'}</span>
+            </div>
+            <div style={{ display: 'grid', gap: 6, marginBottom: (intel.by_development || []).length ? 11 : 0 }}>
+              {(intel.insights || []).map((s, i) => (
+                <div key={i} style={{ fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.5, display: 'flex', gap: 7 }}>
+                  <span style={{ color: 'var(--theme-2)', flexShrink: 0 }}>›</span><span>{s}</span>
+                </div>
+              ))}
+            </div>
+            {(intel.by_development || []).length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, paddingTop: 10, borderTop: '1px solid rgba(var(--theme-rgb),0.15)' }}>
+                {(intel.by_development || []).slice(0, 5).map((d) => {
+                  const col = d.accept_rate >= 60 ? 'var(--emerald, #10b981)' : d.accept_rate >= 35 ? 'var(--theme-2)' : 'var(--cold, #ef6b6b)';
+                  return (
+                    <span key={d.dev_id} title={`${d.likes} 👍 · ${d.dislikes} 👎`} style={{ fontSize: 11.5, padding: '4px 10px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--cream-2)' }}>
+                      {d.name} <b style={{ color: col }}>{d.accept_rate}%</b>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Chips de filtro horizontales (presets reales · reemplazan el rail) */}
         <LeadFilterChips

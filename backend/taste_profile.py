@@ -13,7 +13,7 @@ El dwell de una foto cuenta como interés en ESE tipo de cuarto, amplificado si 
 propiedad terminó gustando, atenuado si se rechazó. Los regresos pesan más que el tiempo.
 """
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 from datetime import datetime, timezone
 
 POSITIVE_STATUS = {"le_gusto", "cita", "visitada", "oferta"}
@@ -156,6 +156,91 @@ async def build_taste_profile(db, owner_id: str, contacto_id: str, persist: bool
             pass
     profile.pop("_id", None)
     return profile
+
+
+async def build_prospect_intel(db, owner_id: str) -> dict:
+    """B5.4 Capa 6 · El NORTE — inteligencia agregada de TODOS los prospectos del asesor.
+    Convierte el gusto individual en producto/marketing: 'el 70% se clava en las cocinas',
+    'preventa rechazada por el 40%', 'Altavista convierte 60%'. Alimenta el lado developer.
+    Read-time, sin colección nueva. FAIL-OPEN."""
+    profiles = await db.asesor_taste_profile.find({"owner_id": owner_id}, {"_id": 0}).to_list(2000)
+    rooms, feats = defaultdict(float), defaultdict(float)
+    room_labels, feat_labels = {}, {}
+    top_room_count = Counter()
+    signal_leads = 0
+    for p in profiles:
+        if (p.get("signal_count") or 0) < 1:
+            continue
+        signal_leads += 1
+        for r in (p.get("rooms") or []):
+            rooms[r["room"]] += r["score"]
+            room_labels[r["room"]] = r["label"]
+        for f in (p.get("features") or []):
+            feats[f["key"]] += f["score"]
+            feat_labels[f["key"]] = f["label"]
+        if p.get("rooms"):
+            top_room_count[p["rooms"][0]["room"]] += 1
+
+    items = await db.asesor_lead_properties.find({"owner_id": owner_id}, {"_id": 0}).to_list(8000)
+    by_dev = {}
+    reject_reasons = Counter()
+    total_likes = total_dislikes = 0
+    for it in items:
+        st = STATUS_ALIAS.get(it.get("status"), it.get("status"))
+        dev = it.get("dev_id") or "?"
+        d = by_dev.setdefault(dev, {"likes": 0, "dislikes": 0, "name": None})
+        d["name"] = it.get("name") or dev
+        if st in POSITIVE_STATUS:
+            d["likes"] += 1
+            total_likes += 1
+        elif st == "descartada":
+            d["dislikes"] += 1
+            total_dislikes += 1
+            r = (it.get("pass_reason") or "").strip()
+            if r:
+                reject_reasons[r] += 1
+
+    top_rooms = [{"room": x["key"], "label": room_labels.get(x["key"], x["key"]), "score": x["score"]}
+                 for x in _norm(rooms)][:4]
+    top_features = [{"key": x["key"], "label": feat_labels.get(x["key"], x["key"]), "score": x["score"]}
+                    for x in _norm(feats)][:4]
+
+    devs = []
+    for dev, d in by_dev.items():
+        tot = d["likes"] + d["dislikes"]
+        if tot == 0:
+            continue
+        devs.append({"dev_id": dev, "name": d["name"], "likes": d["likes"], "dislikes": d["dislikes"],
+                     "accept_rate": int(round(100 * d["likes"] / tot))})
+    devs.sort(key=lambda x: -(x["likes"] + x["dislikes"]))
+
+    # Insights en lenguaje llano (lo que el founder pidió ver)
+    insights = []
+    if signal_leads and top_room_count:
+        room, cnt = top_room_count.most_common(1)[0]
+        pct = int(round(100 * cnt / signal_leads))
+        insights.append(f"El {pct}% de tus prospectos se fija sobre todo en {room_labels.get(room, room).lower()}.")
+    if top_features:
+        insights.append("Lo que más les llama: " + ", ".join(f["label"] for f in top_features[:2]) + ".")
+    if reject_reasons:
+        rr, cnt = reject_reasons.most_common(1)[0]
+        insights.append(f"Razón #1 de rechazo: «{rr}» ({cnt} {'vez' if cnt == 1 else 'veces'}).")
+    if devs:
+        best = max(devs, key=lambda x: x["accept_rate"])
+        worst = min(devs, key=lambda x: x["accept_rate"])
+        if best["likes"] + best["dislikes"] >= 2:
+            insights.append(f"{best['name']} es la que mejor convierte ({best['accept_rate']}% 👍).")
+        if worst["dev_id"] != best["dev_id"] and worst["dislikes"] >= 2:
+            insights.append(f"{worst['name']} es la que más rechazan ({100 - worst['accept_rate']}% 👎).")
+
+    return {
+        "signal_leads": signal_leads,
+        "top_rooms": top_rooms, "top_features": top_features,
+        "by_development": devs[:8],
+        "reject_reasons": [{"reason": r, "count": c} for r, c in reject_reasons.most_common(5)],
+        "totals": {"likes": total_likes, "dislikes": total_dislikes},
+        "insights": insights,
+    }
 
 
 def build_brief(items: list, taste: dict) -> dict:

@@ -61,6 +61,8 @@ export const deleteLeadBoardItem = (itemId) => del(`/api/asesor/board/${itemId}`
 export const createSwipeLink = (cid) => post(`/api/asesor/contactos/${cid}/swipe-link`);
 // B5.3 · Recomendador — inventario rankeado por match para el lead (excluye lo que ya está en tablero)
 export const getLeadSuggestions = (cid) => j(`/api/asesor/contactos/${cid}/suggestions`);
+// B5.4 Capa 6 · El norte — inteligencia agregada de prospectos (gusto/rechazos/conversión por dev)
+export const getProspectIntel = () => j('/api/asesor/intel/prospects');
 
 // Captaciones
 export const listCaptaciones = () => j('/api/asesor/captaciones');
