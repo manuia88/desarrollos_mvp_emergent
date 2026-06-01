@@ -710,40 +710,62 @@ async def _pick_best_inmobiliaria_asesor(db, inmobiliaria_id: str, colonia: str)
 # Seed DMX inmobiliaria on startup
 # ─────────────────────────────────────────────────────────────────────────────
 async def seed_dmx_inmobiliaria(db) -> None:
-    existing = await db.inmobiliarias.find_one({"is_system_default": True}, {"_id": 0, "id": 1})
-    if existing:
-        return
+    """Inmobiliaria de la casa = Livoo Bienes Raíces (system-default · recibe los leads de
+    marketplace público). E0.7 · IDEMPOTENTE: upsert del org + sus 2 usuarios por correo.
+    NO fija contraseñas (cada quien activa su cuenta por el login normal · regla seguridad).
+    Manuel Acosta = Gerente (admin) · Claudia Landeros = Asesor + receptora de leads públicos."""
     now_iso = _now().isoformat()
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
-    dmx = {
-        "id": "dmx_root",
-        "name": "DesarrollosMX",
-        "type": "dmx_owner",
-        "status": "active",
-        "is_system_default": True,
-        "rfc": "DMX260101ABC",
-        "brokers_count": 0,
-        "founded_year": 2024,
-        "contact": {"email": admin_email, "phone": os.environ.get("DMX_FALLBACK_WHATSAPP", "+525512345678")},
-        "created_at": now_iso,
-    }
-    await db.inmobiliarias.insert_one(dmx)
-    # Create DMX admin user entry in inmobiliaria_internal_users
-    admin_entry = {
-        "id": _uid("inm_user"),
-        "inmobiliaria_id": "dmx_root",
-        "email": admin_email,
-        "name": "Admin DMX",
-        "role": "admin",
-        "status": "active",
-        "password_hash": None,
-        "activation_token": None,
-        "last_login_at": None,
-        "created_at": now_iso,
-        "user_id": None,
-    }
-    await db.inmobiliaria_internal_users.insert_one(admin_entry)
-    log.info("[batch4.1] DMX root inmobiliaria seeded")
+    # Org system-default. Mantiene id 'dmx_root' por compatibilidad de referencias internas.
+    await db.inmobiliarias.update_one(
+        {"is_system_default": True},
+        {"$set": {
+            "name": "Livoo Bienes Raíces",
+            "type": "dmx_owner",
+            "status": "active",
+            "is_system_default": True,
+        },
+         "$setOnInsert": {
+            "id": "dmx_root",
+            "rfc": "LBR260101ABC",
+            "brokers_count": 2,
+            "founded_year": 2024,
+            "contact": {"email": admin_email, "phone": os.environ.get("DMX_FALLBACK_WHATSAPP", "+525512345678")},
+            "created_at": now_iso,
+        }},
+        upsert=True,
+    )
+    inm = await db.inmobiliarias.find_one({"is_system_default": True}, {"_id": 0, "id": 1})
+    inm_id = (inm or {}).get("id") or "dmx_root"
+
+    # Usuarios de Livoo. Upsert por (inmobiliaria_id, email). password_hash/user_id solo en
+    # $setOnInsert → NO se pisan si ya activaron su cuenta. Claudia recibe los leads públicos.
+    livoo_users = [
+        {"email": "macosta.ia88@gmail.com", "name": "Manuel Acosta",
+         "role": "admin", "is_manager": True, "public_lead_receiver": False},
+        {"email": "claudialanderos004@gmail.com", "name": "Claudia Landeros",
+         "role": "asesor", "is_manager": False, "public_lead_receiver": True},
+    ]
+    for u in livoo_users:
+        await db.inmobiliaria_internal_users.update_one(
+            {"inmobiliaria_id": inm_id, "email": u["email"]},
+            {"$set": {
+                "name": u["name"], "role": u["role"], "status": "active",
+                "is_manager": u["is_manager"], "public_lead_receiver": u["public_lead_receiver"],
+            },
+             "$setOnInsert": {
+                "id": _uid("inm_user"),
+                "inmobiliaria_id": inm_id,
+                "email": u["email"],
+                "password_hash": None,
+                "activation_token": None,
+                "last_login_at": None,
+                "user_id": None,
+                "created_at": now_iso,
+            }},
+            upsert=True,
+        )
+    log.info("[batch4.1] Livoo Bienes Raíces (system-default) + Manuel(Gerente)/Claudia(Asesor) sembrados (idempotente)")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -990,16 +1012,17 @@ async def create_cita(payload: CitaBody, request: Request):
                 colonia = dm.get(payload.project_id, {}).get("colonia", "")
             except Exception:
                 pass
-            # Regla founder (E0.7): lead de marketplace PÚBLICO → inmobiliaria DMX (el
-            # dueño/founder). NO se distribuye a otros asesores (antes _pick_best_… repartía
-            # por score). Se asigna al admin de DMX; si su user_id aún no existe, queda con
-            # la inmobiliaria DMX sin asesor específico (el dueño lo ve igual).
-            dmx_admin = await db.inmobiliaria_internal_users.find_one(
-                {"inmobiliaria_id": dmx_id, "role": "admin", "status": "active",
-                 "user_id": {"$ne": None}},
-                {"_id": 0, "user_id": 1},
+            # Regla founder (E0.7): lead de marketplace PÚBLICO → Livoo Bienes Raíces, a la
+            # asesora RECEPTORA (Claudia · public_lead_receiver). NO se reparte a otros
+            # asesores. Fallback al picker por score solo si no hay receptora marcada.
+            receiver = await db.inmobiliaria_internal_users.find_one(
+                {"inmobiliaria_id": dmx_id, "status": "active", "public_lead_receiver": True},
+                {"_id": 0, "user_id": 1, "id": 1},
             )
-            picked_asesor = (dmx_admin or {}).get("user_id")
+            if receiver:
+                picked_asesor = receiver.get("user_id") or receiver.get("id")
+            else:
+                picked_asesor = await _pick_best_inmobiliaria_asesor(db, dmx_id, colonia)
             origin_type = "inmobiliaria_lead"
             origin_inmobiliaria_id = dmx_id
             lead_inmobiliaria_id = dmx_id
