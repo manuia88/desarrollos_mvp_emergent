@@ -115,7 +115,16 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty
   const [attachOpen, setAttachOpen] = useState(false);
   const fileRef = useRef(null);
   const acceptRef = useRef('image/*');
+  const taRef = useRef(null);
+  // Auto-expandir el textarea con el contenido (founder: se cortaba a la 4a línea)
+  const autosize = useCallback(() => {
+    const el = taRef.current; if (!el) return;
+    if (!el.value) { el.style.height = '84px'; return; }   // vacío → altura base (evita caja gigante en flex)
+    el.style.height = '0px';                                // mide el contenido real
+    el.style.height = Math.max(84, Math.min(el.scrollHeight, 320)) + 'px';
+  }, []);
   useEffect(() => { if (seed) setText(seed); }, [seed]);  // "Usar" desde la IA en vivo llena la caja
+  useEffect(() => { autosize(); }, [text, autosize]);     // recalcula alto al escribir o al recibir seed
   const send = async () => {
     let tt = text.trim();
     if (attached) tt = (tt ? tt + '\n' : '') + `📎 ${attached.name}`;
@@ -159,10 +168,10 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} disabled={disabled}
+        <textarea ref={taRef} value={text} onChange={(e) => setText(e.target.value)} rows={3} disabled={disabled}
           placeholder="Escribe tu mensaje…  (Enter envía · Shift+Enter salto de línea)"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          style={{ flex: 1, resize: 'vertical', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, lineHeight: 1.5, outline: 'none', minHeight: 76, maxHeight: 220 }} />
+          style={{ flex: 1, resize: 'none', overflowY: 'auto', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, lineHeight: 1.5, outline: 'none', minHeight: 84, maxHeight: 320 }} />
         <button type="button" onClick={send} disabled={disabled || (!text.trim() && !attached)}
           style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: '#0b1f12', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || (!text.trim() && !attached)) ? 'default' : 'pointer', opacity: (disabled || (!text.trim() && !attached)) ? 0.5 : 1 }}>
           Enviar →
