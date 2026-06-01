@@ -1062,6 +1062,8 @@ async def create_cita(payload: CitaBody, request: Request):
         "intent": payload.intent,
         "budget_range": presupuesto_dict,
         "status": lead_status,
+        # status_v2 canónico desde el inicio (si no, el lead no aparece en smart lists)
+        "status_v2": "perdido" if lead_status in CLOSED_STATUSES else "lead_nuevo",
         # activo = lead NO cerrado · alimenta el índice único de dedup (1 lead activo por proyecto+contacto)
         "activo": lead_status not in CLOSED_STATUSES,
         "assigned_to": asesor_id,

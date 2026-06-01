@@ -114,8 +114,18 @@ async def backfill_status_v2(db) -> int:
         for bad, good in _BAD_STATUS_V2_FIX.items():
             res = await db.leads.update_many({"status_v2": bad}, {"$set": {"status_v2": good}})
             fixed += res.modified_count or 0
+        # Leads que NO tienen status_v2 (cita/b13/dev escriben status V1 sin status_v2 →
+        # invisibles a smart lists): derivar status_v2 desde el status V1.
+        cur = db.leads.find(
+            {"$or": [{"status_v2": {"$exists": False}}, {"status_v2": None}]},
+            {"_id": 0, "id": 1, "status": 1},
+        ).limit(20000)
+        async for ld in cur:
+            sv2 = map_v1_to_v2(ld.get("status") or "nuevo")
+            await db.leads.update_one({"id": ld["id"]}, {"$set": {"status_v2": sv2}})
+            fixed += 1
         if fixed:
-            log.info(f"[pipeline] backfill_status_v2 reparó {fixed} leads")
+            log.info(f"[pipeline] backfill_status_v2 reparó/derivó {fixed} leads")
     except Exception as exc:
         log.warning(f"[pipeline] backfill_status_v2 warning: {exc}")
     return fixed

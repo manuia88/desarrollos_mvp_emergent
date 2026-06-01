@@ -167,6 +167,7 @@ async def public_lead_create(payload: PublicLeadCreate, request: Request):
         "contact": {"name": payload.name, "email": payload.email, "phone": payload.phone},
         "intent": payload.intent,
         "status": "nuevo",
+        "status_v2": "lead_nuevo",  # canónico desde el inicio (visible en smart lists)
         "activo": True,  # lead NO cerrado (dedup index)
         "assigned_to": assigned_to,
         "created_at": now_iso, "updated_at": now_iso, "last_activity_at": now_iso,
