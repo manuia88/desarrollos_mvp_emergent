@@ -1,8 +1,26 @@
 # 06 — DMX Roadmap H1 (Reference Doc)
 
-**Última actualización**: 2026-05-07
+**Última actualización**: 2026-06-01
 **Tracking activo**: `memory/PRD.md` (canonical, con status updates per batch)
 **Este doc**: vista alto-nivel para navegación rápida y planeación.
+
+---
+
+## 🔧 ASESOR END-TO-END WIRING — Etapa 0-6 (2026-06-01 · ACTIVO)
+
+Plan vigente tras auditoría profunda (`memory/ASESOR_ARCH_AUDIT.md`). Objetivo: módulo asesor 100% cableado FE↔BE, sin cables sueltos/muertos/huérfanos, cerrando ciclos y subiendo IA/ML/Seguridad/Diseño. La mayoría de upgrades = cablear/surfacear motores que YA existen (no construir ML de cero).
+
+| Etapa | Foco | Incluye fixes 🔴 + oportunidades |
+|---|---|---|
+| **E0 Esqueleto** | Cables rotos que pierden datos (va primero) | puente landing→asesor_contactos · identidad teléfono+email · DISC vivo · citas_booked enum · battle card datetime · comisión · getBuyerScore · aislamiento multi-tenant (S1) · fallos silenciosos (S5) |
+| **E1 Clasificación viva** | Segmentos → smart_lists_engine real | unificar taxonomías · Foco rojo preset · tarjeta coherente (D3) |
+| **E2 Perfilamiento** | Capturar + auto-leer | taste en tarjeta/Bandeja (A3) · match auto-tune desde swipes (M4) |
+| **E3 Actividad→score** | Motor de seguimiento | Actividad = timeline real notas+tareas+citas+convos+swipes (D2) · agenda unificada (D1) · una ruta de cita · brief proactivo (A5) |
+| **E4 IA en conversación** | Bandeja | copiloto unificado consciente del CRM (A1) · DISC/tono (A2) · sugerencias "Usar" (A4) · IA visible Kalshi-style (D5) |
+| **E5 Tablero gerente** | Agregado por asesor | team metrics · des-ocultar SuperadminCopilot · oversight agentes · score self-tuning (M1) · índice demanda real (M3) · ruteo (M5) · tablero (D4) |
+| **E6 Limpieza** | Cables muertos + governance | 10 wrappers FE muertos · botón "Ejecutar" por-agente · W5.FF gating asesor (S2) · auditoría mutaciones (S3) · endurecer link Galería (S4) · decidir knowledge graph |
+
+Diferidos (necesitan escala de datos): M2 lookalike compradores (ver `B5_4_TASTE_MODEL_SPEC`), M1 self-tuning maduro (ver `W5_15_FSD_SPEC`).
 
 ---
 

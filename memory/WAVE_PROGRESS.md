@@ -2,6 +2,26 @@
 
 ---
 
+## 🔎 AUDITORÍA ARQUITECTURA ASESOR + PLAN CABLEADO (2026-06-01)
+
+Auditoría profunda end-to-end (6 agentes paralelos) del módulo asesor y sus conexiones cross-módulo (dev/comprador/superadmin). Doc canónico: `memory/ASESOR_ARCH_AUDIT.md` (auto-memory) — mapa de arquitectura, cables rotos/muertos/huérfanos, y áreas de oportunidad IA/ML/Seguridad/Diseño.
+
+**Hallazgo raíz:** los módulos son VISTAS sobre las mismas colecciones (no copias). PERO `db.leads` (landing/marketplace/dev) y `db.asesor_contactos` (CRM asesor) son dos universos casi sin puente (solo JOIN email frágil).
+
+**8 cables ROTOS (🔴 pierden datos):** landing→asesor sin puente · score vacío en contactos manuales · DISC conversation_engine muerto · citas_booked=0 (enum es/en) · battle card count (datetime vs ISO) · comisión por-asesor · /demanda sintético · getBuyerScore ruta inexistente.
+
+**Features mal ubicadas (🟡):** Actividad omite tareas/citas · Tareas global no por-lead · agenda partida · segmentos board V2 client-side (no usan smart_lists_engine + descartan presets fetcheados).
+
+**OK ✅:** loop Galería swipe (👍/👎→taste→match) completo end-to-end.
+
+**Plan integrado Etapa 0-6** (revisado Sr/Master/PM · suma E0 y E6 a las 5 etapas de cableado):
+- E0 Esqueleto (puente leads · identidad teléfono+email · DISC · citas · battle card · comisión) — VA PRIMERO.
+- E1 Clasificación viva (smart_lists_engine real) · E2 Perfilamiento+taste · E3 Actividad→score (timeline real + agenda unificada) · E4 IA en conversación (copiloto CRM + DISC + "Usar") · E5 Tablero gerente · E6 Limpieza (cables muertos + W5.FF asesor + seguridad).
+
+Estado: **análisis cerrado · plan listo · sin build aún.** Empezar por E0.
+
+---
+
 ## 📌 STATUS CANÓNICO PENDIENTES (2026-05-25 corregido tras verificación directa git log)
 
 ### W5 — 100% SHIPPED EN CÓDIGO ✅

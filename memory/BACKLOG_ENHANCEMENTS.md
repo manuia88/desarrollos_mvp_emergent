@@ -6,6 +6,41 @@ Tracking de enhancements diferidos surgidos durante batches B14-B35. Cada item t
 
 ---
 
+## 🔧 OPORTUNIDADES ASESOR — IA/ML/Seguridad/Diseño (2026-06-01 · de la auditoría)
+
+Origen: auditoría arquitectura asesor (`memory/ASESOR_ARCH_AUDIT.md`). Destino: Etapa 0-6 (ver `06_ROADMAP.md`). **Insight: casi todo = cablear/surfacear motor existente, no construir ML de cero.**
+
+**IA**
+- A1 · Copiloto unificado consciente del CRM (Cmd+J hoy ciego a asesor_contactos; ficha decorativo) → lee leads+búsquedas+taste+convos+score y actúa → E4
+- A2 · DISC/tono vivo por conversación (hoy cable roto: lee leads.disc_tier que nadie escribe) → E0+E4
+- A3 · Auto-extracción de perfil desde WhatsApp (conversation_lead_enrichment subutilizado) → E2
+- A4 · Sugerencias "Usar" en Bandeja (reply_classifier+argumentario ya existen) → E4
+- A5 · Brief proactivo por lead al abrir ficha → E3
+
+**ML**
+- M1 · Score de cierre self-tuning (close_probability hoy determinístico; ver W5_15_FSD_SPEC) → E5/diferido escala
+- M2 · Lookalike de compradores (taste+conducta; ver B5_4_TASTE_MODEL_SPEC diferido B8) → diferido escala
+- M3 · Índice de demanda REAL desde búsquedas+swipes (hoy /demanda inventado random.seed) — data product, también arregla dev portal → E0/E5
+- M4 · Match auto-tuning desde resultados swipe reales (match_weights auto-tune existe, sin conectar) → E2
+- M5 · Ruteo inteligente lead→asesor (smart_routing_engine existe) → E5
+
+**Seguridad**
+- S1 · Aislamiento multi-tenant consistente (leads cargan assigned_to Y asesor_id; desincronizable; ver AURORA_BUGS_LEARNINGS) → E0
+- S2 · Gating features asesor en W5.FF (hoy NO registradas → sin control usuario/plan/rollout) → E6
+- S3 · Auditoría completa de mutaciones asesor visible en superadmin (log_mutation existe) → E6
+- S4 · Endurecer link público Galería /p/:token (token/rate-limit/expiración/PII) → E6
+- S5 · Eliminar fallos silenciosos (getBuyerScore→ruta inexistente falla a null callado) → E0
+
+**Diseño**
+- D1 · Agenda unificada citas+tareas (hoy 2 páginas) → E3
+- D2 · Actividad = timeline real (notas+tareas+citas+convos+swipes) → E3
+- D3 · Tarjeta del lead coherente (score+acción+gusto+dinero · ya avanzado) → E1/E2
+- D4 · Tablero de gerente nuevo por asesor → E5
+- D5 · IA visible: confianza/probabilidades Kalshi-style (W5_19), razón del agente → E4
+- D6 · Migración design system premium platform-wide (ya decidido) → transversal
+
+---
+
 ## 📌 STATUS RESUMEN W5 / W6 (2026-05-25 corregido)
 
 ### W5 — 100% SHIPPED EN CÓDIGO ✅
