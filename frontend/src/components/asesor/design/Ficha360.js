@@ -891,7 +891,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                 </div>
               )}
 
-              {/* B5.4 · Qué le gusta · POR-LEAD · aprendido de sus 👍/👎 (Modo Tinder). Búsqueda =
+              {/* B5.4 · Qué le gusta · POR-LEAD · aprendido de sus 👍/👎 (Galería Personalizada). Búsqueda =
                   lo que DIJO; gusto = lo que su CONDUCTA revela. Siempre visible (enseña cómo se llena). */}
               <div style={{ marginBottom: 24 }}>
                 <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--theme-3, #C63FAE)' }} />Qué le gusta <span className="asr-muted">· aprendido de sus 👍 / 👎</span></div>
@@ -948,7 +948,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   </div>
                 ) : (
                   <div style={{ border: '1px dashed var(--border-2)', borderRadius: 12, background: 'var(--surface)', padding: '16px 18px', fontSize: 13.5, color: 'var(--cream-3)', lineHeight: 1.6 }}>
-                    Aún no sé qué le gusta a {c.first_name || 'este lead'}. Compártele propiedades por el <b style={{ color: 'var(--cream-2)' }}>Modo Tinder</b> (pestaña Propiedades); en cuanto marque 👍 / 👎 aprendo sus gustos reales y aparecen aquí — para que sepas qué enseñarle y con qué cerrar.
+                    Aún no sé qué le gusta a {c.first_name || 'este lead'}. Envíale una <b style={{ color: 'var(--cream-2)' }}>Galería Personalizada</b> (pestaña Propiedades); en cuanto deslice 👍 / 👎 aprendo sus gustos reales y aparecen aquí — para que sepas qué enseñarle y con qué cerrar.
                   </div>
                 )}
               </div>
