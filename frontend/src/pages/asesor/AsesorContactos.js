@@ -1146,7 +1146,7 @@ function AsesorContactosV2({ user, onLogout }) {
             Cada chip filtra el board (client-side). Counts en vivo. Ámbar = atención/foco rojo. */}
         <div data-testid="lead-segments" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           {/* segmentos · una sola línea con scroll horizontal */}
-          <div className="asr-chips scrollbar-none" style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', flex: 1, minWidth: 0, paddingBottom: 2 }}>
+          <div className="scrollbar-none" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 8, overflowX: 'auto', flex: 1, minWidth: 0, paddingBottom: 2 }}>
             {segmentDefs.map((s) => {
               const on = segment === s.key;
               const warn = ['focorojo', 'seenfrian', 'sinseg', 'sincontacto'].includes(s.key) && segCounts[s.key] > 0 && !on;
@@ -1376,30 +1376,27 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         <Pin size={13} color={c.pinned ? 'var(--theme-2)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--theme-2)' : 'none'} />
       </button>
 
-      {/* 1 · identidad + score · iniciales y badge MÁS CHICOS para que el nombre completo no se corte */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, marginTop: 1, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 11.5, color: `rgb(${meta.rgb})` }}>
+      {/* 1 · identidad · nombre completo en UNA línea + fuente·antigüedad en UNA línea (score movido a la acción) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 11.5, color: `rgb(${meta.rgb})` }}>
           {avatarInitials(c)}
         </div>
-        <div style={{ flex: 1, minWidth: 0, paddingRight: 22 }}>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14.5, color: 'var(--cream)', lineHeight: 1.25 }}>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 20 }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14.5, color: 'var(--cream)', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.first_name} {c.last_name || ''}
           </div>
-          <div style={{ fontSize: 11.5, marginTop: 2, lineHeight: 1.35 }}>
+          <div style={{ fontSize: 11.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             <span style={{ color: 'var(--cream-3)', textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</span>
             {agingDisplay && <span style={{ color: agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: agingWarn ? 600 : 400 }}> · {agingDisplay}</span>}
           </div>
         </div>
-        <div title={`Score ${score != null ? pct : '—'}/100`}
-          style={{ flexShrink: 0, marginRight: 18, width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, background: score != null ? `rgba(${meta.rgb}, 0.14)` : 'var(--surface-2)', color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)', border: `1px solid ${score != null ? `rgba(${meta.rgb}, 0.30)` : 'var(--border)'}` }}>
-          {score != null ? pct : '—'}
-        </div>
       </div>
 
-      {/* 2 · temperatura (emoji) + PRÓXIMA ACCIÓN, consolidadas (point 3 · sin duplicar) */}
+      {/* 2 · temperatura (emoji) + PRÓXIMA ACCIÓN + score (consolidados en una línea) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 10, background: `rgba(${meta.rgb}, 0.08)`, border: `1px solid rgba(${meta.rgb}, 0.20)` }}>
         <span title={meta.label} style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>{tempEmoji}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: actText ? 'var(--cream)' : 'var(--cream-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actText || 'Sin acción pendiente'}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: actText ? 'var(--cream)' : 'var(--cream-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actText || 'Sin acción pendiente'}</span>
+        {score != null && <span title={`Score ${pct}/100`} style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: `rgb(${meta.rgb})` }}>{pct}</span>}
       </div>
 
       {/* 3a · zona + dinero en juego ($) */}
