@@ -195,54 +195,12 @@ async def patch_unit_status(payload: UnitStatusPatch, request: Request):
 # ─── D6: Demand Heatmap ───────────────────────────────────────────────────────
 @router.get("/demanda")
 async def demand_heatmap(request: Request):
-    from data_developments import DEVELOPMENTS
-    from data_seed import COLONIAS
+    """M3 · E5 — índice de demanda REAL (búsquedas de asesores + oferta + funnel real).
+    Reemplazó el heatmap sintético (random.seed). Se llena solo conforme entran búsquedas."""
     user = await require_dev_admin(request)
-
-    # Deterministic synthetic demand per colonia (would come from real search logs)
-    random.seed(42)
-    by_colonia = []
-    for c in COLONIAS:
-        base = random.randint(80, 420)
-        growth = random.randint(-15, 45)
-        supply = sum(1 for d in DEVELOPMENTS if d["colonia_id"] == c["id"])
-        net_demand = max(0, base - supply * 20)
-        by_colonia.append({
-            "colonia_id": c["id"], "colonia": c["name"],
-            "alcaldia": c["alcaldia"],
-            "coords": c.get("center"),
-            "searches_30d": base,
-            "growth_mom_pct": growth,
-            "supply_count": supply,
-            "net_demand": net_demand,
-            "heat": min(100, int(100 * net_demand / 450)),
-        })
-    by_colonia.sort(key=lambda x: -x["net_demand"])
-
-    top_queries = [
-        {"q": "preventa polanco 3 recámaras", "count": 342},
-        {"q": "departamento condesa pet friendly", "count": 289},
-        {"q": "penthouse roma norte", "count": 241},
-        {"q": "santa fe cowork amenity", "count": 218},
-        {"q": "lomas chapultepec terraza", "count": 192},
-        {"q": "coyoacán casa jardín", "count": 167},
-        {"q": "del valle estudio inversión", "count": 144},
-        {"q": "entrega inmediata juárez", "count": 128},
-        {"q": "narvarte 2 recámaras 5 millones", "count": 102},
-        {"q": "roof garden roma norte", "count": 95},
-    ]
-
-    forecast_30d = sum(c["net_demand"] for c in by_colonia[:5]) * 1.08
-    forecast_60d = forecast_30d * 1.05
-    forecast_90d = forecast_60d * 1.03
-
-    return {
-        "by_colonia": by_colonia,
-        "top_queries": top_queries,
-        "funnel": {"impressions": 12450, "clicks": 3980, "fichas": 1240, "contacts": 186},
-        "forecast": {"d30": int(forecast_30d), "d60": int(forecast_60d), "d90": int(forecast_90d)},
-        "unmet_demand": [c for c in by_colonia if c["supply_count"] == 0 and c["net_demand"] > 150][:6],
-    }
+    db = get_db(request)
+    from services.demand_engine import compute_demand
+    return await compute_demand(db)
 
 
 # ─── D9: Monthly AI Report ────────────────────────────────────────────────────
