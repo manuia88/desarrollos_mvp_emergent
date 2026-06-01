@@ -75,9 +75,10 @@
   z-index: 0;
   pointer-events: none;
   border-radius: inherit;
+  /* B7 · aurora de fondo más discreta (founder) — glow tenue, no protagonista */
   background:
-    radial-gradient(680px 460px at 2% -8%,  rgba(109, 74, 255, 0.10), transparent 56%),
-    radial-gradient(720px 520px at 102% -4%, rgba(120, 150, 255, 0.10), transparent 60%);
+    radial-gradient(620px 420px at 2% -10%,  rgba(109, 74, 255, 0.05), transparent 55%),
+    radial-gradient(660px 480px at 102% -6%, rgba(120, 150, 255, 0.05), transparent 58%);
 }
 
 /* El contenido vive por encima del glow. */
