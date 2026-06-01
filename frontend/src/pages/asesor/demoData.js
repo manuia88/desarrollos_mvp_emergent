@@ -16,10 +16,10 @@ export const DEMO_LEADS = [
 
 // zona · precio por lead (lo que LeadCard lee de `busquedas`).
 export const DEMO_BUSQ = {
-  'demo-ana':   [{ id: 'b-ana',  colonias: ['Roma'],    precio_max: 4000000 }],
-  'demo-juan':  [{ id: 'b-juan', colonias: ['Condesa'], precio_max: 9000000, precio_min: 5000000 }],
-  'demo-luis':  [{ id: 'b-luis', colonias: ['Reforma'] }],
-  'demo-maria': [{ id: 'b-mar',  colonias: ['Polanco'], precio_max: 8000000 }],
+  'demo-ana':   [{ id: 'b-ana',  colonias: ['Roma'],    precio_max: 4000000, recamaras_min: 2 }],
+  'demo-juan':  [{ id: 'b-juan', colonias: ['Condesa'], precio_max: 9000000, precio_min: 5000000, recamaras_min: 3 }],
+  'demo-luis':  [{ id: 'b-luis', colonias: ['Reforma'], recamaras_min: 2 }],
+  'demo-maria': [{ id: 'b-mar',  colonias: ['Polanco'], precio_max: 8000000, recamaras_min: 3 }],
 };
 
 // "→ próxima acción" por lead (lo que LeadCard lee de `nextAction`).
@@ -38,13 +38,13 @@ export const DEMO_META = {
   'demo-maria': { props: '4 propiedades · 1 le gustó', aging: 'hace 2 días' },
 };
 
-// Conteo + intel por columna (header del kanban · como el mockup).
+// Conteo + $ total de venta de la etapa (value · point 3) + señal/riesgo (intel · point 2).
 export const DEMO_COL = {
-  nuevo:       { count: 3, intel: '2 entraron hoy' },
-  contactado:  { count: 5, intel: '2 enfriándose' },
-  visita:      { count: 2, intel: '1 cita hoy' },
-  negociacion: { count: 4, intel: '$2.1M en juego', accent: true },
-  cerrado:     { count: 2, intel: '$1.4M este mes', accent: true, empty: '2 cierres este mes' },
+  nuevo:       { count: 3, value: '$13M', intel: '2 entraron hoy' },
+  contactado:  { count: 5, value: '$31M', intel: '2 se enfrían' },
+  visita:      { count: 2, value: '$14M', intel: '1 cita hoy' },
+  negociacion: { count: 4, value: '$27M', intel: 'cierre cerca' },
+  cerrado:     { count: 2, value: '$14M', intel: '2 cierres', empty: '2 cierres este mes' },
 };
 
 // Foco de hoy · 3 acciones priorizadas (las del mockup).

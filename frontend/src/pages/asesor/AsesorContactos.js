@@ -831,6 +831,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const [dragging, setDragging] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
   const [foco, setFoco] = useState([]);
+  const [dismissedFoco, setDismissedFoco] = useState(() => new Set()); // B7 · FOCO descartados (cerrar tarjeta)
   // Chips de filtro = presets reales de smart-lists + total para "Todos".
   const [presets, setPresets] = useState([]);
   const [counts, setCounts] = useState({});
@@ -1121,10 +1122,12 @@ function AsesorContactosV2({ user, onLogout }) {
               border: '1px solid var(--border)', borderRadius: 16, padding: 16,
             }} className="asr-foco-grid">
               {demoMode
-                ? DEMO_FOCO.map((f) => (
-                    <FocoCard key={f.id} item={f} onOpen={() => openContact(demoLeadById(f.lead_id))} />
+                ? DEMO_FOCO.filter((f) => !dismissedFoco.has(f.id)).map((f) => (
+                    <FocoCard key={f.id} item={f}
+                      onOpen={() => openContact(demoLeadById(f.lead_id))}
+                      onDismiss={() => setDismissedFoco((s) => new Set(s).add(f.id))} />
                   ))
-                : foco.map((a) => {
+                : foco.filter((a) => !dismissedFoco.has(a.id)).map((a) => {
                     const lead = list.find((x) => x.id === a.lead_id);
                     return (
                       <FocoCard
@@ -1132,7 +1135,7 @@ function AsesorContactosV2({ user, onLogout }) {
                         item={realFoco(a, lead)}
                         onOpen={() => (a.lead_id ? focoCTA('ver', a) : null)}
                         onComplete={() => focoCTA('completar', a)}
-                        onDismiss={() => focoCTA('descartar', a)}
+                        onDismiss={() => { setDismissedFoco((s) => new Set(s).add(a.id)); focoCTA('descartar', a); }}
                       />
                     );
                   })}
@@ -1150,13 +1153,19 @@ function AsesorContactosV2({ user, onLogout }) {
               {ETAPA_ORDER.map((ek) => {
                 const meta = ETAPA[ek];
                 const col = display.filter((c) => (c.etapa || 'nuevo') === ek);
-                // Intel + conteo de columna. En demo, los del mockup; en real, solo dato
-                // verdadero ("N entraron hoy" en Nuevo).
+                // Inteligencia de columna (B7): $ total de la etapa (point 3) + señal/riesgo (point 2).
                 const dcol = demoMode ? DEMO_COL[ek] : null;
-                const nuevosHoy = ek === 'nuevo' ? col.filter((c) => isToday(c.created_at)).length : 0;
-                const intel = dcol ? dcol.intel
-                  : nuevosHoy > 0 ? (nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`) : null;
                 const headCount = dcol ? dcol.count : col.length;
+                const colBudget = col.reduce((s, c) => s + (((busqByContact[c.id] || [])[0]?.precio_max) || 0), 0);
+                const valueText = dcol ? dcol.value
+                  : colBudget > 0 ? (colBudget >= 1e6 ? `$${(colBudget / 1e6).toFixed(colBudget % 1e6 === 0 ? 0 : 1)}M` : fmtMXN(colBudget)) : null;
+                const nuevosHoy = ek === 'nuevo' ? col.filter((c) => isToday(c.created_at)).length : 0;
+                const sinSeg = col.filter((c) => !actionByLead[c.id]).length;
+                const intel = dcol ? dcol.intel
+                  : nuevosHoy > 0 ? (nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`)
+                  : sinSeg > 0 ? (sinSeg === 1 ? '1 sin seguimiento' : `${sinSeg} sin seguimiento`)
+                  : null;
+                const intelWarn = /enfr|riesgo|sin seguimiento|sin contacto|vencid/i.test(intel || '');
                 return (
                   <div key={ek} data-testid={`col-${ek}`}
                     className={`asr-kanban-col${dragOverCol === ek ? ' asr-kanban-col--over' : ''}`}
@@ -1169,9 +1178,16 @@ function AsesorContactosV2({ user, onLogout }) {
                         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{meta.label}</span>
                         <span className="asr-num" style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)' }}>{headCount}</span>
                       </div>
-                      {intel && (
-                        <div style={{ fontSize: 12, color: dcol?.accent ? 'var(--theme-2)' : 'var(--cream-3)', marginTop: 4, fontWeight: dcol?.accent ? 600 : 400 }}>{intel}</div>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, minHeight: 18 }}>
+                        <span title="Venta total en esta etapa" className="asr-num" style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: valueText ? 'var(--theme-2)' : 'var(--cream-3)' }}>
+                          {valueText || '$0'}
+                        </span>
+                        {intel && (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap', color: intelWarn ? 'var(--warm)' : 'var(--cream-2)', background: intelWarn ? 'rgba(245,158,11,0.12)' : 'var(--surface-2)', border: `1px solid ${intelWarn ? 'rgba(245,158,11,0.30)' : 'var(--border)'}` }}>
+                            {intel}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {/* lista = zona de drop que llena la columna (arrastra a cualquier parte) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 80 }}>
@@ -1365,8 +1381,17 @@ function FocoCard({ item, onOpen, onComplete, onDismiss }) {
   const acts = item.actions || ['perfil'];
   const stop = (e) => e.stopPropagation();
   return (
-    <PremiumCard hover data-testid={`asr-foco-card-${item.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', minWidth: 0, cursor: 'pointer' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+    <PremiumCard hover data-testid={`asr-foco-card-${item.id}`} onClick={onOpen} style={{ padding: '17px 19px', display: 'flex', flexDirection: 'column', minWidth: 0, cursor: 'pointer', position: 'relative' }}>
+      {onDismiss && (
+        <button data-testid={`foco-dismiss-${item.id}`} title="Descartar foco" aria-label="Descartar"
+          onClick={(e) => { stop(e); onDismiss(); }}
+          style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: 'var(--cream-3)', borderRadius: 6, opacity: 0.45 }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = 'var(--red, #EF4444)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = 0.45; e.currentTarget.style.color = 'var(--cream-3)'; }}>
+          <XIcon size={13} />
+        </button>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10, paddingRight: onDismiss ? 22 : 0 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: FOCO_TONE[item.tone] || 'var(--ok)', flexShrink: 0 }} />
         <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.who || 'Acción'}</span>
         {item.tag && <span className="asr-foco__tag">{item.tag}</span>}
