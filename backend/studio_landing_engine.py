@@ -1367,7 +1367,9 @@ async def submit_landing_lead(
             "last_name": " ".join((payload.get("nombre") or "").split(" ")[1:])[:80],
             "email": email or None,
             "phone": (payload.get("telefono") or payload.get("phone") or "")[:40],
+            "status": "nuevo",
             "status_v2": "lead_nuevo",  # V2 canónico · el estado de ruteo vive en routing_strategy/reason/assigned_to
+            "activo": True,  # lead NO cerrado (dedup index)
             "source": f"landing_{slug}",
             "origin": "landing_z8",
             "assigned_to": routing_decision.get("assigned_to") or landing.get("user_id"),

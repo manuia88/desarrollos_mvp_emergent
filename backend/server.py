@@ -2367,7 +2367,10 @@ async def startup():
 
     # W5.ASR.2 — Pipeline 7+2 Engine
     try:
-        from pipeline_engine import ensure_indexes as pipeline_ensure_indexes, backfill_status_v2
+        from pipeline_engine import ensure_indexes as pipeline_ensure_indexes, backfill_status_v2, reconcile_lead_activo
+        # Paso 4b · sincroniza `activo` desde status ANTES de construir el índice único
+        # de dedup (red de seguridad: ningún lead cerrado queda bloqueando un alta nueva)
+        await reconcile_lead_activo(db)
         await pipeline_ensure_indexes(db)
         # Paso 3 · repara leads con status_v2 V1/inválido (idempotente)
         await backfill_status_v2(db)

@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request, Query
+from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field
 
 log = logging.getLogger("dmx.batch4_1")
@@ -1058,6 +1059,8 @@ async def create_cita(payload: CitaBody, request: Request):
         "intent": payload.intent,
         "budget_range": presupuesto_dict,
         "status": lead_status,
+        # activo = lead NO cerrado · alimenta el índice único de dedup (1 lead activo por proyecto+contacto)
+        "activo": lead_status not in CLOSED_STATUSES,
         "assigned_to": asesor_id,
         "asesor_id": asesor_id,
         "notes": [],
@@ -1087,7 +1090,14 @@ async def create_cita(payload: CitaBody, request: Request):
         "last_activity_at": now_iso,
         "created_by": getattr(user, "user_id", "public") if user else "public",
     }
-    await db.leads.insert_one(lead)
+    try:
+        await db.leads.insert_one(lead)
+    except DuplicateKeyError:
+        # Backstop de carrera: otro request idéntico ganó entre el check antifraude y
+        # este insert (índice único parcial por proyecto+teléfono/email activo).
+        raise HTTPException(409, detail={
+            "error": "Lead duplicado: ya existe un registro activo para este contacto en el proyecto",
+        })
     lead.pop("_id", None)
 
     # E0.7b · Puente: materializa el lead en el CRM rico del asesor asignado (idempotente,

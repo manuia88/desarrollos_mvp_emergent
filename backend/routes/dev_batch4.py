@@ -355,6 +355,11 @@ async def patch_lead(lead_id: str, payload: LeadPatch, request: Request):
         if not effective_reason:
             raise HTTPException(422, "lost_reason es obligatorio al cerrar como perdido")
 
+    # activo = lead NO cerrado · mantiene el índice único de dedup en sync con status.
+    # Solo se toca cuando cambia el status (cerrar baja la bandera, reabrir la sube).
+    if "status" in patch:
+        patch["activo"] = patch["status"] not in ("cerrado_ganado", "cerrado_perdido")
+
     if not patch:
         return old
 

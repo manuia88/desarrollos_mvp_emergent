@@ -121,6 +121,33 @@ async def backfill_status_v2(db) -> int:
     return fixed
 
 
+# Status V1 que cuentan como "lead cerrado" (no compite por el dedup 1×proyecto×contacto).
+LEAD_CLOSED_STATUSES = ("cerrado_ganado", "cerrado_perdido")
+
+
+async def reconcile_lead_activo(db) -> int:
+    """Recalcula el campo `activo` (= lead NO cerrado) desde el status V1 de TODOS los
+    leads. Es la RED DE SEGURIDAD del índice único de dedup: aunque algún flujo cierre
+    o cree un lead sin tocar `activo`, esta corrida lo deja consistente. Idempotente
+    (solo toca los que difieren) · derivable 100% del status · FAIL-OPEN."""
+    fixed = 0
+    try:
+        # cerrados que aún figuran activo != False → bajar bandera
+        r1 = await db.leads.update_many(
+            {"status": {"$in": list(LEAD_CLOSED_STATUSES)}, "activo": {"$ne": False}},
+            {"$set": {"activo": False}})
+        # no-cerrados que no tienen activo == True → subir bandera
+        r2 = await db.leads.update_many(
+            {"status": {"$nin": list(LEAD_CLOSED_STATUSES)}, "activo": {"$ne": True}},
+            {"$set": {"activo": True}})
+        fixed = (r1.modified_count or 0) + (r2.modified_count or 0)
+        if fixed:
+            log.info(f"[pipeline] reconcile_lead_activo sincronizó {fixed} leads")
+    except Exception as exc:
+        log.warning(f"[pipeline] reconcile_lead_activo warning: {exc}")
+    return fixed
+
+
 def validate_transition_v2(lead: Dict[str, Any], target_status_v2: str) -> Tuple[bool, str]:
     """Valida si la transición al status V2 destino es permitida para este lead.
 
@@ -216,7 +243,7 @@ async def set_parallel_state(
 # ─── DB indexes ───────────────────────────────────────────────────────────────
 
 async def ensure_indexes(db) -> None:
-    """Crea índices para status_v2 + nurture_active."""
+    """Crea índices para status_v2 + nurture_active + dedup de leads activos."""
     try:
         await db.leads.create_index("status_v2", sparse=True)
         await db.leads.create_index("nurture_active", sparse=True)
@@ -224,3 +251,17 @@ async def ensure_indexes(db) -> None:
         log.info("[pipeline] indexes OK")
     except Exception as exc:
         log.warning(f"[pipeline] ensure_indexes warning: {exc}")
+    # Dedup 1×proyecto×contacto SOLO entre leads ACTIVOS (no cerrados). El índice no
+    # puede calcular "no cerrado", por eso filtra por el campo `activo` (igualdad) +
+    # phone/email normalizado ($type:"string", excluye nulos). Reabrir tras cierre
+    # vuelve a permitir alta. Falla a build solo si ya hay duplicados activos (raro).
+    for field, name in (("contact.phone_norm", "uniq_active_lead_phone_project"),
+                        ("contact.email_norm", "uniq_active_lead_email_project")):
+        try:
+            await db.leads.create_index(
+                [("project_id", 1), (field, 1)],
+                unique=True,
+                partialFilterExpression={"activo": True, field: {"$type": "string"}},
+                name=name, background=True)
+        except Exception as exc:
+            log.warning(f"[pipeline] dedup index {name} warning (¿duplicados activos?): {exc}")
