@@ -1229,7 +1229,15 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   const digits = (phone || '').replace(/\D/g, '');
   const waUrl = digits ? `https://wa.me/${digits}?text=${encodeURIComponent('Hola ' + (c.first_name || '') + ', ')}` : null;
   const aging = agingText(c.created_at);
-  const actText = nextAction && (nextAction.title || nextAction.subtitle);
+  const agingDisplay = metaOverride ? metaOverride.aging : aging;
+  const agingWarn = metaOverride ? metaOverride.agingWarn : false;
+  const metaText = zona || precio
+    ? `${zona || ''}${zona && precio ? ' · ' : ''}${precio ? 'hasta ' + fmtMXN(precio) : ''}`
+    : nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada';
+  // B7 · tarjeta COMPACTA y de ALTURA UNIFORME (densa para cientos de leads). Estructura
+  // fija (sin filas condicionales que descuadren): header(avatar+nombre/fuente·aging+score)
+  // → barra de readiness → línea de contexto + acciones. El detalle (próxima acción, N
+  // propiedades, etc.) vive en la Ficha360 al abrir, no en la tarjeta del embudo.
   return (
     <PremiumCard
       hover
@@ -1239,74 +1247,48 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
       onDragEnd={draggable ? onDragEnd : undefined}
       onClick={onOpen}
       data-testid={`lead-card-${c.id}`}
-      style={{ padding: 15, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column' }}
+      style={{ padding: 12, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column', gap: 9, position: 'relative' }}
     >
-      {/* avatar + nombre + fuente + pin */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: `rgb(${meta.rgb})` }}>
+      {/* pin · esquina sutil */}
+      <button data-testid={`pin-${c.id}`} title={c.pinned ? t('pin.unpin', 'Quitar de fijados') : t('pin.pin', 'Fijar arriba')}
+        onClick={(e) => { e.stopPropagation(); onPin(); }}
+        style={{ position: 'absolute', top: 9, right: 9, background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: c.pinned ? 1 : 0.45 }}>
+        <Pin size={13} color={c.pinned ? 'var(--theme-2)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--theme-2)' : 'none'} />
+      </button>
+
+      {/* header: avatar + nombre/fuente·aging + score */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: `rgb(${meta.rgb})` }}>
           {avatarInitials(c)}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 14 }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.first_name} {c.last_name || ''}
           </div>
-          <div style={{ color: 'var(--cream-3)', fontSize: 12.5, marginTop: 2, textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</div>
+          <div style={{ fontSize: 11, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ color: 'var(--cream-3)', textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</span>
+            {agingDisplay && <span style={{ color: agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: agingWarn ? 600 : 400 }}> · {agingDisplay}</span>}
+          </div>
         </div>
-        <button data-testid={`pin-${c.id}`} title={c.pinned ? t('pin.unpin', 'Quitar de fijados') : t('pin.pin', 'Fijar arriba')}
-          onClick={(e) => { e.stopPropagation(); onPin(); }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}>
-          <Pin size={14} color={c.pinned ? 'var(--theme-2)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--theme-2)' : 'none'} />
-        </button>
-      </div>
-
-      {/* scorerow + barra */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
-        <span style={{ fontSize: 11, color: 'var(--cream-3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'inline-flex', gap: 6 }}>
-          Score <span style={{ color: `rgb(${meta.rgb})` }}>{meta.label}</span>
-        </span>
-        <span className="asr-num" style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 24, color: 'var(--theme-2)' }}>
+        <span className="asr-num" style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, lineHeight: 1, color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)' }}>
           {score != null ? Math.round(score) : '—'}
         </span>
       </div>
+
+      {/* barra de readiness */}
       <ScoreBar score={score} showNumber={false} width="100%" />
 
-      {/* zona · precio (de su búsqueda) · sin contradecir el conteo de propiedades */}
-      <div style={{ color: 'var(--cream-2)', fontSize: 13.5, margin: '11px 0 9px' }}>
-        {zona || precio
-          ? `${zona || ''}${zona && precio ? ' · ' : ''}${precio ? 'hasta ' + fmtMXN(precio) : ''}`
-          : nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada'}
-      </div>
-
-      {/* próxima acción (del action_queue · solo si existe · sin emoji) */}
-      {actText && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, color: 'var(--cream)', fontWeight: 600, marginBottom: 9 }}>
-          <ArrowRight size={13} color="var(--theme-2)" />
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{stripEmoji(nextAction.title || nextAction.subtitle)}</span>
-        </div>
-      )}
-
-      {/* propiedades + antigüedad (metaOverride = texto exacto del mockup en demo) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, fontSize: 12 }}>
-        <span style={{ color: 'var(--cream-2)' }}>
-          {metaOverride ? metaOverride.props : (nProps > 0 ? `${nProps} ${nProps === 1 ? 'propiedad' : 'propiedades'}` : 'Sin propiedades aún')}
-        </span>
-        {(metaOverride ? metaOverride.aging : aging) && (
-          <span style={{ color: metaOverride?.agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: metaOverride?.agingWarn ? 600 : 400 }}>
-            {metaOverride ? metaOverride.aging : aging}
-          </span>
-        )}
-      </div>
-
-      {/* WhatsApp + Abrir */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      {/* contexto (zona·precio) + acciones */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ flex: 1, minWidth: 0, color: 'var(--cream-2)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{metaText}</span>
         {waUrl && (
           <a href={waUrl} target="_blank" rel="noreferrer" data-testid={`wa-${c.id}`} title="WhatsApp"
-            onClick={(e) => e.stopPropagation()} className="asr-qbtn">
-            <MessageCircle size={14} />
+            onClick={(e) => e.stopPropagation()} className="asr-qbtn" style={{ width: 28, height: 28 }}>
+            <MessageCircle size={13} />
           </a>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--cream-3)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          Abrir <ArrowRight size={12} />
+        <span style={{ fontSize: 11.5, color: 'var(--cream-3)', display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+          Abrir <ArrowRight size={11} />
         </span>
       </div>
     </PremiumCard>
