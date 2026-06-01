@@ -158,6 +158,7 @@ const AsesorOperaciones = lazy(() => import('./pages/asesor/AsesorOperaciones'))
 const AsesorComisiones  = lazy(() => import('./pages/asesor/AsesorComisiones'));
 const AsesorRanking     = lazy(() => import('./pages/asesor/AsesorRanking'));
 const StudioDashboard   = lazy(() => import('./pages/asesor/StudioDashboard'));
+const StudioHubPage     = lazy(() => import('./pages/asesor/StudioHubPage')); // B7 F4 · hub Studio (Crear + Marca/Biblioteca)
 const AsesorBriefings   = lazy(() => import('./pages/asesor/AsesorBriefings'));
 const AsesorCitas       = lazy(() => import('./pages/asesor/AsesorCitas'));
 const AsesorLeadsDev    = lazy(() => import('./pages/asesor/AsesorLeadsDev'));
@@ -767,7 +768,10 @@ function AppRouter() {
       <Route path="/asesor/operaciones" element={<AdvisorRoute Page={AsesorOperaciones} />} />
       <Route path="/asesor/comisiones" element={<AdvisorRoute Page={AsesorComisiones} />} />
       <Route path="/asesor/ranking" element={<AdvisorRoute Page={AsesorRanking} />} />
-      <Route path="/asesor/studio" element={<AdvisorRoute Page={StudioDashboard} />} />
+      {/* B7 Fase 4 · Hub Studio (Crear + Marca/Biblioteca) · Director IA pasa a /director */}
+      <Route path="/asesor/studio" element={<AdvisorRoute Page={StudioHubPage} />} />
+      <Route path="/asesor/studio/director" element={<AdvisorRoute Page={StudioDashboard} />} />
+      <Route path="/asesor/studio/:area" element={<AdvisorRoute Page={StudioHubPage} />} />
       <Route path="/asesor/briefings" element={<AdvisorRoute Page={AsesorBriefings} />} />
       <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
       <Route path="/asesor/leads-dev" element={<AdvisorRoute Page={AsesorLeadsDev} />} />

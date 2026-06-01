@@ -64,17 +64,7 @@
   },
   "studio": {
     "label": "Studio Marketing",
-    "description": "Crea videos · carruseles · landings · brand kit con IA",
-    "children": {
-      "studio-director": "Director IA",
-      "studio-brand-kit": "Brand Kit",
-      "studio-assets": "Biblioteca de Assets",
-      "studio-import": "Importar Listing",
-      "studio-video-standalone": "Video",
-      "studio-carruseles": "Carruseles",
-      "studio-auto-content": "Auto-Content",
-      "studio-landings": "Landing Pages"
-    }
+    "description": "Todo tu contenido con IA · Crear + Marca y Biblioteca"
   },
   "performance": {
     "label": "Mi Performance",

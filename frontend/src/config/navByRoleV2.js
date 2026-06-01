@@ -26,7 +26,7 @@
 import {
   Home, Users, Search, Plug, CalendarDays, ClipboardList,
   Building2, Briefcase, Store, Megaphone, MessageCircle, MessageSquare,
-  GitMerge, Layers, Sparkles, Package, FolderOpen, FolderUp, Video,
+  GitMerge, Layers, Sparkles,
   Share2, BarChart3, DollarSign, FileText, MapPin,
   Activity, Link, Bot, Bell, Radar, LineChart,
 } from 'lucide-react';
@@ -98,20 +98,10 @@ export const ASESOR_NAV_V2 = [
       { key: 'marketplace', to: '/portal/asesor/marketplace-templates',  label: 'Marketplace plantillas', Icon: Layers },
     ],
   },
-  // 7 · Studio Marketing
+  // 7 · Studio Marketing (B7 F4 · 8 ítems → 1 hub con 2 áreas: Crear + Marca y Biblioteca)
   {
     key: 'studio', to: '/asesor/studio', label: 'Studio Marketing', Icon: Sparkles,
-    description: 'Crea videos · carruseles · landings · brand kit con IA',
-    children: [
-      { key: 'studio-director',         to: '/asesor/studio',                    label: 'Director IA',          Icon: Sparkles },
-      { key: 'studio-brand-kit',        to: '/portal/studio/brand-kit',          label: 'Brand Kit',            Icon: Package },
-      { key: 'studio-assets',           to: '/portal/studio/assets',             label: 'Biblioteca de Assets', Icon: FolderOpen },
-      { key: 'studio-import',           to: '/portal/studio/import',             label: 'Importar Listing',     Icon: FolderUp },
-      { key: 'studio-video-standalone', to: '/portal/asesor/video-standalone',   label: 'Video',                Icon: Video },
-      { key: 'studio-carruseles',       to: '/portal/studio/carruseles',         label: 'Carruseles',           Icon: Sparkles },
-      { key: 'studio-auto-content',     to: '/portal/studio/auto-content',       label: 'Auto-Content',        Icon: Megaphone },
-      { key: 'studio-landings',         to: '/portal/studio/landings',           label: 'Landing Pages',       Icon: Layers },
-    ],
+    description: 'Todo tu contenido con IA · Crear (video/carruseles/landings) + Marca y Biblioteca',
   },
   // 8 · Mi Performance
   {
