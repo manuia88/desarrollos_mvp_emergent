@@ -96,6 +96,31 @@ def map_v1_to_v2(old_status: str) -> str:
     return LEAD_STATUS_MAP_V1_TO_V2.get(old_status, "lead_nuevo")
 
 
+# Valores V1/inválidos que quedaron escritos por error en el campo status_v2
+# (bug histórico de lead_capture/studio_landing) → su equivalente V2 correcto.
+_BAD_STATUS_V2_FIX: Dict[str, str] = {
+    "nuevo":              "lead_nuevo",
+    "under_review":       "lead_nuevo",
+    "pending_assignment": "lead_nuevo",
+}
+
+
+async def backfill_status_v2(db) -> int:
+    """Repara leads cuyo status_v2 quedó con un valor V1/inválido → los hace
+    visibles a smart lists y desbloquea sus transiciones. Idempotente: tras la
+    primera corrida, 0 documentos coinciden. FAIL-OPEN."""
+    fixed = 0
+    try:
+        for bad, good in _BAD_STATUS_V2_FIX.items():
+            res = await db.leads.update_many({"status_v2": bad}, {"$set": {"status_v2": good}})
+            fixed += res.modified_count or 0
+        if fixed:
+            log.info(f"[pipeline] backfill_status_v2 reparó {fixed} leads")
+    except Exception as exc:
+        log.warning(f"[pipeline] backfill_status_v2 warning: {exc}")
+    return fixed
+
+
 def validate_transition_v2(lead: Dict[str, Any], target_status_v2: str) -> Tuple[bool, str]:
     """Valida si la transición al status V2 destino es permitida para este lead.
 

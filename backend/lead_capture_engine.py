@@ -194,7 +194,7 @@ async def process_email_capture(
         "last_name": _last_name(extracted.get("name")),
         "email": (extracted.get("email") or "").lower() or None,
         "phone": extracted.get("phone"),
-        "status_v2": "nuevo",
+        "status_v2": "lead_nuevo",  # V2 canónico (era "nuevo" = valor V1 → invisible a smart lists)
         "source": source,
         "origin": "inbound_email",
         "assigned_to": matched_asesor_id,
@@ -323,7 +323,7 @@ async def process_fb_lead_ad(
         "last_name": _last_name(full_name),
         "email": email,
         "phone": phone,
-        "status_v2": "nuevo",
+        "status_v2": "lead_nuevo",  # V2 canónico (era "nuevo" = valor V1 → invisible a smart lists)
         "source": "fb_lead_ads",
         "origin": "fb_lead_ads_webhook",
         "assigned_to": asesor_id,

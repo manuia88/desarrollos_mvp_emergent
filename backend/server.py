@@ -1263,6 +1263,12 @@ async def startup():
         await ensure_command_center_indexes(db)
     except Exception as _e:
         logging.warning(f"[startup] command_center indexes: {_e}")
+    # Paso 3 · índices del módulo asesor (antes CERO → COLLSCAN por endpoint)
+    try:
+        from asesor_indexes import ensure_asesor_indexes
+        await ensure_asesor_indexes(db)
+    except Exception as _e:
+        logging.warning(f"[startup] asesor indexes: {_e}")
     # Copiloto · cierre de ciclo · índices de eventos (auditoría + aprendizaje + métricas)
     try:
         from copilot_events import ensure_copilot_events_indexes
@@ -2361,8 +2367,10 @@ async def startup():
 
     # W5.ASR.2 — Pipeline 7+2 Engine
     try:
-        from pipeline_engine import ensure_indexes as pipeline_ensure_indexes
+        from pipeline_engine import ensure_indexes as pipeline_ensure_indexes, backfill_status_v2
         await pipeline_ensure_indexes(db)
+        # Paso 3 · repara leads con status_v2 V1/inválido (idempotente)
+        await backfill_status_v2(db)
         logging.info("[w5.asr.2] pipeline 7+2 engine init OK")
     except Exception as e:
         logging.warning(f"[w5.asr.2] pipeline engine init failed: {e}")
