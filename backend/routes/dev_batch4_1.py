@@ -1106,9 +1106,14 @@ async def create_cita(payload: CitaBody, request: Request):
         from services.lead_bridge import mirror_lead_to_asesor_contacto
         await mirror_lead_to_asesor_contacto(db, lead)
     except Exception as _e:
-        # Si el espejo al CRM falla, el lead puede NO aparecer en "Mis Leads" del asesor
-        # → fallo de negocio invisible. Lo elevamos a ERROR para que llegue a Sentry.
-        log.error(f"[create_cita] mirror al CRM falló · lead {lead['id']} podría no verse en Mis Leads: {_e}", exc_info=True)
+        # Si el espejo al CRM falla, el lead puede NO aparecer en "Mis Leads". Lo marcamos
+        # mirror_pending → el reintento en arranque (retry_pending_mirrors) lo repara solo.
+        # (El log.error es para depurar; el founder NO necesita actuar: se autocorrige.)
+        log.error(f"[create_cita] mirror al CRM falló · lead {lead['id']} marcado para reintento: {_e}", exc_info=True)
+        try:
+            await db.leads.update_one({"id": lead["id"]}, {"$set": {"mirror_pending": True}})
+        except Exception:
+            pass
 
     # Phase 4 Batch 4.4 — queue heat recalc on lead create
     try:

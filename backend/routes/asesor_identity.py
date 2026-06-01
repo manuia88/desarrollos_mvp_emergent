@@ -20,6 +20,8 @@ Endpoints asesor (auth):
 from __future__ import annotations
 
 import logging
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Query
@@ -205,7 +207,9 @@ async def get_public_profile(asesor_id: str, request: Request):
             "user_id": asesor["user_id"],
             "name": asesor.get("name") or asesor.get("email") or "Asesor",
             "avatar_url": asesor.get("avatar_url", ""),
-            "phone": asesor.get("phone", ""),
+            # Contacto OCULTO en el perfil público: se revela tras dejar datos
+            # (POST .../contact). Evita scraping del tel/email del asesor.
+            "contact_locked": True,
         },
         "linkedin": linkedin,
         "endorsements": endorsements,
@@ -216,6 +220,55 @@ async def get_public_profile(asesor_id: str, request: Request):
         "disc": disc_public,
         "projects": projects,
     }
+
+
+class ContactRevealIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=40)
+
+
+@router.post("/api/public/asesor/{asesor_id}/contact")
+async def reveal_asesor_contact(asesor_id: str, body: ContactRevealIn, request: Request):
+    """El visitante deja sus datos → se registra como lead del asesor y se le revela
+    el teléfono de contacto del asesor. Así el contacto del asesor NO es scrapeable
+    (no aparece en el perfil público) y a cambio el asesor recibe el lead."""
+    from rate_limit import check_rate
+    check_rate(request, "asesor_contact", limit=5, window_sec=60)  # anti-spam
+    db = _db(request)
+    if not body.email and not body.phone:
+        raise HTTPException(422, "Deja tu email o teléfono para recibir el contacto del asesor")
+    asesor = await db.users.find_one(
+        {"user_id": asesor_id, "role": {"$in": ["advisor", "asesor_admin"]}},
+        {"_id": 0, "user_id": 1, "name": 1, "phone": 1, "tenant_id": 1},
+    )
+    if not asesor:
+        raise HTTPException(404, "Asesor no encontrado")
+    # Registrar el lead asignado al asesor + espejo al CRM (auto-reparable si falla)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    lead = {
+        "id": f"lead_{uuid.uuid4().hex[:12]}",
+        "contact": {"name": body.name, "email": (str(body.email).lower() if body.email else None), "phone": body.phone},
+        "status": "nuevo", "activo": True,
+        "assigned_to": asesor_id, "asesor_id": asesor_id,
+        "tenant_id": asesor.get("tenant_id"),
+        "source": "perfil_publico_asesor",
+        "created_at": now_iso, "updated_at": now_iso, "last_activity_at": now_iso,
+    }
+    try:
+        await db.leads.insert_one(lead)
+    except Exception as _e:
+        logging.getLogger("dmx.asesor_identity").warning(f"[reveal_contact] insert lead: {_e}")
+    try:
+        from services.lead_bridge import mirror_lead_to_asesor_contacto
+        await mirror_lead_to_asesor_contacto(db, lead)
+    except Exception:
+        try:
+            await db.leads.update_one({"id": lead["id"]}, {"$set": {"mirror_pending": True}})
+        except Exception:
+            pass
+    # Revelar el contacto del asesor (ya dejó sus datos)
+    return {"ok": True, "asesor": {"name": asesor.get("name") or "Asesor", "phone": asesor.get("phone", "")}}
 
 
 @router.get("/api/public/asesor/{asesor_id}/trust-score")

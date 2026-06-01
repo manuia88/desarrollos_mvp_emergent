@@ -4,6 +4,24 @@
  */
 const API = process.env.REACT_APP_BACKEND_URL;
 
+// ─── Contacto del asesor (gated: dejar datos → revelar) ─────────────────────
+
+export async function revealAsesorContact(asesorId, { name, email, phone }) {
+  const r = await fetch(`${API}/api/public/asesor/${encodeURIComponent(asesorId)}/contact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email: email || null, phone: phone || null }),
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    const msg = typeof e.detail === 'string' ? e.detail : 'No se pudo enviar';
+    const err = new Error(msg);
+    err.status = r.status;
+    throw err;
+  }
+  return r.json();
+}
+
 // ─── Endorsements (público) ────────────────────────────────────────────────
 
 export async function postEndorsement({

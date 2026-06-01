@@ -1279,6 +1279,12 @@ async def startup():
         await ensure_asesor_indexes(db)
     except Exception as _e:
         logging.warning(f"[startup] asesor indexes: {_e}")
+    # Auto-reparable · reintenta el espejo de leads que no llegaron a "Mis Leads"
+    try:
+        from services.lead_bridge import retry_pending_mirrors
+        await retry_pending_mirrors(db)
+    except Exception as _e:
+        logging.warning(f"[startup] retry_pending_mirrors: {_e}")
     # Copiloto · cierre de ciclo · índices de eventos (auditoría + aprendizaje + métricas)
     try:
         from copilot_events import ensure_copilot_events_indexes

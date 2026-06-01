@@ -8,7 +8,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import TrustScoreBadge from '../../components/asesor/TrustScoreBadge';
 import EndorsementsCard from '../../components/asesor/EndorsementsCard';
-import { fetchPublicProfile, fetchPublicProfileBySlug } from '../../api/asesor_identity';
+import { fetchPublicProfile, fetchPublicProfileBySlug, revealAsesorContact } from '../../api/asesor_identity';
 import { PRIMARY_LABELS, PRIMARY_COLORS } from '../../config/discQuestions';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
@@ -43,6 +43,67 @@ function buildWaHref(phone, name) {
     `Hola ${name || ''}, vi tu perfil en DesarrollosMX y me interesa platicar.`,
   );
   return `https://wa.me/${clean}?text=${msg}`;
+}
+
+// Contacto del asesor OCULTO hasta dejar datos. Al enviar, se registra el lead
+// y se revela el teléfono (anti-scraping + el asesor recibe el prospecto).
+function ContactGate({ asesorId, asesorName }) {
+  const [revealed, setRevealed] = useState('');
+  const [form, setForm] = useState({ name: '', email: '', phone: '' });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  if (revealed) {
+    const waHref = buildWaHref(revealed, asesorName);
+    return waHref ? (
+      <a data-testid="public-cta-whatsapp" href={waHref} target="_blank" rel="noopener noreferrer"
+         style={{ padding: '12px 22px', borderRadius: 9999, background: GRADIENT,
+                  color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+        Habla conmigo
+      </a>
+    ) : (
+      <div style={{ fontSize: 13, color: 'var(--cream-2)' }}>Contacto: {revealed}</div>
+    );
+  }
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.email && !form.phone) { setMsg('Deja tu email o teléfono'); return; }
+    setBusy(true); setMsg('');
+    try {
+      const res = await revealAsesorContact(asesorId, form);
+      const ph = res && res.asesor && res.asesor.phone;
+      if (ph) setRevealed(ph);
+      else setMsg('¡Listo! El asesor te contactará pronto.');
+    } catch (err) {
+      setMsg(err.message || 'No se pudo enviar · intenta de nuevo');
+    } finally { setBusy(false); }
+  };
+
+  const inp = {
+    padding: '10px 12px', borderRadius: 10, fontSize: 13,
+    background: 'rgba(240,235,224,0.06)', color: 'var(--cream)',
+    border: '1px solid rgba(240,235,224,0.18)', outline: 'none', width: '100%',
+  };
+  return (
+    <form data-testid="public-contact-gate" onSubmit={submit}
+          style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 320, width: '100%' }}>
+      <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>Deja tus datos y te paso el contacto del asesor:</div>
+      <input style={inp} placeholder="Tu nombre" aria-label="Tu nombre" value={form.name}
+             onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+      <input style={inp} placeholder="Tu WhatsApp / teléfono" aria-label="Tu teléfono" value={form.phone}
+             onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      <input style={inp} placeholder="Tu email (opcional)" aria-label="Tu email" type="email" value={form.email}
+             onChange={(e) => setForm({ ...form, email: e.target.value })} />
+      <button type="submit" disabled={busy}
+              style={{ padding: '12px 22px', borderRadius: 9999, background: GRADIENT, color: '#fff',
+                       fontSize: 13, fontWeight: 600, border: 'none',
+                       cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+        {busy ? 'Enviando…' : 'Ver contacto del asesor'}
+      </button>
+      {msg && <div style={{ fontSize: 12, color: 'var(--cream-2)' }}>{msg}</div>}
+    </form>
+  );
 }
 
 export default function PerfilAsesor() {
@@ -106,7 +167,6 @@ export default function PerfilAsesor() {
   const endorsements = data.endorsements || {};
   const projects = data.projects || [];
   const photo = linkedin.photo_url || asesor.avatar_url;
-  const waHref = buildWaHref(asesor.phone, asesor.name);
 
   return (
     <PageShell>
@@ -185,17 +245,9 @@ export default function PerfilAsesor() {
           </div>
         </div>
 
-        {/* CTAs */}
+        {/* CTA · contacto gated (oculto hasta dejar datos) */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {waHref && (
-            <a data-testid="public-cta-whatsapp" href={waHref}
-               target="_blank" rel="noopener noreferrer"
-               style={{
-                 padding: '12px 22px', borderRadius: 9999,
-                 background: GRADIENT, color: '#fff',
-                 fontSize: 13, fontWeight: 600, textDecoration: 'none',
-               }}>Habla conmigo</a>
-          )}
+          <ContactGate asesorId={asesor.user_id || asesorId} asesorName={asesor.name} />
         </div>
 
         {/* Sobre mí */}

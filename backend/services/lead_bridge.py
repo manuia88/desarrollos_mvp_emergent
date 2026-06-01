@@ -148,6 +148,28 @@ async def resolve_house_public_receiver(db):
         return (None, None)
 
 
+async def retry_pending_mirrors(db, limit: int = 500) -> int:
+    """AUTO-REPARABLE: re-intenta el espejo al CRM de los leads marcados `mirror_pending`
+    (el espejo falló al crearlos → no aparecían en "Mis Leads"). Al lograrlo, limpia la
+    bandera. Así el sistema se arregla solo sin que nadie tenga que leer una alerta.
+    Idempotente · acotado · FAIL-OPEN · corre en cada arranque."""
+    n = 0
+    try:
+        cur = db.leads.find({"mirror_pending": True}, {"_id": 0}).limit(limit)
+        async for ld in cur:
+            try:
+                if await mirror_lead_to_asesor_contacto(db, ld):
+                    await db.leads.update_one({"id": ld.get("id")}, {"$unset": {"mirror_pending": ""}})
+                    n += 1
+            except Exception:
+                continue
+        if n:
+            log.info(f"[lead_bridge] retry_pending_mirrors reparó {n} leads que no se veían en Mis Leads")
+    except Exception as e:
+        log.warning(f"[lead_bridge] retry_pending_mirrors fail-open: {e}")
+    return n
+
+
 async def backfill_owner(db, owner_user_id: str, limit: int = 2000) -> int:
     """Materializa todos los leads YA asignados a un asesor (idempotente). Para cuando
     un asesor activa su cuenta / one-shot. Devuelve cuántos materializó/enlazó."""
