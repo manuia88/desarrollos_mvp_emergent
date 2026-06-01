@@ -214,6 +214,20 @@ async def enrich_lead_metadata(db, lead: Dict[str, Any], viewer_role: str = "") 
                 commission = auth["commission_pct"]
         except Exception:
             pass
+    # Fallback real: comisión negociada a nivel inmobiliaria↔dev (donde SÍ se escribe
+    # commission_pct), antes del default del dev. La authorization de arriba no la guarda.
+    if commission is None:
+        inm_id = lead.get("inmobiliaria_id")
+        if inm_id and dev_org_id:
+            try:
+                part = await db.inmobiliaria_dev_partnerships.find_one(
+                    {"inmobiliaria_id": inm_id, "dev_org_id": dev_org_id, "status": "active"},
+                    {"_id": 0, "commission_pct": 1},
+                )
+                if part and part.get("commission_pct") is not None:
+                    commission = part["commission_pct"]
+            except Exception:
+                pass
     if commission is None:
         commission = org.get("default_commission_pct")
     if commission is not None:

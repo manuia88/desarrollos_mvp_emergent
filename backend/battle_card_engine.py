@@ -147,8 +147,9 @@ async def _dim_ventas(db, project_id: str, dev: dict) -> float:
         if units_total <= 0:
             return 50.0
 
-        # Leads últimos 7 días para este proyecto
-        since = _now() - timedelta(days=7)
+        # Leads últimos 7 días para este proyecto. created_at se guarda como ISO string
+        # (dev_batch4_1.py now_iso) → comparar string-vs-string (ISO 8601 ordena cronológico).
+        since = (_now() - timedelta(days=7)).isoformat()
         leads_7d = await db.leads.count_documents({
             "project_id": project_id,
             "created_at": {"$gte": since},

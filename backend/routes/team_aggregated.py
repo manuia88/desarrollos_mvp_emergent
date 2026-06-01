@@ -134,7 +134,10 @@ async def team_aggregated(
             {"asesor_id": {"$in": asesor_ids}},
             {"asesor_assigned": {"$in": asesor_ids}},
         ],
-         "status": {"$in": ["confirmed", "completed", "pending"]},
+        # Estados canónicos en español (LEAD_REGISTRATION_RULES §4.2) + inglés legacy.
+        # "Booked" = agendada/confirmada/reagendada/realizada (excluye cancelada/no_show).
+        "status": {"$in": ["confirmed", "completed", "pending",
+                           "agendada", "confirmada", "reagendada", "realizada"]},
         },
         {"_id": 0, "asesor_id": 1, "asesor_assigned": 1, "status": 1, "datetime": 1},
     ).to_list(10000)
