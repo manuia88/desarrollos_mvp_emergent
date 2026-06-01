@@ -990,7 +990,16 @@ async def create_cita(payload: CitaBody, request: Request):
                 colonia = dm.get(payload.project_id, {}).get("colonia", "")
             except Exception:
                 pass
-            picked_asesor = await _pick_best_inmobiliaria_asesor(db, dmx_id, colonia)
+            # Regla founder (E0.7): lead de marketplace PÚBLICO → inmobiliaria DMX (el
+            # dueño/founder). NO se distribuye a otros asesores (antes _pick_best_… repartía
+            # por score). Se asigna al admin de DMX; si su user_id aún no existe, queda con
+            # la inmobiliaria DMX sin asesor específico (el dueño lo ve igual).
+            dmx_admin = await db.inmobiliaria_internal_users.find_one(
+                {"inmobiliaria_id": dmx_id, "role": "admin", "status": "active",
+                 "user_id": {"$ne": None}},
+                {"_id": 0, "user_id": 1},
+            )
+            picked_asesor = (dmx_admin or {}).get("user_id")
             origin_type = "inmobiliaria_lead"
             origin_inmobiliaria_id = dmx_id
             lead_inmobiliaria_id = dmx_id
