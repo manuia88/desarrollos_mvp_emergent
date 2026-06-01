@@ -7,6 +7,7 @@ Role-gated to advisor / asesor_admin / superadmin.
 import os
 import uuid
 import hashlib
+import logging  # usado por logging.getLogger("dmx.advisor") en varios except (antes faltaba → NameError latente)
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
@@ -2911,7 +2912,8 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
         from observability import emit_ml_event as _emit
         await log_mutation(db, user, "update", "operacion", oid,
                            before={"status": cur}, after={"status": payload.status}, request=request)
-        await _emit(db, "mutation_logged", user.user_id, getattr(user, "tenant_id", None), user.role,
+        await _emit(db, event_type="mutation_logged", user_id=user.user_id,
+                    org_id=getattr(user, "tenant_id", None), role=user.role,
                     context={"entity_type": "operacion", "action": "update"}, ai_decision={}, user_action={})
     except Exception as _e:
         # Rastro de auditoría de un cambio de status de DINERO: si falla, debe verse en Sentry.
