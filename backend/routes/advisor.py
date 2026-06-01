@@ -961,6 +961,42 @@ async def get_contacto_overview(cid: str, request: Request):
     except Exception:
         sources["lead_events"] = "error"
 
+    # 8) Conversaciones (WhatsApp del lead). E3 · antes NO salían en el hilo.
+    try:
+        msgs = await db.whatsapp_messages.find(
+            {"org_id": user.user_id, "lead_id": cid}, {"_id": 0},
+        ).sort("created_at", -1).limit(60).to_list(60)
+        for m in msgs:
+            entrante = m.get("direction") == "inbound"
+            body = (m.get("body_text") or "").strip()
+            events.append({
+                "ts": _ts_iso(m.get("created_at") or m.get("sent_at")),
+                "source": "whatsapp", "kind": "mensaje",
+                "title": "WhatsApp" + (" · cliente" if entrante else " · tú"),
+                "body": (body[:140] + ("…" if len(body) > 140 else "")),
+            })
+        sources["whatsapp"] = "ok"
+    except Exception:
+        sources["whatsapp"] = "error"
+
+    # 9) Swipes del lead (lo que le gustó / descartó en la Galería). E3 · cierra el hilo.
+    try:
+        SW = {"le_gusto": ("👍 Le gustó", "ok"), "descartada": ("👎 Descartó", "no"), "oferta": ("Oferta", "oferta")}
+        props = await db.asesor_lead_properties.find(
+            {"owner_id": user.user_id, "contacto_id": cid, "status": {"$in": list(SW.keys())}}, {"_id": 0},
+        ).sort("updated_at", -1).limit(60).to_list(60)
+        for p in props:
+            lbl, _k = SW.get(p.get("status"), ("Propiedad", "evt"))
+            events.append({
+                "ts": _ts_iso(p.get("updated_at") or p.get("created_at")),
+                "source": "swipe", "kind": "swipe",
+                "title": lbl,
+                "body": p.get("name") or p.get("dev_name") or "Propiedad",
+            })
+        sources["swipes"] = "ok"
+    except Exception:
+        sources["swipes"] = "error"
+
     events.sort(key=lambda e: e.get("ts") or "", reverse=True)
 
     next_action = insights.get("next_action") if isinstance(insights, dict) else None

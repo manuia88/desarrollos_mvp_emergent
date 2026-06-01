@@ -75,6 +75,8 @@ function eventDot(source, kind) {
   if (kind === 'cita' || kind === 'visit' || source === 'busqueda') return 'var(--cold)';
   if (kind === 'tarea' || kind === 'task') return 'var(--warm)';
   if (source === 'operacion') return 'var(--ok)';
+  if (source === 'whatsapp' || kind === 'mensaje') return 'var(--theme-2)';
+  if (source === 'swipe' || kind === 'swipe') return 'var(--theme-3, #C63FAE)';
   return 'var(--cream-3)';
 }
 
