@@ -180,12 +180,16 @@ async def public_lead_create(payload: PublicLeadCreate, request: Request):
     lead.pop("_id", None)
 
     # E0.7b · Puente: materializa el lead en el CRM del asesor asignado (idempotente,
-    # dedup, candado de aislamiento). FAIL-OPEN.
+    # dedup, candado de aislamiento). AUTO-REPARABLE: si falla, mirror_pending → el
+    # reintento en arranque lo recupera (el lead siempre llega a "Mis Leads").
     try:
         from services.lead_bridge import mirror_lead_to_asesor_contacto
         await mirror_lead_to_asesor_contacto(db, lead)
     except Exception:
-        pass
+        try:
+            await db.leads.update_one({"id": lead_id}, {"$set": {"mirror_pending": True}})
+        except Exception:
+            pass
 
     # Persist attribution chain
     touchpoints_dump = []

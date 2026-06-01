@@ -90,6 +90,9 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
 
         # 3) crear contacto materializado
         fn, ln = _split_name(contact.get("name"))
+        if not fn and not ln:  # forma con campos planos (landing/email): first_name/last_name
+            fn = lead.get("first_name") or ""
+            ln = lead.get("last_name") or ""
         cid = f"contacto_{uuid4().hex[:14]}"
         doc = {
             "id": cid,

@@ -141,6 +141,8 @@ async def get_public_endorsements(
 
 @router.get("/api/public/asesor/{asesor_id}/profile")
 async def get_public_profile(asesor_id: str, request: Request):
+    from rate_limit import check_rate
+    check_rate(request, "asesor_public_profile", limit=30, window_sec=60)  # anti-scraping
     db = _db(request)
 
     # Asesor base

@@ -1044,11 +1044,14 @@ async def create_cita(payload: CitaBody, request: Request):
 
     # Create LEAD
     presupuesto_dict = payload.presupuesto.model_dump() if payload.presupuesto else {}
-    contact_dict = {
-        **payload.contact.model_dump(),
-        "phone_norm": phone_norm,
-        "email_norm": email_norm,
-    }
+    # Solo guardar phone_norm/email_norm cuando NO están vacíos: si fueran "" el índice
+    # único parcial ({$type:"string"}) los trataría como valor real y bloquearía por
+    # error a dos leads distintos solo-email (ambos phone_norm="") en el mismo proyecto.
+    contact_dict = {**payload.contact.model_dump()}
+    if phone_norm:
+        contact_dict["phone_norm"] = phone_norm
+    if email_norm:
+        contact_dict["email_norm"] = email_norm
     lead = {
         "id": _uid("lead"),
         "dev_org_id": dev_org_id,
@@ -1148,7 +1151,10 @@ async def create_cita(payload: CitaBody, request: Request):
         # huérfano (lead sin cita). Sin transacciones Mongo, esta es la limpieza segura.
         await db.leads.delete_one({"id": lead["id"]})
         try:
-            await db.asesor_contactos.delete_one({"source_lead_id": lead["id"]})
+            # Solo DESVINCULAR el espejo (no borrarlo): pudo haber enlazado un contacto
+            # creado a mano por el asesor; borrarlo destruiría su dato real.
+            await db.asesor_contactos.update_one(
+                {"source_lead_id": lead["id"]}, {"$unset": {"source_lead_id": ""}})
         except Exception:
             pass
         log.error(f"[create_cita] appointment insert falló · lead {lead['id']} revertido: {exc}", exc_info=True)
@@ -1514,7 +1520,7 @@ async def reject_review(lead_id: str, request: Request):
     now_iso = _now().isoformat()
     await db.leads.update_one(
         {"id": lead_id},
-        {"$set": {"status": "cerrado_perdido", "lost_reason": "duplicado", "updated_at": now_iso, "last_activity_at": now_iso}},
+        {"$set": {"status": "cerrado_perdido", "activo": False, "lost_reason": "duplicado", "updated_at": now_iso, "last_activity_at": now_iso}},
     )
     await _safe_audit_ml(
         db, user, action="update", entity_type="lead", entity_id=lead_id,

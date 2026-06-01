@@ -1382,6 +1382,16 @@ async def submit_landing_lead(
             "updated_at": _iso(),
         }
         await db.leads.insert_one(dict(leads_doc))
+        # Puente al CRM del asesor (AUTO-REPARABLE): el lead de landing también debe
+        # llegar a "Mis Leads"; si el espejo falla, mirror_pending → reintento en arranque.
+        try:
+            from services.lead_bridge import mirror_lead_to_asesor_contacto
+            await mirror_lead_to_asesor_contacto(db, leads_doc)
+        except Exception:
+            try:
+                await db.leads.update_one({"id": leads_doc["id"]}, {"$set": {"mirror_pending": True}})
+            except Exception:
+                pass
     except Exception as exc:
         log.warning(f"[submit_landing_lead] mirror to leads failed (soft): {exc}")
 

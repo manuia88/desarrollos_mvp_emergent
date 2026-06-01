@@ -161,9 +161,11 @@ async def resolve_dispute(lead_id: str, payload: ResolveDisputeBody, request: Re
     }
     await db.asesor_dispute_history.insert_one(dict(dispute_doc))
 
-    # 3. Update lead
+    # 3. Update lead · activo se deriva del status (mantiene el índice de dedup en sync:
+    # rechazo cierra → activo False; aprobación reabre → activo True).
     lead_update: Dict[str, Any] = {
         "status": new_status,
+        "activo": new_status not in ("cerrado_ganado", "cerrado_perdido"),
         "updated_at": now_iso,
         "last_activity_at": now_iso,
         "dispute_resolution_id": dispute_id,

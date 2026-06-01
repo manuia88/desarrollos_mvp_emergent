@@ -110,6 +110,10 @@ async def click_offer(
 ):
     db = _db(request)
     oid = unquote(offer_id)
+    # Seguridad (IDOR): la oferta debe pertenecer a ESTE comprador.
+    if not await db.partner_offers.find_one(
+            {"id": oid, "buyer_id_hash": cs._hash_id(user.user_id)}, {"_id": 1}):
+        raise HTTPException(404, "Oferta no encontrada")
     result = await cs.track_offer_event(db, oid, "clicked")
     if not result.get("ok"):
         raise HTTPException(404, result.get("reason", "offer_not_found"))
@@ -128,6 +132,11 @@ async def fill_offer(
 ):
     db = _db(request)
     oid = unquote(offer_id)
+    # Seguridad (IDOR): la oferta debe pertenecer a ESTE comprador (evita inyectar
+    # PII contra la oferta de otro y disparar un lead a un partner).
+    if not await db.partner_offers.find_one(
+            {"id": oid, "buyer_id_hash": cs._hash_id(user.user_id)}, {"_id": 1}):
+        raise HTTPException(404, "Oferta no encontrada")
 
     # Store form data (only what buyer explicitly provided — consent at submit)
     form_data: Dict[str, Any] = {

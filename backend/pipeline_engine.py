@@ -255,6 +255,13 @@ async def ensure_indexes(db) -> None:
     # puede calcular "no cerrado", por eso filtra por el campo `activo` (igualdad) +
     # phone/email normalizado ($type:"string", excluye nulos). Reabrir tras cierre
     # vuelve a permitir alta. Falla a build solo si ya hay duplicados activos (raro).
+    # Limpia norm vacíos heredados ("") para que no colisionen falsamente y el índice
+    # único pueda construirse en datos existentes.
+    for f in ("contact.phone_norm", "contact.email_norm"):
+        try:
+            await db.leads.update_many({f: ""}, {"$unset": {f: ""}})
+        except Exception:
+            pass
     for field, name in (("contact.phone_norm", "uniq_active_lead_phone_project"),
                         ("contact.email_norm", "uniq_active_lead_email_project")):
         try:

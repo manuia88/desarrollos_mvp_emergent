@@ -114,18 +114,23 @@ async def _require_authorized(request: Request, target_org_id: Optional[str] = N
         raise HTTPException(403, "Rol no autorizado")
     if not _check_user_rate(getattr(user, "user_id", "anon")):
         raise HTTPException(429, "Rate limit (30 calls/min). Intenta más tarde.")
-    if target_org_id and role != "superadmin":
+    if role != "superadmin":
         user_org = getattr(user, "tenant_id", None)
-        if user_org and user_org != target_org_id:
+        if not user_org:
+            # Sin inmobiliaria asignada no se puede acotar el alcance → no acceso (evita
+            # que un asesor sin tenant pase ?org_id=víctima y lea/escriba otra org).
+            raise HTTPException(403, "Tu cuenta no tiene inmobiliaria asignada")
+        if target_org_id and user_org != target_org_id:
             raise HTTPException(403, "Cross-org acceso denegado")
     return user
 
 
 def _resolve_org(user, override_org_id: Optional[str]) -> str:
     role = getattr(user, "role", "")
-    if role == "superadmin" and override_org_id:
-        return override_org_id
-    return getattr(user, "tenant_id", None) or override_org_id or "dmx"
+    if role == "superadmin":
+        return override_org_id or getattr(user, "tenant_id", None) or "dmx"
+    # No-superadmin: SIEMPRE su propio tenant, nunca el org_id del cliente.
+    return getattr(user, "tenant_id", None) or "dmx"
 
 
 # ─── Pydantic ─────────────────────────────────────────────────────────────────
