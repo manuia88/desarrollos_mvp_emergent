@@ -49,7 +49,7 @@ function StatusBadge({ state }) {
   );
 }
 
-function CanalesBody() {
+export function CanalesBody() {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);

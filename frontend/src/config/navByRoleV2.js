@@ -28,7 +28,7 @@ import {
   Building2, Briefcase, Store, Megaphone, MessageCircle, MessageSquare,
   GitMerge, Layers, Sparkles, Package, FolderOpen, FolderUp, Video,
   Share2, BarChart3, DollarSign, FileText, MapPin,
-  Activity, Link, Bot, Bell, Radar, LineChart, Wrench,
+  Activity, Link, Bot, Bell, Radar, LineChart,
 } from 'lucide-react';
 
 /** @type {NavGroupV2[]} */
@@ -48,7 +48,6 @@ export const ASESOR_NAV_V2 = [
       { key: 'alertas',      to: '/portal/asesor/alertas',   label: 'Alertas predictivas',  Icon: Bell },
       { key: 'outbound',     to: '/asesor/outbound',         label: 'Captura proactiva',    Icon: Radar },
       { key: 'leads-dev',    to: '/asesor/leads-dev',        label: 'Leads de developers',  Icon: Megaphone },
-      { key: 'lead-aliases', to: '/asesor/lead-aliases',     label: 'Conectar fuentes',     Icon: Plug },
     ],
   },
   // 3 · Agenda
@@ -78,7 +77,15 @@ export const ASESOR_NAV_V2 = [
     children: [
       { key: 'playground', to: '/portal/asesor/conversation-playground', label: 'Playground IA',    Icon: MessageCircle },
       { key: 'inbox',      to: '/portal/asesor/conversation-inbox',      label: 'Bandeja IA',       Icon: MessageSquare },
-      { key: 'canales',    to: '/portal/asesor/canales',                label: 'Conectar canales', Icon: Share2 },
+    ],
+  },
+  // 5b · Conexiones (B7 F2 · unifica Canales + Anuncios Meta + Campañas + Fuentes en un hub)
+  {
+    key: 'conexiones', to: '/portal/asesor/conexiones', label: 'Conexiones', Icon: Plug,
+    description: 'Canales, anuncios Meta y fuentes de leads — todo en un lugar',
+    children: [
+      { key: 'conexiones-hub', to: '/portal/asesor/conexiones', label: 'Canales y anuncios', Icon: Share2 },
+      { key: 'lead-aliases',   to: '/asesor/lead-aliases',      label: 'Fuentes de leads',   Icon: Plug },
     ],
   },
   // 6 · Automatizaciones
@@ -119,15 +126,10 @@ export const ASESOR_NAV_V2 = [
       { key: 'links-tracking',   to: '/asesor/links-tracking', label: 'Links tracking',    Icon: Link },
     ],
   },
-  // 9 · Herramientas (tools secundarios + Anuncios diferido)
+  // 9 · Tráfico + Clima (Anuncios Meta + Campañas migraron a Conexiones · B7 F2)
   {
-    key: 'herramientas', to: '/asesor/briefing', label: 'Herramientas', Icon: Wrench,
-    description: 'Tráfico + clima pre-visita · anuncios Meta',
-    children: [
-      { key: 'briefing-traffic',     to: '/asesor/briefing',                    label: 'Tráfico + Clima', Icon: MapPin },
-      { key: 'social-ads-connect',   to: '/portal/asesor/social-ads',           label: 'Anuncios Meta',   Icon: Megaphone },
-      { key: 'social-ads-campaigns', to: '/portal/asesor/social-ads/campaigns', label: 'Campañas Meta',   Icon: Share2 },
-    ],
+    key: 'herramientas', to: '/asesor/briefing', label: 'Tráfico + Clima', Icon: MapPin,
+    description: 'Tráfico + clima de la zona antes de cada visita',
   },
 ];
 

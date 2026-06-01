@@ -22,7 +22,7 @@ function bannerFromQuery() {
   } catch { return ''; }
 }
 
-function SocialAdsConnectPageBody() {
+export function SocialAdsConnectPageBody() {
   const { t } = useTranslation('common');
   const [accounts, setAccounts] = useState([]);
   const [meta, setMeta] = useState({ stub_mode: true, connections: 0, cap: 5 });

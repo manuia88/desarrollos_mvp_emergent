@@ -73,7 +73,7 @@ const StatusPill = ({ status, t }) => (
   </span>
 );
 
-function SocialAdsCampaignsPageBody() {
+export function SocialAdsCampaignsPageBody() {
   const { t } = useTranslation('common');
   const [accounts, setAccounts] = useState([]);
   const [accountId, setAccountId] = useState('');

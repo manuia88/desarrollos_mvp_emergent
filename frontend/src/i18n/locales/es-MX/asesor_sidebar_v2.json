@@ -47,6 +47,14 @@
       "inbox": "Bandeja IA"
     }
   },
+  "conexiones": {
+    "label": "Conexiones",
+    "description": "Canales, anuncios Meta y fuentes de leads — todo en un lugar",
+    "children": {
+      "conexiones-hub": "Canales y anuncios",
+      "lead-aliases": "Fuentes de leads"
+    }
+  },
   "automatizaciones": {
     "label": "Automatizaciones",
     "description": "Workflows que se disparan solos + plantillas marketplace",
@@ -82,12 +90,7 @@
     }
   },
   "herramientas": {
-    "label": "Herramientas",
-    "description": "Tráfico + clima pre-visita · anuncios Meta",
-    "children": {
-      "briefing-traffic": "Tráfico + Clima",
-      "social-ads-connect": "Anuncios Meta",
-      "social-ads-campaigns": "Campañas Meta"
-    }
+    "label": "Tráfico + Clima",
+    "description": "Tráfico + clima de la zona antes de cada visita"
   }
 }
