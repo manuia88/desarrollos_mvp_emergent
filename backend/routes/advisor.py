@@ -1374,6 +1374,23 @@ async def prospect_intel(request: Request):
 class WAMessageIn(BaseModel):
     text: str
     channel: Optional[str] = "whatsapp"  # omnicanal · whatsapp | messenger | instagram
+    from_suggestion: Optional[str] = None  # CIERRE #1 · tipo de sugerencia del Copiloto que originó el envío
+
+
+# CIERRE #3 · rate-limit del copiloto-ask (anti-abuso/costo IA) · en memoria · 15/min/asesor
+_copilot_ask_buckets: dict = {}
+
+
+def _check_copilot_rate(user_id: str, limit: int = 15, window_s: int = 60) -> bool:
+    import time as _t
+    now = _t.monotonic()
+    b = [x for x in _copilot_ask_buckets.get(user_id, []) if now - x < window_s]
+    if len(b) >= limit:
+        _copilot_ask_buckets[user_id] = b
+        return False
+    b.append(now)
+    _copilot_ask_buckets[user_id] = b
+    return True
 
 
 # Canales de mensajería directa que viven en whatsapp_messages (omnicanal · del registro central)
@@ -1459,6 +1476,14 @@ async def lead_whatsapp_send(cid: str, body: WAMessageIn, request: Request):
         await db.asesor_contacto_timeline.insert_one({
             "id": "tl_" + uuid.uuid4().hex[:10], "contacto_id": cid, "owner_id": user.user_id,
             "kind": f"{ch}_out", "body": f"Mensaje {ch} enviado: {text[:120]}", "ts": now})
+    except Exception:
+        pass
+    # CIERRE #2 + #3 · la acción alimenta al lead (last_contact + calienta) y queda auditada
+    try:
+        from copilot_events import touch_lead_on_action, log_event
+        await touch_lead_on_action(db, user.user_id, cid, warm=True)
+        await log_event(db, user.user_id, cid, "mensaje_enviado", channel=ch, text=text, outcome="sent",
+                        suggestion_type=getattr(body, "from_suggestion", None))
     except Exception:
         pass
     return {"ok": True, "msg_id": msg_id, "status": status, "channel": ch}
@@ -1923,6 +1948,9 @@ async def copilot_ask_lead(cid: str, payload: CopilotLeadAsk, request: Request):
     c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
     if not c:
         raise HTTPException(404, "Contacto no encontrado")
+    # CIERRE #3 · rate-limit anti-abuso/costo IA (15 preguntas/min/asesor) · FAIL-OPEN
+    if not _check_copilot_rate(user.user_id):
+        raise HTTPException(429, "Demasiadas preguntas seguidas. Espera unos segundos.")
     nombre = c.get("first_name") or "el cliente"
     q = (payload.question or "").strip()
     if not q:
@@ -1962,6 +1990,12 @@ async def copilot_ask_lead(cid: str, payload: CopilotLeadAsk, request: Request):
         pass
     lead_ctx = "\n".join(ctx_bits)
 
+    # CIERRE #3 · auditoría de la consulta al copiloto (qué se preguntó sobre cada lead)
+    try:
+        from copilot_events import log_event
+        await log_event(db, user.user_id, cid, "copilot_ask", channel=payload.channel, text=q)
+    except Exception:
+        pass
     # Reusa el copiloto general (Claude) inyectando el contexto del lead en la pregunta.
     try:
         from services.copilot_engine import ask_copilot
@@ -1973,6 +2007,44 @@ async def copilot_ask_lead(cid: str, payload: CopilotLeadAsk, request: Request):
         # FAIL-OPEN heurístico
         return {"answer": f"Con {nombre}: revisa lo que busca y su gusto, y propón el siguiente paso concreto. {lead_ctx}",
                 "lead_context_used": lead_ctx, "fallback": True}
+
+
+class CopilotFeedbackIn(BaseModel):
+    suggestion_type: str           # que_decirle | objecion | recomendar | seguimiento | ...
+    outcome: str                   # used | positive | ignored
+    lead_id: Optional[str] = None
+    kind: Optional[str] = None     # objecion | nba | coaching | rec
+    text: Optional[str] = None
+
+
+@router.post("/copilot/feedback")
+async def copilot_feedback(payload: CopilotFeedbackIn, request: Request):
+    """CIERRE #1 · registra que el asesor USÓ una sugerencia (y luego si dio positivo).
+    Alimenta suggestion_weights → el Copiloto sube lo que funciona. FAIL-OPEN."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    try:
+        from copilot_events import log_event
+        await log_event(db, user.user_id, payload.lead_id, payload.kind or "sugerencia",
+                        suggestion_type=payload.suggestion_type, text=payload.text, outcome=payload.outcome)
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@router.get("/copilot/metrics")
+async def copilot_metrics_endpoint(request: Request, days: int = 30):
+    """CIERRE #4 · métricas del Copiloto para el panel (usadas, tasa positiva, objeciones top)
+    + pesos de aprendizaje. FAIL-OPEN a ceros."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    try:
+        from copilot_events import copilot_metrics, suggestion_weights
+        m = await copilot_metrics(db, user.user_id, days=days)
+        m["weights"] = await suggestion_weights(db, user.user_id)
+        return m
+    except Exception:
+        return {"used": 0, "positive": 0, "response_rate": 0.0, "by_type": {}, "top_objeciones": [], "weights": {}, "days": days}
 
 
 _DIA_RX = {"hoy": 0, "mañana": 1, "manana": 1, "lunes": None, "martes": None, "miércoles": None,

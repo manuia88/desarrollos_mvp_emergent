@@ -1263,6 +1263,12 @@ async def startup():
         await ensure_command_center_indexes(db)
     except Exception as _e:
         logging.warning(f"[startup] command_center indexes: {_e}")
+    # Copiloto · cierre de ciclo · índices de eventos (auditoría + aprendizaje + métricas)
+    try:
+        from copilot_events import ensure_copilot_events_indexes
+        await ensure_copilot_events_indexes(db)
+    except Exception as _e:
+        logging.warning(f"[startup] copilot_events indexes: {_e}")
     try:
         await ensure_superadmin_tenant_indexes(db)
     except Exception as e:
