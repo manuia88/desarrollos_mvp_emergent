@@ -161,6 +161,7 @@ const StudioDashboard   = lazy(() => import('./pages/asesor/StudioDashboard'));
 const StudioHubPage     = lazy(() => import('./pages/asesor/StudioHubPage')); // B7 F4 · hub Studio (Crear + Marca/Biblioteca)
 const AsesorBriefings   = lazy(() => import('./pages/asesor/AsesorBriefings'));
 const AsesorCitas       = lazy(() => import('./pages/asesor/AsesorCitas'));
+const AsesorEquipo      = lazy(() => import('./pages/asesor/AsesorEquipo'));
 const AsesorLeadsDev    = lazy(() => import('./pages/asesor/AsesorLeadsDev'));
 const MisLeadsPage      = lazy(() => import('./pages/asesor/MisLeadsPage')); // B7 F3 · hub Pipeline+Búsquedas+Captaciones
 // W5.ASR.4 Parte 1 — CMA visual asesor
@@ -774,6 +775,7 @@ function AppRouter() {
       <Route path="/asesor/studio/:area" element={<AdvisorRoute Page={StudioHubPage} />} />
       <Route path="/asesor/briefings" element={<AdvisorRoute Page={AsesorBriefings} />} />
       <Route path="/asesor/citas" element={<AdvisorRoute Page={AsesorCitas} />} />
+      <Route path="/asesor/equipo" element={<AdvisorRoute Page={AsesorEquipo} />} />
       <Route path="/asesor/leads-dev" element={<AdvisorRoute Page={AsesorLeadsDev} />} />
       {/* W5.ASR.4 Parte 1 — CMA */}
       <Route path="/asesor/cma" element={<AdvisorRoute Page={AsesorCMA} />} />

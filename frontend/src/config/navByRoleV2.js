@@ -109,6 +109,7 @@ export const ASESOR_NAV_V2 = [
     description: 'Comisiones · ranking · SOC · análisis comparativo',
     children: [
       { key: 'metricas',         to: '/asesor/metricas',       label: 'Métricas',          Icon: LineChart },
+      { key: 'equipo',           to: '/asesor/equipo',         label: 'Equipo (gerente)',  Icon: Users },
       { key: 'comisiones',       to: '/asesor/comisiones',     label: 'Comisiones',        Icon: DollarSign },
       { key: 'operaciones',      to: '/asesor/operaciones',    label: 'Operaciones',       Icon: Activity },
       { key: 'cma',              to: '/asesor/cma',            label: 'CMA · Análisis',    Icon: BarChart3 },
