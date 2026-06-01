@@ -1344,6 +1344,11 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
     m2 ? `📐 ${m2}m²` : null,
   ].filter(Boolean);
   const zonaText = zona || (nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada');
+  // Perfilamiento financiero (point 2): forma de pago + plazo de compra · lo captura el asesor en la ficha.
+  const formaPago = bq && (bq.forma_pago || bq.financiamiento);
+  const plazoCompra = bq && (bq.plazo_compra || bq.plazo || bq.timeframe);
+  const FORMA_LABEL = { contado: '💵 Contado', credito: '🏦 Crédito', hipotecario: '🏦 Hipotecario', mixto: '🏦 Propio+Crédito', infonavit: '🏦 Infonavit' };
+  const formaText = formaPago ? (FORMA_LABEL[formaPago] || `💳 ${formaPago}`) : null;
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
   // Temperatura como EMOJI (point 3) · va junto a la acción · la recencia sube al encabezado.
@@ -1371,22 +1376,22 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         <Pin size={13} color={c.pinned ? 'var(--theme-2)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--theme-2)' : 'none'} />
       </button>
 
-      {/* 1 · identidad + score (badge circular del color de la temperatura) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-        <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: `rgb(${meta.rgb})` }}>
+      {/* 1 · identidad + score · iniciales y badge MÁS CHICOS para que el nombre completo no se corte */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, marginTop: 1, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 11.5, color: `rgb(${meta.rgb})` }}>
           {avatarInitials(c)}
         </div>
-        <div style={{ flex: 1, minWidth: 0, paddingRight: 16 }}>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 22 }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14.5, color: 'var(--cream)', lineHeight: 1.25 }}>
             {c.first_name} {c.last_name || ''}
           </div>
-          <div style={{ fontSize: 11.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 11.5, marginTop: 2, lineHeight: 1.35 }}>
             <span style={{ color: 'var(--cream-3)', textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</span>
             {agingDisplay && <span style={{ color: agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: agingWarn ? 600 : 400 }}> · {agingDisplay}</span>}
           </div>
         </div>
         <div title={`Score ${score != null ? pct : '—'}/100`}
-          style={{ flexShrink: 0, marginRight: 20, width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, background: score != null ? `rgba(${meta.rgb}, 0.14)` : 'var(--surface-2)', color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)', border: `1px solid ${score != null ? `rgba(${meta.rgb}, 0.30)` : 'var(--border)'}` }}>
+          style={{ flexShrink: 0, marginRight: 18, width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, background: score != null ? `rgba(${meta.rgb}, 0.14)` : 'var(--surface-2)', color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)', border: `1px solid ${score != null ? `rgba(${meta.rgb}, 0.30)` : 'var(--border)'}` }}>
           {score != null ? pct : '—'}
         </div>
       </div>
@@ -1406,6 +1411,13 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
       {/* 3b · specs con iconos (recámaras · baños · estac · m²) */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 13px', fontSize: 12.5, color: 'var(--cream-2)' }}>
         {specs.length ? specs.map((s, i) => <span key={i}>{s}</span>) : <span style={{ color: 'var(--cream-3)' }}>Specs por definir</span>}
+      </div>
+
+      {/* 3c · perfilamiento de compra · forma de pago + plazo (lo llena el asesor · accionable si falta) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 13px', fontSize: 12, color: 'var(--cream-2)' }}>
+        {(formaText || plazoCompra)
+          ? <>{formaText && <span>{formaText}</span>}{plazoCompra && <span>🗓 {plazoCompra}</span>}</>
+          : <span style={{ color: 'var(--cream-3)' }}>Perfil de compra por completar</span>}
       </div>
 
       {/* footer · WhatsApp + Abrir */}
