@@ -91,14 +91,15 @@ async def status(request: Request):
 
 
 @router.post("/api/agent-workforce/run-now")
-async def run_now(request: Request):
-    """Corre los agentes on-demand para el asesor caller. Rate-limit 3/h."""
+async def run_now(request: Request, agent: str = None):
+    """Corre los agentes on-demand para el asesor caller. Rate-limit 3/h.
+    E6 · `agent` opcional → corre SOLO ese agente (el botón por-agente ya no corre todos)."""
     user = await require_advisor(request)
     db = get_db(request)
     if not _check_run_now_rate(user.user_id):
         raise HTTPException(429, "Límite alcanzado: máximo 3 ejecuciones por hora.")
     tenant_id = getattr(user, "tenant_id", None)
-    summary = await orchestrator.run_all_agents(db, user.user_id, tenant_id, trigger="on-demand")
+    summary = await orchestrator.run_all_agents(db, user.user_id, tenant_id, trigger="on-demand", only=agent)
     summary["ran_at"] = _iso(summary.get("ran_at"))
     return summary
 

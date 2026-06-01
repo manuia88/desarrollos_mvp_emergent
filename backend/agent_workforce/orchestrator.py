@@ -55,11 +55,13 @@ def _resolve_agent(module: str, fn: str):
 
 
 async def run_all_agents(
-    db, user_id: str, tenant_id: Optional[str], trigger: str = "on-demand"
+    db, user_id: str, tenant_id: Optional[str], trigger: str = "on-demand",
+    only: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Colecta de los 5 agentes → cap → UPSERT por dedup_key. Retorna summary.
 
     Cada agente corre aislado (run_agent_safe FAIL-OPEN): uno roto NO tumba el run.
+    `only` (E6): corre SOLO ese agente (el botón por-agente ya no corre todos).
     """
     now = _now()
     by_agent: Dict[str, int] = {}
@@ -72,6 +74,8 @@ async def run_all_agents(
         return {"ok": False, "error": "user_id requerido", "by_agent": {}, "total": 0}
 
     for name, module, fn in _AGENT_SPECS:
+        if only and name != only:
+            continue
         agent_fn = _resolve_agent(module, fn)
         if agent_fn is None:
             skipped.append(name)

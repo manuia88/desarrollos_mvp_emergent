@@ -38,10 +38,22 @@ def _now():
 
 
 async def _resolve(db, token: str) -> dict:
-    """token → link doc. FAIL-CLOSED: 404 si no existe."""
+    """token → link doc. FAIL-CLOSED: 404 si no existe · 410 si expiró (E6/S4).
+    Cubre TODOS los endpoints públicos (cards/vote/events/profile/cita)."""
     lk = await db.asesor_property_links.find_one({"token": token}, {"_id": 0})
     if not lk:
         raise HTTPException(404, "Link inválido o expirado")
+    exp = lk.get("expires_at")
+    if exp is not None:
+        try:
+            e = exp if isinstance(exp, datetime) else datetime.fromisoformat(str(exp).replace("Z", "+00:00"))
+            if e.tzinfo is None:
+                e = e.replace(tzinfo=timezone.utc)
+            expired = e < _now()
+        except Exception:
+            expired = False
+        if expired:
+            raise HTTPException(410, "Este link expiró. Pídele a tu asesor uno nuevo.")
     return lk
 
 

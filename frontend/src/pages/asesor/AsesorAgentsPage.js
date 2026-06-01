@@ -81,12 +81,13 @@ export default function AsesorAgentsPage({ user, onLogout }) {
     return () => { alive = false; };
   }, [load]);
 
-  const runAll = useCallback(async () => {
+  const runAll = useCallback(async (agentName) => {
     if (running) return;
     setRunning(true);
     setMsg(null);
     try {
-      const res = await runAgentsNow();
+      // E6 · si viene un nombre de agente (string), corre SOLO ese; si no, todos.
+      const res = await runAgentsNow(typeof agentName === 'string' ? agentName : undefined);
       const n = res?.total_actions ?? 0;
       setMsg({ kind: 'ok', text: n > 0 ? t('page.run_success', { count: n }) : t('page.run_none') });
       await load();
@@ -119,7 +120,7 @@ export default function AsesorAgentsPage({ user, onLogout }) {
               </div>
               <button
                 type="button"
-                onClick={runAll}
+                onClick={() => runAll()}
                 disabled={running}
                 data-testid="run-all-agents"
                 className="flex items-center gap-2 px-4 h-10 rounded-full text-sm font-semibold text-white bg-[linear-gradient(90deg,#6366F1,#EC4899)] hover:opacity-90 disabled:opacity-50 transition-opacity"
@@ -187,7 +188,7 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                       {a.available ? (
                         <button
                           type="button"
-                          onClick={runAll}
+                          onClick={() => runAll(a.name)}
                           disabled={running}
                           data-testid={`run-agent-${a.name}`}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 999, border: 'none', cursor: running ? 'default' : 'pointer', background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, boxShadow: '0 4px 14px rgba(var(--theme-rgb),0.32)', opacity: running ? 0.6 : 1 }}

@@ -139,7 +139,7 @@ export const getRecent = (limit = 5) => j(`/api/asesor/recent?limit=${limit}`);
 // P3.A · Agent Workforce (consume endpoints P2 · agent_workforce diff=0)
 export const getAgents = () => j('/api/agent-workforce/agents');
 export const getAgentWorkforceStatus = () => j('/api/agent-workforce/status');
-export const runAgentsNow = () => post('/api/agent-workforce/run-now');
+export const runAgentsNow = (agent) => post(`/api/agent-workforce/run-now${agent ? `?agent=${encodeURIComponent(agent)}` : ''}`);
 
 // P3.A · Close probability por lead (reusa close_probability P2 · endpoint advisor nuevo · FAIL-OPEN)
 export const getCloseProbability = (id) => j(`/api/asesor/contactos/${id}/close-probability`);

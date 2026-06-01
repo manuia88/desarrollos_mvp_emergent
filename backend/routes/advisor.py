@@ -1132,10 +1132,6 @@ async def get_contacto_intel(cid: str, request: Request):
     except Exception:
         offer = None
 
-    # Enriquecimiento (redes): HONESTO · hoy no hay fuente síncrona de perfiles sociales
-    # resueltos (el motor es un pipeline async que no persiste perfiles legibles) → null.
-    enrichment = None
-
     # Brief determinístico desde datos REALES del lead (sin LLM · siempre disponible
     # si el lead tiene búsqueda/probabilidad). No inventa: solo resume lo que ya hay.
     brief = None
@@ -1186,7 +1182,7 @@ async def get_contacto_intel(cid: str, request: Request):
         taste = None
 
     return {"disc": disc, "churn": churn, "best_time": best_time, "offer": offer,
-            "enrichment": enrichment, "brief": brief, "taste": taste, "has_user": bool(uid)}
+            "brief": brief, "taste": taste, "has_user": bool(uid)}
 
 
 @router.patch("/contactos/{cid}")
@@ -2414,10 +2410,19 @@ async def create_swipe_link(cid: str, request: Request):
             "asesor_name": user.name or "Tu asesor",
             "lead_name": c.get("first_name") or "",
             "created_at": _now(),
+            # E6/S4 · expira a 90d (se refresca al re-compartir) → un link filtrado no vive eterno.
+            "expires_at": _now() + timedelta(days=90),
             "views": 0,
         }
         await db.asesor_property_links.insert_one(dict(link))
         link.pop("_id", None)
+    else:
+        # Re-compartir un link existente refresca su expiración (sigue vivo mientras se use).
+        try:
+            await db.asesor_property_links.update_one(
+                {"id": link["id"]}, {"$set": {"expires_at": _now() + timedelta(days=90)}})
+        except Exception:
+            pass
     base = (os.environ.get("FRONTEND_URL") or os.environ.get("PUBLIC_URL") or "").rstrip("/")
     url = f"{base}/p/{link['token']}" if base else f"/p/{link['token']}"
     first = c.get("first_name") or ""
