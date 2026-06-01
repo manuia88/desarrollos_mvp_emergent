@@ -169,8 +169,14 @@ function ConversationInboxBody({ user }) {
   const [search, setSearch] = useState('');
   const [curConv, setCurConv] = useState(null);    // B6 · conv seleccionada (canal + lead_id)
   const [ctx, setCtx] = useState(null);            // B6 · contexto del lead (gusto + siguiente paso)
-  const [convAI, setConvAI] = useState(null);      // Pieza 1 · IA en vivo (ánimo + objeción + recomendación + NBA)
+  const [convAI, setConvAI] = useState(null);      // Pieza 1 · IA en vivo (ánimo + objeción + recomendación + NBA + coaching)
   const [composeSeed, setComposeSeed] = useState(null); // Pieza 1 · "Usar" llena la caja de escribir
+  // Copiloto en vivo · rediseño (founder): minimizar + cerrar sugerencias + chat contextual
+  const [copilotMin, setCopilotMin] = useState(() => { try { return localStorage.getItem('dmx_copilot_min') === '1'; } catch { return false; } });
+  const [copilotDismiss, setCopilotDismiss] = useState({});   // {clave: true} sugerencias cerradas (por conversación)
+  const [copilotAsk, setCopilotAsk] = useState('');           // caja "pregúntale al copiloto"
+  const [copilotAnswer, setCopilotAnswer] = useState(null);   // respuesta del copiloto
+  const [copilotBusy, setCopilotBusy] = useState(false);
   const [propPicker, setPropPicker] = useState(null);   // Adjuntar propiedad · catálogo {loading, items}
   const [atlaxCh, setAtlaxCh] = useState({});           // Pieza 2 · Atlax auto por canal {whatsapp:true,...}
   const [col3Tab, setCol3Tab] = useState('acciones');   // col3 · pestañas: acciones | ia | perfil
@@ -440,6 +446,30 @@ function ConversationInboxBody({ user }) {
     }
   }, [sendGaleria, openPropPicker, ctx]);
 
+  // Copiloto · minimizar (recuerda preferencia) + cerrar sugerencias individuales
+  const toggleCopilotMin = useCallback(() => {
+    setCopilotMin((m) => { const n = !m; try { localStorage.setItem('dmx_copilot_min', n ? '1' : '0'); } catch { /* no-op */ } return n; });
+  }, []);
+  const dismissSug = useCallback((key) => setCopilotDismiss((d) => ({ ...d, [key]: true })), []);
+
+  // Copiloto · preguntar sobre ESTE lead (chat contextual)
+  const askLeadCopilot = useCallback(async () => {
+    const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+    const q = copilotAsk.trim();
+    if (!lid || !q || copilotBusy) return;
+    setCopilotBusy(true); setCopilotAnswer(null);
+    try {
+      const ch = (curConv && curConv.channel) || 'whatsapp';
+      const r = await fetch(`${API}/api/asesor/contactos/${lid}/copilot-ask`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+        body: JSON.stringify({ question: q, channel: ch }),
+      });
+      if (r.ok) { const d = await r.json(); setCopilotAnswer(d.answer || '(sin respuesta)'); }
+      else setCopilotAnswer('No pude responder ahora. Intenta de nuevo.');
+    } catch { setCopilotAnswer('No pude responder ahora. Intenta de nuevo.'); }
+    finally { setCopilotBusy(false); }
+  }, [detail, curConv, copilotAsk, copilotBusy]);
+
   // Editar perfil de búsqueda (founder: el cliente sube presupuesto / amplía zona)
   const openEditBusqueda = useCallback(() => {
     const b = ctx?.busqueda || {};
@@ -651,44 +681,120 @@ function ConversationInboxBody({ user }) {
               </div>
               {DM.includes(detail.channel) ? (
                 <>
-                  {/* Pieza 1 · COPILOTO EN VIVO: ánimo + qué hacer ahora (objeción/galería/propiedad/cierre) + propiedad afín */}
-                  {convAI && (convAI.animo || convAI.nba || convAI.recomendacion) && (
-                    <div style={{ marginBottom: 8, borderRadius: 12, background: 'rgba(109,74,255,0.05)', border: '1px solid rgba(109,74,255,0.18)', overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderBottom: '1px solid rgba(109,74,255,0.12)', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--theme-2)' }}>
-                        <FaRobot size={11} /> Copiloto en vivo
-                      </div>
-                      <div style={{ padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                        {convAI.animo && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                            <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.animo.sentiment === 'negativo' ? '😟' : convAI.animo.sentiment === 'positivo' ? '😊' : '😐'}</span>
-                            <span style={{ color: 'var(--cream-2)' }}>El cliente suena <b style={{ color: convAI.animo.sentiment === 'negativo' ? '#F2635B' : convAI.animo.sentiment === 'positivo' ? '#1FA06A' : 'var(--cream)' }}>{convAI.animo.label.toLowerCase()}</b><span style={{ color: 'var(--cream-3)' }}> · según sus mensajes</span></span>
-                          </div>
-                        )}
-                        {convAI.nba && (
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.07)' : 'rgba(99,102,241,0.07)', border: `1px solid ${convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.20)' : 'rgba(99,102,241,0.18)'}` }}>
-                            <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.nba.action_type === 'objecion' ? '🛡️' : '🧭'}</span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: 'var(--cream)', fontWeight: 700 }}>{convAI.nba.title}{convAI.nba.urgency === 'alta' && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: '#F2635B', background: 'rgba(242,99,91,0.14)', padding: '1px 6px', borderRadius: 999 }}>urgente</span>}</div>
-                              <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.nba.why}</div>
+                  {/* Pieza 1 · COPILOTO EN VIVO · minimizable + sugerencias cerrables + chat contextual */}
+                  {convAI && (() => {
+                    const sugs = [];
+                    if (convAI.animo && !copilotDismiss.animo) sugs.push('animo');
+                    if (convAI.coaching?.que_decirle && !copilotDismiss.que) sugs.push('que');
+                    if (convAI.coaching?.como_tratarlo && !copilotDismiss.como) sugs.push('como');
+                    if (convAI.nba && !copilotDismiss.nba) sugs.push('nba');
+                    if (convAI.recomendacion && convAI.nba && convAI.nba.action_type !== 'afinar_gusto' && !copilotDismiss.rec) sugs.push('rec');
+                    const Close = ({ k }) => (
+                      <button type="button" onClick={() => dismissSug(k)} title="Cerrar sugerencia"
+                        style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 14, lineHeight: 1, padding: '0 2px' }}>×</button>
+                    );
+                    return (
+                      <div style={{ marginBottom: 8, borderRadius: 12, background: 'rgba(109,74,255,0.05)', border: '1px solid rgba(109,74,255,0.18)', overflow: 'hidden' }}>
+                        {/* Header con minimizar */}
+                        <button type="button" onClick={toggleCopilotMin}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderBottom: copilotMin ? 'none' : '1px solid rgba(109,74,255,0.12)', background: 'none', border: 'none', borderBottomStyle: copilotMin ? 'none' : 'solid', cursor: 'pointer', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--theme-2)' }}>
+                          <FaRobot size={11} /> Copiloto en vivo
+                          {copilotMin && sugs.length > 0 && <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--theme-2)', borderRadius: 999, padding: '1px 7px', textTransform: 'none' }}>{sugs.length}</span>}
+                          <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--cream-3)' }}>{copilotMin ? '▸' : '▾'}</span>
+                        </button>
+
+                        {!copilotMin && (
+                          <div style={{ padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {/* Ánimo */}
+                            {convAI.animo && !copilotDismiss.animo && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                                <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.animo.sentiment === 'negativo' ? '😟' : convAI.animo.sentiment === 'positivo' ? '😊' : '😐'}</span>
+                                <span style={{ flex: 1, color: 'var(--cream-2)' }}>El cliente suena <b style={{ color: convAI.animo.sentiment === 'negativo' ? '#F2635B' : convAI.animo.sentiment === 'positivo' ? '#1FA06A' : 'var(--cream)' }}>{convAI.animo.label.toLowerCase()}</b></span>
+                                <Close k="animo" />
+                              </div>
+                            )}
+                            {/* Qué decirle (coaching · guion listo) */}
+                            {convAI.coaching?.que_decirle && !copilotDismiss.que && (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)' }}>
+                                <span style={{ fontSize: 15, lineHeight: 1 }}>💬</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ color: 'var(--cream-3)', fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Qué decirle</div>
+                                  <div style={{ color: 'var(--cream)', lineHeight: 1.45 }}>{convAI.coaching.que_decirle.script}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                                  <button type="button" onClick={() => setComposeSeed(convAI.coaching.que_decirle.script)}
+                                    style={{ flexShrink: 0, padding: '5px 11px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Usar</button>
+                                  <Close k="que" />
+                                </div>
+                              </div>
+                            )}
+                            {/* Cómo tratarlo (coaching · tono) */}
+                            {convAI.coaching?.como_tratarlo && !copilotDismiss.como && (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
+                                <span style={{ fontSize: 15, lineHeight: 1 }}>🎓</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ color: 'var(--cream)', fontWeight: 700 }}>{convAI.coaching.como_tratarlo.label}</div>
+                                  <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.coaching.como_tratarlo.tip}</div>
+                                </div>
+                                <Close k="como" />
+                              </div>
+                            )}
+                            {/* Siguiente mejor acción */}
+                            {convAI.nba && !copilotDismiss.nba && (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.07)' : 'rgba(99,102,241,0.07)', border: `1px solid ${convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.20)' : 'rgba(99,102,241,0.18)'}` }}>
+                                <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.nba.action_type === 'objecion' ? '🛡️' : '🧭'}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ color: 'var(--cream)', fontWeight: 700 }}>{convAI.nba.title}{convAI.nba.urgency === 'alta' && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: '#F2635B', background: 'rgba(242,99,91,0.14)', padding: '1px 6px', borderRadius: 999 }}>urgente</span>}</div>
+                                  <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.nba.why}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                                  <button type="button" onClick={() => doNba(convAI.nba.action_type)}
+                                    style={{ flexShrink: 0, padding: '5px 11px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>{convAI.nba.cta}</button>
+                                  <Close k="nba" />
+                                </div>
+                              </div>
+                            )}
+                            {/* Propiedad más afín */}
+                            {convAI.recomendacion && convAI.nba && convAI.nba.action_type !== 'afinar_gusto' && !copilotDismiss.rec && (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
+                                <span style={{ fontSize: 15, lineHeight: 1 }}>🎯</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ color: 'var(--cream-2)' }}>Propiedad más afín: <b style={{ color: 'var(--cream)' }}>{convAI.recomendacion.name}</b> <span style={{ color: 'var(--theme-2)', fontWeight: 800 }}>{convAI.recomendacion.match}%</span></div>
+                                  <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.recomendacion.reason || 'Por su gusto y presupuesto.'}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                                  <button type="button" onClick={() => setComposeSeed(`Hola! Creo que ${convAI.recomendacion.name}${convAI.recomendacion.colonia ? ` en ${convAI.recomendacion.colonia}` : ''} te va a encantar — va con lo que buscas. ¿Te la mando? 🙌`)}
+                                    style={{ flexShrink: 0, padding: '5px 11px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Enviar</button>
+                                  <Close k="rec" />
+                                </div>
+                              </div>
+                            )}
+                            {sugs.length === 0 && !copilotAnswer && (
+                              <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>Sin sugerencias nuevas. Pregúntale al Copiloto abajo 👇</div>
+                            )}
+
+                            {/* Chat contextual · pregúntale al copiloto sobre este lead */}
+                            {copilotAnswer && (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                                <span style={{ fontSize: 14, lineHeight: 1 }}>🤖</span>
+                                <div style={{ flex: 1, minWidth: 0, color: 'var(--cream)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{copilotAnswer}</div>
+                                <button type="button" onClick={() => setComposeSeed(copilotAnswer)} title="Usar como respuesta"
+                                  style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>Usar</button>
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <input value={copilotAsk} onChange={(e) => setCopilotAsk(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); askLeadCopilot(); } }}
+                                placeholder={`Pregúntale al Copiloto sobre ${(ctx?.name || 'este lead').split(' ')[0]}…`}
+                                style={{ flex: 1, boxSizing: 'border-box', padding: '8px 11px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12, outline: 'none' }} />
+                              <button type="button" onClick={askLeadCopilot} disabled={copilotBusy || !copilotAsk.trim()}
+                                style={{ flexShrink: 0, padding: '8px 13px', borderRadius: 999, border: 'none', background: (copilotBusy || !copilotAsk.trim()) ? 'var(--surface-2)' : 'var(--theme-2)', color: (copilotBusy || !copilotAsk.trim()) ? 'var(--cream-3)' : '#fff', fontSize: 11.5, fontWeight: 800, cursor: (copilotBusy || !copilotAsk.trim()) ? 'default' : 'pointer' }}>{copilotBusy ? '…' : 'Preguntar'}</button>
                             </div>
-                            <button type="button" onClick={() => doNba(convAI.nba.action_type)}
-                              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(109,74,255,0.28)' }}>{convAI.nba.cta}</button>
-                          </div>
-                        )}
-                        {convAI.recomendacion && convAI.nba && convAI.nba.action_type !== 'afinar_gusto' && (
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
-                            <span style={{ fontSize: 15, lineHeight: 1 }}>🎯</span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: 'var(--cream-2)' }}>Propiedad más afín: <b style={{ color: 'var(--cream)' }}>{convAI.recomendacion.name}</b> <span style={{ color: 'var(--theme-2)', fontWeight: 800 }}>{convAI.recomendacion.match}%</span></div>
-                              <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.recomendacion.reason || 'Por su gusto y presupuesto.'}</div>
-                            </div>
-                            <button type="button" onClick={() => setComposeSeed(`Hola! Creo que ${convAI.recomendacion.name}${convAI.recomendacion.colonia ? ` en ${convAI.recomendacion.colonia}` : ''} te va a encantar — va con lo que buscas. ¿Te la mando? 🙌`)}
-                              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Enviar</button>
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   <WaCompose onSend={sendAsAsesor} onDraft={draftReply} drafting={drafting} disabled={detail.status === 'closed'} seed={composeSeed} onAttachProperty={openPropPicker} />
                 </>
               ) : (
