@@ -833,7 +833,10 @@ function AsesorContactosV2({ user, onLogout }) {
   const [foco, setFoco] = useState([]);
   const [dismissedFoco, setDismissedFoco] = useState(() => new Set()); // B7 · FOCO descartados (cerrar tarjeta)
   const [segment, setSegment] = useState('todos'); // B7 · segmento activo (calidad/estado · client-side)
-  const [priceBand, setPriceBand] = useState(null); // B7 · filtro por rango de precio
+  const [priceFrom, setPriceFrom] = useState(''); // B7 · rango de precio · desde (en millones)
+  const [priceTo, setPriceTo] = useState('');     // B7 · hasta (en millones)
+  const [zonas, setZonas] = useState([]);         // B7 · zonas/colonias seleccionadas (multi)
+  const [openFilter, setOpenFilter] = useState(null); // 'precio' | 'zona' | null
   // Chips de filtro = presets reales de smart-lists + total para "Todos".
   const [presets, setPresets] = useState([]);
   const [counts, setCounts] = useState({});
@@ -965,26 +968,27 @@ function AsesorContactosV2({ user, onLogout }) {
   };
   const closeDetail = () => nav(`/asesor/contactos${qs}`);
 
-  // B7 · segmentos de visibilidad (calidad de seguimiento + estado del lead) + rango de precio.
-  const PRICE_BANDS = [
-    { key: 'lt3',  label: '< $3M',  test: (p) => p < 3e6 },
-    { key: '3-6',  label: '$3–6M',  test: (p) => p >= 3e6 && p < 6e6 },
-    { key: '6-10', label: '$6–10M', test: (p) => p >= 6e6 && p < 10e6 },
-    { key: 'gt10', label: '$10M+',  test: (p) => p >= 10e6 },
-  ];
+  // B7 · segmentos pensados para asesor/gerente: dónde poner atención, foco rojo,
+  // calidad de seguimiento, oportunidad de cierre. + filtros precio (desde/hasta) y zona (multi).
+  const priceOf = (c) => ((busqByContact[c.id] || [])[0]?.precio_max);
+  const isHot = (c) => c.buyer_score?.tier === 'hot' || /calien/i.test(c.temperatura || '');
+  const isWarm = (c) => c.buyer_score?.tier === 'warm' || /tibio/i.test(c.temperatura || '');
+  const noFollow = (c) => !actionByLead[c.id];
   const segmentDefs = [
-    { key: 'todos',     label: 'Todos',           emoji: '',   pred: () => true },
-    { key: 'calientes', label: 'Calientes',       emoji: '🔥', pred: (c) => c.buyer_score?.tier === 'hot' || /calien/i.test(c.temperatura || '') },
-    { key: 'potencial', label: 'Potenciales',     emoji: '⭐', pred: (c) => (c.buyer_score?.value || 0) >= 70 },
-    { key: 'nuevos',    label: 'Por contactar',   emoji: '📋', pred: (c) => (c.etapa || 'nuevo') === 'nuevo' },
-    { key: 'sinseg',    label: 'Sin seguimiento', emoji: '🕓', pred: (c) => !actionByLead[c.id] },
-    { key: 'riesgo',    label: 'En riesgo',       emoji: '⚠️', pred: (c) => (c.buyer_score?.tier === 'cold' || c.buyer_score?.tier === 'warm') && !actionByLead[c.id] },
-    { key: 'cita',      label: 'En cita',         emoji: '📅', pred: (c) => c.etapa === 'visita' },
+    { key: 'todos',       label: 'Todos',           emoji: '',   pred: () => true },
+    { key: 'focorojo',    label: 'Foco rojo',       emoji: '🔴', pred: (c) => noFollow(c) && (isHot(c) || isWarm(c) || (c.etapa || 'nuevo') === 'nuevo') },
+    { key: 'porcerrar',   label: 'Por cerrar',      emoji: '🔥', pred: (c) => isHot(c) && ['visita', 'negociacion'].includes(c.etapa) },
+    { key: 'sincontacto', label: 'Sin contactar',   emoji: '⏰', pred: (c) => (c.etapa || 'nuevo') === 'nuevo' && noFollow(c) },
+    { key: 'seenfrian',   label: 'Se enfrían',      emoji: '🧊', pred: (c) => isWarm(c) && noFollow(c) },
+    { key: 'sinseg',      label: 'Sin seguimiento', emoji: '🕓', pred: (c) => noFollow(c) },
+    { key: 'potencial',   label: 'Potenciales',     emoji: '⭐', pred: (c) => (c.buyer_score?.value || 0) >= 70 },
+    { key: 'concita',     label: 'Con cita',        emoji: '📅', pred: (c) => c.etapa === 'visita' },
   ];
   const segBase = list.filter((c) => !c.archived);
   const segCounts = {};
   for (const s of segmentDefs) segCounts[s.key] = s.key === 'todos' ? segBase.length : segBase.filter(s.pred).length;
-  const priceOf = (c) => ((busqByContact[c.id] || [])[0]?.precio_max);
+  const allZonas = [...new Set(segBase.flatMap((c) => (busqByContact[c.id] || [])[0]?.colonias || []))].sort();
+  const priceActive = priceFrom !== '' || priceTo !== '';
 
   const display = useMemo(() => {
     let arr = list.filter((c) => !c.archived);
@@ -992,13 +996,17 @@ function AsesorContactosV2({ user, onLogout }) {
       const def = segmentDefs.find((s) => s.key === segment);
       if (def) arr = arr.filter(def.pred);
     }
-    if (priceBand) {
-      const band = PRICE_BANDS.find((b) => b.key === priceBand);
-      if (band) arr = arr.filter((c) => { const p = priceOf(c); return p != null && band.test(p); });
+    const pf = priceFrom !== '' ? Number(priceFrom) * 1e6 : null;
+    const ptv = priceTo !== '' ? Number(priceTo) * 1e6 : null;
+    if (pf != null || ptv != null) {
+      arr = arr.filter((c) => { const p = priceOf(c); if (p == null) return false; if (pf != null && p < pf) return false; if (ptv != null && p > ptv) return false; return true; });
+    }
+    if (zonas.length) {
+      arr = arr.filter((c) => ((busqByContact[c.id] || [])[0]?.colonias || []).some((z) => zonas.includes(z)));
     }
     return [...arr].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list, segment, priceBand, actionByLead, busqByContact]);
+  }, [list, segment, priceFrom, priceTo, zonas, actionByLead, busqByContact]);
 
   const togglePin = async (c) => {
     setList((prev) => prev.map((x) => (x.id === c.id ? { ...x, pinned: !x.pinned } : x)));
@@ -1134,12 +1142,12 @@ function AsesorContactosV2({ user, onLogout }) {
           </div>
         )}
 
-        {/* B7 · Barra de segmentos: visibilidad de calidad de seguimiento + estado del lead + precio.
-            Cada chip filtra el board (client-side). Counts en vivo. Ámbar = atención (riesgo/sin seg). */}
+        {/* B7 · Barra de segmentos (foco del asesor/gerente) + filtros Precio (desde/hasta) y Zona (multi).
+            Cada chip filtra el board (client-side). Counts en vivo. Ámbar = atención/foco rojo. */}
         <div className="asr-chips" data-testid="lead-segments" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           {segmentDefs.map((s) => {
             const on = segment === s.key;
-            const warn = (s.key === 'riesgo' || s.key === 'sinseg') && segCounts[s.key] > 0 && !on;
+            const warn = ['focorojo', 'seenfrian', 'sinseg', 'sincontacto'].includes(s.key) && segCounts[s.key] > 0 && !on;
             return (
               <button key={s.key} data-testid={`seg-${s.key}`} onClick={() => setSegment(s.key)}
                 className={`asr-chip${on ? ' asr-chip--on' : ''}`}>
@@ -1149,15 +1157,53 @@ function AsesorContactosV2({ user, onLogout }) {
             );
           })}
           <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 4px' }} />
-          {PRICE_BANDS.map((b) => {
-            const on = priceBand === b.key;
-            return (
-              <button key={b.key} data-testid={`price-${b.key}`} onClick={() => setPriceBand(on ? null : b.key)}
-                className={`asr-chip${on ? ' asr-chip--on' : ''}`} title="Filtrar por presupuesto">
-                💰 {b.label}
-              </button>
-            );
-          })}
+
+          {/* Precio · dropdown desde/hasta (millones) */}
+          <div style={{ position: 'relative' }}>
+            <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
+              className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`}>
+              💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} ▾
+            </button>
+            {openFilter === 'precio' && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 30, width: 230, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Presupuesto (millones)</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: '50%' }} />
+                  <span style={{ color: 'var(--cream-3)' }}>–</span>
+                  <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: '50%' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 11 }}>
+                  <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
+                  <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 14px' }}>Aplicar</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Zona · dropdown multi-select */}
+          <div style={{ position: 'relative' }}>
+            <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
+              className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`}>
+              📍 Zona{zonas.length ? ` · ${zonas.length}` : ''} ▾
+            </button>
+            {openFilter === 'zona' && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 30, width: 210, maxHeight: 280, overflowY: 'auto', padding: 8, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
+                {allZonas.length === 0
+                  ? <div style={{ padding: 10, fontSize: 12, color: 'var(--cream-3)' }}>Sin zonas registradas</div>
+                  : allZonas.map((z) => {
+                    const on = zonas.includes(z);
+                    return (
+                      <button key={z} onClick={() => setZonas((prev) => (on ? prev.filter((x) => x !== z) : [...prev, z]))}
+                        style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 9px', borderRadius: 8, border: 'none', background: on ? 'rgba(var(--theme-rgb),0.08)' : 'transparent', color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ width: 15, height: 15, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border-2)'}`, background: on ? 'var(--theme)' : 'transparent', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 10 }}>{on ? '✓' : ''}</span>
+                        {z}
+                      </button>
+                    );
+                  })}
+                {zonas.length > 0 && <button onClick={() => setZonas([])} style={{ width: '100%', marginTop: 4, background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer', padding: 6 }}>Limpiar zonas</button>}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Foco de hoy · 3 acciones priorizadas. En demo se renderiza DIRECTO de DEMO_FOCO
@@ -1295,9 +1341,8 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   const zonaText = zona || (nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada');
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
-  // SEÑAL "por qué ahora" = temperatura + recencia/actividad (accionable). Siempre hay.
-  const recency = agingDisplay || (nProps > 0 ? `${nProps} ${nProps === 1 ? 'propiedad' : 'propiedades'}` : null);
-  const signal = recency ? `${meta.label} · ${recency}${agingWarn ? ' → reactivar' : ''}` : meta.label;
+  // Temperatura como EMOJI (point 3) · va junto a la acción · la recencia sube al encabezado.
+  const tempEmoji = meta.label === 'Caliente' ? '🔥' : meta.label === 'Tibio' ? '🌤️' : meta.label === 'Cliente' ? '🤝' : '🧊';
   // DINERO en juego = presupuesto de su búsqueda (dato real · compacto).
   const dealText = precio ? (precio >= 1e6 ? `$${(precio / 1e6).toFixed(precio % 1e6 === 0 ? 0 : 1)}M` : fmtMXN(precio)) : null;
   // B7 · rediseño del embudo: identidad + score (BADGE, no barra) · SEÑAL "por qué ahora"
@@ -1330,8 +1375,9 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.first_name} {c.last_name || ''}
           </div>
-          <div style={{ fontSize: 11.5, marginTop: 2, color: 'var(--cream-3)', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {fuente || c.tipo || '—'}
+          <div style={{ fontSize: 11.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ color: 'var(--cream-3)', textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</span>
+            {agingDisplay && <span style={{ color: agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: agingWarn ? 600 : 400 }}> · {agingDisplay}</span>}
           </div>
         </div>
         <div title={`Score ${score != null ? pct : '—'}/100`}
@@ -1340,10 +1386,10 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         </div>
       </div>
 
-      {/* 2 · SEÑAL "por qué ahora" (reemplaza la barra · accionable de un vistazo) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 11px', borderRadius: 10, background: `rgba(${meta.rgb}, 0.07)`, border: `1px solid rgba(${meta.rgb}, 0.18)` }}>
-        <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: `rgb(${meta.rgb})`, boxShadow: `0 0 0 3px rgba(${meta.rgb}, 0.15)` }} />
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{signal}</span>
+      {/* 2 · temperatura (emoji) + PRÓXIMA ACCIÓN, consolidadas (point 3 · sin duplicar) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 10, background: `rgba(${meta.rgb}, 0.08)`, border: `1px solid rgba(${meta.rgb}, 0.20)` }}>
+        <span title={meta.label} style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>{tempEmoji}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: actText ? 'var(--cream)' : 'var(--cream-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actText || 'Sin acción pendiente'}</span>
       </div>
 
       {/* 3a · zona + dinero en juego ($) */}
@@ -1357,13 +1403,7 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         {specs.length ? specs.map((s, i) => <span key={i}>{s}</span>) : <span style={{ color: 'var(--cream-3)' }}>Specs por definir</span>}
       </div>
 
-      {/* 4 · próxima acción · siempre presente (mantiene altura uniforme) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: actText ? 'var(--cream)' : 'var(--cream-3)', minWidth: 0 }}>
-        <ArrowRight size={13} color="var(--theme-2)" style={{ flexShrink: 0 }} />
-        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actText || 'Sin acción pendiente'}</span>
-      </div>
-
-      {/* 5 · footer · WhatsApp + Abrir */}
+      {/* footer · WhatsApp + Abrir */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 11, borderTop: '1px solid var(--border)' }}>
         {waUrl && (
           <a href={waUrl} target="_blank" rel="noreferrer" data-testid={`wa-${c.id}`} title="WhatsApp"
