@@ -1,7 +1,6 @@
 """W4.16 Sub-A — Free Audit API routes."""
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 import uuid
@@ -84,7 +83,7 @@ async def submit_route(request: Request, body: SubmitRequest, background: Backgr
         except Exception as exc:
             log.warning(f"[free_audit] background gen failed audit={audit_id}: {exc}")
 
-    background.add_task(asyncio.create_task, _bg())
+    background.add_task(_bg)  # FastAPI await el coroutine; create_task aquí truena ("no running event loop")
     return JSONResponse({"ok": True, "audit_id": audit_id, "status": "processing"})
 
 

@@ -117,7 +117,7 @@ class IEProyQualityDocs(ProjectRecipe):
         return ScoreResult(
             code=self.code, zone_id=zone_id, value=round(value, 2),
             tier=self._tier_for(value), confidence="high", is_stub=False,
-            inputs_used={"present_canonical_types": sorted(present_types), "total_canonical": len(CANONICAL_DOC_TYPES)},
+            inputs_used={"present_canonical_types": len(present_types), "total_canonical": len(CANONICAL_DOC_TYPES)},
             formula_version=self.version,
         )
 

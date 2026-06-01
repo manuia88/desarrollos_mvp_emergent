@@ -72,16 +72,17 @@ async def register(payload: RegisterIn, response: Response, request: Request):
     existing = await db.users.find_one({"email": payload.email})
     if existing:
         raise HTTPException(400, "El correo ya está registrado")
-    # Seguridad: nunca confiar en el role del cliente. Solo roles self-serve;
-    # cualquier otro (superadmin/asesor_admin/basura) cae a "buyer".
-    role = payload.role if payload.role in PUBLIC_REGISTER_ROLES else "buyer"
-    if role != payload.role:
-        log.warning(f"[auth] register role '{payload.role}' no permitido para {payload.email} → forzado a buyer")
+    # Seguridad: el role del cliente solo puede ser self-serve (espejo de /select-role).
+    # Privilegiados (superadmin/asesor_admin/developer_director/inmobiliaria_*) SOLO se
+    # asignan server-side (seed/admin), nunca por registro público.
+    if payload.role not in PUBLIC_REGISTER_ROLES:
+        log.warning(f"[auth] register rechazado: role '{payload.role}' no permitido para {payload.email}")
+        raise HTTPException(400, "Rol no válido")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     await db.users.insert_one({
         "user_id": user_id, "email": payload.email,
         "name": payload.name, "password_hash": hash_password(payload.password),
-        "role": role, "tenant_id": None,
+        "role": payload.role, "tenant_id": None,
         "onboarded": True,
         "created_at": datetime.now(timezone.utc),
     })

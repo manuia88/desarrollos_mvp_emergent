@@ -22,6 +22,24 @@ _sentry_initialized = False
 
 
 # ─── Sentry ───────────────────────────────────────────────────────────────────
+def _sentry_before_send(event, hint):
+    """Filtra ruido esperado para que no ahogue errores reales.
+    KG no disponible (fallback a SQL relacional) es degradación esperada, no un bug:
+    los endpoints kg_* lanzan HTTPException(503, {fallback:"use_relational_sql"}) a propósito.
+    """
+    exc_info = hint.get("exc_info") if hint else None
+    if exc_info:
+        exc = exc_info[1]
+        try:
+            from fastapi import HTTPException as _HTTPExc
+            if isinstance(exc, _HTTPExc) and isinstance(getattr(exc, "detail", None), dict) \
+                    and exc.detail.get("fallback") == "use_relational_sql":
+                return None  # drop: ruido esperado de KG apagado
+        except Exception:
+            pass
+    return event
+
+
 def init_sentry() -> bool:
     """Call once at backend startup. Returns True if initialized."""
     global _sentry_initialized
@@ -41,6 +59,7 @@ def init_sentry() -> bool:
             environment=os.environ.get("DMX_ENV", "preview"),
             release=os.environ.get("DMX_RELEASE", "dmx-backend@dev"),
             send_default_pii=False,
+            before_send=_sentry_before_send,
             integrations=[
                 FastApiIntegration(transaction_style="endpoint"),
                 StarletteIntegration(transaction_style="endpoint"),

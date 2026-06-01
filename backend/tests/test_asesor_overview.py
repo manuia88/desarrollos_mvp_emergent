@@ -82,8 +82,11 @@ async def test_overview_shape_and_merge(mock_db, monkeypatch):
     assert out["contacto_id"] == "c1"
     assert out["count"] == 4
     assert len(out["timeline"]) == 4
-    # todas las fuentes ok
-    assert out["sources"] == {"timeline": "ok", "busquedas": "ok", "operaciones": "ok", "insights": "ok"}
+    # todas las fuentes ok (B1 inicial 4 + E3 amplió a 9: tareas/citas/lead_events/whatsapp/swipes)
+    assert out["sources"] == {
+        "timeline": "ok", "busquedas": "ok", "operaciones": "ok", "insights": "ok",
+        "tareas": "ok", "citas": "ok", "lead_events": "ok", "whatsapp": "ok", "swipes": "ok",
+    }
     # cada evento tiene la forma normalizada
     for ev in out["timeline"]:
         assert set(["ts", "source", "kind", "title", "body"]).issubset(ev.keys())

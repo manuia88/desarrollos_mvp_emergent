@@ -185,6 +185,8 @@ async def create_template(body: TemplateIn, request: Request):
             raise HTTPException(409, "Nombre de plantilla ya existe en esta org")
         raise HTTPException(500, str(exc))
     doc.pop("_id", None)
+    if doc.get("created_at") and hasattr(doc["created_at"], "isoformat"):
+        doc["created_at"] = doc["created_at"].isoformat()  # fecha→ISO: no es JSON-serializable cruda
     return JSONResponse({"ok": True, "template": doc})
 
 

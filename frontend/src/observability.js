@@ -17,10 +17,13 @@ export function initObservability() {
         release: process.env.REACT_APP_DMX_RELEASE || 'dmx-frontend@dev',
         integrations: [
           Sentry.browserTracingIntegration(),
-          Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
+          // LFPDPPP: enmascarar texto/media en replays (no capturar PII en pantalla)
+          Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
         ],
         tracesSampleRate: 0.1,
-        replaysSessionSampleRate: 0.1,
+        // 0 = no grabar sesiones al azar (consumían 80% del presupuesto);
+        // solo se graban las sesiones que sí tuvieron un error (las útiles).
+        replaysSessionSampleRate: 0,
         replaysOnErrorSampleRate: 1.0,
         sendDefaultPii: false,
       });
