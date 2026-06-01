@@ -13,6 +13,7 @@ import {
   Zap, Clock, Inbox, ChevronRight,
 } from 'lucide-react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
+import PremiumCard from '../../components/asesor/design/PremiumCard'; // B7 · diseño premium
 import AutopilotPanel from '../../components/asesor/AutopilotPanel';
 import {
   getAgents, getAgentWorkforceStatus, runAgentsNow, getDashboard,
@@ -45,7 +46,7 @@ function Skeleton() {
     <div className="animate-pulse space-y-6" data-testid="agents-skeleton">
       <div className="h-8 w-56 rounded-lg bg-[var(--cream-3)]" />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-40 rounded-2xl bg-[var(--cream-3)]" />)}
+        {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-40 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] animate-pulse" />)}
       </div>
     </div>
   );
@@ -149,13 +150,15 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                 const Ico = AGENT_ICONS[a.name] || Bot;
                 const generated = byAgent[a.name] ?? 0;
                 return (
-                  <div
+                  <PremiumCard
                     key={a.name}
+                    hover
                     data-testid={`agent-card-${a.name}`}
-                    className="p-4 rounded-2xl bg-[var(--cream-3)] border border-[var(--cream-3)] flex flex-col"
+                    className="flex flex-col"
+                    style={{ padding: 16 }}
                   >
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-[rgba(var(--theme-rgb),0.15)] text-[var(--theme)] shrink-0">
+                      <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-[rgba(var(--theme-rgb),0.12)] text-[var(--theme-2)] shrink-0">
                         <Ico size={18} />
                       </span>
                       <div className="min-w-0">
@@ -182,17 +185,18 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                           onClick={runAll}
                           disabled={running}
                           data-testid={`run-agent-${a.name}`}
-                          className="px-3 h-8 rounded-full text-xs font-medium text-[var(--cream)] bg-[var(--cream-3)] border border-[var(--cream-3)] hover:bg-[var(--cream-3)] disabled:opacity-50 transition-colors"
+                          className="px-3 h-8 rounded-full text-xs font-bold text-white disabled:opacity-50 transition-opacity"
+                          style={{ background: 'linear-gradient(90deg, var(--theme), var(--theme-3))' }}
                         >
                           {t('page.run_agent')}
                         </button>
                       ) : (
-                        <span className="px-3 h-8 inline-flex items-center rounded-full text-xs text-[var(--cream-3)] bg-[var(--cream-3)] border border-dashed border-[var(--cream-3)]">
+                        <span className="px-3 h-8 inline-flex items-center rounded-full text-xs text-[var(--cream-3)] border border-dashed border-[var(--border)]">
                           {t('page.unavailable')}
                         </span>
                       )}
                     </div>
-                  </div>
+                  </PremiumCard>
                 );
               })}
             </div>

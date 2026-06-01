@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
+import PremiumCard from '../../components/asesor/design/PremiumCard'; // B7 · diseño premium (tarjeta con profundidad)
 import * as api from '../../api/advisor';
 import { Sparkle, ArrowRight } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
@@ -109,19 +110,11 @@ export default function AsesorBusquedas({ user, onLogout, embedded }) {
                     {col.map(b => {
                       const contact = contacts.find(c => c.id === b.contacto_id);
                       return (
-                        <div key={b.id} draggable
+                        <PremiumCard key={b.id} hover dragging={dragging === b.id} draggable
                           onDragStart={() => setDragging(b.id)}
                           onClick={() => openDetail(b)}
                           data-testid={`busq-card-${b.id}`}
-                          style={{
-                            padding: 12,
-                            background: 'linear-gradient(180deg, var(--surface), var(--surface))',
-                            border: '1px solid var(--border)',
-                            borderRadius: 12, cursor: 'grab',
-                            transition: 'transform 0.15s, border-color 0.15s',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(99,102,241,0.32)'}
-                          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                          style={{ padding: 12, borderRadius: 14, cursor: 'grab' }}>
                           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 4 }}>
                             {contact ? `${contact.first_name} ${contact.last_name || ''}` : '—'}
                           </div>
@@ -142,7 +135,7 @@ export default function AsesorBusquedas({ user, onLogout, embedded }) {
                             <button onClick={e => { e.stopPropagation(); regVisit(b.id); }} data-testid={`visit-${b.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: 10 }}>+ visita</button>
                             <button onClick={e => { e.stopPropagation(); regOffer(b.id); }} data-testid={`offer-${b.id}`} className="btn btn-ghost btn-sm" style={{ fontSize: 10 }}>+ oferta</button>
                           </div>
-                        </div>
+                        </PremiumCard>
                       );
                     })}
                   </div>
