@@ -185,6 +185,26 @@ async def _asesor_context(db, user) -> Dict[str, Any]:
         {"_id": 0, "score": 1}, sort=[("computed_at", -1)],
     ) or {}
 
+    # E4/A1 · CRM PROPIO del asesor (asesor_contactos) — el Cmd+J era ciego a esto
+    # (solo leía db.leads). Ahora también ve su libreta real de prospectos. FAIL-OPEN.
+    crm: List[Dict[str, Any]] = []
+    crm_count = 0
+    try:
+        crm_count = await db.asesor_contactos.count_documents({"owner_id": aid, "archived": {"$ne": True}})
+        async for c in db.asesor_contactos.find(
+            {"owner_id": aid, "archived": {"$ne": True}},
+            {"_id": 0, "first_name": 1, "last_name": 1, "etapa": 1, "fuente": 1,
+             "temperatura": 1, "origin": 1},
+        ).sort("created_at", -1).limit(15):
+            crm.append({
+                "nombre": f"{c.get('first_name', '')} {c.get('last_name', '')}".strip() or "Lead",
+                "etapa": c.get("etapa", "nuevo"),
+                "fuente": c.get("fuente") or c.get("origin"),
+                "temperatura": c.get("temperatura"),
+            })
+    except Exception:
+        pass
+
     return {
         "role": "asesor",
         "name": getattr(user, "name", None),
@@ -194,6 +214,8 @@ async def _asesor_context(db, user) -> Dict[str, Any]:
         "my_citas_proximas": citas,
         "my_links_top3": links,
         "my_health_score": int(hs.get("score", 0)),
+        "my_crm_contactos": crm,
+        "my_crm_count": crm_count,
     }
 
 
