@@ -33,6 +33,20 @@ const AMEN_LABEL = { pet: 'Pet friendly', roof: 'Roof garden', gym: 'Gym', alber
 const AMEN_OPTS = ['pet', 'roof', 'gym', 'alberca', 'seguridad', 'concierge', 'terraza'];
 const editInput = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' };
 
+// Copiloto · color por TIPO de sugerencia (founder: distinguir qué-decirle vs propiedad vs coaching)
+const COPILOT_KIND = {
+  que_decirle:      { emoji: '💬', title: 'Qué decirle',         accent: '#6D4AFF', bg: 'rgba(109,74,255,0.07)', border: 'rgba(109,74,255,0.22)' },
+  objecion:         { emoji: '🛡️', title: 'Maneja la objeción',  accent: '#F2635B', bg: 'rgba(242,99,91,0.07)',  border: 'rgba(242,99,91,0.22)' },
+  recomendar:       { emoji: '🏠', title: 'Propiedad sugerida',  accent: '#FF5CA8', bg: 'rgba(255,92,168,0.07)', border: 'rgba(255,92,168,0.24)' },
+  afinar_gusto:     { emoji: '🧭', title: 'Conoce su gusto',     accent: '#E2982E', bg: 'rgba(226,152,46,0.08)', border: 'rgba(226,152,46,0.24)' },
+  cerrar:           { emoji: '🤝', title: 'Cierra',              accent: '#1FA06A', bg: 'rgba(31,160,106,0.08)', border: 'rgba(31,160,106,0.24)' },
+  coordinar_visita: { emoji: '📅', title: 'Agenda visita',       accent: '#1FA06A', bg: 'rgba(31,160,106,0.08)', border: 'rgba(31,160,106,0.24)' },
+  reactivar:        { emoji: '🔄', title: 'Reactiva',            accent: '#E2982E', bg: 'rgba(226,152,46,0.08)', border: 'rgba(226,152,46,0.24)' },
+  seguimiento:      { emoji: '🧭', title: 'Siguiente paso',      accent: '#6D4AFF', bg: 'rgba(109,74,255,0.07)', border: 'rgba(109,74,255,0.22)' },
+  como:             { emoji: '🎓', title: 'Cómo tratarlo',       accent: '#E2982E', bg: 'rgba(226,152,46,0.08)', border: 'rgba(226,152,46,0.24)' },
+  _default:         { emoji: '🤖', title: 'Copiloto',            accent: '#6D4AFF', bg: 'rgba(109,74,255,0.07)', border: 'rgba(109,74,255,0.22)' },
+};
+
 // ── Sistema de UI de la columna 3 · una sola fuente de verdad para jerarquía y ritmo ──
 const COL3_GAP = 18;                        // separación uniforme entre secciones
 const sectionStyle = { display: 'flex', flexDirection: 'column', gap: 9 };
@@ -661,7 +675,6 @@ function ConversationInboxBody({ user }) {
             </div>
           ) : (
             <>
-              <SentimentHeatmap messages={detail.messages || []} />
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, margin: '12px 0' }}>
                 {(detail.messages || []).map((m, i) => (
                   <div key={i} style={{
@@ -681,117 +694,26 @@ function ConversationInboxBody({ user }) {
               </div>
               {DM.includes(detail.channel) ? (
                 <>
-                  {/* Pieza 1 · COPILOTO EN VIVO · minimizable + sugerencias cerrables + chat contextual */}
-                  {convAI && (() => {
-                    const sugs = [];
-                    if (convAI.animo && !copilotDismiss.animo) sugs.push('animo');
-                    if (convAI.coaching?.que_decirle && !copilotDismiss.que) sugs.push('que');
-                    if (convAI.coaching?.como_tratarlo && !copilotDismiss.como) sugs.push('como');
-                    if (convAI.nba && !copilotDismiss.nba) sugs.push('nba');
-                    if (convAI.recomendacion && convAI.nba && convAI.nba.action_type !== 'afinar_gusto' && !copilotDismiss.rec) sugs.push('rec');
-                    const Close = ({ k }) => (
-                      <button type="button" onClick={() => dismissSug(k)} title="Cerrar sugerencia"
-                        style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 14, lineHeight: 1, padding: '0 2px' }}>×</button>
-                    );
+                  {/* Copiloto · UNA tira contextual (la prioritaria) · coloreada por tipo · cerrable.
+                      El detalle completo + chat viven en el tab '🤖 Copiloto' de la derecha. */}
+                  {convAI?.top && !copilotDismiss.top && (() => {
+                    const k = COPILOT_KIND[convAI.top.kind] || COPILOT_KIND._default;
+                    const isScript = convAI.top.action === 'use_script';
                     return (
-                      <div style={{ marginBottom: 8, borderRadius: 12, background: 'rgba(109,74,255,0.05)', border: '1px solid rgba(109,74,255,0.18)', overflow: 'hidden' }}>
-                        {/* Header con minimizar */}
-                        <button type="button" onClick={toggleCopilotMin}
-                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderBottom: copilotMin ? 'none' : '1px solid rgba(109,74,255,0.12)', background: 'none', border: 'none', borderBottomStyle: copilotMin ? 'none' : 'solid', cursor: 'pointer', fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--theme-2)' }}>
-                          <FaRobot size={11} /> Copiloto en vivo
-                          {copilotMin && sugs.length > 0 && <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', background: 'var(--theme-2)', borderRadius: 999, padding: '1px 7px', textTransform: 'none' }}>{sugs.length}</span>}
-                          <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--cream-3)' }}>{copilotMin ? '▸' : '▾'}</span>
-                        </button>
-
-                        {!copilotMin && (
-                          <div style={{ padding: '9px 11px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {/* Ánimo */}
-                            {convAI.animo && !copilotDismiss.animo && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                                <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.animo.sentiment === 'negativo' ? '😟' : convAI.animo.sentiment === 'positivo' ? '😊' : '😐'}</span>
-                                <span style={{ flex: 1, color: 'var(--cream-2)' }}>El cliente suena <b style={{ color: convAI.animo.sentiment === 'negativo' ? '#F2635B' : convAI.animo.sentiment === 'positivo' ? '#1FA06A' : 'var(--cream)' }}>{convAI.animo.label.toLowerCase()}</b></span>
-                                <Close k="animo" />
-                              </div>
-                            )}
-                            {/* Qué decirle (coaching · guion listo) */}
-                            {convAI.coaching?.que_decirle && !copilotDismiss.que && (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)' }}>
-                                <span style={{ fontSize: 15, lineHeight: 1 }}>💬</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ color: 'var(--cream-3)', fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>Qué decirle</div>
-                                  <div style={{ color: 'var(--cream)', lineHeight: 1.45 }}>{convAI.coaching.que_decirle.script}</div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                                  <button type="button" onClick={() => setComposeSeed(convAI.coaching.que_decirle.script)}
-                                    style={{ flexShrink: 0, padding: '5px 11px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Usar</button>
-                                  <Close k="que" />
-                                </div>
-                              </div>
-                            )}
-                            {/* Cómo tratarlo (coaching · tono) */}
-                            {convAI.coaching?.como_tratarlo && !copilotDismiss.como && (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
-                                <span style={{ fontSize: 15, lineHeight: 1 }}>🎓</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ color: 'var(--cream)', fontWeight: 700 }}>{convAI.coaching.como_tratarlo.label}</div>
-                                  <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.coaching.como_tratarlo.tip}</div>
-                                </div>
-                                <Close k="como" />
-                              </div>
-                            )}
-                            {/* Siguiente mejor acción */}
-                            {convAI.nba && !copilotDismiss.nba && (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.07)' : 'rgba(99,102,241,0.07)', border: `1px solid ${convAI.nba.action_type === 'objecion' ? 'rgba(242,99,91,0.20)' : 'rgba(99,102,241,0.18)'}` }}>
-                                <span style={{ fontSize: 15, lineHeight: 1 }}>{convAI.nba.action_type === 'objecion' ? '🛡️' : '🧭'}</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ color: 'var(--cream)', fontWeight: 700 }}>{convAI.nba.title}{convAI.nba.urgency === 'alta' && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: '#F2635B', background: 'rgba(242,99,91,0.14)', padding: '1px 6px', borderRadius: 999 }}>urgente</span>}</div>
-                                  <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.nba.why}</div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                                  <button type="button" onClick={() => doNba(convAI.nba.action_type)}
-                                    style={{ flexShrink: 0, padding: '5px 11px', borderRadius: 999, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>{convAI.nba.cta}</button>
-                                  <Close k="nba" />
-                                </div>
-                              </div>
-                            )}
-                            {/* Propiedad más afín */}
-                            {convAI.recomendacion && convAI.nba && convAI.nba.action_type !== 'afinar_gusto' && !copilotDismiss.rec && (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
-                                <span style={{ fontSize: 15, lineHeight: 1 }}>🎯</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ color: 'var(--cream-2)' }}>Propiedad más afín: <b style={{ color: 'var(--cream)' }}>{convAI.recomendacion.name}</b> <span style={{ color: 'var(--theme-2)', fontWeight: 800 }}>{convAI.recomendacion.match}%</span></div>
-                                  <div style={{ color: 'var(--cream-3)', fontSize: 10.5, marginTop: 2, lineHeight: 1.4 }}>{convAI.recomendacion.reason || 'Por su gusto y presupuesto.'}</div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                                  <button type="button" onClick={() => setComposeSeed(`Hola! Creo que ${convAI.recomendacion.name}${convAI.recomendacion.colonia ? ` en ${convAI.recomendacion.colonia}` : ''} te va a encantar — va con lo que buscas. ¿Te la mando? 🙌`)}
-                                    style={{ flexShrink: 0, padding: '5px 11px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Enviar</button>
-                                  <Close k="rec" />
-                                </div>
-                              </div>
-                            )}
-                            {sugs.length === 0 && !copilotAnswer && (
-                              <div style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>Sin sugerencias nuevas. Pregúntale al Copiloto abajo 👇</div>
-                            )}
-
-                            {/* Chat contextual · pregúntale al copiloto sobre este lead */}
-                            {copilotAnswer && (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '8px 9px', borderRadius: 9, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                                <span style={{ fontSize: 14, lineHeight: 1 }}>🤖</span>
-                                <div style={{ flex: 1, minWidth: 0, color: 'var(--cream)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{copilotAnswer}</div>
-                                <button type="button" onClick={() => setComposeSeed(copilotAnswer)} title="Usar como respuesta"
-                                  style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>Usar</button>
-                              </div>
-                            )}
-                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                              <input value={copilotAsk} onChange={(e) => setCopilotAsk(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); askLeadCopilot(); } }}
-                                placeholder={`Pregúntale al Copiloto sobre ${(ctx?.name || 'este lead').split(' ')[0]}…`}
-                                style={{ flex: 1, boxSizing: 'border-box', padding: '8px 11px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12, outline: 'none' }} />
-                              <button type="button" onClick={askLeadCopilot} disabled={copilotBusy || !copilotAsk.trim()}
-                                style={{ flexShrink: 0, padding: '8px 13px', borderRadius: 999, border: 'none', background: (copilotBusy || !copilotAsk.trim()) ? 'var(--surface-2)' : 'var(--theme-2)', color: (copilotBusy || !copilotAsk.trim()) ? 'var(--cream-3)' : '#fff', fontSize: 11.5, fontWeight: 800, cursor: (copilotBusy || !copilotAsk.trim()) ? 'default' : 'pointer' }}>{copilotBusy ? '…' : 'Preguntar'}</button>
-                            </div>
-                          </div>
-                        )}
+                      <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 9, padding: '9px 11px', borderRadius: 11, background: k.bg, border: `1px solid ${k.border}` }}>
+                        <span style={{ fontSize: 15, lineHeight: 1.2 }}>{k.emoji}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: k.accent, marginBottom: 2 }}>{k.title}</div>
+                          <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.45 }}>{convAI.top.text || convAI.top.label}</div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end', flexShrink: 0 }}>
+                          <button type="button" onClick={() => { if (isScript) setComposeSeed(convAI.top.text); else doNba(convAI.top.kind); }}
+                            style={{ padding: '5px 12px', borderRadius: 999, border: 'none', background: k.accent, color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>{convAI.top.cta || 'Usar'}</button>
+                          <button type="button" onClick={() => { setCol3Tab('copiloto'); }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 10.5, fontWeight: 700 }}>Ver más ›</button>
+                        </div>
+                        <button type="button" onClick={() => dismissSug('top')} title="Cerrar"
+                          style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 14, lineHeight: 1, padding: '0 0 0 2px' }}>×</button>
                       </div>
                     );
                   })()}
@@ -833,11 +755,16 @@ function ConversationInboxBody({ user }) {
                 </button>
               )}
 
-              {/* Tabs (founder: 3 pestañas para no encimar) */}
+              {/* Tabs (founder: 4 pestañas · Copiloto separado para no saturar el chat) */}
               <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: 'var(--surface-2)', borderRadius: 10, padding: 3 }}>
-                {[{ k: 'acciones', l: '⚡ Acciones' }, { k: 'ia', l: '🤖 IA' }, { k: 'perfil', l: '👤 Perfil' }].map((tb) => (
+                {[{ k: 'acciones', l: '⚡' }, { k: 'ia', l: '🤖 IA' }, { k: 'perfil', l: '👤' }, { k: 'copiloto', l: '✨ Copiloto' }].map((tb) => (
                   <button key={tb.k} type="button" onClick={() => setCol3Tab(tb.k)}
-                    style={{ flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, background: col3Tab === tb.k ? 'var(--surface)' : 'transparent', color: col3Tab === tb.k ? 'var(--theme-2)' : 'var(--cream-3)', boxShadow: col3Tab === tb.k ? '0 1px 3px rgba(20,16,40,0.1)' : 'none' }}>{tb.l}</button>
+                    style={{ flex: 1, position: 'relative', padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, background: col3Tab === tb.k ? 'var(--surface)' : 'transparent', color: col3Tab === tb.k ? 'var(--theme-2)' : 'var(--cream-3)', boxShadow: col3Tab === tb.k ? '0 1px 3px rgba(20,16,40,0.1)' : 'none' }}>
+                    {tb.l}
+                    {tb.k === 'copiloto' && convAI?.top && col3Tab !== 'copiloto' && (
+                      <span style={{ position: 'absolute', top: 4, right: 6, width: 6, height: 6, borderRadius: '50%', background: '#FF5CA8' }} />
+                    )}
+                  </button>
                 ))}
               </div>
 
@@ -1210,6 +1137,77 @@ function ConversationInboxBody({ user }) {
                     </div>
                   </div>
                 )}
+              </div>
+              </>)}
+
+              {/* ═══ TAB: COPILOTO ═══ (founder: todo el detalle aquí, sin saturar el chat) */}
+              {col3Tab === 'copiloto' && (<>
+              {/* Qué decirle · guion listo */}
+              {convAI?.coaching?.que_decirle && (
+                <div style={{ marginBottom: COL3_GAP, padding: '11px 12px', borderRadius: 12, background: COPILOT_KIND.que_decirle.bg, border: `1px solid ${COPILOT_KIND.que_decirle.border}` }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COPILOT_KIND.que_decirle.accent, marginBottom: 5 }}>💬 Qué decirle</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--cream)', lineHeight: 1.5 }}>{convAI.coaching.que_decirle.script}</div>
+                  {convAI.coaching.que_decirle.rationale && <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 4 }}>{convAI.coaching.que_decirle.rationale}</div>}
+                  <button type="button" onClick={() => setComposeSeed(convAI.coaching.que_decirle.script)}
+                    style={{ marginTop: 9, padding: '7px 14px', borderRadius: 999, border: 'none', background: COPILOT_KIND.que_decirle.accent, color: '#fff', fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>Usar como respuesta</button>
+                </div>
+              )}
+              {/* Cómo tratarlo · tono */}
+              {convAI?.coaching?.como_tratarlo && (
+                <div style={{ marginBottom: COL3_GAP, padding: '11px 12px', borderRadius: 12, background: COPILOT_KIND.como.bg, border: `1px solid ${COPILOT_KIND.como.border}` }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COPILOT_KIND.como.accent, marginBottom: 5 }}>🎓 Cómo tratarlo</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--cream)', fontWeight: 700 }}>{convAI.coaching.como_tratarlo.label}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.45 }}>{convAI.coaching.como_tratarlo.tip}</div>
+                </div>
+              )}
+              {/* Siguiente mejor acción */}
+              {convAI?.nba && (() => {
+                const k = COPILOT_KIND[convAI.nba.action_type] || COPILOT_KIND._default;
+                return (
+                  <div style={{ marginBottom: COL3_GAP, padding: '11px 12px', borderRadius: 12, background: k.bg, border: `1px solid ${k.border}` }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: k.accent, marginBottom: 5 }}>{k.emoji} {k.title}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--cream)', fontWeight: 700 }}>{convAI.nba.title}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 3, lineHeight: 1.45 }}>{convAI.nba.why}</div>
+                    <button type="button" onClick={() => doNba(convAI.nba.action_type)}
+                      style={{ marginTop: 9, padding: '7px 14px', borderRadius: 999, border: 'none', background: k.accent, color: '#fff', fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>{convAI.nba.cta}</button>
+                  </div>
+                );
+              })()}
+              {/* Propiedad más afín */}
+              {convAI?.recomendacion && (
+                <div style={{ marginBottom: COL3_GAP, padding: '11px 12px', borderRadius: 12, background: COPILOT_KIND.recomendar.bg, border: `1px solid ${COPILOT_KIND.recomendar.border}` }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COPILOT_KIND.recomendar.accent, marginBottom: 5 }}>🏠 Propiedad sugerida</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--cream)' }}><b>{convAI.recomendacion.name}</b> · <span style={{ color: COPILOT_KIND.recomendar.accent, fontWeight: 800 }}>{convAI.recomendacion.match}% afín</span></div>
+                  <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 3, lineHeight: 1.4 }}>{convAI.recomendacion.reason || 'Por su gusto y presupuesto.'}</div>
+                  <button type="button" onClick={() => setComposeSeed(`Hola! Creo que ${convAI.recomendacion.name}${convAI.recomendacion.colonia ? ` en ${convAI.recomendacion.colonia}` : ''} te va a encantar — va con lo que buscas. ¿Te la mando? 🙌`)}
+                    style={{ marginTop: 9, padding: '7px 14px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Enviar al cliente</button>
+                </div>
+              )}
+              {/* Chat contextual con el Copiloto */}
+              <div style={{ marginBottom: 4 }}>
+                <div style={{ marginBottom: 8 }}><Eyebrow>Pregúntale al Copiloto</Eyebrow></div>
+                {copilotAnswer && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '10px 11px', borderRadius: 11, background: 'var(--surface-2)', border: '1px solid var(--border)', marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, lineHeight: 1 }}>✨</span>
+                    <div style={{ flex: 1, minWidth: 0, color: 'var(--cream)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{copilotAnswer}</div>
+                    <button type="button" onClick={() => setComposeSeed(copilotAnswer)} title="Usar como respuesta"
+                      style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}>Usar</button>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input value={copilotAsk} onChange={(e) => setCopilotAsk(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); askLeadCopilot(); } }}
+                    placeholder={`Sobre ${(ctx?.name || 'este lead').split(' ')[0]}…`}
+                    style={{ flex: 1, boxSizing: 'border-box', padding: '9px 12px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12, outline: 'none' }} />
+                  <button type="button" onClick={askLeadCopilot} disabled={copilotBusy || !copilotAsk.trim()}
+                    style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 999, border: 'none', background: (copilotBusy || !copilotAsk.trim()) ? 'var(--surface-2)' : 'var(--theme-2)', color: (copilotBusy || !copilotAsk.trim()) ? 'var(--cream-3)' : '#fff', fontSize: 11.5, fontWeight: 800, cursor: (copilotBusy || !copilotAsk.trim()) ? 'default' : 'pointer' }}>{copilotBusy ? '…' : 'Preguntar'}</button>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                  {['¿Cómo le doy seguimiento?', '¿Qué objeción puede tener?', 'Dame un cierre para este lead'].map((q) => (
+                    <button key={q} type="button" onClick={() => { setCopilotAsk(q); setTimeout(askLeadCopilot, 0); }}
+                      style={{ fontSize: 10.5, fontWeight: 600, padding: '5px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', cursor: 'pointer' }}>{q}</button>
+                  ))}
+                </div>
               </div>
               </>)}
             </>

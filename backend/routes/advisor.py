@@ -1896,7 +1896,16 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
     except Exception:
         nombre = None
     coaching = _build_coaching(objecion, animo, nombre)
-    return {"animo": animo, "recomendacion": rec, "objecion": objecion, "nba": nba, "coaching": coaching}
+    # Sugerencia PRIORITARIA para el chat (1 sola tira contextual · híbrido). El resto vive
+    # en el tab Copiloto. Prioridad: objeción detectada > NBA urgente > NBA media > qué-decirle.
+    top = None
+    if objecion:
+        top = {"kind": "objecion", "label": objecion["label"], "text": objecion.get("script", ""), "cta": "Usar", "action": "use_script"}
+    elif nba and nba.get("urgency") in ("alta", "media"):
+        top = {"kind": nba.get("action_type", "nba"), "label": nba["title"], "text": nba.get("why", ""), "cta": nba.get("cta", "Hacer"), "action": "nba"}
+    elif coaching.get("que_decirle"):
+        top = {"kind": "que_decirle", "label": "Qué decirle", "text": coaching["que_decirle"]["script"], "cta": "Usar", "action": "use_script"}
+    return {"animo": animo, "recomendacion": rec, "objecion": objecion, "nba": nba, "coaching": coaching, "top": top}
 
 
 class CopilotLeadAsk(BaseModel):
