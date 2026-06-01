@@ -1090,6 +1090,14 @@ async def create_cita(payload: CitaBody, request: Request):
     await db.leads.insert_one(lead)
     lead.pop("_id", None)
 
+    # E0.7b · Puente: materializa el lead en el CRM rico del asesor asignado (idempotente,
+    # dedup vs alta manual, solo si el dueño es un user_id real). FAIL-OPEN.
+    try:
+        from services.lead_bridge import mirror_lead_to_asesor_contacto
+        await mirror_lead_to_asesor_contacto(db, lead)
+    except Exception:
+        pass
+
     # Phase 4 Batch 4.4 — queue heat recalc on lead create
     try:
         from routes.dev_batch4_4 import queue_heat_recalc
