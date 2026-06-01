@@ -1429,6 +1429,7 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
     ? `${FORMA_LABEL[formaPago] || '💳 ' + formaPago}${formaPago !== 'contado' && CREDITO_LABEL[creditoTipo] ? ` + ${CREDITO_LABEL[creditoTipo]}` : ''}`
     : null;
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
+  const tasteLine = c.taste_line || ''; // E2.2 · gusto aprendido (de asesor_taste_profile)
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
   // Temperatura como EMOJI (point 3) · va junto a la acción · la recencia sube al encabezado.
   const tempEmoji = meta.label === 'Caliente' ? '🔥' : meta.label === 'Tibio' ? '🌤️' : meta.label === 'Cliente' ? '🤝' : '🧊';
@@ -1495,6 +1496,14 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         {(formaText || plazoCompra)
           ? <><span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{formaText}</span>{plazoCompra && <span style={{ flexShrink: 0 }}>🗓 {plazoCompra}</span>}</>
           : <span style={{ color: 'var(--cream-3)' }}>Perfil de compra por completar</span>}
+      </div>
+
+      {/* 3d · gusto (aprendido de sus 👍/👎) · UNA línea (altura fija · tarjetas parejas) */}
+      <div style={{ display: 'flex', gap: 6, fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+        <span style={{ flexShrink: 0 }}>❤</span>
+        {tasteLine
+          ? <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{tasteLine.charAt(0).toUpperCase() + tasteLine.slice(1)}</span>
+          : <span style={{ color: 'var(--cream-3)' }}>Sin señal de gusto aún</span>}
       </div>
 
       {/* footer · WhatsApp + Abrir */}

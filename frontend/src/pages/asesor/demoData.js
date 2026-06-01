@@ -8,10 +8,10 @@
 
 // ── Leads del kanban (1 representativo por etapa · como el mockup) ──────────────
 export const DEMO_LEADS = [
-  { id: 'demo-ana',   first_name: 'Ana',   last_name: 'Torres',    fuente: 'Referido', temperatura: 'frio',     etapa: 'nuevo',       buyer_score: { value: 24, tier: 'cold' }, phones: ['5512345678'], created_at: new Date().toISOString() },
-  { id: 'demo-juan',  first_name: 'Juan',  last_name: 'Pérez',     fuente: 'Facebook', temperatura: 'tibio',    etapa: 'contactado',  buyer_score: { value: 54, tier: 'warm' }, phones: ['5512345678'], created_at: new Date().toISOString() },
-  { id: 'demo-luis',  first_name: 'Luis',  last_name: 'Ramírez',   fuente: 'Web',      temperatura: 'caliente', etapa: 'visita',      buyer_score: { value: 72, tier: 'hot'  }, phones: ['5512345678'], created_at: new Date().toISOString() },
-  { id: 'demo-maria', first_name: 'María', last_name: 'González',  fuente: 'Web',      temperatura: 'caliente', etapa: 'negociacion', buyer_score: { value: 87, tier: 'hot'  }, phones: ['5512345678'], created_at: new Date().toISOString(), active: true },
+  { id: 'demo-ana',   first_name: 'Ana',   last_name: 'Torres',    fuente: 'Referido', temperatura: 'frio',     etapa: 'nuevo',       buyer_score: { value: 24, tier: 'cold' }, phones: ['5512345678'], created_at: new Date().toISOString(), taste_line: '' },
+  { id: 'demo-juan',  first_name: 'Juan',  last_name: 'Pérez',     fuente: 'Facebook', temperatura: 'tibio',    etapa: 'contactado',  buyer_score: { value: 54, tier: 'warm' }, phones: ['5512345678'], created_at: new Date().toISOString(), taste_line: 'se fija en estacionamiento · le importa seguridad · zona Condesa' },
+  { id: 'demo-luis',  first_name: 'Luis',  last_name: 'Ramírez',   fuente: 'Web',      temperatura: 'caliente', etapa: 'visita',      buyer_score: { value: 72, tier: 'hot'  }, phones: ['5512345678'], created_at: new Date().toISOString(), taste_line: 'se fija en cocina · le importa luz natural' },
+  { id: 'demo-maria', first_name: 'María', last_name: 'González',  fuente: 'Web',      temperatura: 'caliente', etapa: 'negociacion', buyer_score: { value: 87, tier: 'hot'  }, phones: ['5512345678'], created_at: new Date().toISOString(), active: true, taste_line: 'se fija en cocina y sala · le importa luz natural y espacios amplios · zona Polanco' },
 ];
 
 // zona · precio por lead (lo que LeadCard lee de `busquedas`).

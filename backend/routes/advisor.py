@@ -750,6 +750,20 @@ async def list_contactos(
     from services.lead_segments import tag_segments
     await tag_segments(db, items, user.user_id)
 
+    # E2.2 · línea de gusto por contacto (de asesor_taste_profile persistido) para la tarjeta.
+    try:
+        from taste_profile import taste_summary_line
+        tmap: dict = {}
+        async for tp in db.asesor_taste_profile.find({"owner_id": user.user_id}, {"_id": 0}):
+            if tp.get("contacto_id"):
+                tmap[tp["contacto_id"]] = tp
+        for c in items:
+            tp = tmap.get(c.get("id"))
+            c["taste_line"] = taste_summary_line(tp) if tp else ""
+    except Exception:
+        for c in items:
+            c.setdefault("taste_line", "")
+
     # Filtrar por score_min si se proporciona
     if score_min is not None and score_min > 0:
         items = [c for c in items if (c.get("buyer_score") or {}).get("value", 0) >= score_min]
