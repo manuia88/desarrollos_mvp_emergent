@@ -755,9 +755,9 @@ function ConversationInboxBody({ user }) {
                 </button>
               )}
 
-              {/* Tabs (founder: 4 pestañas · Copiloto separado para no saturar el chat) */}
+              {/* Tabs (founder: 3 pestañas · una sola IA = Copiloto · Atlax va en el encabezado) */}
               <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: 'var(--surface-2)', borderRadius: 10, padding: 3 }}>
-                {[{ k: 'acciones', e: '⚡', l: 'Acciones' }, { k: 'copiloto', e: '✨', l: 'Copiloto' }, { k: 'ia', e: '🤖', l: 'Agentes' }, { k: 'perfil', e: '👤', l: 'Perfil' }].map((tb) => (
+                {[{ k: 'acciones', e: '⚡', l: 'Acciones' }, { k: 'copiloto', e: '✨', l: 'Copiloto' }, { k: 'perfil', e: '👤', l: 'Perfil' }].map((tb) => (
                   <button key={tb.k} type="button" onClick={() => setCol3Tab(tb.k)} title={tb.l}
                     style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: '6px 2px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, background: col3Tab === tb.k ? 'var(--surface)' : 'transparent', color: col3Tab === tb.k ? 'var(--theme-2)' : 'var(--cream-3)', boxShadow: col3Tab === tb.k ? '0 1px 3px rgba(20,16,40,0.1)' : 'none' }}>
                     <span style={{ fontSize: 13, lineHeight: 1 }}>{tb.e}</span>
@@ -923,33 +923,6 @@ function ConversationInboxBody({ user }) {
               </button>
               </>)}
 
-              {/* ═══ TAB: AGENTES ═══ (lo que la IA hace SOLA · distinto del Copiloto interactivo) */}
-              {col3Tab === 'ia' && (<>
-              <div style={{ fontSize: 11, color: 'var(--cream-3)', lineHeight: 1.45, marginBottom: COL3_GAP, padding: '9px 11px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                Tus agentes trabajan <b style={{ color: 'var(--cream-2)' }}>solos</b> en segundo plano y dejan pendientes aquí. Para coaching en vivo usa <b style={{ color: 'var(--theme-2)' }}>✨ Copiloto</b>.
-              </div>
-
-              {/* Los 5 agentes (sugerencias para este lead) */}
-              <div style={{ ...sectionStyle, marginBottom: COL3_GAP }}>
-                <Eyebrow action={<button type="button" onClick={runAgents} disabled={agentsBusy} style={{ ...btnGhost, fontSize: 10.5, padding: '4px 9px', color: agentsBusy ? 'var(--cream-3)' : 'var(--theme-2)' }}>{agentsBusy ? 'Corriendo…' : '↻ Correr'}</button>}>🤖 Tus agentes</Eyebrow>
-                {(ctx?.agent_actions || []).length > 0 ? (
-                  ctx.agent_actions.map((a) => (
-                    <div key={a.id} style={cardStyle}>
-                      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 3 }}>{a.agent_label}</div>
-                      <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.4 }}>{a.title}</div>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
-                        <button type="button" onClick={() => doAgentAction(a)} style={{ ...btnGhost, border: 'none', background: 'var(--theme-2)', color: '#fff' }}>Convertir en tarea</button>
-                        <button type="button" onClick={() => dispatchCopilotToggle('open')} style={btnGhost}>Copiloto</button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.45, padding: '10px 12px', borderRadius: 10, background: 'var(--surface-2)', border: '1px dashed var(--border)' }}>Sin pendientes para este lead. Corren solos cada pocas horas; toca ↻ Correr para revisarlo ahora.</div>
-                )}
-                <div style={{ fontSize: 10, color: 'var(--cream-3)', lineHeight: 1.4 }}>Tus 5 agentes (prospección, seguimiento, cierre, análisis y coach) revisan tus leads en automático y dejan pendientes aquí y en tu <b>Inicio</b>.</div>
-              </div>
-              </>)}
-
               {/* ═══ TAB: PERFIL ═══ */}
               {col3Tab === 'perfil' && (<>
               {/* Datos del contacto · siempre presentes (founder: el tab no debe verse vacío) */}
@@ -1082,25 +1055,8 @@ function ConversationInboxBody({ user }) {
               )}
               </>)}
 
-              {/* IA (cont.) · confianza del hilo + interruptor Atlax */}
-              {col3Tab === 'ia' && (<>
-              {/* W7.AS.3.H · resumen de confianza IA del hilo (confidence-history) */}
-              {confSummary && (
-                <div style={{ marginBottom: COL3_GAP }}>
-                  <div style={{ marginBottom: 8 }}><Eyebrow>{t('conversation_confidence:history.title', 'Confianza IA del hilo')}</Eyebrow></div>
-                  <InfoRow label={t('conversation_confidence:history.avg', 'Promedio')}
-                    value={confSummary.avg_confidence != null ? `${confSummary.avg_confidence}%` : '—'}
-                    color={confSummary.avg_confidence != null && confSummary.avg_confidence < 50 ? SENTIMENT_COLOR.negative : SENTIMENT_COLOR.positive} />
-                  {confSummary.last_confidence != null && (
-                    <InfoRow label={t('conversation_confidence:history.last', 'Última')} value={`${confSummary.last_confidence}%`} />
-                  )}
-                  <InfoRow label={t('conversation_confidence:history.low_turns', 'Turnos de baja confianza')}
-                    value={confSummary.low_confidence_turns ?? 0}
-                    color={(confSummary.low_confidence_turns || 0) > 0 ? STATUS_COLOR.handoff : undefined} />
-                </div>
-              )}
-
-              {/* Pieza 2 · interruptor de Atlax (piloto del agente) · scopeado al canal correcto */}
+              {/* (Atlax movido al encabezado de la conversación · confianza del hilo retirada para simplificar) */}
+              {false && (<>
               <div style={{ marginBottom: COL3_GAP }}>
                 <div style={{ marginBottom: 9 }}><Eyebrow>🤖 Atlax · piloto del agente</Eyebrow></div>
                 {detail.channel === 'ai' ? (
@@ -1137,8 +1093,11 @@ function ConversationInboxBody({ user }) {
               </div>
               </>)}
 
-              {/* ═══ TAB: COPILOTO ═══ (founder: todo el detalle aquí, sin saturar el chat) */}
+              {/* ═══ TAB: COPILOTO ═══ (fusión: sugerencias proactivas + agentes + chat · una sola IA) */}
               {col3Tab === 'copiloto' && (<>
+              {/* Zona SUGIERE · encabezado */}
+              <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--cream-3)', marginBottom: 10 }}>Sugiere</div>
+
               {/* Qué decirle · guion listo */}
               {convAI?.coaching?.que_decirle && (
                 <div style={{ marginBottom: COL3_GAP, padding: '11px 12px', borderRadius: 12, background: COPILOT_KIND.que_decirle.bg, border: `1px solid ${COPILOT_KIND.que_decirle.border}` }}>
@@ -1180,9 +1139,26 @@ function ConversationInboxBody({ user }) {
                     style={{ marginTop: 9, padding: '7px 14px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Enviar al cliente</button>
                 </div>
               )}
-              {/* Chat contextual con el Copiloto */}
+
+              {/* Agentes autónomos · fusionados aquí (founder: una sola IA) */}
+              <div style={{ ...sectionStyle, marginBottom: COL3_GAP }}>
+                <Eyebrow action={<button type="button" onClick={runAgents} disabled={agentsBusy} style={{ ...btnGhost, fontSize: 10.5, padding: '4px 9px', color: agentsBusy ? 'var(--cream-3)' : 'var(--theme-2)' }}>{agentsBusy ? 'Corriendo…' : '↻ Correr'}</button>}>🤖 Tus agentes (en automático)</Eyebrow>
+                {(ctx?.agent_actions || []).length > 0 ? (
+                  ctx.agent_actions.map((a) => (
+                    <div key={a.id} style={cardStyle}>
+                      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 3 }}>{a.agent_label}</div>
+                      <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.4 }}>{a.title}</div>
+                      <button type="button" onClick={() => doAgentAction(a)} style={{ ...btnGhost, border: 'none', background: 'var(--theme-2)', color: '#fff', marginTop: 9 }}>Convertir en tarea</button>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.45, padding: '10px 12px', borderRadius: 10, background: 'var(--surface-2)', border: '1px dashed var(--border)' }}>Sin pendientes de los agentes. Revisan tus leads cada pocas horas; toca ↻ Correr para revisar ahora.</div>
+                )}
+              </div>
+
+              {/* Zona PREGÚNTALE · chat contextual con el Copiloto */}
               <div style={{ marginBottom: 4 }}>
-                <div style={{ marginBottom: 8 }}><Eyebrow>Pregúntale al Copiloto</Eyebrow></div>
+                <div style={{ marginBottom: 8 }}><Eyebrow>Pregúntale</Eyebrow></div>
                 {copilotAnswer && (
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, padding: '10px 11px', borderRadius: 11, background: 'var(--surface-2)', border: '1px solid var(--border)', marginBottom: 8 }}>
                     <span style={{ fontSize: 14, lineHeight: 1 }}>✨</span>
