@@ -1144,71 +1144,76 @@ function AsesorContactosV2({ user, onLogout }) {
 
         {/* B7 · Barra de segmentos (foco del asesor/gerente) + filtros Precio (desde/hasta) y Zona (multi).
             Cada chip filtra el board (client-side). Counts en vivo. Ámbar = atención/foco rojo. */}
-        <div className="asr-chips" data-testid="lead-segments" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          {segmentDefs.map((s) => {
-            const on = segment === s.key;
-            const warn = ['focorojo', 'seenfrian', 'sinseg', 'sincontacto'].includes(s.key) && segCounts[s.key] > 0 && !on;
-            return (
-              <button key={s.key} data-testid={`seg-${s.key}`} onClick={() => setSegment(s.key)}
-                className={`asr-chip${on ? ' asr-chip--on' : ''}`}>
-                {s.emoji && <span style={{ marginRight: 5 }}>{s.emoji}</span>}{s.label}
-                <span className="asr-chip__cn" style={warn ? { color: 'var(--warm)' } : undefined}>{segCounts[s.key] ?? 0}</span>
-              </button>
-            );
-          })}
-          <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 4px' }} />
-
-          {/* Precio · dropdown desde/hasta (millones) */}
-          <div style={{ position: 'relative' }}>
-            <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
-              className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`}>
-              💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} ▾
-            </button>
-            {openFilter === 'precio' && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 30, width: 230, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Presupuesto (millones)</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: '50%' }} />
-                  <span style={{ color: 'var(--cream-3)' }}>–</span>
-                  <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: '50%' }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 11 }}>
-                  <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
-                  <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 14px' }}>Aplicar</button>
-                </div>
-              </div>
-            )}
+        <div data-testid="lead-segments" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          {/* segmentos · una sola línea con scroll horizontal */}
+          <div className="asr-chips scrollbar-none" style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', flex: 1, minWidth: 0, paddingBottom: 2 }}>
+            {segmentDefs.map((s) => {
+              const on = segment === s.key;
+              const warn = ['focorojo', 'seenfrian', 'sinseg', 'sincontacto'].includes(s.key) && segCounts[s.key] > 0 && !on;
+              return (
+                <button key={s.key} data-testid={`seg-${s.key}`} onClick={() => setSegment(s.key)}
+                  className={`asr-chip${on ? ' asr-chip--on' : ''}`} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  {s.emoji && <span style={{ marginRight: 5 }}>{s.emoji}</span>}{s.label}
+                  <span className="asr-chip__cn" style={warn ? { color: 'var(--warm)' } : undefined}>{segCounts[s.key] ?? 0}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Zona · dropdown multi-select */}
-          <div style={{ position: 'relative' }}>
-            <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
-              className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`}>
-              📍 Zona{zonas.length ? ` · ${zonas.length}` : ''} ▾
-            </button>
-            {openFilter === 'zona' && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 30, width: 210, maxHeight: 280, overflowY: 'auto', padding: 8, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
-                {allZonas.length === 0
-                  ? <div style={{ padding: 10, fontSize: 12, color: 'var(--cream-3)' }}>Sin zonas registradas</div>
-                  : allZonas.map((z) => {
-                    const on = zonas.includes(z);
-                    return (
-                      <button key={z} onClick={() => setZonas((prev) => (on ? prev.filter((x) => x !== z) : [...prev, z]))}
-                        style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 9px', borderRadius: 8, border: 'none', background: on ? 'rgba(var(--theme-rgb),0.08)' : 'transparent', color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                        <span style={{ width: 15, height: 15, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border-2)'}`, background: on ? 'var(--theme)' : 'transparent', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 10 }}>{on ? '✓' : ''}</span>
-                        {z}
-                      </button>
-                    );
-                  })}
-                {zonas.length > 0 && <button onClick={() => setZonas([])} style={{ width: '100%', marginTop: 4, background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer', padding: 6 }}>Limpiar zonas</button>}
-              </div>
-            )}
+          {/* Precio + Zona · fijos a la derecha (sin overflow → el dropdown no se corta) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {/* Precio · dropdown desde/hasta (millones) */}
+            <div style={{ position: 'relative' }}>
+              <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
+                className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} ▾
+              </button>
+              {openFilter === 'precio' && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, width: 240, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Presupuesto (millones)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: '50%' }} />
+                    <span style={{ color: 'var(--cream-3)' }}>–</span>
+                    <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: '50%' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 11 }}>
+                    <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
+                    <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 14px' }}>Aplicar</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Zona · dropdown multi-select */}
+            <div style={{ position: 'relative' }}>
+              <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
+                className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                📍 Zona{zonas.length ? ` · ${zonas.length}` : ''} ▾
+              </button>
+              {openFilter === 'zona' && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, width: 210, maxHeight: 280, overflowY: 'auto', padding: 8, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
+                  {allZonas.length === 0
+                    ? <div style={{ padding: 10, fontSize: 12, color: 'var(--cream-3)' }}>Sin zonas registradas</div>
+                    : allZonas.map((z) => {
+                      const on = zonas.includes(z);
+                      return (
+                        <button key={z} onClick={() => setZonas((prev) => (on ? prev.filter((x) => x !== z) : [...prev, z]))}
+                          style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 9px', borderRadius: 8, border: 'none', background: on ? 'rgba(var(--theme-rgb),0.08)' : 'transparent', color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                          <span style={{ width: 15, height: 15, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border-2)'}`, background: on ? 'var(--theme)' : 'transparent', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 10 }}>{on ? '✓' : ''}</span>
+                          {z}
+                        </button>
+                      );
+                    })}
+                  {zonas.length > 0 && <button onClick={() => setZonas([])} style={{ width: '100%', marginTop: 4, background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer', padding: 6 }}>Limpiar zonas</button>}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Foco de hoy · 3 acciones priorizadas. En demo se renderiza DIRECTO de DEMO_FOCO
             (no del estado `foco` que sincroniza con retraso) → evita el race al prender el demo. */}
-        {(demoMode ? DEMO_FOCO : foco).length > 0 && (
+        {(demoMode ? DEMO_FOCO : foco).filter((f) => !dismissedFoco.has(f.id)).length > 0 && (
           <div data-testid="asr-foco-hoy" style={{ marginBottom: 34 }}>
             <SecLine em="Foco de hoy" note="la IA priorizó esto para ti" />
             <div style={{
@@ -1472,10 +1477,10 @@ function FocoCard({ item, onOpen, onComplete, onDismiss }) {
       {onDismiss && (
         <button data-testid={`foco-dismiss-${item.id}`} title="Descartar foco" aria-label="Descartar"
           onClick={(e) => { stop(e); onDismiss(); }}
-          style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: 'var(--cream-3)', borderRadius: 6, opacity: 0.45 }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = 1; e.currentTarget.style.color = 'var(--red, #EF4444)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = 0.45; e.currentTarget.style.color = 'var(--cream-3)'; }}>
-          <XIcon size={13} />
+          style={{ position: 'absolute', top: 9, right: 9, width: 24, height: 24, display: 'grid', placeItems: 'center', background: 'var(--surface-2)', border: '1px solid var(--border)', cursor: 'pointer', padding: 0, lineHeight: 0, color: 'var(--cream-2)', borderRadius: 7 }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.40)'; e.currentTarget.style.color = 'var(--red, #EF4444)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--cream-2)'; }}>
+          <XIcon size={14} />
         </button>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10, paddingRight: onDismiss ? 22 : 0 }}>
