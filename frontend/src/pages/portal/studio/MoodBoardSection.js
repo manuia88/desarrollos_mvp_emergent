@@ -202,7 +202,7 @@ function AssetTile({ asset, selected, index, onToggle, onReorderLeft, onReorderR
       data-testid={`asset-tile-${asset.id}`}
       style={{
         padding: 8,
-        background: 'rgba(13,17,28,0.62)',
+        background: 'var(--surface)',
         border: `1px solid ${selected ? 'rgba(99,102,241,0.50)' : 'var(--border)'}`,
         borderRadius: 14, backdropFilter: 'blur(24px)',
         position: 'relative',

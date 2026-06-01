@@ -26,7 +26,7 @@ const STATUS_COLOR = {
   active: 'var(--theme-success, #22C55E)',
   handoff: 'var(--theme-warning, #F59E0B)',
   taken_over: 'var(--theme-primary, #6366F1)',
-  closed: 'var(--theme-muted-dark, #64748B)',
+  closed: 'var(--theme-muted-dark, var(--border))',
 };
 
 const AMEN_LABEL = { pet: 'Pet friendly', roof: 'Roof garden', gym: 'Gym', alberca: 'Alberca', seguridad: 'Seguridad', concierge: 'Concierge', spa: 'Spa', cava: 'Cava', sky_lounge: 'Sky lounge', salon_eventos: 'Salón de eventos', business_center: 'Business center', terraza: 'Terraza' };
@@ -173,7 +173,7 @@ function WaCompose({ onSend, onDraft, drafting, disabled, seed, onAttachProperty
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           style={{ flex: 1, resize: 'none', overflowY: 'auto', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, lineHeight: 1.5, outline: 'none', minHeight: 84, maxHeight: 320 }} />
         <button type="button" onClick={send} disabled={disabled || (!text.trim() && !attached)}
-          style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: '#0b1f12', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || (!text.trim() && !attached)) ? 'default' : 'pointer', opacity: (disabled || (!text.trim() && !attached)) ? 0.5 : 1 }}>
+          style={{ flexShrink: 0, padding: '9px 14px', borderRadius: 10, border: 'none', background: '#25D366', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 800, cursor: (disabled || (!text.trim() && !attached)) ? 'default' : 'pointer', opacity: (disabled || (!text.trim() && !attached)) ? 0.5 : 1 }}>
           Enviar →
         </button>
       </div>
@@ -1237,7 +1237,7 @@ function ConversationInboxBody({ user }) {
 
       {/* Adjuntar propiedad · catálogo rankeado (se sube al tablero/ficha al elegir) */}
       {propPicker && (
-        <div onClick={() => setPropPicker(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setPropPicker(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,25,45,0.45)', zIndex: 90, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 560, maxHeight: '78vh', borderRadius: '18px 18px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
             <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
               <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, color: 'var(--cream)' }}>Adjuntar propiedad</b>
@@ -1272,7 +1272,7 @@ function ConversationInboxBody({ user }) {
 
       {/* Editar perfil de búsqueda + recomendaciones IA al guardar (founder) */}
       {editBusq && (
-        <div onClick={() => { setEditBusq(null); setEditRecs(null); }} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.5)', zIndex: 95, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div onClick={() => { setEditBusq(null); setEditRecs(null); }} style={{ position: 'fixed', inset: 0, background: 'rgba(20,25,45,0.45)', zIndex: 95, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 460, maxHeight: '88vh', borderRadius: 18, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 16, color: 'var(--cream)' }}>Editar lo que busca{ctx?.name ? ` · ${ctx.name.split(' ')[0]}` : ''}</b>

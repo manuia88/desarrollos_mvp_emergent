@@ -722,7 +722,7 @@ const stepBadgeStyle = () => ({
   fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
 });
 const overlayStyle = () => ({
-  position: 'fixed', inset: 0, background: 'var(--surface)', backdropFilter: 'blur(8px)',
+  position: 'fixed', inset: 0, background: 'rgba(20,25,45,0.45)', backdropFilter: 'blur(8px)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   padding: 16, zIndex: 1000, overflow: 'hidden',
 });

@@ -17,7 +17,7 @@ const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 const btnGradient = (extra = {}) => ({ padding: '10px 18px', background: GRADIENT, color: '#fff', border: 'none', borderRadius: 9999, fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...extra });
 const btnSecondary = (extra = {}) => ({ padding: '10px 16px', background: 'rgba(99,102,241,0.12)', color: 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 9999, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...extra });
-const btnGhost = (extra = {}) => ({ padding: '6px 10px', background: 'transparent', color: '#a0a4b0', border: 'none', cursor: 'pointer', borderRadius: 9999, ...extra });
+const btnGhost = (extra = {}) => ({ padding: '6px 10px', background: 'transparent', color: 'var(--cream-2)', border: 'none', cursor: 'pointer', borderRadius: 9999, ...extra });
 
 const VIEWPORTS = { desktop: 1440, tablet: 768, mobile: 375 };
 const LANDING_TYPE_META = [
@@ -148,7 +148,7 @@ function ResaleInlineImporter({ resales, setResales, linkedEntityId, setLinkedEn
         <div style={{ padding: 14, borderRadius: 12, background: 'rgba(236,72,153,0.06)', border: '1px solid rgba(236,72,153,0.3)', marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: 'var(--cream)', fontSize: 13 }}>Importar propiedad</div>
-            {resales.length > 0 && <button type="button" onClick={() => { setFormOpen(false); setError(''); setSuccessMsg(''); }} style={{ background: 'transparent', border: 'none', color: '#a0a4b0', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>}
+            {resales.length > 0 && <button type="button" onClick={() => { setFormOpen(false); setError(''); setSuccessMsg(''); }} style={{ background: 'transparent', border: 'none', color: 'var(--cream-2)', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>}
           </div>
           <select data-testid="import-portal" value={portalHint} onChange={(e) => setPortalHint(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontSize: 12, marginBottom: 8 }}>
             {PORTALS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
@@ -416,7 +416,7 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
 
             {/* Filtros default */}
             <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)' }}>
-              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: '#a0a4b0', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Filtros default</div>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: 'var(--cream-2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Filtros default</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 <div>
                   <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Estado (multi)</label>
@@ -462,7 +462,7 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
 
             {/* Visualizacion */}
             <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)' }}>
-              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: '#a0a4b0', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Visualizacion</div>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: 'var(--cream-2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Visualizacion</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Orden default
@@ -667,7 +667,7 @@ function ABStatsPanel({ groupId, onClose, onWinner }) {
   };
   useEffect(() => { load(); }, [groupId]); // eslint-disable-line react-hooks/exhaustive-deps
   if (err) return <div style={{ color: '#F87171', padding: 12 }}>{err}</div>;
-  if (!stats) return <div style={{ color: '#a0a4b0', padding: 12 }}>...</div>;
+  if (!stats) return <div style={{ color: 'var(--cream-2)', padding: 12 }}>...</div>;
   const declare = async (variant) => { await api.declareWinner(groupId, variant); await load(); onWinner?.(); };
   return (
     <div data-testid="ab-panel" style={{ padding: 16, background: BG_CARD, border: BORDER, borderRadius: 12, marginTop: 12 }}>
@@ -679,7 +679,7 @@ function ABStatsPanel({ groupId, onClose, onWinner }) {
         <div style={{ padding: 10, background: 'rgba(99,102,241,0.06)', borderRadius: 8 }}>A views: {stats.stats?.a_views || 0} · leads: {stats.stats?.a_leads || 0} · {stats.conversion_rate_a}%</div>
         <div style={{ padding: 10, background: 'rgba(236,72,153,0.06)', borderRadius: 8 }}>B views: {stats.stats?.b_views || 0} · leads: {stats.stats?.b_leads || 0} · {stats.conversion_rate_b}%</div>
       </div>
-      <div style={{ marginTop: 8, fontSize: 12, color: '#a0a4b0' }}>Chi-square: {stats.chi_square?.stat ?? 0} · {stats.chi_square?.significant ? 'significativo' : 'aun no significativo'}</div>
+      <div style={{ marginTop: 8, fontSize: 12, color: 'var(--cream-2)' }}>Chi-square: {stats.chi_square?.stat ?? 0} · {stats.chi_square?.significant ? 'significativo' : 'aun no significativo'}</div>
       {!stats.winner_id ? (
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <button type="button" onClick={() => declare('A')} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>A gana</button>
@@ -724,7 +724,7 @@ function RoutingConfigPanel({ landing, userRole, onToast, onChanged }) {
 
   return (
     <div data-testid="routing-panel" style={{ marginTop: 12, padding: 12, background: BG_CARD, border: BORDER, borderRadius: 12 }}>
-      <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      <div style={{ fontSize: 11, color: 'var(--cream-2)', marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         Routing de Leads {saving ? '· guardando...' : ''}
       </div>
       <select data-testid="routing-strategy" value={cfg.strategy} onChange={(e) => persist({ ...cfg, strategy: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--cream)', fontSize: 12 }}>
@@ -732,7 +732,7 @@ function RoutingConfigPanel({ landing, userRole, onToast, onChanged }) {
       </select>
       {cfg.strategy === 'hybrid' && (
         <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 6 }}>Priority order ({(cfg.priority_order || []).join(' → ')})</div>
+          <div style={{ fontSize: 11, color: 'var(--cream-2)', marginBottom: 6 }}>Priority order ({(cfg.priority_order || []).join(' → ')})</div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {['by_zone', 'by_load', 'by_disc', 'round_robin'].map((s) => {
               const on = (cfg.priority_order || []).includes(s);
@@ -744,16 +744,16 @@ function RoutingConfigPanel({ landing, userRole, onToast, onChanged }) {
         </div>
       )}
       <div style={{ marginTop: 10 }}>
-        <label style={{ fontSize: 11, color: '#a0a4b0' }}>Override score threshold ({cfg.override_score_threshold || 80})
+        <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Override score threshold ({cfg.override_score_threshold || 80})
           <input data-testid="routing-threshold" type="range" min="0" max="100" step="5" value={cfg.override_score_threshold || 80} onChange={(e) => setCfg({ ...cfg, override_score_threshold: Number(e.target.value) })} onMouseUp={() => persist(cfg)} onTouchEnd={() => persist(cfg)} style={{ width: '100%', marginTop: 4 }} />
         </label>
       </div>
       <div style={{ marginTop: 10 }}>
-        <label style={{ fontSize: 11, color: '#a0a4b0' }}>Pin manual asesor (user_id)
+        <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Pin manual asesor (user_id)
           <input data-testid="routing-pin" value={cfg.override_pin_asesor_id || ''} onChange={(e) => setCfg({ ...cfg, override_pin_asesor_id: e.target.value || null })} onBlur={() => persist(cfg)} placeholder="vacio = sin pin" style={{ width: '100%', marginTop: 4, padding: '6px 10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--cream)', fontSize: 12 }} />
         </label>
       </div>
-      <div style={{ marginTop: 8, fontSize: 11, color: '#a0a4b0' }}>{isAdmin ? '✓ Eres admin · cambios aplican al equipo' : 'Modo asesor · sin team routing'}</div>
+      <div style={{ marginTop: 8, fontSize: 11, color: 'var(--cream-2)' }}>{isAdmin ? '✓ Eres admin · cambios aplican al equipo' : 'Modo asesor · sin team routing'}</div>
     </div>
   );
 }
@@ -882,7 +882,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
           <button data-testid="editor-back" type="button" onClick={onBack} style={btnSecondary({ padding: '6px 10px', fontSize: 12 })}>
             <Icons.ChevronLeft size={12} /> Volver
           </button>
-          <span style={{ fontSize: 11, color: '#a0a4b0' }}>
+          <span style={{ fontSize: 11, color: 'var(--cream-2)' }}>
             {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Error guardado'}
           </span>
         </div>
@@ -941,14 +941,14 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
         )}
         {showThemeSwitcher && (
           <div data-testid="theme-switcher-panel" style={{ marginTop: 12, padding: 12, background: BG_CARD, border: BORDER, borderRadius: 12 }}>
-            <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Template activo · sections se preservan</div>
+            <div style={{ fontSize: 11, color: 'var(--cream-2)', marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Template activo · sections se preservan</div>
             <div style={{ display: 'grid', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
               {(themes || []).map((tm) => (
                 <ThemeCard key={tm.key} themeMeta={tm} active={templateKey === tm.key} onSelect={() => switchTemplate(tm.key)} compact />
               ))}
             </div>
             {activeThemeMeta && (
-              <div style={{ marginTop: 10, fontSize: 11, color: '#a0a4b0' }}>
+              <div style={{ marginTop: 10, fontSize: 11, color: 'var(--cream-2)' }}>
                 Hero variant: <strong style={{ color: 'var(--cream)' }}>{activeThemeMeta.hero_variant}</strong> · spacing {activeThemeMeta.spacing_scale}
               </div>
             )}
@@ -1223,7 +1223,7 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
         )}
 
         {origin !== 'choose' && (
-          <button type="button" onClick={() => { setOrigin('choose'); setError(''); }} style={{ background: 'transparent', border: 'none', color: '#a0a4b0', cursor: 'pointer', fontSize: 12, alignSelf: 'flex-start', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <button type="button" onClick={() => { setOrigin('choose'); setError(''); }} style={{ background: 'transparent', border: 'none', color: 'var(--cream-2)', cursor: 'pointer', fontSize: 12, alignSelf: 'flex-start', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Icons.ChevronLeft size={12} /> Cambiar origen
           </button>
         )}

@@ -290,7 +290,7 @@ const subStyle = () => ({ fontSize: 14, color: 'var(--cream-2)', maxWidth: 720, 
 const sidebarStyle = () => ({
   position: 'sticky', top: 96,
   padding: '14px 16px',
-  background: 'rgba(13,17,28,0.62)',
+  background: 'var(--surface)',
   border: '1px solid var(--border)',
   borderRadius: 22, backdropFilter: 'blur(24px)',
   height: 'fit-content',
@@ -310,7 +310,7 @@ const uploadZoneStyle = () => ({
 });
 const cardStyle = () => ({
   padding: 10,
-  background: 'rgba(13,17,28,0.62)',
+  background: 'var(--surface)',
   border: '1px solid var(--border)',
   borderRadius: 16, backdropFilter: 'blur(24px)',
 });
@@ -343,7 +343,7 @@ const modalOverlay = () => ({
 });
 const modalContent = () => ({
   width: '100%', maxWidth: 720,
-  background: 'rgba(13,17,28,0.92)',
+  background: 'var(--surface)',
   border: '1px solid var(--border)',
   borderRadius: 22, padding: '22px 24px',
   backdropFilter: 'blur(24px)',
@@ -352,7 +352,7 @@ const modalContent = () => ({
 const toastStyle = () => ({
   position: 'fixed', bottom: 24, right: 24,
   padding: '10px 16px',
-  background: 'rgba(13,17,28,0.94)', color: 'var(--cream)',
+  background: 'var(--surface)', color: 'var(--cream)',
   border: '1px solid rgba(99,102,241,0.30)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontSize: 13, zIndex: 1500,
 });

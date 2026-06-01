@@ -57,7 +57,7 @@ function ProjectDrawer({ project, onClose }) {
     >
       <div style={{
         width: '100%', maxWidth: 520,
-        background: 'rgba(13,17,28,0.98)',
+        background: 'var(--surface)',
         borderLeft: '1px solid var(--border)',
         height: '100%', overflowY: 'auto',
         padding: '28px 24px',

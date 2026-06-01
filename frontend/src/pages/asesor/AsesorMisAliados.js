@@ -120,8 +120,8 @@ function Drawer({ aliado, onClose, onVerInventario }) {
   const b = aliado.branding || {};
   return (
     <div data-testid="aliado-drawer" onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'var(--surface)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', justifyContent: 'flex-end' }}>
-      <div style={{ width: '100%', maxWidth: 480, background: 'rgba(13,17,28,0.96)', borderLeft: '1px solid var(--border)', padding: '28px 28px 80px', overflowY: 'auto' }}>
+      style={{ position: 'fixed', inset: 0, background: 'rgba(20,25,45,0.45)', backdropFilter: 'blur(8px)', zIndex: Z.DRAWER, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ width: '100%', maxWidth: 480, background: 'var(--surface)', borderLeft: '1px solid var(--border)', padding: '28px 28px 80px', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
           <div style={{ width: 50, height: 50, borderRadius: 12, background: b.logo_url ? `url(${b.logo_url}) center/cover no-repeat` : 'linear-gradient(135deg,rgba(99,102,241,0.22),rgba(236,72,153,0.12))', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {!b.logo_url && <Building2 size={22} color="#818CF8" />}

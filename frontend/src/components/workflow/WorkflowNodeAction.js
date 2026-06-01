@@ -3,8 +3,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 const INDIGO = '#6366F1';
-const CREAM = '#F0EBE0';
-const BORDER = 'rgba(99,102,241,0.35)';
+const CREAM = 'var(--cream)';
+const BORDER = '1px solid var(--border)';
 const GRADIENT = 'linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(139,92,246,0.10) 100%)';
 
 const ACTION_OPTIONS = [
@@ -54,7 +54,7 @@ export default function WorkflowNodeAction({ node, selected, onChange, onSelect 
         style={selectStyle()}
       >
         {ACTION_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value} style={{ background: '#0D1017', color: CREAM }}>
+          <option key={opt.value} value={opt.value} style={{ background: 'var(--surface)', color: CREAM }}>
             {t(opt.key)}
           </option>
         ))}
@@ -126,15 +126,15 @@ export default function WorkflowNodeAction({ node, selected, onChange, onSelect 
 
 function inputStyle() {
   return {
-    marginTop: 6, width: '100%', background: 'rgba(240,235,224,0.05)',
-    border: '1px solid rgba(240,235,224,0.10)', borderRadius: 8,
-    padding: '6px 8px', color: '#F0EBE0', fontSize: 12, outline: 'none',
+    marginTop: 6, width: '100%', background: 'var(--surface-2)',
+    border: '1px solid var(--border)', borderRadius: 8,
+    padding: '6px 8px', color: 'var(--cream)', fontSize: 12, outline: 'none',
     fontFamily: 'inherit', resize: 'none',
   };
 }
 function selectStyle() {
   return {
-    width: '100%', background: 'transparent', color: '#F0EBE0',
+    width: '100%', background: 'transparent', color: 'var(--cream)',
     border: 'none', outline: 'none', fontSize: 13, fontWeight: 600,
     appearance: 'none', cursor: 'pointer',
   };

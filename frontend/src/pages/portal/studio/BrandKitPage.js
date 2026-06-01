@@ -324,7 +324,7 @@ const subStyle = () => ({ fontSize: 14, color: 'var(--cream-2)', maxWidth: 720, 
 
 const cardStyle = (active) => ({
   padding: '16px 18px',
-  background: 'rgba(13,17,28,0.62)',
+  background: 'var(--surface)',
   border: `1px solid ${active ? 'rgba(34,197,94,0.45)' : 'var(--border)'}`,
   borderRadius: 22,
   backdropFilter: 'blur(24px)',
@@ -383,7 +383,7 @@ const modalOverlayStyle = () => ({
 });
 const modalStyle = () => ({
   width: '100%', maxWidth: 620,
-  background: 'rgba(13,17,28,0.92)',
+  background: 'var(--surface)',
   border: '1px solid var(--border)',
   borderRadius: 22, padding: '22px 24px',
   backdropFilter: 'blur(24px)',
@@ -392,7 +392,7 @@ const modalStyle = () => ({
 const toastStyle = () => ({
   position: 'fixed', bottom: 24, right: 24,
   padding: '10px 16px',
-  background: 'rgba(13,17,28,0.94)', color: 'var(--cream)',
+  background: 'var(--surface)', color: 'var(--cream)',
   border: '1px solid rgba(99,102,241,0.30)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontSize: 13, zIndex: 1500,
 });

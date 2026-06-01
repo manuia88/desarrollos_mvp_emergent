@@ -2,10 +2,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const CREAM = '#F0EBE0';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 
 const NODE_X = 260;
 const NODE_Y = 140;
@@ -137,7 +137,7 @@ export default function WorkflowTemplatesGallery({ open, onClose, onSelect }) {
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.78)',
+        position: 'fixed', inset: 0, background: 'rgba(20,25,45,0.45)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 80,
         backdropFilter: 'blur(6px)',
       }}
@@ -153,7 +153,7 @@ export default function WorkflowTemplatesGallery({ open, onClose, onSelect }) {
         <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
           {t('workflows.templates_gallery_title')}
         </h2>
-        <p style={{ color: 'rgba(240,235,224,0.62)', marginTop: 6, fontSize: 14 }}>
+        <p style={{ color: 'var(--cream-2)', marginTop: 6, fontSize: 14 }}>
           {t('workflows.templates_gallery_subtitle')}
         </p>
 
@@ -164,13 +164,13 @@ export default function WorkflowTemplatesGallery({ open, onClose, onSelect }) {
               data-testid={`wf-template-${tpl.key}`}
               style={{
                 padding: 16, border: BORDER, borderRadius: 18,
-                background: 'rgba(240,235,224,0.04)',
+                background: 'var(--surface-2)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14,
               }}
             >
               <div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{t(tpl.nameKey)}</div>
-                <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.62)', marginTop: 4 }}>
+                <div style={{ fontSize: 13, color: 'var(--cream-2)', marginTop: 4 }}>
                   {t(tpl.descKey)}
                 </div>
               </div>
@@ -195,7 +195,7 @@ export default function WorkflowTemplatesGallery({ open, onClose, onSelect }) {
             onClick={onClose}
             style={{
               background: 'transparent', color: CREAM,
-              border: '1px solid rgba(240,235,224,0.18)', borderRadius: 9999,
+              border: '1px solid var(--border)', borderRadius: 9999,
               padding: '8px 18px', fontSize: 12, cursor: 'pointer',
             }}
           >

@@ -17,7 +17,7 @@ import PortalLayout from '../../../components/shared/PortalLayout';
 const BG = 'var(--bg)';
 const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
-const GRAY = '#6B7280';
+const GRAY = 'var(--border)';
 const BORDER = '1px solid var(--border)';
 
 const NODE_W = { trigger: 220, action: 240, condition: 240, delay: 200 };
@@ -49,8 +49,8 @@ function DelayNode({ node, selected, onChange, onSelect }) {
       onClick={(e) => { e.stopPropagation(); onSelect && onSelect(node.id); }}
       style={{
         width: NODE_W.delay,
-        background: 'rgba(107,114,128,0.10)',
-        border: `1px solid ${selected ? GRAY : 'rgba(107,114,128,0.35)'}`,
+        background: 'var(--surface-2)',
+        border: `1px solid ${selected ? GRAY : 'var(--border)'}`,
         borderRadius: 9999,
         padding: '14px 18px', color: CREAM, fontFamily: 'DM Sans, sans-serif',
         cursor: 'pointer', userSelect: 'none',

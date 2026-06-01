@@ -3,9 +3,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 const AMBER = '#F59E0B';
-const CREAM = '#F0EBE0';
-const BORDER = 'rgba(245,158,11,0.35)';
-const BG = 'rgba(245,158,11,0.10)';
+const CREAM = 'var(--cream)';
+const BORDER = '1px solid var(--border)';
+const BG = 'var(--bg)';
 
 const FIELDS = [
   { value: 'zone',          key: 'workflows.field_zone' },
@@ -52,7 +52,7 @@ export default function WorkflowNodeCondition({ node, selected, onChange, onSele
           style={selectStyle({ flex: 1 })}
         >
           {FIELDS.map((f) => (
-            <option key={f.value} value={f.value} style={{ background: '#0D1017' }}>
+            <option key={f.value} value={f.value} style={{ background: 'var(--surface)' }}>
               {t(f.key)}
             </option>
           ))}
@@ -64,7 +64,7 @@ export default function WorkflowNodeCondition({ node, selected, onChange, onSele
           style={selectStyle({ width: 80 })}
         >
           {OPS.map((o) => (
-            <option key={o} value={o} style={{ background: '#0D1017' }}>{o}</option>
+            <option key={o} value={o} style={{ background: 'var(--surface)' }}>{o}</option>
           ))}
         </select>
       </div>
@@ -78,7 +78,7 @@ export default function WorkflowNodeCondition({ node, selected, onChange, onSele
       />
       <div style={{
         marginTop: 8, display: 'flex', justifyContent: 'space-between',
-        fontSize: 11, color: 'rgba(240,235,224,0.55)', fontWeight: 600,
+        fontSize: 11, color: 'var(--cream-2)', fontWeight: 600,
       }}>
         <span>↳ {t('workflows.condition_if')}</span>
         <span>↳ {t('workflows.condition_else')}</span>
@@ -89,16 +89,16 @@ export default function WorkflowNodeCondition({ node, selected, onChange, onSele
 
 function inputStyle() {
   return {
-    width: '100%', background: 'rgba(240,235,224,0.05)',
-    border: '1px solid rgba(240,235,224,0.10)', borderRadius: 8,
-    padding: '6px 8px', color: '#F0EBE0', fontSize: 12, outline: 'none',
+    width: '100%', background: 'var(--surface-2)',
+    border: '1px solid var(--border)', borderRadius: 8,
+    padding: '6px 8px', color: 'var(--cream)', fontSize: 12, outline: 'none',
   };
 }
 function selectStyle(extra = {}) {
   return {
-    background: 'rgba(240,235,224,0.05)',
-    border: '1px solid rgba(240,235,224,0.10)', borderRadius: 8,
-    padding: '6px 8px', color: '#F0EBE0', fontSize: 12, outline: 'none',
+    background: 'var(--surface-2)',
+    border: '1px solid var(--border)', borderRadius: 8,
+    padding: '6px 8px', color: 'var(--cream)', fontSize: 12, outline: 'none',
     appearance: 'none', cursor: 'pointer', ...extra,
   };
 }

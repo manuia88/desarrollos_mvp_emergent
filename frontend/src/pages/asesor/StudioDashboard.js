@@ -421,7 +421,7 @@ function AdsBatchDetail({ batch, onUpdated, setToast }) {
           <div key={ad.id} data-testid={`ad-${ad.id}`} style={{
             padding: 0, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden',
           }}>
-            <div style={{ aspectRatio: '1 / 1', background: imageMap[ad.angulo] ? `url(data:image/png;base64,${imageMap[ad.angulo]}) center/cover` : 'linear-gradient(135deg, #1F2335, var(--surface))', position: 'relative' }}>
+            <div style={{ aspectRatio: '1 / 1', background: imageMap[ad.angulo] ? `url(data:image/png;base64,${imageMap[ad.angulo]}) center/cover` : 'linear-gradient(135deg, var(--surface), var(--surface))', position: 'relative' }}>
               {!imageMap[ad.angulo] && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, padding: 14, textAlign: 'center' }}>
                   <Sparkle size={18} color="var(--cream-3)" />

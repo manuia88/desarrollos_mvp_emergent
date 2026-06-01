@@ -87,7 +87,7 @@ export default function ListingImportPage({ user, onLogout }) {
         {/* Import form */}
         <div style={{
           padding: '18px 20px', marginBottom: 22,
-          background: 'rgba(13,17,28,0.62)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: 22, backdropFilter: 'blur(24px)',
         }}>
@@ -155,7 +155,7 @@ export default function ListingImportPage({ user, onLogout }) {
         {result && (
           <div data-testid="import-result" style={{
             padding: '18px 20px', marginBottom: 22,
-            background: 'rgba(13,17,28,0.62)',
+            background: 'var(--surface)',
             border: '1px solid rgba(99,102,241,0.30)',
             borderRadius: 22, backdropFilter: 'blur(24px)',
           }}>
@@ -276,7 +276,7 @@ const subStyle = () => ({ fontSize: 14, color: 'var(--cream-2)', maxWidth: 720, 
 const historyRowStyle = () => ({
   display: 'flex', alignItems: 'center', gap: 12,
   padding: '12px 14px',
-  background: 'rgba(13,17,28,0.62)',
+  background: 'var(--surface)',
   border: '1px solid var(--border)',
   borderRadius: 14, backdropFilter: 'blur(24px)',
 });
@@ -290,7 +290,7 @@ const iconBtn = () => ({
 const toastStyle = () => ({
   position: 'fixed', bottom: 24, right: 24,
   padding: '10px 16px',
-  background: 'rgba(13,17,28,0.94)', color: 'var(--cream)',
+  background: 'var(--surface)', color: 'var(--cream)',
   border: '1px solid rgba(99,102,241,0.30)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontSize: 13, zIndex: 1500,
 });
