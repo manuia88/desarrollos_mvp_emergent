@@ -200,6 +200,7 @@ function ConversationInboxBody({ user }) {
   const [copilotAsk, setCopilotAsk] = useState('');           // caja "pregúntale al copiloto"
   const [copilotAnswer, setCopilotAnswer] = useState(null);   // respuesta del copiloto
   const [copilotBusy, setCopilotBusy] = useState(false);
+  const [copilotMetrics, setCopilotMetrics] = useState(null); // cierre #4 · métricas del Copiloto
   const [propPicker, setPropPicker] = useState(null);   // Adjuntar propiedad · catálogo {loading, items}
   const [atlaxCh, setAtlaxCh] = useState({});           // Pieza 2 · Atlax auto por canal {whatsapp:true,...}
   const [col3Tab, setCol3Tab] = useState('acciones');   // col3 · pestañas: acciones | ia | perfil
@@ -255,6 +256,7 @@ function ConversationInboxBody({ user }) {
       });
     } catch { /* no-op */ }
   }, [atlaxCh]);
+
   // Auto-refresco de la lista cada 25s (la lista, no el hilo abierto → no estorba al escribir)
   useEffect(() => {
     const id = setInterval(() => { loadList(); }, 25000);
@@ -424,6 +426,28 @@ function ConversationInboxBody({ user }) {
       if (r.ok) { const d = await r.json(); if (d.text) setAddText(d.text); if (d.date) setAddDate(String(d.date).slice(0, 16)); }
     } catch { /* no-op */ } finally { setAiSug(false); }
   }, [detail, curConv, addForm]);
+
+  // Cierre #1 · usar una sugerencia del Copiloto → llena la caja Y registra el feedback (aprendizaje)
+  const applySuggestion = useCallback((type, text, kind) => {
+    if (text) setComposeSeed(text);
+    const lid = (detail && detail.lead_id) || (curConv && curConv.lead_id);
+    try {
+      fetch(`${API}/api/asesor/copilot/feedback`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, credentials: 'include',
+        body: JSON.stringify({ suggestion_type: type, outcome: 'used', lead_id: lid, kind: kind || type, text: (text || '').slice(0, 160) }),
+      });
+    } catch { /* no-op */ }
+  }, [detail, curConv]);
+
+  // Cierre #4 · carga las métricas del Copiloto (panel del tab)
+  const loadCopilotMetrics = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/api/asesor/copilot/metrics`, { headers: authHeaders(), credentials: 'include' });
+      if (r.ok) setCopilotMetrics(await r.json());
+    } catch { /* no-op */ }
+  }, []);
+  // Cierre #4 · al abrir el tab Copiloto, carga sus métricas (definido tras loadCopilotMetrics · evita TDZ)
+  useEffect(() => { if (col3Tab === 'copiloto') loadCopilotMetrics(); }, [col3Tab, loadCopilotMetrics]);
 
   // 📸 Enviar Galería Personalizada (link de swipe) → crea/reusa el link y llena la caja con el mensaje listo
   const sendGaleria = useCallback(async () => {
@@ -716,7 +740,7 @@ function ConversationInboxBody({ user }) {
                           <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.45 }}>{convAI.top.text || convAI.top.label}</div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end', flexShrink: 0 }}>
-                          <button type="button" onClick={() => { if (isScript) setComposeSeed(convAI.top.text); else doNba(convAI.top.kind); }}
+                          <button type="button" onClick={() => { if (isScript) applySuggestion(convAI.top.kind, convAI.top.text, convAI.top.kind); else doNba(convAI.top.kind); }}
                             style={{ padding: '5px 12px', borderRadius: 999, border: 'none', background: k.accent, color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>{convAI.top.cta || 'Usar'}</button>
                           <button type="button" onClick={() => { setCol3Tab('copiloto'); }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', fontSize: 10.5, fontWeight: 700 }}>Ver más ›</button>
@@ -1094,7 +1118,7 @@ function ConversationInboxBody({ user }) {
                   <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COPILOT_KIND.que_decirle.accent, marginBottom: 5 }}>💬 Qué decirle</div>
                   <div style={{ fontSize: 12.5, color: 'var(--cream)', lineHeight: 1.5 }}>{convAI.coaching.que_decirle.script}</div>
                   {convAI.coaching.que_decirle.rationale && <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 4 }}>{convAI.coaching.que_decirle.rationale}</div>}
-                  <button type="button" onClick={() => setComposeSeed(convAI.coaching.que_decirle.script)}
+                  <button type="button" onClick={() => applySuggestion('que_decirle', convAI.coaching.que_decirle.script, 'coaching')}
                     style={{ marginTop: 9, padding: '7px 14px', borderRadius: 999, border: 'none', background: COPILOT_KIND.que_decirle.accent, color: '#fff', fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>Usar como respuesta</button>
                 </div>
               )}
@@ -1172,6 +1196,33 @@ function ConversationInboxBody({ user }) {
                   ))}
                 </div>
               </div>
+
+              {/* Cierre #4 · mini-panel de métricas (conecta Bandeja con tu Performance) */}
+              {copilotMetrics && (copilotMetrics.used > 0 || (copilotMetrics.top_objeciones || []).length > 0) && (
+                <div style={{ marginTop: COL3_GAP, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ marginBottom: 9 }}><Eyebrow>Tu Copiloto · últimos {copilotMetrics.days || 30} días</Eyebrow></div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 9 }}>
+                    <div style={{ ...cardStyle, padding: '9px 11px' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--cream)' }}>{copilotMetrics.used}</div>
+                      <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>sugerencias usadas</div>
+                    </div>
+                    <div style={{ ...cardStyle, padding: '9px 11px' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: copilotMetrics.response_rate >= 0.5 ? '#1FA06A' : 'var(--cream)' }}>{Math.round((copilotMetrics.response_rate || 0) * 100)}%</div>
+                      <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>respuesta positiva</div>
+                    </div>
+                  </div>
+                  {(copilotMetrics.top_objeciones || []).length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 10, color: 'var(--cream-3)', marginBottom: 5 }}>Objeciones más frecuentes de tus leads</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {copilotMetrics.top_objeciones.map((o) => (
+                          <span key={o.type} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: 'rgba(242,99,91,0.10)', color: '#F2635B' }}>{o.type} · {o.count}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               </>)}
             </>
           )}
