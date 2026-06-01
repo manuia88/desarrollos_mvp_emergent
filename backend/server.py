@@ -28,10 +28,15 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 
 app = FastAPI(title="DesarrollosMX API", version="2.0.0")
 
+# Prod: orígenes explícitos vía CORS_ORIGINS (coma-separados, p.ej.
+# "https://desarrollosmx.io,https://www.desarrollosmx.io"). Dev: regex localhost.
+# Si CORS_ORIGINS no está seteada → solo localhost (comportamiento previo).
+_CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     # Spec: si allow_credentials=True NO se puede usar "*" en allow_origins
-    # (browser tira las cookies). Para localhost usamos regex específico.
+    # (browser tira las cookies).
+    allow_origins=_CORS_ORIGINS,
     allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
@@ -1182,6 +1187,8 @@ async def startup():
     # Seed superadmin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
     admin_pw    = os.environ.get("ADMIN_PASSWORD", "Admin2026!")
+    if admin_pw == "Admin2026!" and os.environ.get("DMX_DEV_MODE", "false").lower() != "true":
+        logging.warning("[startup] ADMIN_PASSWORD usa el default público en entorno no-dev · setéala por env antes de exponer")
     existing    = await db.users.find_one({"email": admin_email})
     if not existing:
         await db.users.insert_one({
@@ -1193,30 +1200,33 @@ async def startup():
             "tenant_id": "dmx",
             "created_at": datetime.now(timezone.utc),
         })
-    # Seed demo advisor
-    adv_email = "asesor@demo.com"
-    if not await db.users.find_one({"email": adv_email}):
-        await db.users.insert_one({
-            "user_id": "user_asesor_0001",
-            "email": adv_email,
-            "name": "Ana Gutiérrez",
-            "password_hash": hash_password("Asesor2026!"),
-            "role": "advisor",
-            "tenant_id": "agencia_demo",
-            "created_at": datetime.now(timezone.utc),
-        })
-    # Seed demo developer
-    dev_email = "developer@demo.com"
-    if not await db.users.find_one({"email": dev_email}):
-        await db.users.insert_one({
-            "user_id": "user_dev_0001",
-            "email": dev_email,
-            "name": "Constructora Ariel",
-            "password_hash": hash_password("Dev2026!"),
-            "role": "developer_admin",
-            "tenant_id": "constructora_ariel",
-            "created_at": datetime.now(timezone.utc),
-        })
+    # Cuentas demo con contraseñas públicas: SOLO en dev (DMX_DEV_MODE=true).
+    # En producción no deben existir (eran un hoyo: login conocido).
+    if os.environ.get("DMX_DEV_MODE", "false").lower() == "true":
+        # Seed demo advisor
+        adv_email = "asesor@demo.com"
+        if not await db.users.find_one({"email": adv_email}):
+            await db.users.insert_one({
+                "user_id": "user_asesor_0001",
+                "email": adv_email,
+                "name": "Ana Gutiérrez",
+                "password_hash": hash_password("Asesor2026!"),
+                "role": "advisor",
+                "tenant_id": "agencia_demo",
+                "created_at": datetime.now(timezone.utc),
+            })
+        # Seed demo developer
+        dev_email = "developer@demo.com"
+        if not await db.users.find_one({"email": dev_email}):
+            await db.users.insert_one({
+                "user_id": "user_dev_0001",
+                "email": dev_email,
+                "name": "Constructora Ariel",
+                "password_hash": hash_password("Dev2026!"),
+                "role": "developer_admin",
+                "tenant_id": "constructora_ariel",
+                "created_at": datetime.now(timezone.utc),
+            })
 
     # IE Engine — Phase A seed (idempotent: 18 fuentes)
     await seed_ie_engine(db)

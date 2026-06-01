@@ -47,7 +47,16 @@ def _get_cipher() -> Fernet:
     raw = os.environ.get("IE_FERNET_KEY")
     if raw:
         return Fernet(raw.encode() if isinstance(raw, str) else raw)
-    seed = (os.environ.get("JWT_SECRET") or "dmx-dev-fernet").encode()
+    # Fallback para que dev arranque. En prod es INSEGURO (clave derivada/adivinable):
+    # hazlo visible para no cifrar credenciales de conectores con una clave débil.
+    import logging as _lg
+    _jwt = os.environ.get("JWT_SECRET")
+    if os.environ.get("DMX_DEV_MODE", "false").lower() != "true":
+        _lg.getLogger("dmx.ie_engine").warning(
+            "[ie_engine] IE_FERNET_KEY no seteada en entorno no-dev · usando clave derivada %s · "
+            "SETEA IE_FERNET_KEY antes de exponer (cifra credenciales de conectores)",
+            "de JWT_SECRET" if _jwt else "de un literal PÚBLICO (muy inseguro)")
+    seed = (_jwt or "dmx-dev-fernet").encode()
     digest = hashlib.sha256(seed).digest()
     derived = base64.urlsafe_b64encode(digest)
     return Fernet(derived)
