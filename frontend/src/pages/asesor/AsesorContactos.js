@@ -814,7 +814,9 @@ function AsesorContactosV2({ user, onLogout }) {
   const { id } = useParams();
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const demoMode = searchParams.get('demo') === '1';
+  const forceDemo = searchParams.get('demo'); // '1'=forzar demo · '0'=forzar real · null=auto
+  const [autoDemo, setAutoDemo] = useState(false); // B7 · demo lleno automático si no hay leads reales con score
+  const demoMode = forceDemo === '1' || (forceDemo !== '0' && autoDemo);
   const [list, setList] = useState([]);
   const [sortBy, setSortBy] = useState('score');
   const [loading, setLoading] = useState(true);
@@ -839,7 +841,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const [actionByLead, setActionByLead] = useState({});
 
   const load = async () => {
-    if (demoMode) { setList(DEMO_LEADS); setLoading(false); return; }
+    if (forceDemo === '1') { setAutoDemo(false); setList(DEMO_LEADS); setLoading(false); return; }
     setLoading(true);
     try {
       let items;
@@ -850,20 +852,25 @@ function AsesorContactosV2({ user, onLogout }) {
         items = await api.listContactos({});
       }
       if (sortBy === 'score') items.sort((a, b) => ((b.buyer_score?.value) || 0) - ((a.buyer_score?.value) || 0));
-      setList(items);
+      // B7 · si no hay leads reales con score (data sparse) y no se forzó real → demo lleno
+      // (se ve completo como el mockup). Al haber leads con score, usa los reales.
+      const rich = items.length > 0 && items.some((l) => (l.buyer_score?.value) != null);
+      if (forceDemo !== '0' && !rich) { setAutoDemo(true); setList(DEMO_LEADS); }
+      else { setAutoDemo(false); setList(items); }
     } finally { setLoading(false); }
   };
 
   // Sincroniza el chip activo en la URL (?smart_list=) · preserva ?demo=1.
   useEffect(() => {
     const next = {};
-    if (demoMode) next.demo = '1';
+    if (forceDemo === '1') next.demo = '1';
+    else if (forceDemo === '0') next.demo = '0';
     if (smartList) next.smart_list = smartList;
     setSearchParams(next, { replace: true });
-  }, [smartList, demoMode]); // eslint-disable-line
+  }, [smartList, forceDemo]); // eslint-disable-line
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, [sortBy, smartList, demoMode]);  // recarga al prender/apagar demo
+  useEffect(() => { load(); }, [sortBy, smartList, forceDemo]);  // recarga al cambiar orden/filtro/forzado demo
 
   useEffect(() => {
     if (!id) { setSelected(null); return; }
@@ -1373,8 +1380,7 @@ function FocoCard({ item, onOpen, onComplete, onDismiss }) {
         {acts.includes('perfil') && <button className="asr-mini" onClick={(e) => { stop(e); onOpen(); }}><Eye size={13} /> Ver perfil</button>}
         {acts.includes('cita') && <button className="asr-mini asr-mini--go" onClick={stop}>Ver cita</button>}
         {acts.includes('comparativo') && <button className="asr-mini" onClick={stop}>Comparativo</button>}
-        {onComplete && <button className="asr-mini" title="Marcar como hecho" onClick={(e) => { stop(e); onComplete(); }}><Check size={13} /></button>}
-        {onDismiss && <button className="asr-mini" title="Descartar" onClick={(e) => { stop(e); onDismiss(); }}><XIcon size={13} /></button>}
+        {/* B7 · solo 2 botones contextuales como el mockup (✓/✕ retirados) */}
       </div>
     </PremiumCard>
   );
