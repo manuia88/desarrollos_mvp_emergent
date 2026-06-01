@@ -832,6 +832,8 @@ function AsesorContactosV2({ user, onLogout }) {
   const [dragOverCol, setDragOverCol] = useState(null);
   const [foco, setFoco] = useState([]);
   const [dismissedFoco, setDismissedFoco] = useState(() => new Set()); // B7 · FOCO descartados (cerrar tarjeta)
+  const [segment, setSegment] = useState('todos'); // B7 · segmento activo (calidad/estado · client-side)
+  const [priceBand, setPriceBand] = useState(null); // B7 · filtro por rango de precio
   // Chips de filtro = presets reales de smart-lists + total para "Todos".
   const [presets, setPresets] = useState([]);
   const [counts, setCounts] = useState({});
@@ -963,10 +965,40 @@ function AsesorContactosV2({ user, onLogout }) {
   };
   const closeDetail = () => nav(`/asesor/contactos${qs}`);
 
+  // B7 · segmentos de visibilidad (calidad de seguimiento + estado del lead) + rango de precio.
+  const PRICE_BANDS = [
+    { key: 'lt3',  label: '< $3M',  test: (p) => p < 3e6 },
+    { key: '3-6',  label: '$3–6M',  test: (p) => p >= 3e6 && p < 6e6 },
+    { key: '6-10', label: '$6–10M', test: (p) => p >= 6e6 && p < 10e6 },
+    { key: 'gt10', label: '$10M+',  test: (p) => p >= 10e6 },
+  ];
+  const segmentDefs = [
+    { key: 'todos',     label: 'Todos',           emoji: '',   pred: () => true },
+    { key: 'calientes', label: 'Calientes',       emoji: '🔥', pred: (c) => c.buyer_score?.tier === 'hot' || /calien/i.test(c.temperatura || '') },
+    { key: 'potencial', label: 'Potenciales',     emoji: '⭐', pred: (c) => (c.buyer_score?.value || 0) >= 70 },
+    { key: 'nuevos',    label: 'Por contactar',   emoji: '📋', pred: (c) => (c.etapa || 'nuevo') === 'nuevo' },
+    { key: 'sinseg',    label: 'Sin seguimiento', emoji: '🕓', pred: (c) => !actionByLead[c.id] },
+    { key: 'riesgo',    label: 'En riesgo',       emoji: '⚠️', pred: (c) => (c.buyer_score?.tier === 'cold' || c.buyer_score?.tier === 'warm') && !actionByLead[c.id] },
+    { key: 'cita',      label: 'En cita',         emoji: '📅', pred: (c) => c.etapa === 'visita' },
+  ];
+  const segBase = list.filter((c) => !c.archived);
+  const segCounts = {};
+  for (const s of segmentDefs) segCounts[s.key] = s.key === 'todos' ? segBase.length : segBase.filter(s.pred).length;
+  const priceOf = (c) => ((busqByContact[c.id] || [])[0]?.precio_max);
+
   const display = useMemo(() => {
-    const arr = list.filter((c) => !c.archived);
+    let arr = list.filter((c) => !c.archived);
+    if (segment !== 'todos') {
+      const def = segmentDefs.find((s) => s.key === segment);
+      if (def) arr = arr.filter(def.pred);
+    }
+    if (priceBand) {
+      const band = PRICE_BANDS.find((b) => b.key === priceBand);
+      if (band) arr = arr.filter((c) => { const p = priceOf(c); return p != null && band.test(p); });
+    }
     return [...arr].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-  }, [list]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list, segment, priceBand, actionByLead, busqByContact]);
 
   const togglePin = async (c) => {
     setList((prev) => prev.map((x) => (x.id === c.id ? { ...x, pinned: !x.pinned } : x)));
@@ -1102,14 +1134,31 @@ function AsesorContactosV2({ user, onLogout }) {
           </div>
         )}
 
-        {/* Chips de filtro horizontales (presets reales · reemplazan el rail) */}
-        <LeadFilterChips
-          presets={presets}
-          counts={counts}
-          total={totalContactos}
-          active={smartList}
-          onSelect={(k) => setSmartList(k)}
-        />
+        {/* B7 · Barra de segmentos: visibilidad de calidad de seguimiento + estado del lead + precio.
+            Cada chip filtra el board (client-side). Counts en vivo. Ámbar = atención (riesgo/sin seg). */}
+        <div className="asr-chips" data-testid="lead-segments" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          {segmentDefs.map((s) => {
+            const on = segment === s.key;
+            const warn = (s.key === 'riesgo' || s.key === 'sinseg') && segCounts[s.key] > 0 && !on;
+            return (
+              <button key={s.key} data-testid={`seg-${s.key}`} onClick={() => setSegment(s.key)}
+                className={`asr-chip${on ? ' asr-chip--on' : ''}`}>
+                {s.emoji && <span style={{ marginRight: 5 }}>{s.emoji}</span>}{s.label}
+                <span className="asr-chip__cn" style={warn ? { color: 'var(--warm)' } : undefined}>{segCounts[s.key] ?? 0}</span>
+              </button>
+            );
+          })}
+          <span aria-hidden style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 4px' }} />
+          {PRICE_BANDS.map((b) => {
+            const on = priceBand === b.key;
+            return (
+              <button key={b.key} data-testid={`price-${b.key}`} onClick={() => setPriceBand(on ? null : b.key)}
+                className={`asr-chip${on ? ' asr-chip--on' : ''}`} title="Filtrar por presupuesto">
+                💰 {b.label}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Foco de hoy · 3 acciones priorizadas. En demo se renderiza DIRECTO de DEMO_FOCO
             (no del estado `foco` que sincroniza con retraso) → evita el race al prender el demo. */}
@@ -1156,16 +1205,10 @@ function AsesorContactosV2({ user, onLogout }) {
                 // Inteligencia de columna (B7): $ total de la etapa (point 3) + señal/riesgo (point 2).
                 const dcol = demoMode ? DEMO_COL[ek] : null;
                 const headCount = dcol ? dcol.count : col.length;
+                // $ total de venta de la etapa (point 4: junto al título, sin engordar la columna).
                 const colBudget = col.reduce((s, c) => s + (((busqByContact[c.id] || [])[0]?.precio_max) || 0), 0);
                 const valueText = dcol ? dcol.value
                   : colBudget > 0 ? (colBudget >= 1e6 ? `$${(colBudget / 1e6).toFixed(colBudget % 1e6 === 0 ? 0 : 1)}M` : fmtMXN(colBudget)) : null;
-                const nuevosHoy = ek === 'nuevo' ? col.filter((c) => isToday(c.created_at)).length : 0;
-                const sinSeg = col.filter((c) => !actionByLead[c.id]).length;
-                const intel = dcol ? dcol.intel
-                  : nuevosHoy > 0 ? (nuevosHoy === 1 ? '1 entró hoy' : `${nuevosHoy} entraron hoy`)
-                  : sinSeg > 0 ? (sinSeg === 1 ? '1 sin seguimiento' : `${sinSeg} sin seguimiento`)
-                  : null;
-                const intelWarn = /enfr|riesgo|sin seguimiento|sin contacto|vencid/i.test(intel || '');
                 return (
                   <div key={ek} data-testid={`col-${ek}`}
                     className={`asr-kanban-col${dragOverCol === ek ? ' asr-kanban-col--over' : ''}`}
@@ -1173,21 +1216,12 @@ function AsesorContactosV2({ user, onLogout }) {
                     onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverCol((p) => (p === ek ? null : p)); }}
                     onDrop={(e) => { e.preventDefault(); onDropEtapa(ek); }}
                     style={{ display: 'flex', flexDirection: 'column', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, minHeight: 440, transition: 'border-color 200ms, background 200ms' }}>
-                    <div style={{ marginBottom: 12, padding: '0 2px 11px', borderBottom: '2px solid var(--border)' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{meta.label}</span>
-                        <span className="asr-num" style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)' }}>{headCount}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, minHeight: 18 }}>
-                        <span title="Venta total en esta etapa" className="asr-num" style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: valueText ? 'var(--theme-2)' : 'var(--cream-3)' }}>
-                          {valueText || '$0'}
-                        </span>
-                        {intel && (
-                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap', color: intelWarn ? 'var(--warm)' : 'var(--cream-2)', background: intelWarn ? 'rgba(245,158,11,0.12)' : 'var(--surface-2)', border: `1px solid ${intelWarn ? 'rgba(245,158,11,0.30)' : 'var(--border)'}` }}>
-                            {intel}
-                          </span>
-                        )}
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12, padding: '0 2px 11px', borderBottom: '2px solid var(--border)' }}>
+                      <span style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)' }}>{meta.label}</span>
+                      {valueText && (
+                        <span title="Venta total en esta etapa" className="asr-num" style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: 'var(--theme-2)' }}>{valueText}</span>
+                      )}
+                      <span className="asr-num" style={{ marginLeft: 'auto', fontFamily: 'Outfit', fontWeight: 600, fontSize: 15, color: 'var(--cream-2)' }}>{headCount}</span>
                     </div>
                     {/* lista = zona de drop que llena la columna (arrastra a cualquier parte) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 80 }}>
@@ -1247,10 +1281,18 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   const aging = agingText(c.created_at);
   const agingDisplay = metaOverride ? metaOverride.aging : aging;
   const agingWarn = metaOverride ? metaOverride.agingWarn : false;
-  // Izquierda = criterios de búsqueda (recámaras · zona); el precio va a la derecha (dealText).
+  // Specs de la búsqueda con iconos (point 3): recámaras · baños · estac · m². + zona + precio.
   const recamaras = bq && (bq.recamaras_min || bq.recamaras);
-  const critParts = [recamaras ? `${recamaras}+ rec` : null, zona].filter(Boolean);
-  const metaText = critParts.length ? critParts.join(' · ') : (nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada');
+  const banos = bq && (bq.banos_min || bq.banos);
+  const estac = bq && (bq.estacionamientos_min ?? bq.estacionamientos ?? bq.estac);
+  const m2 = bq && (bq.m2_min || bq.m2 || bq.metros);
+  const specs = [
+    recamaras ? `🛏 ${recamaras}` : null,
+    banos ? `🛁 ${banos}` : null,
+    (estac !== null && estac !== undefined && estac !== false) ? `🚗 ${estac}` : null,
+    m2 ? `📐 ${m2}m²` : null,
+  ].filter(Boolean);
+  const zonaText = zona || (nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada');
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
   // SEÑAL "por qué ahora" = temperatura + recencia/actividad (accionable). Siempre hay.
@@ -1304,10 +1346,15 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{signal}</span>
       </div>
 
-      {/* 3 · búsqueda (zona) + dinero en juego ($) */}
+      {/* 3a · zona + dinero en juego ($) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 13 }}>
-        <span style={{ flex: 1, minWidth: 0, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{metaText}</span>
+        <span style={{ flex: 1, minWidth: 0, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{zonaText}</span>
         {dealText && <span style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 700, color: 'var(--cream)' }}>{dealText}</span>}
+      </div>
+
+      {/* 3b · specs con iconos (recámaras · baños · estac · m²) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 13px', fontSize: 12.5, color: 'var(--cream-2)' }}>
+        {specs.length ? specs.map((s, i) => <span key={i}>{s}</span>) : <span style={{ color: 'var(--cream-3)' }}>Specs por definir</span>}
       </div>
 
       {/* 4 · próxima acción · siempre presente (mantiene altura uniforme) */}
