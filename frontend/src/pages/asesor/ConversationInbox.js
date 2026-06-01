@@ -757,10 +757,11 @@ function ConversationInboxBody({ user }) {
 
               {/* Tabs (founder: 4 pestañas · Copiloto separado para no saturar el chat) */}
               <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: 'var(--surface-2)', borderRadius: 10, padding: 3 }}>
-                {[{ k: 'acciones', l: '⚡' }, { k: 'ia', l: '🤖 IA' }, { k: 'perfil', l: '👤' }, { k: 'copiloto', l: '✨ Copiloto' }].map((tb) => (
-                  <button key={tb.k} type="button" onClick={() => setCol3Tab(tb.k)}
-                    style={{ flex: 1, position: 'relative', padding: '7px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, background: col3Tab === tb.k ? 'var(--surface)' : 'transparent', color: col3Tab === tb.k ? 'var(--theme-2)' : 'var(--cream-3)', boxShadow: col3Tab === tb.k ? '0 1px 3px rgba(20,16,40,0.1)' : 'none' }}>
-                    {tb.l}
+                {[{ k: 'acciones', e: '⚡', l: 'Acciones' }, { k: 'copiloto', e: '✨', l: 'Copiloto' }, { k: 'ia', e: '🤖', l: 'Agentes' }, { k: 'perfil', e: '👤', l: 'Perfil' }].map((tb) => (
+                  <button key={tb.k} type="button" onClick={() => setCol3Tab(tb.k)} title={tb.l}
+                    style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, padding: '6px 2px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, background: col3Tab === tb.k ? 'var(--surface)' : 'transparent', color: col3Tab === tb.k ? 'var(--theme-2)' : 'var(--cream-3)', boxShadow: col3Tab === tb.k ? '0 1px 3px rgba(20,16,40,0.1)' : 'none' }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>{tb.e}</span>
+                    <span style={{ fontSize: 10, lineHeight: 1 }}>{tb.l}</span>
                     {tb.k === 'copiloto' && convAI?.top && col3Tab !== 'copiloto' && (
                       <span style={{ position: 'absolute', top: 4, right: 6, width: 6, height: 6, borderRadius: '50%', background: '#FF5CA8' }} />
                     )}
@@ -922,17 +923,13 @@ function ConversationInboxBody({ user }) {
               </button>
               </>)}
 
-              {/* ═══ TAB: IA ═══ */}
+              {/* ═══ TAB: AGENTES ═══ (lo que la IA hace SOLA · distinto del Copiloto interactivo) */}
               {col3Tab === 'ia' && (<>
-              {/* 1 · Siguiente paso (guía principal, arriba) */}
-              {ctx?.brief?.next_step && (
-                <div style={{ marginBottom: COL3_GAP, padding: '12px 13px', borderRadius: 12, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--theme-primary, #818CF8)', marginBottom: 4 }}>🧭 Siguiente paso</div>
-                  <div style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--cream)' }}>{ctx.brief.next_step.text}</div>
-                </div>
-              )}
+              <div style={{ fontSize: 11, color: 'var(--cream-3)', lineHeight: 1.45, marginBottom: COL3_GAP, padding: '9px 11px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                Tus agentes trabajan <b style={{ color: 'var(--cream-2)' }}>solos</b> en segundo plano y dejan pendientes aquí. Para coaching en vivo usa <b style={{ color: 'var(--theme-2)' }}>✨ Copiloto</b>.
+              </div>
 
-              {/* 2 · Los 5 agentes (sugerencias para este lead) */}
+              {/* Los 5 agentes (sugerencias para este lead) */}
               <div style={{ ...sectionStyle, marginBottom: COL3_GAP }}>
                 <Eyebrow action={<button type="button" onClick={runAgents} disabled={agentsBusy} style={{ ...btnGhost, fontSize: 10.5, padding: '4px 9px', color: agentsBusy ? 'var(--cream-3)' : 'var(--theme-2)' }}>{agentsBusy ? 'Corriendo…' : '↻ Correr'}</button>}>🤖 Tus agentes</Eyebrow>
                 {(ctx?.agent_actions || []).length > 0 ? (
