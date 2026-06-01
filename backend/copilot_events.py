@@ -123,3 +123,93 @@ async def copilot_metrics(db, owner_id: str, days: int = 30) -> Dict[str, Any]:
         "top_objeciones": [{"type": k, "count": v} for k, v in top_obj],
         "days": days,
     }
+
+
+# ── SUPERADMIN · inteligencia agregada de toda la operación (founder) ──
+_OBJ_LABEL = {
+    "precio": "Precio / presupuesto", "ubicacion": "Ubicación", "financiamiento": "Financiamiento",
+    "tiempo": "No es el momento", "competencia": "Comparando opciones", "duda": "Tiene dudas",
+}
+
+
+async def copilot_admin_overview(db, days: int = 30) -> Dict[str, Any]:
+    """CIERRE · panel founder. Agrega TODA la operación: adopción, eficacia, objeciones que
+    dominan el mercado, guiones que funcionan, asesores que más lo aprovechan + alertas
+    accionables. FAIL-OPEN a ceros."""
+    from datetime import timedelta
+    since = _now() - timedelta(days=days)
+    total_used = total_positive = total_ask = 0
+    by_type: Dict[str, int] = {}
+    objeciones: Dict[str, int] = {}
+    by_advisor: Dict[str, Dict[str, int]] = {}
+    active_advisors = set()
+    try:
+        async for ev in db.asesor_copilot_events.find(
+                {"ts": {"$gte": since}},
+                {"_id": 0, "owner_id": 1, "suggestion_type": 1, "outcome": 1, "kind": 1}).limit(50000):
+            owner = ev.get("owner_id")
+            if owner:
+                active_advisors.add(owner)
+            oc = ev.get("outcome")
+            a = by_advisor.setdefault(owner, {"used": 0, "positive": 0})
+            if oc in ("used", "sent"):
+                total_used += 1; a["used"] += 1
+                st = ev.get("suggestion_type") or "otro"
+                by_type[st] = by_type.get(st, 0) + 1
+            if oc == "positive":
+                total_positive += 1; a["positive"] += 1
+            if ev.get("kind") == "copilot_ask":
+                total_ask += 1
+            if ev.get("kind") == "objecion" and ev.get("suggestion_type"):
+                objeciones[ev["suggestion_type"]] = objeciones.get(ev["suggestion_type"], 0) + 1
+    except Exception:
+        pass
+
+    # ranking de asesores por uso (top 8)
+    top_advisors = sorted(
+        ([{"owner_id": k, "used": v["used"], "positive": v["positive"],
+           "rate": round(v["positive"] / v["used"], 2) if v["used"] else 0.0}
+          for k, v in by_advisor.items() if v["used"] > 0]),
+        key=lambda x: -x["used"])[:8]
+    # nombres de asesores (best-effort)
+    try:
+        ids = [a["owner_id"] for a in top_advisors]
+        if ids:
+            users = {u["user_id"]: u.get("name") or u.get("email") or u["user_id"]
+                     async for u in db.users.find({"user_id": {"$in": ids}}, {"_id": 0, "user_id": 1, "name": 1, "email": 1})}
+            for a in top_advisors:
+                a["name"] = users.get(a["owner_id"], a["owner_id"][:12])
+    except Exception:
+        for a in top_advisors:
+            a["name"] = a["owner_id"][:12]
+
+    top_obj = sorted(objeciones.items(), key=lambda x: -x[1])[:5]
+    top_scripts = sorted(by_type.items(), key=lambda x: -x[1])[:5]
+
+    # UPGRADE · alertas accionables para el founder (insights, no solo números)
+    alerts: List[Dict[str, str]] = []
+    rate = round(total_positive / total_used, 2) if total_used else 0.0
+    if total_used == 0:
+        alerts.append({"level": "warn", "text": "Nadie está usando las sugerencias del Copiloto. Revisa visibilidad/onboarding."})
+    elif rate < 0.3:
+        alerts.append({"level": "warn", "text": f"Baja eficacia ({int(rate*100)}%): los guiones no están convirtiendo. Conviene afinarlos."})
+    elif rate >= 0.6:
+        alerts.append({"level": "good", "text": f"Alta eficacia ({int(rate*100)}%): los guiones del Copiloto están funcionando — replícalos."})
+    if top_obj:
+        lbl = _OBJ_LABEL.get(top_obj[0][0], top_obj[0][0])
+        alerts.append({"level": "info", "text": f"Objeción dominante del mercado: «{lbl}» ({top_obj[0][1]}×). Prepara material para rebatirla."})
+    if len(active_advisors) and len(top_advisors) and top_advisors[0]["used"] > 3 * (total_used / max(1, len(active_advisors))):
+        alerts.append({"level": "info", "text": f"{top_advisors[0]['name']} usa el Copiloto mucho más que el promedio — buen caso para capacitar al resto."})
+
+    return {
+        "days": days,
+        "active_advisors": len(active_advisors),
+        "total_used": total_used,
+        "total_positive": total_positive,
+        "total_ask": total_ask,
+        "response_rate": rate,
+        "top_objeciones": [{"type": k, "label": _OBJ_LABEL.get(k, k), "count": v} for k, v in top_obj],
+        "top_scripts": [{"type": k, "count": v} for k, v in top_scripts],
+        "top_advisors": top_advisors,
+        "alerts": alerts,
+    }

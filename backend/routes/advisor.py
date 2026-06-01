@@ -2047,6 +2047,22 @@ async def copilot_metrics_endpoint(request: Request, days: int = 30):
         return {"used": 0, "positive": 0, "response_rate": 0.0, "by_type": {}, "top_objeciones": [], "weights": {}, "days": days}
 
 
+@router.get("/superadmin/copilot/overview")
+async def copilot_admin_overview_endpoint(request: Request, days: int = 30):
+    """CIERRE · panel founder/superadmin · inteligencia agregada de toda la operación
+    (adopción, eficacia, objeciones del mercado, guiones top, ranking de asesores, alertas)."""
+    from permissions import require_superadmin
+    await require_superadmin(request)
+    db = get_db(request)
+    try:
+        from copilot_events import copilot_admin_overview
+        return await copilot_admin_overview(db, days=days)
+    except Exception:
+        return {"days": days, "active_advisors": 0, "total_used": 0, "total_positive": 0,
+                "total_ask": 0, "response_rate": 0.0, "top_objeciones": [], "top_scripts": [],
+                "top_advisors": [], "alerts": []}
+
+
 _DIA_RX = {"hoy": 0, "mañana": 1, "manana": 1, "lunes": None, "martes": None, "miércoles": None,
            "miercoles": None, "jueves": None, "viernes": None, "sábado": None, "sabado": None, "domingo": None}
 _DOW = {"lunes": 0, "martes": 1, "miércoles": 2, "miercoles": 2, "jueves": 3, "viernes": 4,
