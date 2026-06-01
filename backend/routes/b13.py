@@ -99,6 +99,8 @@ class PublicLeadCreate(BaseModel):
 @router.post("/api/leads/public")
 async def public_lead_create(payload: PublicLeadCreate, request: Request):
     """No-auth public lead capture. Captures attribution from snapshot."""
+    from rate_limit import check_rate
+    check_rate(request, "leads_public", limit=10, window_sec=60)  # anti-spam de leads
     db = _db(request)
     if not payload.email and not payload.phone:
         raise HTTPException(422, "Email o teléfono requerido")

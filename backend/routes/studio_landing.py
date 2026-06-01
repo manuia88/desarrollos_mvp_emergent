@@ -660,6 +660,8 @@ async def public_marketplace_query(
 
 @public_router.post("/{slug}/lead")
 async def submit_lead(slug: str, body: LeadSubmitBody, request: Request) -> Dict[str, Any]:
+    from rate_limit import check_rate
+    check_rate(request, "landing_lead", limit=10, window_sec=60)  # anti-spam de leads de landing
     db = _db(request)
     ip = _client_ip(request)
     referrer = request.headers.get("referer", "")[:200]

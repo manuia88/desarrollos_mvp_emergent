@@ -198,6 +198,8 @@ class CitaIn(BaseModel):
 
 @router.post("/api/swipe/{token}/cita")
 async def swipe_cita(token: str, payload: CitaIn, request: Request):
+    from rate_limit import check_rate
+    check_rate(request, "swipe_cita", limit=10, window_sec=60)  # backstop flood de visitas
     db = _db(request)
     lk = await _resolve(db, token)
     when = (payload.when or "")[:80]

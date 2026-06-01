@@ -85,6 +85,8 @@ class DiscSubmitBody(BaseModel):
 
 @router.post("/api/public/endorsements")
 async def post_endorsement(body: EndorsementCreate, request: Request):
+    from rate_limit import check_rate
+    check_rate(request, "endorsement", limit=5, window_sec=60)  # anti-spam de reseñas
     db = _db(request)
     from services.endorsements import create_endorsement
 
