@@ -1313,6 +1313,21 @@ const FOCO_TONE = { hot: 'var(--hot)', warm: 'var(--warm)', ok: 'var(--ok)' };
 const TONE_BY_PRIORITY = { 1: 'hot', 2: 'warm', 3: 'ok' };
 const ETAPA_TAG = { nuevo: 'contactar', contactado: 'seguir', visita: 'cita', negociacion: 'cerrar', cerrado: '' };
 
+// Una fecha ISO cruda (p.ej. de una cita) → texto amigable es-MX. Evita mostrar
+// "2026-06-01T11:00:00+00:00" en la tarjeta FOCO.
+function prettyWhen(s) {
+  if (!s || typeof s !== 'string') return s;
+  const txt = s.trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(txt)) return s;
+  try {
+    const d = new Date(txt);
+    if (Number.isNaN(d.getTime())) return s;
+    const day = d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+    const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    return `${day} · ${time}`;
+  } catch { return s; }
+}
+
 // Normaliza una acción real del action_queue a la forma de la tarjeta del mockup.
 function realFoco(a, lead) {
   const phone = (lead?.phones || [])[0];
@@ -1321,7 +1336,7 @@ function realFoco(a, lead) {
   // Cuerpo = la acción a realizar (sin repetir el nombre que ya va arriba).
   const sub = stripEmoji(a.subtitle || '');
   const title = stripEmoji(a.title || '');
-  const body = lead ? ((sub && sub !== who) ? sub : title) : sub;
+  const body = prettyWhen(lead ? ((sub && sub !== who) ? sub : title) : sub);
   return {
     id: a.id,
     tone: TONE_BY_PRIORITY[a.priority] || 'ok',
