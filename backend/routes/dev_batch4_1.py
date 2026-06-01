@@ -1420,6 +1420,15 @@ async def get_wa_template(apt_id: str, request: Request, type: str = Query("succ
     apt = await db.appointments.find_one({"id": apt_id}, {"_id": 0})
     if not apt:
         raise HTTPException(404, "Cita no encontrada")
+    # Seguridad: la plantilla expone PII del cliente (nombre/tel/email/presupuesto) →
+    # exige asesor autenticado dueño de la cita (o rol admin). Antes era SIN auth.
+    from server import get_current_user
+    _u = await get_current_user(request)
+    if not _u:
+        raise HTTPException(401, "No autenticado")
+    if apt.get("asesor_id") != getattr(_u, "user_id", None) and getattr(_u, "role", "") not in (
+            "superadmin", "asesor_admin", "developer_admin", "developer_director", "inmobiliaria_admin"):
+        raise HTTPException(403, "Esta cita pertenece a otro asesor")
     lead = await db.leads.find_one({"id": apt.get("lead_id")}, {"_id": 0}) if apt.get("lead_id") else None
     if not lead:
         raise HTTPException(404, "Lead asociado no encontrado")

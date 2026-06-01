@@ -46,6 +46,9 @@ async def team_metrics(request: Request, period: str = Query("30d", pattern="^(7
     tenant = getattr(user, "tenant_id", None)
     if user.role == "superadmin":
         tenant = None  # superadmin sees all
+    elif not tenant:
+        # Seguridad: admin sin tenant NO debe ver métricas de todas las inmobiliarias.
+        raise HTTPException(403, "Tu cuenta no tiene inmobiliaria asignada · contacta soporte")
     rows = await get_team_metrics(db, tenant, period)
     avg = (sum(r["pipeline_value_mxn"] for r in rows) / len(rows)) if rows else 0
     return {"period": period, "team_average_pipeline": round(avg, 2), "asesores": rows}
@@ -59,6 +62,11 @@ async def metrics_timeseries(asesor_id: str, request: Request,
     if not is_self and user.role not in ADMIN_ROLES:
         raise HTTPException(403, "Sin permiso")
     db = _db(request)
+    # Seguridad: un admin solo ve asesores de SU inmobiliaria (no cross-tenant).
+    if not is_self and user.role != "superadmin":
+        target = await db.users.find_one({"user_id": asesor_id}, {"_id": 0, "tenant_id": 1})
+        if not target or target.get("tenant_id") != getattr(user, "tenant_id", None):
+            raise HTTPException(403, "Asesor de otra inmobiliaria")
     days = {"7d": 7, "30d": 30, "90d": 90}[period]
     since = (_now() - timedelta(days=days)).date().isoformat()
     snapshots = await db.asesor_metrics_snapshots.find(

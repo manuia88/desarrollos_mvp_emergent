@@ -1044,8 +1044,10 @@ async def lead_buyer_score(lead_id: str, request: Request):
         {"id": lead_id, "owner_id": user.user_id}, {"_id": 0, "emails": 1, "phones": 1}
     )
     if not doc:
+        # Seguridad: el fallback a `leads` debe estar scopeado al asesor (no a cualquier lead).
         doc = await db.leads.find_one(
-            {"id": lead_id}, {"_id": 0, "email": 1, "phone": 1, "emails": 1, "phones": 1}
+            {"id": lead_id, "$or": [{"assigned_to": user.user_id}, {"asesor_id": user.user_id}]},
+            {"_id": 0, "email": 1, "phone": 1, "emails": 1, "phones": 1}
         )
     if not doc:
         return None

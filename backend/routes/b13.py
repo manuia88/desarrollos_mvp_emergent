@@ -114,8 +114,19 @@ async def public_lead_create(payload: PublicLeadCreate, request: Request):
     attr = payload.attribution
     first_touch = last_touch = None
     if attr and attr.touchpoints:
+        # Seguridad: el asesor_id viene del cliente (payload) → validar que sea un asesor
+        # REAL antes de asignar/atribuir (evita robo/spoof de comisión por mass-assignment).
+        cand_ids = [tp.asesor_id for tp in attr.touchpoints if tp.asesor_id]
+        valid_ids = set()
+        if cand_ids:
+            async for u in db.users.find(
+                {"user_id": {"$in": cand_ids},
+                 "role": {"$in": ["advisor", "asesor", "asesor_admin", "broker"]}},
+                {"_id": 0, "user_id": 1},
+            ):
+                valid_ids.add(u["user_id"])
         for tp in attr.touchpoints:
-            if tp.asesor_id:
+            if tp.asesor_id and tp.asesor_id in valid_ids:
                 first_touch = first_touch or tp.asesor_id
                 last_touch = tp.asesor_id
 

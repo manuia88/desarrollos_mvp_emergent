@@ -164,10 +164,18 @@ async def execute_action(
     if action_type not in VALID_ACTIONS:
         raise ValueError(f"action_type inválido: {action_type}")
 
+    # Seguridad (IDOR): el lead debe estar asignado a este asesor; si no, no exponemos
+    # su teléfono/email (la acción devuelve executed=False en vez de filtrar contacto).
     lead = await db.leads.find_one(
-        {"$or": [{"id": lead_id}, {"lead_id": lead_id}]},
+        {"$and": [
+            {"$or": [{"id": lead_id}, {"lead_id": lead_id}]},
+            {"$or": [{"assigned_to": asesor_id}, {"asesor_id": asesor_id}]},
+        ]},
         {"_id": 0, "first_name": 1, "name": 1, "phone": 1, "email": 1},
     )
+    if not lead:
+        return {"action_type": action_type, "executed": False,
+                "error": "Lead no encontrado o no asignado a este asesor"}
 
     result: Dict[str, Any] = {"action_type": action_type, "executed": True}
 

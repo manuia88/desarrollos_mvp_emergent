@@ -161,7 +161,11 @@ async def bulk_re_route(db, lead_ids: List[str], by_user_id: str, tenant_id: str
             )
             if chosen:
                 try:
-                    await db.leads.update_one({"id": lid}, {"$set": {"assigned_to": chosen, "rerouted_at": _now().isoformat()}})
+                    # Seguridad: solo re-routear leads del MISMO tenant (no robar cross-tenant)
+                    lead_q = {"id": lid}
+                    if tenant_id:
+                        lead_q["tenant_id"] = tenant_id
+                    await db.leads.update_one(lead_q, {"$set": {"assigned_to": chosen, "rerouted_at": _now().isoformat()}})
                 except Exception:
                     pass
             ok += 1
@@ -254,14 +258,31 @@ async def journey_stats(db, tenant_id: str, period_days: int = 30) -> Dict[str, 
 
 
 async def outbound_claim(db, lead_id: str, asesor_user_id: str, tenant_id: str) -> Dict[str, Any]:
-    """Asesor 1-click claim: assigns lead + emits 2 steps."""
+    """Asesor 1-click claim: assigns lead + emits 2 steps.
+    Seguridad: solo se puede reclamar un lead DISPONIBLE (mismo filtro que
+    list_outbound_leads: sin asignar o frío >30d) y del MISMO tenant. El update es
+    atómico (CAS): si modified_count==0, el lead ya no estaba disponible → no se roba."""
+    cutoff = _now() - timedelta(days=30)
+    claim_q: Dict[str, Any] = {
+        "id": lead_id,
+        "$or": [
+            {"assigned_to": None},
+            {"assigned_to": {"$exists": False}},
+            {"last_contact_at": {"$lt": cutoff.isoformat()}},
+        ],
+    }
+    if tenant_id:
+        claim_q["tenant_id"] = tenant_id
     try:
-        await db.leads.update_one(
-            {"id": lead_id},
+        res = await db.leads.update_one(
+            claim_q,
             {"$set": {"assigned_to": asesor_user_id, "outbound_claimed_at": _now().isoformat()}},
         )
     except Exception:
-        pass
+        return {"ok": False, "claimed": False, "reason": "error"}
+    if res.modified_count != 1:
+        return {"ok": False, "claimed": False,
+                "reason": "lead no disponible (ya asignado o de otra inmobiliaria)"}
     await emit_step(
         db, lead_id=lead_id, tenant_id=tenant_id, step_type="routed",
         actor_type="asesor", actor_id=asesor_user_id,

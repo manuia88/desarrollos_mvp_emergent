@@ -126,8 +126,8 @@ async def visit_briefing_generate(
     except ValueError as e:
         raise HTTPException(404, str(e))
 
-    # Verificar pertenencia
-    if doc.get("asesor_id") and doc["asesor_id"] != user.user_id:
+    # Verificar pertenencia (sin fail-open: si falta asesor_id, igual se exige rol admin)
+    if doc.get("asesor_id") != user.user_id:
         if user.role not in ("superadmin", "asesor_admin", "developer_admin",
                              "developer_director", "inmobiliaria_admin"):
             raise HTTPException(403, "Briefing pertenece a otro asesor")
@@ -142,7 +142,7 @@ async def visit_briefing_get(appointment_id: str, request: Request):
     doc = await get_briefing(db, appointment_id)
     if not doc:
         raise HTTPException(404, "Briefing no encontrado")
-    if doc.get("asesor_id") and doc["asesor_id"] != user.user_id:
+    if doc.get("asesor_id") != user.user_id:
         if user.role not in ("superadmin", "asesor_admin", "developer_admin",
                              "developer_director", "inmobiliaria_admin"):
             raise HTTPException(403, "Briefing pertenece a otro asesor")
@@ -167,6 +167,19 @@ async def lead_insights(
 ):
     user = await _auth_asesor(request)
     db = _db(request)
+    # Seguridad (IDOR): compute_client_insights NO filtra por asesor → verificamos
+    # aquí que el lead pertenezca a este asesor antes de exponer PII/conducta.
+    if user.role not in ("superadmin", "asesor_admin", "developer_admin",
+                         "developer_director", "inmobiliaria_admin"):
+        owned = await db.leads.find_one(
+            {"id": lead_id, "$or": [{"assigned_to": user.user_id}, {"asesor_id": user.user_id}]},
+            {"_id": 1})
+        if not owned:
+            owned = await db.asesor_contactos.find_one(
+                {"$or": [{"id": lead_id}, {"source_lead_id": lead_id}], "owner_id": user.user_id},
+                {"_id": 1})
+        if not owned:
+            raise HTTPException(404, "Lead no encontrado")
     from services.client_insights import compute_client_insights
     return await compute_client_insights(
         db, lead_id, asesor_id=user.user_id, force=force,
