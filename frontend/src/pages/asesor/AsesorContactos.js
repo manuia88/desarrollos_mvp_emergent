@@ -1234,10 +1234,11 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   const metaText = zona || precio
     ? `${zona || ''}${zona && precio ? ' · ' : ''}${precio ? 'hasta ' + fmtMXN(precio) : ''}`
     : nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada';
-  // B7 · tarjeta COMPACTA y de ALTURA UNIFORME (densa para cientos de leads). Estructura
-  // fija (sin filas condicionales que descuadren): header(avatar+nombre/fuente·aging+score)
-  // → barra de readiness → línea de contexto + acciones. El detalle (próxima acción, N
-  // propiedades, etc.) vive en la Ficha360 al abrir, no en la tarjeta del embudo.
+  const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
+  const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
+  // B7 · tarjeta GANADORA del embudo: info completa + ALTURA UNIFORME. Todas las filas
+  // siempre presentes (con fallback) → cero descuadre. La barra de readiness es el
+  // protagonista: gruesa, con gradiente de marca + temperatura + número /100.
   return (
     <PremiumCard
       hover
@@ -1247,48 +1248,66 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
       onDragEnd={draggable ? onDragEnd : undefined}
       onClick={onOpen}
       data-testid={`lead-card-${c.id}`}
-      style={{ padding: 12, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column', gap: 9, position: 'relative' }}
+      style={{ padding: 15, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}
     >
-      {/* pin · esquina sutil */}
+      {/* pin · esquina */}
       <button data-testid={`pin-${c.id}`} title={c.pinned ? t('pin.unpin', 'Quitar de fijados') : t('pin.pin', 'Fijar arriba')}
         onClick={(e) => { e.stopPropagation(); onPin(); }}
-        style={{ position: 'absolute', top: 9, right: 9, background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: c.pinned ? 1 : 0.45 }}>
+        style={{ position: 'absolute', top: 11, right: 11, background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: c.pinned ? 1 : 0.4 }}>
         <Pin size={13} color={c.pinned ? 'var(--theme-2)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--theme-2)' : 'none'} />
       </button>
 
-      {/* header: avatar + nombre/fuente·aging + score */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 12.5, color: `rgb(${meta.rgb})` }}>
+      {/* header: avatar + nombre + fuente · antigüedad */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+        <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: `rgb(${meta.rgb})` }}>
           {avatarInitials(c)}
         </div>
-        <div style={{ flex: 1, minWidth: 0, paddingRight: 14 }}>
-          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 16 }}>
+          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.first_name} {c.last_name || ''}
           </div>
-          <div style={{ fontSize: 11, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 11.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             <span style={{ color: 'var(--cream-3)', textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</span>
             {agingDisplay && <span style={{ color: agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: agingWarn ? 600 : 400 }}> · {agingDisplay}</span>}
           </div>
         </div>
-        <span className="asr-num" style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, lineHeight: 1, color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)' }}>
-          {score != null ? Math.round(score) : '—'}
-        </span>
       </div>
 
-      {/* barra de readiness */}
-      <ScoreBar score={score} showNumber={false} width="100%" />
+      {/* readiness · temperatura + número + barra GRUESA (el elemento protagonista) */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+          <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: `rgb(${meta.rgb})`, background: `rgba(${meta.rgb}, 0.12)` }}>
+            {meta.label}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
+            <b className="asr-num" style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, lineHeight: 1, color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)' }}>{score != null ? pct : '—'}</b>
+            <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>/100</span>
+          </span>
+        </div>
+        <div style={{ height: 8, borderRadius: 999, background: 'var(--surface-2)', overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(20,25,45,0.07)' }}>
+          <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: score != null ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent', transition: 'width .35s ease' }} />
+        </div>
+      </div>
 
-      {/* contexto (zona·precio) + acciones */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ flex: 1, minWidth: 0, color: 'var(--cream-2)', fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{metaText}</span>
+      {/* búsqueda · zona · precio */}
+      <div style={{ fontSize: 13, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{metaText}</div>
+
+      {/* próxima acción · siempre presente (mantiene la altura uniforme) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: actText ? 'var(--cream)' : 'var(--cream-3)', minWidth: 0 }}>
+        <ArrowRight size={13} color="var(--theme-2)" style={{ flexShrink: 0 }} />
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actText || 'Sin acción pendiente'}</span>
+      </div>
+
+      {/* footer · WhatsApp + Abrir */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
         {waUrl && (
           <a href={waUrl} target="_blank" rel="noreferrer" data-testid={`wa-${c.id}`} title="WhatsApp"
-            onClick={(e) => e.stopPropagation()} className="asr-qbtn" style={{ width: 28, height: 28 }}>
-            <MessageCircle size={13} />
+            onClick={(e) => e.stopPropagation()} className="asr-qbtn" style={{ width: 30, height: 30 }}>
+            <MessageCircle size={14} />
           </a>
         )}
-        <span style={{ fontSize: 11.5, color: 'var(--cream-3)', display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-          Abrir <ArrowRight size={11} />
+        <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'var(--theme-2)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          Abrir <ArrowRight size={12} />
         </span>
       </div>
     </PremiumCard>
