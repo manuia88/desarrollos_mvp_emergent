@@ -1082,8 +1082,20 @@ async def get_contacto_intel(cid: str, request: Request):
     except Exception:
         brief = None
 
+    # B5.4 · Gusto del prospecto (aprendido de sus 👍/👎 del Modo Tinder + cuartos que mira).
+    # Es POR-LEAD (NO promediado): lo que SU conducta revela. FAIL-OPEN · null si no hay señal.
+    taste = None
+    try:
+        from taste_profile import build_taste_profile, taste_summary_line
+        tp = await build_taste_profile(db, user.user_id, cid, persist=False)
+        if tp and int(tp.get("signal_count") or 0) > 0:
+            tp["summary"] = taste_summary_line(tp)
+            taste = tp
+    except Exception:
+        taste = None
+
     return {"disc": disc, "churn": churn, "best_time": best_time, "offer": offer,
-            "enrichment": enrichment, "brief": brief, "has_user": bool(uid)}
+            "enrichment": enrichment, "brief": brief, "taste": taste, "has_user": bool(uid)}
 
 
 @router.patch("/contactos/{cid}")

@@ -638,6 +638,10 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     signalsData = arr.length ? arr : null;
   }
   const offerData = demo ? null : (intel?.offer || null);   // oferta AVM real (demo usa su bloque avance)
+  // B5.4 · Gusto del prospecto · POR-LEAD (lo que SUS 👍/👎 revelan) · demo o motor real.
+  const tasteData = demo?.taste || intel?.taste || null;
+  const tasteChip = { fontSize: 12.5, padding: '4px 11px', borderRadius: 8, background: 'rgba(var(--theme-rgb),0.08)', border: '1px solid rgba(var(--theme-rgb),0.20)', color: 'var(--cream-2)' };
+  const tasteRowLabel = { width: 116, flexShrink: 0, fontSize: 11.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: 0.4, paddingTop: 5 };
 
   // Criterios "qué busca" · demo o derivados de la primera búsqueda (datos reales).
   const criterios = demo ? demo.criterios : (firstBusq ? [
@@ -886,6 +890,68 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                   </div>
                 </div>
               )}
+
+              {/* B5.4 · Qué le gusta · POR-LEAD · aprendido de sus 👍/👎 (Modo Tinder). Búsqueda =
+                  lo que DIJO; gusto = lo que su CONDUCTA revela. Siempre visible (enseña cómo se llena). */}
+              <div style={{ marginBottom: 24 }}>
+                <div className="asr-sec-h"><span className="asr-sdot" style={{ background: 'var(--theme-3, #C63FAE)' }} />Qué le gusta <span className="asr-muted">· aprendido de sus 👍 / 👎</span></div>
+                {tasteData ? (
+                  <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid var(--theme-3, #C63FAE)', borderRadius: 12, background: 'var(--surface)', padding: '16px 18px' }}>
+                    {tasteData.summary && (
+                      <div style={{ fontSize: 14.5, color: 'var(--cream)', lineHeight: 1.55, marginBottom: 15 }}>
+                        {tasteData.summary.charAt(0).toUpperCase() + tasteData.summary.slice(1)}.
+                      </div>
+                    )}
+                    {(tasteData.rooms || []).length > 0 && (
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 11 }}>
+                        <span style={tasteRowLabel}>Más mira</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {tasteData.rooms.slice(0, 4).map((r) => <span key={r.label} style={tasteChip}>{r.label}</span>)}
+                        </div>
+                      </div>
+                    )}
+                    {(tasteData.features || []).length > 0 && (
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 11 }}>
+                        <span style={tasteRowLabel}>Le importa</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {tasteData.features.slice(0, 5).map((f) => <span key={f.label} style={tasteChip}>{f.label}</span>)}
+                        </div>
+                      </div>
+                    )}
+                    {((tasteData.zone || {}).liked || []).length > 0 && (
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 11 }}>
+                        <span style={tasteRowLabel}>Zona que le late</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {tasteData.zone.liked.slice(0, 4).map((z) => <span key={z} style={tasteChip}>{z}</span>)}
+                        </div>
+                      </div>
+                    )}
+                    {((tasteData.zone || {}).rejected || []).length > 0 && (
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 11 }}>
+                        <span style={tasteRowLabel}>Descarta</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {tasteData.zone.rejected.slice(0, 3).map((z) => <span key={z} style={{ ...tasteChip, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream-3)', textDecoration: 'line-through' }}>{z}</span>)}
+                        </div>
+                      </div>
+                    )}
+                    {tasteData.price && (tasteData.price.typical || tasteData.price.ceiling) && (
+                      <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
+                        <span style={tasteRowLabel}>Paga alrededor de</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--cream)', paddingTop: 3 }}>{fmtMXN(tasteData.price.typical || tasteData.price.ceiling)}</span>
+                      </div>
+                    )}
+                    {tasteData.confidence_label && (
+                      <div style={{ marginTop: 13, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--cream-3)' }}>
+                        Confianza de la lectura: <b style={{ color: 'var(--cream-2)' }}>{tasteData.confidence_label}</b>{tasteData.signal_count ? ` · ${tasteData.signal_count} señales` : ''}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ border: '1px dashed var(--border-2)', borderRadius: 12, background: 'var(--surface)', padding: '16px 18px', fontSize: 13.5, color: 'var(--cream-3)', lineHeight: 1.6 }}>
+                    Aún no sé qué le gusta a {c.first_name || 'este lead'}. Compártele propiedades por el <b style={{ color: 'var(--cream-2)' }}>Modo Tinder</b> (pestaña Propiedades); en cuanto marque 👍 / 👎 aprendo sus gustos reales y aparecen aquí — para que sepas qué enseñarle y con qué cerrar.
+                  </div>
+                )}
+              </div>
 
               {/* Oferta sugerida · valuación AVM REAL de la zona (estimación honesta) */}
               {offerData && (

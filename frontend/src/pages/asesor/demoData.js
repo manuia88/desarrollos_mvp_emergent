@@ -82,6 +82,15 @@ export const DEMO_PERFIL = {
       { l: 'Financiamiento', v: 'Crédito aprobado' },
       { l: 'Decide con', v: 'Su hermana' },
     ],
+    // B5.4 · gusto POR-LEAD aprendido de sus 👍/👎 (no promediado con nadie más).
+    taste: {
+      summary: 'se fija en cocina y sala · le importa luz natural y espacios amplios · zona Polanco',
+      rooms: [{ label: 'Cocina', score: 9 }, { label: 'Sala', score: 7 }, { label: 'Recámara principal', score: 5 }, { label: 'Terraza', score: 4 }],
+      features: [{ label: 'luz natural', score: 8 }, { label: 'espacios amplios', score: 6 }, { label: 'acabados de lujo', score: 4 }],
+      zone: { liked: ['Polanco', 'Reforma'], rejected: ['Doctores'] },
+      price: { typical: 7600000, ceiling: 8000000 },
+      confidence: 72, confidence_label: 'Alta', signal_count: 14,
+    },
     pendientes: [
       { kind: 'task', title: 'Enviar comparativo de Polanco', sub: 'Tarea · vence hoy', cta: 'Completar' },
       { kind: 'cita', title: 'Visita a Reforma 350',          sub: 'Cita · viernes 4 pm', cta: 'Ver' },
