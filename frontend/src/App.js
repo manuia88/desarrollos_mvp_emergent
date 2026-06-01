@@ -119,6 +119,8 @@ const CanalesPage = lazy(() => import('./pages/portal/asesor/CanalesPage'));
 const SuperadminKbGaps = lazy(() => import('./components/superadmin/SuperadminKbGaps'));
 // W7.AS.3.F — Round 2 · Cost dashboard (Terminal F · post-merge activado).
 const SuperadminConversationCost = lazy(() => import('./components/superadmin/SuperadminConversationCost'));
+// Copiloto · inteligencia agregada de operación (cierre de ciclo)
+const SuperadminCopilot = lazy(() => import('./components/superadmin/SuperadminCopilot'));
 // W7.AS.3.I — Round 3 · Drift Dashboard (post-merge activado)
 const SuperadminConversationDrift = lazy(() => import('./components/superadmin/SuperadminConversationDrift'));
 // W4.9.6 — 3DGS Tour public embed
@@ -716,6 +718,7 @@ function AppRouter() {
       <Route path="/superadmin/kb-gaps" element={<SuperadminRoute Page={SuperadminKbGaps} />} />
       {/* W7.AS.3.F — Round 2 · Cost dashboard */}
       <Route path="/superadmin/conversation-cost" element={<SuperadminRoute Page={SuperadminConversationCost} />} />
+      <Route path="/superadmin/copilot" element={<SuperadminRoute Page={SuperadminCopilot} />} />
       {/* W7.AS.3.I — Round 3 · Drift Dashboard */}
       <Route path="/superadmin/conversation-drift" element={<SuperadminRoute Page={SuperadminConversationDrift} />} />
       {/* W5.15 wire — Superadmin FSD per-property Accuracy */}

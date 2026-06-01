@@ -68,24 +68,35 @@ function KPI({ label, value, testId, sub }) {
   );
 }
 
+const API = process.env.REACT_APP_BACKEND_URL || '';
+function authHeaders() {
+  const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
+  return tk ? { Authorization: `Bearer ${tk}` } : {};
+}
+const OBJ_LABEL = { precio: 'Precio', ubicacion: 'Ubicación', financiamiento: 'Financiamiento', tiempo: 'No es el momento', competencia: 'Comparando', duda: 'Dudas' };
+
 export default function AsesorMetricas({ user, onLogout }) {
   const [period, setPeriod] = useState('30d');
   const [metrics, setMetrics] = useState(null);
   const [team, setTeam] = useState(null);
   const [series, setSeries] = useState(null);
+  const [copilot, setCopilot] = useState(null);   // cierre de ciclo · métricas del Copiloto del asesor
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [m, t, ts] = await Promise.all([
+      const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
+      const [m, t, ts, cp] = await Promise.all([
         getAsesorMetrics(period),
         getAsesorTeamMetrics(period).catch(() => null),
         getAsesorTimeseries(user?.user_id || 'me', '90d').catch(() => null),
+        fetch(`${API}/api/asesor/copilot/metrics?days=${days}`, { headers: authHeaders(), credentials: 'include' }).then((r) => r.ok ? r.json() : null).catch(() => null),
       ]);
       setMetrics(m);
       setTeam(t);
       setSeries(ts);
+      setCopilot(cp);
     } finally {
       setLoading(false);
     }
@@ -204,6 +215,37 @@ export default function AsesorMetricas({ user, onLogout }) {
                 Conversión · últimos 90 días
               </div>
               <Sparkline data={series.series.conversion_rate} color="#a5b4fc" />
+            </div>
+          )}
+
+          {/* Cierre de ciclo · Tu Copiloto (vista global, no por-conversación) */}
+          {copilot && (copilot.used > 0 || (copilot.top_objeciones || []).length > 0) && (
+            <div style={{ marginTop: 18, padding: 18, borderRadius: 14, background: 'rgba(109,74,255,0.05)', border: '1px solid rgba(109,74,255,0.18)', fontFamily: 'DM Sans' }}>
+              <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a78bfa', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>✨ Tu Copiloto · {period === '7d' ? 'últimos 7 días' : period === '90d' ? 'últimos 90 días' : 'últimos 30 días'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
+                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)' }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{copilot.used || 0}</div>
+                  <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>sugerencias usadas</div>
+                </div>
+                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)' }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: (copilot.response_rate || 0) >= 0.5 ? '#4ADE80' : 'var(--cream)' }}>{Math.round((copilot.response_rate || 0) * 100)}%</div>
+                  <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>respuesta positiva</div>
+                </div>
+                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)' }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{copilot.positive || 0}</div>
+                  <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>respuestas logradas</div>
+                </div>
+              </div>
+              {(copilot.top_objeciones || []).length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 7 }}>Objeciones más frecuentes de tus leads</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {copilot.top_objeciones.map((o) => (
+                      <span key={o.type} style={{ fontSize: 12, fontWeight: 700, padding: '4px 11px', borderRadius: 999, background: 'rgba(242,99,91,0.12)', color: '#F2635B' }}>{OBJ_LABEL[o.type] || o.type} · {o.count}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
