@@ -15,7 +15,7 @@ const STAGES = [
   { k: 'captado',       label: 'Captado',       tone: 'ok' },
 ];
 
-export default function AsesorCaptaciones({ user, onLogout }) {
+export default function AsesorCaptaciones({ user, onLogout, embedded }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -44,8 +44,8 @@ export default function AsesorCaptaciones({ user, onLogout }) {
     catch { setToast({ kind: 'error', text: 'Error al mover' }); load(); }
   };
 
-  return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+  const body = (
+    <>
       <PageHeader
         eyebrow="CRM · CAPTACIONES"
         title="Captaciones de inmuebles en reventa"
@@ -133,8 +133,11 @@ export default function AsesorCaptaciones({ user, onLogout }) {
           .captaciones-layout { flex-direction: column; }
         }
       `}</style>
-    </AdvisorLayout>
+    </>
   );
+
+  // B7 F3 · embedded → sin AdvisorLayout (vive dentro del hub Mis Leads).
+  return embedded ? body : <AdvisorLayout user={user} onLogout={onLogout}>{body}</AdvisorLayout>;
 }
 
 function CreateCaptForm({ onCreated, onError }) {

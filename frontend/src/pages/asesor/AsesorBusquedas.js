@@ -16,7 +16,7 @@ const STAGES = [
   { k: 'ganada',     label: 'Ganada',     tone: 'ok' },
 ];
 
-export default function AsesorBusquedas({ user, onLogout }) {
+export default function AsesorBusquedas({ user, onLogout, embedded }) {
   const [items, setItems] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,8 +73,8 @@ export default function AsesorBusquedas({ user, onLogout }) {
     } catch { setMatches([]); }
   };
 
-  return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+  const body = (
+    <>
       <PageHeader
         eyebrow="CRM · BÚSQUEDAS"
         title="Pipeline de búsquedas"
@@ -234,8 +234,11 @@ export default function AsesorBusquedas({ user, onLogout }) {
           </div>
         </div>
       )}
-    </AdvisorLayout>
+    </>
   );
+
+  // B7 F3 · embedded → sin AdvisorLayout (vive dentro del hub Mis Leads).
+  return embedded ? body : <AdvisorLayout user={user} onLogout={onLogout}>{body}</AdvisorLayout>;
 }
 
 function CreateBusqForm({ contacts, onCreated, onError }) {

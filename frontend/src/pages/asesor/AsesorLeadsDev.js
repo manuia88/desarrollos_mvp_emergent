@@ -6,11 +6,11 @@ import LeadKanban from '../../components/shared/LeadKanban';
 import { Toast } from '../../components/advisor/primitives';
 import { Target } from '../../components/icons';
 
-export default function AsesorLeadsDev({ user, onLogout }) {
+export default function AsesorLeadsDev({ user, onLogout, embedded }) {
   const [toast, setToast] = useState(null);
 
-  return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+  const body = (
+    <>
       <div style={{ marginBottom: 22 }}>
         <div className="eyebrow" style={{ marginBottom: 8 }}>4.29 · LEADS UNIVERSAL</div>
         <h1 data-testid="asesor-leads-dev-h1" style={{
@@ -29,6 +29,9 @@ export default function AsesorLeadsDev({ user, onLogout }) {
       <LeadKanban scope="mine" onToast={setToast} />
 
       {toast && <Toast kind={toast.kind} text={toast.text} onClose={() => setToast(null)} />}
-    </AdvisorLayout>
+    </>
   );
+
+  // B7 F3 · embedded → sin AdvisorLayout (vive dentro del hub Mis Leads).
+  return embedded ? body : <AdvisorLayout user={user} onLogout={onLogout}>{body}</AdvisorLayout>;
 }

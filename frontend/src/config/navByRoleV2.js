@@ -40,14 +40,15 @@ export const ASESOR_NAV_V2 = [
   },
   // 2 · Mis Leads
   {
-    key: 'mis-leads', to: '/asesor/contactos', label: 'Mis Leads', Icon: Users,
-    description: 'Todos tus prospectos · filtros · scoring',
+    key: 'mis-leads', to: '/asesor/mis-leads', label: 'Mis Leads', Icon: Users,
+    description: 'Tu centro de leads · pipeline, búsquedas y captaciones en un lugar',
     children: [
-      { key: 'contactos',    to: '/asesor/contactos',        label: 'Lista de leads',       Icon: Users, badge_source: 'asesor_contacts_new' },
-      { key: 'busquedas',    to: '/asesor/busquedas',        label: 'Pipeline',             Icon: Search },
-      { key: 'alertas',      to: '/portal/asesor/alertas',   label: 'Alertas predictivas',  Icon: Bell },
-      { key: 'outbound',     to: '/asesor/outbound',         label: 'Captura proactiva',    Icon: Radar },
-      { key: 'leads-dev',    to: '/asesor/leads-dev',        label: 'Leads de developers',  Icon: Megaphone },
+      { key: 'contactos',   to: '/asesor/contactos',             label: 'Lista de leads',      Icon: Users, badge_source: 'asesor_contacts_new' },
+      { key: 'pipeline',    to: '/asesor/mis-leads',             label: 'Pipeline',            Icon: Megaphone },
+      { key: 'busquedas',   to: '/asesor/mis-leads/busquedas',   label: 'Búsquedas',           Icon: Search },
+      { key: 'captaciones', to: '/asesor/mis-leads/captaciones', label: 'Captaciones',         Icon: Briefcase },
+      { key: 'alertas',     to: '/portal/asesor/alertas',        label: 'Alertas predictivas', Icon: Bell },
+      { key: 'outbound',    to: '/asesor/outbound',              label: 'Captura proactiva',   Icon: Radar },
     ],
   },
   // 3 · Agenda
@@ -63,10 +64,9 @@ export const ASESOR_NAV_V2 = [
   // 4 · Inventario
   {
     key: 'inventario', to: '/asesor/desarrollos', label: 'Inventario', Icon: Building2,
-    description: 'Desarrollos + tus captaciones + Mini Market público',
+    description: 'Desarrollos + Mini Market público (tus captaciones viven en Mis Leads)',
     children: [
       { key: 'desarrollos', to: '/asesor/desarrollos', label: 'Desarrollos',          Icon: Building2 },
-      { key: 'captaciones', to: '/asesor/captaciones', label: 'Mis captaciones',      Icon: Briefcase },
       { key: 'mini-market', to: '/asesor/mini-market', label: 'Mini Market',          Icon: Store },
     ],
   },

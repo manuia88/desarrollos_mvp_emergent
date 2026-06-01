@@ -161,6 +161,7 @@ const StudioDashboard   = lazy(() => import('./pages/asesor/StudioDashboard'));
 const AsesorBriefings   = lazy(() => import('./pages/asesor/AsesorBriefings'));
 const AsesorCitas       = lazy(() => import('./pages/asesor/AsesorCitas'));
 const AsesorLeadsDev    = lazy(() => import('./pages/asesor/AsesorLeadsDev'));
+const MisLeadsPage      = lazy(() => import('./pages/asesor/MisLeadsPage')); // B7 F3 · hub Pipeline+Búsquedas+Captaciones
 // W5.ASR.4 Parte 1 — CMA visual asesor
 const AsesorCMA         = lazy(() => import('./pages/asesor/AsesorCMA'));
 const AsesorLeadAliases = lazy(() => import('./pages/asesor/AsesorLeadAliases'));
@@ -758,6 +759,9 @@ function AppRouter() {
       <Route path="/asesor/contactos/:id" element={<AdvisorRoute Page={AsesorContactos} />} />
       <Route path="/asesor/busquedas" element={<AdvisorRoute Page={AsesorBusquedas} />} />
       <Route path="/asesor/captaciones" element={<AdvisorRoute Page={AsesorCaptaciones} />} />
+      {/* B7 Fase 3 · Hub Mis Leads (Pipeline + Búsquedas + Captaciones en pestañas) */}
+      <Route path="/asesor/mis-leads" element={<AdvisorRoute Page={MisLeadsPage} />} />
+      <Route path="/asesor/mis-leads/:tab" element={<AdvisorRoute Page={MisLeadsPage} />} />
       <Route path="/asesor/tareas" element={<AdvisorRoute Page={AsesorTareas} />} />
       <Route path="/asesor/operaciones" element={<AdvisorRoute Page={AsesorOperaciones} />} />
       <Route path="/asesor/comisiones" element={<AdvisorRoute Page={AsesorComisiones} />} />
