@@ -14,11 +14,11 @@ import WorkflowNodeCondition from '../../../components/workflow/WorkflowNodeCond
 import WorkflowTemplatesGallery from '../../../components/workflow/WorkflowTemplatesGallery';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
 const GRAY = '#6B7280';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const BORDER = '1px solid var(--border)';
 
 const NODE_W = { trigger: 220, action: 240, condition: 240, delay: 200 };
 const NODE_H = 90;
@@ -70,17 +70,17 @@ function DelayNode({ node, selected, onChange, onSelect }) {
           value={cfg.amount ?? 24}
           onChange={(e) => update({ amount: Number(e.target.value) })}
           onClick={(e) => e.stopPropagation()}
-          style={{ width: 60, background: 'rgba(240,235,224,0.05)', border: '1px solid rgba(240,235,224,0.10)', borderRadius: 8, padding: '6px 8px', color: CREAM, fontSize: 12, outline: 'none' }}
+          style={{ width: 60, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', color: CREAM, fontSize: 12, outline: 'none' }}
         />
         <select
           value={cfg.unit || 'hours'}
           onChange={(e) => update({ unit: e.target.value })}
           onClick={(e) => e.stopPropagation()}
-          style={{ flex: 1, background: 'rgba(240,235,224,0.05)', border: '1px solid rgba(240,235,224,0.10)', borderRadius: 8, padding: '6px 8px', color: CREAM, fontSize: 12, outline: 'none', appearance: 'none', cursor: 'pointer' }}
+          style={{ flex: 1, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 8px', color: CREAM, fontSize: 12, outline: 'none', appearance: 'none', cursor: 'pointer' }}
         >
-          <option value="minutes" style={{ background: '#0D1017' }}>{t('workflows.unit_minutes')}</option>
-          <option value="hours"   style={{ background: '#0D1017' }}>{t('workflows.unit_hours')}</option>
-          <option value="days"    style={{ background: '#0D1017' }}>{t('workflows.unit_days')}</option>
+          <option value="minutes" style={{ background: 'var(--surface)' }}>{t('workflows.unit_minutes')}</option>
+          <option value="hours"   style={{ background: 'var(--surface)' }}>{t('workflows.unit_hours')}</option>
+          <option value="days"    style={{ background: 'var(--surface)' }}>{t('workflows.unit_days')}</option>
         </select>
       </div>
     </div>
@@ -365,7 +365,7 @@ function WorkflowBuilderPageBody() {
       {/* Toolbar */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,
-        background: 'rgba(6,8,15,0.94)', backdropFilter: 'blur(8px)',
+        background: 'var(--surface)', backdropFilter: 'blur(8px)',
         borderBottom: BORDER, padding: '14px 22px',
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
@@ -379,7 +379,7 @@ function WorkflowBuilderPageBody() {
             border: 'none', outline: 'none', fontSize: 18, fontWeight: 700,
           }}
         />
-        <span style={pillStyle(status === 'active' ? '#10B981' : 'rgba(240,235,224,0.6)')}>
+        <span style={pillStyle(status === 'active' ? '#10B981' : 'var(--cream-2)')}>
           {status === 'active'
             ? t('workflows.status_active')
             : status === 'paused'
@@ -416,12 +416,12 @@ function WorkflowBuilderPageBody() {
         {/* Palette */}
         <aside style={{
           width: 220, padding: 22, borderRight: BORDER,
-          background: 'rgba(13,16,23,0.6)',
+          background: 'var(--surface)',
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(240,235,224,0.55)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cream-2)' }}>
             {t('workflows.palette_title')}
           </div>
-          <p style={{ fontSize: 12, color: 'rgba(240,235,224,0.45)', marginTop: 6 }}>
+          <p style={{ fontSize: 12, color: 'var(--cream-3)', marginTop: 6 }}>
             {t('workflows.palette_drag_hint')}
           </p>
           <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
@@ -444,7 +444,7 @@ function WorkflowBuilderPageBody() {
             </button>
           )}
           {capInfo && (
-            <div style={{ marginTop: 22, fontSize: 11, color: 'rgba(240,235,224,0.4)' }}>
+            <div style={{ marginTop: 22, fontSize: 11, color: 'var(--cream-3)' }}>
               {capInfo.count}/{capInfo.cap}
             </div>
           )}
@@ -469,7 +469,7 @@ function WorkflowBuilderPageBody() {
             <div style={{
               position: 'absolute', inset: 0, display: 'flex',
               alignItems: 'center', justifyContent: 'center',
-              color: 'rgba(240,235,224,0.45)', fontSize: 14, textAlign: 'center', padding: 20,
+              color: 'var(--cream-3)', fontSize: 14, textAlign: 'center', padding: 20,
             }}>
               {t('workflows.empty')}
             </div>
@@ -496,7 +496,7 @@ function btnStyle(variant) {
   }
   return {
     background: 'transparent', color: CREAM,
-    border: '1px solid rgba(240,235,224,0.18)', borderRadius: 9999,
+    border: '1px solid var(--border)', borderRadius: 9999,
     padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
     letterSpacing: '0.04em', textTransform: 'uppercase',
   };

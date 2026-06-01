@@ -7,12 +7,12 @@ import { fetchDevelopments } from '../../api/marketplace';
 import { getKanban } from '../../api/leads';
 import PortalLayout from '../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
+const MUTED = 'var(--cream-2)';
 const CARD_BG = 'var(--surface)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const BORDER = '1px solid var(--border)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 const selectStyle = {
@@ -20,8 +20,8 @@ const selectStyle = {
   maxWidth: 360,
   padding: '10px 14px',
   borderRadius: 12,
-  background: 'rgba(240,235,224,0.04)',
-  border: '1px solid rgba(240,235,224,0.14)',
+  background: 'var(--surface-2)',
+  border: '1px solid var(--border)',
   color: CREAM,
   fontFamily: 'DM Sans, sans-serif',
   fontSize: 14,

@@ -71,7 +71,7 @@ function CitaDrawer({ apt, onClose, onAction }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: Z.STICKY, display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
-      <div style={{ width: 400, height: '100%', background: '#0D1118', borderLeft: '1px solid var(--border)', padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}
+      <div style={{ width: 400, height: '100%', background: 'var(--surface)', borderLeft: '1px solid var(--border)', padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}
         onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', margin: 0 }}>Detalle de cita</h3>

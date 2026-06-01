@@ -5,9 +5,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { listMyWorkflows, publishTemplate } from '../../../api/marketplaceTemplates';
 
-const CREAM = '#F0EBE0';
-const MUTED = 'rgba(240,235,224,0.62)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--cream-2)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
 const CATEGORIES = ['nurture', 'post-visita', 'win-back', 'custom'];
@@ -84,7 +84,7 @@ export default function PublishTemplateModal({ open, onClose, onPublished }) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 9000,
-        background: 'rgba(6,8,15,0.85)',
+        background: 'var(--surface)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}
     >
@@ -92,7 +92,7 @@ export default function PublishTemplateModal({ open, onClose, onPublished }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto',
-          background: '#0B0F19', border: BORDER, borderRadius: 18, color: CREAM,
+          background: 'var(--surface)', border: BORDER, borderRadius: 18, color: CREAM,
           padding: 28, display: 'flex', flexDirection: 'column', gap: 14,
         }}
       >

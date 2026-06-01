@@ -8,14 +8,14 @@ import { generateVideo } from '../../../api/studioVideo';
 import HookPredictorModal from '../../../components/hook/HookPredictorModal';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -105,7 +105,7 @@ function StudioVideoPageBody() {
               style={{
                 marginTop: 10, padding: '7px 14px', borderRadius: 9999,
                 background: 'transparent', color: CREAM,
-                border: '1px solid rgba(240,235,224,0.18)',
+                border: '1px solid var(--border)',
                 fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700,
                 cursor: 'pointer',
               }}>
@@ -130,8 +130,8 @@ function StudioVideoPageBody() {
               placeholder="https://..."
               style={{
                 width: '100%', padding: '11px 14px', borderRadius: 12,
-                background: 'rgba(240,235,224,0.04)',
-                border: '1px solid rgba(240,235,224,0.12)',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
                 color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13,
                 outline: 'none',
               }}
@@ -139,7 +139,7 @@ function StudioVideoPageBody() {
             <div style={{
               width: '100%', aspectRatio: '1 / 1', maxWidth: 220,
               borderRadius: 14, overflow: 'hidden',
-              background: 'rgba(240,235,224,0.04)', border: BORDER,
+              background: 'var(--surface-2)', border: BORDER,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto',
             }}>
@@ -173,8 +173,8 @@ function StudioVideoPageBody() {
                 onChange={(e) => setProvider(e.target.value)}
                 style={{
                   width: '100%', padding: '11px 12px', borderRadius: 12,
-                  background: 'rgba(240,235,224,0.04)',
-                  border: '1px solid rgba(240,235,224,0.12)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
                   color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13,
                   outline: 'none', cursor: 'pointer',
                 }}
@@ -210,7 +210,7 @@ function StudioVideoPageBody() {
               style={{
                 marginTop: 6,
                 padding: '14px 22px', borderRadius: 9999, border: 'none',
-                background: canGenerate ? GRAD : 'rgba(240,235,224,0.10)',
+                background: canGenerate ? GRAD : 'var(--surface-2)',
                 color: canGenerate ? '#FFF' : MUTED_2,
                 fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 14,
                 letterSpacing: '0.08em', textTransform: 'uppercase',

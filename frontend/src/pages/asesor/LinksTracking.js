@@ -53,8 +53,8 @@ function LinkRow({ item }) {
   return (
     <div data-testid={`link-row-${item.project_id}`}
       style={{
-        background: 'rgba(240,235,224,0.04)',
-        border: '1px solid rgba(240,235,224,0.1)',
+        background: 'var(--surface-2)',
+        border: '1px solid var(--border)',
         borderRadius: 12, padding: 16, marginBottom: 10,
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
@@ -92,7 +92,7 @@ function LinkRow({ item }) {
         <button onClick={copy}
           data-testid={`copy-${item.project_id}`}
           style={{
-            background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(240,235,224,0.08)',
+            background: copied ? 'rgba(34,197,94,0.15)' : 'var(--surface-2)',
             color: copied ? '#22c55e' : 'var(--cream-2)',
             border: 'none', borderRadius: 6, padding: '4px 8px',
             display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, cursor: 'pointer',
@@ -103,7 +103,7 @@ function LinkRow({ item }) {
         <button onClick={showQr}
           data-testid={`qr-${item.project_id}`}
           style={{
-            background: 'rgba(240,235,224,0.08)', color: 'var(--cream-2)',
+            background: 'var(--surface-2)', color: 'var(--cream-2)',
             border: 'none', borderRadius: 6, padding: '4px 8px',
             display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, cursor: 'pointer',
           }}>
@@ -135,7 +135,7 @@ export default function LinksTrackingPage({ user, onLogout }) {
   }, []);
 
   return (
-    <PortalLayout user={user} onLogout={onLogout}>
+    <PortalLayout role={user?.role} user={user} onLogout={onLogout}>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
         <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
           <BarChart3 size={20} color="var(--cream)" />
@@ -162,7 +162,7 @@ export default function LinksTrackingPage({ user, onLogout }) {
           <div style={{ color: 'var(--cream-3)', fontSize: 13 }}>Cargando…</div>
         ) : links.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13,
-            background: 'rgba(240,235,224,0.03)', border: '1px solid rgba(240,235,224,0.08)', borderRadius: 12 }}>
+            background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12 }}>
             No tienes proyectos asignados todavía. Pide a un developer que te agregue como broker o pre-asignado.
           </div>
         ) : (

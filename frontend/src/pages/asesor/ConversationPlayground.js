@@ -106,18 +106,18 @@ function ConversationPlaygroundBody() {
   };
 
   const col = {
-    background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+    background: 'var(--surface-2)', border: '1px solid var(--border)',
     borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', minHeight: 0,
   };
-  const label = { fontSize: 12, color: 'var(--cream-3, rgba(240,235,224,0.5))', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' };
+  const label = { fontSize: 12, color: 'var(--cream-3, var(--cream-3))', fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' };
   const fieldStyle = {
-    background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 10,
-    color: 'var(--cream, #F0EBE0)', padding: '10px 12px', fontSize: 13, outline: 'none', width: '100%',
+    background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10,
+    color: 'var(--cream, var(--cream))', padding: '10px 12px', fontSize: 13, outline: 'none', width: '100%',
     fontFamily: 'DM Sans, system-ui, sans-serif', boxSizing: 'border-box',
   };
 
   return (
-    <div style={{ padding: 24, color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
+    <div style={{ padding: 24, color: 'var(--cream, var(--cream))', fontFamily: 'DM Sans, system-ui, sans-serif' }}>
       {/* header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <div style={{ width: 40, height: 40, borderRadius: 12, background: GRADIENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -125,7 +125,7 @@ function ConversationPlaygroundBody() {
         </div>
         <div>
           <h1 style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 22, margin: 0, letterSpacing: '-0.02em' }}>{t('playground.title')}</h1>
-          <p style={{ margin: 0, fontSize: 13, color: 'rgba(240,235,224,0.55)' }}>{t('playground.subtitle')}</p>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--cream-2)' }}>{t('playground.subtitle')}</p>
         </div>
       </div>
 
@@ -163,7 +163,7 @@ function ConversationPlaygroundBody() {
               </button>
             ) : (
               <button type="button" onClick={reset}
-                style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream, #F0EBE0)', padding: '10px 0', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                style={{ flex: 1, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream, var(--cream))', padding: '10px 0', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <RotateCcw size={15} /> {t('playground.reset')}
               </button>
             )}
@@ -175,21 +175,21 @@ function ConversationPlaygroundBody() {
           <div style={label}>{t('playground.col_chat')}</div>
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, padding: '4px 2px' }}>
             {!convId && (
-              <div style={{ margin: 'auto', textAlign: 'center', color: 'rgba(240,235,224,0.4)', fontSize: 13, maxWidth: 280 }}>
+              <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13, maxWidth: 280 }}>
                 {t('playground.start_first')}
               </div>
             )}
             {messages.map((m, i) => (
               <div key={i} style={{
                 alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '75%',
-                background: m.role === 'user' ? 'rgba(99,102,241,0.22)' : 'rgba(255,255,255,0.06)',
+                background: m.role === 'user' ? 'rgba(99,102,241,0.22)' : 'var(--surface-2)',
                 borderRadius: 12, padding: '10px 12px', fontSize: 13.5, lineHeight: 1.5, whiteSpace: 'pre-wrap',
               }}>
                 {m.content}
               </div>
             ))}
             {busy && convId && (
-              <div style={{ alignSelf: 'flex-start', color: 'rgba(240,235,224,0.5)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ alignSelf: 'flex-start', color: 'var(--cream-3)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> {t('playground.thinking')}
               </div>
             )}
@@ -209,7 +209,7 @@ function ConversationPlaygroundBody() {
         <div style={col}>
           <div style={label}><Wrench size={13} style={{ verticalAlign: -2, marginRight: 4 }} />{t('playground.col_tools')}</div>
           {!lastTurn || lastTurn.error ? (
-            <div style={{ color: 'rgba(240,235,224,0.4)', fontSize: 13, marginTop: 8 }}>{t('playground.no_tools')}</div>
+            <div style={{ color: 'var(--cream-3)', fontSize: 13, marginTop: 8 }}>{t('playground.no_tools')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               <Detail label={t('playground.model')} value={lastTurn.model || '—'} />
@@ -229,14 +229,14 @@ function ConversationPlaygroundBody() {
               <div style={{ marginTop: 4 }}>
                 <div style={{ ...label, fontSize: 11 }}>Tools</div>
                 {(lastTurn.tools_used && lastTurn.tools_used.length)
-                  ? lastTurn.tools_used.map((tn) => <span key={tn} style={{ display: 'inline-block', background: 'rgba(255,255,255,0.06)', borderRadius: 6, padding: '3px 8px', fontSize: 12, marginRight: 6 }}>{tn}</span>)
-                  : <span style={{ color: 'rgba(240,235,224,0.4)', fontSize: 12 }}>{t('playground.no_tools')}</span>}
+                  ? lastTurn.tools_used.map((tn) => <span key={tn} style={{ display: 'inline-block', background: 'var(--surface-2)', borderRadius: 6, padding: '3px 8px', fontSize: 12, marginRight: 6 }}>{tn}</span>)
+                  : <span style={{ color: 'var(--cream-3)', fontSize: 12 }}>{t('playground.no_tools')}</span>}
               </div>
             </div>
           )}
           {convId && (
             <button type="button" onClick={requestHandoff}
-              style={{ marginTop: 'auto', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream, #F0EBE0)', padding: '9px 0', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              style={{ marginTop: 'auto', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--cream, var(--cream))', padding: '9px 0', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <PhoneForwarded size={15} /> {t('playground.request_handoff')}
             </button>
           )}
@@ -249,7 +249,7 @@ function ConversationPlaygroundBody() {
 function Detail({ label, value }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ color: 'rgba(240,235,224,0.5)' }}>{label}</span>
+      <span style={{ color: 'var(--cream-3)' }}>{label}</span>
       <span style={{ fontWeight: 600 }}>{value}</span>
     </div>
   );

@@ -10,13 +10,13 @@ import FitTopPropertiesList from '../../../components/fit/FitTopPropertiesList';
 import { getBuyerScore } from '../../../api/buyer_score';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 const STATUS_OPTIONS = [
@@ -43,9 +43,9 @@ function chipStyle(active) {
     fontWeight: 700,
     letterSpacing: '0.04em',
     cursor: 'pointer',
-    border: active ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(240,235,224,0.10)',
-    background: active ? 'rgba(99,102,241,0.14)' : 'rgba(240,235,224,0.04)',
-    color: active ? '#C7D2FE' : 'rgba(240,235,224,0.72)',
+    border: active ? '1px solid rgba(99,102,241,0.55)' : '1px solid var(--border)',
+    background: active ? 'rgba(99,102,241,0.14)' : 'var(--surface-2)',
+    color: active ? '#C7D2FE' : 'var(--cream-2)',
     transition: `transform 280ms ${EASE}, background 280ms ${EASE}, border-color 280ms ${EASE}`,
     textTransform: 'uppercase',
   };

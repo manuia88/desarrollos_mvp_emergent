@@ -198,7 +198,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
       <Card style={{ marginBottom: 14, padding: 12 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 200,
-            padding: '8px 12px', background: 'rgba(255,255,255,0.04)',
+            padding: '8px 12px', background: 'var(--surface-2)',
             border: '1px solid var(--border)', borderRadius: 9999 }}>
             <Search size={13} color="var(--cream-3)" />
             <input data-testid="contact-search" placeholder="Buscar por nombre o teléfono…"
@@ -409,7 +409,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
       </div>
 
       <style>{`
-        .asr-select { padding: 8px 14px; border-radius: 9999px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--cream-2); font-family: 'DM Sans'; font-size: 12px; outline: none; }
+        .asr-select { padding: 8px 14px; border-radius: 9999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--cream-2); font-family: 'DM Sans'; font-size: 12px; outline: none; }
         @media (max-width: 768px) {
           .contactos-layout { flex-direction: column; }
         }
@@ -430,9 +430,9 @@ function BulkTaskForm({ busy, onCancel, onSubmit, t }) {
     <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
       <input data-testid="bulk-task-title" value={titulo} onChange={(e) => setTitulo(e.target.value)}
         placeholder={t('bulk.task_title', 'Título de la tarea')}
-        style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', minWidth: 180 }} />
+        style={{ padding: '7px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', minWidth: 180 }} />
       <input data-testid="bulk-task-due" type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)}
-        style={{ padding: '7px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
+        style={{ padding: '7px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
       <button disabled={busy || !titulo.trim() || !due} data-testid="bulk-task-submit" className="btn btn-primary btn-sm" onClick={submit}>
         {t('bulk.confirm', 'Aplicar')}
       </button>
@@ -471,7 +471,7 @@ function CreateContactForm({ onCreated, onError }) {
         <label key={k}>
           <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
           <input data-testid={`new-contact-${k}`} value={f[k]} onChange={e => setF({ ...f, [k]: e.target.value })}
-            style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
+            style={{ width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
         </label>
       ))}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -491,7 +491,7 @@ function CreateContactForm({ onCreated, onError }) {
       <label>
         <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Tags (separados por coma)</div>
         <input data-testid="new-contact-tags" value={f.tags} onChange={e => setF({ ...f, tags: e.target.value })}
-          style={{ width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
+          style={{ width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' }} />
       </label>
       <button onClick={submit} disabled={sub || !f.first_name.trim()} data-testid="new-contact-submit" className="btn btn-primary" style={{ justifyContent: 'center', opacity: (sub || !f.first_name.trim()) ? 0.6 : 1 }}>
         {sub ? 'Creando…' : 'Crear contacto'}
@@ -558,7 +558,7 @@ function ContactDetail({ contact, devs, onOpenArg, onReload, onNote }) {
         ))}
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           <input data-testid="add-note-input" value={note} onChange={e => setNote(e.target.value)} placeholder="Agregar nota…"
-            style={{ flex: 1, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
+            style={{ flex: 1, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none' }} />
           <button onClick={addNote} data-testid="add-note-btn" className="btn btn-glass btn-sm">Guardar</button>
         </div>
       </Card>
@@ -620,7 +620,7 @@ function ArgumentarioForm({ contact, devs, onDone }) {
                 <span style={{
                   position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)',
                   width: 320, padding: 10, zIndex: Z.DROPDOWN,
-                  background: '#0A0D16', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 12,
+                  background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 12,
                   fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-2)', lineHeight: 1.45,
                   boxShadow: '0 12px 36px rgba(0,0,0,0.4)', textAlign: 'left',
                   whiteSpace: 'normal', textTransform: 'none', letterSpacing: 'normal',

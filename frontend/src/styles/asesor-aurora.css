@@ -86,6 +86,11 @@
   z-index: 1;
 }
 
+/* B7 · El interruptor único monta .portal-asesor en el <main>. Las páginas que
+   usan AdvisorLayout ya traen su propio .portal-asesor anidado adentro → matamos
+   el glow del anidado para no duplicar el tinte violeta. Un solo glow, desde el main. */
+.portal-asesor .portal-asesor::before { display: none; }
+
 /* ── Card premium · blanca con borde + sombra que se eleva al hover ───────── */
 .portal-asesor .asr-premium {
   position: relative;

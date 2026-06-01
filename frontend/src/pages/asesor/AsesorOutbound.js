@@ -132,7 +132,7 @@ function AsesorOutboundBody({ user }) {
   };
 
   return (
-    <div data-testid="asesor-outbound-page" style={{ background: '#06080F', minHeight: '100vh', color: '#F0EBE0', padding: '32px 24px' }}>
+    <div data-testid="asesor-outbound-page" style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--cream)', padding: '32px 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a5b4fc', marginBottom: 8 }}>
           OUTBOUND
@@ -173,7 +173,7 @@ function AsesorOutboundBody({ user }) {
           </div>
           {selected.length > 0 && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>{selected.length} seleccionados</span>
+              <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>{selected.length} seleccionados</span>
               <button data-testid="outbound-bulk-reroute" onClick={handleBulkReroute} style={btnGradient()}>Re-rutear</button>
               <button data-testid="outbound-bulk-pause-nurture" onClick={handleBulkPauseNurture} style={btnGhost()}>Pausar nurture</button>
             </div>
@@ -184,20 +184,20 @@ function AsesorOutboundBody({ user }) {
         <div data-testid="outbound-table" style={{
           padding: 0, borderRadius: 16, overflow: 'hidden',
           background: 'var(--surface)', backdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border)',
         }}>
-          {loading && <div style={{ padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.5)' }}>Cargando…</div>}
+          {loading && <div style={{ padding: 24, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando…</div>}
           {!loading && filtered.length === 0 && (
             <div data-testid="outbound-empty" style={{ padding: 50, textAlign: 'center' }}>
               <div style={{ fontFamily: 'Outfit', fontSize: 18, fontWeight: 700, marginBottom: 6 }}>No hay leads disponibles</div>
-              <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.5)' }}>Vuelve mañana o ajusta los filtros.</div>
+              <div style={{ fontSize: 13, color: 'var(--cream-3)' }}>Vuelve mañana o ajusta los filtros.</div>
             </div>
           )}
           {!loading && filtered.length > 0 && (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, fontFamily: 'DM Sans' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10 }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10 }}>
                     <th style={{ padding: '12px 14px', width: 40 }}>
                       <input type="checkbox" checked={selected.length === filtered.length && filtered.length > 0}
                         onChange={e => setSelected(e.target.checked ? filtered.map(l => l.id) : [])} />
@@ -212,7 +212,7 @@ function AsesorOutboundBody({ user }) {
                 </thead>
                 <tbody>
                   {filtered.map(l => (
-                    <tr key={l.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <tr key={l.id} style={{ borderTop: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 14px' }}>
                         <input
                           type="checkbox"
@@ -223,13 +223,13 @@ function AsesorOutboundBody({ user }) {
                         />
                       </td>
                       <td style={{ padding: '12px 8px' }}>
-                        <div style={{ fontWeight: 700, color: '#F0EBE0' }}>{l.name || l.email || l.id}</div>
-                        <div style={{ fontSize: 10, color: 'rgba(240,235,224,0.4)' }}>{l.id}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--cream)' }}>{l.name || l.email || l.id}</div>
+                        <div style={{ fontSize: 10, color: 'var(--cream-3)' }}>{l.id}</div>
                       </td>
-                      <td style={{ padding: '12px 8px', color: 'rgba(240,235,224,0.6)' }}>{l.source || l.origen || 'form'}</td>
-                      <td style={{ padding: '12px 8px', color: 'rgba(240,235,224,0.6)' }}>{(l.disc_bucket || l.disc || '?').toUpperCase()}</td>
-                      <td style={{ padding: '12px 8px', color: 'rgba(240,235,224,0.6)' }}>{l.zona_interes || l.colonia || '—'}</td>
-                      <td style={{ padding: '12px 8px', color: 'rgba(240,235,224,0.6)' }}>
+                      <td style={{ padding: '12px 8px', color: 'var(--cream-2)' }}>{l.source || l.origen || 'form'}</td>
+                      <td style={{ padding: '12px 8px', color: 'var(--cream-2)' }}>{(l.disc_bucket || l.disc || '?').toUpperCase()}</td>
+                      <td style={{ padding: '12px 8px', color: 'var(--cream-2)' }}>{l.zona_interes || l.colonia || '—'}</td>
+                      <td style={{ padding: '12px 8px', color: 'var(--cream-2)' }}>
                         {l.assigned_to ? 'asignado' : 'libre'}
                       </td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>
@@ -271,25 +271,25 @@ function KpiCard({ label, value, warn }) {
   return (
     <div style={{
       padding: '16px 20px', borderRadius: 16, minWidth: 160,
-      background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--surface)', border: '1px solid var(--border)',
     }}>
-      <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
+      <div style={{ fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
         {label}
       </div>
       <div style={{
-        fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, color: warn ? '#fca5a5' : '#F0EBE0', marginTop: 4,
+        fontFamily: 'Outfit', fontSize: 26, fontWeight: 800, color: warn ? '#fca5a5' : 'var(--cream)', marginTop: 4,
       }}>{value}</div>
     </div>
   );
 }
 
-const LBL = { fontSize: 10.5, color: 'rgba(240,235,224,0.5)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans' };
+const LBL = { fontSize: 10.5, color: 'var(--cream-3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans' };
 
 const chip = (active) => ({
   padding: '6px 12px', borderRadius: 9999,
-  background: active ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
-  border: `1px solid ${active ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)'}`,
-  color: active ? '#a5b4fc' : 'rgba(240,235,224,0.6)',
+  background: active ? 'rgba(99,102,241,0.18)' : 'var(--surface-2)',
+  border: `1px solid ${active ? 'rgba(99,102,241,0.4)' : 'var(--border)'}`,
+  color: active ? '#a5b4fc' : 'var(--cream-2)',
   fontFamily: 'DM Sans', fontSize: 11, fontWeight: 600, cursor: 'pointer',
 });
 
@@ -301,8 +301,8 @@ const btnGradient = () => ({
 
 const btnGhost = () => ({
   padding: '8px 16px', borderRadius: 9999,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-  color: '#F0EBE0', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+  background: 'var(--surface-2)', border: '1px solid var(--border)',
+  color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
 });
 
 // F1.5 · wrap en PortalLayout role-aware (sidebar consistente · persiste durante loading)

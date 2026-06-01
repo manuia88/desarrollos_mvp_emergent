@@ -97,7 +97,7 @@ export default function AsesorBusquedas({ user, onLogout }) {
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => onDrop(st.k)}
                   style={{
-                    background: 'rgba(255,255,255,0.02)',
+                    background: 'var(--surface-2)',
                     border: '1px solid var(--border)',
                     borderRadius: 16, padding: 10, minHeight: 400,
                   }}>
@@ -115,7 +115,7 @@ export default function AsesorBusquedas({ user, onLogout }) {
                           data-testid={`busq-card-${b.id}`}
                           style={{
                             padding: 12,
-                            background: 'linear-gradient(180deg, #0D1118, #0A0D16)',
+                            background: 'linear-gradient(180deg, var(--surface), var(--surface))',
                             border: '1px solid var(--border)',
                             borderRadius: 12, cursor: 'grab',
                             transition: 'transform 0.15s, border-color 0.15s',
@@ -200,12 +200,12 @@ export default function AsesorBusquedas({ user, onLogout }) {
       {ganadaPrompt && (
         <div data-testid="ganada-modal" onClick={() => setGanadaPrompt(null)} style={{
           position: 'fixed', inset: 0, zIndex: Z.STICKY,
-          background: 'rgba(6,8,15,0.82)', backdropFilter: 'blur(12px)',
+          background: 'var(--surface)', backdropFilter: 'blur(12px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             width: 480, maxWidth: '100%',
-            background: 'linear-gradient(180deg, #0E1220, #0A0D16)',
+            background: 'linear-gradient(180deg, var(--surface), var(--surface))',
             border: '1px solid rgba(99,102,241,0.28)', borderRadius: 22,
             padding: 28, boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
           }}>
@@ -259,7 +259,7 @@ function CreateBusqForm({ contacts, onCreated, onError }) {
     finally { setSub(false); }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
+  const inputStyle = { width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
   const lblStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 };
 
   return (

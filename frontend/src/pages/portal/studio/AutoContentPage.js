@@ -100,8 +100,8 @@ export default function AutoContentPage({ user, onLogout }) {
                 style={{
                   flex: '1 1 140px', minWidth: 140,
                   padding: '12px 14px', borderRadius: 14,
-                  background: active ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.03)',
-                  border: active ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(255,255,255,0.08)',
+                  background: active ? 'rgba(99,102,241,0.14)' : 'var(--surface-2)',
+                  border: active ? '1px solid rgba(99,102,241,0.45)' : '1px solid var(--border)',
                   textAlign: 'left', cursor: 'pointer',
                   fontFamily: 'DM Sans',
                 }}>
@@ -152,8 +152,8 @@ function QueueCard({ item, busy, onApprove, onReject, t }) {
       data-testid={`queue-card-${item.id}`}
       style={{
         padding: 16, borderRadius: 14,
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        background: 'var(--surface-2)',
+        border: '1px solid var(--border)',
       }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
         <div style={{ minWidth: 0 }}>
@@ -213,8 +213,8 @@ function SmartEmptyState({ status, t }) {
   return (
     <div data-testid="auto-content-empty" style={{
       padding: '60px 28px', textAlign: 'center',
-      background: 'rgba(255,255,255,0.03)', borderRadius: 14,
-      border: '1px dashed rgba(255,255,255,0.10)',
+      background: 'var(--surface-2)', borderRadius: 14,
+      border: '1px dashed var(--border)',
     }}>
       <Inbox size={28} style={{ color: '#6366F1', marginBottom: 10 }} />
       <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: '0 0 8px' }}>
@@ -248,13 +248,13 @@ const hStyle = () => ({ fontFamily: 'Outfit', fontWeight: 800, fontSize: 32, col
 const subStyle = () => ({ fontFamily: 'DM Sans', color: 'var(--cream-2)', fontSize: 14, margin: 0, maxWidth: 720 });
 const primaryBtn = (disabled = false) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-  background: GRADIENT, border: 'none', color: 'var(--cream, #F0EBE0)',
+  background: GRADIENT, border: 'none', color: 'var(--cream, var(--cream))',
   borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1,
 });
 const ghostBtn = () => ({
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-  background: 'transparent', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'transparent', border: '1px solid var(--border)',
   color: 'var(--cream-2)', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
   cursor: 'pointer',
 });
@@ -269,7 +269,7 @@ const statsStrip = () => ({
 });
 const toastStyle = () => ({
   position: 'fixed', bottom: 24, right: 24, padding: '10px 16px',
-  background: 'rgba(13,16,23,0.96)', border: '1px solid rgba(99,102,241,0.4)',
+  background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.4)',
   borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
   zIndex: 2000, boxShadow: '0 10px 24px rgba(0,0,0,0.5)',
 });

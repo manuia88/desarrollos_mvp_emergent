@@ -91,7 +91,7 @@ export default function AsesorCaptaciones({ user, onLogout }) {
                         data-testid={`capt-card-${c.id}`}
                         style={{
                           padding: 12,
-                          background: 'linear-gradient(180deg, #0D1118, #0A0D16)',
+                          background: 'linear-gradient(180deg, var(--surface), var(--surface))',
                           border: '1px solid var(--border)',
                           borderRadius: 12, cursor: 'grab',
                         }}>

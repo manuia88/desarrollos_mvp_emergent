@@ -115,7 +115,7 @@ export default function CarruselesPage({ user, onLogout }) {
               style={{
                 padding: '8px 14px', borderRadius: 9999,
                 background: 'transparent', color: 'var(--cream-2)',
-                border: '1px solid rgba(255,255,255,0.14)',
+                border: '1px solid var(--border)',
                 fontFamily: 'DM Sans', fontSize: 12, fontWeight: 700,
                 cursor: 'pointer',
               }}>
@@ -261,8 +261,8 @@ function EmptyState({ onCreate, t }) {
   return (
     <div data-testid="carrusel-empty" style={{
       padding: '60px 28px', textAlign: 'center',
-      background: 'rgba(255,255,255,0.03)', borderRadius: 14,
-      border: '1px dashed rgba(255,255,255,0.10)',
+      background: 'var(--surface-2)', borderRadius: 14,
+      border: '1px dashed var(--border)',
     }}>
       <Sparkles size={28} style={{ color: '#6366F1', marginBottom: 10 }} />
       <h3 style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)', margin: '0 0 8px' }}>
@@ -415,7 +415,7 @@ function GenerateModal({ brandKits, copyJobs, autoSelectCopyId, onClearAutoSelec
               style={{
                 marginBottom: 12, padding: '8px 16px', borderRadius: 9999,
                 background: GRADIENT, border: 'none',
-                color: 'var(--cream, #F0EBE0)', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
+                color: 'var(--cream, var(--cream))', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
                 cursor: 'pointer',
                 animation: pulseFirstCopy ? 'pulse-cta 0.6s ease-in-out 0s 3' : 'none',
               }}>
@@ -483,7 +483,7 @@ function GenerateModal({ brandKits, copyJobs, autoSelectCopyId, onClearAutoSelec
             <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream)' }}>
               {t('studio.copy.step2_title')}
             </span>
-            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ flex: 1, height: 1, background: 'var(--surface-2)' }} />
           </div>
 
           <label style={labelStyle()}>{t('studio.carrusel.field_brand_kit')}
@@ -509,8 +509,8 @@ function GenerateModal({ brandKits, copyJobs, autoSelectCopyId, onClearAutoSelec
                     style={{
                       padding: '6px 12px', borderRadius: 9999,
                       background: active ? GRADIENT : 'transparent',
-                      border: active ? 'none' : '1px solid rgba(255,255,255,0.14)',
-                      color: active ? 'var(--cream, #F0EBE0)' : 'var(--cream-2)',
+                      border: active ? 'none' : '1px solid var(--border)',
+                      color: active ? 'var(--cream, var(--cream))' : 'var(--cream-2)',
                       fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
                       cursor: 'pointer',
                     }}>
@@ -629,14 +629,14 @@ function CarruselR2Gallery({ r2Urls, initialRatio }) {
   const [active, setActive] = useState(ratios.includes(initialRatio) ? initialRatio : ratios[0]);
   const url = r2Urls[active];
   return (
-    <div style={{ background: 'rgba(6,8,15,0.5)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: 10, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', padding: 10, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {ratios.map((r) => (
             <button key={r} onClick={() => setActive(r)}
               style={{
                 padding: '4px 12px', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 11,
-                border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
+                border: '1px solid var(--border)', cursor: 'pointer',
                 background: active === r ? 'linear-gradient(90deg, #6366F1, #EC4899)' : 'transparent',
                 color: active === r ? '#FFF' : 'var(--cream-2)',
               }}>{r}</button>
@@ -654,7 +654,7 @@ function CarruselR2Gallery({ r2Urls, initialRatio }) {
 
 function ABMetric({ label, a, b }) {
   return (
-    <div style={{ padding: 10, borderRadius: 10, background: 'rgba(6,8,15,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div style={{ padding: 10, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)' }}>
       <div style={{ fontSize: 10, color: 'var(--cream-3)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
         {label}
       </div>
@@ -670,39 +670,39 @@ const hStyle = () => ({ fontFamily: 'Outfit', fontWeight: 800, fontSize: 32, col
 const subStyle = () => ({ fontFamily: 'DM Sans', color: 'var(--cream-2)', fontSize: 14, margin: 0, maxWidth: 720 });
 const primaryBtn = (disabled = false) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-  background: GRADIENT, border: 'none', color: 'var(--cream, #F0EBE0)',
+  background: GRADIENT, border: 'none', color: 'var(--cream, var(--cream))',
   borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1,
 });
 const ghostBtn = () => ({
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-  background: 'transparent', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'transparent', border: '1px solid var(--border)',
   color: 'var(--cream-2)', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5,
   cursor: 'pointer',
 });
 const iconCloseBtn = () => ({
-  padding: '6px 8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.14)',
+  padding: '6px 8px', background: 'transparent', border: '1px solid var(--border)',
   color: 'var(--cream-2)', borderRadius: 9999, cursor: 'pointer',
 });
 const inputStyle = () => ({
   padding: '8px 12px', minWidth: 140, fontFamily: 'DM Sans', fontSize: 12.5,
-  background: 'rgba(6,8,15,0.5)', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'var(--surface)', border: '1px solid var(--border)',
   borderRadius: 9999, color: 'var(--cream)',
 });
 const selectStyle = () => ({
   padding: '8px 12px', minWidth: 160, fontFamily: 'DM Sans', fontSize: 12.5,
-  background: 'rgba(6,8,15,0.5)', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'var(--surface)', border: '1px solid var(--border)',
   borderRadius: 9999, color: 'var(--cream)',
 });
 const filterCard = () => ({
   display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
   padding: 14, borderRadius: 14, marginBottom: 18,
-  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--surface-2)', border: '1px solid var(--border)',
 });
 const cardStyle = () => ({
   padding: 16, borderRadius: 14, cursor: 'pointer',
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: 'var(--surface-2)',
+  border: '1px solid var(--border)',
   transition: 'transform 0.15s, border-color 0.15s',
 });
 const chipStyle = () => ({
@@ -718,19 +718,19 @@ const stepBadgeStyle = () => ({
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   width: 22, height: 22, borderRadius: 9999,
   background: 'linear-gradient(90deg, #6366F1, #EC4899)',
-  color: 'var(--cream, #F0EBE0)',
+  color: 'var(--cream, var(--cream))',
   fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
 });
 const overlayStyle = () => ({
-  position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.75)', backdropFilter: 'blur(8px)',
+  position: 'fixed', inset: 0, background: 'var(--surface)', backdropFilter: 'blur(8px)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   padding: 16, zIndex: 1000, overflow: 'hidden',
 });
 const modalStyle = (maxW = 560) => ({
   width: '100%', maxWidth: maxW, maxHeight: '94vh', overflow: 'hidden',
   padding: '14px 16px', borderRadius: 16,
-  background: 'rgba(13,16,23,0.96)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
   boxShadow: '0 20px 60px rgba(0,0,0,0.55)',
   display: 'flex', flexDirection: 'column', gap: 10,
   scrollbarWidth: 'thin', scrollbarColor: 'rgba(99,102,241,0.4) transparent',
@@ -740,7 +740,7 @@ const modalHeader = () => ({
 });
 const toastStyle = () => ({
   position: 'fixed', bottom: 24, right: 24, padding: '10px 16px',
-  background: 'rgba(13,16,23,0.96)', border: '1px solid rgba(99,102,241,0.4)',
+  background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.4)',
   borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13,
   zIndex: 2000, boxShadow: '0 10px 24px rgba(0,0,0,0.5)',
 });

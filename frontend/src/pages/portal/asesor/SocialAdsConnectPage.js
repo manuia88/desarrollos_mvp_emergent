@@ -8,11 +8,11 @@ import { Link } from 'react-router-dom';
 import { getOAuthUrl, getAccounts, disconnectAccount } from '../../../api/socialAds';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
-const MUTED = 'rgba(240,235,224,0.62)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--cream-2)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
 function bannerFromQuery() {

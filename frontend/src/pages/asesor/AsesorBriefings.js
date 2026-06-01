@@ -66,7 +66,7 @@ export default function AsesorBriefings({ user, onLogout }) {
 
         {err && <div style={{ padding: 12, color: '#fca5a5', fontFamily: 'DM Sans', fontSize: 12.5 }}>{err}</div>}
 
-        <div style={{ background: '#0D1118', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
           <table data-testid="briefings-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)', textAlign: 'left' }}>

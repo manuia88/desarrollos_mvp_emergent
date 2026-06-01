@@ -147,7 +147,7 @@ function VariantCard({ kit, onEdit, onActivate, onDelete, t }) {
         {[kit.color_primary, kit.color_secondary, kit.color_accent].map((c, i) => (
           <div key={i} style={{
             width: 36, height: 36, borderRadius: 9999,
-            background: c || 'var(--bg, #06080F)', border: '1px solid rgba(255,255,255,0.10)',
+            background: c || 'var(--bg, var(--bg))', border: '1px solid var(--border)',
           }} title={c} />
         ))}
       </div>
@@ -155,11 +155,11 @@ function VariantCard({ kit, onEdit, onActivate, onDelete, t }) {
       {/* Live mock */}
       <div style={{
         marginBottom: 14, padding: '14px 16px',
-        background: 'rgba(6,8,15,0.7)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
         borderRadius: 16, backdropFilter: 'blur(24px)',
       }}>
-        <div style={{ fontFamily: kit.font_heading || 'Outfit', fontWeight: 700, fontSize: 16, color: kit.color_accent || '#F0EBE0' }}>
+        <div style={{ fontFamily: kit.font_heading || 'Outfit', fontWeight: 700, fontSize: 16, color: kit.color_accent || 'var(--cream)' }}>
           Preview · {kit.font_heading}
         </div>
         <div style={{ fontFamily: kit.font_body || 'DM Sans', fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>
@@ -190,7 +190,7 @@ function EditorModal({ kit, onClose, onSave, t }) {
     variant_key: kit.variant_key,
     color_primary: kit.color_primary || '#6366F1',
     color_secondary: kit.color_secondary || '#EC4899',
-    color_accent: kit.color_accent || '#F0EBE0',
+    color_accent: kit.color_accent || 'var(--cream)',
     font_heading: kit.font_heading || 'Outfit',
     font_body: kit.font_body || 'DM Sans',
     disclaimer_text: kit.disclaimer_text || '',
@@ -308,7 +308,7 @@ function ColorInput({ value, onChange, testid }) {
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
         data-testid={testid}
-        style={{ width: 36, height: 36, padding: 0, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9999, background: 'transparent', cursor: 'pointer' }} />
+        style={{ width: 36, height: 36, padding: 0, border: '1px solid var(--border)', borderRadius: 9999, background: 'transparent', cursor: 'pointer' }} />
       <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
         style={{ ...inputStyle(), width: 120, fontFamily: 'monospace', fontSize: 12 }} />
     </div>
@@ -325,7 +325,7 @@ const subStyle = () => ({ fontSize: 14, color: 'var(--cream-2)', maxWidth: 720, 
 const cardStyle = (active) => ({
   padding: '16px 18px',
   background: 'rgba(13,17,28,0.62)',
-  border: `1px solid ${active ? 'rgba(34,197,94,0.45)' : 'rgba(255,255,255,0.08)'}`,
+  border: `1px solid ${active ? 'rgba(34,197,94,0.45)' : 'var(--border)'}`,
   borderRadius: 22,
   backdropFilter: 'blur(24px)',
 });
@@ -334,7 +334,7 @@ const ctaPreview = (kit) => ({
   marginTop: 10,
   padding: '8px 16px',
   background: `linear-gradient(90deg, ${kit.color_primary || '#6366F1'}, ${kit.color_secondary || '#EC4899'})`,
-  color: 'var(--cream, #F0EBE0)',
+  color: 'var(--cream, var(--cream))',
   border: 'none',
   borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
@@ -343,7 +343,7 @@ const ctaPreview = (kit) => ({
 
 const btnPrimary = () => ({
   padding: '8px 14px',
-  background: GRADIENT, color: 'var(--cream, #F0EBE0)',
+  background: GRADIENT, color: 'var(--cream, var(--cream))',
   border: 'none', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
   cursor: 'pointer',
@@ -351,7 +351,7 @@ const btnPrimary = () => ({
 const btnGhost = () => ({
   padding: '8px 14px',
   background: 'transparent', color: 'var(--cream-2)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+  border: '1px solid var(--border)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5,
   cursor: 'pointer',
 });
@@ -364,27 +364,27 @@ const btnDanger = () => ({
 const iconBtn = () => ({
   width: 32, height: 32,
   background: 'transparent', color: 'var(--cream-2)',
-  border: '1px solid rgba(255,255,255,0.14)',
+  border: '1px solid var(--border)',
   borderRadius: 9999, cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
 });
 const inputStyle = () => ({
   width: '100%', padding: '8px 12px',
-  background: 'rgba(6,8,15,0.7)', color: 'var(--cream)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 14,
+  background: 'var(--surface)', color: 'var(--cream)',
+  border: '1px solid var(--border)', borderRadius: 14,
   fontFamily: 'DM Sans', fontSize: 13, outline: 'none',
 });
 const textareaStyle = () => ({ ...inputStyle(), resize: 'vertical' });
 const modalOverlayStyle = () => ({
   position: 'fixed', inset: 0, zIndex: 1400,
-  background: 'rgba(6,8,15,0.65)',
+  background: 'var(--surface)',
   backdropFilter: 'blur(8px)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
 });
 const modalStyle = () => ({
   width: '100%', maxWidth: 620,
   background: 'rgba(13,17,28,0.92)',
-  border: '1px solid rgba(255,255,255,0.14)',
+  border: '1px solid var(--border)',
   borderRadius: 22, padding: '22px 24px',
   backdropFilter: 'blur(24px)',
   maxHeight: '88vh', overflowY: 'auto',

@@ -5,11 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { listWorkflowRuns, getWorkflow } from '../../../api/workflows';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 
 const STATUS_COLORS = {
   done: '#10B981',
@@ -52,24 +52,24 @@ function WorkflowHistoryPageBody() {
     <div style={{ minHeight: '100vh', background: BG, color: CREAM, fontFamily: 'DM Sans, sans-serif' }}>
       <div style={{ padding: '22px 30px', borderBottom: BORDER, display: 'flex', alignItems: 'center', gap: 14 }}>
         <button type="button" onClick={() => navigate(`/portal/asesor/workflows/${workflowId}`)}
-          style={{ background: 'transparent', color: CREAM, border: '1px solid rgba(240,235,224,0.18)', borderRadius: 9999, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
+          style={{ background: 'transparent', color: CREAM, border: '1px solid var(--border)', borderRadius: 9999, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
           ← {t('workflows.back')}
         </button>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{t('workflows.history_title')}</h1>
-          <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.62)', marginTop: 4 }}>{wf?.name || workflowId}</div>
+          <div style={{ fontSize: 13, color: 'var(--cream-2)', marginTop: 4 }}>{wf?.name || workflowId}</div>
         </div>
       </div>
 
       <div style={{ padding: '22px 30px' }}>
-        {loading && <div style={{ color: 'rgba(240,235,224,0.55)' }}>…</div>}
+        {loading && <div style={{ color: 'var(--cream-2)' }}>…</div>}
         {!loading && runs.length === 0 && (
-          <div style={{ color: 'rgba(240,235,224,0.55)', fontSize: 14 }}>{t('workflows.history_empty')}</div>
+          <div style={{ color: 'var(--cream-2)', fontSize: 14 }}>{t('workflows.history_empty')}</div>
         )}
         {!loading && runs.length > 0 && (
           <div style={{ display: 'grid', gap: 10 }}>
             {runs.map((r) => {
-              const color = STATUS_COLORS[r.status] || 'rgba(240,235,224,0.6)';
+              const color = STATUS_COLORS[r.status] || 'var(--cream-2)';
               const open = !!expanded[r.id];
               return (
                 <div key={r.id} style={{
@@ -90,8 +90,8 @@ function WorkflowHistoryPageBody() {
                         {t('workflows.history_dry_run')}
                       </span>
                     )}
-                    <span style={{ fontSize: 12, color: 'rgba(240,235,224,0.62)' }}>{r.started_at}</span>
-                    <span style={{ fontSize: 12, color: 'rgba(240,235,224,0.45)', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 12, color: 'var(--cream-2)' }}>{r.started_at}</span>
+                    <span style={{ fontSize: 12, color: 'var(--cream-3)', marginLeft: 'auto' }}>
                       {(r.steps?.length || 0)} {t('workflows.history_steps').toLowerCase()}
                     </span>
                     <button type="button" onClick={() => toggle(r.id)} style={{
@@ -102,11 +102,11 @@ function WorkflowHistoryPageBody() {
                     </button>
                   </div>
                   {open && (
-                    <div style={{ marginTop: 12, padding: 12, background: 'rgba(240,235,224,0.04)', borderRadius: 12 }}>
+                    <div style={{ marginTop: 12, padding: 12, background: 'var(--surface-2)', borderRadius: 12 }}>
                       {(r.steps || []).map((s, i) => (
                         <div key={i} style={{
                           fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
-                          color: 'rgba(240,235,224,0.72)', marginBottom: 4, wordBreak: 'break-word',
+                          color: 'var(--cream-2)', marginBottom: 4, wordBreak: 'break-word',
                         }}>
                           · [{s.type}] {s.node_id} {s.result ? `→ ${JSON.stringify(s.result).slice(0, 200)}` : ''}
                         </div>

@@ -12,14 +12,14 @@ import VideoExportModal from '../../../components/video/VideoExportModal';
 import { generateStandaloneVideo } from '../../../api/videoStandalone';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -36,8 +36,8 @@ const URL_RX = /^https?:\/\/.+/i;
 
 const labelStyle = { fontSize: 11, color: MUTED_2, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 700 };
 const inputStyle = {
-  width: '100%', padding: '11px 14px', borderRadius: 12, background: 'rgba(240,235,224,0.04)',
-  border: '1px solid rgba(240,235,224,0.12)', color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none',
+  width: '100%', padding: '11px 14px', borderRadius: 12, background: 'var(--surface-2)',
+  border: '1px solid var(--border)', color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none',
 };
 
 function VideoStandalonePageBody() {
@@ -135,7 +135,7 @@ function VideoStandalonePageBody() {
                 onClick={() => setHookModalOpen(true)}
                 style={{
                   padding: '7px 14px', borderRadius: 9999, background: 'transparent', color: CREAM,
-                  border: '1px solid rgba(240,235,224,0.18)', fontFamily: 'DM Sans, sans-serif',
+                  border: '1px solid var(--border)', fontFamily: 'DM Sans, sans-serif',
                   fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
                 }}>
                 <Sparkles size={13} /> {t('videoStandalone.predictHook', 'Predecir hook')}
@@ -162,7 +162,7 @@ function VideoStandalonePageBody() {
             )}
             <div style={{
               width: '100%', aspectRatio: '1 / 1', maxWidth: 220, borderRadius: 14, overflow: 'hidden',
-              background: 'rgba(240,235,224,0.04)', border: BORDER,
+              background: 'var(--surface-2)', border: BORDER,
               display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto',
             }}>
               {imageUrl && URL_RX.test(imageUrl) ? (
@@ -199,7 +199,7 @@ function VideoStandalonePageBody() {
                   <button key={d} type="button" data-testid={`vsp-duration-${d}`} onClick={() => setDuration(d)} style={{
                     flex: 1, padding: '10px 0', borderRadius: 9999, cursor: 'pointer',
                     background: duration === d ? 'rgba(99,102,241,0.18)' : 'transparent',
-                    border: `1px solid ${duration === d ? 'rgba(99,102,241,0.5)' : 'rgba(240,235,224,0.18)'}`,
+                    border: `1px solid ${duration === d ? 'rgba(99,102,241,0.5)' : 'var(--border)'}`,
                     color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 700,
                   }}>{d}s</button>
                 ))}
@@ -210,7 +210,7 @@ function VideoStandalonePageBody() {
               type="button" data-testid="vsp-generate-btn" onClick={handleGenerate} disabled={!canGenerate}
               style={{
                 marginTop: 6, padding: '14px 22px', borderRadius: 9999, border: 'none',
-                background: canGenerate ? GRAD : 'rgba(240,235,224,0.10)',
+                background: canGenerate ? GRAD : 'var(--surface-2)',
                 color: canGenerate ? '#FFF' : MUTED_2, fontFamily: 'Outfit, sans-serif', fontWeight: 700,
                 fontSize: 14, letterSpacing: '0.08em', textTransform: 'uppercase',
                 cursor: canGenerate ? 'pointer' : 'not-allowed', opacity: canGenerate ? 1 : 0.7,
@@ -256,7 +256,7 @@ function VideoStandalonePageBody() {
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button type="button" data-testid="vsp-export-latest" onClick={() => openExport(latest)} style={{
                 padding: '9px 18px', borderRadius: 9999, background: 'transparent', color: CREAM,
-                border: '1px solid rgba(240,235,224,0.3)', fontFamily: 'DM Sans, sans-serif',
+                border: '1px solid var(--border)', fontFamily: 'DM Sans, sans-serif',
                 fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
               }}>{t('videoStandalone.exportLatest', 'Exportar este video')}</button>
             </div>

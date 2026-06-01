@@ -164,7 +164,7 @@ export default function AssetLibraryPage({ user, onLogout }) {
               {Object.entries(uploadProgress).map(([name, pct]) => (
                 <div key={name} style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 4 }}>
                   {name} · {pct}%
-                  <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', marginTop: 3, borderRadius: 9999, overflow: 'hidden' }}>
+                  <div style={{ height: 3, background: 'var(--surface-2)', marginTop: 3, borderRadius: 9999, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${pct}%`, background: GRADIENT, transition: 'width 300ms ease' }} />
                   </div>
                 </div>
@@ -291,14 +291,14 @@ const sidebarStyle = () => ({
   position: 'sticky', top: 96,
   padding: '14px 16px',
   background: 'rgba(13,17,28,0.62)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--border)',
   borderRadius: 22, backdropFilter: 'blur(24px)',
   height: 'fit-content',
 });
 const inputStyle = () => ({
   width: '100%', padding: '8px 12px',
-  background: 'rgba(6,8,15,0.7)', color: 'var(--cream)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+  background: 'var(--surface)', color: 'var(--cream)',
+  border: '1px solid var(--border)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontSize: 12, outline: 'none',
 });
 const uploadZoneStyle = () => ({
@@ -311,7 +311,7 @@ const uploadZoneStyle = () => ({
 const cardStyle = () => ({
   padding: 10,
   background: 'rgba(13,17,28,0.62)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--border)',
   borderRadius: 16, backdropFilter: 'blur(24px)',
 });
 const typePill = () => ({
@@ -332,19 +332,19 @@ const iconBtn = () => ({
 const iconBtnLg = () => ({
   width: 32, height: 32,
   background: 'transparent', color: 'var(--cream-2)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+  border: '1px solid var(--border)', borderRadius: 9999,
   cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
 });
 const modalOverlay = () => ({
   position: 'fixed', inset: 0, zIndex: 1400,
-  background: 'rgba(6,8,15,0.65)', backdropFilter: 'blur(8px)',
+  background: 'var(--surface)', backdropFilter: 'blur(8px)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
 });
 const modalContent = () => ({
   width: '100%', maxWidth: 720,
   background: 'rgba(13,17,28,0.92)',
-  border: '1px solid rgba(255,255,255,0.14)',
+  border: '1px solid var(--border)',
   borderRadius: 22, padding: '22px 24px',
   backdropFilter: 'blur(24px)',
   maxHeight: '90vh', overflowY: 'auto',

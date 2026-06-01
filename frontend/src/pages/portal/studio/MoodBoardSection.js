@@ -203,7 +203,7 @@ function AssetTile({ asset, selected, index, onToggle, onReorderLeft, onReorderR
       style={{
         padding: 8,
         background: 'rgba(13,17,28,0.62)',
-        border: `1px solid ${selected ? 'rgba(99,102,241,0.50)' : 'rgba(255,255,255,0.08)'}`,
+        border: `1px solid ${selected ? 'rgba(99,102,241,0.50)' : 'var(--border)'}`,
         borderRadius: 14, backdropFilter: 'blur(24px)',
         position: 'relative',
       }}>
@@ -238,7 +238,7 @@ function AssetTile({ asset, selected, index, onToggle, onReorderLeft, onReorderR
           padding: '5px 8px',
           background: selected ? 'transparent' : GRADIENT,
           color: selected ? 'var(--cream-2)' : '#FFF',
-          border: selected ? '1px solid rgba(255,255,255,0.14)' : 'none',
+          border: selected ? '1px solid var(--border)' : 'none',
           borderRadius: 9999, cursor: 'pointer',
           fontSize: 11, fontWeight: 600,
         }}>
@@ -253,14 +253,14 @@ const tabStyle = (active) => ({
   padding: '6px 14px',
   background: active ? GRADIENT : 'transparent',
   color: active ? '#FFF' : 'var(--cream-2)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+  border: '1px solid var(--border)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
   cursor: 'pointer',
 });
 const addBtn = () => ({
   display: 'inline-flex', alignItems: 'center', gap: 4,
   padding: '6px 14px',
-  background: GRADIENT, color: 'var(--cream, #F0EBE0)',
+  background: GRADIENT, color: 'var(--cream, var(--cream))',
   border: 'none', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12,
   cursor: 'pointer',
@@ -268,7 +268,7 @@ const addBtn = () => ({
 const ghostBtn = () => ({
   padding: '6px 12px',
   background: 'transparent', color: 'var(--cream-2)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+  border: '1px solid var(--border)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
   cursor: 'pointer',
 });
@@ -282,13 +282,13 @@ const dangerBtn = () => ({
 });
 const inputStyle = () => ({
   padding: '6px 12px',
-  background: 'rgba(6,8,15,0.7)', color: 'var(--cream)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+  background: 'var(--surface)', color: 'var(--cream)',
+  border: '1px solid var(--border)', borderRadius: 9999,
   fontFamily: 'DM Sans', fontSize: 12, outline: 'none',
 });
 const miniBtn = () => ({
   width: 22, height: 22,
   background: 'transparent', color: 'var(--cream-2)',
-  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+  border: '1px solid var(--border)', borderRadius: 9999,
   cursor: 'pointer', fontSize: 12, lineHeight: 1,
 });

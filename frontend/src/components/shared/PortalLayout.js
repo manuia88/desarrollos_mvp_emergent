@@ -495,7 +495,12 @@ function PortalLayoutInner({ role, user, onLogout, children, projectSwitcherSlot
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto" data-testid="portal-main" id="main-content" tabIndex="-1">
+        {/* B7 · INTERRUPTOR ÚNICO de tema claro asesor. .portal-asesor en el <main>
+            voltea los tokens (--bg/--surface/--cream/--border) a tema claro para TODA
+            página de rol asesor, venga de AdvisorLayout o de PortalLayout directo
+            (Studio, social-ads, workflows…). Mismo patrón que `frame-light` del chrome.
+            El color vive en UN solo lugar: asesor-aurora.css. */}
+        <main className={`flex-1 overflow-y-auto${isAsesor ? ' portal-asesor' : ''}`} data-testid="portal-main" id="main-content" tabIndex="-1">
           {children}
         </main>
       </div>

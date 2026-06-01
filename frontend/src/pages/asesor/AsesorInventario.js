@@ -50,7 +50,7 @@ function ProjectDrawer({ project, onClose }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(6,8,15,0.80)',
+        background: 'var(--surface)',
         backdropFilter: 'blur(8px)',
         zIndex: Z.MODAL, display: 'flex', justifyContent: 'flex-end',
       }}

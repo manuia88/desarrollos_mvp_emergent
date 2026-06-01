@@ -7,14 +7,14 @@ import StagingResultGallery from '../../../components/staging/StagingResultGalle
 import { postVirtualStaging } from '../../../api/virtual_staging';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
 const ROSE = '#EC4899';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -124,7 +124,7 @@ function VirtualStagingPageBody() {
                 style={{
                   padding: '7px 14px', borderRadius: 9999,
                   background: 'transparent', color: CREAM,
-                  border: '1px solid rgba(240,235,224,0.20)',
+                  border: '1px solid var(--border)',
                   fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700,
                   letterSpacing: '0.04em', cursor: 'pointer',
                   transition: `transform 280ms ${EASE}`,
@@ -174,7 +174,7 @@ function VirtualStagingPageBody() {
                 disabled={!canGenerate}
                 style={{
                   padding: '16px 36px', borderRadius: 9999, border: 'none',
-                  background: canGenerate ? GRAD : 'rgba(240,235,224,0.10)',
+                  background: canGenerate ? GRAD : 'var(--surface-2)',
                   color: canGenerate ? '#FFF' : MUTED_2,
                   fontFamily: 'Outfit, sans-serif', fontWeight: 700,
                   fontSize: 15, letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -207,7 +207,7 @@ function VirtualStagingPageBody() {
                 <div key={s} style={{
                   background: CARD_BG, border: BORDER, borderRadius: 24, overflow: 'hidden',
                   height: 320,
-                  backgroundImage: 'linear-gradient(90deg, rgba(240,235,224,0.03), rgba(240,235,224,0.10), rgba(240,235,224,0.03))',
+                  backgroundImage: 'linear-gradient(90deg, var(--surface-2), var(--surface-2), var(--surface-2))',
                   backgroundSize: '200% 100%', animation: 'vsShimmer 1.4s linear infinite',
                 }} />
               ))}
@@ -259,7 +259,7 @@ function VirtualStagingPageBody() {
                 style={{
                   padding: '10px 22px', borderRadius: 9999,
                   background: 'transparent', color: CREAM,
-                  border: '1px solid rgba(240,235,224,0.30)',
+                  border: '1px solid var(--border)',
                   fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 13,
                   letterSpacing: '0.04em', cursor: 'pointer',
                   transition: `transform 280ms ${EASE}`,

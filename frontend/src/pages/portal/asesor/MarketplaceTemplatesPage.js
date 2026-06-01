@@ -15,12 +15,12 @@ import { SmartEmptyState } from '../../../components/shared/SmartEmptyState';
 import PublishTemplateModal from './PublishTemplateModal';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
 const CATEGORIES = ['nurture', 'post-visita', 'win-back', 'custom'];
@@ -80,7 +80,7 @@ function Card({ item, onOpen }) {
         {item.description || t('marketplaceTemplates.noDescription', 'Sin descripción')}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                     marginTop: 4, paddingTop: 10, borderTop: '1px solid rgba(240,235,224,0.06)' }}>
+                     marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
         <StarRating value={item.avg_rating} count={item.ratings_count} />
         <span style={{ fontSize: 12, color: MUTED_2 }}>
           {item.downloads || 0} {t('marketplaceTemplates.downloads', 'descargas')}
@@ -147,7 +147,7 @@ function DetailModal({ open, item, onClose, onCloneOk }) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 9000,
-        background: 'rgba(6,8,15,0.85)',
+        background: 'var(--surface)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 24,
       }}
@@ -156,7 +156,7 @@ function DetailModal({ open, item, onClose, onCloneOk }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto',
-          background: '#0B0F19', border: BORDER, borderRadius: 18, color: CREAM,
+          background: 'var(--surface)', border: BORDER, borderRadius: 18, color: CREAM,
           padding: 28, display: 'flex', flexDirection: 'column', gap: 16,
         }}
       >
@@ -194,7 +194,7 @@ function DetailModal({ open, item, onClose, onCloneOk }) {
 
         <div style={{
           display: 'flex', gap: 16, alignItems: 'center', padding: 14,
-          borderRadius: 12, background: 'rgba(240,235,224,0.04)',
+          borderRadius: 12, background: 'var(--surface-2)',
         }}>
           <div>
             <div style={{ fontSize: 11, opacity: 0.55, textTransform: 'uppercase', letterSpacing: 0.6 }}>
@@ -225,7 +225,7 @@ function DetailModal({ open, item, onClose, onCloneOk }) {
           </button>
         </div>
 
-        <div style={{ borderTop: '1px solid rgba(240,235,224,0.06)', paddingTop: 14 }}>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
             {t('marketplaceTemplates.rateThis', 'Calificar (requiere clonar primero)')}
           </div>
@@ -398,7 +398,7 @@ function MarketplaceTemplatesPageBody() {
                 : t('marketplaceTemplates.filter.allCategories', 'Todas')}
             </button>
           ))}
-          <span style={{ width: 1, background: 'rgba(240,235,224,0.10)', alignSelf: 'stretch' }} />
+          <span style={{ width: 1, background: 'var(--surface-2)', alignSelf: 'stretch' }} />
           {filtersChips.tiers.map((p) => (
             <button
               key={`tier-${p || 'all'}`} type="button"
@@ -413,7 +413,7 @@ function MarketplaceTemplatesPageBody() {
               {p ? t(`marketplaceTemplates.tier.${p}`, p) : t('marketplaceTemplates.filter.anyPrice', 'Cualquier precio')}
             </button>
           ))}
-          <span style={{ width: 1, background: 'rgba(240,235,224,0.10)', alignSelf: 'stretch' }} />
+          <span style={{ width: 1, background: 'var(--surface-2)', alignSelf: 'stretch' }} />
           {filtersChips.sorts.map((s) => (
             <button
               key={`sort-${s}`} type="button"

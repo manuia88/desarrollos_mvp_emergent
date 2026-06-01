@@ -88,7 +88,7 @@ export default function ListingImportPage({ user, onLogout }) {
         <div style={{
           padding: '18px 20px', marginBottom: 22,
           background: 'rgba(13,17,28,0.62)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border)',
           borderRadius: 22, backdropFilter: 'blur(24px)',
         }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -98,8 +98,8 @@ export default function ListingImportPage({ user, onLogout }) {
               onChange={(e) => setPortal(e.target.value)}
               style={{
                 padding: '10px 12px',
-                background: 'rgba(6,8,15,0.7)', color: 'var(--cream)',
-                border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+                background: 'var(--surface)', color: 'var(--cream)',
+                border: '1px solid var(--border)', borderRadius: 9999,
                 fontFamily: 'DM Sans', fontSize: 13, cursor: 'pointer',
               }}>
               <option value="easybroker">EasyBroker</option>
@@ -116,8 +116,8 @@ export default function ListingImportPage({ user, onLogout }) {
                 onChange={(e) => setUrl(e.target.value)}
                 style={{
                   width: '100%', padding: '10px 12px 10px 34px',
-                  background: 'rgba(6,8,15,0.7)', color: 'var(--cream)',
-                  border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9999,
+                  background: 'var(--surface)', color: 'var(--cream)',
+                  border: '1px solid var(--border)', borderRadius: 9999,
                   fontFamily: 'DM Sans', fontSize: 13, outline: 'none',
                 }} />
             </div>
@@ -277,7 +277,7 @@ const historyRowStyle = () => ({
   display: 'flex', alignItems: 'center', gap: 12,
   padding: '12px 14px',
   background: 'rgba(13,17,28,0.62)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--border)',
   borderRadius: 14, backdropFilter: 'blur(24px)',
 });
 const iconBtn = () => ({

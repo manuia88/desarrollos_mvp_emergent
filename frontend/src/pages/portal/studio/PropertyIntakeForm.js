@@ -9,14 +9,14 @@ import { createIntake, getIntake, patchIntake, generateCopy, publishIntake } fro
 import { useAuth } from '../../../App';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
-const BG_CARD = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(255,255,255,0.10)';
+const BG_CARD = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 const btnGradient = (x = {}) => ({ padding: '10px 18px', background: GRADIENT, color: '#fff', border: 'none', borderRadius: 9999, fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...x });
-const btnSecondary = (x = {}) => ({ padding: '10px 16px', background: 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 9999, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...x });
-const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13, fontFamily: 'DM Sans, sans-serif' };
-const labelStyle = { fontSize: 12, color: 'rgba(240,235,224,0.7)', display: 'block', marginBottom: 6, fontWeight: 600 };
+const btnSecondary = (x = {}) => ({ padding: '10px 16px', background: 'rgba(99,102,241,0.12)', color: 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 9999, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...x });
+const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontSize: 13, fontFamily: 'DM Sans, sans-serif' };
+const labelStyle = { fontSize: 12, color: 'var(--cream-2)', display: 'block', marginBottom: 6, fontWeight: 600 };
 
 // Mappings value → label español natural (UX-friendly · el value se sigue mandando al backend)
 const PROPERTY_TYPES = [
@@ -123,7 +123,7 @@ function Field({ label, children, hint }) {
     <label style={{ display: 'block', marginBottom: 12 }}>
       <span style={labelStyle}>{label}</span>
       {children}
-      {hint && <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 4 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 4 }}>{hint}</div>}
     </label>
   );
 }
@@ -146,7 +146,7 @@ function ArrayChips({ list, onChange, placeholder, max = 10, testid }) {
         {(list || []).map((s, i) => (
           <span key={i} style={{ padding: '4px 10px', background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 9999, fontSize: 12, display: 'inline-flex', gap: 6, alignItems: 'center' }}>
             {s}
-            <button type="button" onClick={() => onChange(list.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: 'rgba(240,235,224,0.7)', cursor: 'pointer', padding: 0 }}><Icons.X size={11} /></button>
+            <button type="button" onClick={() => onChange(list.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: 'var(--cream-2)', cursor: 'pointer', padding: 0 }}><Icons.X size={11} /></button>
           </span>
         ))}
       </div>
@@ -241,7 +241,7 @@ function SectionDeveloper({ data, set }) {
         </>
       )}
       {!isDev && !isResale && (
-        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.08)', color: 'rgba(240,235,224,0.7)', fontSize: 13 }}>
+        <div style={{ padding: 14, borderRadius: 10, background: 'rgba(99,102,241,0.08)', color: 'var(--cream-2)', fontSize: 13 }}>
           Esta sección solo aplica si elegiste <strong>Desarrollo nuevo</strong> o <strong>Reventa</strong> en la sección anterior. Como tu propiedad es <strong>{(PROPERTY_TYPES.find((p) => p.value === data.property_type)?.label || data.property_type).toLowerCase()}</strong>, puedes saltarla.
         </div>
       )}
@@ -256,7 +256,7 @@ function SectionTypologies({ data, set }) {
     <div data-testid="sec-typologies">
       <div style={{ display: 'grid', gap: 10 }}>
         {list.map((t, i) => (
-          <div key={i} style={{ padding: 12, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div key={i} style={{ padding: 12, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
               <input placeholder="Code" value={t.code || ''} onChange={(e) => upd(i, 'code', e.target.value)} style={inputStyle} />
               <input placeholder="Nombre" value={t.name || ''} onChange={(e) => upd(i, 'name', e.target.value)} style={inputStyle} />
@@ -441,7 +441,7 @@ function SectionTrust({ data, set }) {
       <div>
         <span style={labelStyle}>Testimoniales</span>
         {(data.testimonials || []).map((t, i) => (
-          <div key={i} style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 10, marginBottom: 8 }}>
+          <div key={i} style={{ padding: 10, background: 'var(--surface-2)', borderRadius: 10, marginBottom: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 64px', gap: 6 }}>
               <input placeholder="Autor" value={t.author || ''} onChange={(e) => { const next = [...data.testimonials]; next[i] = { ...t, author: e.target.value }; set({ testimonials: next }); }} style={inputStyle} />
               <input placeholder="Rol" value={t.role || ''} onChange={(e) => { const next = [...data.testimonials]; next[i] = { ...t, role: e.target.value }; set({ testimonials: next }); }} style={inputStyle} />
@@ -526,12 +526,12 @@ function SectionDifferentiators({ data, set }) {
       </Field>
       <div>
         <span style={labelStyle}>¿Qué hace único a este proyecto? (3 a 10 puntos)</span>
-        <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 8 }}>Escribe cada característica única en un chip · enter para agregar</div>
+        <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 8 }}>Escribe cada característica única en un chip · enter para agregar</div>
         <ArrayChips list={data.unique_selling_points} onChange={(v) => set({ unique_selling_points: v })} placeholder="Ej: Roof garden 800m² · arquitecto reconocido · vista al Bosque de Chapultepec" testid="usp-input" max={10} />
       </div>
       <div>
         <span style={labelStyle}>Ventajas frente a la competencia de la zona</span>
-        <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', marginBottom: 8 }}>Lo que SÍ tienes que los desarrollos cercanos NO ofrecen</div>
+        <div style={{ fontSize: 11, color: 'var(--cream-3)', marginBottom: 8 }}>Lo que SÍ tienes que los desarrollos cercanos NO ofrecen</div>
         <ArrayChips list={data.competitive_advantages} onChange={(v) => set({ competitive_advantages: v })} placeholder="Ej: bodega incluida · cero comisión reventa · concierge 24/7" max={10} />
       </div>
     </div>
@@ -559,7 +559,7 @@ function Toast({ msg, onClose }) {
   useEffect(() => { if (msg) { const id = setTimeout(onClose, 3200); return () => clearTimeout(id); } return undefined; }, [msg, onClose]);
   if (!msg) return null;
   return (
-    <div data-testid="intake-toast" style={{ position: 'fixed', bottom: 24, right: 24, background: BG_CARD, color: '#F0EBE0', padding: '12px 18px', borderRadius: 9999, border: BORDER, zIndex: 1100, backdropFilter: 'blur(24px)' }}>{msg}</div>
+    <div data-testid="intake-toast" style={{ position: 'fixed', bottom: 24, right: 24, background: BG_CARD, color: 'var(--cream)', padding: '12px 18px', borderRadius: 9999, border: BORDER, zIndex: 1100, backdropFilter: 'blur(24px)' }}>{msg}</div>
   );
 }
 
@@ -746,15 +746,15 @@ export default function PropertyIntakeForm({ user, onLogout }) {
 
   return (
     <PortalLayout role={user?.role} user={user} onLogout={onLogout}>
-      <div data-testid="property-intake-form" style={{ padding: '20px 8px', color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif' }}>
+      <div data-testid="property-intake-form" style={{ padding: '20px 8px', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
           <div>
             <div style={{ letterSpacing: '0.3em', fontSize: 11, color: '#6366F1', textTransform: 'uppercase' }}>Studio · Z.8.7</div>
             <h1 style={{ margin: '6px 0 0', fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.5rem, 2.6vw, 2rem)', fontWeight: 800 }}>Crear landing con IA</h1>
-            <p style={{ color: 'rgba(240,235,224,0.6)', marginTop: 4, fontSize: 13 }}>Llena las 14 secciones · auto-save activo · IA genera el copy final.</p>
+            <p style={{ color: 'var(--cream-2)', marginTop: 4, fontSize: 13 }}>Llena las 14 secciones · auto-save activo · IA genera el copy final.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span data-testid="save-status" style={{ fontSize: 12, color: saveStatus === 'error' ? '#F87171' : 'rgba(240,235,224,0.6)' }}>
+            <span data-testid="save-status" style={{ fontSize: 12, color: saveStatus === 'error' ? '#F87171' : 'var(--cream-2)' }}>
               {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : saveStatus === 'error' ? 'Error guardado' : ''}
             </span>
             <button data-testid="back-to-landings" type="button" onClick={() => navigate('/portal/studio/landings')} style={btnSecondary()}><Icons.ChevronLeft size={12} /> Volver</button>
@@ -774,7 +774,7 @@ export default function PropertyIntakeForm({ user, onLogout }) {
         </div>
 
         {loading ? (
-          <div style={{ padding: 60, textAlign: 'center', color: 'rgba(240,235,224,0.6)' }}>Cargando intake...</div>
+          <div style={{ padding: 60, textAlign: 'center', color: 'var(--cream-2)' }}>Cargando intake...</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 1fr', gap: 14, minHeight: '70vh' }}>
             {/* Vertical stepper · 14 sections */}
@@ -784,7 +784,7 @@ export default function PropertyIntakeForm({ user, onLogout }) {
                 const done = completedSteps[s.key];
                 const isActive = active === s.key;
                 return (
-                  <button key={s.key} type="button" data-testid={`step-${s.key}`} onClick={() => setActive(s.key)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 10, border: isActive ? '1px solid #6366F1' : '1px solid transparent', background: isActive ? 'rgba(99,102,241,0.18)' : 'transparent', color: '#F0EBE0', cursor: 'pointer', marginBottom: 4, fontSize: 12 }}>
+                  <button key={s.key} type="button" data-testid={`step-${s.key}`} onClick={() => setActive(s.key)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '9px 10px', borderRadius: 10, border: isActive ? '1px solid #6366F1' : '1px solid transparent', background: isActive ? 'rgba(99,102,241,0.18)' : 'transparent', color: 'var(--cream)', cursor: 'pointer', marginBottom: 4, fontSize: 12 }}>
                     <Ico size={14} color={done ? '#22C55E' : '#6366F1'} />
                     <span style={{ flex: 1 }}>{s.label}</span>
                     {done && <Icons.Check size={12} color="#22C55E" />}
@@ -808,7 +808,7 @@ export default function PropertyIntakeForm({ user, onLogout }) {
             {/* Split-pane preview */}
             <section data-testid="intake-preview" style={{ background: BG_CARD, border: BORDER, borderRadius: 14, padding: 8, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ padding: '6px 10px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Preview · {data.template_key}</span>
+                <span style={{ fontSize: 11, color: 'var(--cream-3)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Preview · {data.template_key}</span>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {copy && <span style={{ fontSize: 11, color: '#22C55E' }}>copy IA activo</span>}
                   {data.slug && <a href={`/landing/${data.slug}${data.published ? '' : '?preview=1'}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#6366F1', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icons.ExternalLink size={10} /> Abrir en nueva pestaña</a>}

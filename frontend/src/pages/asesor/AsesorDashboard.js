@@ -275,7 +275,7 @@ export default function AsesorDashboard({ user, onLogout }) {
                   {briefingsSummary.recent.map(r => (
                     <div key={r.id} data-testid="briefing-recent-row" style={{
                       display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-                      background: 'rgba(255,255,255,0.02)', borderRadius: 10,
+                      background: 'var(--surface-2)', borderRadius: 10,
                       fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)',
                     }}>
                       <span style={{ color: 'var(--cream)', fontWeight: 500 }}>{r.development_name || r.development_id}</span>
@@ -309,7 +309,7 @@ export default function AsesorDashboard({ user, onLogout }) {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '8px 12px',
-                      background: row.is_self_tenant ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
+                      background: row.is_self_tenant ? 'rgba(99,102,241,0.08)' : 'var(--surface-2)',
                       border: row.is_self_tenant ? '1px solid rgba(99,102,241,0.30)' : '1px solid transparent',
                       borderRadius: 10,
                     }}
@@ -318,7 +318,7 @@ export default function AsesorDashboard({ user, onLogout }) {
                       width: 26, height: 26, borderRadius: '50%',
                       background: row.rank === 1
                         ? 'linear-gradient(90deg, #6366F1, #EC4899)'
-                        : 'rgba(255,255,255,0.06)',
+                        : 'var(--surface-2)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontFamily: 'Outfit', fontWeight: 800, fontSize: 12,
                       color: row.rank === 1 ? '#fff' : 'var(--cream-2)',

@@ -10,11 +10,11 @@ import {
 } from '../../../api/socialAds';
 import PortalLayout from '../../../components/shared/PortalLayout';
 
-const BG = '#06080F';
-const CREAM = '#F0EBE0';
-const MUTED = 'rgba(240,235,224,0.62)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const BG = 'var(--bg)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--cream-2)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
 function fmt(n) {
@@ -182,14 +182,14 @@ function SocialAdsCampaignsPageBody() {
               <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, color: MUTED }}>
                 {t('socialAds.campaigns.account', 'Cuenta')}
                 <select value={accountId} onChange={(e) => setAccountId(e.target.value)} data-testid="sa-account-select"
-                  style={{ marginTop: 4, padding: '8px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: BORDER, color: CREAM, fontSize: 13, minWidth: 220 }}>
+                  style={{ marginTop: 4, padding: '8px 12px', borderRadius: 9999, background: 'var(--surface-2)', border: BORDER, color: CREAM, fontSize: 13, minWidth: 220 }}>
                   {accounts.map((a) => <option key={a.account_id} value={a.account_id}>{a.name} · {a.account_id}</option>)}
                 </select>
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', fontSize: 12, color: MUTED }}>
                 {t('socialAds.campaigns.status', 'Estado')}
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{ marginTop: 4, padding: '8px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.04)', border: BORDER, color: CREAM, fontSize: 13 }}>
+                  style={{ marginTop: 4, padding: '8px 12px', borderRadius: 9999, background: 'var(--surface-2)', border: BORDER, color: CREAM, fontSize: 13 }}>
                   <option value="">{t('socialAds.campaigns.allStatuses', 'Todas')}</option>
                   <option value="ACTIVE">{t('socialAds.campActive', 'Activa')}</option>
                   <option value="PAUSED">{t('socialAds.campPaused', 'Pausada')}</option>
@@ -259,7 +259,7 @@ function SocialAdsCampaignsPageBody() {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                     <thead>
-                      <tr style={{ color: 'rgba(240,235,224,0.5)', fontSize: 10.5, textTransform: 'uppercase' }}>
+                      <tr style={{ color: 'var(--cream-3)', fontSize: 10.5, textTransform: 'uppercase' }}>
                         <th style={{ textAlign: 'left', paddingBottom: 8 }}>{t('socialAds.col.name', 'Campaña')}</th>
                         <th style={{ textAlign: 'left', paddingBottom: 8 }}>{t('socialAds.col.status', 'Estado')}</th>
                         <th style={{ textAlign: 'right', paddingBottom: 8 }}>{t('socialAds.col.budget', 'Presup.')}</th>
@@ -273,7 +273,7 @@ function SocialAdsCampaignsPageBody() {
                     </thead>
                     <tbody>
                       {campaigns.map((c) => (
-                        <tr key={c.campaign_id} style={{ borderTop: '1px solid rgba(240,235,224,0.06)' }}>
+                        <tr key={c.campaign_id} style={{ borderTop: '1px solid var(--border)' }}>
                           <td style={{ padding: '9px 0', color: CREAM }}>{c.name}</td>
                           <td style={{ padding: '9px 0' }}><StatusPill status={c.status} t={t} /></td>
                           <td style={{ padding: '9px 0', textAlign: 'right' }}>{mxn(c.daily_budget_mxn)}</td>

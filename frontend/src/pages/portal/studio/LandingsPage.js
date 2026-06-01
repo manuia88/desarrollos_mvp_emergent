@@ -11,12 +11,12 @@ import { TEMPLATE_KEYS as Z87_TEMPLATE_KEYS } from '../../../templates/landings/
 import { useNavigate } from 'react-router-dom';
 
 const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
-const BG_CARD = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(255,255,255,0.10)';
+const BG_CARD = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 const btnGradient = (extra = {}) => ({ padding: '10px 18px', background: GRADIENT, color: '#fff', border: 'none', borderRadius: 9999, fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...extra });
-const btnSecondary = (extra = {}) => ({ padding: '10px 16px', background: 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 9999, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...extra });
+const btnSecondary = (extra = {}) => ({ padding: '10px 16px', background: 'rgba(99,102,241,0.12)', color: 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 9999, cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, transition: `transform 320ms ${EASE}`, ...extra });
 const btnGhost = (extra = {}) => ({ padding: '6px 10px', background: 'transparent', color: '#a0a4b0', border: 'none', cursor: 'pointer', borderRadius: 9999, ...extra });
 
 const VIEWPORTS = { desktop: 1440, tablet: 768, mobile: 375 };
@@ -43,9 +43,9 @@ const TEMPLATE_LABELS = {
 function PaletteDots({ palette = {} }) {
   return (
     <div style={{ display: 'inline-flex', gap: 4, marginRight: 8 }}>
-      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.primary || '#6366F1', border: '1px solid rgba(255,255,255,0.1)' }} />
-      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.secondary || '#EC4899', border: '1px solid rgba(255,255,255,0.1)' }} />
-      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.bg || '#06080F', border: '1px solid rgba(255,255,255,0.15)' }} />
+      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.primary || '#6366F1', border: '1px solid var(--border)' }} />
+      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.secondary || '#EC4899', border: '1px solid var(--border)' }} />
+      <span style={{ width: 10, height: 10, borderRadius: 9999, background: palette.bg || 'var(--bg)', border: '1px solid var(--border)' }} />
     </div>
   );
 }
@@ -62,11 +62,11 @@ function ThemeCard({ themeMeta, active, onSelect, compact = false }) {
       style={{
         padding: compact ? 10 : 14,
         borderRadius: 12,
-        background: active ? `${palette.primary || '#6366F1'}22` : 'rgba(13,16,23,0.6)',
+        background: active ? `${palette.primary || '#6366F1'}22` : 'var(--surface)',
         border: active ? `2px solid ${palette.primary || '#6366F1'}` : '1px solid rgba(99,102,241,0.18)',
         cursor: 'pointer',
         textAlign: 'left',
-        color: '#F0EBE0',
+        color: 'var(--cream)',
         transition: 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-color 320ms cubic-bezier(0.22, 1, 0.36, 1)',
         display: 'flex',
         alignItems: 'center',
@@ -77,7 +77,7 @@ function ThemeCard({ themeMeta, active, onSelect, compact = false }) {
       <PaletteDots palette={palette} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: compact ? 12 : 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{themeMeta.name}</div>
-        {!compact && <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fits}</div>}
+        {!compact && <div style={{ fontSize: 11, color: 'var(--cream-2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fits}</div>}
       </div>
     </button>
   );
@@ -87,7 +87,7 @@ function Toast({ msg, onClose }) {
   useEffect(() => { if (msg) { const id = setTimeout(onClose, 3200); return () => clearTimeout(id); } return undefined; }, [msg, onClose]);
   if (!msg) return null;
   return (
-    <div data-testid="toast" style={{ position: 'fixed', bottom: 24, right: 24, background: BG_CARD, color: '#F0EBE0', padding: '12px 18px', borderRadius: 9999, border: BORDER, zIndex: 1100, backdropFilter: 'blur(24px)', transition: `transform 320ms ${EASE}` }}>
+    <div data-testid="toast" style={{ position: 'fixed', bottom: 24, right: 24, background: BG_CARD, color: 'var(--cream)', padding: '12px 18px', borderRadius: 9999, border: BORDER, zIndex: 1100, backdropFilter: 'blur(24px)', transition: `transform 320ms ${EASE}` }}>
       {msg}
     </div>
   );
@@ -147,10 +147,10 @@ function ResaleInlineImporter({ resales, setResales, linkedEntityId, setLinkedEn
       {formOpen ? (
         <div style={{ padding: 14, borderRadius: 12, background: 'rgba(236,72,153,0.06)', border: '1px solid rgba(236,72,153,0.3)', marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#F0EBE0', fontSize: 13 }}>Importar propiedad</div>
+            <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: 'var(--cream)', fontSize: 13 }}>Importar propiedad</div>
             {resales.length > 0 && <button type="button" onClick={() => { setFormOpen(false); setError(''); setSuccessMsg(''); }} style={{ background: 'transparent', border: 'none', color: '#a0a4b0', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>}
           </div>
-          <select data-testid="import-portal" value={portalHint} onChange={(e) => setPortalHint(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 12, marginBottom: 8 }}>
+          <select data-testid="import-portal" value={portalHint} onChange={(e) => setPortalHint(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontSize: 12, marginBottom: 8 }}>
             {PORTALS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
           <input
@@ -159,7 +159,7 @@ function ResaleInlineImporter({ resales, setResales, linkedEntityId, setLinkedEn
             placeholder={PORTALS.find((p) => p.value === portalHint)?.sample || 'https://...'}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(236,72,153,0.3)', color: '#F0EBE0', fontSize: 13, marginBottom: 8 }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(236,72,153,0.3)', color: 'var(--cream)', fontSize: 13, marginBottom: 8 }}
           />
           <button
             data-testid="import-submit"
@@ -174,7 +174,7 @@ function ResaleInlineImporter({ resales, setResales, linkedEntityId, setLinkedEn
           {successMsg && <div data-testid="import-success" style={{ marginTop: 8, padding: 8, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.4)', borderRadius: 6, color: '#86EFAC', fontSize: 12 }}>{successMsg}</div>}
         </div>
       ) : (
-        <button data-testid="import-toggle" type="button" onClick={() => setFormOpen(true)} style={{ width: '100%', padding: '8px 14px', borderRadius: 9999, background: 'rgba(236,72,153,0.12)', color: '#F0EBE0', border: '1px solid rgba(236,72,153,0.3)', cursor: 'pointer', fontSize: 12, marginBottom: 10 }}>
+        <button data-testid="import-toggle" type="button" onClick={() => setFormOpen(true)} style={{ width: '100%', padding: '8px 14px', borderRadius: 9999, background: 'rgba(236,72,153,0.12)', color: 'var(--cream)', border: '1px solid rgba(236,72,153,0.3)', cursor: 'pointer', fontSize: 12, marginBottom: 10 }}>
           + Importar nueva propiedad
         </button>
       )}
@@ -183,15 +183,15 @@ function ResaleInlineImporter({ resales, setResales, linkedEntityId, setLinkedEn
       {resales.length > 0 ? (
         <div data-testid="resales-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, maxHeight: 280, overflowY: 'auto', padding: 4 }}>
           {resales.map((r) => (
-            <button key={r.id} type="button" data-testid={`resale-${r.id}`} onClick={() => { setLinkedEntityId(r.id); if (!title) setTitle(r.title); }} style={{ padding: 12, borderRadius: 10, background: linkedEntityId === r.id ? 'rgba(236,72,153,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === r.id ? '2px solid #EC4899' : '1px solid rgba(236,72,153,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
+            <button key={r.id} type="button" data-testid={`resale-${r.id}`} onClick={() => { setLinkedEntityId(r.id); if (!title) setTitle(r.title); }} style={{ padding: 12, borderRadius: 10, background: linkedEntityId === r.id ? 'rgba(236,72,153,0.18)' : 'var(--surface)', border: linkedEntityId === r.id ? '2px solid #EC4899' : '1px solid rgba(236,72,153,0.18)', cursor: 'pointer', textAlign: 'left', color: 'var(--cream)' }}>
               <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif', fontSize: 12, lineHeight: 1.3 }}>{r.title}</div>
-              <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)', marginTop: 2 }}>{r.colonia || '—'} · {r.source_portal}</div>
+              <div style={{ fontSize: 11, color: 'var(--cream-2)', marginTop: 2 }}>{r.colonia || '—'} · {r.source_portal}</div>
               {r.price && <div style={{ fontSize: 11, color: '#EC4899', marginTop: 2, fontWeight: 700 }}>${r.price.toLocaleString()}</div>}
             </button>
           ))}
         </div>
       ) : !formOpen && (
-        <div data-testid="no-resales-hint" style={{ padding: 18, textAlign: 'center', color: 'rgba(240,235,224,0.5)', fontSize: 12 }}>
+        <div data-testid="no-resales-hint" style={{ padding: 18, textAlign: 'center', color: 'var(--cream-3)', fontSize: 12 }}>
           {t('studio.landings.no_resales_yet') || 'Aún no tienes reventas · usa el form arriba para importar la primera'}
         </div>
       )}
@@ -309,7 +309,7 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
   if (!open) return null;
   return (
     <div data-testid="create-modal" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 16 }}>
-      <div style={{ width: 'min(960px, 100%)', maxHeight: '90vh', overflow: 'hidden', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 16, color: '#F0EBE0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ width: 'min(960px, 100%)', maxHeight: '90vh', overflow: 'hidden', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 16, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
             <div style={{ letterSpacing: '0.25em', fontSize: 11, color: '#6366F1', textTransform: 'uppercase' }}>Paso {step}/3</div>
@@ -331,10 +331,10 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
               const Ico = Icons[m.icon] || Icons.Square;
               const active = landingType === m.key;
               return (
-                <button key={m.key} type="button" data-testid={`type-card-${m.key}`} onClick={() => setLandingType(m.key)} style={{ padding: 22, borderRadius: 14, background: active ? 'rgba(99,102,241,0.15)' : 'rgba(13,16,23,0.6)', border: active ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0', transition: `transform 320ms ${EASE}` }}>
+                <button key={m.key} type="button" data-testid={`type-card-${m.key}`} onClick={() => setLandingType(m.key)} style={{ padding: 22, borderRadius: 14, background: active ? 'rgba(99,102,241,0.15)' : 'var(--surface)', border: active ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: 'var(--cream)', transition: `transform 320ms ${EASE}` }}>
                   <Ico size={28} color="#6366F1" />
                   <div style={{ marginTop: 12, fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 17 }}>{m.label}</div>
-                  <div style={{ marginTop: 6, fontSize: 13, color: 'rgba(240,235,224,0.62)' }}>{m.desc}</div>
+                  <div style={{ marginTop: 6, fontSize: 13, color: 'var(--cream-2)' }}>{m.desc}</div>
                 </button>
               );
             })}
@@ -345,37 +345,37 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
           <div data-testid="step-property">
             {/* Z.8.5.1 — Radio Desarrollo / Reventa */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('studio.landings.property_source_label') || 'Origen de la propiedad'}</div>
+              <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('studio.landings.property_source_label') || 'Origen de la propiedad'}</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   data-testid="src-development"
                   type="button"
                   onClick={() => setPropertySource('development')}
-                  style={{ flex: 1, padding: '14px 18px', borderRadius: 12, background: propertySource === 'development' ? 'rgba(99,102,241,0.18)' : 'rgba(13,16,23,0.6)', border: propertySource === 'development' ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', color: '#F0EBE0', textAlign: 'left' }}
+                  style={{ flex: 1, padding: '14px 18px', borderRadius: 12, background: propertySource === 'development' ? 'rgba(99,102,241,0.18)' : 'var(--surface)', border: propertySource === 'development' ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', color: 'var(--cream)', textAlign: 'left' }}
                 >
                   <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>🏗️ {t('studio.landings.property_source_dev') || 'Desarrollo nuevo'}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4 }}>Pre-venta · construccion · obra avanzada</div>
+                  <div style={{ fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>Pre-venta · construccion · obra avanzada</div>
                 </button>
                 <button
                   data-testid="src-resale"
                   type="button"
                   onClick={() => setPropertySource('resale')}
-                  style={{ flex: 1, padding: '14px 18px', borderRadius: 12, background: propertySource === 'resale' ? 'rgba(236,72,153,0.18)' : 'rgba(13,16,23,0.6)', border: propertySource === 'resale' ? '2px solid #EC4899' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', color: '#F0EBE0', textAlign: 'left' }}
+                  style={{ flex: 1, padding: '14px 18px', borderRadius: 12, background: propertySource === 'resale' ? 'rgba(236,72,153,0.18)' : 'var(--surface)', border: propertySource === 'resale' ? '2px solid #EC4899' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', color: 'var(--cream)', textAlign: 'left' }}
                 >
                   <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>🔁 {t('studio.landings.property_source_resale') || 'Reventa'}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4 }}>Listing importado · Z.1 EasyBroker etc</div>
+                  <div style={{ fontSize: 12, color: 'var(--cream-2)', marginTop: 4 }}>Listing importado · Z.1 EasyBroker etc</div>
                 </button>
               </div>
             </div>
 
             {propertySource === 'development' ? (
               <>
-                <input data-testid="search-dev" placeholder="Buscar proyecto..." value={searchDev} onChange={(e) => setSearchDev(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', marginBottom: 14 }} />
+                <input data-testid="search-dev" placeholder="Buscar proyecto..." value={searchDev} onChange={(e) => setSearchDev(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', marginBottom: 14 }} />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, maxHeight: 280, overflowY: 'auto', padding: 4 }}>
                   {filteredDevs.map((d) => (
-                    <button key={d.id} type="button" data-testid={`dev-${d.id}`} onClick={() => { setLinkedEntityId(d.id); if (!title) setTitle(d.name); }} style={{ padding: 14, borderRadius: 10, background: linkedEntityId === d.id ? 'rgba(99,102,241,0.18)' : 'rgba(13,16,23,0.6)', border: linkedEntityId === d.id ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' }}>
+                    <button key={d.id} type="button" data-testid={`dev-${d.id}`} onClick={() => { setLinkedEntityId(d.id); if (!title) setTitle(d.name); }} style={{ padding: 14, borderRadius: 10, background: linkedEntityId === d.id ? 'rgba(99,102,241,0.18)' : 'var(--surface)', border: linkedEntityId === d.id ? '2px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: 'var(--cream)' }}>
                       <div style={{ fontWeight: 600, fontFamily: 'Outfit, sans-serif' }}>{d.name}</div>
-                      <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>{d.colonia} · {d.stage}</div>
+                      <div style={{ fontSize: 12, color: 'var(--cream-2)' }}>{d.colonia} · {d.stage}</div>
                     </button>
                   ))}
                 </div>
@@ -395,9 +395,9 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
         )}
 
         {step === 2 && landingType === 'personal_brand' && (
-          <div data-testid="step-personal" style={{ padding: 18, borderRadius: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.2)' }}>
+          <div data-testid="step-personal" style={{ padding: 18, borderRadius: 12, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.2)' }}>
             <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, marginBottom: 6 }}>Tu perfil asesor</div>
-            <div style={{ color: 'rgba(240,235,224,0.7)', fontSize: 13 }}>
+            <div style={{ color: 'var(--cream-2)', fontSize: 13 }}>
               {asesor?.profile ? `${asesor.profile.full_name || 'Asesor'} · ${asesor.profile.zone || 'CDMX'}` : 'No tienes asesor_profile aun. Se creara automaticamente con datos basicos.'}
             </div>
           </div>
@@ -406,53 +406,53 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
         {step === 2 && landingType === 'marketplace' && (
           <div data-testid="step-marketplace-builder" style={{ display: 'grid', gap: 14 }}>
             <div style={{ padding: 14, borderRadius: 12, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)' }}>
-              <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: '#F0EBE0', fontSize: 14 }}>
+              <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, color: 'var(--cream)', fontSize: 14 }}>
                 {mpPreviewCount != null ? (
                   <>Tu marketplace mostrara <span style={{ color: '#6366F1' }}>{mpPreviewCount}</span> propiedades{mpPreviewTotal != null ? ` de ${mpPreviewTotal} en tu catalogo` : ''}.</>
                 ) : 'Calculando preview...'}
               </div>
-              <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>Ajusta filtros default · podras cambiarlos despues en el editor.</div>
+              <div style={{ marginTop: 4, fontSize: 12, color: 'var(--cream-2)' }}>Ajusta filtros default · podras cambiarlos despues en el editor.</div>
             </div>
 
             {/* Filtros default */}
-            <div style={{ padding: 14, borderRadius: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.18)' }}>
+            <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)' }}>
               <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: '#a0a4b0', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Filtros default</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 <div>
-                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Estado (multi)</label>
+                  <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Estado (multi)</label>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                     {['preventa', 'venta', 'cerrado'].map((s) => {
                       const on = mpCfg.default_filters.status.includes(s);
-                      return <button key={s} data-testid={`mp-cfg-status-${s}`} type="button" onClick={() => mpToggleArr('status', s)} style={{ padding: '6px 14px', borderRadius: 9999, background: on ? GRADIENT : 'rgba(99,102,241,0.12)', color: on ? '#fff' : '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 12, textTransform: 'capitalize' }}>{s}</button>;
+                      return <button key={s} data-testid={`mp-cfg-status-${s}`} type="button" onClick={() => mpToggleArr('status', s)} style={{ padding: '6px 14px', borderRadius: 9999, background: on ? GRADIENT : 'rgba(99,102,241,0.12)', color: on ? '#fff' : 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 12, textTransform: 'capitalize' }}>{s}</button>;
                     })}
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Precio min
-                    <input data-testid="mp-cfg-price-min" type="number" value={mpCfg.default_filters.price_min ?? ''} onChange={(e) => setMpCfg((c) => ({ ...c, default_filters: { ...c.default_filters, price_min: e.target.value ? Number(e.target.value) : null } }))} placeholder="ej. 3000000" style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 13 }} />
+                  <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Precio min
+                    <input data-testid="mp-cfg-price-min" type="number" value={mpCfg.default_filters.price_min ?? ''} onChange={(e) => setMpCfg((c) => ({ ...c, default_filters: { ...c.default_filters, price_min: e.target.value ? Number(e.target.value) : null } }))} placeholder="ej. 3000000" style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--cream)', fontSize: 13 }} />
                   </label>
-                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Precio max
-                    <input data-testid="mp-cfg-price-max" type="number" value={mpCfg.default_filters.price_max ?? ''} onChange={(e) => setMpCfg((c) => ({ ...c, default_filters: { ...c.default_filters, price_max: e.target.value ? Number(e.target.value) : null } }))} placeholder="ej. 10000000" style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 13 }} />
+                  <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Precio max
+                    <input data-testid="mp-cfg-price-max" type="number" value={mpCfg.default_filters.price_max ?? ''} onChange={(e) => setMpCfg((c) => ({ ...c, default_filters: { ...c.default_filters, price_max: e.target.value ? Number(e.target.value) : null } }))} placeholder="ej. 10000000" style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--cream)', fontSize: 13 }} />
                   </label>
                 </div>
                 {(marketplaceFacets?.cities || []).length > 0 && (
                   <div>
-                    <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Zonas (alcaldias)</label>
+                    <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Zonas (alcaldias)</label>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, maxHeight: 120, overflowY: 'auto' }}>
                       {(marketplaceFacets.cities || []).map((c) => {
                         const on = mpCfg.default_filters.cities.includes(c);
-                        return <button key={c} type="button" onClick={() => mpToggleArr('cities', c)} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{c}</button>;
+                        return <button key={c} type="button" onClick={() => mpToggleArr('cities', c)} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? 'rgba(99,102,241,0.5)' : 'rgba(99,102,241,0.12)', color: 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{c}</button>;
                       })}
                     </div>
                   </div>
                 )}
                 {(marketplaceFacets?.amenities || []).length > 0 && (
                   <details>
-                    <summary style={{ cursor: 'pointer', fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Amenidades requeridas ({mpCfg.default_filters.amenities_required.length})</summary>
+                    <summary style={{ cursor: 'pointer', fontSize: 11, color: 'var(--cream-2)' }}>Amenidades requeridas ({mpCfg.default_filters.amenities_required.length})</summary>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, maxHeight: 140, overflowY: 'auto' }}>
                       {(marketplaceFacets.amenities || []).slice(0, 30).map((a) => {
                         const on = mpCfg.default_filters.amenities_required.includes(a);
-                        return <button key={a} type="button" onClick={() => mpToggleArr('amenities_required', a)} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? 'rgba(236,72,153,0.5)' : 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{a}</button>;
+                        return <button key={a} type="button" onClick={() => mpToggleArr('amenities_required', a)} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? 'rgba(236,72,153,0.5)' : 'rgba(99,102,241,0.12)', color: 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{a}</button>;
                       })}
                     </div>
                   </details>
@@ -461,12 +461,12 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
             </div>
 
             {/* Visualizacion */}
-            <div style={{ padding: 14, borderRadius: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.18)' }}>
+            <div style={{ padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)' }}>
               <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 12, color: '#a0a4b0', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Visualizacion</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Orden default
-                    <select data-testid="mp-cfg-sort" value={mpCfg.sort_by} onChange={(e) => setMpCfg((c) => ({ ...c, sort_by: e.target.value }))} style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 13 }}>
+                  <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Orden default
+                    <select data-testid="mp-cfg-sort" value={mpCfg.sort_by} onChange={(e) => setMpCfg((c) => ({ ...c, sort_by: e.target.value }))} style={{ marginTop: 4, width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--cream)', fontSize: 13 }}>
                       <option value="date_new">Mas recientes</option>
                       <option value="price_asc">Precio asc</option>
                       <option value="price_desc">Precio desc</option>
@@ -474,23 +474,23 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
                       <option value="zone">Zona</option>
                     </select>
                   </label>
-                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Limite ({mpCfg.limit === 500 ? 'Todos' : mpCfg.limit})
+                  <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Limite ({mpCfg.limit === 500 ? 'Todos' : mpCfg.limit})
                     <input data-testid="mp-cfg-limit" type="range" min="12" max="500" step="12" value={mpCfg.limit} onChange={(e) => setMpCfg((c) => ({ ...c, limit: Number(e.target.value) }))} style={{ marginTop: 4, width: '100%' }} />
                   </label>
                 </div>
                 <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#F0EBE0', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: 'var(--cream)', cursor: 'pointer' }}>
                     <input data-testid="mp-cfg-map" type="checkbox" checked={mpCfg.enable_map} onChange={(e) => setMpCfg((c) => ({ ...c, enable_map: e.target.checked }))} /> Habilitar mapa
                   </label>
-                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: '#F0EBE0', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: 'var(--cream)', cursor: 'pointer' }}>
                     <input data-testid="mp-cfg-search" type="checkbox" checked={mpCfg.enable_search} onChange={(e) => setMpCfg((c) => ({ ...c, enable_search: e.target.checked }))} /> Habilitar busqueda
                   </label>
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, color: 'rgba(240,235,224,0.6)' }}>Paginacion</label>
+                  <label style={{ fontSize: 11, color: 'var(--cream-2)' }}>Paginacion</label>
                   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                     {[['buttons', 'Botones'], ['infinite', 'Infinito'], ['none', 'Mostrar todos']].map(([k, label]) => (
-                      <button key={k} data-testid={`mp-cfg-pag-${k}`} type="button" onClick={() => setMpCfg((c) => ({ ...c, pagination_mode: k }))} style={{ padding: '6px 14px', borderRadius: 9999, background: mpCfg.pagination_mode === k ? GRADIENT : 'rgba(99,102,241,0.12)', color: mpCfg.pagination_mode === k ? '#fff' : '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 12 }}>{label}</button>
+                      <button key={k} data-testid={`mp-cfg-pag-${k}`} type="button" onClick={() => setMpCfg((c) => ({ ...c, pagination_mode: k }))} style={{ padding: '6px 14px', borderRadius: 9999, background: mpCfg.pagination_mode === k ? GRADIENT : 'rgba(99,102,241,0.12)', color: mpCfg.pagination_mode === k ? '#fff' : 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 12 }}>{label}</button>
                     ))}
                   </div>
                 </div>
@@ -501,22 +501,22 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
 
         {step === 3 && (
           <div data-testid="step-detail" style={{ display: 'grid', gap: 14 }}>
-            <label style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>Titulo principal
-              <input data-testid="detail-title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0' }} />
+            <label style={{ fontSize: 12, color: 'var(--cream-2)' }}>Titulo principal
+              <input data-testid="detail-title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)' }} />
             </label>
-            <label style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>Slug (URL)
-              <input data-testid="detail-slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} placeholder="auto-generado" style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0' }} />
+            <label style={{ fontSize: 12, color: 'var(--cream-2)' }}>Slug (URL)
+              <input data-testid="detail-slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} placeholder="auto-generado" style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)' }} />
             </label>
             <div>
-              <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)', marginBottom: 8 }}>Template visual · cada uno aplica paleta y layout unicos</div>
+              <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8 }}>Template visual · cada uno aplica paleta y layout unicos</div>
               <div data-testid="detail-tpl-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
                 {(themes && themes.length ? themes : TEMPLATE_KEYS_DEFAULT.map((k) => ({ key: k, name: k, use_case_fit: [], preview_palette: {} }))).map((tm) => (
                   <ThemeCard key={tm.key} themeMeta={tm} active={tpl === tm.key} onSelect={() => setTpl(tm.key)} />
                 ))}
               </div>
             </div>
-            <label style={{ fontSize: 12, color: 'rgba(240,235,224,0.7)' }}>Starter (sections precargadas)
-              <select data-testid="detail-starter" value={starterKey} onChange={(e) => setStarterKey(e.target.value)} style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0' }}>
+            <label style={{ fontSize: 12, color: 'var(--cream-2)' }}>Starter (sections precargadas)
+              <select data-testid="detail-starter" value={starterKey} onChange={(e) => setStarterKey(e.target.value)} style={{ marginTop: 6, width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)' }}>
                 <option value="property">Property starter ({(starters?.property || []).length} secciones)</option>
                 <option value="personal_brand">Personal brand ({(starters?.personal_brand || []).length} secciones)</option>
                 <option value="marketplace">Marketplace ({(starters?.marketplace || []).length} secciones)</option>
@@ -529,7 +529,7 @@ function CreateModal({ open, onClose, onCreated, starters, developments, asesor,
 
         </div>
         {/* /modal-body · Footer sticky */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', flexShrink: 0, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexShrink: 0, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
           {step > 1 ? <button data-testid="modal-back" type="button" onClick={() => setStep(step - 1)} style={btnSecondary()}>Atras</button> : <span />}
           {step < 3 ? (
             <button data-testid="modal-next" type="button" onClick={() => setStep(step + 1)} disabled={step === 2 && landingType === 'property' && !linkedEntityId} style={btnGradient({ opacity: (step === 2 && landingType === 'property' && !linkedEntityId) ? 0.5 : 1 })}>Siguiente</button>
@@ -546,7 +546,7 @@ function SectionPickerModal({ open, onClose, onAdd }) {
   if (!open) return null;
   return (
     <div data-testid="section-picker" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div style={{ width: 'min(900px, 100%)', maxHeight: '85vh', overflow: 'auto', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 28, color: '#F0EBE0' }}>
+      <div style={{ width: 'min(900px, 100%)', maxHeight: '85vh', overflow: 'auto', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 28, color: 'var(--cream)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontFamily: 'Outfit, sans-serif' }}>Anadir seccion</h2>
           <button type="button" onClick={onClose} style={btnGhost()} aria-label="Close"><Icons.X size={18} /></button>
@@ -556,10 +556,10 @@ function SectionPickerModal({ open, onClose, onAdd }) {
             const meta = SECTION_META[k];
             const Ico = Icons[meta.icon] || Icons.Square;
             return (
-              <button key={k} type="button" data-testid={`picker-${k}`} onClick={() => onAdd(k)} style={{ padding: 16, borderRadius: 14, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0', transition: `transform 320ms ${EASE}` }}>
+              <button key={k} type="button" data-testid={`picker-${k}`} onClick={() => onAdd(k)} style={{ padding: 16, borderRadius: 14, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: 'var(--cream)', transition: `transform 320ms ${EASE}` }}>
                 <Ico size={22} color="#6366F1" />
                 <div style={{ marginTop: 10, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>{meta.label}</div>
-                <div style={{ marginTop: 4, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>{meta.desc}</div>
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--cream-2)' }}>{meta.desc}</div>
               </button>
             );
           })}
@@ -580,9 +580,9 @@ function SectionRow({ section, index, isActive, onClick, onToggleVis, onRemove, 
       onDragOver={(e) => onDragOver(e, index)}
       onDrop={(e) => onDrop(e, index)}
       onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, background: isActive ? 'rgba(99,102,241,0.18)' : 'rgba(13,16,23,0.55)', border: isActive ? '1px solid #6366F1' : '1px solid rgba(255,255,255,0.06)', cursor: 'grab', marginBottom: 6 }}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, background: isActive ? 'rgba(99,102,241,0.18)' : 'var(--surface)', border: isActive ? '1px solid #6366F1' : '1px solid var(--border)', cursor: 'grab', marginBottom: 6 }}
     >
-      <Icons.GripVertical size={14} color="rgba(240,235,224,0.5)" />
+      <Icons.GripVertical size={14} color="var(--cream-3)" />
       <Ico size={16} color="#6366F1" />
       <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{meta.label}</span>
       <button type="button" onClick={(e) => { e.stopPropagation(); onToggleVis(); }} style={btnGhost({ padding: 4 })} aria-label="visibility" data-testid={`toggle-vis-${index}`}>
@@ -600,10 +600,10 @@ function SectionInlineEditor({ section, onChange }) {
   const updateStyle = (key, val) => onChange({ ...section, style_overrides: { ...(section.style_overrides || {}), [key]: val } });
   const cfg = section.config || {};
   const style = section.style_overrides || {};
-  const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#F0EBE0', fontSize: 13 };
+  const inputStyle = { width: '100%', padding: '8px 10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontSize: 13 };
 
   return (
-    <div data-testid="section-inline-editor" style={{ padding: 12, marginTop: 6, marginBottom: 12, borderRadius: 10, background: 'rgba(13,16,23,0.4)', border: '1px solid rgba(99,102,241,0.18)', display: 'grid', gap: 10 }}>
+    <div data-testid="section-inline-editor" style={{ padding: 12, marginTop: 6, marginBottom: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)', display: 'grid', gap: 10 }}>
       {(section.type === 'hero') && (
         <>
           <input data-testid="cfg-headline" placeholder="Headline" value={cfg.headline || ''} onChange={(e) => updateConfig('headline', e.target.value)} style={inputStyle} />
@@ -643,7 +643,7 @@ function SectionInlineEditor({ section, onChange }) {
         </>
       )}
       <details>
-        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>Estilos avanzados</summary>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--cream-2)' }}>Estilos avanzados</summary>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
           <input placeholder="bg color #hex" value={style.bg_color || ''} onChange={(e) => updateStyle('bg_color', e.target.value)} style={inputStyle} />
           <select value={style.text_align || 'left'} onChange={(e) => updateStyle('text_align', e.target.value)} style={inputStyle}>
@@ -727,7 +727,7 @@ function RoutingConfigPanel({ landing, userRole, onToast, onChanged }) {
       <div style={{ fontSize: 11, color: '#a0a4b0', marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         Routing de Leads {saving ? '· guardando...' : ''}
       </div>
-      <select data-testid="routing-strategy" value={cfg.strategy} onChange={(e) => persist({ ...cfg, strategy: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 12 }}>
+      <select data-testid="routing-strategy" value={cfg.strategy} onChange={(e) => persist({ ...cfg, strategy: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--cream)', fontSize: 12 }}>
         {ROUTING_STRATEGIES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
       </select>
       {cfg.strategy === 'hybrid' && (
@@ -737,7 +737,7 @@ function RoutingConfigPanel({ landing, userRole, onToast, onChanged }) {
             {['by_zone', 'by_load', 'by_disc', 'round_robin'].map((s) => {
               const on = (cfg.priority_order || []).includes(s);
               return (
-                <button key={s} type="button" onClick={() => { const cur = cfg.priority_order || []; const next = on ? cur.filter((x) => x !== s) : [...cur, s]; persist({ ...cfg, priority_order: next }); }} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? GRADIENT : 'rgba(99,102,241,0.12)', color: on ? '#fff' : '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{s}</button>
+                <button key={s} type="button" onClick={() => { const cur = cfg.priority_order || []; const next = on ? cur.filter((x) => x !== s) : [...cur, s]; persist({ ...cfg, priority_order: next }); }} style={{ padding: '4px 10px', borderRadius: 9999, background: on ? GRADIENT : 'rgba(99,102,241,0.12)', color: on ? '#fff' : 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer', fontSize: 11 }}>{s}</button>
               );
             })}
           </div>
@@ -750,7 +750,7 @@ function RoutingConfigPanel({ landing, userRole, onToast, onChanged }) {
       </div>
       <div style={{ marginTop: 10 }}>
         <label style={{ fontSize: 11, color: '#a0a4b0' }}>Pin manual asesor (user_id)
-          <input data-testid="routing-pin" value={cfg.override_pin_asesor_id || ''} onChange={(e) => setCfg({ ...cfg, override_pin_asesor_id: e.target.value || null })} onBlur={() => persist(cfg)} placeholder="vacio = sin pin" style={{ width: '100%', marginTop: 4, padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(99,102,241,0.3)', color: '#F0EBE0', fontSize: 12 }} />
+          <input data-testid="routing-pin" value={cfg.override_pin_asesor_id || ''} onChange={(e) => setCfg({ ...cfg, override_pin_asesor_id: e.target.value || null })} onBlur={() => persist(cfg)} placeholder="vacio = sin pin" style={{ width: '100%', marginTop: 4, padding: '6px 10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid rgba(99,102,241,0.3)', color: 'var(--cream)', fontSize: 12 }} />
         </label>
       </div>
       <div style={{ marginTop: 8, fontSize: 11, color: '#a0a4b0' }}>{isAdmin ? '✓ Eres admin · cambios aplican al equipo' : 'Modo asesor · sin team routing'}</div>
@@ -886,7 +886,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
             {saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Error guardado'}
           </span>
         </div>
-        <strong style={{ fontFamily: 'Outfit, sans-serif', fontSize: 14, color: '#F0EBE0', marginBottom: 8 }}>Secciones · {sections.length}</strong>
+        <strong style={{ fontFamily: 'Outfit, sans-serif', fontSize: 14, color: 'var(--cream)', marginBottom: 8 }}>Secciones · {sections.length}</strong>
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 200, marginBottom: 12 }}>
           {sections.map((sec, i) => (
             <React.Fragment key={sec.id || i}>
@@ -905,7 +905,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
             </React.Fragment>
           ))}
           {!sections.length && (
-            <div data-testid="editor-empty" style={{ padding: 20, textAlign: 'center', color: 'rgba(240,235,224,0.5)', fontSize: 13 }}>
+            <div data-testid="editor-empty" style={{ padding: 20, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>
               Anade tu primera seccion. Click + para empezar.
             </div>
           )}
@@ -949,7 +949,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
             </div>
             {activeThemeMeta && (
               <div style={{ marginTop: 10, fontSize: 11, color: '#a0a4b0' }}>
-                Hero variant: <strong style={{ color: '#F0EBE0' }}>{activeThemeMeta.hero_variant}</strong> · spacing {activeThemeMeta.spacing_scale}
+                Hero variant: <strong style={{ color: 'var(--cream)' }}>{activeThemeMeta.hero_variant}</strong> · spacing {activeThemeMeta.spacing_scale}
               </div>
             )}
           </div>
@@ -964,7 +964,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', gap: 4 }}>
             {Object.keys(VIEWPORTS).map((vp) => (
-              <button key={vp} data-testid={`vp-${vp}`} type="button" onClick={() => setViewport(vp)} style={{ ...btnSecondary({ padding: '6px 12px', fontSize: 12 }), background: viewport === vp ? GRADIENT : 'rgba(99,102,241,0.12)', color: viewport === vp ? '#fff' : '#F0EBE0' }}>
+              <button key={vp} data-testid={`vp-${vp}`} type="button" onClick={() => setViewport(vp)} style={{ ...btnSecondary({ padding: '6px 12px', fontSize: 12 }), background: viewport === vp ? GRADIENT : 'rgba(99,102,241,0.12)', color: viewport === vp ? '#fff' : 'var(--cream)' }}>
                 {vp === 'desktop' ? <Icons.Monitor size={12} /> : vp === 'tablet' ? <Icons.Tablet size={12} /> : <Icons.Smartphone size={12} />}
                 {vp}
               </button>
@@ -984,8 +984,8 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
           </div>
         </div>
 
-        <div style={{ flex: 1, overflow: 'auto', borderRadius: 14, background: theme?.palette?.bg || '#06080F', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'center', padding: 12, transition: `background 320ms ${EASE}` }}>
-          <div style={{ width: '100%', maxWidth: maxW, transition: `max-width 320ms ${EASE}, background 320ms ${EASE}`, background: theme?.palette?.bg || '#06080F', borderRadius: 10, overflow: 'auto', maxHeight: '70vh' }}>
+        <div style={{ flex: 1, overflow: 'auto', borderRadius: 14, background: theme?.palette?.bg || 'var(--bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'center', padding: 12, transition: `background 320ms ${EASE}` }}>
+          <div style={{ width: '100%', maxWidth: maxW, transition: `max-width 320ms ${EASE}, background 320ms ${EASE}`, background: theme?.palette?.bg || 'var(--bg)', borderRadius: 10, overflow: 'auto', maxHeight: '70vh' }}>
             {sections.length ? sections.map((sec) => {
               const sectionConfig = sec.type === 'marketplace'
                 ? { ...(sec.config || {}), marketplace_config: landing.content?.marketplace_config }
@@ -994,7 +994,7 @@ function EditorLayout({ landing, brandKit, linkedEntity, themes, onBack, onChang
                 <SectionRenderer key={sec.id} section={{ ...sec, config: sectionConfig }} brandKit={brandKit} linkedEntity={linkedEntity} isPreview theme={theme} onLead={() => Promise.resolve({ ok: true })} landingSlug={landing.slug} templateKey={landing.template_key} themeMode={themeMode} />
               );
             }) : (
-              <div style={{ padding: 40, textAlign: 'center', color: 'rgba(240,235,224,0.4)' }}>Preview vacio · anade secciones</div>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)' }}>Preview vacio · anade secciones</div>
             )}
           </div>
         </div>
@@ -1012,7 +1012,7 @@ function LandingCard({ item, onOpen, onDelete, themes }) {
   const handleDeleteClick = (e) => { stop(e); if (onDelete) onDelete(item); };
   return (
     <div data-testid={`landing-card-wrapper-${item.id}`} style={{ position: 'relative' }}>
-      <button data-testid={`landing-card-${item.id}`} type="button" onClick={onOpen} style={{ width: '100%', textAlign: 'left', background: BG_CARD, border: BORDER, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', padding: 0, color: '#F0EBE0', transition: `transform 320ms ${EASE}` }}>
+      <button data-testid={`landing-card-${item.id}`} type="button" onClick={onOpen} style={{ width: '100%', textAlign: 'left', background: BG_CARD, border: BORDER, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', padding: 0, color: 'var(--cream)', transition: `transform 320ms ${EASE}` }}>
         <div style={{ aspectRatio: '16/9', background: cardBg, position: 'relative' }}>
           <div style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 9999, background: item.published ? 'rgba(34,197,94,0.85)' : 'rgba(99,102,241,0.5)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
             {item.published ? 'Publicada' : 'Borrador'}
@@ -1034,8 +1034,8 @@ function LandingCard({ item, onOpen, onDelete, themes }) {
         </div>
         <div style={{ padding: '14px 14px 14px 14px' }}>
           <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 38 }}>{item.content?.hero?.title || item.slug}</div>
-          <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.6)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>/landing/{item.slug}</div>
-          <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>
+          <div style={{ fontSize: 12, color: 'var(--cream-2)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>/landing/{item.slug}</div>
+          <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12, color: 'var(--cream-2)' }}>
             <span>{item.views_count || 0} vistas</span>
             <span>· {item.leads_count || 0} leads</span>
           </div>
@@ -1192,12 +1192,12 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
 
   return (
     <div data-testid="ai-wizard" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div style={{ width: 'min(820px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 22, color: '#F0EBE0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ width: 'min(820px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 22, color: 'var(--cream)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ letterSpacing: '0.25em', fontSize: 11, color: '#EC4899', textTransform: 'uppercase' }}>Crear landing con IA</div>
             <h2 style={{ margin: '6px 0 0', fontFamily: 'Outfit, sans-serif', fontSize: 22 }}>¿De dónde sale la propiedad?</h2>
-            <p style={{ marginTop: 4, fontSize: 13, color: 'rgba(240,235,224,0.6)' }}>Elige el origen para no escribir 2 veces lo mismo.</p>
+            <p style={{ marginTop: 4, fontSize: 13, color: 'var(--cream-2)' }}>Elige el origen para no escribir 2 veces lo mismo.</p>
           </div>
           <button type="button" data-testid="ai-wizard-close" onClick={onClose} style={btnGhost()}><Icons.X size={16} /></button>
         </div>
@@ -1207,17 +1207,17 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
             <button type="button" data-testid="origin-inventory" onClick={() => setOrigin('inventory')} style={originCardStyle('#22C55E')}>
               <Icons.Package size={28} color="#22C55E" />
               <div style={{ marginTop: 12, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>De mi inventario</div>
-              <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>Elige un desarrollo o reventa ya cargada · auto-llena la mayoría de los campos</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--cream-2)' }}>Elige un desarrollo o reventa ya cargada · auto-llena la mayoría de los campos</div>
             </button>
             <button type="button" data-testid="origin-external" onClick={() => setOrigin('external')} style={originCardStyle('#6366F1')}>
               <Icons.Link2 size={28} color="#6366F1" />
               <div style={{ marginTop: 12, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>Link de portal externo</div>
-              <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>EasyBroker · Inmuebles24 · Propiedades.com · extrae info automática</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--cream-2)' }}>EasyBroker · Inmuebles24 · Propiedades.com · extrae info automática</div>
             </button>
             <button type="button" data-testid="origin-empty" onClick={() => setOrigin('empty')} style={originCardStyle('#EC4899')}>
               <Icons.FileEdit size={28} color="#EC4899" />
               <div style={{ marginTop: 12, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}>Desde cero</div>
-              <div style={{ marginTop: 6, fontSize: 12, color: 'rgba(240,235,224,0.6)' }}>Empezar el form vacío · 14 secciones manuales</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--cream-2)' }}>Empezar el form vacío · 14 secciones manuales</div>
             </button>
           </div>
         )}
@@ -1230,10 +1230,10 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
 
         {origin === 'empty' && (
           <div data-testid="origin-empty-panel" style={{ display: 'grid', gap: 12 }}>
-            <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Selecciona el estilo visual de la landing:</div>
+            <div style={{ fontSize: 13, color: 'var(--cream-2)' }}>Selecciona el estilo visual de la landing:</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
               {Z87_TEMPLATE_KEYS.map((k) => (
-                <button key={k} type="button" onClick={() => setEmptyTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600, lineHeight: 1.3, textAlign: 'left', background: emptyTpl === k ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: emptyTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer' }}>{TEMPLATE_LABELS[k] || k}</button>
+                <button key={k} type="button" onClick={() => setEmptyTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600, lineHeight: 1.3, textAlign: 'left', background: emptyTpl === k ? 'rgba(99,102,241,0.25)' : 'var(--surface)', border: emptyTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: 'var(--cream)', cursor: 'pointer' }}>{TEMPLATE_LABELS[k] || k}</button>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -1249,26 +1249,26 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
               <button type="button" data-testid="inv-mode-dev" onClick={() => setInvMode('developments')} style={tabStyle(invMode === 'developments')}>Desarrollos ({developments.length})</button>
               <button type="button" data-testid="inv-mode-resales" onClick={() => setInvMode('resales')} style={tabStyle(invMode === 'resales')}>Reventas ({resales.length})</button>
             </div>
-            <input data-testid="inv-search" placeholder="Buscar por nombre o colonia..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13 }} />
+            <input data-testid="inv-search" placeholder="Buscar por nombre o colonia..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontSize: 13 }} />
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8, padding: 2 }}>
               {invMode === 'developments' && filteredDev.map((d) => (
                 <button key={d.id} type="button" data-testid={`inv-dev-${d.id}`} onClick={() => handleDevelopmentClick(d)} style={invCardStyle()}>
                   <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>{d.name || 'Sin nombre'}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{d.colonia || ''} {d.alcaldia ? '· ' + d.alcaldia : ''}</div>
+                  <div style={{ fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>{d.colonia || ''} {d.alcaldia ? '· ' + d.alcaldia : ''}</div>
                 </button>
               ))}
               {invMode === 'developments' && filteredDev.length === 0 && (
-                <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.55)', fontSize: 13 }}>{developments.length === 0 ? 'No tienes desarrollos cargados todavía' : 'Ningún resultado con tu búsqueda'}</div>
+                <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'var(--cream-2)', fontSize: 13 }}>{developments.length === 0 ? 'No tienes desarrollos cargados todavía' : 'Ningún resultado con tu búsqueda'}</div>
               )}
-              {invMode === 'resales' && resalesLoading && <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.5)' }}>Cargando reventas...</div>}
+              {invMode === 'resales' && resalesLoading && <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'var(--cream-3)' }}>Cargando reventas...</div>}
               {invMode === 'resales' && !resalesLoading && filteredRes.map((r) => (
                 <button key={r.id} type="button" data-testid={`inv-resale-${r.id}`} onClick={() => handleResaleClick(r)} style={invCardStyle()}>
                   <div style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>{r.parsed_data?.title || r.title || 'Reventa'}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.55)', marginTop: 4 }}>{r.parsed_data?.colonia || ''} {r.parsed_data?.price ? '· $' + r.parsed_data.price.toLocaleString('es-MX') : ''}</div>
+                  <div style={{ fontSize: 11, color: 'var(--cream-2)', marginTop: 4 }}>{r.parsed_data?.colonia || ''} {r.parsed_data?.price ? '· $' + r.parsed_data.price.toLocaleString('es-MX') : ''}</div>
                 </button>
               ))}
               {invMode === 'resales' && !resalesLoading && filteredRes.length === 0 && (
-                <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.55)', fontSize: 13 }}>{resales.length === 0 ? 'No tienes reventas importadas · usa "Link de portal externo"' : 'Ningún resultado con tu búsqueda'}</div>
+                <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', color: 'var(--cream-2)', fontSize: 13 }}>{resales.length === 0 ? 'No tienes reventas importadas · usa "Link de portal externo"' : 'Ningún resultado con tu búsqueda'}</div>
               )}
             </div>
           </div>
@@ -1276,14 +1276,14 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
 
         {origin === 'external' && (
           <div data-testid="origin-external-panel" style={{ display: 'grid', gap: 10 }}>
-            <div style={{ fontSize: 13, color: 'rgba(240,235,224,0.7)' }}>Pega el link completo de la propiedad:</div>
-            <select value={extPortal} onChange={(e) => setExtPortal(e.target.value)} style={{ padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13 }}>
+            <div style={{ fontSize: 13, color: 'var(--cream-2)' }}>Pega el link completo de la propiedad:</div>
+            <select value={extPortal} onChange={(e) => setExtPortal(e.target.value)} style={{ padding: '9px 12px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontSize: 13 }}>
               <option value="easybroker.com">EasyBroker</option>
               <option value="propiedades.com">Propiedades.com</option>
               <option value="casasyterrenos.com">Casas y Terrenos</option>
             </select>
-            <input data-testid="ext-url" type="url" placeholder={extPortal === 'easybroker.com' ? 'https://propiedades.easybroker.com/property/EB-XXXXX' : 'https://...'} value={extUrl} onChange={(e) => setExtUrl(e.target.value)} style={{ width: '100%', padding: '11px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0EBE0', fontSize: 13 }} />
-            <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)' }}>Vamos a extraer fotos, precio, ubicación y descripción · puedes editar todo después.</div>
+            <input data-testid="ext-url" type="url" placeholder={extPortal === 'easybroker.com' ? 'https://propiedades.easybroker.com/property/EB-XXXXX' : 'https://...'} value={extUrl} onChange={(e) => setExtUrl(e.target.value)} style={{ width: '100%', padding: '11px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontSize: 13 }} />
+            <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>Vamos a extraer fotos, precio, ubicación y descripción · puedes editar todo después.</div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" onClick={onClose} style={btnSecondary()}>Cancelar</button>
               <button type="button" data-testid="ext-import" disabled={importing || !extUrl} onClick={handleExternalImport} style={btnGradient({ opacity: (importing || !extUrl) ? 0.6 : 1 })}>{importing ? 'Importando...' : (<><Icons.Download size={14} /> Importar y crear</>)}</button>
@@ -1297,9 +1297,9 @@ function CreateAIWizard({ onClose, developments = [], navigate, setToast, user }
   );
 }
 
-const originCardStyle = (color) => ({ padding: 18, borderRadius: 14, background: 'rgba(13,16,23,0.6)', border: `1px solid ${color}55`, cursor: 'pointer', textAlign: 'left', color: '#F0EBE0', transition: `transform 320ms ${EASE}` });
-const tabStyle = (active) => ({ padding: '8px 16px', borderRadius: 9999, background: active ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: active ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer', fontSize: 12, fontWeight: 600 });
-const invCardStyle = () => ({ padding: 12, borderRadius: 10, background: 'rgba(13,16,23,0.7)', border: '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: '#F0EBE0' });
+const originCardStyle = (color) => ({ padding: 18, borderRadius: 14, background: 'var(--surface)', border: `1px solid ${color}55`, cursor: 'pointer', textAlign: 'left', color: 'var(--cream)', transition: `transform 320ms ${EASE}` });
+const tabStyle = (active) => ({ padding: '8px 16px', borderRadius: 9999, background: active ? 'rgba(99,102,241,0.25)' : 'var(--surface)', border: active ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: 'var(--cream)', cursor: 'pointer', fontSize: 12, fontWeight: 600 });
+const invCardStyle = () => ({ padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)', cursor: 'pointer', textAlign: 'left', color: 'var(--cream)' });
 
 export default function LandingsPage({ user, onLogout }) {
   const { t } = useTranslation('common');
@@ -1401,7 +1401,7 @@ export default function LandingsPage({ user, onLogout }) {
 
   return (
     <PortalLayout role={user?.role} user={user} onLogout={onLogout}>
-      <div data-testid="landings-page" style={{ padding: '24px 8px', color: '#F0EBE0', fontFamily: 'DM Sans, sans-serif' }}>
+      <div data-testid="landings-page" style={{ padding: '24px 8px', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif' }}>
         {editing && editingFull ? (
           <EditorLayout
             landing={editing}
@@ -1419,7 +1419,7 @@ export default function LandingsPage({ user, onLogout }) {
               <div>
                 <div style={{ letterSpacing: '0.3em', fontSize: 11, color: '#6366F1', textTransform: 'uppercase' }}>DMX STUDIO · Z.8.2</div>
                 <h1 style={{ margin: '8px 0 0', fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(1.6rem, 3vw, 2.25rem)', fontWeight: 800 }}>{t('studio.landings.title')}</h1>
-                <p style={{ color: 'rgba(240,235,224,0.62)', marginTop: 6, maxWidth: 640 }}>{t('studio.landings.subtitle')}</p>
+                <p style={{ color: 'var(--cream-2)', marginTop: 6, maxWidth: 640 }}>{t('studio.landings.subtitle')}</p>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button data-testid="new-ai-landing-btn" type="button" onClick={() => setShowAIWizard(true)} style={btnGradient({ padding: '12px 22px', fontSize: 14 })}>
@@ -1436,13 +1436,13 @@ export default function LandingsPage({ user, onLogout }) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
                   {intakes.map((it) => (
-                    <button key={it.id} type="button" data-testid={`intake-card-${it.id}`} onClick={() => navigate(`/portal/studio/property-intake/${it.id}`)} style={{ textAlign: 'left', padding: 12, background: 'rgba(13,16,23,0.6)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 12, cursor: 'pointer', color: '#F0EBE0' }}>
+                    <button key={it.id} type="button" data-testid={`intake-card-${it.id}`} onClick={() => navigate(`/portal/studio/property-intake/${it.id}`)} style={{ textAlign: 'left', padding: 12, background: 'var(--surface)', border: '1px solid rgba(99,102,241,0.18)', borderRadius: 12, cursor: 'pointer', color: 'var(--cream)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: 13 }}>{it.project_name}</span>
                         <span style={{ fontSize: 10, padding: '2px 8px', background: 'rgba(236,72,153,0.18)', borderRadius: 9999, color: '#F472B6' }}>{it.template_key}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)', marginTop: 4 }}>/landing/{it.slug}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.45)', marginTop: 4 }}>
+                      <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 4 }}>/landing/{it.slug}</div>
+                      <div style={{ fontSize: 11, color: 'var(--cream-3)', marginTop: 4 }}>
                         {it.generated_copy_cached ? 'copy IA ok' : 'sin copy IA'} · {it.property_type}
                       </div>
                     </button>
@@ -1452,12 +1452,12 @@ export default function LandingsPage({ user, onLogout }) {
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 22 }}>
-              <select data-testid="filter-status" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} style={{ padding: '8px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)' }}>
+              <select data-testid="filter-status" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} style={{ padding: '8px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', color: 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)' }}>
                 <option value="">Todas</option>
                 <option value="published">Publicadas</option>
                 <option value="draft">Borradores</option>
               </select>
-              <select data-testid="filter-template" value={filters.template_key} onChange={(e) => setFilters({ ...filters, template_key: e.target.value })} style={{ padding: '8px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', color: '#F0EBE0', border: '1px solid rgba(99,102,241,0.3)' }}>
+              <select data-testid="filter-template" value={filters.template_key} onChange={(e) => setFilters({ ...filters, template_key: e.target.value })} style={{ padding: '8px 14px', borderRadius: 9999, background: 'rgba(99,102,241,0.12)', color: 'var(--cream)', border: '1px solid rgba(99,102,241,0.3)' }}>
                 <option value="">Cualquier template</option>
                 {(themes && themes.length ? themes.map((tm) => ({ k: tm.key, label: tm.name })) : TEMPLATE_KEYS_DEFAULT.map((k) => ({ k, label: k }))).map((it) => <option key={it.k} value={it.k}>{it.label}</option>)}
               </select>
@@ -1468,7 +1468,7 @@ export default function LandingsPage({ user, onLogout }) {
             ) : !items.length ? (
               <div data-testid="empty" style={{ padding: 48, textAlign: 'center', background: BG_CARD, border: BORDER, borderRadius: 16 }}>
                 <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif' }}>Aun no tienes landings</h3>
-                <p style={{ color: 'rgba(240,235,224,0.62)', marginTop: 8 }}>Crea tu primera landing con uno de los 3 starters.</p>
+                <p style={{ color: 'var(--cream-2)', marginTop: 8 }}>Crea tu primera landing con uno de los 3 starters.</p>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
@@ -1500,19 +1500,19 @@ export default function LandingsPage({ user, onLogout }) {
       )}
       {false && (
         <div data-testid="ai-wizard" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20 }}>
-          <div style={{ width: 'min(640px, 100%)', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 26, color: '#F0EBE0' }}>
+          <div style={{ width: 'min(640px, 100%)', background: BG_CARD, border: BORDER, borderRadius: 20, padding: 26, color: 'var(--cream)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
               <div>
                 <div style={{ letterSpacing: '0.25em', fontSize: 11, color: '#EC4899', textTransform: 'uppercase' }}>Studio Z.8.7</div>
                 <h2 style={{ margin: '6px 0 0', fontFamily: 'Outfit, sans-serif' }}>Crear landing con IA</h2>
-                <p style={{ marginTop: 6, fontSize: 13, color: 'rgba(240,235,224,0.62)' }}>Selecciona un template y completa las 14 secciones · la IA generara el copy automaticamente.</p>
+                <p style={{ marginTop: 6, fontSize: 13, color: 'var(--cream-2)' }}>Selecciona un template y completa las 14 secciones · la IA generara el copy automaticamente.</p>
               </div>
               <button type="button" data-testid="ai-wizard-close" onClick={() => setShowAIWizard(false)} style={btnGhost()}><Icons.X size={16} /></button>
             </div>
-            <label style={{ display: 'block', fontSize: 12, color: 'rgba(240,235,224,0.7)', marginBottom: 6, fontWeight: 600 }}>Template visual</label>
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--cream-2)', marginBottom: 6, fontWeight: 600 }}>Template visual</label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6, marginBottom: 20 }}>
               {Z87_TEMPLATE_KEYS.map((k) => (
-                <button key={k} type="button" data-testid={`ai-tpl-${k}`} onClick={() => setAiTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, background: aiTpl === k ? 'rgba(99,102,241,0.25)' : 'rgba(13,16,23,0.6)', border: aiTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: '#F0EBE0', cursor: 'pointer' }}>{k}</button>
+                <button key={k} type="button" data-testid={`ai-tpl-${k}`} onClick={() => setAiTpl(k)} style={{ padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600, background: aiTpl === k ? 'rgba(99,102,241,0.25)' : 'var(--surface)', border: aiTpl === k ? '1px solid #6366F1' : '1px solid rgba(99,102,241,0.18)', color: 'var(--cream)', cursor: 'pointer' }}>{k}</button>
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
