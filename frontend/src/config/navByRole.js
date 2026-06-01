@@ -227,6 +227,8 @@ const SUPERADMIN_NAV = [
       { key: 'reviews-residents', to: '/superadmin/reviews-residents', label: 'Reviews Residentes', Icon: MessageSquare },
       // ─ W7.AS.3.A · Conversation AI Agent inbox ─
       { key: 'conversations', to: '/superadmin/conversations', label: 'Conversaciones IA', Icon: MessageCircle },
+      // E5 · Copiloto de asesores (adopción · ranking · scripts · objeciones) — estaba sin menú.
+      { key: 'copilot', to: '/superadmin/copilot', label: 'Copiloto Asesores', Icon: MessageCircle },
       // ─ W7.AS.3.D · Round 2 · KB Gaps (huecos de conocimiento) ─
       { key: 'kb-gaps', to: '/superadmin/kb-gaps', label: 'KB Gaps', Icon: HelpCircle },
       // ─ W7.AS.3.G · Round 3 · A/B Testing de prompts ─
