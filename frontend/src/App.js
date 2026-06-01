@@ -217,7 +217,7 @@ const DesarrolladorCRMShell          = lazy(() => import('./pages/developer/Desa
 const MetricasEquipo                 = lazy(() => import('./pages/developer/MetricasEquipo'));
 // Phase 4 Batch 20 — Asesor metrics + tracking links + funnel + sankey
 const AsesorMetricas                 = lazy(() => import('./pages/asesor/AsesorMetricas'));
-const AsesorLinks                    = lazy(() => import('./pages/asesor/AsesorLinks'));
+// AsesorLinks → ahora se importa dentro de LinksHubPage (pestaña 'Crear UTM') · B7 F5
 const AsesoresMetrics                = lazy(() => import('./pages/developer/AsesoresMetrics'));
 const CrmFunnel                      = lazy(() => import('./pages/developer/CrmFunnel'));
 const AceptarInvitacion              = lazy(() => import('./pages/public/AceptarInvitacion'));
@@ -378,7 +378,8 @@ const SuperadminOnboardingAnalytics = lazy(() => import('./pages/superadmin/Supe
 const NuevoProyecto              = lazy(() => import('./pages/developer/NuevoProyecto'));
 
 // Phase 4 Batch 13
-const LinksTrackingPage          = lazy(() => import('./pages/asesor/LinksTracking'));
+// LinksTrackingPage → ahora se importa dentro de LinksHubPage (pestaña 'Tracking') · B7 F5
+const LinksHubPage               = lazy(() => import('./pages/asesor/LinksHubPage')); // B7 F5 · hub Tracking+Crear UTM
 
 // Phase 4 Batch 15 — Multi-broker Calendar
 const CalendarSettings           = lazy(() => import('./pages/asesor/CalendarSettings'));
@@ -784,7 +785,8 @@ function AppRouter() {
       <Route path="/desarrollador/crm/asesores-metrics" element={<AdvisorRoute Page={AsesoresMetrics} />} />
       <Route path="/desarrollador/crm/funnel" element={<AdvisorRoute Page={CrmFunnel} />} />
       <Route path="/asesor/metricas" element={<AdvisorRoute Page={AsesorMetricas} />} />
-      <Route path="/asesor/links" element={<AdvisorRoute Page={AsesorLinks} />} />
+      {/* B7 Fase 5 · /asesor/links (constructor UTM) ahora vive como pestaña del hub */}
+      <Route path="/asesor/links" element={<Navigate to="/asesor/links-tracking/crear" replace />} />
       {/* Phase 3 Batch 31 — Briefing pre-visita */}
       <Route path="/asesor/briefing" element={<AdvisorRoute Page={AsesorBriefingTraffic} />} />
       {/* Phase 4 Batch 32 — Asesor Identity */}
@@ -961,7 +963,9 @@ function AppRouter() {
       <Route path="/superadmin/user-diagnostics" element={<SuperadminRoute Page={UserDiagnosticsPage} />} />
       <Route path="/superadmin/onboarding-analytics" element={<SuperadminRoute Page={SuperadminOnboardingAnalytics} />} />
       <Route path="/desarrollador/proyectos/nuevo" element={<AdvisorRoute Page={NuevoProyecto} />} />
-      <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksTrackingPage} />} />
+      {/* B7 Fase 5 · Hub Links (Tracking + Crear UTM) — unifica las 2 páginas de links */}
+      <Route path="/asesor/links-tracking" element={<AdvisorRoute Page={LinksHubPage} />} />
+      <Route path="/asesor/links-tracking/:tab" element={<AdvisorRoute Page={LinksHubPage} />} />
 
       {/* Phase 4 Batch 15 — Multi-broker Calendar */}
       <Route path="/asesor/configuracion" element={<AdvisorRoute Page={CalendarSettings} />} />

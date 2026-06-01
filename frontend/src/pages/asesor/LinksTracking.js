@@ -122,7 +122,7 @@ function LinkRow({ item }) {
   );
 }
 
-export default function LinksTrackingPage({ user, onLogout }) {
+export default function LinksTrackingPage({ user, onLogout, embedded }) {
   const [links, setLinks] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -134,8 +134,7 @@ export default function LinksTrackingPage({ user, onLogout }) {
       .finally(() => setLoading(false));
   }, []);
 
-  return (
-    <PortalLayout role={user?.role} user={user} onLogout={onLogout}>
+  const body = (
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
         <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
           <BarChart3 size={20} color="var(--cream)" />
@@ -171,6 +170,8 @@ export default function LinksTrackingPage({ user, onLogout }) {
           </div>
         )}
       </div>
-    </PortalLayout>
   );
+
+  // B7 F5 · embedded → sin PortalLayout (vive dentro del hub Links).
+  return embedded ? body : <PortalLayout role={user?.role} user={user} onLogout={onLogout}>{body}</PortalLayout>;
 }

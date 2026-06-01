@@ -43,7 +43,7 @@ function copyToClipboard(text) {
   }
 }
 
-export default function AsesorLinks({ user, onLogout }) {
+export default function AsesorLinks({ user, onLogout, embedded }) {
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -100,11 +100,11 @@ export default function AsesorLinks({ user, onLogout }) {
     }
   };
 
-  return (
-    <AdvisorLayout user={user} onLogout={onLogout}>
+  const body = (
+    <>
       <PageHeader
         eyebrow="MARKETING · LINKS"
-        title="Mis links de tracking"
+        title="Crear links con UTM"
         sub="Genera URLs con UTM + QR para redes, ads o flyers."
       />
 
@@ -307,8 +307,11 @@ export default function AsesorLinks({ user, onLogout }) {
           {toast.text}
         </div>
       )}
-    </AdvisorLayout>
+    </>
   );
+
+  // B7 F5 · embedded → sin AdvisorLayout (vive dentro del hub Links).
+  return embedded ? body : <AdvisorLayout user={user} onLogout={onLogout}>{body}</AdvisorLayout>;
 }
 
 function Field({ label, children }) {
