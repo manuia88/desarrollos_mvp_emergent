@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import { PageHeader, Card, Badge, Empty, Drawer, Toast, fmtMXN } from '../../components/advisor/primitives';
+import PremiumCard from '../../components/asesor/design/PremiumCard'; // B7 · diseño premium
 import * as api from '../../api/advisor';
 import SmartListsSidebar from '../../components/asesor/SmartListsSidebar';
 
@@ -86,15 +87,10 @@ export default function AsesorCaptaciones({ user, onLogout, embedded }) {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {col.map(c => (
-                      <div key={c.id} draggable
+                      <PremiumCard key={c.id} hover dragging={dragging === c.id} draggable
                         onDragStart={() => setDragging(c.id)}
                         data-testid={`capt-card-${c.id}`}
-                        style={{
-                          padding: 12,
-                          background: 'linear-gradient(180deg, var(--surface), var(--surface))',
-                          border: '1px solid var(--border)',
-                          borderRadius: 12, cursor: 'grab',
-                        }}>
+                        style={{ padding: 12, borderRadius: 14, cursor: 'grab' }}>
                         <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 13.5, color: 'var(--cream)', marginBottom: 4 }}>
                           {c.direccion}
                         </div>
@@ -109,7 +105,7 @@ export default function AsesorCaptaciones({ user, onLogout, embedded }) {
                           {c.urgencia === 'alta' && <Badge tone="bad">Urgente</Badge>}
                           <Badge tone="brand">{c.comision_pct || 4}% comisión</Badge>
                         </div>
-                      </div>
+                      </PremiumCard>
                     ))}
                   </div>
                 </div>
