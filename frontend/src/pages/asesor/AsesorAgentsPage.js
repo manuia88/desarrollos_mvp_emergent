@@ -154,12 +154,10 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                     key={a.name}
                     hover
                     data-testid={`agent-card-${a.name}`}
-                    className="flex flex-col relative overflow-hidden"
+                    className="flex flex-col"
                     style={{ padding: 18, borderRadius: 18 }}
                   >
-                    {/* glow de marca en la esquina · profundidad sutil */}
-                    <div aria-hidden style={{ position: 'absolute', top: -38, right: -38, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--theme-rgb),0.12), transparent 70%)', pointerEvents: 'none' }} />
-                    <div className="flex items-start gap-3 mb-3" style={{ position: 'relative' }}>
+                    <div className="flex items-start gap-3 mb-3">
                       <span style={{ width: 44, height: 44, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--theme), var(--theme-3))', color: '#fff', boxShadow: '0 6px 16px rgba(var(--theme-rgb),0.35)', flexShrink: 0 }}>
                         <Ico size={20} />
                       </span>

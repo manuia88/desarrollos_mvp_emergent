@@ -86,7 +86,7 @@ export default function AutopilotPanel() {
         </p>
       </div>
 
-      <div className="rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] p-4 space-y-4">
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-4 space-y-4" style={{ boxShadow: 'var(--asr-shadow)' }}>
         {/* Kill switch global */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
