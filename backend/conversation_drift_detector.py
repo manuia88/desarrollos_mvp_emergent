@@ -159,7 +159,7 @@ async def alert_if_drift(db, tenant_id: str) -> Dict[str, Any]:
             from notifications_engine import emit_notification
             await emit_notification(
                 db,
-                user_id="admin@desarrollosmx.com",
+                user_id="admin@desarrollosmx.io",
                 tenant_id=tenant_id,
                 type="generic",
                 severity="high",

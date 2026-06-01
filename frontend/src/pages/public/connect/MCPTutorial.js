@@ -9,7 +9,7 @@ const CONFIG_JSON = `{
       "command": "npx",
       "args": ["-y", "@desarrollosmx/mcp-server"],
       "env": {
-        "DMX_API_BASE": "https://api.desarrollosmx.com"
+        "DMX_API_BASE": "https://api.desarrollosmx.io"
       }
     }
   }

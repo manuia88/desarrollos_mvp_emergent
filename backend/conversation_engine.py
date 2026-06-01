@@ -351,7 +351,7 @@ class ConversationEngine:
                     from notifications_engine import emit_notification
                     await emit_notification(
                         self.db,
-                        user_id=thread.get("asesor_id") or "admin@desarrollosmx.com",
+                        user_id=thread.get("asesor_id") or "admin@desarrollosmx.io",
                         tenant_id=thread.get("tenant_id"),
                         type="generic",
                         severity="high",

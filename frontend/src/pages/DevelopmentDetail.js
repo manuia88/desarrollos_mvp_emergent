@@ -176,7 +176,7 @@ export default function DevelopmentDetail({ user, onLogin, onLogout }) {
         data={{
           name: dev.name,
           description: dev.description || '',
-          url: `https://desarrollosmx.com/desarrollo/${dev.id}`,
+          url: `https://desarrollosmx.io/desarrollo/${dev.id}`,
           image: (dev.images || [])[0] || '',
           address: dev.address_full || '',
           colonia: dev.colonia || '',

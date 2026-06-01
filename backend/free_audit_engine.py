@@ -429,7 +429,7 @@ def render_audit_pdf(audit: Dict[str, Any], context: Dict[str, Any]) -> str:
     c.setFont("Helvetica-Bold", 11); c.setFillColor(WHITE)
     c.drawCentredString(W / 2, MARGIN + 35, "HABLAR CON ASESOR DMX")
     c.setFont("Helvetica", 8); c.setFillColor(HexColor("#6b7280"))
-    c.drawCentredString(W / 2, MARGIN + 10, "desarrollosmx.com · Solo uso informativo")
+    c.drawCentredString(W / 2, MARGIN + 10, "desarrollosmx.io · Solo uso informativo")
     c.showPage()
     c.save()
     buf.seek(0)
@@ -484,13 +484,13 @@ async def send_audit_email(db, audit_id: str) -> bool:
             f"<h2 style='margin:0 0 16px'>Tu DMX Audit Report</h2>"
             f"<p>Aquí tienes el análisis de <strong>{audit.get('project_name')}</strong> en "
             f"<strong>{(audit.get('colonia_slug') or '').replace('-', ' ').title()}</strong>.</p>"
-            f"<a href='https://desarrollosmx.com/asesores' "
+            f"<a href='https://desarrollosmx.io/asesores' "
             f"style='display:inline-block;background:linear-gradient(90deg,#6366F1,#EC4899);"
             f"color:#fff;padding:10px 22px;border-radius:9999px;text-decoration:none;font-weight:700'>"
             f"HABLAR CON ASESOR</a></div>"
         )
         resend.Emails.send({
-            "from": "DMX Audit <noreply@desarrollosmx.com>",
+            "from": "DMX Audit <noreply@desarrollosmx.io>",
             "to": audit["submitted_email"],
             "subject": f"Tu DMX Audit · {audit.get('project_name', 'Tu propiedad')}",
             "html": html,

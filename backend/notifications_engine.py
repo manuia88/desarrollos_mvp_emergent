@@ -39,7 +39,7 @@ NOTIF_TYPES = {
     "generic",
 }
 
-RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.com")
+RESEND_FROM = os.environ.get("RESEND_FROM_NOTIFICATIONS", "noreply@desarrollosmx.io")
 FRONTEND_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://desarrollosmx.io").replace("/api", "")
 
 DEFAULT_CATEGORIES = {
@@ -538,7 +538,7 @@ async def rule_drop_off_pico(db, asesor_id: str, step: str, pct: float,
     )
 
 
-async def rule_cron_failed(db, cron_name: str, error: str, superadmin_id: str = "admin@desarrollosmx.com") -> Optional[str]:
+async def rule_cron_failed(db, cron_name: str, error: str, superadmin_id: str = "admin@desarrollosmx.io") -> Optional[str]:
     """Notifica a superadmin cuando un cron falla. superadmin_id puede ser email o user_id."""
     # Buscar superadmin por email si no tenemos user_id
     sa = await db.users.find_one(
@@ -558,7 +558,7 @@ async def rule_cron_failed(db, cron_name: str, error: str, superadmin_id: str = 
     )
 
 
-async def rule_api_limit_warn(db, provider: str, usage_pct: float, superadmin_id: str = "admin@desarrollosmx.com") -> Optional[str]:
+async def rule_api_limit_warn(db, provider: str, usage_pct: float, superadmin_id: str = "admin@desarrollosmx.io") -> Optional[str]:
     if usage_pct < 80.0:
         return None
     sev = "critical" if usage_pct >= 95.0 else "high"

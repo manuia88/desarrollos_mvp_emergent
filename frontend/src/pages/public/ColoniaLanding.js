@@ -38,7 +38,7 @@ export default function ColoniaLanding() {
           og.setAttribute('property', 'og:image');
           document.head.appendChild(og);
         }
-        og.setAttribute('content', `https://desarrollosmx.com/og/colonia/${slug}.png`);
+        og.setAttribute('content', `https://desarrollosmx.io/og/colonia/${slug}.png`);
         let desc = document.querySelector('meta[name="description"]');
         if (!desc) {
           desc = document.createElement('meta');

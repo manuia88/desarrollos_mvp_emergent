@@ -103,7 +103,7 @@ export default function Embed3DGSPage() {
       {/* DMX branding overlay */}
       {showBranding && scan && (
         <a
-          href="https://desarrollosmx.com"
+          href="https://desarrollosmx.io"
           target="_blank"
           rel="noopener noreferrer"
           style={{

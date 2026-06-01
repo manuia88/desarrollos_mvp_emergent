@@ -209,7 +209,7 @@ def render_og_image(period: str, metrics: Dict[str, Any]) -> Path:
         draw.text((bx + 16, by + 18), lbl.upper(), font=fnt_lbl, fill=(160, 164, 176))
         draw.text((bx + 16, by + 60), val, font=fnt_kpi, fill=(240, 235, 224))
 
-    draw.text((60, 570), "desarrollosmx.com/insights/state-of-cdmx-2026", font=fnt_lbl, fill=(160, 164, 176))
+    draw.text((60, 570), "desarrollosmx.io/insights/state-of-cdmx-2026", font=fnt_lbl, fill=(160, 164, 176))
     img.save(out_path, "PNG", optimize=True)
     return out_path
 

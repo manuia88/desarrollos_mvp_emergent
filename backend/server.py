@@ -1180,7 +1180,7 @@ async def startup():
     await db.users.create_index("user_id")
     await db.audit_logs.create_index("ts")
     # Seed superadmin
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.com")
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@desarrollosmx.io")
     admin_pw    = os.environ.get("ADMIN_PASSWORD", "Admin2026!")
     existing    = await db.users.find_one({"email": admin_email})
     if not existing:

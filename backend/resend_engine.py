@@ -15,7 +15,7 @@ log = logging.getLogger("dmx.resend_engine")
 
 DEFAULT_FROM = os.environ.get("RESEND_FROM", "DesarrollosMX <noreply@desarrollosmx.io>")
 DEFAULT_REPLY_TO = os.environ.get("RESEND_REPLY_TO", "soporte@desarrollosmx.io")
-APP_BASE = os.environ.get("APP_PUBLIC_BASE", "https://desarrollosmx.com")
+APP_BASE = os.environ.get("APP_PUBLIC_BASE", "https://desarrollosmx.io")
 
 
 def _send(subject: str, html: str, to: str) -> bool:

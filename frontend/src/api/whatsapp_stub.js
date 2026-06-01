@@ -12,7 +12,7 @@ const LOCAL_TEMPLATES = {
   followup_24h: ({ name = '', property_title = '' } = {}) =>
     `Hola ${name || ''}, hace 24h viste ${property_title || 'una propiedad'}. ¿Sigues interesado? Tengo info nueva.`,
   mood_share: ({ vibe_label = '', top_matches_count = 0 } = {}) =>
-    `Acabo de descubrir mi vibe en DesarrollosMX: "${vibe_label || 'mi vibe'}". Me arrojo ${top_matches_count || 5} propiedades match. ¡Pruebalo tu! https://desarrollosmx.com/portal/vibe`,
+    `Acabo de descubrir mi vibe en DesarrollosMX: "${vibe_label || 'mi vibe'}". Me arrojo ${top_matches_count || 5} propiedades match. ¡Pruebalo tu! https://desarrollosmx.io/portal/vibe`,
 };
 
 function buildFallback(templateKey, context, phone) {
