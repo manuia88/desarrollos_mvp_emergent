@@ -1755,20 +1755,26 @@ async def request_channel_connect(key: str, payload: ChannelConnectIn, request: 
     return {"ok": True, "channel": key, "status": "requested", "already": False}
 
 
-# Objeciones comunes del cliente → ángulo de respuesta sugerido (heurístico · stub-aware)
+# Objeciones comunes del cliente → cómo manejarla (suggestion) + qué decirle (script listo).
 _OBJECIONES = [
     ("precio", ["caro", "carisimo", "carísimo", "muy alto", "presupuesto", "no me alcanza", "elevado", "fuera de mi", "mas barato", "más barato", "descuento", "rebaja", "bajar el precio"],
-     "Precio / presupuesto", "Reconoce el presupuesto y reencuadra en valor: plusvalía, ubicación y costo por m². Ofrece opciones dentro de su rango."),
+     "Precio / presupuesto", "Reconoce el presupuesto y reencuadra en valor: plusvalía, ubicación y costo por m². Ofrece opciones dentro de su rango.",
+     "Te entiendo, el precio importa. Más que el número, mira el costo por m² y la plusvalía de la zona — tengo un par de opciones dentro de tu rango. ¿Te las comparto?"),
     ("ubicacion", ["lejos", "retirado", "no me queda", "trafico", "tráfico", "lejano", "muy lejos"],
-     "Ubicación", "Conecta la zona con su día a día: tiempos reales a trabajo/escuela y servicios cerca. Propón colonias que sí le acomoden."),
+     "Ubicación", "Conecta la zona con su día a día: tiempos reales a trabajo/escuela y servicios cerca. Propón colonias que sí le acomoden.",
+     "Buen punto. ¿A qué lugares necesitas llegar seguido? Así te muestro opciones con buenos tiempos reales, no solo por la colonia."),
     ("financiamiento", ["credito", "crédito", "hipoteca", "infonavit", "enganche", "mensualidad", "financi", "banco", "cuanto pagaria", "cuánto pagaría"],
-     "Financiamiento", "Aterriza los números: enganche, mensualidad estimada y opciones de crédito. Ofrécele una simulación rápida."),
+     "Financiamiento", "Aterriza los números: enganche, mensualidad estimada y opciones de crédito. Ofrécele una simulación rápida.",
+     "Va, aterricémoslo: con tu enganche estimado la mensualidad quedaría manejable. ¿Te hago una simulación rápida para que lo veas claro?"),
     ("tiempo", ["lo pienso", "pensarlo", "despues", "después", "mas adelante", "más adelante", "no es momento", "ocupado", "luego", "tiempo"],
-     "No es el momento", "No presiones: ofrece un paso pequeño (una visita o más info) y agenda un recordatorio para retomar."),
+     "No es el momento", "No presiones: ofrece un paso pequeño (una visita o más info) y agenda un recordatorio para retomar.",
+     "Sin prisa, cuando estés listo seguimos. ¿Te parece si te mando 1-2 opciones para que las tengas en el radar y retomamos la próxima semana?"),
     ("competencia", ["otra opcion", "otra opción", "otro asesor", "otra inmobiliaria", "vi otro", "comparando", "otra propiedad"],
-     "Está comparando", "Diferénciate: resalta lo único de tu propiedad/servicio y pregunta qué está comparando para responder con datos."),
+     "Está comparando", "Diferénciate: resalta lo único de tu propiedad/servicio y pregunta qué está comparando para responder con datos.",
+     "¡Qué bueno que estás comparando! ¿Qué viste que te gustó? Así te digo con datos en qué se diferencia lo que te propongo."),
     ("duda", ["no se", "no sé", "no estoy seguro", "dudo", "convencido", "inseguro", "no estoy convencido"],
-     "Tiene dudas", "Haz una pregunta abierta para descubrir la duda real y responde con un caso de éxito parecido."),
+     "Tiene dudas", "Haz una pregunta abierta para descubrir la duda real y responde con un caso de éxito parecido.",
+     "Cuéntame qué te genera duda y lo resolvemos juntos. Tengo un caso parecido al tuyo que te puede servir de referencia."),
 ]
 
 
@@ -1777,10 +1783,32 @@ def _detect_objection(text: str):
     t = (text or "").lower()
     if not t:
         return None
-    for key, kws, label, suggestion in _OBJECIONES:
+    for key, kws, label, suggestion, script in _OBJECIONES:
         if any(k in t for k in kws):
-            return {"type": key, "label": label, "suggestion": suggestion}
+            return {"type": key, "label": label, "suggestion": suggestion, "script": script}
     return None
+
+
+def _build_coaching(objecion, animo, nombre):
+    """Coaching del Copiloto (no solo propiedades): QUÉ decirle (guion listo) + CÓMO tratarlo
+    (tono según ánimo). Heurístico · FAIL-OPEN. El asesor lo edita antes de enviar."""
+    nom = nombre or ""
+    # CÓMO tratarlo · tono según el ánimo detectado
+    sent = (animo or {}).get("sentiment", "neutral")
+    if sent == "negativo":
+        como = {"label": "Baja el ritmo", "tip": "Valida primero su preocupación; no propongas hasta que se sienta escuchado."}
+    elif sent == "positivo":
+        como = {"label": "Está receptivo", "tip": "Aprovecha el momento: propón el siguiente paso concreto (visita o cierre) ya."}
+    else:
+        como = {"label": "Descubre qué le mueve", "tip": "Haz una pregunta abierta para entender su prioridad real antes de proponer."}
+    # QUÉ decirle · guion listo (de la objeción si existe; si no, abrir conversación)
+    if objecion and objecion.get("script"):
+        que = {"script": objecion["script"], "rationale": f"Maneja la objeción: {objecion['label']}"}
+    else:
+        saludo = f"Hola {nom}! " if nom else "Hola! "
+        que = {"script": f"{saludo}¿Qué te pareció lo último que vimos? Si me dices qué te late y qué no, te afino las opciones a tu medida.",
+               "rationale": "Mantén la conversación viva y aprende su gusto."}
+    return {"que_decirle": que, "como_tratarlo": como}
 
 
 @router.get("/contactos/{cid}/conversation-ai")
@@ -1860,7 +1888,82 @@ async def conversation_ai(cid: str, request: Request, channel: str = "whatsapp")
     else:
         nba = {"action_type": "seguimiento", "title": "Dale seguimiento",
                "why": "Mantén viva la conversación con un mensaje breve.", "cta": "Escribir", "urgency": "baja"}
-    return {"animo": animo, "recomendacion": rec, "objecion": objecion, "nba": nba}
+    # Coaching del Copiloto · QUÉ decirle (guion listo) + CÓMO tratarlo (no solo propiedades)
+    nombre = None
+    try:
+        cdoc = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0, "first_name": 1})
+        nombre = (cdoc or {}).get("first_name")
+    except Exception:
+        nombre = None
+    coaching = _build_coaching(objecion, animo, nombre)
+    return {"animo": animo, "recomendacion": rec, "objecion": objecion, "nba": nba, "coaching": coaching}
+
+
+class CopilotLeadAsk(BaseModel):
+    question: str
+    channel: str = "whatsapp"
+
+
+@router.post("/contactos/{cid}/copilot-ask")
+async def copilot_ask_lead(cid: str, payload: CopilotLeadAsk, request: Request):
+    """Copiloto contextual del lead · responde la pregunta del asesor con el contexto de
+    ESTE cliente cargado (gusto, presupuesto, conversación, tablero). Reusa el copiloto
+    general inyectando un resumen del lead. FAIL-OPEN a un resumen heurístico."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    c = await db.asesor_contactos.find_one({"id": cid, "owner_id": user.user_id}, {"_id": 0})
+    if not c:
+        raise HTTPException(404, "Contacto no encontrado")
+    nombre = c.get("first_name") or "el cliente"
+    q = (payload.question or "").strip()
+    if not q:
+        raise HTTPException(400, "Pregunta vacía")
+
+    # Arma contexto compacto del lead (gusto + presupuesto + últimos mensajes + tablero)
+    ctx_bits = [f"Cliente: {nombre} {c.get('last_name','')}".strip()]
+    if c.get("temperatura"):
+        ctx_bits.append(f"Temperatura: {c['temperatura']}")
+    if c.get("tags"):
+        ctx_bits.append(f"Etiquetas: {', '.join(c.get('tags') or [])}")
+    try:
+        b = await db.asesor_busquedas.find_one({"owner_id": user.user_id, "contacto_id": cid}, {"_id": 0}, sort=[("created_at", -1)])
+        if b:
+            seg = []
+            if b.get("precio_max"): seg.append(f"presupuesto hasta {_fmt_mxn(b['precio_max'])}")
+            if b.get("recamaras_min"): seg.append(f"{b['recamaras_min']}+ recámaras")
+            if b.get("colonias"): seg.append("zonas: " + ", ".join(c2.replace('-', ' ') for c2 in (b.get('colonias') or [])[:4]))
+            if seg: ctx_bits.append("Busca: " + " · ".join(seg))
+    except Exception:
+        pass
+    try:
+        from taste_profile import build_taste_profile, taste_summary_line
+        _t = await build_taste_profile(db, user.user_id, cid, persist=False)
+        line = taste_summary_line(_t) if _t else ""
+        if line: ctx_bits.append(f"Gusto: {line}")
+    except Exception:
+        pass
+    try:
+        msgs = await db.whatsapp_messages.find(
+            {"org_id": user.user_id, "lead_id": cid, **_channel_q((payload.channel or "whatsapp").lower())},
+            {"_id": 0, "direction": 1, "body_text": 1}).sort("created_at", -1).limit(6).to_list(6)
+        if msgs:
+            convo = " | ".join(f"{'cliente' if m.get('direction')=='inbound' else 'yo'}: {(m.get('body_text') or '')[:80]}" for m in reversed(msgs))
+            ctx_bits.append(f"Últimos mensajes: {convo}")
+    except Exception:
+        pass
+    lead_ctx = "\n".join(ctx_bits)
+
+    # Reusa el copiloto general (Claude) inyectando el contexto del lead en la pregunta.
+    try:
+        from services.copilot_engine import ask_copilot
+        full_q = (f"Eres mi copiloto de ventas. Contexto del lead con el que estoy chateando:\n{lead_ctx}\n\n"
+                  f"Mi pregunta: {q}\n\nResponde concreto y accionable, en español de México, máximo 6 líneas.")
+        out = await ask_copilot(db, user, full_q, None)
+        return {"answer": out.get("response_markdown") or out.get("answer") or "", "lead_context_used": lead_ctx, "fallback": bool(out.get("fallback"))}
+    except Exception:
+        # FAIL-OPEN heurístico
+        return {"answer": f"Con {nombre}: revisa lo que busca y su gusto, y propón el siguiente paso concreto. {lead_ctx}",
+                "lead_context_used": lead_ctx, "fallback": True}
 
 
 _DIA_RX = {"hoy": 0, "mañana": 1, "manana": 1, "lunes": None, "martes": None, "miércoles": None,
@@ -2301,7 +2404,6 @@ async def update_busqueda(bid: str, payload: BusquedaPatch, request: Request):
     if not recs and changes:
         recs.append({"icon": "✅", "title": "Perfil actualizado",
                      "detail": "Guardé los cambios y volví a calcular las coincidencias."})
-
     return {
         "ok": True,
         "changed": [t for _k, t in diffs],
