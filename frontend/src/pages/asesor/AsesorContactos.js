@@ -1178,53 +1178,60 @@ function AsesorContactosV2({ user, onLogout }) {
               );
             })}
 
-            {/* Precio + Zona · a la derecha de la fila 2 · dropdown abre hacia abajo (no encima chips) */}
+            {/* Precio + Zona · botones a la derecha de la fila 2. Abren un PANEL EN FLUJO
+                (abajo · empuja el board) → nunca se encima ni se corta. */}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ position: 'relative' }}>
-                <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
-                  className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
-                  💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} ▾
-                </button>
-                {openFilter === 'precio' && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100, width: 240, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Presupuesto (millones)</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: '50%' }} />
-                      <span style={{ color: 'var(--cream-3)' }}>–</span>
-                      <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: '50%' }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 11 }}>
-                      <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
-                      <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 14px' }}>Aplicar</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div style={{ position: 'relative' }}>
-                <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
-                  className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
-                  📍 Zona{zonas.length ? ` · ${zonas.length}` : ''} ▾
-                </button>
-                {openFilter === 'zona' && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100, width: 210, maxHeight: 280, overflowY: 'auto', padding: 8, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
-                    {allZonas.length === 0
-                      ? <div style={{ padding: 10, fontSize: 12, color: 'var(--cream-3)' }}>Sin zonas registradas</div>
-                      : allZonas.map((z) => {
-                        const on = zonas.includes(z);
-                        return (
-                          <button key={z} onClick={() => setZonas((prev) => (on ? prev.filter((x) => x !== z) : [...prev, z]))}
-                            style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 9px', borderRadius: 8, border: 'none', background: on ? 'rgba(var(--theme-rgb),0.08)' : 'transparent', color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                            <span style={{ width: 15, height: 15, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border-2)'}`, background: on ? 'var(--theme)' : 'transparent', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 10 }}>{on ? '✓' : ''}</span>
-                            {z}
-                          </button>
-                        );
-                      })}
-                    {zonas.length > 0 && <button onClick={() => setZonas([])} style={{ width: '100%', marginTop: 4, background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer', padding: 6 }}>Limpiar zonas</button>}
-                  </div>
-                )}
-              </div>
+              <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
+                className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
+                💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} {openFilter === 'precio' ? '▴' : '▾'}
+              </button>
+              <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
+                className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
+                📍 Zona{zonas.length ? ` · ${zonas.length}` : ''} {openFilter === 'zona' ? '▴' : '▾'}
+              </button>
             </div>
           </div>
+
+          {/* Panel de filtro · EN FLUJO (no flotante) · aparece debajo de los chips y empuja
+              el board hacia abajo → imposible que se encime con tarjetas o se corte. */}
+          {openFilter === 'precio' && (
+            <div data-testid="panel-precio" style={{ marginTop: 10, padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream-2)' }}>Presupuesto (millones)</span>
+              <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: 100 }} />
+              <span style={{ color: 'var(--cream-3)' }}>–</span>
+              <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: 100 }} />
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+                {priceActive && <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12.5, cursor: 'pointer' }}>Limpiar</button>}
+                <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 16px' }}>Listo</button>
+              </div>
+            </div>
+          )}
+          {openFilter === 'zona' && (
+            <div data-testid="panel-zona" style={{ marginTop: 10, padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream-2)' }}>Zona / colonia</span>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {zonas.length > 0 && <button onClick={() => setZonas([])} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12.5, cursor: 'pointer' }}>Limpiar</button>}
+                  <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 16px' }}>Listo</button>
+                </div>
+              </div>
+              {allZonas.length === 0
+                ? <div style={{ fontSize: 12.5, color: 'var(--cream-3)' }}>Sin zonas registradas aún</div>
+                : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {allZonas.map((z) => {
+                      const on = zonas.includes(z);
+                      return (
+                        <button key={z} onClick={() => setZonas((prev) => (on ? prev.filter((x) => x !== z) : [...prev, z]))}
+                          className={`asr-chip${on ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
+                          {on && <span style={{ marginRight: 5 }}>✓</span>}{z}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+            </div>
+          )}
         </div>
 
         {/* Foco de hoy · 3 acciones priorizadas. En demo se renderiza DIRECTO de DEMO_FOCO
@@ -1363,13 +1370,13 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   // Perfilamiento financiero (point 2): forma de pago + plazo de compra · lo captura el asesor en la ficha.
   const formaPago = bq && (bq.forma_pago || bq.financiamiento);
   const plazoCompra = bq && (bq.plazo_compra || bq.plazo || bq.timeframe);
-  // Forma de pago: Contado / Crédito / Propio + Crédito. Si es crédito, el TIPO (banco vs
-  // Infonavit/Fovissste) lo distingue credito_tipo → "🏦 Crédito · Infonavit".
-  const FORMA_LABEL = { contado: '💵 Contado', credito: '🏦 Crédito', mixto: '🏦 Propio + Crédito' };
-  const CREDITO_LABEL = { banco: 'banco', infonavit: 'Infonavit', fovissste: 'Fovissste', cofinavit: 'Cofinavit' };
+  // Forma de pago: Contado / Propio + Crédito / Propio + Crédito + Infonavit-o-Fovissste.
+  // El sub-tipo (credito_tipo) solo aplica al tercer caso → "🏦 Propio + Crédito + Infonavit".
+  const FORMA_LABEL = { contado: '💵 Contado', credito: '🏦 Propio + Crédito', mixto: '🏦 Propio + Crédito' };
+  const CREDITO_LABEL = { infonavit: 'Infonavit', fovissste: 'Fovissste', cofinavit: 'Cofinavit' };
   const creditoTipo = bq && bq.credito_tipo;
   const formaText = formaPago
-    ? `${FORMA_LABEL[formaPago] || '💳 ' + formaPago}${formaPago !== 'contado' && creditoTipo ? ` · ${CREDITO_LABEL[creditoTipo] || creditoTipo}` : ''}`
+    ? `${FORMA_LABEL[formaPago] || '💳 ' + formaPago}${formaPago !== 'contado' && CREDITO_LABEL[creditoTipo] ? ` + ${CREDITO_LABEL[creditoTipo]}` : ''}`
     : null;
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
@@ -1414,10 +1421,11 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         </div>
       </div>
 
-      {/* 2 · temperatura (emoji) + PRÓXIMA ACCIÓN + score (consolidados en una línea) */}
+      {/* 2 · temperatura (emoji) + PRÓXIMA ACCIÓN + score. Altura FIJA = 2 renglones
+          (clamp a 2 líneas · nunca corta a media palabra · nunca crece) → tarjetas simétricas. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 10, background: `rgba(${meta.rgb}, 0.08)`, border: `1px solid rgba(${meta.rgb}, 0.20)` }}>
         <span title={meta.label} style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>{tempEmoji}</span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, lineHeight: 1.3, color: actText ? 'var(--cream)' : 'var(--cream-3)' }}>{actText || 'Sin acción pendiente'}</span>
+        <span style={{ flex: 1, minWidth: 0, height: 34, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontSize: 13, fontWeight: 700, lineHeight: 1.3, color: actText ? 'var(--cream)' : 'var(--cream-3)' }}>{actText || 'Sin acción pendiente'}</span>
         {score != null && <span title={`Score ${pct}/100`} style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: `rgb(${meta.rgb})` }}>{pct}</span>}
       </div>
 
@@ -1427,15 +1435,15 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
         {dealText && <span style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 700, color: 'var(--cream)' }}>{dealText}</span>}
       </div>
 
-      {/* 3b · specs con iconos (recámaras · baños · estac · m²) */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 13px', fontSize: 12.5, color: 'var(--cream-2)' }}>
+      {/* 3b · specs con iconos (recámaras · baños · estac · m²) · UNA línea (altura fija) */}
+      <div style={{ display: 'flex', gap: 13, fontSize: 12.5, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
         {specs.length ? specs.map((s, i) => <span key={i}>{s}</span>) : <span style={{ color: 'var(--cream-3)' }}>Specs por definir</span>}
       </div>
 
-      {/* 3c · perfilamiento de compra · forma de pago + plazo (lo llena el asesor · accionable si falta) */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 13px', fontSize: 12, color: 'var(--cream-2)' }}>
+      {/* 3c · perfilamiento de compra · forma de pago + plazo · UNA línea con ellipsis (altura fija) */}
+      <div style={{ display: 'flex', gap: 13, fontSize: 12, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {(formaText || plazoCompra)
-          ? <>{formaText && <span>{formaText}</span>}{plazoCompra && <span>🗓 {plazoCompra}</span>}</>
+          ? <><span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{formaText}</span>{plazoCompra && <span style={{ flexShrink: 0 }}>🗓 {plazoCompra}</span>}</>
           : <span style={{ color: 'var(--cream-3)' }}>Perfil de compra por completar</span>}
       </div>
 
