@@ -1002,9 +1002,13 @@ function AsesorContactosV2({ user, onLogout }) {
     { key: 'sinseg',      label: 'Sin seguimiento', emoji: '🕓', group: 'neg', pred: (c) => noFollow(c) },
     { key: 'estancados',  label: 'Estancados',      emoji: '❄️', group: 'neg', pred: (c) => c.buyer_score?.tier === 'cold' && noFollow(c) },
   ];
+  // E1 · Clasificación viva: usa los segmentos REALES del servidor (c.segments · tier+etapa
+  // +recencia). En demo (no pasa por backend) cae al cálculo client-side de arriba.
+  const clientSegs = (c) => segmentDefs.filter((s) => s.group !== 'all' && s.pred(c)).map((s) => s.key);
+  const segOf = (c) => (Array.isArray(c.segments) ? c.segments : clientSegs(c));
   const segBase = list.filter((c) => !c.archived);
   const segCounts = {};
-  for (const s of segmentDefs) segCounts[s.key] = s.key === 'todos' ? segBase.length : segBase.filter(s.pred).length;
+  for (const s of segmentDefs) segCounts[s.key] = s.key === 'todos' ? segBase.length : segBase.filter((c) => segOf(c).includes(s.key)).length;
   const allZonas = [...new Set(segBase.flatMap((c) => (busqByContact[c.id] || [])[0]?.colonias || []))].sort();
   // Rangos con al menos un extremo lleno (los vacíos no filtran).
   const activeRanges = priceRanges.filter((r) => r.from !== '' || r.to !== '');
@@ -1013,8 +1017,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const display = useMemo(() => {
     let arr = list.filter((c) => !c.archived);
     if (segment !== 'todos') {
-      const def = segmentDefs.find((s) => s.key === segment);
-      if (def) arr = arr.filter(def.pred);
+      arr = arr.filter((c) => segOf(c).includes(segment));
     }
     if (activeRanges.length) {
       arr = arr.filter((c) => {
