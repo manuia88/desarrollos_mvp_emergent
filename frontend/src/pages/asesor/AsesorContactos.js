@@ -1231,9 +1231,8 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   const aging = agingText(c.created_at);
   const agingDisplay = metaOverride ? metaOverride.aging : aging;
   const agingWarn = metaOverride ? metaOverride.agingWarn : false;
-  const metaText = zona || precio
-    ? `${zona || ''}${zona && precio ? ' · ' : ''}${precio ? 'hasta ' + fmtMXN(precio) : ''}`
-    : nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada';
+  // Izquierda = SOLO zona (el precio va a la derecha como dealText · sin duplicar).
+  const metaText = zona || (nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada');
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
   // SEÑAL "por qué ahora" = temperatura + recencia/actividad (accionable). Siempre hay.
