@@ -530,6 +530,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   // B5.2b / B5.3 · Recomendador — inventario RANKEADO por lo que le encaja al lead (match%).
   const openAddProp = () => {
     setShowAddProp(true);
+    if (demo) { setAllDevs([]); return; } // demo: no hay inventario conectado · el modal lo explica
     if (allDevs === null) {
       api.getLeadSuggestions(cid)
         .then((d) => setAllDevs(Array.isArray(d?.items) ? d.items : []))
@@ -1482,8 +1483,8 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
 
       {/* B5.2b · Buscador de inventario para agregar propiedad al tablero */}
       {showAddProp && (
-        <div onClick={() => setShowAddProp(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: Z.MODAL, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 560, maxHeight: '82vh', borderRadius: '18px 18px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <div onClick={() => setShowAddProp(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.45)', zIndex: Z.MODAL, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface)', width: '100%', maxWidth: 560, maxHeight: '82vh', borderRadius: 18, boxShadow: 'var(--asr-shadow-lg)', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid var(--border)' }}>
             <div style={{ padding: '15px 18px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ minWidth: 0 }}>
                 <b style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, color: 'var(--cream)' }}>Agregar propiedad al tablero</b>
@@ -1498,7 +1499,11 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <div style={{ overflowY: 'auto', padding: '0 14px 16px' }}>
-              {allDevs === null ? (
+              {demo ? (
+                <div style={{ padding: '26px 18px', textAlign: 'center', color: 'var(--cream-3)', fontSize: 13, lineHeight: 1.6 }}>
+                  En modo ejemplo no hay inventario conectado. Apaga <b style={{ color: 'var(--cream-2)' }}>"Datos de ejemplo"</b> para ver el inventario real, rankeado por lo que le encaja{c?.first_name ? ` a ${c.first_name}` : ''}.
+                </div>
+              ) : allDevs === null ? (
                 <div style={{ padding: 30, textAlign: 'center', color: 'var(--cream-3)', fontSize: 13 }}>Cargando inventario…</div>
               ) : (() => {
                 const onBoard = new Set((board?.items || []).map((it) => it.dev_id));
