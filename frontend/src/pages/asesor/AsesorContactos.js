@@ -975,14 +975,19 @@ function AsesorContactosV2({ user, onLogout }) {
   const isWarm = (c) => c.buyer_score?.tier === 'warm' || /tibio/i.test(c.temperatura || '');
   const noFollow = (c) => !actionByLead[c.id];
   const segmentDefs = [
-    { key: 'todos',       label: 'Todos',           emoji: '',   pred: () => true },
-    { key: 'focorojo',    label: 'Foco rojo',       emoji: '🔴', pred: (c) => noFollow(c) && (isHot(c) || isWarm(c) || (c.etapa || 'nuevo') === 'nuevo') },
-    { key: 'porcerrar',   label: 'Por cerrar',      emoji: '🔥', pred: (c) => isHot(c) && ['visita', 'negociacion'].includes(c.etapa) },
-    { key: 'sincontacto', label: 'Sin contactar',   emoji: '⏰', pred: (c) => (c.etapa || 'nuevo') === 'nuevo' && noFollow(c) },
-    { key: 'seenfrian',   label: 'Se enfrían',      emoji: '🧊', pred: (c) => isWarm(c) && noFollow(c) },
-    { key: 'sinseg',      label: 'Sin seguimiento', emoji: '🕓', pred: (c) => noFollow(c) },
-    { key: 'potencial',   label: 'Potenciales',     emoji: '⭐', pred: (c) => (c.buyer_score?.value || 0) >= 70 },
-    { key: 'concita',     label: 'Con cita',        emoji: '📅', pred: (c) => c.etapa === 'visita' },
+    { key: 'todos',       label: 'Todos',           emoji: '',   group: 'all', pred: () => true },
+    // ↑ Avanzan al cierre (positivos · 5)
+    { key: 'calientes',   label: 'Calientes',       emoji: '🔥', group: 'pos', pred: (c) => isHot(c) },
+    { key: 'potencial',   label: 'Potenciales',     emoji: '⭐', group: 'pos', pred: (c) => (c.buyer_score?.value || 0) >= 70 },
+    { key: 'concita',     label: 'Con cita',        emoji: '📅', group: 'pos', pred: (c) => c.etapa === 'visita' },
+    { key: 'negociacion', label: 'En negociación',  emoji: '🤝', group: 'pos', pred: (c) => c.etapa === 'negociacion' },
+    { key: 'porcerrar',   label: 'Por cerrar',      emoji: '✅', group: 'pos', pred: (c) => isHot(c) && ['visita', 'negociacion'].includes(c.etapa) },
+    // ↓ Alejan del cierre (negativos · atención · 5)
+    { key: 'focorojo',    label: 'Foco rojo',       emoji: '🔴', group: 'neg', pred: (c) => noFollow(c) && (isHot(c) || isWarm(c) || (c.etapa || 'nuevo') === 'nuevo') },
+    { key: 'sincontacto', label: 'Sin contactar',   emoji: '⏰', group: 'neg', pred: (c) => (c.etapa || 'nuevo') === 'nuevo' && noFollow(c) },
+    { key: 'seenfrian',   label: 'Se enfrían',      emoji: '🧊', group: 'neg', pred: (c) => isWarm(c) && noFollow(c) },
+    { key: 'sinseg',      label: 'Sin seguimiento', emoji: '🕓', group: 'neg', pred: (c) => noFollow(c) },
+    { key: 'estancados',  label: 'Estancados',      emoji: '❄️', group: 'neg', pred: (c) => c.buyer_score?.tier === 'cold' && noFollow(c) },
   ];
   const segBase = list.filter((c) => !c.archived);
   const segCounts = {};
@@ -1144,69 +1149,80 @@ function AsesorContactosV2({ user, onLogout }) {
 
         {/* B7 · Barra de segmentos (foco del asesor/gerente) + filtros Precio (desde/hasta) y Zona (multi).
             Cada chip filtra el board (client-side). Counts en vivo. Ámbar = atención/foco rojo. */}
-        <div data-testid="lead-segments" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          {/* segmentos · una sola línea con scroll horizontal */}
-          <div className="scrollbar-none" style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 8, overflowX: 'auto', flex: 1, minWidth: 0, paddingBottom: 2 }}>
-            {segmentDefs.map((s) => {
+        <div data-testid="lead-segments" style={{ marginBottom: 16 }}>
+          {/* Fila 1 · AVANZAN al cierre (positivos · 5) */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            {segmentDefs.filter((s) => s.group === 'all' || s.group === 'pos').map((s) => {
               const on = segment === s.key;
-              const warn = ['focorojo', 'seenfrian', 'sinseg', 'sincontacto'].includes(s.key) && segCounts[s.key] > 0 && !on;
               return (
                 <button key={s.key} data-testid={`seg-${s.key}`} onClick={() => setSegment(s.key)}
-                  className={`asr-chip${on ? ' asr-chip--on' : ''}`} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  className={`asr-chip${on ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
                   {s.emoji && <span style={{ marginRight: 5 }}>{s.emoji}</span>}{s.label}
-                  <span className="asr-chip__cn" style={warn ? { color: 'var(--warm)' } : undefined}>{segCounts[s.key] ?? 0}</span>
+                  <span className="asr-chip__cn">{segCounts[s.key] ?? 0}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Precio + Zona · fijos a la derecha (sin overflow → el dropdown no se corta) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {/* Precio · dropdown desde/hasta (millones) */}
-            <div style={{ position: 'relative' }}>
-              <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
-                className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} ▾
-              </button>
-              {openFilter === 'precio' && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, width: 240, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Presupuesto (millones)</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: '50%' }} />
-                    <span style={{ color: 'var(--cream-3)' }}>–</span>
-                    <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: '50%' }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 11 }}>
-                    <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
-                    <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 14px' }}>Aplicar</button>
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Fila 2 · REQUIEREN atención (negativos · 5) + Precio/Zona a la derecha */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            {segmentDefs.filter((s) => s.group === 'neg').map((s) => {
+              const on = segment === s.key;
+              const warn = segCounts[s.key] > 0 && !on;
+              return (
+                <button key={s.key} data-testid={`seg-${s.key}`} onClick={() => setSegment(s.key)}
+                  className={`asr-chip${on ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
+                  {s.emoji && <span style={{ marginRight: 5 }}>{s.emoji}</span>}{s.label}
+                  <span className="asr-chip__cn" style={warn ? { color: 'var(--warm)' } : undefined}>{segCounts[s.key] ?? 0}</span>
+                </button>
+              );
+            })}
 
-            {/* Zona · dropdown multi-select */}
-            <div style={{ position: 'relative' }}>
-              <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
-                className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                📍 Zona{zonas.length ? ` · ${zonas.length}` : ''} ▾
-              </button>
-              {openFilter === 'zona' && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, width: 210, maxHeight: 280, overflowY: 'auto', padding: 8, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
-                  {allZonas.length === 0
-                    ? <div style={{ padding: 10, fontSize: 12, color: 'var(--cream-3)' }}>Sin zonas registradas</div>
-                    : allZonas.map((z) => {
-                      const on = zonas.includes(z);
-                      return (
-                        <button key={z} onClick={() => setZonas((prev) => (on ? prev.filter((x) => x !== z) : [...prev, z]))}
-                          style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 9px', borderRadius: 8, border: 'none', background: on ? 'rgba(var(--theme-rgb),0.08)' : 'transparent', color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                          <span style={{ width: 15, height: 15, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border-2)'}`, background: on ? 'var(--theme)' : 'transparent', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 10 }}>{on ? '✓' : ''}</span>
-                          {z}
-                        </button>
-                      );
-                    })}
-                  {zonas.length > 0 && <button onClick={() => setZonas([])} style={{ width: '100%', marginTop: 4, background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer', padding: 6 }}>Limpiar zonas</button>}
-                </div>
-              )}
+            {/* Precio + Zona · a la derecha de la fila 2 · dropdown abre hacia abajo (no encima chips) */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ position: 'relative' }}>
+                <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
+                  className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
+                  💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} ▾
+                </button>
+                {openFilter === 'precio' && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100, width: 240, padding: 14, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Presupuesto (millones)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: '50%' }} />
+                      <span style={{ color: 'var(--cream-3)' }}>–</span>
+                      <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: '50%' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 11 }}>
+                      <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer' }}>Limpiar</button>
+                      <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 14px' }}>Aplicar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
+                  className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
+                  📍 Zona{zonas.length ? ` · ${zonas.length}` : ''} ▾
+                </button>
+                {openFilter === 'zona' && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100, width: 210, maxHeight: 280, overflowY: 'auto', padding: 8, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow-lg)' }}>
+                    {allZonas.length === 0
+                      ? <div style={{ padding: 10, fontSize: 12, color: 'var(--cream-3)' }}>Sin zonas registradas</div>
+                      : allZonas.map((z) => {
+                        const on = zonas.includes(z);
+                        return (
+                          <button key={z} onClick={() => setZonas((prev) => (on ? prev.filter((x) => x !== z) : [...prev, z]))}
+                            style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 9px', borderRadius: 8, border: 'none', background: on ? 'rgba(var(--theme-rgb),0.08)' : 'transparent', color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                            <span style={{ width: 15, height: 15, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${on ? 'var(--theme)' : 'var(--border-2)'}`, background: on ? 'var(--theme)' : 'transparent', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 10 }}>{on ? '✓' : ''}</span>
+                            {z}
+                          </button>
+                        );
+                      })}
+                    {zonas.length > 0 && <button onClick={() => setZonas([])} style={{ width: '100%', marginTop: 4, background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12, cursor: 'pointer', padding: 6 }}>Limpiar zonas</button>}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1347,8 +1363,14 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
   // Perfilamiento financiero (point 2): forma de pago + plazo de compra · lo captura el asesor en la ficha.
   const formaPago = bq && (bq.forma_pago || bq.financiamiento);
   const plazoCompra = bq && (bq.plazo_compra || bq.plazo || bq.timeframe);
-  const FORMA_LABEL = { contado: '💵 Contado', credito: '🏦 Crédito', hipotecario: '🏦 Hipotecario', mixto: '🏦 Propio+Crédito', infonavit: '🏦 Infonavit' };
-  const formaText = formaPago ? (FORMA_LABEL[formaPago] || `💳 ${formaPago}`) : null;
+  // Forma de pago: Contado / Crédito / Propio + Crédito. Si es crédito, el TIPO (banco vs
+  // Infonavit/Fovissste) lo distingue credito_tipo → "🏦 Crédito · Infonavit".
+  const FORMA_LABEL = { contado: '💵 Contado', credito: '🏦 Crédito', mixto: '🏦 Propio + Crédito' };
+  const CREDITO_LABEL = { banco: 'banco', infonavit: 'Infonavit', fovissste: 'Fovissste', cofinavit: 'Cofinavit' };
+  const creditoTipo = bq && bq.credito_tipo;
+  const formaText = formaPago
+    ? `${FORMA_LABEL[formaPago] || '💳 ' + formaPago}${formaPago !== 'contado' && creditoTipo ? ` · ${CREDITO_LABEL[creditoTipo] || creditoTipo}` : ''}`
+    : null;
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
   // Temperatura como EMOJI (point 3) · va junto a la acción · la recencia sube al encabezado.
@@ -1395,7 +1417,7 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
       {/* 2 · temperatura (emoji) + PRÓXIMA ACCIÓN + score (consolidados en una línea) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 10, background: `rgba(${meta.rgb}, 0.08)`, border: `1px solid rgba(${meta.rgb}, 0.20)` }}>
         <span title={meta.label} style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>{tempEmoji}</span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: actText ? 'var(--cream)' : 'var(--cream-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actText || 'Sin acción pendiente'}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, lineHeight: 1.3, color: actText ? 'var(--cream)' : 'var(--cream-3)' }}>{actText || 'Sin acción pendiente'}</span>
         {score != null && <span title={`Score ${pct}/100`} style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 800, fontSize: 13, color: `rgb(${meta.rgb})` }}>{pct}</span>}
       </div>
 

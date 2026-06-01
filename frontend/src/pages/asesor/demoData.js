@@ -16,10 +16,10 @@ export const DEMO_LEADS = [
 
 // zona · precio por lead (lo que LeadCard lee de `busquedas`).
 export const DEMO_BUSQ = {
-  'demo-ana':   [{ id: 'b-ana',  colonias: ['Roma'],    precio_max: 4000000, recamaras_min: 2, banos_min: 2, estacionamientos_min: 1, m2_min: 90,  forma_pago: 'credito',      plazo_compra: '3 meses' }],
-  'demo-juan':  [{ id: 'b-juan', colonias: ['Condesa'], precio_max: 9000000, precio_min: 5000000, recamaras_min: 3, banos_min: 2, estacionamientos_min: 2, m2_min: 140, forma_pago: 'mixto', plazo_compra: '6 meses' }],
-  'demo-luis':  [{ id: 'b-luis', colonias: ['Reforma'], recamaras_min: 2, banos_min: 2, estacionamientos_min: 1, m2_min: 110, forma_pago: 'hipotecario', plazo_compra: 'este mes' }],
-  'demo-maria': [{ id: 'b-mar',  colonias: ['Polanco'], precio_max: 8000000, recamaras_min: 3, banos_min: 3, estacionamientos_min: 2, m2_min: 160, forma_pago: 'contado',     plazo_compra: '1 mes' }],
+  'demo-ana':   [{ id: 'b-ana',  colonias: ['Roma'],    precio_max: 4000000, recamaras_min: 2, banos_min: 2, estacionamientos_min: 1, m2_min: 90,  forma_pago: 'credito', credito_tipo: 'banco',     plazo_compra: '3 meses' }],
+  'demo-juan':  [{ id: 'b-juan', colonias: ['Condesa'], precio_max: 9000000, precio_min: 5000000, recamaras_min: 3, banos_min: 2, estacionamientos_min: 2, m2_min: 140, forma_pago: 'mixto', credito_tipo: 'infonavit', plazo_compra: '6 meses' }],
+  'demo-luis':  [{ id: 'b-luis', colonias: ['Reforma'], recamaras_min: 2, banos_min: 2, estacionamientos_min: 1, m2_min: 110, forma_pago: 'credito', credito_tipo: 'fovissste', plazo_compra: '1 mes' }],
+  'demo-maria': [{ id: 'b-mar',  colonias: ['Polanco'], precio_max: 8000000, recamaras_min: 3, banos_min: 3, estacionamientos_min: 2, m2_min: 160, forma_pago: 'contado',                            plazo_compra: '2 meses' }],
 };
 
 // "→ próxima acción" por lead (lo que LeadCard lee de `nextAction`).
