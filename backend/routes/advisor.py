@@ -894,6 +894,46 @@ async def get_contacto_overview(cid: str, request: Request):
     except Exception:
         sources["insights"] = "error"
 
+    # 5) Tareas del contacto (ligadas vía entity_id). E0.8 · antes NO salían en Actividad.
+    try:
+        tks = await db.asesor_tareas.find(
+            {"owner_id": user.user_id, "entity_id": cid}, {"_id": 0},
+        ).limit(100).to_list(100)
+        for t in tks:
+            estado = "completada" if t.get("done") else "pendiente"
+            events.append({
+                "ts": _ts_iso(t.get("due_at") or t.get("created_at")),
+                "source": "tarea", "kind": "tarea", "title": "Tarea",
+                "body": f"{t.get('titulo', 'Tarea')} · {estado}",
+            })
+        sources["tareas"] = "ok"
+    except Exception:
+        sources["tareas"] = "error"
+
+    # 6) Citas del contacto (appointments). E0.8 · antes NO salían en Actividad.
+    try:
+        aps = await db.appointments.find(
+            {"asesor_id": user.user_id, "lead_id": cid}, {"_id": 0},
+        ).limit(100).to_list(100)
+        for a in aps:
+            events.append({
+                "ts": _ts_iso(a.get("datetime") or a.get("created_at")),
+                "source": "cita", "kind": "cita", "title": "Cita",
+                "body": f"{a.get('titulo', 'Cita')} · {a.get('status', 'agendada')}",
+            })
+        sources["citas"] = "ok"
+    except Exception:
+        sources["citas"] = "error"
+
+    # 7) Hilo de actividad canónico (lead_events · E0.8). Aquí escriben las superficies
+    # nuevas vía record_activity; todas las vistas leen de aquí (base de E3).
+    try:
+        from services.lead_activity import read_lead_events
+        events.extend(await read_lead_events(db, cid, user.user_id))
+        sources["lead_events"] = "ok"
+    except Exception:
+        sources["lead_events"] = "error"
+
     events.sort(key=lambda e: e.get("ts") or "", reverse=True)
 
     next_action = insights.get("next_action") if isinstance(insights, dict) else None

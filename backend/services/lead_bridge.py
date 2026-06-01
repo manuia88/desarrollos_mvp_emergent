@@ -111,6 +111,18 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
             "created_at": lead.get("created_at"),
         }
         await db.asesor_contactos.insert_one(doc)
+        # E0.8 · primer evento en el hilo de actividad canónico (FAIL-OPEN).
+        try:
+            from services.lead_activity import record_activity
+            proj = lead.get("project_id") or ""
+            await record_activity(
+                db, owner, cid, "evento",
+                title="Lead recibido",
+                body=("Entró por marketplace" + (f" · {proj}" if proj else "")),
+                source="system", ref_id=lead_id, ts=lead.get("created_at"),
+            )
+        except Exception:
+            pass
         return cid
     except Exception as e:
         log.warning(f"[lead_bridge] mirror fail-open: {e}")
