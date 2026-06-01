@@ -1013,10 +1013,8 @@ function ConversationInboxBody({ user }) {
               )}
 
               {ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>
-                    Perfil de gusto {ctx.taste.confidence_label ? `· confianza ${ctx.taste.confidence_label}` : ''}
-                  </div>
+                <div style={{ marginBottom: COL3_GAP }}>
+                  <div style={{ marginBottom: 8 }}><Eyebrow>Perfil de gusto {ctx.taste.confidence_label ? `· ${ctx.taste.confidence_label}` : ''}</Eyebrow></div>
                   {ctx.taste.summary && <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, lineHeight: 1.45 }}>{ctx.taste.summary}</div>}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {(ctx.taste.rooms || []).slice(0, 4).map((r) => (
@@ -1073,10 +1071,8 @@ function ConversationInboxBody({ user }) {
               )}
 
               {/* Pieza 2 · interruptor de Atlax (piloto del agente) · scopeado al canal correcto */}
-              <div style={{ marginTop: 18, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FaRobot size={13} style={{ color: '#5B37E0' }} /> Atlax · piloto del agente
-                </div>
+              <div style={{ marginBottom: COL3_GAP }}>
+                <div style={{ marginBottom: 9 }}><Eyebrow>🤖 Atlax · piloto del agente</Eyebrow></div>
                 {detail.channel === 'ai' ? (
                   canTakeover ? (
                     <>
