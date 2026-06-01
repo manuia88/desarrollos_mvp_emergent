@@ -44,6 +44,7 @@ function ConversationPlaygroundBody() {
     try {
       const res = await fetch(`${API}/api/conversation/start`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           channel,
@@ -72,6 +73,7 @@ function ConversationPlaygroundBody() {
     try {
       const res = await fetch(`${API}/api/conversation/message`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ conversation_id: convId, message: text, channel }),
       });
@@ -91,6 +93,7 @@ function ConversationPlaygroundBody() {
     try {
       await fetch(`${API}/api/conversation/handoff`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ conversation_id: convId, reason: 'playground' }),
       });

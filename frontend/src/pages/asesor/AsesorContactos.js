@@ -112,7 +112,7 @@ function AsesorContactosLegacy({ user, onLogout }) {
   }, [id]);
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' }).then(r => r.json()).then(setDevs);
   }, []);
 
   const openContact = (c) => {
@@ -874,7 +874,7 @@ function AsesorContactosV2({ user, onLogout }) {
   }, [id, demoMode]);
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs).catch(() => {});
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' }).then(r => r.json()).then(setDevs).catch(() => {});
   }, []);
 
   // Chips de filtro: presets + counts reales (FAIL-OPEN). En demo, counts del mockup.

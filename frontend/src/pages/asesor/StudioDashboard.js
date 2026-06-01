@@ -261,7 +261,7 @@ function AdsWizard({ lib, onDone, onError }) {
   const [devs, setDevs] = useState([]);
   const [sub, setSub] = useState(false);
 
-  useEffect(() => { fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs); }, []);
+  useEffect(() => { fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' }).then(r => r.json()).then(setDevs); }, []);
 
   const submit = async () => {
     if (!f.development_id && !f.source_url) return onError('Elige un desarrollo o pega un URL');

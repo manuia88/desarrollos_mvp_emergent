@@ -52,7 +52,7 @@ export default function AsesorOperaciones({ user, onLogout }) {
   };
   useEffect(() => {
     load();
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`).then(r => r.json()).then(setDevs);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/developments?sort=recent`, { credentials: 'include' }).then(r => r.json()).then(setDevs);
   }, []);
 
   const transition = async (op, to) => {
