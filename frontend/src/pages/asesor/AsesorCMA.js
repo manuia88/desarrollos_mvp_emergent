@@ -274,7 +274,7 @@ function CMADetail({ cmaId, onBack, onToast }) {
                 disabled={downloadingPdf}
                 style={{
                   padding: '8px 14px', borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'var(--surface-2)',
                   border: '1px solid var(--border)',
                   color: 'var(--cream)',
                   fontFamily: 'DM Sans', fontSize: 12.5, fontWeight: 600,
@@ -315,7 +315,7 @@ function CMADetail({ cmaId, onBack, onToast }) {
               <div
                 onClick={handleShare}
                 style={{
-                  padding: '8px 12px', background: 'rgba(255,255,255,0.04)',
+                  padding: '8px 12px', background: 'var(--surface-2)',
                   border: '1px solid var(--border)', borderRadius: 8,
                   fontFamily: 'DM Mono, monospace', fontSize: 11, color: 'var(--cream-2)',
                   cursor: 'pointer', wordBreak: 'break-all', marginBottom: 8,
@@ -419,7 +419,7 @@ function SubscoresBlock({ subscores, narratives }) {
               data-testid={`cma-subscore-${it.key}`}
               style={{
                 padding: 12, borderRadius: 12,
-                background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)',
+                background: 'var(--surface-2)', border: '1px solid var(--border)',
               }}>
               <div style={{
                 fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)',
@@ -604,7 +604,7 @@ function Labeled({ label, children }) {
 const inputStyle = {
   width: '100%',
   padding: '10px 14px',
-  background: 'rgba(255,255,255,0.04)',
+  background: 'var(--surface-2)',
   border: '1px solid var(--border)',
   borderRadius: 12,
   color: 'var(--cream)',

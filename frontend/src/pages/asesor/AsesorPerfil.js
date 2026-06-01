@@ -18,8 +18,8 @@ const GRADIENT = 'linear-gradient(90deg, #6366F1, #EC4899)';
 
 const cardStyle = {
   padding: 20, borderRadius: 16,
-  background: 'rgba(13,16,23,0.92)',
-  border: '1px solid rgba(240,235,224,0.12)',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
   backdropFilter: 'blur(24px)',
   display: 'flex', flexDirection: 'column', gap: 12,
 };
@@ -99,7 +99,7 @@ export default function AsesorPerfil({ user, onLogout }) {
                  href={publicUrl} target="_blank" rel="noopener noreferrer"
                  style={{
                    padding: '8px 16px', borderRadius: 9999,
-                   border: '1px solid rgba(240,235,224,0.18)',
+                   border: '1px solid var(--border)',
                    background: 'transparent', color: 'var(--cream)',
                    fontSize: 12, textDecoration: 'none', cursor: 'pointer',
                  }}>Ver mi perfil público</a>
@@ -164,7 +164,7 @@ export default function AsesorPerfil({ user, onLogout }) {
                      alt={linkedin.profile_data.full_name || ''}
                      style={{ width: 56, height: 56, borderRadius: 9999,
                               objectFit: 'cover',
-                              border: '1px solid rgba(240,235,224,0.18)' }} />
+                              border: '1px solid var(--border)' }} />
               )}
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--cream)' }}>
@@ -264,8 +264,8 @@ function Stat({ testId, label, value, sub, color }) {
   return (
     <div data-testid={testId} style={{
       padding: 14, borderRadius: 12,
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.1)',
+      background: 'var(--surface-2)',
+      border: '1px solid var(--border)',
       backdropFilter: 'blur(24px)',
     }}>
       <div style={{

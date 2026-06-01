@@ -79,7 +79,7 @@ export default function AsesorCaptaciones({ user, onLogout }) {
                 <div key={st.k} data-testid={`capt-col-${st.k}`}
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => onDrop(st.k)}
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 10, minHeight: 400 }}>
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 16, padding: 10, minHeight: 400 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 6px 10px' }}>
                     <Badge tone={st.tone}>{st.label}</Badge>
                     <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream-2)' }}>{col.length}</span>
@@ -158,7 +158,7 @@ function CreateCaptForm({ onCreated, onError }) {
     finally { setSub(false); }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
+  const inputStyle = { width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
   const lblStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 };
 
   return (

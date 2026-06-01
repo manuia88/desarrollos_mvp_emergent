@@ -48,7 +48,10 @@ export default function AdvisorLayout({ user, onLogout, children }) {
 
   return (
     <PortalLayout role={user.role} user={user} onLogout={onLogout}>
-      <div data-testid="advisor-main" style={{ padding: '22px 28px 80px', maxWidth: 1400 }}>
+      {/* B7 · punto de apalancamiento: .portal-asesor voltea los tokens (--cream/--surface/--border)
+          a TEMA CLARO de un golpe para las ~25 páginas que usan AdvisorLayout. Lo hardcodeado oscuro
+          se repinta por página con el kit .asr-* (asesor-aurora.css). */}
+      <div data-testid="advisor-main" className="portal-asesor" style={{ padding: '22px 28px 80px', maxWidth: 1400 }}>
         <CitaNotifBanner />
         {children}
       </div>

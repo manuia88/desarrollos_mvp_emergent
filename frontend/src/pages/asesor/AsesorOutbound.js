@@ -183,7 +183,7 @@ function AsesorOutboundBody({ user }) {
         {/* Table */}
         <div data-testid="outbound-table" style={{
           padding: 0, borderRadius: 16, overflow: 'hidden',
-          background: 'rgba(13,16,23,0.92)', backdropFilter: 'blur(24px)',
+          background: 'var(--surface)', backdropFilter: 'blur(24px)',
           border: '1px solid rgba(255,255,255,0.08)',
         }}>
           {loading && <div style={{ padding: 24, textAlign: 'center', color: 'rgba(240,235,224,0.5)' }}>Cargando…</div>}
@@ -271,7 +271,7 @@ function KpiCard({ label, value, warn }) {
   return (
     <div style={{
       padding: '16px 20px', borderRadius: 16, minWidth: 160,
-      background: 'rgba(13,16,23,0.92)', border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)',
     }}>
       <div style={{ fontSize: 10.5, color: 'rgba(240,235,224,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'DM Sans' }}>
         {label}

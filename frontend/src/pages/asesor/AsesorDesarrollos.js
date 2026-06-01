@@ -39,8 +39,8 @@ export default function AsesorDesarrollos({ user, onLogout }) {
         padding: '9px 22px',
         borderRadius: 9999,
         background: tab === key ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent',
-        border: `1px solid ${tab === key ? 'rgba(var(--theme-rgb), 0.45)' : 'rgba(255,255,255,0.10)'}`,
-        color: tab === key ? '#fff' : 'rgba(240,235,224,0.70)',
+        border: `1px solid ${tab === key ? 'rgba(var(--theme-rgb), 0.45)' : 'var(--border)'}`,
+        color: tab === key ? '#fff' : 'var(--cream-2)',
         fontFamily: 'DM Sans',
         fontWeight: 700,
         fontSize: 13,
@@ -63,7 +63,7 @@ export default function AsesorDesarrollos({ user, onLogout }) {
               Desarrollos
             </h1>
           </div>
-          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.55)', margin: 0 }}>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', margin: 0 }}>
             Tus desarrolladoras aliadas y el inventario que puedes vender.
           </p>
         </div>

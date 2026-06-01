@@ -30,8 +30,8 @@ const FILTER_LABELS = {
 
 const STATUS_CONFIG = {
   none: {
-    label: 'Sin acceso', color: 'rgba(240,235,224,0.35)',
-    bg: 'rgba(255,255,255,0.04)', bd: 'rgba(255,255,255,0.10)',
+    label: 'Sin acceso', color: 'var(--cream-3)',
+    bg: 'var(--surface-2)', bd: 'var(--surface-2)',
   },
   pending: {
     label: 'Pendiente', color: '#FACC15',
@@ -84,8 +84,8 @@ function ProjectCard({ project, authStatus, authDoc, onSolicitar, onVerInventari
     <div
       data-testid={`project-card-${project.id}`}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--surface-2)',
+        border: '1px solid var(--border)',
         borderRadius: 16, overflow: 'hidden',
         transition: 'border-color 250ms, transform 250ms',
         cursor: 'default',
@@ -95,7 +95,7 @@ function ProjectCard({ project, authStatus, authDoc, onSolicitar, onVerInventari
         e.currentTarget.style.transform = 'translateY(-2px)';
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+        e.currentTarget.style.borderColor = 'var(--surface-2)';
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
@@ -135,21 +135,21 @@ function ProjectCard({ project, authStatus, authDoc, onSolicitar, onVerInventari
         </h3>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 8 }}>
-          <MapPin size={11} color="rgba(240,235,224,0.40)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+          <MapPin size={11} color="var(--cream-3)" />
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
             {project.colonia || project.neighborhood}{project.ciudad ? `, ${project.ciudad}` : ''}
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>
-          <DollarSign size={11} color="rgba(240,235,224,0.40)" />
-          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+          <DollarSign size={11} color="var(--cream-3)" />
+          <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
             {fmtPrice(project.price_min)} — {fmtPrice(project.price_max)}
           </span>
           <span style={{
             marginLeft: 4, padding: '1px 7px', borderRadius: 9999, fontSize: 10.5,
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)',
-            color: 'rgba(240,235,224,0.45)', fontFamily: 'DM Sans',
+            background: 'var(--surface-2)', border: '1px solid var(--border)',
+            color: 'var(--cream-3)', fontFamily: 'DM Sans',
           }}>
             {devId || 'Developer'}
           </span>
@@ -208,7 +208,7 @@ function ProjectCard({ project, authStatus, authDoc, onSolicitar, onVerInventari
                   padding: '6px 10px', borderRadius: 7,
                   background: 'rgba(239,68,68,0.06)',
                   border: '1px solid rgba(239,68,68,0.20)',
-                  fontFamily: 'DM Sans', fontSize: 11.5, color: 'rgba(240,235,224,0.50)',
+                  fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)',
                   lineHeight: 1.4,
                 }}>
                   Motivo: {authDoc.comentario_decision}
@@ -231,9 +231,9 @@ function ProjectCard({ project, authStatus, authDoc, onSolicitar, onVerInventari
               ) : (
                 <div style={{
                   width: '100%', padding: '9px 0', borderRadius: 9999,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: 'rgba(240,235,224,0.30)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--cream-3)',
                   fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12,
                   textAlign: 'center',
                 }}>
@@ -374,7 +374,7 @@ export default function AsesorMiniMarket({ user, onLogout }) {
               Mini Market
             </h1>
           </div>
-          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', margin: 0 }}>
             Explora toda la oferta y solicita acceso al inventario exclusivo de tus desarrolladores aliados.
           </p>
         </div>
@@ -393,11 +393,11 @@ export default function AsesorMiniMarket({ user, onLogout }) {
                   fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
                   border: filterStatus === k
                     ? '1px solid rgba(99,102,241,0.55)'
-                    : '1px solid rgba(255,255,255,0.10)',
+                    : '1px solid var(--surface-2)',
                   background: filterStatus === k
                     ? 'rgba(99,102,241,0.16)'
                     : 'transparent',
-                  color: filterStatus === k ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                  color: filterStatus === k ? '#818CF8' : 'var(--cream-3)',
                   transition: 'all 180ms',
                 }}
               >
@@ -414,8 +414,8 @@ export default function AsesorMiniMarket({ user, onLogout }) {
               onChange={e => setFilterZona(e.target.value)}
               style={{
                 padding: '7px 13px', borderRadius: 9999,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
                 color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12, outline: 'none',
               }}
             >
@@ -427,15 +427,15 @@ export default function AsesorMiniMarket({ user, onLogout }) {
 
         {/* Grid */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 80, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', padding: 80, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
             Cargando proyectos…
           </div>
         ) : filtered.length === 0 ? (
           <div data-testid="mini-market-empty" style={{
             textAlign: 'center', padding: 80,
-            color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13,
+            color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13,
           }}>
-            <Store size={40} color="rgba(240,235,224,0.20)" style={{ marginBottom: 14 }} />
+            <Store size={40} color="var(--cream-3)" style={{ marginBottom: 14 }} />
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 6 }}>
               Sin proyectos disponibles
             </div>

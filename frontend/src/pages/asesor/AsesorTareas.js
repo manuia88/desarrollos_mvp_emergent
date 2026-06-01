@@ -114,7 +114,7 @@ export default function AsesorTareas({ user, onLogout }) {
       {upcomingAppts.length > 0 && upcomingAppts[0].lead_id ? (
         <div data-testid="argumentario-section" style={{
           marginBottom: 16, padding: 14,
-          background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16,
+          background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 16,
         }}>
           <ArgumentarioPanel
             leadId={upcomingAppts[0].lead_id}
@@ -161,7 +161,7 @@ export default function AsesorTareas({ user, onLogout }) {
             {SCOPES.map(s => {
               const col = sortCol(all.filter(t => s.types.includes(t.tipo)));
               return (
-                <div key={s.k} data-testid={`tareas-col-${s.k}`} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 16, padding: 'var(--d-pad-item, 14px)' }}>
+                <div key={s.k} data-testid={`tareas-col-${s.k}`} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 16, padding: 'var(--d-pad-item, 14px)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div className="eyebrow">{s.label}</div>
                     <span style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: 'var(--cream-2)' }}>{col.length}</span>
@@ -170,7 +170,7 @@ export default function AsesorTareas({ user, onLogout }) {
                     : col.map(t => (
                       <div key={t.id} data-testid={`tarea-${t.id}`} style={{
                         padding: 'var(--d-pad-item, 12px)', marginBottom: 8,
-                        background: isOverdue(t.due_at) ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
+                        background: isOverdue(t.due_at) ? 'rgba(239,68,68,0.08)' : 'var(--surface-2)',
                         border: `1px solid ${isOverdue(t.due_at) ? 'rgba(239,68,68,0.32)' : 'var(--border)'}`,
                         borderRadius: 12,
                       }}>
@@ -220,7 +220,7 @@ function NewTaskForm({ onCreated, onError }) {
     general: ['Tarea administrativa', 'Preparar reporte', 'Reunión interna'],
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
+  const inputStyle = { width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 9999, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
   const lblStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 };
 
   const submit = async () => {

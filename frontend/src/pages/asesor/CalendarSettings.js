@@ -34,7 +34,7 @@ function BidirectionalSyncCard() {
   const isPolling = status?.status === 'polling';
   const isError = status?.status === 'error';
 
-  let badgeColor = 'rgba(240,235,224,0.18)';
+  let badgeColor = 'var(--cream-3)';
   let badgeLabel = 'Inactivo';
   if (isActive) { badgeColor = 'rgba(34,197,94,0.4)'; badgeLabel = 'Webhook activo'; }
   else if (isPolling) { badgeColor = 'rgba(245,158,11,0.4)'; badgeLabel = 'Polling cada 30 min'; }
@@ -87,7 +87,7 @@ function BidirectionalSyncCard() {
                         marginTop: 4, fontFamily: 'Outfit' }}>
             Recibir cambios desde Google Calendar
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.55)',
+          <div style={{ fontSize: 12, color: 'var(--cream-2)',
                         marginTop: 6, lineHeight: 1.6 }}>
             Cuando crees o edites eventos directamente en Google, DMX los importará
             automáticamente como citas.
@@ -102,7 +102,7 @@ function BidirectionalSyncCard() {
                 border: `1px solid ${badgeColor}`,
                 color: 'var(--cream)', fontSize: 11,
               }}>{badgeLabel}</span>
-              <span style={{ fontSize: 11, color: 'rgba(240,235,224,0.5)' }}>
+              <span style={{ fontSize: 11, color: 'var(--cream-3)' }}>
                 Último sync: {lastSync} · {status.events_synced_count || 0} eventos
               </span>
             </div>
@@ -133,7 +133,7 @@ function BidirectionalSyncCard() {
                     type="button" onClick={forceNow} disabled={busy}
                     style={{
                       padding: '6px 12px', borderRadius: 9999,
-                      border: '1px solid rgba(240,235,224,0.18)',
+                      border: '1px solid var(--border)',
                       background: 'transparent', color: 'var(--cream-2)',
                       fontSize: 11, cursor: busy ? 'not-allowed' : 'pointer',
                     }}>Forzar sync ahora</button>
@@ -162,7 +162,7 @@ function ConnectionCard({ provider, label, connection, onConnect, onDisconnect, 
       style={{
         border: connected
           ? '1px solid rgba(74,222,128,0.28)'
-          : comingSoon ? '1px solid rgba(240,235,224,0.08)' : '1px solid rgba(240,235,224,0.12)',
+          : comingSoon ? '1px solid var(--cream-3)' : '1px solid var(--cream-3)',
         opacity: comingSoon ? 0.65 : 1,
         transition: 'all 0.2s',
         position: 'relative',
@@ -200,7 +200,7 @@ function ConnectionCard({ provider, label, connection, onConnect, onDisconnect, 
               <Badge tone="warn" style={{ fontSize: 9 }}>EXPIRADO</Badge>
             )}
             {comingSoon && (
-              <Badge style={{ fontSize: 9, background: 'rgba(240,235,224,0.08)', color: 'rgba(240,235,224,0.4)' }}>
+              <Badge style={{ fontSize: 9, background: 'var(--surface-2)', color: 'var(--cream-3)' }}>
                 PRÓXIMAMENTE
               </Badge>
             )}
@@ -212,18 +212,18 @@ function ConnectionCard({ provider, label, connection, onConnect, onDisconnect, 
             </div>
           )}
           {connected && lastRefreshed && (
-            <div style={{ fontSize: 11, color: 'rgba(240,235,224,0.35)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ fontSize: 11, color: 'var(--cream-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
               <RefreshCw size={9} />
               Actualizado: {formatDate(lastRefreshed)}
             </div>
           )}
           {!connected && !comingSoon && (
-            <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.4)' }}>
+            <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>
               No conectado — sincroniza tu agenda para gestión de citas automática
             </div>
           )}
           {comingSoon && (
-            <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.3)' }}>
+            <div style={{ fontSize: 12, color: 'var(--cream-3)' }}>
               Integración Microsoft Outlook disponible próximamente
             </div>
           )}
@@ -362,7 +362,7 @@ export default function CalendarSettings({ user, onLogout }) {
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[1, 2].map(i => (
-            <div key={i} style={{ height: 90, borderRadius: 12, background: 'rgba(240,235,224,0.05)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div key={i} style={{ height: 90, borderRadius: 12, background: 'var(--surface-2)', animation: 'pulse 1.5s ease-in-out infinite' }} />
           ))}
         </div>
       ) : (
@@ -397,9 +397,9 @@ export default function CalendarSettings({ user, onLogout }) {
       <Card style={{ marginTop: 20, background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <AlertCircle size={14} color="#a5b4fc" style={{ flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 12, color: 'rgba(240,235,224,0.55)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: 'var(--cream-2)', lineHeight: 1.6 }}>
             Al conectar tu Google Calendar, el sistema podrá ver tu disponibilidad real para asignar citas automáticamente.
-            Tus eventos personales <strong style={{ color: 'rgba(240,235,224,0.7)' }}>no se comparten</strong> con clientes — solo se consulta tu disponibilidad (ocupado/libre).
+            Tus eventos personales <strong style={{ color: 'var(--cream-2)' }}>no se comparten</strong> con clientes — solo se consulta tu disponibilidad (ocupado/libre).
           </div>
         </div>
       </Card>

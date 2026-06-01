@@ -52,8 +52,8 @@ function KPI({ label, value, testId, sub }) {
   return (
     <div data-testid={testId} style={{
       padding: 14, borderRadius: 12,
-      background: 'rgba(240,235,224,0.04)',
-      border: '1px solid rgba(240,235,224,0.1)',
+      background: 'var(--surface-2)',
+      border: '1px solid var(--border)',
       backdropFilter: 'blur(24px)',
     }}>
       <div style={{
@@ -170,8 +170,8 @@ export default function AsesorMetricas({ user, onLogout }) {
           {myRank && (
             <div data-testid="asesor-rank-card" style={{
               padding: 18, borderRadius: 14, marginBottom: 16,
-              background: 'rgba(13,16,23,0.92)',
-              border: '1px solid rgba(240,235,224,0.12)',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
               backdropFilter: 'blur(24px)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               flexWrap: 'wrap', gap: 12, fontFamily: 'DM Sans',
@@ -206,8 +206,8 @@ export default function AsesorMetricas({ user, onLogout }) {
           {series?.series?.conversion_rate?.length > 0 && (
             <div data-testid="asesor-sparkline-card" style={{
               padding: 16, borderRadius: 14,
-              background: 'rgba(240,235,224,0.04)',
-              border: '1px solid rgba(240,235,224,0.1)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
               fontFamily: 'DM Sans',
             }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -223,15 +223,15 @@ export default function AsesorMetricas({ user, onLogout }) {
             <div style={{ marginTop: 18, padding: 18, borderRadius: 14, background: 'rgba(109,74,255,0.05)', border: '1px solid rgba(109,74,255,0.18)', fontFamily: 'DM Sans' }}>
               <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a78bfa', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>✨ Tu Copiloto · {period === '7d' ? 'últimos 7 días' : period === '90d' ? 'últimos 90 días' : 'últimos 30 días'}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
-                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)' }}>
+                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{copilot.used || 0}</div>
                   <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>sugerencias usadas</div>
                 </div>
-                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)' }}>
+                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 24, fontWeight: 800, color: (copilot.response_rate || 0) >= 0.5 ? '#4ADE80' : 'var(--cream)' }}>{Math.round((copilot.response_rate || 0) * 100)}%</div>
                   <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>respuesta positiva</div>
                 </div>
-                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.1)' }}>
+                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--cream)' }}>{copilot.positive || 0}</div>
                   <div style={{ fontSize: 11, color: 'var(--cream-3)' }}>respuestas logradas</div>
                 </div>

@@ -15,8 +15,8 @@ const MEDIUMS = ['social', 'email', 'print', 'direct'];
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 9999,
-  background: 'rgba(240,235,224,0.06)',
-  border: '1px solid rgba(240,235,224,0.16)',
+  background: 'var(--surface-2)',
+  border: '1px solid var(--border)',
   color: 'var(--cream)', fontSize: 13, fontFamily: 'DM Sans', outline: 'none',
 };
 
@@ -30,7 +30,7 @@ const btnPrimary = {
 const btnGhost = {
   padding: '7px 14px', borderRadius: 9999,
   background: 'transparent', color: 'var(--cream)',
-  border: '1px solid rgba(240,235,224,0.2)', cursor: 'pointer',
+  border: '1px solid var(--border)', cursor: 'pointer',
   fontSize: 12, fontFamily: 'DM Sans',
 };
 
@@ -137,8 +137,8 @@ export default function AsesorLinks({ user, onLogout }) {
       {showForm && (
         <div data-testid="link-create-form" style={{
           padding: 16, borderRadius: 14, marginBottom: 16,
-          background: 'rgba(13,16,23,0.92)',
-          border: '1px solid rgba(240,235,224,0.14)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
           backdropFilter: 'blur(24px)',
           display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: 10, fontFamily: 'DM Sans',
@@ -234,13 +234,13 @@ export default function AsesorLinks({ user, onLogout }) {
         />
       ) : (
         <div style={{
-          borderRadius: 14, border: '1px solid var(--border, rgba(240,235,224,0.1))',
+          borderRadius: 14, border: '1px solid var(--border, var(--border))',
           overflow: 'auto',
         }}>
           <table data-testid="links-table"
                   style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
             <thead>
-              <tr style={{ background: 'rgba(240,235,224,0.05)' }}>
+              <tr style={{ background: 'var(--surface-2)' }}>
                 {['Slug', 'Proyecto', 'UTM', 'Clicks', 'Bookings', 'Conv %', ''].map(h => (
                   <th key={h} style={{
                     padding: '10px 12px', fontSize: 10.5, fontWeight: 600,

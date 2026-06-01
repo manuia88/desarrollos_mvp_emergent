@@ -58,7 +58,7 @@ function ProjectDrawer({ project, onClose }) {
       <div style={{
         width: '100%', maxWidth: 520,
         background: 'rgba(13,17,28,0.98)',
-        borderLeft: '1px solid rgba(255,255,255,0.10)',
+        borderLeft: '1px solid var(--border)',
         height: '100%', overflowY: 'auto',
         padding: '28px 24px',
       }}>
@@ -72,14 +72,14 @@ function ProjectDrawer({ project, onClose }) {
               {project.name}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-              <MapPin size={11} color="rgba(240,235,224,0.40)" />
-              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+              <MapPin size={11} color="var(--cream-3)" />
+              <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
                 {project.colonia || project.neighborhood}{project.ciudad ? `, ${project.ciudad}` : ''}
               </span>
             </div>
           </div>
           <button onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(240,235,224,0.45)', padding: 4 }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cream-3)', padding: 4 }}>
             <X size={16} />
           </button>
         </div>
@@ -110,11 +110,11 @@ function ProjectDrawer({ project, onClose }) {
         {/* Price range */}
         <div style={{
           padding: '12px 16px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--surface-2)',
+          border: '1px solid var(--border)',
           marginBottom: 16,
         }}>
-          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
             Rango de precios
           </div>
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 20, color: 'var(--cream)' }}>
@@ -125,11 +125,11 @@ function ProjectDrawer({ project, onClose }) {
         {/* Description / LP */}
         {(project.description || project.lp_completa || project.sales_pitch) && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
               Descripcion
             </div>
             <p style={{
-              fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.70)',
+              fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)',
               lineHeight: 1.65, margin: 0,
             }}>
               {project.description || project.sales_pitch || project.lp_completa}
@@ -145,7 +145,7 @@ function ProjectDrawer({ project, onClose }) {
             border: '1px solid rgba(99,102,241,0.20)',
             marginBottom: 16,
           }}>
-            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'rgba(240,235,224,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            <div style={{ fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
               Contacto del desarrollador
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -280,7 +280,7 @@ export default function AsesorInventario({ user, onLogout, withoutLayout = false
               </span>
             )}
           </div>
-          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.50)', margin: 0 }}>
+          <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', margin: 0 }}>
             Datos exclusivos: comision real, contacto directo del desarrollador y LP completa.
           </p>
         </div>
@@ -294,9 +294,9 @@ export default function AsesorInventario({ user, onLogout, withoutLayout = false
               style={{
                 padding: '6px 13px', borderRadius: 9999, fontSize: 12,
                 fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                border: !filterDev ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                border: !filterDev ? '1px solid rgba(99,102,241,0.55)' : '1px solid var(--border)',
                 background: !filterDev ? 'rgba(99,102,241,0.16)' : 'transparent',
-                color: !filterDev ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                color: !filterDev ? '#818CF8' : 'var(--cream-3)',
               }}
             >
               Todos
@@ -309,9 +309,9 @@ export default function AsesorInventario({ user, onLogout, withoutLayout = false
                 style={{
                   padding: '6px 13px', borderRadius: 9999, fontSize: 12,
                   fontFamily: 'DM Sans', fontWeight: 600, cursor: 'pointer',
-                  border: filterDev === did ? '1px solid rgba(99,102,241,0.55)' : '1px solid rgba(255,255,255,0.10)',
+                  border: filterDev === did ? '1px solid rgba(99,102,241,0.55)' : '1px solid var(--border)',
                   background: filterDev === did ? 'rgba(99,102,241,0.16)' : 'transparent',
-                  color: filterDev === did ? '#818CF8' : 'rgba(240,235,224,0.50)',
+                  color: filterDev === did ? '#818CF8' : 'var(--cream-3)',
                 }}
               >
                 {did}
@@ -321,15 +321,15 @@ export default function AsesorInventario({ user, onLogout, withoutLayout = false
         )}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 80, color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans', fontSize: 13 }}>
+          <div style={{ textAlign: 'center', padding: 80, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
             Cargando inventario…
           </div>
         ) : filtered.length === 0 ? (
           <div data-testid="inventario-empty" style={{
             textAlign: 'center', padding: 80,
-            color: 'rgba(240,235,224,0.40)', fontFamily: 'DM Sans',
+            color: 'var(--cream-3)', fontFamily: 'DM Sans',
           }}>
-            <Building2 size={40} color="rgba(240,235,224,0.20)" style={{ marginBottom: 14 }} />
+            <Building2 size={40} color="var(--cream-3)" style={{ marginBottom: 14 }} />
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 17, color: 'var(--cream)', marginBottom: 6 }}>
               {approvedDevIds.length === 0
                 ? 'Sin desarrolladores aliados'
@@ -372,8 +372,8 @@ export default function AsesorInventario({ user, onLogout, withoutLayout = false
                   data-testid={`inventario-card-${p.id}`}
                   onClick={() => setActiveDrawer(p)}
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--border)',
                     borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
                     transition: 'border-color 250ms, transform 250ms',
                   }}
@@ -382,7 +382,7 @@ export default function AsesorInventario({ user, onLogout, withoutLayout = false
                     e.currentTarget.style.transform = 'translateY(-2px)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                    e.currentTarget.style.borderColor = 'var(--surface-2)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
@@ -431,16 +431,16 @@ export default function AsesorInventario({ user, onLogout, withoutLayout = false
                       {p.name}
                     </h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-                      <MapPin size={11} color="rgba(240,235,224,0.40)" />
-                      <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'rgba(240,235,224,0.50)' }}>
+                      <MapPin size={11} color="var(--cream-3)" />
+                      <span style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)' }}>
                         {p.colonia || p.neighborhood}{p.ciudad ? `, ${p.ciudad}` : ''}
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'rgba(240,235,224,0.65)', fontWeight: 600 }}>
+                      <span style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-2)', fontWeight: 600 }}>
                         {fmtPrice(p.price_min)} — {fmtPrice(p.price_max)}
                       </span>
-                      <ChevronRight size={14} color="rgba(240,235,224,0.35)" />
+                      <ChevronRight size={14} color="var(--cream-3)" />
                     </div>
                   </div>
                 </div>

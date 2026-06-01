@@ -251,7 +251,7 @@ export default function AsesorLeadAliases({ user, onLogout }) {
                   value={fbForm[f.key]}
                   onChange={e => setFbForm(p => ({ ...p, [f.key]: e.target.value }))}
                   placeholder={f.placeholder}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 12, outline: 'none' }}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--cream)', fontFamily: 'DM Mono, monospace', fontSize: 12, outline: 'none' }}
                 />
               </div>
             ))}

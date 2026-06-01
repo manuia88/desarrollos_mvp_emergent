@@ -69,7 +69,7 @@ export default function AsesorBriefings({ user, onLogout }) {
         <div style={{ background: '#0D1118', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
           <table data-testid="briefings-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.02)', textAlign: 'left' }}>
+              <tr style={{ background: 'var(--surface-2)', textAlign: 'left' }}>
                 {['Proyecto', 'Colonia', 'Generado', 'Usado', 'Resultado', 'Acciones'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', fontFamily: 'DM Sans', fontSize: 10.5, fontWeight: 600, color: 'var(--cream-3)', letterSpacing: '0.1em', textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
                 ))}

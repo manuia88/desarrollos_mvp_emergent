@@ -36,7 +36,7 @@ const probPill = (p) => {
   if (p == null) return null;
   if (p >= 70) return 'text-emerald-300 bg-[rgba(16,185,129,0.12)] border-[rgba(16,185,129,0.25)]';
   if (p >= 40) return 'text-amber-300 bg-[rgba(245,158,11,0.12)] border-[rgba(245,158,11,0.25)]';
-  return 'text-[var(--cream-3)] bg-[rgba(240,235,224,0.06)] border-[rgba(240,235,224,0.12)]';
+  return 'text-[var(--cream-3)] bg-[var(--cream-3)] border-[var(--cream-3)]';
 };
 
 // Ids sintéticos (heurística del dashboard) vs acciones reales de agentes (collection).
@@ -51,12 +51,12 @@ const fmtMXN = (n) => {
 function Skeleton() {
   return (
     <div className="animate-pulse space-y-4" data-testid="command-center-skeleton">
-      <div className="h-8 w-64 rounded-lg bg-[rgba(240,235,224,0.08)]" />
+      <div className="h-8 w-64 rounded-lg bg-[var(--cream-3)]" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[rgba(240,235,224,0.06)]" />)}
+        {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[var(--cream-3)]" />)}
       </div>
       <div className="space-y-2">
-        {[0, 1, 2].map((i) => <div key={i} className="h-16 rounded-xl bg-[rgba(240,235,224,0.06)]" />)}
+        {[0, 1, 2].map((i) => <div key={i} className="h-16 rounded-xl bg-[var(--cream-3)]" />)}
       </div>
     </div>
   );
@@ -285,7 +285,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
             <div key={lead.id} className="relative" onMouseEnter={() => setHoverLead(lead.id)} onMouseLeave={() => setHoverLead(null)}>
               <button type="button" onClick={() => goLead(lead.id, `${lead.first_name || ''} ${lead.last_name || ''}`.trim())}
                 data-testid={`recent-lead-${lead.id}`}
-                className="w-full flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-[rgba(240,235,224,0.06)] transition-colors text-left">
+                className="w-full flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-[var(--cream-3)] transition-colors text-left">
                 <span className="flex items-center gap-1.5 min-w-0">
                   {lead.pinned && <Pin size={11} className="text-[#a5b4fc] shrink-0" fill="#a5b4fc" />}
                   <span className="text-[var(--cream-2)] text-sm truncate">
@@ -315,7 +315,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
         </h2>
         <div className="space-y-1.5">
           {leaders.map((p, i) => (
-            <div key={p.user_id || i} className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(240,235,224,0.03)]">
+            <div key={p.user_id || i} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--cream-3)]">
               <span className="w-5 text-center text-[var(--cream-3)] text-xs font-bold">{i + 1}</span>
               <span className="text-[var(--cream-2)] text-sm truncate flex-1">{p.full_name || '—'}</span>
               <span className="text-[var(--cream)] text-xs font-semibold">{p.score_elo ?? 1000}</span>
@@ -336,7 +336,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
             <button key={`${it.entity_type}:${it.entity_id}`} type="button"
               onClick={() => navigate(it.url || (it.entity_type === 'lead' ? `/asesor/contactos/${it.entity_id}` : '/asesor'))}
               data-testid={`recent-item-${it.entity_id}`}
-              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[rgba(240,235,224,0.06)] transition-colors text-left">
+              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--cream-3)] transition-colors text-left">
               <Clock size={12} className="text-[var(--cream-3)] shrink-0" />
               <span className="text-[var(--cream-2)] text-sm truncate flex-1">{it.label || it.entity_id}</span>
             </button>
@@ -407,7 +407,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                       className={`flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors ${
                         qa.primary
                           ? 'text-white bg-[linear-gradient(90deg,#6366F1,#EC4899)] hover:opacity-90'
-                          : 'text-[var(--cream)] bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] hover:bg-[rgba(240,235,224,0.1)]'
+                          : 'text-[var(--cream)] bg-[var(--cream-3)] border border-[var(--cream-3)] hover:bg-[var(--cream-3)]'
                       }`}
                     >
                       {Ico ? <Ico size={15} /> : null}
@@ -424,7 +424,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                   className={`flex items-center gap-1.5 px-3 h-9 rounded-full text-sm font-medium transition-colors ${
                     customizing
                       ? 'text-[var(--theme)] bg-[rgba(var(--theme-rgb),0.16)] border border-[rgba(var(--theme-rgb),0.3)]'
-                      : 'text-[var(--cream)] bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] hover:bg-[rgba(240,235,224,0.1)]'
+                      : 'text-[var(--cream)] bg-[var(--cream-3)] border border-[var(--cream-3)] hover:bg-[var(--cream-3)]'
                   }`}
                 >
                   <Settings size={15} />
@@ -434,7 +434,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
 
             {/* P5.B · panel de personalización (mostrar/ocultar + reordenar) */}
             {customizing && (
-              <div data-testid="customize-panel" className="mb-6 rounded-2xl border border-[rgba(240,235,224,0.12)] bg-[rgba(240,235,224,0.03)] p-4">
+              <div data-testid="customize-panel" className="mb-6 rounded-2xl border border-[var(--cream-3)] bg-[var(--cream-3)] p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-[var(--cream)] text-sm font-semibold">{tp('widgets.customize', 'Personalizar paneles')}</h3>
                   <button onClick={() => setCustomizing(false)} data-testid="customize-done" className="text-[var(--cream-3)] text-xs hover:text-[var(--cream)]">
@@ -446,7 +446,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                     const hidden = isHidden(id);
                     const isAside = ASIDE_PANELS.includes(id);
                     return (
-                      <div key={id} data-testid={`widget-row-${id}`} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[rgba(240,235,224,0.03)]">
+                      <div key={id} data-testid={`widget-row-${id}`} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[var(--cream-3)]">
                         <span className={`flex-1 text-sm ${hidden ? 'text-[var(--cream-3)] line-through' : 'text-[var(--cream-2)]'}`}>
                           {PANEL_LABELS[id] || id}
                         </span>
@@ -517,7 +517,7 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                 </button>
                 {!queueCollapsed && (
                   queue.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-dashed border-[rgba(240,235,224,0.12)]" data-testid="queue-empty">
+                    <div className="flex flex-col items-center justify-center text-center py-12 rounded-2xl border border-dashed border-[var(--cream-3)]" data-testid="queue-empty">
                       <Inbox size={28} className="text-[var(--cream-3)] mb-2" />
                       <p className="text-[var(--cream)] text-sm font-medium">{t('queue.empty_title')}</p>
                       <p className="text-[var(--cream-3)] text-xs mt-1 max-w-xs">{t('queue.empty_subtitle')}</p>
@@ -547,14 +547,14 @@ export default function AsesorCommandCenter({ user, onLogout }) {
                         ) : archived.map((a) => (
                           <div
                             key={a.id}
-                            className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(240,235,224,0.03)] border border-[rgba(240,235,224,0.06)]"
+                            className="flex items-center gap-2 p-2 rounded-lg bg-[var(--cream-3)] border border-[var(--cream-3)]"
                           >
                             <span className="min-w-0 flex-1 text-[var(--cream-3)] text-xs truncate">{a.title}</span>
                             <button
                               type="button"
                               onClick={() => onRestore(a)}
                               data-testid={`restore-${a.id}`}
-                              className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-medium text-[rgba(240,235,224,0.7)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.08)] transition-colors"
+                              className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-medium text-[var(--cream-2)] hover:text-[var(--cream)] hover:bg-[var(--cream-3)] transition-colors"
                             >
                               {t('queue.restore')}
                             </button>

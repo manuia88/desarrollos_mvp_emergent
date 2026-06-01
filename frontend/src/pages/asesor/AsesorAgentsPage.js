@@ -43,9 +43,9 @@ const isAgentAction = (a) => !!a?.source_agent && !SYNTHETIC_PREFIXES.some((p) =
 function Skeleton() {
   return (
     <div className="animate-pulse space-y-6" data-testid="agents-skeleton">
-      <div className="h-8 w-56 rounded-lg bg-[rgba(240,235,224,0.08)]" />
+      <div className="h-8 w-56 rounded-lg bg-[var(--cream-3)]" />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-40 rounded-2xl bg-[rgba(240,235,224,0.06)]" />)}
+        {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-40 rounded-2xl bg-[var(--cream-3)]" />)}
       </div>
     </div>
   );
@@ -152,7 +152,7 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                   <div
                     key={a.name}
                     data-testid={`agent-card-${a.name}`}
-                    className="p-4 rounded-2xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.08)] flex flex-col"
+                    className="p-4 rounded-2xl bg-[var(--cream-3)] border border-[var(--cream-3)] flex flex-col"
                   >
                     <div className="flex items-center gap-3 mb-2">
                       <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-[rgba(var(--theme-rgb),0.15)] text-[var(--theme)] shrink-0">
@@ -182,12 +182,12 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                           onClick={runAll}
                           disabled={running}
                           data-testid={`run-agent-${a.name}`}
-                          className="px-3 h-8 rounded-full text-xs font-medium text-[var(--cream)] bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] hover:bg-[rgba(240,235,224,0.1)] disabled:opacity-50 transition-colors"
+                          className="px-3 h-8 rounded-full text-xs font-medium text-[var(--cream)] bg-[var(--cream-3)] border border-[var(--cream-3)] hover:bg-[var(--cream-3)] disabled:opacity-50 transition-colors"
                         >
                           {t('page.run_agent')}
                         </button>
                       ) : (
-                        <span className="px-3 h-8 inline-flex items-center rounded-full text-xs text-[var(--cream-3)] bg-[rgba(240,235,224,0.04)] border border-dashed border-[rgba(240,235,224,0.12)]">
+                        <span className="px-3 h-8 inline-flex items-center rounded-full text-xs text-[var(--cream-3)] bg-[var(--cream-3)] border border-dashed border-[var(--cream-3)]">
                           {t('page.unavailable')}
                         </span>
                       )}
@@ -212,7 +212,7 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                 {t('page.recent_log_title')}
               </h2>
               {recent.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center py-10 rounded-2xl border border-dashed border-[rgba(240,235,224,0.12)]" data-testid="agents-log-empty">
+                <div className="flex flex-col items-center justify-center text-center py-10 rounded-2xl border border-dashed border-[var(--cream-3)]" data-testid="agents-log-empty">
                   <Inbox size={26} className="text-[var(--cream-3)] mb-2" />
                   <p className="text-[var(--cream-3)] text-xs max-w-xs">{t('page.recent_log_empty')}</p>
                 </div>
@@ -224,7 +224,7 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                       type="button"
                       onClick={() => navigate(a.lead_id ? `/asesor/contactos/${a.lead_id}` : '/asesor')}
                       data-testid={`agent-log-${a.id}`}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.08)] hover:bg-[rgba(240,235,224,0.07)] transition-colors text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--cream-3)] border border-[var(--cream-3)] hover:bg-[var(--cream-3)] transition-colors text-left"
                     >
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-medium text-[var(--theme)] bg-[rgba(var(--theme-rgb),0.15)] shrink-0">
                         🤖 {a.source_agent}

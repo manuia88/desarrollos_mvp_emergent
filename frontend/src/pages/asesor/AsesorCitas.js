@@ -17,7 +17,7 @@ const STATUS_COLORS = {
 };
 
 function StatusBadge({ status }) {
-  const c = STATUS_COLORS[status] || { bg: 'rgba(255,255,255,0.06)', border: 'var(--border)', text: 'var(--cream-3)' };
+  const c = STATUS_COLORS[status] || { bg: 'var(--surface-2)', border: 'var(--border)', text: 'var(--cream-3)' };
   const labels = { agendada: 'Agendada', confirmada: 'Confirmada', realizada: 'Realizada', cancelada: 'Cancelada', no_show: 'No Show', reagendada: 'Reagendada', under_review: 'En revisión' };
   return (
     <span style={{
@@ -67,7 +67,7 @@ function CitaDrawer({ apt, onClose, onAction }) {
   };
 
   const contact = apt.lead?.contact || {};
-  const inputStyle = { width: '100%', padding: '8px 11px', borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' };
+  const inputStyle = { width: '100%', padding: '8px 11px', borderRadius: 7, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5, outline: 'none', boxSizing: 'border-box' };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: Z.STICKY, display: 'flex', justifyContent: 'flex-end' }} onClick={onClose}>
@@ -84,7 +84,7 @@ function CitaDrawer({ apt, onClose, onAction }) {
             {contact.phone && <span>{contact.phone}</span>}
             {contact.email && <span>{contact.email}</span>}
           </div>
-          <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
             <div style={{ fontFamily: 'DM Sans', fontSize: 12.5, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 7 }}>
               <Clock size={12} /> {fmtDatetime(apt.datetime)}
             </div>
@@ -186,7 +186,7 @@ export default function AsesorCitas({ user, onLogout }) {
             { label: 'Realizadas', value: stats.realizadas ?? '—', testid: 'stat-realizadas' },
             { label: 'Canceladas', value: stats.canceladas ?? '—', testid: 'stat-canceladas' },
           ].map(s => (
-            <div key={s.testid} data-testid={s.testid} style={{ padding: '14px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)' }}>
+            <div key={s.testid} data-testid={s.testid} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
               <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 24, color: 'var(--cream)' }}>{s.value}</div>
               <div style={{ fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream-3)', marginTop: 2 }}>{s.label}</div>
             </div>
@@ -208,7 +208,7 @@ export default function AsesorCitas({ user, onLogout }) {
         {/* Filters */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
-            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
+            style={{ padding: '7px 11px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
             data-testid="citas-filter-status">
             <option value="">Todos los estados</option>
             <option value="agendada">Agendada</option>
@@ -219,10 +219,10 @@ export default function AsesorCitas({ user, onLogout }) {
             <option value="reagendada">Reagendada</option>
           </select>
           <input type="date" value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))}
-            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
+            style={{ padding: '7px 11px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
             data-testid="citas-filter-from" />
           <input type="date" value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))}
-            style={{ padding: '7px 11px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
+            style={{ padding: '7px 11px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 12.5 }}
             data-testid="citas-filter-to" />
           {(filters.status || filters.from || filters.to) && (
             <button onClick={() => setFilters({ status: '', from: '', to: '' })}
@@ -246,9 +246,9 @@ export default function AsesorCitas({ user, onLogout }) {
               {citas.map(apt => (
                 <div key={apt.id} data-testid={`cita-row-${apt.id}`}
                   onClick={() => setSelectedApt(apt)}
-                  style={{ padding: '14px 18px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}>
+                  style={{ padding: '14px 18px', borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-2)'}>
                   <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {apt.modalidad === 'videollamada' ? <Video size={16} color="#818CF8" /> : <Phone size={16} color="#818CF8" />}
                   </div>

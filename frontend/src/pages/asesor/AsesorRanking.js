@@ -32,7 +32,7 @@ export default function AsesorRanking({ user, onLogout }) {
               }}>
                 <div style={{
                   width: 36, height: 36, borderRadius: '50%',
-                  background: i === 0 ? 'var(--grad)' : 'rgba(255,255,255,0.06)',
+                  background: i === 0 ? 'var(--grad)' : 'var(--surface-2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'Outfit', fontWeight: 800, fontSize: 14, color: i === 0 ? '#fff' : 'var(--cream-2)',
                 }}>

@@ -23,8 +23,8 @@ export default function AsesorBriefingTraffic({ user, onLogout }) {
 
         <div style={{
           padding: 16, borderRadius: 14,
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.1)',
+          background: 'var(--surface-2)',
+          border: '1px solid var(--border)',
           fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.7,
         }}>
           <div style={{

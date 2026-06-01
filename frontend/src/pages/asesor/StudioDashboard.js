@@ -112,7 +112,7 @@ export default function StudioDashboard({ user, onLogout }) {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
                     {dash.videos.map(v => (
                       <div key={v.id} data-testid={`video-card-${v.id}`} onClick={() => api.getVideo(v.id).then(setOpenVideo)}
-                        style={{ padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer' }}>
+                        style={{ padding: 14, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', lineHeight: 1.2, flex: 1 }}>
                             {v.script?.title || 'Video sin título'}
@@ -139,7 +139,7 @@ export default function StudioDashboard({ user, onLogout }) {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
                     {dash.ad_batches.map(b => (
                       <div key={b.id} data-testid={`batch-card-${b.id}`} onClick={() => api.getAdBatch(b.id).then(setOpenBatch)}
-                        style={{ padding: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer' }}>
+                        style={{ padding: 14, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, cursor: 'pointer' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', lineHeight: 1.2, flex: 1 }}>
                             {b.source_label}
@@ -200,7 +200,7 @@ function VideoWizard({ lib, onDone, onError }) {
     finally { setSub(false); }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
+  const inputStyle = { width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
   const lblStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 };
 
   return (
@@ -271,7 +271,7 @@ function AdsWizard({ lib, onDone, onError }) {
     finally { setSub(false); }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
+  const inputStyle = { width: '100%', padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: 13, outline: 'none' };
   const lblStyle = { fontFamily: 'DM Sans', fontSize: 11, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 };
 
   return (
@@ -419,7 +419,7 @@ function AdsBatchDetail({ batch, onUpdated, setToast }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
         {unlocked.map(ad => (
           <div key={ad.id} data-testid={`ad-${ad.id}`} style={{
-            padding: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden',
+            padding: 0, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden',
           }}>
             <div style={{ aspectRatio: '1 / 1', background: imageMap[ad.angulo] ? `url(data:image/png;base64,${imageMap[ad.angulo]}) center/cover` : 'linear-gradient(135deg, #1F2335, #0E1220)', position: 'relative' }}>
               {!imageMap[ad.angulo] && (
@@ -449,7 +449,7 @@ function AdsBatchDetail({ batch, onUpdated, setToast }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 6 }}>
         {locked.slice(0, 30).map(ad => (
           <div key={ad.id} data-testid={`locked-${ad.id}`} style={{
-            aspectRatio: '1 / 1', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)', borderRadius: 10,
+            aspectRatio: '1 / 1', background: 'var(--surface-2)', border: '1px dashed var(--border-2)', borderRadius: 10,
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4,
             position: 'relative', overflow: 'hidden',
           }}>
@@ -462,7 +462,7 @@ function AdsBatchDetail({ batch, onUpdated, setToast }) {
           </div>
         ))}
         {locked.length > 30 && (
-          <div style={{ aspectRatio: '1 / 1', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--border-2)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream-3)' }}>
+          <div style={{ aspectRatio: '1 / 1', background: 'var(--surface-2)', border: '1px dashed var(--border-2)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 13, color: 'var(--cream-3)' }}>
             +{locked.length - 30}
           </div>
         )}
