@@ -117,6 +117,25 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
         return None
 
 
+async def resolve_house_public_receiver(db):
+    """(receiver_id, inmobiliaria_id) de la inmobiliaria de la casa (Livoo · system-default):
+    la asesora marcada como public_lead_receiver (Claudia). (None, None) si no hay.
+    Regla founder: lead de marketplace PÚBLICO sin referidor → cae a esta receptora."""
+    try:
+        inm = await db.inmobiliarias.find_one({"is_system_default": True}, {"_id": 0, "id": 1})
+        if not inm:
+            return (None, None)
+        r = await db.inmobiliaria_internal_users.find_one(
+            {"inmobiliaria_id": inm["id"], "status": "active", "public_lead_receiver": True},
+            {"_id": 0, "user_id": 1, "id": 1},
+        )
+        rid = (r.get("user_id") or r.get("id")) if r else None
+        return (rid, inm["id"])
+    except Exception as e:
+        log.warning(f"[lead_bridge] resolve_house_public_receiver fail-open: {e}")
+        return (None, None)
+
+
 async def backfill_owner(db, owner_user_id: str, limit: int = 2000) -> int:
     """Materializa todos los leads YA asignados a un asesor (idempotente). Para cuando
     un asesor activa su cuenta / one-shot. Devuelve cuántos materializó/enlazó."""

@@ -126,6 +126,18 @@ async def public_lead_create(payload: PublicLeadCreate, request: Request):
     model = settings.get("attribution_model", "last")
     assigned_to = (first_touch if model == "first" else last_touch) or None
 
+    # E0.7 · Regla founder: lead de marketplace PÚBLICO sin referidor → inmobiliaria de la
+    # casa (Livoo) → asesora receptora (Claudia). Con referidor, respeta la atribución.
+    house_inm = None
+    if not assigned_to:
+        try:
+            from services.lead_bridge import resolve_house_public_receiver
+            rid, house_inm = await resolve_house_public_receiver(db)
+            if rid:
+                assigned_to = rid
+        except Exception:
+            pass
+
     now_iso = _now().isoformat()
     lead_id = _uid("lead")
     lead = {
@@ -148,9 +160,18 @@ async def public_lead_create(payload: PublicLeadCreate, request: Request):
         "attribution_model_used": model,
         "first_touch_asesor_id": first_touch,
         "last_touch_asesor_id": last_touch,
+        "inmobiliaria_id": house_inm,
     }
     await db.leads.insert_one(dict(lead))
     lead.pop("_id", None)
+
+    # E0.7b · Puente: materializa el lead en el CRM del asesor asignado (idempotente,
+    # dedup, candado de aislamiento). FAIL-OPEN.
+    try:
+        from services.lead_bridge import mirror_lead_to_asesor_contacto
+        await mirror_lead_to_asesor_contacto(db, lead)
+    except Exception:
+        pass
 
     # Persist attribution chain
     touchpoints_dump = []
