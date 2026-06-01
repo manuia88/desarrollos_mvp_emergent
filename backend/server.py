@@ -2351,6 +2351,14 @@ async def startup():
     except Exception as e:
         logging.warning(f"[w5.4] buyer_score cron register failed: {e}")
 
+    # E5/M1 — close_probability auto-tuning (aprende de cierres reales) @ 04:30 UTC
+    try:
+        from close_probability_tuning import register_close_prob_tuning_cron
+        if sched:
+            register_close_prob_tuning_cron(sched, db)
+    except Exception as e:
+        logging.warning(f"[e5.m1] close_prob_tuning cron register failed: {e}")
+
     # W5.ASR.2 — Pipeline 7+2 Engine
     try:
         from pipeline_engine import ensure_indexes as pipeline_ensure_indexes

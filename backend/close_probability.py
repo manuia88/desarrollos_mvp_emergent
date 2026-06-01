@@ -85,6 +85,13 @@ async def close_probability(db, lead_id: str) -> Dict[str, Any]:
         if not lead:
             return _neutral("lead_no_encontrado")
 
+        # M1 · pesos APRENDIDOS de cierres reales (≈default si poca data). FAIL-OPEN.
+        try:
+            from close_probability_tuning import get_weights as _cp_weights
+            W = await _cp_weights(db)
+        except Exception:
+            W = {"buyer_score": 1.5, "temperatura": 1.0, "stage": 2.0, "ofertas": 1.0, "engagement": 1.0}
+
         factors: List[Dict[str, Any]] = []
         signals: List[tuple] = []  # (valor 0..1, peso)
 
@@ -99,7 +106,7 @@ async def close_probability(db, lead_id: str) -> Dict[str, Any]:
                         {"user_id": uid}, {"_id": 0, "score": 1, "tier": 1})
                     sc = (bs or {}).get("score")
                     if isinstance(sc, (int, float)):
-                        signals.append((max(0.0, min(100.0, float(sc))) / 100.0, 1.5))
+                        signals.append((max(0.0, min(100.0, float(sc))) / 100.0, W["buyer_score"]))
                         factors.append({"factor": "buyer_score", "value": round(float(sc), 1),
                                         "tier": (bs or {}).get("tier")})
         except Exception:
@@ -108,7 +115,7 @@ async def close_probability(db, lead_id: str) -> Dict[str, Any]:
         # 2 · temperatura del lead.
         temp = (lead.get("temperatura") or "").lower()
         if temp in _TEMP_MAP:
-            signals.append((_TEMP_MAP[temp], 1.0))
+            signals.append((_TEMP_MAP[temp], W["temperatura"]))
             factors.append({"factor": "temperatura", "value": temp})
 
         # 3 · etapa de la búsqueda (kanban) — señal directa de cercanía al cierre.
@@ -117,10 +124,10 @@ async def close_probability(db, lead_id: str) -> Dict[str, Any]:
                 {"contacto_id": lead_id}, {"_id": 0, "stage": 1, "offers": 1})
             stage = (busq or {}).get("stage")
             if stage in _STAGE_MAP:
-                signals.append((_STAGE_MAP[stage], 2.0))
+                signals.append((_STAGE_MAP[stage], W["stage"]))
                 factors.append({"factor": "stage", "value": stage})
             if (busq or {}).get("offers", 0) and (busq or {}).get("offers", 0) >= 1:
-                signals.append((0.85, 1.0))
+                signals.append((0.85, W["ofertas"]))
                 factors.append({"factor": "ofertas", "value": busq.get("offers")})
         except Exception:
             pass
@@ -134,7 +141,7 @@ async def close_probability(db, lead_id: str) -> Dict[str, Any]:
             if last:
                 age_days = (_now() - last).total_seconds() / 86400.0
                 rec01 = 1.0 if age_days < 3 else (0.6 if age_days < 7 else (0.3 if age_days < 14 else 0.1))
-                signals.append((rec01, 1.0))
+                signals.append((rec01, W["engagement"]))
                 factors.append({"factor": "engagement_dias", "value": round(age_days, 1)})
         except Exception:
             pass
