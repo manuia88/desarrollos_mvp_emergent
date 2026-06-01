@@ -1637,21 +1637,62 @@ async def lead_whatsapp_inbound(cid: str, body: WAMessageIn, request: Request):
                 "text": text[:400], "signals": learned, "sentiment": sentiment, "ts": now})
     except Exception:
         pass
-    # nudge en lenguaje llano
-    nudge = ""
+    # E2.2 · auto-extract del perfil de compra (forma de pago / plazo) → pre-llena la
+    # búsqueda SOLO en campos vacíos (no pisa lo que el asesor fijó). FAIL-OPEN.
+    prof_set: dict = {}
+    try:
+        from taste_profile import extract_buyer_profile
+        prof = extract_buyer_profile(text)
+        if prof:
+            bq = await db.asesor_busquedas.find_one(
+                {"contacto_id": cid, "owner_id": user.user_id}, sort=[("created_at", -1)])
+            patch = {k: prof[k] for k in ("forma_pago", "credito_tipo", "plazo_compra")
+                     if prof.get(k) and not (bq or {}).get(k)}
+            if patch:
+                if bq:
+                    await db.asesor_busquedas.update_one({"id": bq["id"]}, {"$set": patch})
+                else:
+                    await db.asesor_busquedas.insert_one({
+                        "id": _uid("busqueda"), "contacto_id": cid, "owner_id": user.user_id,
+                        "created_at": _now(), "fuente": "whatsapp", **patch})
+                prof_set = patch
+                try:
+                    from services.lead_activity import record_activity
+                    parts = []
+                    if patch.get("forma_pago"):
+                        parts.append("forma de pago: " + patch["forma_pago"] + (f" ({patch['credito_tipo']})" if patch.get("credito_tipo") else ""))
+                    if patch.get("plazo_compra"):
+                        parts.append("plazo: " + patch["plazo_compra"])
+                    await record_activity(db, user.user_id, cid, "perfil",
+                                          title="IA detectó del chat", body=" · ".join(parts), source="whatsapp")
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # nudge en lenguaje llano (gusto + perfil detectado)
+    nudge_bits = []
     if learned:
         bits = []
         for s in learned[:3]:
             tag = "le importa" if s["polarity"] in ("pos", "wants") else "le molesta" if s["polarity"] == "neg" else "mencionó"
             bits.append(f"{tag} {s['label']}")
-        nudge = "Aprendí: " + " · ".join(bits) + ". Ya lo sumé a su perfil."
+        nudge_bits.append("gusto → " + " · ".join(bits))
+    if prof_set:
+        pp = []
+        if prof_set.get("forma_pago"):
+            pp.append("forma de pago")
+        if prof_set.get("plazo_compra"):
+            pp.append("plazo")
+        nudge_bits.append("perfil → " + " y ".join(pp))
+    nudge = ("Aprendí del chat: " + " · ".join(nudge_bits) + ". Ya lo sumé a su ficha.") if nudge_bits else ""
     try:
         await db.asesor_contacto_timeline.insert_one({
             "id": "tl_" + uuid.uuid4().hex[:10], "contacto_id": cid, "owner_id": user.user_id,
             "kind": "whatsapp_in", "body": f"Cliente respondió: {text[:120]}", "ts": now})
     except Exception:
         pass
-    return {"ok": True, "learned": learned, "sentiment": sentiment, "nudge": nudge}
+    return {"ok": True, "learned": learned, "sentiment": sentiment, "profile": prof_set, "nudge": nudge}
 
 
 @router.get("/conversations/unified")

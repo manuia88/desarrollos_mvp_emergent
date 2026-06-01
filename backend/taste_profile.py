@@ -191,6 +191,32 @@ def _polarity_near(t: str, idx: int, window: int = 32) -> str:
     return "neg" if neg and not pos else "pos" if pos and not neg else "neu"
 
 
+def extract_buyer_profile(text: str) -> dict:
+    """E2.2 · Heurística ligera: de un WhatsApp del cliente → perfil de compra
+    {forma_pago?, credito_tipo?, plazo_compra?}. Best-effort (no NLP profundo); pensado
+    para PRE-LLENAR campos vacíos · el asesor confirma/corrige con los chips de la ficha."""
+    import re
+    t = (text or "").lower()
+    out: dict = {}
+    # Forma de pago + sub-tipo de crédito.
+    if "fovissste" in t or "fovisste" in t:
+        out["forma_pago"] = "credito"; out["credito_tipo"] = "fovissste"
+    elif "infonavit" in t:
+        out["forma_pago"] = "credito"; out["credito_tipo"] = "infonavit"
+    elif any(w in t for w in ["crédito", "credito", "hipoteca", "hipotecario", "mensualidad", "enganche", "banco"]):
+        out["forma_pago"] = "credito"
+    elif any(w in t for w in ["de contado", "al contado", "en efectivo", "pago de contado", "todo el pago", "cash"]):
+        out["forma_pago"] = "contado"
+    # Plazo de compra (en meses).
+    m = re.search(r"(\d{1,2})\s*mes", t)
+    if m:
+        n = int(m.group(1))
+        out["plazo_compra"] = "1 mes" if n == 1 else f"{n} meses"
+    elif any(w in t for w in ["este mes", "cuanto antes", "lo antes posible", "urge", "de inmediato", "ya quiero", "ahorita", "próximo mes", "proximo mes"]):
+        out["plazo_compra"] = "1 mes"
+    return out
+
+
 def extract_text_signals(text: str) -> dict:
     """Heurística ligera: de un WhatsApp del cliente → preferencias {cuarto/feature, polaridad}.
     Honesto: es heurístico (no NLP profundo); el asesor ve lo detectado y puede ignorar errores."""
