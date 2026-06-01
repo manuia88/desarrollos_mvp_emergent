@@ -19,13 +19,14 @@ async function _handle(res) {
   return res.json();
 }
 
-// Advisor: single-lead lookup · fail-silent
+// Advisor: single-lead lookup · fail-silent. E0.1: ruta real bajo /api/asesor que
+// resuelve lead→comprador→score por email+teléfono (antes apuntaba a una ruta inexistente).
 export const getBuyerScore = async (leadId) => {
   if (!leadId) return null;
   try {
     const r = await fetch(
-      `${BASE}/api/buyer-score/${encodeURIComponent(leadId)}`,
-      { credentials: 'include' },
+      `${BASE}/api/asesor/lead/${encodeURIComponent(leadId)}/buyer-score`,
+      { headers: _authHeaders() },
     );
     if (!r.ok) return null;
     return await r.json();

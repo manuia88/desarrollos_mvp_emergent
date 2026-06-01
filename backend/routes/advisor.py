@@ -731,40 +731,11 @@ async def list_contactos(
     for c in items:
         c.setdefault("etapa", "nuevo")
 
-    # W5.4 Sub-B — JOIN buyer_scores vía email → user_id
-    try:
-        all_emails = list({(c.get("emails") or [None])[0] for c in items if (c.get("emails") or [None])[0]})
-        email_to_uid: dict = {}
-        if all_emails:
-            async for u in db.users.find(
-                {"email": {"$in": all_emails}},
-                {"_id": 0, "user_id": 1, "email": 1},
-            ):
-                if u.get("user_id") and u.get("email"):
-                    email_to_uid[u["email"]] = u["user_id"]
-
-        uids = list(email_to_uid.values())
-        scores_map: dict = {}
-        if uids:
-            async for s in db.buyer_scores.find(
-                {"user_id": {"$in": uids}},
-                {"_id": 0, "user_id": 1, "score": 1, "tier": 1, "delta_pct": 1},
-            ):
-                scores_map[s["user_id"]] = {
-                    "value": s.get("score", 0),
-                    "tier": s.get("tier", "cold"),
-                    "delta_pct": s.get("delta_pct", 0),
-                }
-
-        for c in items:
-            email = (c.get("emails") or [None])[0]
-            uid = email_to_uid.get(email) if email else None
-            c["buyer_score"] = scores_map.get(uid) if uid else None
-    except Exception as _e:
-        import logging as _l
-        _l.getLogger("dmx.advisor").warning(f"[advisor] buyer_score JOIN failed: {_e}")
-        for c in items:
-            c["buyer_score"] = None
+    # W5.4 Sub-B / E0.5 — JOIN buyer_scores vía resolvedor canónico (email + teléfono).
+    # Reemplaza el JOIN email-only: ahora un contacto sin email coincidente pero con el
+    # mismo teléfono que un comprador SÍ resuelve su score. FAIL-OPEN (deja buyer_score=None).
+    from services.buyer_identity import attach_buyer_scores
+    await attach_buyer_scores(db, items)
 
     # Filtrar por score_min si se proporciona
     if score_min is not None and score_min > 0:
@@ -951,14 +922,31 @@ _DISC_LABELS = {
 
 
 async def _contacto_user_id(db, contacto: dict) -> Optional[str]:
-    """Resuelve el user_id del comprador detrás de un contacto (vía email).
+    """Resuelve el user_id del comprador detrás de un contacto (E0.5: email + teléfono).
     Los motores de IA (buyer_score/DISC/churn) operan por user_id; un contacto
     alta-manual sin cuenta de comprador no resuelve → None (bloques se ocultan)."""
-    email = (contacto.get("emails") or [None])[0]
-    if not email:
+    from services.buyer_identity import resolve_buyer_user_id
+    return await resolve_buyer_user_id(db, contacto)
+
+
+@router.get("/lead/{lead_id}/buyer-score")
+async def lead_buyer_score(lead_id: str, request: Request):
+    """E0.1 — buyer_score de un lead/contacto para la vista de Alertas (Fit panel).
+    Resuelve el lead (asesor_contactos del asesor o leads asignado) → comprador →
+    score, vía el resolvedor canónico (email+teléfono). null si no hay comprador."""
+    user = await require_advisor(request)
+    db = get_db(request)
+    from services.buyer_identity import buyer_score_for_doc
+    doc = await db.asesor_contactos.find_one(
+        {"id": lead_id, "owner_id": user.user_id}, {"_id": 0, "emails": 1, "phones": 1}
+    )
+    if not doc:
+        doc = await db.leads.find_one(
+            {"id": lead_id}, {"_id": 0, "email": 1, "phone": 1, "emails": 1, "phones": 1}
+        )
+    if not doc:
         return None
-    u = await db.users.find_one({"email": email}, {"_id": 0, "user_id": 1})
-    return (u or {}).get("user_id")
+    return await buyer_score_for_doc(db, doc)
 
 
 @router.get("/contactos/{cid}/intel")
