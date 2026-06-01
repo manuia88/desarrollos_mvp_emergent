@@ -1285,6 +1285,12 @@ async def startup():
         await retry_pending_mirrors(db)
     except Exception as _e:
         logging.warning(f"[startup] retry_pending_mirrors: {_e}")
+    # Canoniza inmobiliaria_id de los leads (campo único de inmobiliaria) desde el asesor
+    try:
+        from services.lead_bridge import backfill_lead_inmobiliaria
+        await backfill_lead_inmobiliaria(db)
+    except Exception as _e:
+        logging.warning(f"[startup] backfill_lead_inmobiliaria: {_e}")
     # Copiloto · cierre de ciclo · índices de eventos (auditoría + aprendizaje + métricas)
     try:
         from copilot_events import ensure_copilot_events_indexes

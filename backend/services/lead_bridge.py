@@ -23,6 +23,51 @@ from typing import Optional
 log = logging.getLogger("dmx.lead_bridge")
 
 
+async def resolve_user_inmobiliaria(db, user_id: Optional[str]) -> Optional[str]:
+    """Inmobiliaria (agencia) a la que pertenece un asesor. Fuente única que absorbe el
+    enredo de enlaces: enlace canónico inmobiliaria_internal_users (del seed) → fallback
+    a users.tenant_id (legacy). Devuelve None si no se puede determinar."""
+    if not user_id:
+        return None
+    try:
+        iu = await db.inmobiliaria_internal_users.find_one(
+            {"user_id": user_id}, {"_id": 0, "inmobiliaria_id": 1})
+        if iu and iu.get("inmobiliaria_id"):
+            return iu["inmobiliaria_id"]
+        u = await db.users.find_one({"user_id": user_id}, {"_id": 0, "tenant_id": 1})
+        if u and u.get("tenant_id"):
+            return u["tenant_id"]
+    except Exception as e:
+        log.warning(f"[lead_bridge] resolve_user_inmobiliaria fail-open: {e}")
+    return None
+
+
+async def backfill_lead_inmobiliaria(db, limit: int = 5000) -> int:
+    """Canoniza `leads.inmobiliaria_id` (campo único de inmobiliaria del lead): para leads
+    asignados sin inmobiliaria_id, lo deriva del asesor asignado. Así el filtro de outbound
+    y el aislamiento por inmobiliaria machean de verdad. Idempotente · acotado · FAIL-OPEN."""
+    n = 0
+    try:
+        cur = db.leads.find(
+            {"$and": [
+                {"$or": [{"inmobiliaria_id": {"$exists": False}}, {"inmobiliaria_id": None}]},
+                {"$or": [{"assigned_to": {"$nin": [None, ""]}}, {"asesor_id": {"$nin": [None, ""]}}]},
+            ]},
+            {"_id": 0, "id": 1, "assigned_to": 1, "asesor_id": 1},
+        ).limit(limit)
+        async for ld in cur:
+            owner = ld.get("assigned_to") or ld.get("asesor_id")
+            inm = await resolve_user_inmobiliaria(db, owner)
+            if inm:
+                await db.leads.update_one({"id": ld["id"]}, {"$set": {"inmobiliaria_id": inm}})
+                n += 1
+        if n:
+            log.info(f"[lead_bridge] backfill_lead_inmobiliaria canonizó {n} leads")
+    except Exception as e:
+        log.warning(f"[lead_bridge] backfill_lead_inmobiliaria fail-open: {e}")
+    return n
+
+
 def _digits10(p: Optional[str]) -> str:
     """Últimos 10 dígitos (misma convención que _norm_phone en asesor_contactos)."""
     return "".join(c for c in (p or "") if c.isdigit())[-10:]
@@ -58,6 +103,17 @@ async def mirror_lead_to_asesor_contacto(db, lead: dict) -> Optional[str]:
         u = await db.users.find_one({"user_id": owner}, {"_id": 0, "user_id": 1})
         if not u:
             return None
+
+        # Canoniza el campo único de inmobiliaria del lead desde el asesor, en UN solo
+        # lugar → cubre todas las rutas que materializan (cita, marketplace b13, landing)
+        # al momento de crear, no solo en el backfill de arranque.
+        try:
+            if not lead.get("inmobiliaria_id"):
+                _inm = await resolve_user_inmobiliaria(db, owner)
+                if _inm:
+                    await db.leads.update_one({"id": lead_id}, {"$set": {"inmobiliaria_id": _inm}})
+        except Exception:
+            pass
 
         contact = lead.get("contact") or {}
         email = contact.get("email") or lead.get("email")

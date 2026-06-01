@@ -37,15 +37,21 @@ async def _require_advisor_or_admin(request: Request) -> Dict[str, Any]:
     return u
 
 
+async def _caller_inmobiliaria(db, user: Dict[str, Any]) -> str:
+    """Inmobiliaria del que llama (campo canónico), vía el resolver compartido."""
+    from services.lead_bridge import resolve_user_inmobiliaria
+    return (await resolve_user_inmobiliaria(db, user.get("user_id"))) or user.get("tenant_id") or ""
+
+
 async def _check_lead_ownership(db, lead_id: str, user: Dict[str, Any]) -> None:
-    """Verify lead belongs to user's tenant. Superadmin bypasses."""
+    """Verify lead belongs to user's inmobiliaria. Superadmin bypasses."""
     if (user.get("role") or "").lower() == "superadmin":
         return
-    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "tenant_id": 1})
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "inmobiliaria_id": 1})
     if not lead:
         return  # No such lead → 404 deferred to caller
-    user_tenant = user.get("tenant_id")
-    if lead.get("tenant_id") and user_tenant and lead["tenant_id"] != user_tenant:
+    user_inm = await _caller_inmobiliaria(db, user)
+    if lead.get("inmobiliaria_id") and user_inm and lead["inmobiliaria_id"] != user_inm:
         raise HTTPException(403, "lead_not_in_your_tenant")
 
 
@@ -68,7 +74,7 @@ class BulkRerouteIn(BaseModel):
 async def bulk_reroute(body: BulkRerouteIn, request: Request):
     u = await _require_advisor_or_admin(request)
     db = _db(request)
-    out = await eng.bulk_re_route(db, body.lead_ids, u["user_id"], u.get("tenant_id") or "")
+    out = await eng.bulk_re_route(db, body.lead_ids, u["user_id"], await _caller_inmobiliaria(db, u))
     return JSONResponse({"ok": True, **out})
 
 
@@ -103,7 +109,7 @@ async def journey_stats(
 async def outbound_claim(lead_id: str, request: Request):
     u = await _require_advisor_or_admin(request)
     db = _db(request)
-    out = await eng.outbound_claim(db, lead_id, u["user_id"], u.get("tenant_id") or "")
+    out = await eng.outbound_claim(db, lead_id, u["user_id"], await _caller_inmobiliaria(db, u))
     return JSONResponse(out)
 
 
@@ -112,7 +118,7 @@ async def outbound_claim(lead_id: str, request: Request):
 async def outbound_available(request: Request, limit: int = Query(100, ge=1, le=500)):
     u = await _require_advisor_or_admin(request)
     db = _db(request)
-    leads = await eng.list_outbound_leads(db, u.get("tenant_id") or "", limit)
+    leads = await eng.list_outbound_leads(db, await _caller_inmobiliaria(db, u), limit)
     return JSONResponse({"ok": True, "leads": leads, "count": len(leads)})
 
 

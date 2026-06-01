@@ -134,18 +134,19 @@ async def get_journey(db, lead_id: str) -> List[Dict[str, Any]]:
     return out
 
 
-async def bulk_re_route(db, lead_ids: List[str], by_user_id: str, tenant_id: str) -> Dict[str, Any]:
-    """Re-routea N leads. smart_routing_engine.py NO existe en codebase actual,
-    así que emite step `routed` con flag `bulk_triggered=True` (heurística simple
-    selecting next asesor del tenant). Cuando smart_routing exista, swap.
+async def bulk_re_route(db, lead_ids: List[str], by_user_id: str, inmobiliaria_id: str) -> Dict[str, Any]:
+    """Re-routea N leads entre asesores de la MISMA inmobiliaria. smart_routing_engine.py
+    NO existe aún, así que emite step `routed` + reasigna (heurística round-robin).
     """
     lead_ids = (lead_ids or [])[:50]
     ok, failed = 0, 0
-    # Fallback simple: rota entre asesores activos del tenant
+    # Asesores activos de la inmobiliaria (enlace canónico inmobiliaria_internal_users)
     asesores = []
     try:
-        cursor = db.users.find(
-            {"tenant_id": tenant_id, "role": {"$in": ["advisor", "asesor", "broker"]}},
+        cursor = db.inmobiliaria_internal_users.find(
+            {"inmobiliaria_id": inmobiliaria_id, "status": "active",
+             "role": {"$in": ["asesor", "admin", "advisor", "broker"]},
+             "user_id": {"$nin": [None, ""]}},
             {"_id": 0, "user_id": 1},
         ).limit(50)
         asesores = [u["user_id"] async for u in cursor]
@@ -155,16 +156,16 @@ async def bulk_re_route(db, lead_ids: List[str], by_user_id: str, tenant_id: str
         try:
             chosen = asesores[i % len(asesores)] if asesores else None
             await emit_step(
-                db, lead_id=lid, tenant_id=tenant_id, step_type="routed",
+                db, lead_id=lid, tenant_id=inmobiliaria_id, step_type="routed",
                 actor_type="system", actor_id=by_user_id,
                 payload={"bulk_triggered": True, "routed_to": chosen},
             )
             if chosen:
                 try:
-                    # Seguridad: solo re-routear leads del MISMO tenant (no robar cross-tenant)
+                    # Seguridad: solo re-routear leads de la MISMA inmobiliaria (no robar)
                     lead_q = {"id": lid}
-                    if tenant_id:
-                        lead_q["tenant_id"] = tenant_id
+                    if inmobiliaria_id:
+                        lead_q["inmobiliaria_id"] = inmobiliaria_id
                     await db.leads.update_one(lead_q, {"$set": {"assigned_to": chosen, "rerouted_at": _now().isoformat()}})
                 except Exception:
                     pass
@@ -257,11 +258,11 @@ async def journey_stats(db, tenant_id: str, period_days: int = 30) -> Dict[str, 
     }
 
 
-async def outbound_claim(db, lead_id: str, asesor_user_id: str, tenant_id: str) -> Dict[str, Any]:
+async def outbound_claim(db, lead_id: str, asesor_user_id: str, inmobiliaria_id: str) -> Dict[str, Any]:
     """Asesor 1-click claim: assigns lead + emits 2 steps.
     Seguridad: solo se puede reclamar un lead DISPONIBLE (mismo filtro que
-    list_outbound_leads: sin asignar o frío >30d) y del MISMO tenant. El update es
-    atómico (CAS): si modified_count==0, el lead ya no estaba disponible → no se roba."""
+    list_outbound_leads: sin asignar o frío >30d) y de la MISMA inmobiliaria. El update
+    es atómico (CAS): si modified_count==0, el lead ya no estaba disponible → no se roba."""
     cutoff = _now() - timedelta(days=30)
     claim_q: Dict[str, Any] = {
         "id": lead_id,
@@ -271,8 +272,8 @@ async def outbound_claim(db, lead_id: str, asesor_user_id: str, tenant_id: str) 
             {"last_contact_at": {"$lt": cutoff.isoformat()}},
         ],
     }
-    if tenant_id:
-        claim_q["tenant_id"] = tenant_id
+    if inmobiliaria_id:
+        claim_q["inmobiliaria_id"] = inmobiliaria_id
     try:
         res = await db.leads.update_one(
             claim_q,
@@ -284,20 +285,20 @@ async def outbound_claim(db, lead_id: str, asesor_user_id: str, tenant_id: str) 
         return {"ok": False, "claimed": False,
                 "reason": "lead no disponible (ya asignado o de otra inmobiliaria)"}
     await emit_step(
-        db, lead_id=lead_id, tenant_id=tenant_id, step_type="routed",
+        db, lead_id=lead_id, tenant_id=inmobiliaria_id, step_type="routed",
         actor_type="asesor", actor_id=asesor_user_id,
         payload={"forced_reassign": True, "routed_to": asesor_user_id},
     )
     await emit_step(
-        db, lead_id=lead_id, tenant_id=tenant_id, step_type="outbound_initiated_by_asesor",
+        db, lead_id=lead_id, tenant_id=inmobiliaria_id, step_type="outbound_initiated_by_asesor",
         actor_type="asesor", actor_id=asesor_user_id,
         payload={"trigger": "1_click_claim"},
     )
     return {"ok": True, "lead_id": lead_id, "assigned_to": asesor_user_id}
 
 
-async def list_outbound_leads(db, tenant_id: str, limit: int = 100) -> List[Dict[str, Any]]:
-    """Leads disponibles para outbound: sin assigned_to o cooldown >30d."""
+async def list_outbound_leads(db, inmobiliaria_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+    """Leads disponibles para outbound (de la inmobiliaria): sin assigned_to o frío >30d."""
     cutoff = _now() - timedelta(days=30)
     q = {
         "$or": [
@@ -306,8 +307,8 @@ async def list_outbound_leads(db, tenant_id: str, limit: int = 100) -> List[Dict
             {"last_contact_at": {"$lt": cutoff.isoformat()}},
         ],
     }
-    if tenant_id:
-        q["tenant_id"] = tenant_id
+    if inmobiliaria_id:
+        q["inmobiliaria_id"] = inmobiliaria_id
     cursor = db.leads.find(q, {"_id": 0}).sort("created_at", -1).limit(limit)
     out = []
     async for r in cursor:
