@@ -1236,9 +1236,14 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
     : nProps > 0 ? 'Criterios por definir' : 'Sin búsqueda registrada';
   const actText = nextAction ? stripEmoji(nextAction.title || nextAction.subtitle || '') : '';
   const pct = score != null ? Math.max(0, Math.min(100, Math.round(score))) : 0;
-  // B7 · tarjeta GANADORA del embudo: info completa + ALTURA UNIFORME. Todas las filas
-  // siempre presentes (con fallback) → cero descuadre. La barra de readiness es el
-  // protagonista: gruesa, con gradiente de marca + temperatura + número /100.
+  // SEÑAL "por qué ahora" = temperatura + recencia/actividad (accionable). Siempre hay.
+  const recency = agingDisplay || (nProps > 0 ? `${nProps} ${nProps === 1 ? 'propiedad' : 'propiedades'}` : null);
+  const signal = recency ? `${meta.label} · ${recency}${agingWarn ? ' → reactivar' : ''}` : meta.label;
+  // DINERO en juego = presupuesto de su búsqueda (dato real · compacto).
+  const dealText = precio ? (precio >= 1e6 ? `$${(precio / 1e6).toFixed(precio % 1e6 === 0 ? 0 : 1)}M` : fmtMXN(precio)) : null;
+  // B7 · rediseño del embudo: identidad + score (BADGE, no barra) · SEÑAL "por qué ahora"
+  // (reemplaza la barra · accionable) · búsqueda + DINERO en juego · próxima acción · footer.
+  // Altura uniforme: todas las filas siempre presentes (con fallback).
   return (
     <PremiumCard
       hover
@@ -1248,16 +1253,16 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
       onDragEnd={draggable ? onDragEnd : undefined}
       onClick={onOpen}
       data-testid={`lead-card-${c.id}`}
-      style={{ padding: 15, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}
+      style={{ padding: 14, cursor: draggable ? 'grab' : 'pointer', display: 'flex', flexDirection: 'column', gap: 11, position: 'relative' }}
     >
       {/* pin · esquina */}
       <button data-testid={`pin-${c.id}`} title={c.pinned ? t('pin.unpin', 'Quitar de fijados') : t('pin.pin', 'Fijar arriba')}
         onClick={(e) => { e.stopPropagation(); onPin(); }}
-        style={{ position: 'absolute', top: 11, right: 11, background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: c.pinned ? 1 : 0.4 }}>
+        style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0, opacity: c.pinned ? 1 : 0.4 }}>
         <Pin size={13} color={c.pinned ? 'var(--theme-2)' : 'var(--cream-3)'} fill={c.pinned ? 'var(--theme-2)' : 'none'} />
       </button>
 
-      {/* header: avatar + nombre + fuente · antigüedad */}
+      {/* 1 · identidad + score (badge circular del color de la temperatura) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: `rgba(${meta.rgb}, 0.16)`, display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: `rgb(${meta.rgb})` }}>
           {avatarInitials(c)}
@@ -1266,40 +1271,36 @@ function LeadCardV2({ c, busquedas, nextAction, metaOverride, onPin, onOpen, dra
           <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--cream)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {c.first_name} {c.last_name || ''}
           </div>
-          <div style={{ fontSize: 11.5, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            <span style={{ color: 'var(--cream-3)', textTransform: 'capitalize' }}>{fuente || c.tipo || '—'}</span>
-            {agingDisplay && <span style={{ color: agingWarn ? 'var(--warm)' : 'var(--cream-3)', fontWeight: agingWarn ? 600 : 400 }}> · {agingDisplay}</span>}
+          <div style={{ fontSize: 11.5, marginTop: 2, color: 'var(--cream-3)', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {fuente || c.tipo || '—'}
           </div>
         </div>
-      </div>
-
-      {/* readiness · temperatura + número + barra GRUESA (el elemento protagonista) */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
-          <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: `rgb(${meta.rgb})`, background: `rgba(${meta.rgb}, 0.12)` }}>
-            {meta.label}
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
-            <b className="asr-num" style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 19, lineHeight: 1, color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)' }}>{score != null ? pct : '—'}</b>
-            <span style={{ fontSize: 10, color: 'var(--cream-3)' }}>/100</span>
-          </span>
-        </div>
-        <div style={{ height: 8, borderRadius: 999, background: 'var(--surface-2)', overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(20,25,45,0.07)' }}>
-          <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: score != null ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'transparent', transition: 'width .35s ease' }} />
+        <div title={`Score ${score != null ? pct : '—'}/100`}
+          style={{ flexShrink: 0, width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', fontFamily: 'Outfit', fontWeight: 800, fontSize: 15, background: score != null ? `rgba(${meta.rgb}, 0.14)` : 'var(--surface-2)', color: score != null ? `rgb(${meta.rgb})` : 'var(--cream-3)', border: `1px solid ${score != null ? `rgba(${meta.rgb}, 0.30)` : 'var(--border)'}` }}>
+          {score != null ? pct : '—'}
         </div>
       </div>
 
-      {/* búsqueda · zona · precio */}
-      <div style={{ fontSize: 13, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{metaText}</div>
+      {/* 2 · SEÑAL "por qué ahora" (reemplaza la barra · accionable de un vistazo) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 11px', borderRadius: 10, background: `rgba(${meta.rgb}, 0.07)`, border: `1px solid rgba(${meta.rgb}, 0.18)` }}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: `rgb(${meta.rgb})`, boxShadow: `0 0 0 3px rgba(${meta.rgb}, 0.15)` }} />
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--cream)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{signal}</span>
+      </div>
 
-      {/* próxima acción · siempre presente (mantiene la altura uniforme) */}
+      {/* 3 · búsqueda (zona) + dinero en juego ($) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 13 }}>
+        <span style={{ flex: 1, minWidth: 0, color: 'var(--cream-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{metaText}</span>
+        {dealText && <span style={{ flexShrink: 0, fontFamily: 'Outfit', fontWeight: 700, color: 'var(--cream)' }}>{dealText}</span>}
+      </div>
+
+      {/* 4 · próxima acción · siempre presente (mantiene altura uniforme) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: actText ? 'var(--cream)' : 'var(--cream-3)', minWidth: 0 }}>
         <ArrowRight size={13} color="var(--theme-2)" style={{ flexShrink: 0 }} />
         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{actText || 'Sin acción pendiente'}</span>
       </div>
 
-      {/* footer · WhatsApp + Abrir */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+      {/* 5 · footer · WhatsApp + Abrir */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 11, borderTop: '1px solid var(--border)' }}>
         {waUrl && (
           <a href={waUrl} target="_blank" rel="noreferrer" data-testid={`wa-${c.id}`} title="WhatsApp"
             onClick={(e) => e.stopPropagation()} className="asr-qbtn" style={{ width: 30, height: 30 }}>
