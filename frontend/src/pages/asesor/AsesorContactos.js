@@ -763,6 +763,17 @@ function stripEmoji(s) {
   return String(s).replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim();
 }
 
+// B7 · presupuesto en PESOS MXN. Input crudo (solo dígitos) → "$1,234,543" para mostrar.
+function pesoInput(raw) {
+  return raw === '' || raw == null ? '' : `$${Number(raw).toLocaleString('es-MX')}`;
+}
+// Compacto para el botón/resumen: "$1.2M".
+function pesoShort(raw) {
+  if (raw === '' || raw == null) return '';
+  const n = Number(raw);
+  return n >= 1e6 ? `$${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M` : `$${n.toLocaleString('es-MX')}`;
+}
+
 // Encabezado de sección estilo mockup (.secline): eyebrow violeta + nota + regla.
 function SecLine({ em, lab, note }) {
   return (
@@ -833,8 +844,9 @@ function AsesorContactosV2({ user, onLogout }) {
   const [foco, setFoco] = useState([]);
   const [dismissedFoco, setDismissedFoco] = useState(() => new Set()); // B7 · FOCO descartados (cerrar tarjeta)
   const [segment, setSegment] = useState('todos'); // B7 · segmento activo (calidad/estado · client-side)
-  const [priceFrom, setPriceFrom] = useState(''); // B7 · rango de precio · desde (en millones)
-  const [priceTo, setPriceTo] = useState('');     // B7 · hasta (en millones)
+  // B7 · rangos de presupuesto en PESOS MXN completos (no millones). Multi-rango: el lead
+  // entra si su precio cae en CUALQUIER rango (OR). `from`/`to` guardan solo dígitos crudos.
+  const [priceRanges, setPriceRanges] = useState([{ from: '', to: '' }]);
   const [zonas, setZonas] = useState([]);         // B7 · zonas/colonias seleccionadas (multi)
   const [openFilter, setOpenFilter] = useState(null); // 'precio' | 'zona' | null
   // Chips de filtro = presets reales de smart-lists + total para "Todos".
@@ -993,7 +1005,9 @@ function AsesorContactosV2({ user, onLogout }) {
   const segCounts = {};
   for (const s of segmentDefs) segCounts[s.key] = s.key === 'todos' ? segBase.length : segBase.filter(s.pred).length;
   const allZonas = [...new Set(segBase.flatMap((c) => (busqByContact[c.id] || [])[0]?.colonias || []))].sort();
-  const priceActive = priceFrom !== '' || priceTo !== '';
+  // Rangos con al menos un extremo lleno (los vacíos no filtran).
+  const activeRanges = priceRanges.filter((r) => r.from !== '' || r.to !== '');
+  const priceActive = activeRanges.length > 0;
 
   const display = useMemo(() => {
     let arr = list.filter((c) => !c.archived);
@@ -1001,17 +1015,26 @@ function AsesorContactosV2({ user, onLogout }) {
       const def = segmentDefs.find((s) => s.key === segment);
       if (def) arr = arr.filter(def.pred);
     }
-    const pf = priceFrom !== '' ? Number(priceFrom) * 1e6 : null;
-    const ptv = priceTo !== '' ? Number(priceTo) * 1e6 : null;
-    if (pf != null || ptv != null) {
-      arr = arr.filter((c) => { const p = priceOf(c); if (p == null) return false; if (pf != null && p < pf) return false; if (ptv != null && p > ptv) return false; return true; });
+    if (activeRanges.length) {
+      arr = arr.filter((c) => {
+        const p = priceOf(c);
+        if (p == null) return false;
+        // OR entre rangos: basta con caer dentro de uno.
+        return activeRanges.some((r) => {
+          const pf = r.from !== '' ? Number(r.from) : null;
+          const ptv = r.to !== '' ? Number(r.to) : null;
+          if (pf != null && p < pf) return false;
+          if (ptv != null && p > ptv) return false;
+          return true;
+        });
+      });
     }
     if (zonas.length) {
       arr = arr.filter((c) => ((busqByContact[c.id] || [])[0]?.colonias || []).some((z) => zonas.includes(z)));
     }
     return [...arr].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list, segment, priceFrom, priceTo, zonas, actionByLead, busqByContact]);
+  }, [list, segment, priceRanges, zonas, actionByLead, busqByContact]);
 
   const togglePin = async (c) => {
     setList((prev) => prev.map((x) => (x.id === c.id ? { ...x, pinned: !x.pinned } : x)));
@@ -1183,7 +1206,7 @@ function AsesorContactosV2({ user, onLogout }) {
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
               <button data-testid="filter-precio" onClick={() => setOpenFilter(openFilter === 'precio' ? null : 'precio')}
                 className={`asr-chip${priceActive ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
-                💰 Precio{priceActive ? ` · ${priceFrom || '0'}–${priceTo || '∞'}M` : ''} {openFilter === 'precio' ? '▴' : '▾'}
+                💰 Precio{priceActive ? ` · ${activeRanges.length > 1 ? `${activeRanges.length} rangos` : `${pesoShort(activeRanges[0].from) || '$0'}–${pesoShort(activeRanges[0].to) || '∞'}`}` : ''} {openFilter === 'precio' ? '▴' : '▾'}
               </button>
               <button data-testid="filter-zona" onClick={() => setOpenFilter(openFilter === 'zona' ? null : 'zona')}
                 className={`asr-chip${zonas.length ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>
@@ -1195,15 +1218,35 @@ function AsesorContactosV2({ user, onLogout }) {
           {/* Panel de filtro · EN FLUJO (no flotante) · aparece debajo de los chips y empuja
               el board hacia abajo → imposible que se encime con tarjetas o se corte. */}
           {openFilter === 'precio' && (
-            <div data-testid="panel-precio" style={{ marginTop: 10, padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream-2)' }}>Presupuesto (millones)</span>
-              <input type="number" min="0" placeholder="Desde" value={priceFrom} onChange={(e) => setPriceFrom(e.target.value)} className="asr-field" style={{ width: 100 }} />
-              <span style={{ color: 'var(--cream-3)' }}>–</span>
-              <input type="number" min="0" placeholder="Hasta" value={priceTo} onChange={(e) => setPriceTo(e.target.value)} className="asr-field" style={{ width: 100 }} />
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-                {priceActive && <button onClick={() => { setPriceFrom(''); setPriceTo(''); }} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12.5, cursor: 'pointer' }}>Limpiar</button>}
-                <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 16px' }}>Listo</button>
+            <div data-testid="panel-precio" style={{ marginTop: 10, padding: '14px 16px', borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--asr-shadow)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--cream-2)' }}>Presupuesto · pesos MXN</span>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {priceActive && <button onClick={() => setPriceRanges([{ from: '', to: '' }])} style={{ background: 'none', border: 'none', color: 'var(--cream-3)', fontSize: 12.5, cursor: 'pointer' }}>Limpiar</button>}
+                  <button onClick={() => setOpenFilter(null)} className="asr-mini asr-mini--go" style={{ padding: '6px 16px' }}>Listo</button>
+                </div>
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {priceRanges.map((r, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input type="text" inputMode="numeric" placeholder="$ Desde" value={pesoInput(r.from)}
+                      onChange={(e) => setPriceRanges((rs) => rs.map((rr, i) => i === idx ? { ...rr, from: e.target.value.replace(/\D/g, '') } : rr))}
+                      className="asr-field" style={{ width: 150 }} />
+                    <span style={{ color: 'var(--cream-3)' }}>–</span>
+                    <input type="text" inputMode="numeric" placeholder="$ Hasta" value={pesoInput(r.to)}
+                      onChange={(e) => setPriceRanges((rs) => rs.map((rr, i) => i === idx ? { ...rr, to: e.target.value.replace(/\D/g, '') } : rr))}
+                      className="asr-field" style={{ width: 150 }} />
+                    {priceRanges.length > 1 && (
+                      <button onClick={() => setPriceRanges((rs) => rs.filter((_, i) => i !== idx))} title="Quitar rango"
+                        style={{ width: 28, height: 28, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--cream-3)', cursor: 'pointer', fontSize: 13 }}>✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setPriceRanges((rs) => [...rs, { from: '', to: '' }])}
+                style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--theme-2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                + Agregar otro rango
+              </button>
             </div>
           )}
           {openFilter === 'zona' && (
