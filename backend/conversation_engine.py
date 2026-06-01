@@ -590,22 +590,46 @@ class ConversationEngine:
         # 2) DISC tone adaptation desde Buyer Score W5.4 (Terminal B)
         try:
             from conversation_disc_adapter import adapt_system_prompt as _disc_adapt
-            # Lead-aware: read buyer_score tier off the lead doc (best-effort)
+            # E0.6 — DISC real. Antes leía leads.disc_tier/buyer_score_tier (campos que NADIE
+            # escribe) y para hilos del asesor el lead_id ni vive en `leads` → siempre default.
+            # Ahora: 1) perfil DISC inferido (disc_profiles.predominant_type por org+lead);
+            # 2) fallback al tier de buyer_score resolviendo el comprador por email+teléfono.
+            # Sin señal real → None (prompt base, sin DISC falso).
             tier = None
             lead_id = thread.get("lead_id")
+            org_id = thread.get("tenant_id") or thread.get("org_id")
             if lead_id:
                 try:
-                    lead = await self.db.leads.find_one(
-                        {"id": lead_id}, {"_id": 0, "buyer_score_tier": 1, "disc_tier": 1},
-                    )
-                    if lead:
-                        tier = lead.get("disc_tier") or lead.get("buyer_score_tier")
+                    q = {"lead_id": lead_id}
+                    if org_id:
+                        q["org_id"] = org_id
+                    prof = await self.db.disc_profiles.find_one(q, {"_id": 0, "predominant_type": 1})
+                    if prof:
+                        tier = (prof.get("predominant_type") or "").strip().upper()[:1] or None
                 except Exception:
                     pass
-            adapted = _disc_adapt(base_prompt, tier or "S")
-            if adapted:
-                base_prompt = adapted
-                out["disc_tone"] = tier or "S"
+                if not tier:
+                    try:
+                        doc = await self.db.asesor_contactos.find_one(
+                            {"id": lead_id}, {"_id": 0, "emails": 1, "phones": 1}
+                        ) or await self.db.leads.find_one(
+                            {"id": lead_id}, {"_id": 0, "email": 1, "phone": 1, "emails": 1, "phones": 1}
+                        )
+                        if doc:
+                            from services.buyer_identity import resolve_buyer_user_id
+                            uid = await resolve_buyer_user_id(self.db, doc)
+                            if uid:
+                                bs = await self.db.buyer_scores.find_one(
+                                    {"user_id": uid}, {"_id": 0, "tier": 1}
+                                )
+                                tier = (bs or {}).get("tier") or None
+                    except Exception:
+                        pass
+            if tier:
+                adapted = _disc_adapt(base_prompt, tier)
+                if adapted:
+                    base_prompt = adapted
+                    out["disc_tone"] = tier
         except Exception as exc:
             log.warning(f"[conversation] DISC adapt failed silent: {exc}")
 
