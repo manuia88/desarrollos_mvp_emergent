@@ -6,13 +6,14 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Power, AlertTriangle, Zap, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Bot, Power, AlertTriangle, Zap, Loader2, CheckCircle2, XCircle, MessageCircle, Bell, Shuffle } from 'lucide-react';
 import {
   getAutopilotConfig, setAutopilotConfig, getAutopilotLog,
   pauseAutopilot, runAutopilotNow,
 } from '../../api/advisor';
 
 const TYPES = ['followup_whatsapp', 'recordatorio', 'reasignar_etapa'];
+const TYPE_ICONS = { followup_whatsapp: MessageCircle, recordatorio: Bell, reasignar_etapa: Shuffle };
 
 export default function AutopilotPanel() {
   const { t } = useTranslation('autopilot');
@@ -86,98 +87,99 @@ export default function AutopilotPanel() {
         </p>
       </div>
 
-      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-4 space-y-4" style={{ boxShadow: 'var(--asr-shadow)' }}>
-        {/* Kill switch global */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Power size={15} className={paused ? 'text-[var(--cream-3)]' : 'text-emerald-300'} />
+      <div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] overflow-hidden" style={{ boxShadow: 'var(--asr-shadow)' }}>
+        {/* Control maestro · hero */}
+        <div className="flex items-center justify-between gap-3 p-4">
+          <div className="flex items-center gap-3">
+            <span style={{
+              width: 42, height: 42, borderRadius: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              background: paused ? 'var(--surface-2)' : 'linear-gradient(135deg, #10B981, #34D399)',
+              color: paused ? 'var(--cream-3)' : '#fff',
+              boxShadow: paused ? 'none' : '0 6px 16px rgba(16,185,129,0.32)',
+            }}>
+              <Power size={19} />
+            </span>
             <div>
-              <p className="text-[var(--cream)] text-sm font-medium">{t('kill_switch')}</p>
+              <p className="text-[var(--cream)] text-sm font-bold">{t('kill_switch')}</p>
               <p className="text-[var(--cream-3)] text-xs">{t('kill_switch_hint')}</p>
             </div>
           </div>
           <button
-            type="button"
-            role="switch"
-            aria-checked={!paused}
-            onClick={toggleKill}
-            data-testid="autopilot-kill-switch"
-            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-              paused ? 'bg-[var(--surface-2)]' : 'bg-emerald-500'
-            }`}
+            type="button" role="switch" aria-checked={!paused} onClick={toggleKill} data-testid="autopilot-kill-switch"
+            className="relative w-12 h-7 rounded-full transition-all shrink-0"
+            style={{ background: paused ? 'var(--border-2)' : 'linear-gradient(90deg, #10B981, #34D399)', boxShadow: paused ? 'none' : '0 2px 10px rgba(16,185,129,0.4)' }}
           >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-              paused ? '' : 'translate-x-5'
-            }`} />
+            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${paused ? '' : 'translate-x-5'}`} />
           </button>
         </div>
 
-        {/* Opt-in por tipo */}
-        <div className={paused ? 'opacity-50 pointer-events-none' : ''}>
-          <p className="text-[var(--cream-3)] text-xs font-semibold uppercase tracking-wide mb-2">{t('types_title')}</p>
-          <div className="space-y-2">
+        {/* Permisos · 3 tarjetas que se tintan al prenderse */}
+        <div className={`px-4 pb-4 ${paused ? 'opacity-50 pointer-events-none' : ''}`}>
+          <p className="text-[var(--cream-3)] text-[11px] font-bold uppercase tracking-wider mb-2.5">{t('types_title')}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {TYPES.map((type) => {
               const on = !!config.types?.[type];
+              const Ico = TYPE_ICONS[type] || Zap;
               return (
-                <div key={type} className="flex items-center justify-between gap-3 cursor-pointer" onClick={() => toggleType(type)}>
-                  <span className="text-[var(--cream-2)] text-sm">{t(`type_${type}`)}</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={on}
-                    data-testid={`autopilot-type-${type}`}
-                    onClick={(e) => { e.stopPropagation(); toggleType(type); }}
-                    className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
-                    style={{ background: on ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'var(--border-2)' }}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-                  </button>
-                </div>
+                <button
+                  key={type} type="button" role="switch" aria-checked={on}
+                  data-testid={`autopilot-type-${type}`} onClick={() => toggleType(type)}
+                  className="flex flex-col gap-2.5 p-3 rounded-xl border text-left transition-all"
+                  style={{ borderColor: on ? 'rgba(var(--theme-rgb),0.45)' : 'var(--border)', background: on ? 'rgba(var(--theme-rgb),0.06)' : 'var(--surface)' }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span style={{
+                      width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      background: on ? 'linear-gradient(135deg, var(--theme), var(--theme-3))' : 'var(--surface-2)',
+                      color: on ? '#fff' : 'var(--cream-3)',
+                    }}>
+                      <Ico size={15} />
+                    </span>
+                    <span className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
+                      style={{ background: on ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'var(--border-2)' }}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                    </span>
+                  </div>
+                  <span className="text-[var(--cream)] text-xs font-semibold leading-snug">{t(`type_${type}`)}</span>
+                </button>
               );
             })}
           </div>
-          <p className="text-[var(--cream-3)] text-[11px] mt-2">{t('types_hint')}</p>
-          <p className="text-[var(--cream-3)] text-[11px]">{t('guardrails_note')}</p>
+          <p className="text-[var(--cream-3)] text-[11px] mt-2.5 leading-relaxed">{t('types_hint')} {t('guardrails_note')}</p>
         </div>
 
-        {/* Log + run-now */}
-        <div className="pt-3 border-t border-[var(--border)]">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="text-[var(--cream)] text-xs font-semibold">
-              {t('log_title')}: {t('log_done_today', { count: log.done_today || 0 })}
-            </p>
-            <button
-              type="button"
-              onClick={runNow}
-              disabled={busy || paused}
-              data-testid="autopilot-run-now"
-              className="flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium text-[var(--cream)] bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface-2)] disabled:opacity-50 transition-colors"
-            >
-              {busy ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
-              {busy ? t('running') : t('run_now')}
-            </button>
-          </div>
-          {msg && (
-            <p className={`text-xs mb-2 ${
-              msg.kind === 'ok' ? 'text-emerald-300' : msg.kind === 'warn' ? 'text-amber-300' : 'text-rose-300'
-            }`}>{msg.text}</p>
-          )}
-          {(log.items || []).length === 0 ? (
-            <p className="text-[var(--cream-3)] text-xs">{t('log_empty')}</p>
-          ) : (
-            <div className="space-y-1.5">
-              {log.items.slice(0, 8).map((it) => (
-                <div key={it.id} className="flex items-center gap-2 text-xs" data-testid={`autopilot-log-${it.id}`}>
-                  {it.status === 'auto_done'
-                    ? <CheckCircle2 size={13} className="text-emerald-300 shrink-0" />
-                    : <XCircle size={13} className="text-rose-300 shrink-0" />}
-                  <span className="text-[var(--cream-2)] truncate flex-1">{it.title || it.type}</span>
-                  {it.status !== 'auto_done' && <span className="text-rose-300">{t('log_failed')}</span>}
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Footer · acciones de hoy + ejecutar */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-[var(--border)]">
+          <p className="text-[var(--cream-2)] text-xs font-semibold">
+            {t('log_done_today', { count: log.done_today || 0 })}
+          </p>
+          <button
+            type="button" onClick={runNow} disabled={busy || paused} data-testid="autopilot-run-now"
+            className="flex items-center gap-1.5 px-4 h-9 rounded-full text-xs font-bold text-white disabled:opacity-50 transition-opacity"
+            style={{ background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', boxShadow: '0 4px 14px rgba(var(--theme-rgb),0.3)' }}
+          >
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+            {busy ? t('running') : t('run_now')}
+          </button>
         </div>
+
+        {/* Log de acciones recientes (si hay) */}
+        {(msg || (log.items || []).length > 0) && (
+          <div className="px-4 pb-4 pt-1 space-y-1.5">
+            {msg && (
+              <p className={`text-xs ${msg.kind === 'ok' ? 'text-emerald-500' : msg.kind === 'warn' ? 'text-amber-500' : 'text-rose-500'}`}>{msg.text}</p>
+            )}
+            {(log.items || []).slice(0, 8).map((it) => (
+              <div key={it.id} className="flex items-center gap-2 text-xs" data-testid={`autopilot-log-${it.id}`}>
+                {it.status === 'auto_done'
+                  ? <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                  : <XCircle size={13} className="text-rose-500 shrink-0" />}
+                <span className="text-[var(--cream-2)] truncate flex-1">{it.title || it.type}</span>
+                {it.status !== 'auto_done' && <span className="text-rose-500">{t('log_failed')}</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
