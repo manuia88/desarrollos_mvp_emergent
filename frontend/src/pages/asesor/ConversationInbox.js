@@ -742,6 +742,25 @@ function ConversationInboxBody({ user }) {
                   <span style={{ color: STATUS_COLOR[detail.status] || 'var(--cream-2)' }}>● {t(`status.${detail.status}`, detail.status)}</span>
                   {ctx?.close_probability != null && <span style={{ color: 'var(--cream-2)', fontWeight: 700 }}>· cierre {Math.round(ctx.close_probability)}%</span>}
                 </div>
+                {/* Atlax · interruptor (control del cliente · vive en el encabezado, no en tabs) */}
+                <div style={{ marginTop: 8 }}>
+                  {detail.channel === 'ai' ? (
+                    canTakeover ? (
+                      <LiveTakeover conversationId={detail.conversation_id} onTakenOver={() => { loadList(); refreshDetail(); }} />
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: '#E2982E', background: 'rgba(226,152,46,0.10)', border: '1px solid rgba(226,152,46,0.25)', borderRadius: 999, padding: '5px 11px' }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#E2982E' }} /> Atlax: Manual · la llevas tú
+                      </span>
+                    )
+                  ) : (
+                    <button type="button" onClick={() => toggleAtlax(detail.channel)} title={atlaxCh[detail.channel] ? `Atlax atiende ${CHANNEL_NAME[detail.channel]} en automático` : `Actívalo y Atlax atenderá ${CHANNEL_NAME[detail.channel]} cuando conectes el canal`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', borderRadius: 999, padding: '6px 13px',
+                        background: atlaxCh[detail.channel] ? 'rgba(91,55,224,0.12)' : 'var(--surface-2)', color: atlaxCh[detail.channel] ? '#5B37E0' : 'var(--cream-2)', border: `1px solid ${atlaxCh[detail.channel] ? 'rgba(91,55,224,0.30)' : 'var(--border)'}` }}>
+                      <FaRobot size={12} /> Atlax: {atlaxCh[detail.channel] ? 'Auto' : 'Manual'}
+                      <span style={{ fontSize: 9.5, fontWeight: 800, opacity: 0.7 }}>{atlaxCh[detail.channel] ? '· toca para pausar' : '· toca para activar'}</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {(detail.lead_id || curConv?.lead_id) && (
@@ -1053,44 +1072,6 @@ function ConversationInboxBody({ user }) {
                   </div>
                 </div>
               )}
-              </>)}
-
-              {/* (Atlax movido al encabezado de la conversación · confianza del hilo retirada para simplificar) */}
-              {false && (<>
-              <div style={{ marginBottom: COL3_GAP }}>
-                <div style={{ marginBottom: 9 }}><Eyebrow>🤖 Atlax · piloto del agente</Eyebrow></div>
-                {detail.channel === 'ai' ? (
-                  canTakeover ? (
-                    <>
-                      <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1FA06A' }} /> <b style={{ color: 'var(--cream)' }}>Auto</b> · Atlax está contestando solo
-                      </div>
-                      <LiveTakeover conversationId={detail.conversation_id} onTakenOver={() => { loadList(); refreshDetail(); }} />
-                    </>
-                  ) : (
-                    <div style={{ fontSize: 12, color: 'var(--cream-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E2982E' }} /> <b style={{ color: 'var(--cream)' }}>Manual</b> · la llevas tú
-                    </div>
-                  )
-                ) : (
-                  <div>
-                    <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: atlaxCh[detail.channel] ? '#1FA06A' : '#E2982E' }} />
-                      <b style={{ color: 'var(--cream)' }}>{atlaxCh[detail.channel] ? 'Auto' : 'Manual'}</b> · {atlaxCh[detail.channel] ? `Atlax atiende ${CHANNEL_NAME[detail.channel]} en automático` : 'la llevas tú'}
-                    </div>
-                    <button type="button" onClick={() => toggleAtlax(detail.channel)}
-                      style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700,
-                        background: atlaxCh[detail.channel] ? 'var(--surface-2)' : '#5B37E0', color: atlaxCh[detail.channel] ? 'var(--cream-2)' : '#fff', border: atlaxCh[detail.channel] ? '1px solid var(--border)' : 'none' }}>
-                      {atlaxCh[detail.channel] ? 'Pasar a Manual' : '⚡ Activar Atlax (Auto)'}
-                    </button>
-                    <div style={{ fontSize: 10.5, color: 'var(--cream-3)', marginTop: 6, lineHeight: 1.45 }}>
-                      {atlaxCh[detail.channel]
-                        ? `Atlax contestará solo en ${CHANNEL_NAME[detail.channel]} en cuanto conectes el canal (Conversaciones IA → Conectar canales).`
-                        : `Actívalo y Atlax atenderá ${CHANNEL_NAME[detail.channel]} por ti cuando el canal esté conectado.`}
-                    </div>
-                  </div>
-                )}
-              </div>
               </>)}
 
               {/* ═══ TAB: COPILOTO ═══ (fusión: sugerencias proactivas + agentes + chat · una sola IA) */}
