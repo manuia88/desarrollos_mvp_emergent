@@ -843,6 +843,7 @@ function AsesorContactosV2({ user, onLogout }) {
   const [dragOverCol, setDragOverCol] = useState(null);
   const [foco, setFoco] = useState([]);
   const [dismissedFoco, setDismissedFoco] = useState(() => new Set()); // B7 · FOCO descartados (cerrar tarjeta)
+  const [intelDismissed, setIntelDismissed] = useState(false); // B7 · cerrar panel "Lo que aprendí" (no permanente)
   const [segment, setSegment] = useState('todos'); // B7 · segmento activo (calidad/estado · client-side)
   // B7 · rangos de presupuesto en PESOS MXN completos (no millones). Multi-rango: el lead
   // entra si su precio cae en CUALQUIER rango (OR). `from`/`to` guardan solo dígitos crudos.
@@ -1141,13 +1142,16 @@ function AsesorContactosV2({ user, onLogout }) {
         </div>
 
         {/* B5.4 Capa 6 · El norte — inteligencia agregada de prospectos. Solo con señal real. */}
-        {intel && intel.signal_leads > 0 && (intel.insights || []).length > 0 && (
-          <div data-testid="asr-prospect-intel" style={{ marginBottom: 18, padding: '14px 16px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.03))', border: '1px solid rgba(var(--theme-rgb),0.22)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        {intel && intel.signal_leads > 0 && (intel.insights || []).length > 0 && !intelDismissed && (
+          <div data-testid="asr-prospect-intel" style={{ position: 'relative', marginBottom: 18, padding: '14px 16px', borderRadius: 14, background: 'linear-gradient(135deg, rgba(var(--theme-rgb),0.10), rgba(var(--theme-rgb),0.03))', border: '1px solid rgba(var(--theme-rgb),0.22)' }}>
+            <button data-testid="intel-dismiss" onClick={() => setIntelDismissed(true)} title="Ocultar por ahora"
+              style={{ position: 'absolute', top: 10, right: 10, width: 24, height: 24, display: 'grid', placeItems: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--cream-3)', cursor: 'pointer', padding: 0, lineHeight: 0, fontSize: 12 }}>✕</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, paddingRight: 28 }}>
               <span style={{ fontSize: 16 }}>🧭</span>
-              <b style={{ fontFamily: 'Outfit', fontSize: 14, color: 'var(--cream)' }}>Lo que aprendí de tus prospectos</b>
+              <b style={{ fontFamily: 'Outfit', fontSize: 14, color: 'var(--cream)' }}>Lo que les gusta a tus prospectos</b>
               <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{intel.signal_leads} {intel.signal_leads === 1 ? 'lead con datos' : 'leads con datos'}</span>
             </div>
+            <div style={{ fontSize: 11.5, color: 'var(--cream-3)', marginBottom: 10, paddingRight: 28 }}>Para que sepas qué enseñarles y con qué argumento cerrar.</div>
             <div style={{ display: 'grid', gap: 6, marginBottom: (intel.by_development || []).length ? 11 : 0 }}>
               {(intel.insights || []).map((s, i) => (
                 <div key={i} style={{ fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.5, display: 'flex', gap: 7 }}>
