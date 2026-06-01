@@ -9,6 +9,7 @@ import './styles/asesor-aurora.css';
 import './i18n';
 import { initPostHog } from './lib/posthog';
 import { initObservability } from './observability';
+import ErrorBoundary from './components/ErrorBoundary';
 import App from './App';
 
 // W4.18.2A.0 — PostHog (LFPDPPP-compliant) FIRST so observability.js detects __loaded and skips re-init.
@@ -19,6 +20,8 @@ initObservability();
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
