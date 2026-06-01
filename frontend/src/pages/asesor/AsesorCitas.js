@@ -3,7 +3,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AdvisorLayout from '../../components/advisor/AdvisorLayout';
 import NewCitaModal from '../../components/developer/NewCitaModal';
 import { getAsesorCitas, patchCita } from '../../api/developer';
-import { CalendarCheck, Plus, Clock, CheckCircle, X, Phone, Video, AlertCircle, ExternalLink } from '../../components/icons';
+import { listTareas, completeTarea } from '../../api/advisor';
+import { CalendarCheck, Plus, Clock, CheckCircle, X, Phone, Video, AlertCircle, ExternalLink, ClipboardList } from '../../components/icons';
 import { Z } from '../../styles/zIndex';
 
 const STATUS_COLORS = {
@@ -133,6 +134,8 @@ function CitaDrawer({ apt, onClose, onAction }) {
 export default function AsesorCitas({ user, onLogout }) {
   const [tab, setTab] = useState('lista');
   const [citas, setCitas] = useState([]);
+  const [tareas, setTareas] = useState([]);           // E3.1 · agenda unificada
+  const [typeFilter, setTypeFilter] = useState('all'); // all | cita | tarea
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -159,7 +162,15 @@ export default function AsesorCitas({ user, onLogout }) {
       .then(r => { setCitas(r.items || []); setStats(r.stats || {}); })
       .catch(() => {})
       .finally(() => setLoading(false));
+    // E3.1 · tareas pendientes para la agenda unificada (FAIL-OPEN).
+    listTareas().then(t => setTareas(Array.isArray(t) ? t : [])).catch(() => setTareas([]));
   }, [filters]);
+
+  // E3.1 · marca una tarea como hecha y refresca.
+  const doneTarea = useCallback(async (tid) => {
+    setTareas(prev => prev.filter(t => t.id !== tid));
+    try { await completeTarea(tid); } catch (_) { load(); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
@@ -169,8 +180,8 @@ export default function AsesorCitas({ user, onLogout }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>Mis Citas</h1>
-            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', margin: '4px 0 0' }}>Gestiona y agenda visitas con clientes</p>
+            <h1 style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 28, color: 'var(--cream)', margin: 0, letterSpacing: '-0.02em' }}>Mi Agenda</h1>
+            <p style={{ fontFamily: 'DM Sans', fontSize: 13, color: 'var(--cream-3)', margin: '4px 0 0' }}>Tus citas y tareas, en un solo lugar</p>
           </div>
           <button onClick={() => setShowModal(true)} data-testid="nueva-cita-btn"
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', borderRadius: 9999, background: 'var(--grad)', border: 'none', color: '#fff', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
@@ -235,37 +246,70 @@ export default function AsesorCitas({ user, onLogout }) {
         {/* Content */}
         {tab === 'lista' ? (
           loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando citas...</div>
-          ) : citas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
-              <CalendarCheck size={36} color="var(--cream-3)" style={{ marginBottom: 12, opacity: 0.5 }} />
-              <div>Sin citas agendadas. ¡Crea una nueva!</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {citas.map(apt => (
-                <div key={apt.id} data-testid={`cita-row-${apt.id}`}
-                  onClick={() => setSelectedApt(apt)}
-                  style={{ padding: '14px 18px', borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-2)'}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {apt.modalidad === 'videollamada' ? <Video size={16} color="#818CF8" /> : <Phone size={16} color="#818CF8" />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 2 }}>
-                      {apt.lead?.contact?.name || 'Sin nombre'}
-                    </div>
-                    <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', display: 'flex', gap: 10 }}>
-                      <span><Clock size={10} style={{ marginRight: 3 }} />{fmtDatetime(apt.datetime)}</span>
-                      {apt.lead?.contact?.phone && <span>{apt.lead.contact.phone}</span>}
-                    </div>
-                  </div>
-                  <StatusBadge status={apt.status} />
+            <div style={{ textAlign: 'center', padding: 60, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>Cargando agenda...</div>
+          ) : (() => {
+            // E3.1 · agenda unificada: citas + tareas en una lista ordenada por fecha.
+            const agendaItems = [
+              ...(typeFilter === 'tarea' ? [] : citas.map(c => ({ kind: 'cita', ts: c.datetime, raw: c }))),
+              ...(typeFilter === 'cita' ? [] : tareas.map(t => ({ kind: 'tarea', ts: t.due_at, raw: t }))),
+            ].sort((a, b) => String(a.ts || '~').localeCompare(String(b.ts || '~')));
+            return (
+              <>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                  {[{ k: 'all', l: 'Todo' }, { k: 'cita', l: 'Citas' }, { k: 'tarea', l: 'Tareas' }].map(o => (
+                    <button key={o.k} onClick={() => setTypeFilter(o.k)} data-testid={`agenda-type-${o.k}`}
+                      style={{ padding: '6px 14px', borderRadius: 9999, border: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5,
+                        background: typeFilter === o.k ? 'var(--grad)' : 'transparent', color: typeFilter === o.k ? '#fff' : 'var(--cream-3)' }}>{o.l}</button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )
+                {agendaItems.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 60, color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
+                    <CalendarCheck size={36} color="var(--cream-3)" style={{ marginBottom: 12, opacity: 0.5 }} />
+                    <div>Sin citas ni tareas. ¡Crea una nueva!</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {agendaItems.map(item => item.kind === 'cita' ? (
+                      <div key={`c-${item.raw.id}`} data-testid={`cita-row-${item.raw.id}`} onClick={() => setSelectedApt(item.raw)}
+                        style={{ padding: '14px 18px', borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {item.raw.modalidad === 'videollamada' ? <Video size={16} color="#818CF8" /> : <Phone size={16} color="#818CF8" />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 2 }}>{item.raw.lead?.contact?.name || item.raw.titulo || 'Cita'}</div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', display: 'flex', gap: 10 }}>
+                            <span style={{ color: '#818CF8', fontWeight: 700 }}>Cita</span>
+                            <span><Clock size={10} style={{ marginRight: 3 }} />{fmtDatetime(item.raw.datetime)}</span>
+                            {item.raw.lead?.contact?.phone && <span>{item.raw.lead.contact.phone}</span>}
+                          </div>
+                        </div>
+                        <StatusBadge status={item.raw.status} />
+                      </div>
+                    ) : (
+                      <div key={`t-${item.raw.id}`} data-testid={`tarea-row-${item.raw.id}`}
+                        style={{ padding: '14px 18px', borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(226,152,46,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <ClipboardList size={16} color="#E2982E" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 14, color: 'var(--cream)', marginBottom: 2 }}>{item.raw.titulo || 'Tarea'}</div>
+                          <div style={{ fontFamily: 'DM Sans', fontSize: 12, color: 'var(--cream-3)', display: 'flex', gap: 10 }}>
+                            <span style={{ color: '#E2982E', fontWeight: 700 }}>Tarea</span>
+                            {item.raw.due_at && <span><Clock size={10} style={{ marginRight: 3 }} />{fmtDatetime(item.raw.due_at)}</span>}
+                            {item.raw.entity_label && <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.raw.entity_label}</span>}
+                          </div>
+                        </div>
+                        <button onClick={() => doneTarea(item.raw.id)} data-testid={`tarea-done-${item.raw.id}`}
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 13px', borderRadius: 9999, background: 'transparent', border: '1px solid var(--border)', color: '#4ADE80', fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                          <CheckCircle size={12} /> Hecha
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()
         ) : (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--cream-3)', fontFamily: 'DM Sans', fontSize: 13 }}>
             Vista de calendario disponible próximamente.{' '}
