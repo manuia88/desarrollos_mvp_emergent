@@ -27,6 +27,9 @@ ALLOWED_SCRIPT_DOMAINS: Set[str] = {
 ON_ATTR_RE = re.compile(r"\son[a-z]+\s*=", re.IGNORECASE)
 JS_URL_RE = re.compile(r"javascript\s*:", re.IGNORECASE)
 SCRIPT_SRC_RE = re.compile(r'<script[^>]*\ssrc\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
+IFRAME_SRC_RE = re.compile(r'<iframe[^>]*\ssrc\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
+# data:text/html y data:application/* = vectores de XSS/exfil (permitimos data:image/* para pixels)
+DANGEROUS_DATA_RE = re.compile(r"data:\s*(text/html|application|text/javascript)", re.IGNORECASE)
 TAG_OPEN_RE = re.compile(r"<\s*([a-z][a-z0-9-]*)\b", re.IGNORECASE)
 
 
@@ -52,10 +55,17 @@ def sanitize_pixel_html(html: str) -> str:
     # Block javascript: URLs
     if JS_URL_RE.search(text):
         return ""
+    # Block data:text/html y data:application/* (XSS/exfil); data:image/* sí pasa
+    if DANGEROUS_DATA_RE.search(text):
+        return ""
     # Block on* attributes (onclick, etc)
     text = ON_ATTR_RE.sub(" data-blocked=", text)
     # Validate script sources
     for src in SCRIPT_SRC_RE.findall(text):
+        if not _domain_allowed(src):
+            return ""
+    # Validate iframe sources (antes SIN validar → embed arbitrario)
+    for src in IFRAME_SRC_RE.findall(text):
         if not _domain_allowed(src):
             return ""
     # Check tags are within allowed list
