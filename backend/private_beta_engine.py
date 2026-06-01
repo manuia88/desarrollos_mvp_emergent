@@ -18,7 +18,9 @@ log = logging.getLogger("dmx.private_beta_engine")
 CODE_PREFIX = "DMX-BR-"
 CODE_BODY_LEN = 6
 CODE_ALPHABET = string.ascii_uppercase + string.digits
-LFPDPPP_SALT = os.environ.get("REACT_APP_LFPDPPP_SALT") or os.environ.get("LFPDPPP_SALT") or "dmx-2026"
+# Salt SERVER-ONLY (no REACT_APP_*): el de REACT_APP_ se hornea en el bundle público
+# y es recuperable → usarlo para hashing de cumplimiento haría los hashes reversibles.
+LFPDPPP_SALT = os.environ.get("LFPDPPP_SALT") or "dmx_lfpdppp_2026"
 
 
 def _now() -> datetime:
