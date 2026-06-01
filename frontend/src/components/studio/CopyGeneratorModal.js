@@ -185,8 +185,8 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
                     style={{
                       padding: '6px 14px', borderRadius: 9999,
                       background: active ? GRADIENT : 'transparent',
-                      border: active ? 'none' : '1px solid rgba(255,255,255,0.14)',
-                      color: active ? 'var(--cream, #F0EBE0)' : 'var(--cream-2)',
+                      border: active ? 'none' : '1px solid var(--border)',
+                      color: active ? 'var(--cream, var(--cream))' : 'var(--cream-2)',
                       fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11.5,
                       cursor: submitting ? 'not-allowed' : 'pointer',
                     }}>
@@ -237,7 +237,7 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
             <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--cream)', textAlign: 'center' }}>
               {t('studio.copy.generating_long')}
             </div>
-            <div style={{ width: '100%', height: 6, borderRadius: 9999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: 6, borderRadius: 9999, background: 'var(--surface-2)', overflow: 'hidden' }}>
               <div style={{
                 height: '100%', borderRadius: 9999,
                 width: `${Math.min(100, Math.round((elapsedS / TOTAL_TIMEOUT_S) * 100))}%`,
@@ -283,15 +283,15 @@ export default function CopyGeneratorModal({ open, onClose, onCopyGenerated, onE
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const overlayStyle = () => ({
-  position: 'fixed', inset: 0, background: 'rgba(6,8,15,0.7)',
+  position: 'fixed', inset: 0, background: 'rgba(20,25,45,0.45)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   padding: 22, zIndex: 1100, backdropFilter: 'blur(6px)',
 });
 const modalStyle = () => ({
   width: '100%', maxWidth: 560, maxHeight: '88vh', overflow: 'auto',
   padding: 22, borderRadius: 18,
-  background: 'rgba(13,16,23,0.96)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
 });
 const headerStyle = () => ({
   display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 10,
@@ -302,33 +302,33 @@ const labelStyle = () => ({
 });
 const inputStyle = () => ({
   width: '100%', padding: '8px 12px', fontFamily: 'DM Sans', fontSize: 13,
-  background: 'rgba(6,8,15,0.5)', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'var(--surface)', border: '1px solid var(--border)',
   borderRadius: 9999, color: 'var(--cream)', marginTop: 4,
 });
 const selectStyle = () => ({
   width: '100%', padding: '8px 12px', fontFamily: 'DM Sans', fontSize: 13,
-  background: 'rgba(6,8,15,0.5)', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'var(--surface)', border: '1px solid var(--border)',
   borderRadius: 9999, color: 'var(--cream)', marginTop: 4,
 });
 const textareaStyle = () => ({
   width: '100%', padding: '10px 14px', fontFamily: 'DM Sans', fontSize: 13,
-  background: 'rgba(6,8,15,0.5)', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'var(--surface)', border: '1px solid var(--border)',
   borderRadius: 14, color: 'var(--cream)', marginTop: 4, resize: 'vertical',
   minHeight: 80, lineHeight: 1.5,
 });
 const primaryBtn = (disabled = false) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-  background: GRADIENT, border: 'none', color: 'var(--cream, #F0EBE0)',
+  background: GRADIENT, border: 'none', color: 'var(--cream, var(--cream))',
   borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 700, fontSize: 12.5,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1,
 });
 const ghostBtn = (disabled = false) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-  background: 'transparent', border: '1px solid rgba(255,255,255,0.14)',
+  background: 'transparent', border: '1px solid var(--border)',
   color: 'var(--cream-2)', borderRadius: 9999, fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12.5,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1,
 });
 const iconCloseBtn = () => ({
-  padding: '6px 8px', background: 'transparent', border: '1px solid rgba(255,255,255,0.14)',
+  padding: '6px 8px', background: 'transparent', border: '1px solid var(--border)',
   color: 'var(--cream-2)', borderRadius: 9999, cursor: 'pointer',
 });

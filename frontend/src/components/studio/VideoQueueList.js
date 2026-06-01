@@ -4,19 +4,19 @@ import { useTranslation } from 'react-i18next';
 import { listTasks, deleteTask } from '../../api/studioVideo';
 import VideoRatioPreview from './VideoRatioPreview';
 
-const CREAM = '#F0EBE0';
+const CREAM = 'var(--cream)';
 const INDIGO = '#6366F1';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 const POLL_MS = 5000;
 
 const STATUS_STYLE = {
-  queued: { bg: 'rgba(240,235,224,0.06)', color: CREAM, border: '1px solid rgba(240,235,224,0.20)' },
+  queued: { bg: 'var(--cream-3)', color: CREAM, border: '1px solid var(--border)' },
   processing: { bg: GRAD, color: '#FFF', border: '1px solid transparent' },
   completed: { bg: 'rgba(34,197,94,0.14)', color: '#86EFAC', border: '1px solid rgba(34,197,94,0.40)' },
   failed: { bg: 'rgba(236,72,153,0.12)', color: '#F9A8D4', border: '1px solid rgba(236,72,153,0.40)' },
@@ -114,7 +114,7 @@ export default function VideoQueueList({ refreshKey, onRegenerate }) {
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} style={{
               height: 56, borderRadius: 12, margin: '6px 0',
-              background: 'linear-gradient(90deg, rgba(240,235,224,0.03), rgba(240,235,224,0.08), rgba(240,235,224,0.03))',
+              background: 'linear-gradient(90deg, var(--surface-2), var(--surface-2), var(--surface-2))',
               backgroundSize: '200% 100%', animation: 'vqlShimmer 1.4s linear infinite',
             }} />
           ))}
@@ -139,7 +139,7 @@ export default function VideoQueueList({ refreshKey, onRegenerate }) {
             display: 'grid',
             gridTemplateColumns: '64px 1fr 100px 120px 110px 130px 180px',
             gap: 10, padding: '10px 18px',
-            background: 'rgba(240,235,224,0.04)',
+            background: 'var(--surface-2)',
             borderBottom: BORDER,
             color: MUTED_2,
             fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700,
@@ -222,7 +222,7 @@ export default function VideoQueueList({ refreshKey, onRegenerate }) {
                     style={{
                       padding: '6px 12px', borderRadius: 9999,
                       background: 'transparent', color: CREAM,
-                      border: '1px solid rgba(240,235,224,0.20)',
+                      border: '1px solid var(--border)',
                       fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, cursor: 'pointer',
                     }}
                   >{t('studioVideo.queue.btn_regenerate', 'Re-generar')}</button>
@@ -252,7 +252,7 @@ export default function VideoQueueList({ refreshKey, onRegenerate }) {
           onClick={() => setViewTask(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 80,
-            background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(8px)',
+            background: 'var(--surface)', backdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
           }}
         >
@@ -275,7 +275,7 @@ export default function VideoQueueList({ refreshKey, onRegenerate }) {
           onClick={() => setConfirmDelete(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 80,
-            background: 'rgba(6,8,15,0.85)', backdropFilter: 'blur(8px)',
+            background: 'var(--surface)', backdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
           }}
         >
@@ -299,7 +299,7 @@ export default function VideoQueueList({ refreshKey, onRegenerate }) {
                 style={{
                   padding: '8px 18px', borderRadius: 9999,
                   background: 'transparent', color: CREAM,
-                  border: '1px solid rgba(240,235,224,0.30)',
+                  border: '1px solid var(--border)',
                   fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 }}
               >{t('studioVideo.cancel', 'Cancelar')}</button>

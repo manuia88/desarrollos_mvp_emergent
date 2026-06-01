@@ -59,8 +59,8 @@ export default function CarruselPreviewLive({ pages, brandKit, initialRatio = '1
   const colors = {
     primary: brandKit?.color_primary || '#6366F1',
     secondary: brandKit?.color_secondary || '#EC4899',
-    accent: brandKit?.color_accent || '#F0EBE0',
-    bg: brandKit?.color_bg || '#06080F',
+    accent: brandKit?.color_accent || 'var(--cream)',
+    bg: brandKit?.color_bg || 'var(--bg)',
   };
   const fontHeading = brandKit?.font_heading || 'Outfit';
   const fontBody = brandKit?.font_body || 'DM Sans';
@@ -68,8 +68,8 @@ export default function CarruselPreviewLive({ pages, brandKit, initialRatio = '1
   return (
     <div data-testid="carrusel-preview-live" ref={containerRef} style={{
       padding: 16, borderRadius: 14,
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'var(--surface-2)',
+      border: '1px solid var(--border)',
     }}>
       {/* Ratio tabs */}
       <div role="tablist" style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -85,8 +85,8 @@ export default function CarruselPreviewLive({ pages, brandKit, initialRatio = '1
               style={{
                 padding: '6px 12px', borderRadius: 9999,
                 background: active ? GRADIENT : 'transparent',
-                border: active ? 'none' : '1px solid rgba(255,255,255,0.14)',
-                color: active ? 'var(--cream, #F0EBE0)' : 'var(--cream-2)',
+                border: active ? 'none' : '1px solid var(--border)',
+                color: active ? 'var(--cream, var(--cream))' : 'var(--cream-2)',
                 fontFamily: 'DM Sans', fontWeight: 700, fontSize: 11,
                 cursor: 'pointer',
               }}>
@@ -100,7 +100,7 @@ export default function CarruselPreviewLive({ pages, brandKit, initialRatio = '1
       <div style={{
         display: 'flex', justifyContent: 'center', alignItems: 'center',
         padding: 20, borderRadius: 12,
-        background: 'rgba(6,8,15,0.5)',
+        background: 'var(--surface)',
         minHeight: 240,
       }}>
         <div
@@ -140,7 +140,7 @@ export default function CarruselPreviewLive({ pages, brandKit, initialRatio = '1
             <button style={{
               padding: '8px 14px', borderRadius: 9999,
               background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`,
-              border: 'none', color: 'var(--cream, #F0EBE0)',
+              border: 'none', color: 'var(--cream, var(--cream))',
               fontFamily: fontBody, fontWeight: 700, fontSize: 12,
               cursor: 'default',
             }}>
@@ -159,7 +159,7 @@ export default function CarruselPreviewLive({ pages, brandKit, initialRatio = '1
             disabled={pageIdx === 0}
             style={{
               padding: '6px 12px', borderRadius: 9999,
-              background: 'transparent', border: '1px solid rgba(255,255,255,0.14)',
+              background: 'transparent', border: '1px solid var(--border)',
               color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12,
               cursor: pageIdx === 0 ? 'not-allowed' : 'pointer',
               opacity: pageIdx === 0 ? 0.5 : 1,
@@ -175,7 +175,7 @@ export default function CarruselPreviewLive({ pages, brandKit, initialRatio = '1
             disabled={pageIdx >= pageCount - 1}
             style={{
               padding: '6px 12px', borderRadius: 9999,
-              background: 'transparent', border: '1px solid rgba(255,255,255,0.14)',
+              background: 'transparent', border: '1px solid var(--border)',
               color: 'var(--cream-2)', fontFamily: 'DM Sans', fontSize: 12,
               cursor: pageIdx >= pageCount - 1 ? 'not-allowed' : 'pointer',
               opacity: pageIdx >= pageCount - 1 ? 0.5 : 1,

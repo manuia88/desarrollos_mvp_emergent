@@ -46,8 +46,8 @@ export default function HookScoreBadge({ score, breakdown, size = 'md' }) {
         <div role="tooltip" style={{
           position: 'absolute', top: '100%', left: 0, marginTop: 6,
           padding: '10px 12px', minWidth: 200,
-          background: 'rgba(6,8,15,0.96)',
-          border: '1px solid rgba(240,235,224,0.16)',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
           borderRadius: 10, zIndex: 100,
           fontFamily: 'DM Sans', fontSize: 11.5, color: 'var(--cream)',
           boxShadow: '0 18px 30px rgba(0,0,0,0.45)', whiteSpace: 'nowrap',

@@ -6,11 +6,11 @@ import { X, FileDown, Download, Share2, Image as ImageIcon, Loader2 } from 'luci
 import { exportStandalonePdf, shareStandaloneWhatsApp } from '../../api/videoStandalone';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const CREAM = '#F0EBE0';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.96)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const WA_GREEN = '#25D366';
 const RATIOS = ['1:1', '9:16', '16:9'];
@@ -93,7 +93,7 @@ export default function VideoExportModal({ open, onClose, video, socialSlug = 'd
 
   return (
     <div role="dialog" aria-modal="true" data-testid="video-export-modal" style={{
-      position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(6,8,15,0.78)',
+      position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(20,25,45,0.45)',
       backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22,
     }} onClick={() => !busy && onClose && onClose()}>
       <div onClick={(e) => e.stopPropagation()} style={{
@@ -111,7 +111,7 @@ export default function VideoExportModal({ open, onClose, video, socialSlug = 'd
             </p>
           </div>
           <button type="button" onClick={() => !busy && onClose && onClose()} aria-label={t('videoStandalone.export.close', 'Cerrar')} style={{
-            padding: '6px 8px', background: 'transparent', border: '1px solid rgba(240,235,224,0.18)',
+            padding: '6px 8px', background: 'transparent', border: '1px solid var(--border)',
             color: CREAM, borderRadius: 9999, cursor: 'pointer',
           }}><X size={16} /></button>
         </header>
@@ -163,7 +163,7 @@ export default function VideoExportModal({ open, onClose, video, socialSlug = 'd
               const url = ratios[r];
               const disabled = !url || isStubUrl(url) || stub;
               return (
-                <div key={r} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 12, background: 'rgba(240,235,224,0.03)', border: BORDER }}>
+                <div key={r} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 12, background: 'var(--surface-2)', border: BORDER }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{r}</span>
                   <button type="button" data-testid={`vem-dl-${r.replace(':', 'x')}`} disabled={disabled}
                     onClick={() => forceDownload(url, `video-${video.video_id}-${r.replace(':', 'x')}.mp4`)}
@@ -184,7 +184,7 @@ export default function VideoExportModal({ open, onClose, video, socialSlug = 'd
               {RATIOS.map((r) => (
                 <button key={r} type="button" onClick={() => setWaRatio(r)} style={{
                   ...ghostBtn(false), background: waRatio === r ? 'rgba(99,102,241,0.18)' : 'transparent',
-                  borderColor: waRatio === r ? 'rgba(99,102,241,0.5)' : 'rgba(240,235,224,0.18)',
+                  borderColor: waRatio === r ? 'rgba(99,102,241,0.5)' : 'var(--border)',
                 }}>{r}</button>
               ))}
               <button type="button" data-testid="vem-wa-load" onClick={loadWa} disabled={busy || stub} style={ghostBtn(busy || stub)}>
@@ -193,7 +193,7 @@ export default function VideoExportModal({ open, onClose, video, socialSlug = 'd
             </div>
             <textarea data-testid="vem-wa-text" rows={5} value={waText} onChange={(e) => setWaText(e.target.value)}
               placeholder={t('videoStandalone.export.waPlaceholder', 'El mensaje aparecerá aquí…')}
-              style={{ width: '100%', padding: 12, borderRadius: 12, background: 'rgba(240,235,224,0.04)', border: '1px solid rgba(240,235,224,0.12)', color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13, lineHeight: 1.5, outline: 'none', resize: 'vertical' }} />
+              style={{ width: '100%', padding: 12, borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', color: CREAM, fontFamily: 'DM Sans, sans-serif', fontSize: 13, lineHeight: 1.5, outline: 'none', resize: 'vertical' }} />
             <button type="button" data-testid="vem-wa-send" onClick={sendWa} disabled={!waText || stub} style={{ ...primaryBtn(!waText || stub), background: (!waText || stub) ? 'rgba(37,211,102,0.25)' : WA_GREEN, color: '#FFF' }}>
               <Share2 size={14} /> {t('videoStandalone.export.waSend', 'Abrir WhatsApp')}
             </button>
@@ -207,7 +207,7 @@ export default function VideoExportModal({ open, onClose, video, socialSlug = 'd
               {t('videoStandalone.export.socialDesc', 'Tarjetas sociales (Open Graph, Feed y Story) generadas por DesarrollosMX.')}
             </p>
             {SOCIAL.map(({ kind, label, ratio }) => (
-              <div key={kind} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: 'rgba(240,235,224,0.03)', border: BORDER }}>
+              <div key={kind} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: 'var(--surface-2)', border: BORDER }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700 }}>{label}</div>
                   <div style={{ fontSize: 11, color: MUTED_2 }}>{ratio}</div>
@@ -232,7 +232,7 @@ const primaryBtn = (disabled = false) => ({
 });
 const ghostBtn = (disabled = false) => ({
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px',
-  background: 'transparent', border: '1px solid rgba(240,235,224,0.18)', color: CREAM,
+  background: 'transparent', border: '1px solid var(--border)', color: CREAM,
   borderRadius: 9999, fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 12,
   cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1,
 });

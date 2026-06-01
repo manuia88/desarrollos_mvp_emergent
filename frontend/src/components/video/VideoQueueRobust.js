@@ -10,11 +10,11 @@ import {
   getStandaloneHistory, deleteStandaloneVideo, shareStandaloneWhatsApp,
 } from '../../api/videoStandalone';
 
-const CREAM = '#F0EBE0';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const POLL_MS = 5000;
 
@@ -60,15 +60,15 @@ function StatusBadge({ status, retryCount, fallbackAttempts }) {
 }
 
 const selectStyle = {
-  padding: '7px 10px', borderRadius: 9999, background: 'rgba(240,235,224,0.04)',
-  border: '1px solid rgba(240,235,224,0.14)', color: CREAM,
+  padding: '7px 10px', borderRadius: 9999, background: 'var(--surface-2)',
+  border: '1px solid var(--border)', color: CREAM,
   fontFamily: 'DM Sans, sans-serif', fontSize: 12, outline: 'none', cursor: 'pointer',
 };
 
 const actionBtn = (color = CREAM) => ({
   display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px',
   borderRadius: 9999, background: 'transparent', color,
-  border: '1px solid rgba(240,235,224,0.18)', fontFamily: 'DM Sans, sans-serif',
+  border: '1px solid var(--border)', fontFamily: 'DM Sans, sans-serif',
   fontSize: 11, fontWeight: 700, cursor: 'pointer',
 });
 
@@ -177,7 +177,7 @@ export default function VideoQueueRobust({ refreshKey = 0, onRegenerate, onExpor
           {sorted.map((it) => (
             <div key={it.video_id} data-testid="vqr-row" data-video-id={it.video_id} style={{
               display: 'grid', gap: 8, padding: '12px 14px', borderRadius: 16,
-              background: 'rgba(240,235,224,0.03)', border: BORDER,
+              background: 'var(--surface-2)', border: BORDER,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <StatusBadge status={it.status} retryCount={it.retry_count} fallbackAttempts={it.fallback_attempts} />

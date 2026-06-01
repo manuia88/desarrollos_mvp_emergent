@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generateScript } from '../../api/studioVideo';
 
-const CREAM = '#F0EBE0';
-const MUTED = 'rgba(240,235,224,0.62)';
-const MUTED_2 = 'rgba(240,235,224,0.45)';
-const CARD_BG = 'rgba(13,16,23,0.92)';
-const BORDER = '1px solid rgba(240,235,224,0.10)';
+const CREAM = 'var(--cream)';
+const MUTED = 'var(--cream-2)';
+const MUTED_2 = 'var(--cream-3)';
+const CARD_BG = 'var(--surface)';
+const BORDER = '1px solid var(--border)';
 const GRAD = 'linear-gradient(90deg, #6366F1, #EC4899)';
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
@@ -51,8 +51,8 @@ export default function ScriptComposer({ value, onChange, propertyId }) {
           width: '100%',
           padding: 14,
           borderRadius: 14,
-          background: 'rgba(240,235,224,0.04)',
-          border: '1px solid rgba(240,235,224,0.12)',
+          background: 'var(--surface-2)',
+          border: '1px solid var(--border)',
           color: CREAM,
           fontFamily: 'DM Sans, sans-serif',
           fontSize: 14,
