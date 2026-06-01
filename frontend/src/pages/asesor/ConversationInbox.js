@@ -1067,9 +1067,9 @@ function ConversationInboxBody({ user }) {
                 </div>
               )}
 
-              {ctx?.taste && ((ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
+              {ctx?.taste && (ctx.taste.summary || (ctx.taste.rooms || []).length > 0 || (ctx.taste.features || []).length > 0) && (
                 <div style={{ marginBottom: COL3_GAP }}>
-                  <div style={{ marginBottom: 8 }}><Eyebrow>Perfil de gusto {ctx.taste.confidence_label ? `· ${ctx.taste.confidence_label}` : ''}</Eyebrow></div>
+                  <div style={{ marginBottom: 8 }}><Eyebrow>❤ Qué le gusta {ctx.taste.confidence_label ? `· ${ctx.taste.confidence_label}` : ''}</Eyebrow></div>
                   {ctx.taste.summary && <div style={{ fontSize: 12, color: 'var(--cream-2)', marginBottom: 8, lineHeight: 1.45 }}>{ctx.taste.summary}</div>}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {(ctx.taste.rooms || []).slice(0, 4).map((r) => (
