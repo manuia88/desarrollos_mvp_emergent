@@ -105,10 +105,10 @@
 }
 
 .portal-asesor .asr-premium--hover:hover {
-  border-color: rgba(var(--theme-rgb), 0.45);
-  /* B7 · hover con glow de marca (no solo sombra gris) — sensación premium */
-  box-shadow: 0 18px 40px -14px rgba(var(--theme-rgb), 0.30), var(--asr-shadow-lg);
-  transform: translateY(-3px);
+  border-color: rgba(var(--theme-rgb), 0.32);
+  /* B7 · hover: leve elevación + glow de marca DISCRETO (founder) */
+  box-shadow: 0 8px 20px -12px rgba(var(--theme-rgb), 0.12), var(--asr-shadow);
+  transform: translateY(-2px);
 }
 
 /* Card en arrastre (kanban): se levanta apenas. */
