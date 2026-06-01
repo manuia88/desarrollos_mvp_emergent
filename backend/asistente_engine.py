@@ -454,8 +454,31 @@ REGLAS:- Solo incluye <tool_call> si REALMENTE necesitas los datos para responde
 
 
 # ─── Tool execution ───────────────────────────────────────────────────────────
+# SEGURIDAD: Atlax es un asistente PÚBLICO (POST /api/asistente/... sin auth). Solo
+# puede ejecutar tools de datos públicos / asesoría que NO toman identidad (user_id/
+# tenant_id/lead_id) ni leen CRM/órgs/operaciones pagadas. Cualquier otra tool queda
+# BLOQUEADA aquí — chokepoint único que neutraliza la inyección de prompt (el LLM no
+# puede invocar buyer_score/command_center/agent_workforce/lead_enrichment/conversation/
+# social_ads/… aunque el atacante lo induzca en el mensaje).
+PUBLIC_TOOLS = frozenset({
+    "search_developments_public", "get_zone_info", "get_market_pulse_public",
+    "get_market_overview_cdmx", "get_zone_top_growth", "get_price_trends_macro",
+    "get_trends_for_query", "get_banxico_indicator", "get_uso_suelo", "get_riesgos_zona",
+    "get_valor_catastral", "get_transit_accessibility", "get_amenities_radius",
+    "buyer_coach_consult", "investment_simulate", "get_zone_forecast",
+    "query_probability", "query_global_insights", "query_avm_estimate",
+    "query_zone_subscores", "query_live_pulse", "query_tax_projection",
+    "query_climate_migration", "query_construction_quality", "query_reviews_residents",
+    "query_gov_data_mx", "generate_narrative", "compare_properties", "reverse_search",
+    "query_mood_recommendations",
+})
+
+
 async def _exec_tool(db, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
     """Ejecuta tool pública. NO accede a data interna de orgs."""
+    if tool_name not in PUBLIC_TOOLS:
+        log.warning(f"[atlax] tool NO pública bloqueada en asistente público: {tool_name}")
+        return {"error": "Esa función no está disponible en el asistente público."}
     try:
         if tool_name == "search_developments_public":
             return await _tool_search_developments_public(db, params)
