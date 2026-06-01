@@ -321,6 +321,8 @@ async def manual_reminder_trigger(request: Request):
 # ═════════════════════════════════════════════════════════════════════════════
 @router.get("/api/cita/public/{token}")
 async def public_cita_view(token: str, request: Request):
+    from rate_limit import check_rate
+    check_rate(request, "cita_public_view", limit=20, window_sec=60)  # anti-scraping de citas
     db = _db(request)
     apt = await db.appointments.find_one({"confirmation_token": token}, {"_id": 0})
     if not apt:

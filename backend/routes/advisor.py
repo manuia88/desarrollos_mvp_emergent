@@ -2887,7 +2887,12 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
         raise HTTPException(409, "La operación ya cambió de estado · recarga e intenta de nuevo")
     # Closure: grant XP + increment cierres (solo el ganador de la carrera llega aquí)
     if payload.status == "cerrada":
-        await db.asesor_profiles.update_one({"user_id": user.user_id}, {"$inc": {"xp": 250, "cierres_total": 1}}, upsert=True)
+        try:
+            await db.asesor_profiles.update_one({"user_id": user.user_id}, {"$inc": {"xp": 250, "cierres_total": 1}}, upsert=True)
+        except Exception as _xe:
+            # No perder XP/cierre si el $inc falla: marcar para reintento (reconcile en arranque)
+            await db.asesor_operaciones.update_one({"id": oid}, {"$set": {"xp_pending": True}})
+            logging.getLogger("dmx.advisor").error(f"[operacion] XP grant falló (oid={oid}) → xp_pending: {_xe}", exc_info=True)
     # Phase F0.11 — ML training event on status transition
     try:
         from observability import emit_ml_event
@@ -2912,6 +2917,28 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
         # Rastro de auditoría de un cambio de status de DINERO: si falla, debe verse en Sentry.
         logging.getLogger("dmx.advisor").error(f"[operacion] audit_log/ml de cambio de status falló (oid={oid}): {_e}", exc_info=True)
     return {"ok": True, "status": payload.status}
+
+
+async def reconcile_pending_xp(db) -> int:
+    """Auto-reparable: otorga el XP/cierre de operaciones marcadas xp_pending (el $inc
+    falló al cerrar la venta). Idempotente: limpia la bandera al otorgar. FAIL-OPEN.
+    Corre en arranque → ningún asesor pierde su XP aunque el grant haya fallado."""
+    n = 0
+    try:
+        cur = db.asesor_operaciones.find({"xp_pending": True}, {"_id": 0, "id": 1, "owner_id": 1})
+        async for op in cur:
+            owner = op.get("owner_id")
+            if not owner:
+                continue
+            try:
+                await db.asesor_profiles.update_one({"user_id": owner}, {"$inc": {"xp": 250, "cierres_total": 1}}, upsert=True)
+                await db.asesor_operaciones.update_one({"id": op["id"]}, {"$unset": {"xp_pending": ""}})
+                n += 1
+            except Exception:
+                continue
+    except Exception as e:
+        logging.getLogger("dmx.advisor").warning(f"[operacion] reconcile_pending_xp fail-open: {e}")
+    return n
 
 
 @router.get("/operaciones/{oid}")

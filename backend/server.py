@@ -1291,6 +1291,12 @@ async def startup():
         await backfill_lead_inmobiliaria(db)
     except Exception as _e:
         logging.warning(f"[startup] backfill_lead_inmobiliaria: {_e}")
+    # Auto-reparable · otorga XP/cierre que quedó pendiente al cerrar una venta
+    try:
+        from routes.advisor import reconcile_pending_xp
+        await reconcile_pending_xp(db)
+    except Exception as _e:
+        logging.warning(f"[startup] reconcile_pending_xp: {_e}")
     # Copiloto · cierre de ciclo · índices de eventos (auditoría + aprendizaje + métricas)
     try:
         from copilot_events import ensure_copilot_events_indexes

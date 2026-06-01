@@ -377,11 +377,14 @@ async def partner_webhook(
     if new_status not in cs.OFFER_STATUSES:
         raise HTTPException(400, f"new_status inválido. Valores: {', '.join(sorted(cs.OFFER_STATUSES))}")
 
+    # Seguridad: la oferta debe pertenecer a ESTE partner (no mutar la de otro partner).
+    owned = await db.partner_offers.find_one({"id": offer_id, "partner_id": pid}, {"_id": 1})
+    if not owned:
+        raise HTTPException(404, "offer_not_found")
+
     result = await cs.track_offer_event(db, offer_id, new_status, metadata)
     if not result.get("ok"):
         raise HTTPException(404, result.get("reason", "offer_not_found"))
-
-    await cs.track_offer_event(db, offer_id, new_status, metadata)
 
     from compliance_engine import log_compliance_event
     await log_compliance_event(
