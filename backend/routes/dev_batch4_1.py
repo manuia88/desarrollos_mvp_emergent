@@ -1105,8 +1105,10 @@ async def create_cita(payload: CitaBody, request: Request):
     try:
         from services.lead_bridge import mirror_lead_to_asesor_contacto
         await mirror_lead_to_asesor_contacto(db, lead)
-    except Exception:
-        pass
+    except Exception as _e:
+        # Si el espejo al CRM falla, el lead puede NO aparecer en "Mis Leads" del asesor
+        # → fallo de negocio invisible. Lo elevamos a ERROR para que llegue a Sentry.
+        log.error(f"[create_cita] mirror al CRM falló · lead {lead['id']} podría no verse en Mis Leads: {_e}", exc_info=True)
 
     # Phase 4 Batch 4.4 — queue heat recalc on lead create
     try:

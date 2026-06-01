@@ -2908,7 +2908,9 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
                            before={"status": cur}, after={"status": payload.status}, request=request)
         await _emit(db, "mutation_logged", user.user_id, getattr(user, "tenant_id", None), user.role,
                     context={"entity_type": "operacion", "action": "update"}, ai_decision={}, user_action={})
-    except Exception: pass
+    except Exception as _e:
+        # Rastro de auditoría de un cambio de status de DINERO: si falla, debe verse en Sentry.
+        logging.getLogger("dmx.advisor").error(f"[operacion] audit_log/ml de cambio de status falló (oid={oid}): {_e}", exc_info=True)
     return {"ok": True, "status": payload.status}
 
 
