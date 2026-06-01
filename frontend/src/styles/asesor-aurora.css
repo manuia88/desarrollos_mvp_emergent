@@ -104,9 +104,10 @@
 }
 
 .portal-asesor .asr-premium--hover:hover {
-  border-color: var(--theme);
-  box-shadow: var(--asr-shadow-lg);
-  transform: translateY(-2px);
+  border-color: rgba(var(--theme-rgb), 0.45);
+  /* B7 · hover con glow de marca (no solo sombra gris) — sensación premium */
+  box-shadow: 0 18px 40px -14px rgba(var(--theme-rgb), 0.30), var(--asr-shadow-lg);
+  transform: translateY(-3px);
 }
 
 /* Card en arrastre (kanban): se levanta apenas. */

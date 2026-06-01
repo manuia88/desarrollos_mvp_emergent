@@ -71,7 +71,7 @@ export default function AutopilotPanel() {
           {t('section_title')}
         </h2>
         <span className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-          paused ? 'text-[var(--cream-3)] bg-[rgba(240,235,224,0.08)]'
+          paused ? 'text-[var(--cream-3)] bg-[var(--surface-2)]'
                  : 'text-amber-300 bg-[rgba(245,158,11,0.14)]'
         }`}>
           {paused ? t('status_paused') : t('status_active')}
@@ -86,7 +86,7 @@ export default function AutopilotPanel() {
         </p>
       </div>
 
-      <div className="rounded-2xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.08)] p-4 space-y-4">
+      <div className="rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] p-4 space-y-4">
         {/* Kill switch global */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -103,7 +103,7 @@ export default function AutopilotPanel() {
             onClick={toggleKill}
             data-testid="autopilot-kill-switch"
             className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-              paused ? 'bg-[rgba(240,235,224,0.15)]' : 'bg-emerald-500'
+              paused ? 'bg-[var(--surface-2)]' : 'bg-emerald-500'
             }`}
           >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
@@ -116,25 +116,32 @@ export default function AutopilotPanel() {
         <div className={paused ? 'opacity-50 pointer-events-none' : ''}>
           <p className="text-[var(--cream-3)] text-xs font-semibold uppercase tracking-wide mb-2">{t('types_title')}</p>
           <div className="space-y-2">
-            {TYPES.map((type) => (
-              <label key={type} className="flex items-center justify-between gap-3 cursor-pointer">
-                <span className="text-[var(--cream-2)] text-sm">{t(`type_${type}`)}</span>
-                <input
-                  type="checkbox"
-                  data-testid={`autopilot-type-${type}`}
-                  checked={!!config.types?.[type]}
-                  onChange={() => toggleType(type)}
-                  className="w-4 h-4 cursor-pointer accent-indigo-500"
-                />
-              </label>
-            ))}
+            {TYPES.map((type) => {
+              const on = !!config.types?.[type];
+              return (
+                <div key={type} className="flex items-center justify-between gap-3 cursor-pointer" onClick={() => toggleType(type)}>
+                  <span className="text-[var(--cream-2)] text-sm">{t(`type_${type}`)}</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    data-testid={`autopilot-type-${type}`}
+                    onClick={(e) => { e.stopPropagation(); toggleType(type); }}
+                    className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
+                    style={{ background: on ? 'linear-gradient(90deg, var(--theme), var(--theme-3))' : 'var(--border-2)' }}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
           <p className="text-[var(--cream-3)] text-[11px] mt-2">{t('types_hint')}</p>
           <p className="text-[var(--cream-3)] text-[11px]">{t('guardrails_note')}</p>
         </div>
 
         {/* Log + run-now */}
-        <div className="pt-3 border-t border-[rgba(240,235,224,0.08)]">
+        <div className="pt-3 border-t border-[var(--border)]">
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-[var(--cream)] text-xs font-semibold">
               {t('log_title')}: {t('log_done_today', { count: log.done_today || 0 })}
@@ -144,7 +151,7 @@ export default function AutopilotPanel() {
               onClick={runNow}
               disabled={busy || paused}
               data-testid="autopilot-run-now"
-              className="flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium text-[var(--cream)] bg-[rgba(240,235,224,0.06)] border border-[rgba(240,235,224,0.12)] hover:bg-[rgba(240,235,224,0.1)] disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium text-[var(--cream)] bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface-2)] disabled:opacity-50 transition-colors"
             >
               {busy ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
               {busy ? t('running') : t('run_now')}

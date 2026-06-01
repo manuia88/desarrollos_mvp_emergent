@@ -34,7 +34,7 @@ export default function ActionCard({ action, onCTA, t }) {
   return (
     <div
       data-testid={`action-card-${action.id}`}
-      className="group flex items-start gap-3 p-3 rounded-xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.08)] hover:border-[rgba(var(--theme-rgb),0.35)] hover:bg-[rgba(var(--theme-rgb),0.06)] transition-all"
+      className="group flex items-start gap-3 p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] hover:border-[rgba(var(--theme-rgb),0.35)] hover:bg-[rgba(var(--theme-rgb),0.06)] transition-all"
     >
       {/* icono tipo */}
       <div className="shrink-0 w-9 h-9 rounded-lg bg-[rgba(var(--theme-rgb),0.14)] flex items-center justify-center text-[var(--cream)]">
@@ -72,7 +72,7 @@ export default function ActionCard({ action, onCTA, t }) {
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors
                   ${danger
                     ? 'text-[var(--cream-3)] hover:text-[#f87171] hover:bg-[rgba(248,113,113,0.1)]'
-                    : 'text-[rgba(240,235,224,0.7)] hover:text-[var(--cream)] hover:bg-[rgba(240,235,224,0.08)]'}`}
+                    : 'text-[var(--cream-2)] hover:text-[var(--cream)] hover:bg-[var(--surface-2)]'}`}
               >
                 <CtaIcon size={13} /> {t(`cta.${cta}`)}
               </button>

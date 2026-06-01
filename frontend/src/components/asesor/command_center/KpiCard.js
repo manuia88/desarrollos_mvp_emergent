@@ -20,7 +20,7 @@ export default function KpiCard({ label, value, trendPct = null, Icon, onClick, 
       onClick={onClick}
       disabled={!onClick}
       data-testid={`kpi-card-${label}`}
-      className={`text-left p-4 rounded-2xl bg-[rgba(240,235,224,0.04)] border border-[rgba(240,235,224,0.08)] transition-all
+      className={`text-left p-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] transition-all
         ${onClick ? 'hover:border-[rgba(var(--theme-rgb),0.35)] hover:bg-[rgba(var(--theme-rgb),0.06)] cursor-pointer' : 'cursor-default'}`}
     >
       <div className="flex items-center gap-2 text-[var(--cream-3)]">

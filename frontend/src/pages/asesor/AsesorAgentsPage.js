@@ -44,7 +44,7 @@ const isAgentAction = (a) => !!a?.source_agent && !SYNTHETIC_PREFIXES.some((p) =
 function Skeleton() {
   return (
     <div className="animate-pulse space-y-6" data-testid="agents-skeleton">
-      <div className="h-8 w-56 rounded-lg bg-[var(--cream-3)]" />
+      <div className="h-8 w-56 rounded-lg bg-[var(--surface-2)]" />
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-40 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] animate-pulse" />)}
       </div>
@@ -154,44 +154,50 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                     key={a.name}
                     hover
                     data-testid={`agent-card-${a.name}`}
-                    className="flex flex-col"
-                    style={{ padding: 16 }}
+                    className="flex flex-col relative overflow-hidden"
+                    style={{ padding: 18, borderRadius: 18 }}
                   >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-[rgba(var(--theme-rgb),0.12)] text-[var(--theme-2)] shrink-0">
-                        <Ico size={18} />
+                    {/* glow de marca en la esquina · profundidad sutil */}
+                    <div aria-hidden style={{ position: 'absolute', top: -38, right: -38, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(var(--theme-rgb),0.12), transparent 70%)', pointerEvents: 'none' }} />
+                    <div className="flex items-start gap-3 mb-3" style={{ position: 'relative' }}>
+                      <span style={{ width: 44, height: 44, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--theme), var(--theme-3))', color: '#fff', boxShadow: '0 6px 16px rgba(var(--theme-rgb),0.35)', flexShrink: 0 }}>
+                        <Ico size={20} />
                       </span>
-                      <div className="min-w-0">
-                        <p className="text-[var(--cream)] text-sm font-semibold truncate">
+                      <div className="min-w-0 flex-1">
+                        <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--theme-2)' }}>
+                          {t(`agents.${a.name}.role`, a.name)}
+                        </div>
+                        <p className="truncate" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: 17, color: 'var(--cream)', margin: '2px 0 0', letterSpacing: '-0.01em' }}>
                           {a.label || a.name}
                         </p>
-                        <p className="text-[var(--cream-3)] text-xs">{t(`agents.${a.name}.role`, a.name)}</p>
                       </div>
+                      <span title={a.available ? 'Activo' : 'Inactivo'} style={{ width: 8, height: 8, borderRadius: '50%', background: a.available ? '#22C55E' : 'var(--cream-3)', boxShadow: a.available ? '0 0 0 3px rgba(34,197,94,0.18)' : 'none', flexShrink: 0, marginTop: 6 }} />
                     </div>
-                    <p className="text-[var(--cream-2)] text-xs leading-relaxed mb-3 flex-1">
+                    <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, color: 'var(--cream-2)', lineHeight: 1.55, margin: '0 0 16px', flex: 1, position: 'relative' }}>
                       {t(`agents.${a.name}.desc`, '')}
                     </p>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[var(--cream-3)] text-xs">
-                        {a.pending_actions > 0
-                          ? t('page.pending', { count: a.pending_actions })
-                          : generated > 0
-                          ? t('page.generated', { count: generated })
-                          : '—'}
-                      </span>
+                    <div className="flex items-center justify-between gap-2" style={{ position: 'relative' }}>
+                      {a.pending_actions > 0 ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 11px', borderRadius: 999, background: 'rgba(var(--theme-rgb),0.10)', border: '1px solid rgba(var(--theme-rgb),0.22)', color: 'var(--theme-2)', fontSize: 11.5, fontWeight: 700 }}>
+                          {t('page.pending', { count: a.pending_actions })}
+                        </span>
+                      ) : generated > 0 ? (
+                        <span style={{ fontSize: 11.5, color: 'var(--cream-3)', fontWeight: 600 }}>{t('page.generated', { count: generated })}</span>
+                      ) : (
+                        <span style={{ fontSize: 11.5, color: 'var(--cream-3)' }}>Sin pendientes</span>
+                      )}
                       {a.available ? (
                         <button
                           type="button"
                           onClick={runAll}
                           disabled={running}
                           data-testid={`run-agent-${a.name}`}
-                          className="px-3 h-8 rounded-full text-xs font-bold text-white disabled:opacity-50 transition-opacity"
-                          style={{ background: 'linear-gradient(90deg, var(--theme), var(--theme-3))' }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 999, border: 'none', cursor: running ? 'default' : 'pointer', background: 'linear-gradient(90deg, var(--theme), var(--theme-3))', color: '#fff', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, boxShadow: '0 4px 14px rgba(var(--theme-rgb),0.32)', opacity: running ? 0.6 : 1 }}
                         >
-                          {t('page.run_agent')}
+                          <Zap size={13} /> {t('page.run_agent')}
                         </button>
                       ) : (
-                        <span className="px-3 h-8 inline-flex items-center rounded-full text-xs text-[var(--cream-3)] border border-dashed border-[var(--border)]">
+                        <span style={{ padding: '8px 14px', borderRadius: 999, border: '1px dashed var(--border-2)', color: 'var(--cream-3)', fontSize: 12 }}>
                           {t('page.unavailable')}
                         </span>
                       )}
@@ -216,7 +222,7 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                 {t('page.recent_log_title')}
               </h2>
               {recent.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center py-10 rounded-2xl border border-dashed border-[var(--cream-3)]" data-testid="agents-log-empty">
+                <div className="flex flex-col items-center justify-center text-center py-10 rounded-2xl border border-dashed border-[var(--border)]" data-testid="agents-log-empty">
                   <Inbox size={26} className="text-[var(--cream-3)] mb-2" />
                   <p className="text-[var(--cream-3)] text-xs max-w-xs">{t('page.recent_log_empty')}</p>
                 </div>
@@ -228,7 +234,7 @@ export default function AsesorAgentsPage({ user, onLogout }) {
                       type="button"
                       onClick={() => navigate(a.lead_id ? `/asesor/contactos/${a.lead_id}` : '/asesor')}
                       data-testid={`agent-log-${a.id}`}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--cream-3)] border border-[var(--cream-3)] hover:bg-[var(--cream-3)] transition-colors text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors text-left"
                     >
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-medium text-[var(--theme)] bg-[rgba(var(--theme-rgb),0.15)] shrink-0">
                         🤖 {a.source_agent}

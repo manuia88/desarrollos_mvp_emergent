@@ -35,7 +35,7 @@ export default function AgentTeamCard() {
 
   if (!loaded) {
     return (
-      <div className="h-[58px] rounded-2xl bg-[rgba(240,235,224,0.04)] animate-pulse" data-testid="agent-team-card-skeleton" />
+      <div className="h-[58px] rounded-2xl bg-[var(--surface-2)] animate-pulse" data-testid="agent-team-card-skeleton" />
     );
   }
 
