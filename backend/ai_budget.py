@@ -285,8 +285,11 @@ async def is_within_budget(db, dev_org_id: str) -> bool:
                 return False
 
         return spent < legacy_cap
-    except Exception:
-        return True  # fail open
+    except Exception as e:
+        # Fail CLOSED: un estado de presupuesto desconocido NO autoriza gasto de IA.
+        # log.error → visible en Sentry (event_level=ERROR): deja de ser un fallo invisible.
+        log.error(f"[ai_budget] is_within_budget falló para {dev_org_id}; bloqueando por seguridad: {e}", exc_info=True)
+        return False  # fail closed
 
 
 async def get_ai_usage(db, dev_org_id: str, period: str = "current_month") -> Dict:
@@ -402,9 +405,10 @@ async def check_studio_video_quota(db, dev_org_id: Optional[str]) -> Dict:
             except (TypeError, ValueError):
                 continue
     except Exception as exc:
-        log.warning(f"[ai_budget] studio_video quota lookup failed: {exc}")
+        # Fail CLOSED: cuota desconocida NO autoriza generación de video pagada.
+        log.error(f"[ai_budget] studio_video quota lookup failed para {dev_org_id}; bloqueando por seguridad: {exc}", exc_info=True)
         return {
-            "available": True,  # fail-open
+            "available": False,  # fail closed
             "used_today_usd": 0.0,
             "cap_daily_usd": cap,
             "remaining_usd": cap,

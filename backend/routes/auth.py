@@ -18,6 +18,11 @@ router = APIRouter(tags=["auth"])
 
 ADVISOR_ROLES = {"advisor", "asesor_admin", "superadmin"}
 
+# Roles que un registro público puede auto-asignar. Cualquier otro (superadmin,
+# asesor_admin, …) se fuerza a "buyer": elevar privilegio es solo vía invitación/admin.
+# Espejo del allowlist de /select-role. Cierra el hueco de "registrarse como superadmin".
+PUBLIC_REGISTER_ROLES = {"buyer", "advisor", "developer_admin"}
+
 # Dev/Prod cookie config · localhost requiere secure=False + samesite=lax
 # porque browser bloquea cookies con secure=True sin HTTPS.
 _DEV_MODE = os.environ.get("DMX_DEV_MODE", "false").lower() == "true"
@@ -67,11 +72,16 @@ async def register(payload: RegisterIn, response: Response, request: Request):
     existing = await db.users.find_one({"email": payload.email})
     if existing:
         raise HTTPException(400, "El correo ya está registrado")
+    # Seguridad: nunca confiar en el role del cliente. Solo roles self-serve;
+    # cualquier otro (superadmin/asesor_admin/basura) cae a "buyer".
+    role = payload.role if payload.role in PUBLIC_REGISTER_ROLES else "buyer"
+    if role != payload.role:
+        log.warning(f"[auth] register role '{payload.role}' no permitido para {payload.email} → forzado a buyer")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     await db.users.insert_one({
         "user_id": user_id, "email": payload.email,
         "name": payload.name, "password_hash": hash_password(payload.password),
-        "role": payload.role, "tenant_id": None,
+        "role": role, "tenant_id": None,
         "onboarded": True,
         "created_at": datetime.now(timezone.utc),
     })
