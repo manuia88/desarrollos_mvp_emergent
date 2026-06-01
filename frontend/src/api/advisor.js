@@ -47,6 +47,7 @@ export const getLeadInsights = (id) => j(`/api/asesor/lead/${id}/insights`);
 // Búsquedas
 export const listBusquedas = () => j('/api/asesor/busquedas');
 export const createBusqueda = (b) => post('/api/asesor/busquedas', b);
+export const updateBusqueda = (bid, b) => patch(`/api/asesor/busquedas/${bid}`, b);
 export const moveBusqueda = (id, stage) => patch(`/api/asesor/busquedas/${id}/stage`, { stage });
 export const registerVisit = (id) => post(`/api/asesor/busquedas/${id}/visit`);
 export const registerOffer = (id) => post(`/api/asesor/busquedas/${id}/offer`);

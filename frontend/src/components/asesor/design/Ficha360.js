@@ -338,6 +338,7 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
   const [intel, setIntel] = useState(null);   // B2 · DISC/riesgo/brief reales (FAIL-OPEN)
   const [tareas, setTareas] = useState([]);
   const [busquedas, setBusquedas] = useState([]);
+  const [profBusy, setProfBusy] = useState(false); // E2 · guardando perfil de compra
   const [matches, setMatches] = useState({});      // bid → [matches]
   const [overview, setOverview] = useState(null);
   const [convos, setConvos] = useState(null);
@@ -459,6 +460,37 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
     : probPct >= 45 ? 'Buen momento para nutrirlo y avanzar.'
     : 'Aún frío: nútrelo antes de empujar.';
   const firstBusq = busquedas[0] || null;
+
+  // E2 · Perfil de compra · quick-set (forma de pago + plazo). Guarda en la 1a búsqueda
+  // (la crea si no hay). Determinista; el auto-extract del chat (E2.2) pre-llenará lo mismo.
+  const saveProfile = async (patch) => {
+    if (demo) { toast('success', 'El perfil usa datos reales · apaga el modo ejemplo'); return; }
+    setProfBusy(true);
+    try {
+      if (firstBusq?.id) {
+        await api.updateBusqueda(firstBusq.id, patch);
+        setBusquedas((prev) => (prev || []).map((b) => (b.id === firstBusq.id ? { ...b, ...patch } : b)));
+      } else {
+        const nb = await api.createBusqueda({ contacto_id: cid, ...patch });
+        if (nb) setBusquedas((prev) => [nb, ...(prev || [])]);
+      }
+      toast('success', 'Perfil de compra actualizado');
+    } catch (_) {
+      toast('error', 'No se pudo guardar');
+    } finally {
+      setProfBusy(false);
+    }
+  };
+  const FORMA_OPTS = [
+    { label: '💵 Contado', fp: 'contado', ct: '' },
+    { label: '🏦 Propio + Crédito', fp: 'credito', ct: '' },
+    { label: '+ Infonavit', fp: 'credito', ct: 'infonavit' },
+    { label: '+ Fovissste', fp: 'credito', ct: 'fovissste' },
+  ];
+  const PLAZO_OPTS = ['1 mes', '2 meses', '3 meses', '6 meses', '+6 meses'];
+  const curFp = firstBusq?.forma_pago || '';
+  const curCt = firstBusq?.credito_tipo || '';
+  const curPlazo = firstBusq?.plazo_compra || '';
 
   // Mover la ETAPA del pipeline desde los chips del header (como el mockup).
   const etapaActual = c.etapa || 'nuevo';
@@ -888,6 +920,37 @@ export default function Ficha360({ open, onClose, contact, onOpenArg, onStageCha
                         <div className="asr-crv">{cr.v}</div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* E2 · Perfil de compra · captura rápida (chips · guarda al tocar). Lo que el
+                  asesor fija aquí (o lo que la IA extraiga del chat) alimenta la tarjeta. */}
+              {!demo && (
+                <div style={{ marginBottom: 24 }}>
+                  <div className="asr-sec-h">Perfil de compra <span className="asr-muted">· cómo y cuándo compra · toca para fijar</span></div>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface)', padding: '14px 16px', opacity: profBusy ? 0.6 : 1 }}>
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+                      <span style={{ width: 92, flexShrink: 0, fontSize: 11.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: 0.4, paddingTop: 7 }}>Forma de pago</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                        {FORMA_OPTS.map((o) => {
+                          const on = curFp === o.fp && (curCt || '') === o.ct;
+                          return (
+                            <button key={o.label} disabled={profBusy} onClick={() => saveProfile({ forma_pago: o.fp, credito_tipo: o.ct })}
+                              className={`asr-chip${on ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>{o.label}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ width: 92, flexShrink: 0, fontSize: 11.5, color: 'var(--cream-3)', textTransform: 'uppercase', letterSpacing: 0.4, paddingTop: 7 }}>Plazo</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                        {PLAZO_OPTS.map((p) => (
+                          <button key={p} disabled={profBusy} onClick={() => saveProfile({ plazo_compra: p })}
+                            className={`asr-chip${curPlazo === p ? ' asr-chip--on' : ''}`} style={{ whiteSpace: 'nowrap' }}>🗓 {p}</button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

@@ -86,6 +86,10 @@ class BusquedaIn(BaseModel):
     urgencia: str = "media"
     fuente: str = "referido"
     notas: Optional[str] = ""
+    # E2 · perfil de compra (capturable/auto-extraíble)
+    forma_pago: Optional[str] = None       # contado | credito | mixto
+    credito_tipo: Optional[str] = None     # banco | infonavit | fovissste | cofinavit
+    plazo_compra: Optional[str] = None     # "1 mes" | "2 meses" | "6 meses" ...
 
 class BusquedaPatch(BaseModel):
     """Edición del perfil de búsqueda (founder: el cliente sube presupuesto / amplía zona)."""
@@ -102,6 +106,10 @@ class BusquedaPatch(BaseModel):
     no_negociables: Optional[List[str]] = None
     urgencia: Optional[str] = None
     notas: Optional[str] = None
+    # E2 · perfil de compra (capturable/auto-extraíble)
+    forma_pago: Optional[str] = None
+    credito_tipo: Optional[str] = None
+    plazo_compra: Optional[str] = None
 
 class BusquedaStage(BaseModel):
     stage: str
