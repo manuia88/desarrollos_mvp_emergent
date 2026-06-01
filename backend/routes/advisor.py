@@ -2876,8 +2876,14 @@ async def update_op_status(oid: str, payload: OperacionStatus, request: Request)
         raise HTTPException(400, f"Transición inválida {cur} → {payload.status}")
     upd = {"status": payload.status, "updated_at": _now()}
     if payload.reason: upd["reason"] = payload.reason
-    await db.asesor_operaciones.update_one({"id": oid}, {"$set": upd})
-    # Closure: grant XP + increment cierres
+    # CAS: solo actualiza si el status sigue siendo 'cur'. Dos PATCH concurrentes a la
+    # misma transición → solo uno gana (modified_count==1); el otro recibe 409 y NO
+    # vuelve a sumar XP/cierres (evita doble-cobro de gamificación).
+    res = await db.asesor_operaciones.update_one(
+        {"id": oid, "owner_id": user.user_id, "status": cur}, {"$set": upd})
+    if res.modified_count != 1:
+        raise HTTPException(409, "La operación ya cambió de estado · recarga e intenta de nuevo")
+    # Closure: grant XP + increment cierres (solo el ganador de la carrera llega aquí)
     if payload.status == "cerrada":
         await db.asesor_profiles.update_one({"user_id": user.user_id}, {"$inc": {"xp": 250, "cierres_total": 1}}, upsert=True)
     # Phase F0.11 — ML training event on status transition

@@ -1124,7 +1124,18 @@ async def create_cita(payload: CitaBody, request: Request):
         "created_at": now_iso,
         "updated_at": now_iso,
     }
-    await db.appointments.insert_one(appointment)
+    try:
+        await db.appointments.insert_one(appointment)
+    except Exception as exc:
+        # Compensación: la cita no se pudo crear → revertir el lead para no dejarlo
+        # huérfano (lead sin cita). Sin transacciones Mongo, esta es la limpieza segura.
+        await db.leads.delete_one({"id": lead["id"]})
+        try:
+            await db.asesor_contactos.delete_one({"source_lead_id": lead["id"]})
+        except Exception:
+            pass
+        log.error(f"[create_cita] appointment insert falló · lead {lead['id']} revertido: {exc}", exc_info=True)
+        raise HTTPException(500, "No se pudo crear la cita · intenta de nuevo")
     appointment.pop("_id", None)
 
     # Send Resend email with .ics (fire-and-forget)

@@ -34,6 +34,7 @@ from typing import Any, Dict, List, Optional
 
 # W7.AS.3.H · Round 3 · used by confidence persistence flow
 from pymongo import ReturnDocument  # noqa: F401
+from pymongo.errors import DuplicateKeyError
 
 log = logging.getLogger("dmx.conversation_engine")
 
@@ -246,29 +247,24 @@ class ConversationEngine:
                 {"_id": 0},
             )
             if seen:
-                # find assistant reply paired with this client_msg_id (if any)
-                later = await self.db.conversation_messages.find(
-                    {"conversation_id": conversation_id, "role": "assistant",
-                     "created_at": {"$gte": seen.get("created_at")}},
-                    {"_id": 0, "content": 1},
-                ).sort("created_at", 1).limit(1).to_list(1)
-                return {
-                    "conversation_id": conversation_id,
-                    "assistant_message": (later[0]["content"] if later else None),
-                    "status": thread.get("status", "active"),
-                    "sentiment": seen.get("sentiment", sentiment),
-                    "stub": False,
-                    "tools_used": [],
-                    "suggested_handoff": False,
-                    "ai_replied": bool(later),
-                    "deduped": True,
-                }
+                return await self._deduped_reply(conversation_id, thread, sentiment, seen)
 
         # ── persist inbound message ──────────────────────────────────────────
-        await self._persist_message(conversation_id, role, content, ch,
-                                    tokens_in=_estimate_tokens(content), sentiment=sentiment,
-                                    client_msg_id=client_msg_id,
-                                    tenant_id=thread.get("tenant_id"))
+        # Idempotente: índice único parcial (conversation_id, client_msg_id) actúa de
+        # backstop ante carreras. Si dos requests idénticos entran a la vez, el segundo
+        # falla aquí con DuplicateKeyError → devolvemos la respuesta ya generada en vez
+        # de re-procesar (evita doble costo de LLM + turno duplicado).
+        try:
+            await self._persist_message(conversation_id, role, content, ch,
+                                        tokens_in=_estimate_tokens(content), sentiment=sentiment,
+                                        client_msg_id=client_msg_id,
+                                        tenant_id=thread.get("tenant_id"))
+        except DuplicateKeyError:
+            seen = await self.db.conversation_messages.find_one(
+                {"conversation_id": conversation_id, "client_msg_id": client_msg_id},
+                {"_id": 0},
+            )
+            return await self._deduped_reply(conversation_id, thread, sentiment, seen)
 
         # If an asesor took over, the IA does NOT auto-reply — just records the turn.
         if thread.get("status") == "taken_over" or role == "asesor":
@@ -863,6 +859,28 @@ class ConversationEngine:
                         "content": d.get("content") or ""})
         return out
 
+    async def _deduped_reply(self, conversation_id, thread, sentiment, seen):
+        """Respuesta idempotente para un client_msg_id repetido: devuelve la respuesta
+        del asistente ya generada (si existe) en vez de re-procesar el turno."""
+        later = []
+        if seen:
+            later = await self.db.conversation_messages.find(
+                {"conversation_id": conversation_id, "role": "assistant",
+                 "created_at": {"$gte": seen.get("created_at")}},
+                {"_id": 0, "content": 1},
+            ).sort("created_at", 1).limit(1).to_list(1)
+        return {
+            "conversation_id": conversation_id,
+            "assistant_message": (later[0]["content"] if later else None),
+            "status": thread.get("status", "active"),
+            "sentiment": (seen or {}).get("sentiment", sentiment),
+            "stub": False,
+            "tools_used": [],
+            "suggested_handoff": False,
+            "ai_replied": bool(later),
+            "deduped": True,
+        }
+
     async def _persist_message(self, conversation_id, role, content, channel,
                                tokens_in=0, tokens_out=0, latency_ms=0,
                                sentiment="neutral", stub=False,
@@ -1021,8 +1039,14 @@ async def ensure_indexes(db) -> None:
     try:
         await db.conversation_messages.create_index(
             [("conversation_id", 1), ("created_at", 1)], background=True)
-        # F5 · idempotency by client_msg_id (sparse · solo cuando el cliente lo manda)
+        # F5 · idempotency by client_msg_id — ÚNICO PARCIAL: bloquea duplicados solo
+        # cuando client_msg_id es string real ($type, NO $exists: el asistente guarda
+        # client_msg_id=null y $exists lo incluiría → rompería 2+ turnos del asistente).
         await db.conversation_messages.create_index(
-            [("conversation_id", 1), ("client_msg_id", 1)], background=True, sparse=True)
+            [("conversation_id", 1), ("client_msg_id", 1)],
+            unique=True,
+            partialFilterExpression={"client_msg_id": {"$type": "string"}},
+            background=True,
+            name="uniq_conv_client_msg_id")
     except Exception as exc:
         log.warning(f"[conversation] message indexes failed: {exc}")
