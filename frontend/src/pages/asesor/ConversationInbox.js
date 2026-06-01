@@ -33,6 +33,23 @@ const AMEN_LABEL = { pet: 'Pet friendly', roof: 'Roof garden', gym: 'Gym', alber
 const AMEN_OPTS = ['pet', 'roof', 'gym', 'alberca', 'seguridad', 'concierge', 'terraza'];
 const editInput = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none' };
 
+// ── Sistema de UI de la columna 3 · una sola fuente de verdad para jerarquía y ritmo ──
+const COL3_GAP = 18;                        // separación uniforme entre secciones
+const sectionStyle = { display: 'flex', flexDirection: 'column', gap: 9 };
+const cardStyle = { borderRadius: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', padding: 12 };
+// Jerarquía de botones: 1 primario (degradado) por contexto · resto secundario/ghost
+const btnPrimary = { width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: '#fff', fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 20px rgba(109,74,255,0.26)', display: 'flex', alignItems: 'center', gap: 9, textAlign: 'left' };
+const btnSecondary = { width: '100%', padding: '11px 13px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9, textAlign: 'left' };
+const btnGhost = { padding: '7px 11px', borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--cream-2)', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 };
+function Eyebrow({ children, action }) {    // encabezado de sección consistente
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 18 }}>
+      <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--cream-3)' }}>{children}</span>
+      {action || null}
+    </div>
+  );
+}
+
 function authHeaders() {
   const tk = localStorage.getItem('dmx_token') || localStorage.getItem('token');
   return tk ? { Authorization: `Bearer ${tk}` } : {};
@@ -720,14 +737,13 @@ function ConversationInboxBody({ user }) {
 
               {/* ═══ TAB: ACCIONES ═══ */}
               {col3Tab === 'acciones' && (<>
-              {/* Fila de CREAR (founder: poder agregar tareas/notas/citas) */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: addForm ? 8 : 12, flexWrap: 'wrap' }}>
+              {/* Crear (founder: tareas/notas/citas) · fila segmentada limpia, sin robot suelto */}
+              <Eyebrow>Crear</Eyebrow>
+              <div style={{ display: 'flex', gap: 7, marginTop: 8, marginBottom: addForm ? 10 : COL3_GAP }}>
                 {[{ k: 'tarea', l: 'Tarea', Icon: ClipboardList }, { k: 'nota', l: 'Nota', Icon: FileText }, { k: 'cita', l: 'Cita', Icon: CalendarDays }].map((b) => (
                   <button key={b.k} type="button" onClick={() => { setAddForm(addForm === b.k ? null : b.k); setAddText(''); setAddDate(''); }}
-                    style={{ flex: '1 1 0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px 4px', borderRadius: 8, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 700, border: `1px solid ${addForm === b.k ? 'var(--theme-2)' : 'var(--border)'}`, background: addForm === b.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface)', color: addForm === b.k ? 'var(--theme-2)' : 'var(--cream-2)' }}><b.Icon size={13} /> {b.l}</button>
+                    style={{ flex: '1 1 0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 4px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 700, border: `1px solid ${addForm === b.k ? 'var(--theme-2)' : 'var(--border)'}`, background: addForm === b.k ? 'rgba(var(--theme-rgb),0.10)' : 'var(--surface)', color: addForm === b.k ? 'var(--theme-2)' : 'var(--cream-2)' }}><b.Icon size={14} /> {b.l}</button>
                 ))}
-                <button type="button" onClick={() => dispatchCopilotToggle('open')} title="Pregúntale al Copiloto"
-                  style={{ flexShrink: 0, padding: '7px 9px', borderRadius: 8, cursor: 'pointer', border: '1px solid rgba(99,102,241,0.35)', background: 'rgba(99,102,241,0.10)', color: 'var(--theme-primary, #818CF8)', display: 'inline-flex', alignItems: 'center' }}><FaRobot size={14} /></button>
               </div>
               {addForm && (
                 <div style={{ marginBottom: 14, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: '0 10px 28px rgba(20,16,60,0.10)', overflow: 'hidden' }}>
@@ -828,95 +844,88 @@ function ConversationInboxBody({ user }) {
                 </div>
               )}
 
-              {/* Práctico del día: próxima cita + tareas pendientes (founder) */}
-              {ctx?.proxima_cita && (
-                <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 10, background: 'rgba(31,160,106,0.08)', border: '1px solid rgba(31,160,106,0.25)' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: '#1FA06A', marginBottom: 3 }}>📅 Próxima cita</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--cream)', fontWeight: 600 }}>{ctx.proxima_cita.titulo}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--cream-2)', marginTop: 2 }}>{(ctx.proxima_cita.datetime || '').replace('T', ' · ').slice(0, 19)}</div>
-                </div>
-              )}
-              {(ctx?.tareas || []).length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>✅ Tareas pendientes ({ctx.tareas.length})</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {ctx.tareas.map((tk) => (
-                      <div key={tk.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 9, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--theme-2)', flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: 'var(--cream)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tk.titulo}</span>
-                        {tk.due_at && <span style={{ fontSize: 10.5, color: 'var(--cream-3)', flexShrink: 0 }}>{String(tk.due_at).slice(5, 10)}</span>}
-                      </div>
-                    ))}
-                  </div>
+              {/* Pendientes del lead (próxima cita + tareas) · sección consistente */}
+              {(ctx?.proxima_cita || (ctx?.tareas || []).length > 0) && (
+                <div style={{ ...sectionStyle, marginBottom: COL3_GAP }}>
+                  <Eyebrow>Pendientes</Eyebrow>
+                  {ctx?.proxima_cita && (
+                    <div style={{ padding: '10px 12px', borderRadius: 11, background: 'rgba(31,160,106,0.08)', border: '1px solid rgba(31,160,106,0.22)' }}>
+                      <div style={{ fontSize: 12, color: 'var(--cream)', fontWeight: 700 }}>📅 {ctx.proxima_cita.titulo}</div>
+                      <div style={{ fontSize: 11, color: 'var(--cream-2)', marginTop: 2 }}>{(ctx.proxima_cita.datetime || '').replace('T', ' · ').slice(0, 19)}</div>
+                    </div>
+                  )}
+                  {(ctx?.tareas || []).map((tk) => (
+                    <div key={tk.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 11px', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--theme-2)', flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--cream)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tk.titulo}</span>
+                      {tk.due_at && <span style={{ fontSize: 10.5, color: 'var(--cream-3)', flexShrink: 0 }}>{String(tk.due_at).slice(5, 10)}</span>}
+                    </div>
+                  ))}
                 </div>
               )}
 
-              {/* Accesos directos: Galería Personalizada (principal) · adjuntar propiedad · WhatsApp */}
+              {/* Enviar al cliente · 1 acción principal (Galería) + secundarias quietas */}
               {(detail.lead_id || curConv?.lead_id) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 4 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--cream-3)', marginBottom: 1 }}>Enviar al cliente</div>
-                  {/* Galería Personalizada (link de swipe · founder: botón para enviar propiedades) */}
-                  <button type="button" onClick={sendGaleria} disabled={galBusy}
-                    style={{ padding: '12px 14px', borderRadius: 12, border: 'none', background: galBusy ? 'var(--surface-2)' : 'linear-gradient(135deg,#6D4AFF,#FF5CA8)', color: galBusy ? 'var(--cream-3)' : '#fff', fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 800, cursor: galBusy ? 'default' : 'pointer', textAlign: 'left', boxShadow: galBusy ? 'none' : '0 8px 20px rgba(109,74,255,0.28)', display: 'flex', alignItems: 'center', gap: 9 }}>
+                <div style={{ ...sectionStyle, marginBottom: COL3_GAP }}>
+                  <Eyebrow>Enviar al cliente</Eyebrow>
+                  <button type="button" onClick={sendGaleria} disabled={galBusy} style={{ ...btnPrimary, opacity: galBusy ? 0.7 : 1, cursor: galBusy ? 'default' : 'pointer' }}>
                     <span style={{ fontSize: 16 }}>📸</span>
                     <span style={{ flex: 1 }}>{galBusy ? 'Creando link…' : 'Enviar Galería Personalizada'}</span>
-                    <span style={{ fontSize: 11 }}>→</span>
+                    <span style={{ fontSize: 12 }}>→</span>
                   </button>
-                  <div style={{ fontSize: 10.5, color: 'var(--cream-3)', lineHeight: 1.4, marginTop: -2, marginBottom: 3 }}>El cliente desliza 👍/👎 · cada deslizada afina su gusto y vuelve a su tablero.</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--cream-3)', lineHeight: 1.4, marginTop: -3 }}>Desliza 👍/👎 · afina su gusto y vuelve a su tablero.</div>
                   {DM.includes(detail.channel) && (
-                    <button type="button" onClick={openPropPicker}
-                      style={{ padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>🏠 Adjuntar una propiedad</button>
+                    <button type="button" onClick={openPropPicker} style={btnSecondary}>🏠 Adjuntar una propiedad</button>
                   )}
                   {ctx?.phone && (
-                    <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                      style={{ padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream)', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'none', display: 'block' }}>📲 Abrir WhatsApp del cliente</a>
+                    <a href={`https://wa.me/${String(ctx.phone).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSecondary, textDecoration: 'none' }}>📲 Abrir WhatsApp</a>
                   )}
                 </div>
               )}
+
+              {/* Copiloto · acción discreta al final (no compite con lo demás) */}
+              <button type="button" onClick={() => dispatchCopilotToggle('open')} style={{ ...btnGhost, width: '100%', justifyContent: 'center' }}>
+                <FaRobot size={13} /> Preguntar al Copiloto
+              </button>
               </>)}
 
               {/* ═══ TAB: IA ═══ */}
               {col3Tab === 'ia' && (<>
-              {/* Pieza 3 · los 5 AGENTES (autónomos · dejan pendientes aquí y en tu Inicio) */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)' }}>🤖 Tus agentes sugieren</div>
-                  <button type="button" onClick={runAgents} disabled={agentsBusy} style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 9px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface)', color: agentsBusy ? 'var(--cream-3)' : 'var(--theme-2)', cursor: agentsBusy ? 'default' : 'pointer' }}>{agentsBusy ? 'Corriendo…' : '↻ Correr'}</button>
-                </div>
-                {(ctx?.agent_actions || []).length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {ctx.agent_actions.map((a) => (
-                      <div key={a.id} style={{ padding: '8px 10px', borderRadius: 9, background: 'rgba(var(--theme-rgb),0.07)', border: '1px solid rgba(var(--theme-rgb),0.18)' }}>
-                        <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 2 }}>{a.agent_label}</div>
-                        <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.4 }}>{a.title}</div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 7 }}>
-                          <button type="button" onClick={() => doAgentAction(a)} style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 7, border: 'none', background: 'var(--theme-2)', color: '#fff', cursor: 'pointer' }}>Convertir en tarea</button>
-                          <button type="button" onClick={() => dispatchCopilotToggle('open')} style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--cream-2)', cursor: 'pointer' }}>Copiloto</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.45, padding: '8px 10px', borderRadius: 9, background: 'var(--surface-2)', border: '1px dashed var(--border)' }}>Sin pendientes de los agentes para este lead. Corren solos cada pocas horas; toca ↻ Correr para revisarlo ahora.</div>
-                )}
-                <div style={{ fontSize: 10, color: 'var(--cream-3)', marginTop: 7, lineHeight: 1.4 }}>Tus 5 agentes (prospección, seguimiento, cierre, análisis y coach) revisan tus leads en automático y dejan pendientes aquí y en tu <b>Inicio</b>.</div>
-              </div>
-
-              {/* B6 · contexto del lead: siguiente paso + perfil de gusto (B5.4) */}
+              {/* 1 · Siguiente paso (guía principal, arriba) */}
               {ctx?.brief?.next_step && (
-                <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)' }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--theme-primary, #818CF8)', marginBottom: 3 }}>🧭 Siguiente paso</div>
-                  <div style={{ fontSize: 12.5, lineHeight: 1.45, color: 'var(--cream)' }}>{ctx.brief.next_step.text}</div>
+                <div style={{ marginBottom: COL3_GAP, padding: '12px 13px', borderRadius: 12, background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--theme-primary, #818CF8)', marginBottom: 4 }}>🧭 Siguiente paso</div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--cream)' }}>{ctx.brief.next_step.text}</div>
                 </div>
               )}
+
+              {/* 2 · Los 5 agentes (sugerencias para este lead) */}
+              <div style={{ ...sectionStyle, marginBottom: COL3_GAP }}>
+                <Eyebrow action={<button type="button" onClick={runAgents} disabled={agentsBusy} style={{ ...btnGhost, fontSize: 10.5, padding: '4px 9px', color: agentsBusy ? 'var(--cream-3)' : 'var(--theme-2)' }}>{agentsBusy ? 'Corriendo…' : '↻ Correr'}</button>}>🤖 Tus agentes</Eyebrow>
+                {(ctx?.agent_actions || []).length > 0 ? (
+                  ctx.agent_actions.map((a) => (
+                    <div key={a.id} style={cardStyle}>
+                      <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase', color: 'var(--theme-2)', marginBottom: 3 }}>{a.agent_label}</div>
+                      <div style={{ fontSize: 12, color: 'var(--cream)', lineHeight: 1.4 }}>{a.title}</div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
+                        <button type="button" onClick={() => doAgentAction(a)} style={{ ...btnGhost, border: 'none', background: 'var(--theme-2)', color: '#fff' }}>Convertir en tarea</button>
+                        <button type="button" onClick={() => dispatchCopilotToggle('open')} style={btnGhost}>Copiloto</button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 11.5, color: 'var(--cream-3)', lineHeight: 1.45, padding: '10px 12px', borderRadius: 10, background: 'var(--surface-2)', border: '1px dashed var(--border)' }}>Sin pendientes para este lead. Corren solos cada pocas horas; toca ↻ Correr para revisarlo ahora.</div>
+                )}
+                <div style={{ fontSize: 10, color: 'var(--cream-3)', lineHeight: 1.4 }}>Tus 5 agentes (prospección, seguimiento, cierre, análisis y coach) revisan tus leads en automático y dejan pendientes aquí y en tu <b>Inicio</b>.</div>
+              </div>
               </>)}
 
               {/* ═══ TAB: PERFIL ═══ */}
               {col3Tab === 'perfil' && (<>
               {/* Datos del contacto · siempre presentes (founder: el tab no debe verse vacío) */}
-              <div style={{ marginTop: 4 }}>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Datos del contacto</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              <div style={{ marginBottom: COL3_GAP }}>
+                <div style={{ marginBottom: 8 }}><Eyebrow>Datos del contacto</Eyebrow></div>
+                <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {ctx?.phone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
                       <span style={{ fontSize: 13 }}>📱</span>
@@ -944,11 +953,9 @@ function ConversationInboxBody({ user }) {
 
               {/* Lo que busca · perfil COMPLETO de la búsqueda activa + editar (founder) */}
               {ctx?.busqueda && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
-                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)' }}>Lo que busca</div>
-                    <button type="button" onClick={openEditBusqueda}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, padding: '4px 10px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--theme-2)', cursor: 'pointer' }}>✏️ Editar</button>
+                <div style={{ marginBottom: COL3_GAP }}>
+                  <div style={{ marginBottom: 9 }}>
+                    <Eyebrow action={<button type="button" onClick={openEditBusqueda} style={{ ...btnGhost, fontSize: 10.5, padding: '4px 10px', borderRadius: 999, color: 'var(--theme-2)' }}>✏️ Editar</button>}>Lo que busca</Eyebrow>
                   </div>
                   {/* grid de criterios · estético */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
@@ -1024,10 +1031,9 @@ function ConversationInboxBody({ user }) {
 
               {/* B7+ · probabilidad de cierre (reusa close_probability) */}
               {ctx?.close_probability != null && (
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--cream-3)', marginBottom: 5 }}>
-                    <span style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>Probabilidad de cierre</span>
-                    <b style={{ color: 'var(--cream)' }}>{Math.round(ctx.close_probability)}%</b>
+                <div style={{ marginBottom: COL3_GAP }}>
+                  <div style={{ marginBottom: 6 }}>
+                    <Eyebrow action={<b style={{ fontSize: 12, color: 'var(--cream)' }}>{Math.round(ctx.close_probability)}%</b>}>Probabilidad de cierre</Eyebrow>
                   </div>
                   <div style={{ height: 6, borderRadius: 4, background: 'var(--surface-2)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, ctx.close_probability))}%`, background: ctx.close_probability >= 60 ? '#1FA06A' : ctx.close_probability >= 35 ? '#E2982E' : '#F2635B' }} />
@@ -1037,8 +1043,8 @@ function ConversationInboxBody({ user }) {
 
               {/* B7+ · estado del tablero de propiedades */}
               {ctx?.board && Object.keys(ctx.board).length > 0 && (
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 7 }}>Tablero · {ctx.board_count} propiedades</div>
+                <div style={{ marginBottom: COL3_GAP }}>
+                  <div style={{ marginBottom: 8 }}><Eyebrow>Tablero · {ctx.board_count} propiedades</Eyebrow></div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {Object.entries(ctx.board).map(([st, n]) => (
                       <span key={st} style={{ fontSize: 11, padding: '3px 8px', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--cream-2)' }}>{BOARD_LABEL[st] || st}: <b style={{ color: 'var(--cream)' }}>{n}</b></span>
@@ -1052,10 +1058,8 @@ function ConversationInboxBody({ user }) {
               {col3Tab === 'ia' && (<>
               {/* W7.AS.3.H · resumen de confianza IA del hilo (confidence-history) */}
               {confSummary && (
-                <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                  <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--cream-3)', marginBottom: 8 }}>
-                    {t('conversation_confidence:history.title', 'Confianza IA del hilo')}
-                  </div>
+                <div style={{ marginBottom: COL3_GAP }}>
+                  <div style={{ marginBottom: 8 }}><Eyebrow>{t('conversation_confidence:history.title', 'Confianza IA del hilo')}</Eyebrow></div>
                   <InfoRow label={t('conversation_confidence:history.avg', 'Promedio')}
                     value={confSummary.avg_confidence != null ? `${confSummary.avg_confidence}%` : '—'}
                     color={confSummary.avg_confidence != null && confSummary.avg_confidence < 50 ? SENTIMENT_COLOR.negative : SENTIMENT_COLOR.positive} />
