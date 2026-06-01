@@ -737,6 +737,11 @@ async def list_contactos(
     from services.buyer_identity import attach_buyer_scores
     await attach_buyer_scores(db, items)
 
+    # E1 · Clasificación viva: etiqueta cada contacto con sus segmentos reales (tier+etapa+
+    # recencia) server-side. El board filtra/cuenta por c.segments (fuente única de verdad).
+    from services.lead_segments import tag_segments
+    await tag_segments(db, items, user.user_id)
+
     # Filtrar por score_min si se proporciona
     if score_min is not None and score_min > 0:
         items = [c for c in items if (c.get("buyer_score") or {}).get("value", 0) >= score_min]
