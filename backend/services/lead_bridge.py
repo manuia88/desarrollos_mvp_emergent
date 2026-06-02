@@ -196,11 +196,16 @@ async def resolve_house_public_receiver(db):
         inm = await db.inmobiliarias.find_one({"is_system_default": True}, {"_id": 0, "id": 1})
         if not inm:
             return (None, None)
+        # Solo una receptora ACTIVADA (user_id real) puede recibir: si caemos al id del
+        # internal_user (cuenta sin activar) el puente lo rechaza y el lead no llega a
+        # "Mis Leads". Si nadie está activado → (None, inm) = lead sin asignar pero
+        # tagueado a la inmobiliaria (queda reclamable), nunca asignado a un id falso.
         r = await db.inmobiliaria_internal_users.find_one(
-            {"inmobiliaria_id": inm["id"], "status": "active", "public_lead_receiver": True},
-            {"_id": 0, "user_id": 1, "id": 1},
+            {"inmobiliaria_id": inm["id"], "status": "active", "public_lead_receiver": True,
+             "user_id": {"$nin": [None, ""]}},
+            {"_id": 0, "user_id": 1},
         )
-        rid = (r.get("user_id") or r.get("id")) if r else None
+        rid = r.get("user_id") if r else None
         return (rid, inm["id"])
     except Exception as e:
         log.warning(f"[lead_bridge] resolve_house_public_receiver fail-open: {e}")
