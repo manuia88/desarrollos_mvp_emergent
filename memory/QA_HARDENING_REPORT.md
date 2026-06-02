@@ -40,8 +40,9 @@ sin error boundary. Detalle en [[asesor-prod-audit]] (memoria de sesión).
 | `qa_load.py` | 20k docs, ráfaga 2000 req conc-100, churn | 0 errores/0 crashes/198 req/s |
 | `qa_redteam.py` | NoSQL inj, IDOR, mass-assign, JWT, auth-bypass, webhook HMAC, prompt-inj, fuzz | 22/22 ataques bloqueados · 0 vuln |
 | `qa_sim3.py` | crons, features, métricas, **barrido 474 rutas GET**, idempotencia arranque, contrato | 15/15 · 0 errores 500 |
+| `qa_destructive.py` | **CHAOS/break-it**: datos extremos, abuso de estados, refs colgantes, IA/ML adversarial (jailbreaks), inyección avanzada (NoSQL/ReDoS/CRLF), concurrencia misma-entidad, retry storm 50×, números extremos | 22/22 aguantaron · 0 rompieron |
 
-Total: 1033 unit + 139 escenarios E2E/seguridad/carga.
+Total: 1033 unit + 161 escenarios E2E/seguridad/carga/chaos.
 
 ## 4. Bugs latentes reales encontrados POR el QA (6, todos arreglados)
 1. `logging` sin importar en advisor.py → NameError en 5 except.
