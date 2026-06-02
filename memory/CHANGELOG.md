@@ -1,6 +1,32 @@
 # DesarrollosMX — CHANGELOG
 
 
+## QA & Security Hardening · Módulo Asesor — 2026-06-01
+
+🛡️ **Auditoría de producción (5 rondas) + reparación end-to-end + QA exhaustivo.**
+Registro completo en `memory/QA_HARDENING_REPORT.md`.
+
+### Reparado (pasos 1–4b + lotes A–H + campo inmobiliaria único)
+- Seguridad: registro-superadmin cerrado (allowlist), 8 candados cross-tenant/IDOR,
+  allow-list de tools en Atlax público (anti prompt-injection), rate-limit en públicos,
+  CORS env-driven, cuentas demo solo-dev, salt LFPDPPP fuera del bundle, sanitizer pixel.
+- Atomicidad: CAS anti doble-XP, compensación de cita, idempotencia de conversación,
+  dedup duro de leads activos (campo `activo` + índice único parcial).
+- Datos/escala: 18 índices asesor_*, vocabulario `status_v2` único + backfills, campo
+  `inmobiliaria_id` canónico (resolver + backfill).
+- Resiliencia: React error boundary, presupuesto IA fail-closed, auto-reparable de leads
+  invisibles (`mirror_pending` + reintento en arranque), observabilidad de fallos silenciosos.
+
+### QA (arneses re-corribles en scripts/qa_*.py)
+1033 unit + 139 escenarios E2E/carga/pentest. Red team: 22/22 ataques bloqueados, 0
+vulnerabilidades. Barrido 474 rutas GET: 0 errores 500. **6 bugs latentes reales
+encontrados y arreglados por el QA** (logging import, emit_ml_event firma, status_v2
+ausente, activo en kanban, cross-sell KeyError ×2, buyer-by-id + length-caps).
+
+### Pendiente al desplegar (founder, no-código)
+Env: CORS_ORIGINS, ADMIN_PASSWORD, IE_FERNET_KEY, JWT_SECRET, LFPDPPP_SALT + rotar GitHub PAT.
+
+
 ## Asesor Redesign P5 · Auto-pilot + UX · MEGA-PLAN P1→P5 100% AUDITADO x2 — 2026-05-29
 
 🤖 **P5 Auto-pilot + UX bundle (SHA edf40940) + auditorías completas de TODO el mega-plan.**
