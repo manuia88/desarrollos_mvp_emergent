@@ -68,7 +68,7 @@ async def get_cross_sell_offers(
     pid = unquote(property_id or "unknown")
 
     # Get buyer profile from user record
-    buyer_doc = await db.users.find_one({"id": user.user_id}, {"_id": 0, "budget": 1, "stage": 1})
+    buyer_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "budget": 1, "stage": 1})
     bp = {
         "budget": (buyer_doc or {}).get("budget"),
         "stage": (buyer_doc or {}).get("stage", "searching"),

@@ -179,10 +179,10 @@ async def seed_demo_offers(db) -> None:
         doc = {
             "id": _new_id("off"),
             "partner_id": p["id"],
-            "partner_type": p["type"],
+            "partner_type": p.get("type", ""),
             "buyer_id_hash": buyer_hash,
             "property_id_hash": prop_hash,
-            "offer_type": f"{p['type'].replace('_broker','')}_lead",
+            "offer_type": f"{(p.get('type') or '').replace('_broker','')}_lead",
             "offer_amount_mxn": None,
             "offer_status": stage,
             "presented_at": (now - timedelta(days=5)).isoformat(),
@@ -256,7 +256,7 @@ async def match_offers(
 
     scored = []
     for p in partners:
-        propensity = await predict_propensity_cold_start(db, bp, p["type"], pf)
+        propensity = await predict_propensity_cold_start(db, bp, p.get("type", ""), pf)
         commission = p.get("commission_pct") or 0.5
         score = propensity * (commission / 10.0)
         expected_rev = (pf.get("price") or 3_000_000) * (propensity * (commission / 100.0))
@@ -285,12 +285,12 @@ async def match_offers(
             "id": _new_id("off"),
             "partner_id": partner["id"],
             "partner_name": partner["name"],
-            "partner_type": partner["type"],
+            "partner_type": partner.get("type", ""),
             "partner_contact_email": partner.get("contact_email", ""),
             "product_offerings": partner.get("product_offerings", []),
             "buyer_id_hash": buyer_id_hash,
             "property_id_hash": property_id_hash,
-            "offer_type": f"{partner['type'].replace('_broker', '')}_lead",
+            "offer_type": f"{(partner.get('type') or '').replace('_broker', '')}_lead",
             "offer_amount_mxn": None,
             "offer_status": "presented",
             "presented_at": _iso(),
@@ -538,7 +538,7 @@ async def compute_funnel_analytics(db, days: int = 30) -> dict:
         revenue_by_partner.append({
             "partner_id": p["id"],
             "partner_name": p["name"],
-            "partner_type": p["type"],
+            "partner_type": p.get("type", ""),
             "revenue_events": rev,
             "revenue_dmx_mxn": rev_total,
         })

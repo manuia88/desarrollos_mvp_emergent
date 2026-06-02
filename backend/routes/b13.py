@@ -87,12 +87,13 @@ class AttributionSnapshot(BaseModel):
 # ═════════════════════════════════════════════════════════════════════════════
 
 class PublicLeadCreate(BaseModel):
-    project_id: str
-    name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    intent: Optional[str] = None
-    message: Optional[str] = None
+    # Length-caps: endpoint público sin auth → acotar para evitar payloads abusivos.
+    project_id: str = Field(..., max_length=160)
+    name: str = Field(..., min_length=1, max_length=200)
+    email: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=40)
+    intent: Optional[str] = Field(None, max_length=60)
+    message: Optional[str] = Field(None, max_length=2000)
     attribution: Optional[AttributionSnapshot] = None
 
 
