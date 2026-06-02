@@ -510,9 +510,13 @@ async def move_lead_column_v2(lead_id: str, payload: MovePayload, request: Reque
     elif lead.get("pipeline_version") == 2 or lead.get("status_v2"):
         v2_update["status_v2"] = _map_v1_to_v2(payload.target_status)
 
+    # activo = lead NO cerrado (cubre vocab V1 y V2) → mantiene el índice de dedup en sync
+    # también cuando se cierra desde el tablero kanban (antes solo el PATCH V1 lo hacía).
+    activo_val = payload.target_status not in ("cerrado_ganado", "cerrado_perdido", "vendido", "perdido")
     await db.leads.update_one(
         {"id": lead_id},
-        {"$set": {"status": payload.target_status, "updated_at": now_iso, "last_activity_at": now_iso,
+        {"$set": {"status": payload.target_status, "activo": activo_val,
+                  "updated_at": now_iso, "last_activity_at": now_iso,
                   "heat_recalc_pending": True, **v2_update}},
     )
     lvl = get_user_permission_level(user)
