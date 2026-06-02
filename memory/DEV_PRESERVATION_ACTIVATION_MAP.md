@@ -119,11 +119,10 @@ MisProyectosV2 · DesarrolladorInventario (como pantalla aparte) · 3 alias kanb
 **Tanda 2 · CÍRCULO LEAD: 🔄 EN CURSO (la tanda más grande)**
 - ✅ [FLAG] `agentic_enabled` encendido para la org dev `constructora_ariel` (local, en `db.phase_y_settings`, simulation_mode=false, features del lead a T3). Mecanismo verificado: el flag es POR-ORG (PATCH `/api/superadmin/phase-y/{org}` es superadmin-only; en local se setea el doc). El flip en prod = decisión del founder.
   - Repro local: `db.phase_y_settings.updateOne({org_id:"constructora_ariel"},{$set:{agentic_enabled:true,...tiers T3}},{upsert:true})`.
-- ⬜ [CABLE] Montar la suite en el CRM dev (12 paneles ya existen, hoy montados en asesor/superadmin, NO en dev):
-  - Per-lead (en el drawer de lead del CRM dev): `DiscProfileCard` · `ArgumentarioPanel` · `VisitPrepDossier`.
-  - Org-level (tab "Suite IA" en CRMShell): `RepliesInbox` (Bandeja IA) · `NurtureIntelligentPanel` · `SmartRoutingPanel` · `MatchWeightsPanel`.
-  - + atribución multi-touch (endpoints huérfanos b13) + historial de corridas de los 3 agentes.
-- NO marcar Tanda 2 done hasta montar la suite (sin cables sueltos).
+- ✅ [CABLE] **Org-level montado**: nuevo tab **"Suite IA"** en `DesarrolladorCRMShell` con `RepliesInbox` (Bandeja IA) · `SmartRoutingPanel` · `NurtureIntelligentPanel` · `MatchWeightsPanel` (orgId = tenant del dev). Verificado en app: los 4 renderizan REAL y trabajando (no vacíos, no 503). 0 errores nuevos de consola.
+- ⬜ [CABLE] Per-lead (drawer de lead del CRM dev): `DiscProfileCard` · `ArgumentarioPanel` · `VisitPrepDossier`.
+- ⬜ atribución multi-touch (endpoints huérfanos b13) + historial de corridas de los 3 agentes.
+- Tanda 2: ~60% (org-level suite + flag listos; faltan per-lead + atribución + run-history).
 **Tanda 3 · CÍRCULO PRECIO completo:** lentes de motores (comparador, score inversión+simulador, tax, costo obra, live pulse) dentro de Inteligencia/Proyecto.
 **Tanda 4 · estructura/IA-UX:** rearmar las 6 casas, tarjetas vivas del proyecto, jerarquía del Puente de Mando, ActionBar/ViewToggle/Ficha360 reusados.
 **Tanda 5 · limpieza:** retirar deuda muerta + rescatar pantallas varadas restantes + CitasPolicies/AutoAssign al menú.

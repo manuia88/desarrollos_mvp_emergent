@@ -9,9 +9,15 @@ import DeveloperLayout from '../../components/developer/DeveloperLayout';
 import LeadKanban from '../../components/shared/LeadKanban';
 import { MessageSquare } from 'lucide-react';
 import { Building } from '../../components/icons';
+// Suite IA agéntica (Tanda 2) — paneles org-level montados en el portal dev
+import SmartRoutingPanel from '../../components/director/SmartRoutingPanel';
+import NurtureIntelligentPanel from '../../components/agentic_crm/NurtureIntelligentPanel';
+import MatchWeightsPanel from '../../components/agentic_crm/MatchWeightsPanel';
+import RepliesInbox from '../../components/agentic_crm/RepliesInbox';
 
 const TABS = [
   { key: 'pipeline',  label: 'Pipeline',          phase: null },
+  { key: 'suite-ia',  label: 'Suite IA',          phase: null },
   { key: 'leads',     label: 'Leads',             phase: null },
   { key: 'citas',     label: 'Citas',             phase: null },
   { key: 'slots',     label: 'Slots',             phase: 'B11' },
@@ -68,6 +74,15 @@ function MensajesPlaceholder() {
   );
 }
 
+function IASection({ title, children }) {
+  return (
+    <div style={{ background: 'var(--surface, rgba(var(--cream-rgb),0.03))', border: '1px solid var(--border, rgba(var(--cream-rgb),0.10))', borderRadius: 14, padding: 16, boxShadow: 'var(--asr-shadow, none)' }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--theme, #6D4AFF)', marginBottom: 12 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
 export default function DesarrolladorCRMShell({ user, onLogout }) {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -86,6 +101,7 @@ export default function DesarrolladorCRMShell({ user, onLogout }) {
   }
 
   const activeTab = searchParams.get('tab') || 'pipeline';
+  const orgId = user?.tenant_id || user?.org_id || '';
 
   const setTab = (key) => {
     const next = new URLSearchParams(searchParams);
@@ -148,6 +164,17 @@ export default function DesarrolladorCRMShell({ user, onLogout }) {
         <div data-testid="crm-content">
           {activeTab === 'pipeline' && (
             <LeadKanban scope="mine" />
+          )}
+          {activeTab === 'suite-ia' && (
+            <div data-testid="crm-suite-ia" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ fontSize: 13, color: 'var(--cream-2)', lineHeight: 1.5 }}>
+                Tu equipo de IA trabajando el pipeline: rutea leads, los nutre, afina el match y clasifica respuestas entrantes. Tú apruebas lo delicado.
+              </div>
+              <IASection title="Bandeja IA · respuestas entrantes"><RepliesInbox asesorId={user?.user_id || user?.id || null} /></IASection>
+              <IASection title="Ruteo inteligente de leads"><SmartRoutingPanel orgId={orgId} /></IASection>
+              <IASection title="Nurture inteligente"><NurtureIntelligentPanel orgId={orgId} /></IASection>
+              <IASection title="Pesos de match · auto-ajuste"><MatchWeightsPanel orgId={orgId} /></IASection>
+            </div>
           )}
           {activeTab === 'leads' && (
             <PlaceholderContent label="Leads" />
