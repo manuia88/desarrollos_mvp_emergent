@@ -17,6 +17,7 @@ import { DirectorChatPanel } from '../../components/director/DirectorChatPanel';
 import WhatIfPanel from '../../components/whatif/WhatIfPanel';
 import AIROIPanelDev from '../../components/agentic_crm/AIROIPanelDev';
 import LivePulseZoneWidget from '../../components/shared/LivePulseZoneWidget';
+import { getCerebroStatus, getCerebroTasks, getCerebroLearning, getCerebroRecommendations, applyCerebroRecommendation } from '../../api/cerebro';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -157,6 +158,110 @@ function DevPlaysWidget() {
   );
 }
 
+// ─── Tu asistente (Cerebro surfaceado en el Puente de Mando · IA-native, loop visible) ──
+function AsistentePanel() {
+  const navigate = useNavigate();
+  const [d, setD] = useState(null);
+  const [busyRec, setBusyRec] = useState(false);
+  const [recDone, setRecDone] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const st = await getCerebroStatus();
+        if (!st?.enabled) { setD({ enabled: false }); return; }
+        const [tk, lr, rc] = await Promise.allSettled([getCerebroTasks('awaiting_approval'), getCerebroLearning(), getCerebroRecommendations()]);
+        setD({
+          enabled: true,
+          pending: tk.status === 'fulfilled' ? (tk.value?.tasks || []) : [],
+          learning: lr.status === 'fulfilled' ? lr.value : null,
+          recs: rc.status === 'fulfilled' ? ((rc.value?.recommendations || []).filter(r => r.live)) : [],
+        });
+      } catch (_) { setD({ enabled: false }); }
+    })();
+  }, []);
+  if (!d) return null;
+
+  const goSala = () => navigate('/desarrollador/crm/sala-control');
+
+  // Apagado (prod sin flag): invitación sutil, no rompe.
+  if (!d.enabled) {
+    return (
+      <Card style={{ marginBottom: 18, position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))' }}>
+        <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--theme, #6D4AFF)' }} />
+        <div className="eyebrow" style={{ marginBottom: 6, color: 'var(--theme)' }}><Sparkle size={11} /> TU ASISTENTE</div>
+        <div style={{ fontSize: 13.5, color: 'var(--cream-2)' }}>Tu asistente con IA está listo para operar tu día. Actívalo para que trabaje por ti.</div>
+      </Card>
+    );
+  }
+
+  const pend = d.pending || [];
+  const lessons = (d.learning?.lessons || []).length;
+  const retrains = (d.learning?.retrains || []).length;
+  const aprende = lessons || retrains
+    ? `He aprendido ${lessons} lección${lessons === 1 ? '' : 'es'}${retrains ? ` · ${retrains} reentreno${retrains === 1 ? '' : 's'}` : ''}.`
+    : 'Aprendo de cada trato que cierras.';
+  const topRec = (!pend.length && !recDone) ? (d.recs || [])[0] : null;
+  const applyRec = async () => {
+    if (!topRec) return;
+    setBusyRec(true);
+    try { await applyCerebroRecommendation(topRec.apply); setRecDone(true); } catch (_) {}
+    setBusyRec(false);
+  };
+
+  return (
+    <Card data-testid="asistente-panel" style={{ marginBottom: 18, position: 'relative', overflow: 'hidden', borderColor: 'var(--border-2, var(--border))' }}>
+      <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: pend.length ? 'var(--warm, #E2982E)' : 'var(--ok, #1FA06A)' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div className="eyebrow" style={{ marginBottom: 8, color: 'var(--theme)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Sparkle size={11} /> TU ASISTENTE
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ok, #1FA06A)', boxShadow: '0 0 0 3px rgba(31,160,106,0.18)' }} />
+          </div>
+          {pend.length > 0 ? (
+            <>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                {pend.length} {pend.length === 1 ? 'acción espera tu OK' : 'acciones esperan tu OK'}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--cream-2)', marginTop: 5 }}>
+                Ya hice lo que podía solo. Tu turno: revisa y aprueba en un toque.
+              </div>
+            </>
+          ) : topRec ? (
+            <>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--theme)', marginBottom: 3 }}>Te propongo</div>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 17, color: 'var(--cream)', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+                {topRec.title}
+              </div>
+              {topRec.detail && <div style={{ fontSize: 12.5, color: 'var(--cream-2)', marginTop: 4 }}>{topRec.detail}</div>}
+              <button onClick={applyRec} disabled={busyRec} data-testid="asistente-apply-rec" style={{
+                marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: busyRec ? 'wait' : 'pointer',
+                padding: '7px 14px', borderRadius: 9, fontSize: 12, fontWeight: 800, fontFamily: 'DM Sans,sans-serif',
+                background: 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))', color: '#fff', border: 'none', opacity: busyRec ? 0.7 : 1,
+              }}>{busyRec ? 'Aplicando…' : 'Aplicar'} <ArrowRight size={12} /></button>
+            </>
+          ) : (
+            <>
+              <div style={{ fontFamily: 'Outfit', fontWeight: 800, fontSize: 20, color: 'var(--cream)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                {recDone ? '¡Listo! Aplicado' : 'Al día · estoy trabajando por ti'}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--cream-2)', marginTop: 5 }}>{aprende}</div>
+            </>
+          )}
+        </div>
+        <button onClick={goSala} data-testid="asistente-cta" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', alignSelf: 'center',
+          padding: '10px 17px', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: 'DM Sans,sans-serif',
+          background: pend.length ? 'var(--grad, linear-gradient(120deg,#6366F1,#EC4899))' : 'var(--surface, #fff)',
+          color: pend.length ? '#fff' : 'var(--theme, #6D4AFF)',
+          border: pend.length ? 'none' : '1px solid rgba(109,74,255,0.4)',
+        }}>
+          {pend.length ? 'Revisar mi turno' : 'Abrir mi asistente'} <ArrowRight size={13} />
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DesarrolladorDashboard({ user, onLogout }) {
   const location = useLocation();
@@ -196,7 +301,7 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
 
       {/* Tab navigation */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border, rgba(var(--cream-rgb),0.07))', paddingBottom: 4 }}>
-        {[['resumen', 'Resumen'], ['director', 'Director AI'], ['whatif', 'What-if'], ['roi', 'Tu ROI Phase Y']].map(([key, label]) => (
+        {[['resumen', 'Resumen'], ['director', 'Asistente · Chat'], ['whatif', 'What-if'], ['roi', 'Tu ROI Phase Y']].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key)} data-testid={`ddash-tab-${key}`}
             style={{
               padding: '7px 16px', borderRadius: 9999, fontSize: 12.5,
@@ -238,6 +343,9 @@ export default function DesarrolladorDashboard({ user, onLogout }) {
         <>
       {/* Weekly Brief (hero) */}
       <WeeklyBriefWidget />
+
+      {/* Tu asistente (Cerebro) — el cerebro agéntico en el centro de decisión */}
+      <AsistentePanel />
 
       {/* Tus jugadas de hoy (valor: fusión dato + mercado) */}
       <DevPlaysWidget />
